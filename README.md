@@ -1,40 +1,43 @@
 
-<h1>Odilon Object Storage</h2>
-<h2>About Odilon</h2>
-<p>Odilon is a scalable and lightweight Open Source Object Storage that runs on standard hardware.</p>
+<h1>Odilon Open Source Object Storage</h2>
+
+<h2>Lightweight and Scalable</h2>
+<p>Odilon is a scalable and lightweight <b>Open Source</b> <b>Object Storage</b> that runs on standard hardware.</p>
 <p>It is an infrastructure software to be used by applications that need to store large amounts of unstructured digital objects such as pdf, MS Word, XLSX files, backups, videos, photos or audio.</p>
 <p>Odilon was designed for enterprise software that needs to store terabytes of medium to large size objects (like photos or pdfs) securely and safely through encryption, replication and redundancy. A typical installation would by 100M pdfs 20KB-30MB each.</p>
-<p>It has a simple single-level folder structure similar to the Bucket / Object model of Amazon S3. It is small and easy to integrate, offers encryption, data protection and fault tolerance (software RAID and Erasure Codes) and detection of silent data degradation. Odilon also supports version control and master - standby replication over the Internet for disaster recovery and ransomware recovery.</p>
+<p>It has a simple single-level folder structure similar to the <b>Bucket</b> / <b>Object</b> model of <a href="https://aws.amazon.com/s3 /" target="_blank">Amazon S3</a>. It is small and easy to integrate, offers <b>encryption</b>, data protection and fault tolerance (<b>software RAID </b> and <b>Erasure Codes</b>) and detection of <b>silent data degradation</b>. Odilon also supports <b>version control</b> and <b>master - standby replication over the Internet</b> for disaster recovery and ransomware recovery.</p>
+</p>
 
 <h2>Main features</h2>
-<ul>
-<li>Scalable Object Storage on commodity disks <br/></li>
-<li>Developed in Java 11 (uses Spring Boot, OkHttp, Jackson, Metrics, among others)</li>
-<li>Runs on Linux and Windows</li>
-<li>SDK Java 11 for client applications</li>
-<li>HTTP/S for client server communication</li>
-<li>License Open Source Apache 2. It can be used for Open Source and commercial projects</li>
-<li>Encryption at rest (AES 256)</li>
-<li>Integration with Key Management Server Hashicorp Vault</li>
-<li>Simple operation. Adding new disks requires one line in the config file, and an async process sets up disks and replicata data in background</li>
-<li>Data replication using Erasure Coding and software RAID</li>
-<li>Data immutability. Odilon supports two storage modes that protect data from deletion, whether accidental or intentional: Read Only and WORM (Write Once Read Many)</li>
-<li>Master - Standby architecture with async replication over the web, for disaster recovery, high availability, archival, anti-ransomware protection</li>
-<li>Version Control</li>
-<li>Tolerates full disk failures</li>
-<li>Disk monitoring for silent and slow data degradation detection (bit rot detection)</li>
-</ul>
+				<p>
+				<ul  class="group-list">
+				<li  class="list-item"> &#9632  Scalable Object Storage on commodity disks</li>
+				<li  class="list-item"> &#9632  Developed in Java 11 (uses Spring Boot, OkHttp, Jackson, Metrics, among others) </li>
+				<li  class="list-item"> &#9632  Runs on Linux and Windows</li>				
+				<li  class="list-item"> &#9632  SDK Java 11 for client applications</li >
+				<li  class="list-item"> &#9632  HTTP/S for client server communication</li>
+				<li  class="list-item"> &#9632  License <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank">Open Source Apache 2</a>. It can be used for Open Source and commercial projects </li>
+				<li  class="list-item"> &#9632  Encryption <i>at rest</i> (<a href="https://es.wikipedia.org/wiki/Advanced_Encryption_Standard" target="_blank">AES 256</a>) </li>
+				<li  class="list-item"> &#9632  Integration with Key Management Server <a href="https://www.vaultproject.io/" target="_blank">Hashicorp Vault</a> </li>
+				<li  class="list-item"> &#9632  Simple operation. Adding new disks requires one line in the config file, and an <i>async process</i> sets up disks and replicata data in background</li>
+				<li  class="list-item"> &#9632  Data replication using <a href="https://en.wikipedia.org/wiki/Erasure_code" target="_blank">Erasure Coding</a> and <a href="https://en.wikipedia.org/wiki/RAID" target="_blank">software RAID</a></li>
+				<li  class="list-item"> &#9632  Data immutability. Odilon supports two storage modes that protect data from deletion, whether accidental or intentional: Read Only and <a href="https://en.wikipedia.org/wiki/Write_once_read_many" target="_blank">WORM</a> (Write Once Read Many) 				 
+				<li  class="list-item"> &#9632  Master - Standby architecture with async replication over the web, for disaster recovery, high availability, archival, anti-ransomware protection</li>
+				
+				<li  class="list-item"> &#9632  Version Control</b></li>
+				<li  class="list-item"> &#9632  Tolerates full disk failures</li>
+				<li class="list-item"> &#9632 Disk monitoring for silent and slow data degradation detection (<a href="https://en.wikipedia.org/wiki/Data_degradation" target="_blank" >bit rot detection</a>)</li>
+				</ul>
+				</p>
 
 <h2>Security</h2>
-<p>Odilon keeps objects encrypted (Encryption at Rest) using modern algorithms such as AES-256. Each object has a unique encryption key. In turn, the encryption key of the object can be generated by Odilon or, which is recommended for greater security, by a Key Management Server (KMS)</p>
-<p>A KMS is software for generating, distributing, and managing cryptographic keys. It includes back-end functionality for key generation, distribution, and replacement, as well as client-side functionality for injecting keys, storing, and managing keys on devices. Moving key management to KMS prevents application reverse engineering attacks, simplifies operational maintenance, and compliance with security policies and regulations.</p>
-<p>Odilon integrates with the KMS Open Source Hashicorp Vault.</p>
-<p>Communication from source to storage is via HTTPS, which uses encryption to increase the security of data transfers (this functionality requires Java 17 and v2.0 02/2024).</p>
-<h2>Data Replication</h2>
-<p>Odilon can be configured to use software RAID for data replication. The supported configurations are</p>
-RAID 0. Two or more disks are combined to form a volume, which appears as a single virtual drive. It is not a configuration with data replication, its function is to provide greater storage and performance by allowing access to the disks in parallel.
-RAID 1.For each object, 1 or more exact copies (or mirrors) are created on two or more disks. This provides redundancy in case of disk failure. At least 2 disks are required, Odilon also supports 3 or more for greater redundancy.
-RAID 6 / Erasure Coding. It is a method of encoding data into blocks that can be distributed across multiple disks or nodes and then reconstructed from a subset of those blocks. It has great flexibility since you can adjust the number and size of the blocks and the minimum required for recovery. It uses less disk space than RAID 1 and can withstand multiple full disk failures. Odilon implements this architecture using Reed Solomon error-correction codes. (v2.0 Feb 2024)
+<h2>Security</h2>
+				<p>Odilon keeps objects encrypted (<i><b>Encryption at Rest</b></i>) using modern algorithms such as <a href="https://es.wikipedia.org/wiki/Advanced_Encryption_Standard" target="_blank">AES-256</a>. Each object has a unique encryption key. In turn, the encryption key of the object can be generated by Odilon or, which is recommended for greater security, by a <b>Key Management Server</b>
+				(<a href="https://en.wikipedia.org/wiki/Key_management" target="_blank ">KMS</a>)</p>
+
+<p>A KMS is software for generating, distributing, and managing cryptographic keys. It includes <i>back-end</i> functionality for key generation, distribution, and replacement, as well as client-side functionality for injecting keys, storing, and managing keys on devices. Moving key management to KMS prevents application reverse engineering attacks, simplifies operational maintenance, and compliance with security policies and regulations.</p>
+<p>Odilon integrates with the KMS Open Source <a href="https://www.vaultproject.io/" target="_blank">Hashicorp Vault</a>.</p>
+<p>Communication from source to storage is via <b>HTTPS</b>, which uses encryption to increase the security of data transfers (this functionality requires Java 17. v2 02/2024).</p>
 
 <h2>What Odilon is not</h2>h2>
 <b>Odilon is not S3 compatible</b>
