@@ -88,3 +88,8 @@ Plus the extra meta file and shards for erasure coding.
 <br/>
 </li>
 </ul>
+
+<h2>Download</h2>
+<p>Plese donwlonad Odilon server from <a href="https://odilon.io" target="_blank"> Odilon website</a></p>
+
+
