@@ -1,5 +1,5 @@
 
-<h1>Odilon Open Source Object Storage</h2>
+<h1>Odilon Object Storage</h2>
 
 <h2>Lightweight and Scalable</h2>
 <p>Odilon is a scalable and lightweight <b>Open Source</b> <b>Object Storage</b> that runs on standard hardware.</p>
