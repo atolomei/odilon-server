@@ -11,7 +11,7 @@ It has a simple single-level folder structure similar to the Bucket / Object mod
 
 **Main features**
 
-Scalable Object Storage on commodity disks
+Scalable Object Storage on commodity disks <br/>
 Developed in Java 11 (uses Spring Boot, OkHttp, Jackson, Metrics, among others)
 Runs on Linux and Windows
 SDK Java 11 for client applications
