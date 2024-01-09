@@ -90,6 +90,20 @@ Plus the extra meta file and shards for erasure coding.
 </ul>
 
 <h2>Download</h2>
-<p>Plese donwlonad Odilon server from <a href="https://odilon.io" target="_blank"> Odilon website</a></p>
+<ul>
+<li><a href="https://odilon.io#download" target="_blank">Odilon Server</a></li>	
+<li><a href="https://odilon.io#download" target="_blank">Odilon Java SDK</a></li>	
+</p>
 
+<h2>Resources</h2>
+<ul>
+<li><a href="https://odilon.io/configuration.html" target="_blank">Installation, Configuration and Operation</a></li>	
+<li><a href="https://odilon.io/development.html" target="_blank">Java Application Development with Odilon</a></li>	
+<li><a href="https://odilon.io/javadoc/index.html" target="_blank">Odilon SDK Javadoc</a></li>	
+<li><a href="https://twitter.com/odilonSoftware" target="_blank">Twitter</a></li>	
+
+
+
+<h2>Download</h2>
+<p>Plese donwlonad Odilon server from <a href="https://odilon.io" target="_blank"> Odilon website</a></p>
 
