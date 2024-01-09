@@ -93,7 +93,7 @@ Plus the extra meta file and shards for erasure coding.
 <ul>
 <li><a href="https://odilon.io#download" target="_blank">Odilon Server</a></li>	
 <li><a href="https://odilon.io#download" target="_blank">Odilon Java SDK</a></li>	
-</p>
+</ul>
 
 <h2>Resources</h2>
 <ul>
