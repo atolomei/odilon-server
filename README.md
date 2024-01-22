@@ -1,4 +1,3 @@
-
 <h1>Odilon Object Storage</h2>
 
 <h2>Lightweight and Scalable</h2>
@@ -50,7 +49,6 @@ It is a method of encoding data into blocks that can be distributed across multi
 </ul>
 </p>
 
-
 <h2>Master Standby Architecture</h2>
 <p>Odilon supports Master - Standby Architecture for <b>disaster recovery</b>, <b>high availability</b>, <b>archival</b>, and <b>anti-ransomware</b> protection. Data replication is done asynchronously using HTTP/S over the local network or the Internet. Setting up a standby server is simple, just add the URL and credentials to the master configuration file and restart. 
 Odilon will propagate each operation to the standby server. It will also run a replication process in background for data existing before connecting the standby server. 
@@ -98,7 +96,8 @@ Plus the extra meta file and shards for erasure coding.
 <h2>Resources</h2>
 <ul>
 <li><a href="https://odilon.io" target="_blank">Odilon website</a></li>	
-<li><a href="https://odilon.io/configuration.html" target="_blank">Installation, Configuration and Operation</a></li>	
+<li><a href="https://odilon.io/configuration-linux.html" target="_blank">Installation, Configuration and Operation on Linux</a></li>	
+<li><a href="https://odilon.io/configuration-windows.html" target="_blank">Installation, Configuration and Operation on Windows</a></li>		
 <li><a href="https://odilon.io/development.html" target="_blank">Java Application Development with Odilon</a></li>	
 <li><a href="https://odilon.io/javadoc/index.html" target="_blank">Odilon SDK Javadoc</a></li>	
 <li><a href="https://twitter.com/odilonSoftware" target="_blank">Twitter</a></li>	
