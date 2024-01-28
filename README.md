@@ -104,7 +104,8 @@ Plus the extra meta file and shards for erasure coding.
 <li><a href="https://odilon.io/development.html" target="_blank">Java Application Development with Odilon</a></li>	
 <li><a href="https://odilon.io/javadoc/index.html" target="_blank">Odilon SDK Javadoc</a></li>	
 <li><a href="https://twitter.com/odilonSoftware" target="_blank">Twitter</a></li>
-</ul>p>
+</ul>
+</p>
 
 <h2>SDK Source Code</h2>
 <p>
