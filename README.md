@@ -103,7 +103,7 @@ Plus the extra meta file and shards for erasure coding.
 
 <h2>SDK Source Code</h2>
 <ul>
-<li><a href="https://github.com/atolomei/odilon-client" target="_blank">odilon-client</a></li>	
-<li><a href="https://github.com/atolomei/odilon-model" target="_blank">odilon-model</a></li>	
+<li><a href="https://github.com/atolomei/odilon-client" target="_blank">odilon-client</a></li>
+<li><a href="https://github.com/atolomei/odilon-model" target="_blank">odilon-model</a></li>
 </ul>
 
