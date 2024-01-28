@@ -1,0 +1,26 @@
+                              Odilon Release Notes
+
+This file lists Odilon's raw release notes with details of every change to Odilon.
+
+
+==================  0.5-beta ==================
+
+This is the first release of Odilon Object Storage
+
+==================  0.6-beta ==================
+
+2023.11.02 master-standby architecture
+
+						
+==================  0.9-beta ==================
+
+
+2023.11.02 bug fixes
+2024.01.02 Version Control for RAID 0 and RAID 1
+2024.01.18 Master key. Encryption not enabled by default
+ 
+
+
+
+
+

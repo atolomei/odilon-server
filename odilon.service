@@ -1,0 +1,34 @@
+[Unit]
+Description=Odilon
+Documentation=http://odilon.io
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Environment="ODILON_HOME=/opt/odilon"
+WorkingDirectory=/opt/odilon
+User=odilon
+Group=odilon
+PermissionsStartOnly=true
+ExecStart=/opt/odilon/bin/start-service.sh
+
+# Let systemd restart this service only if it has ended with the clean exit code or signal.
+Restart=on-success
+
+StandardOutput=journal
+StandardError=inherit
+
+# Specifies the maximum file descriptor number that can be opened by this process
+LimitNOFILE=65536
+
+# Disable timeout logic and wait until process is stopped
+TimeoutStopSec=0
+
+# SIGTERM signal is used to stop Odilon
+KillSignal=SIGTERM
+SendSIGKILL=no
+SuccessExitStatus=0
+
+[Install]
+WantedBy=multi-user.target
+

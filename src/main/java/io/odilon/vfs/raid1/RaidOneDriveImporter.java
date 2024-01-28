@@ -1,0 +1,315 @@
+/*
+ * Odilon Object Storage
+ * (C) Novamens 
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.odilon.vfs.raid1;
+
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+
+import javax.annotation.PostConstruct;
+
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import io.odilon.log.Logger;
+import io.odilon.model.ObjectMetadata;
+import io.odilon.model.ServerConstant;
+import io.odilon.model.SharedConstant;
+import io.odilon.model.list.DataList;
+import io.odilon.model.list.Item;
+import io.odilon.vfs.DriveInfo;
+import io.odilon.vfs.model.Drive;
+import io.odilon.vfs.model.DriveStatus;
+import io.odilon.vfs.model.LockService;
+import io.odilon.vfs.model.VFSBucket;
+import io.odilon.vfs.model.VirtualFileSystemService;
+
+@Component
+@Scope("prototype")
+public class RaidOneDriveImporter implements Runnable {
+			
+	static private Logger logger = Logger.getLogger(RaidOneDriveImporter.class.getName());
+	static private Logger startuplogger = Logger.getLogger("StartupLogger");
+
+	@JsonIgnore
+	private AtomicBoolean bucketsCreated = new AtomicBoolean(false);
+
+	@JsonIgnore
+	private AtomicLong checkOk = new AtomicLong(0);
+	
+	@JsonIgnore
+	private AtomicLong counter = new AtomicLong(0);
+	
+	@JsonIgnore			
+	private AtomicLong copied = new AtomicLong(0);
+	
+	@JsonIgnore
+	private AtomicLong totalBytes = new AtomicLong(0);
+	
+	@JsonIgnore
+	private AtomicLong errors = new AtomicLong(0);
+	
+	@JsonIgnore			
+	private AtomicLong cleaned = new AtomicLong(0);
+
+	@JsonIgnore
+	private AtomicLong notAvailable = new AtomicLong(0);
+
+	@JsonIgnore
+	private RAIDOneDriver driver;
+
+	@JsonIgnore
+	private Thread thread;
+
+	@JsonIgnore
+	private AtomicBoolean done;
+	
+	@JsonIgnore
+	private LockService vfsLockService;
+	
+	public RaidOneDriveImporter(RAIDOneDriver driver) {
+		this.driver=driver;
+		this.vfsLockService = this.driver.getLockService();
+	}
+	
+	public AtomicBoolean isDone() {
+		return this.done;
+	}
+	
+	public AtomicLong getErrors() {
+		return this.errors;
+	}
+	
+	public AtomicLong getNnotAvailable() {
+		return this.notAvailable;
+	}
+	
+	/**
+	 * 
+	 */
+	@PostConstruct
+	public void onInitialize() {
+		this.thread = new Thread(this);
+		this.thread.setDaemon(true);
+		this.thread.setName(this.getClass().getSimpleName());
+		this.thread.start();
+	}
+	
+	@Override
+	public void run() {
+		
+		logger.info("Starting -> " + getClass().getSimpleName());
+		
+		copy();
+		
+		if (this.errors.get()>0 || this.notAvailable.get()>0) {
+			startuplogger.error("The process can not be completed due to errors");
+			return;
+		}
+	
+		updateDrives();
+		
+		this.done = new AtomicBoolean(true);
+	}
+	
+	/**
+	 * 
+	 */
+	private void copy() {
+		
+		long start_ms = System.currentTimeMillis();
+		
+		final int maxProcessingThread = Double.valueOf(Double.valueOf(Runtime.getRuntime().availableProcessors()-1) / 2.0 ).intValue() + 1;
+		
+		ExecutorService executor = null;
+
+		try {
+			
+			this.errors = new AtomicLong(0);
+			
+			executor = Executors.newFixedThreadPool(maxProcessingThread);
+			
+			for (VFSBucket bucket: this.driver.getVFS().listAllBuckets()) {
+				
+				Integer pageSize = Integer.valueOf(ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE);
+				Long offset = Long.valueOf(0);
+				String agentId = null;
+				
+				boolean done = false;
+				
+				final Drive enabledDrive = getDriver().getDrivesEnabled().get(0);
+				
+				while (!done) {
+					 
+					DataList<Item<ObjectMetadata>> data = this.driver.getVFS().listObjects(
+							bucket.getName(), 
+							Optional.of(offset),
+							Optional.ofNullable(pageSize),
+							Optional.empty(),
+							Optional.ofNullable(agentId)); 
+	
+					if (agentId==null)
+						agentId = data.getAgentId();
+
+					List<Callable<Object>> tasks = new ArrayList<>(data.getList().size());
+					
+					for (Item<ObjectMetadata> item: data.getList()) {
+						tasks.add(() -> {
+							try {
+
+								this.counter.getAndIncrement();
+								
+								if (( (this.counter.get()+1) % 50) == 0)
+									logger.debug("scanned (copy) so far -> " + String.valueOf(this.counter.get()));
+								
+								if (item.isOk()) {
+									for (Drive drive: getDriver().getDrivesAll()) {
+										
+										if (drive.getDriveInfo().getStatus()==DriveStatus.NOTSYNC) {
+										
+											try {
+												getLockService().getObjectLock(item.getObject().bucketName, item.getObject().objectName).writeLock().lock();
+												getLockService().getBucketLock(item.getObject().bucketName).readLock().lock();
+												
+												File newmeta = drive.getObjectMetadataFile(item.getObject().bucketName, item.getObject().objectName);
+												
+												if (!newmeta.exists()) {
+														InputStream is = null;
+														BufferedOutputStream out = null;
+														// data ----
+														try {
+															File dataFile = enabledDrive.getObjectDataFile(item.getObject().bucketName, item.getObject().objectName);
+															is = new BufferedInputStream( new FileInputStream(dataFile));
+															byte[] buf = new byte[ VirtualFileSystemService.BUFFER_SIZE ];
+															String sPath = drive.getObjectDataFilePath(bucket.getName(), item.getObject().objectName);
+															out = new BufferedOutputStream(new FileOutputStream(sPath), VirtualFileSystemService.BUFFER_SIZE);
+															int bytesRead;
+															while ((bytesRead = is.read(buf, 0, buf.length)) >= 0) {
+																out.write(buf, 0, bytesRead);
+															}
+															this.totalBytes.addAndGet(dataFile.length());
+														} finally {
+															if (is!=null)
+																is.close();
+															if (out!=null)
+																out.close();
+														}
+														// metadata ----
+														ObjectMetadata meta = item.getObject();
+														meta.drive=drive.getName();
+														drive.saveObjectMetadata(meta);
+														this.copied.getAndIncrement();
+												}
+												
+											} catch (Exception e) {
+												logger.error(e);
+												this.errors.getAndIncrement();
+											}
+											finally {
+												getLockService().getBucketLock(item.getObject().bucketName).readLock().unlock();
+												getLockService().getObjectLock(item.getObject().bucketName, item.getObject().objectName).writeLock().unlock();
+											}
+										}
+									}
+								}
+								else {
+									this.notAvailable.getAndIncrement();
+								}
+							} catch (Exception e) {
+								logger.error(e);
+								this.errors.getAndIncrement();
+							}
+							return null;
+						 });
+					}
+					
+					try {
+						executor.invokeAll(tasks, 10, TimeUnit.MINUTES);
+						
+					} catch (InterruptedException e) {
+						logger.error(e);
+					}
+					
+					offset += Long.valueOf(Integer.valueOf(data.getList().size()).longValue());
+					done = (data.isEOD() || (this.errors.get()>0) || (this.notAvailable.get()>0));
+				}
+			}
+			
+			try {
+				executor.shutdown();
+				executor.awaitTermination(10, TimeUnit.MINUTES);
+				
+			} catch (InterruptedException e) {
+			}
+			
+		} finally {
+			
+			startuplogger.info("Process completed");
+			startuplogger.debug("Threads: " + String.valueOf(maxProcessingThread));
+			startuplogger.info("Total scanned: " + String.valueOf(this.counter.get()));
+			startuplogger.info("Total copied: " + String.valueOf(this.copied.get()));
+			double val = Double.valueOf(totalBytes.get()).doubleValue() / SharedConstant.d_gigabyte;
+			startuplogger.info("Total size: " + String.format("%14.4f", val).trim() + " GB");
+			
+			if (this.errors.get()>0)
+				startuplogger.info("Errors: " + String.valueOf(this.errors.get()));
+			
+			if (this.notAvailable.get()>0)
+				startuplogger.info("Not Available: " + String.valueOf(this.notAvailable.get()));
+			
+			startuplogger.info("Duration: " + String.valueOf(Double.valueOf(System.currentTimeMillis() - start_ms) / Double.valueOf(1000)) + " secs");
+			startuplogger.info("---------");
+			
+		}
+	}
+
+	protected RAIDOneDriver getDriver() {
+		return this.driver;
+	}
+
+	protected LockService getLockService() {
+		return this.vfsLockService;
+	}
+	
+	private void updateDrives() {
+		for (Drive drive: getDriver().getDrivesAll()) {
+			if (drive.getDriveInfo().getStatus()==DriveStatus.NOTSYNC) {
+				DriveInfo info=drive.getDriveInfo();
+				info.setStatus(DriveStatus.ENABLED);
+				drive.setDriveInfo(info);
+				getDriver().getVFS().getDrivesEnabled().put(drive.getName(), drive);
+				startuplogger.debug("drive synced -> " + drive.getRootDirPath());
+			}
+		}
+	}
+	
+	
+}

@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- status=OFF  			[do not log internal log4 status events]
+    monitorInterval=60 		[reload file every seconds]
+ - -->
+
+<configuration status="OFF"  monitorInterval="30" packages="io.odilon">
+	
+	<Properties>
+		<Property name="log-path">logs</Property>
+	</Properties>
+	
+	<appenders>
+		<Console name="Console" target="SYSTEM_OUT">
+			<PatternLayout pattern="%d{MM.dd.yyyy HH:mm:ss.SSS} [%t] %-5level %c{1.} - %msg%n"/>
+		</Console>
+
+		<RollingFile name="odilon" fileName="${sys:log-path}/odilon.log" immediateFlush="false"  filePattern="${sys:log-path}/odilon-%d{yyyy-MM-dd-HH}.log" >
+			<PatternLayout pattern="%d{MM.dd.yyyy HH:mm:ss.SSS} [%t] %-5level %c{1.} - %msg%n"/>
+			<Policies>
+				<!-- TimeBasedTriggeringPolicy interval="1" modulate="true"/ -->
+				<SizeBasedTriggeringPolicy size="1000 MB" />
+			</Policies>
+			<DefaultRolloverStrategy>
+			    <!--
+			      * only files in the log folder and 1 level
+			      * only rolled over log files (name match)
+			      * only files that are 7 days old or older
+			    -->
+			    <Delete basePath="${sys:log-path}" maxDepth="2">
+			      <IfFileName glob="*.log" />
+			      <IfLastModified age="7d" />
+			    </Delete>
+			  </DefaultRolloverStrategy>
+		</RollingFile>
+
+
+		<!--Startup.log prints all info and error of the StartUp process  %logger{36}  (immediateFlush="false" is not working) -->
+		
+		<RollingFile name="startup" fileName="${sys:log-path}/startup.log" immediateFlush="true" append="false" filePattern="${sys:log-path}/startup-%d{yyyy-MM-dd}.log" >
+			<PatternLayout pattern="%d{MM.dd.yyyy HH:mm:ss.SSS} %-5level - %msg%n"/>
+			<Policies>
+				<TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+				<SizeBasedTriggeringPolicy size="50 MB" />
+			</Policies>
+			<DefaultRolloverStrategy max="10"/>
+		</RollingFile>
+		
+		<RollingFile name="initialSync" fileName="${sys:log-path}/initialSync.log" immediateFlush="true" append="false" filePattern="${sys:log-path}/initialSync-%d{yyyy-MM-dd}.log" >
+			<PatternLayout pattern="%d{MM.dd.yyyy HH:mm:ss.SSS} %-5level - %msg%n"/>
+			<Policies>
+				<TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+				<SizeBasedTriggeringPolicy size="100 MB" />
+			</Policies>
+			<DefaultRolloverStrategy max="10"/>
+		</RollingFile>
+
+		
+		<RollingFile name="dataIntegrityCheck" fileName="${sys:log-path}/dataIntegrityCheck.log" immediateFlush="true" append="false" filePattern="${sys:log-path}/dataIntegrityCheck-%d{yyyy-MM-dd}.log" >
+			<PatternLayout pattern="%d{MM.dd.yyyy HH:mm:ss.SSS} %-5level - %msg%n"/>
+			<Policies>
+				<TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+				<SizeBasedTriggeringPolicy size="50 MB" />
+			</Policies>
+			<DefaultRolloverStrategy max="10"/>
+		</RollingFile>
+	</appenders>
+
+	<loggers>
+
+		<!-- =============================================================================================================== -->
+		<!-- Root Logger -->
+		<Asyncroot level="error">
+			<AppenderRef ref="Console" />
+			<appender-ref ref="odilon"/>
+		</Asyncroot>
+
+		<!-- =============================================================================================================== -->
+		<!-- Startup. This logger is just used by the services at startup  													 -->
+ 			
+		<Logger name="StartupLogger" level="info" additivity="false">
+			<AppenderRef ref="Console"/>
+			<appender-ref ref="startup"/>
+		</Logger>
+		
+		<!-- initialSync. Initial sync with standby server																	-->
+		<Logger name="IntialSyncLogger" level="info" additivity="false">
+			<appender-ref ref="initialSync"/>
+		</Logger>
+
+		
+		<Logger name="dataIntegrityCheck" level="info" additivity="false">
+			<appender-ref ref="dataIntegrityCheck"/>
+		</Logger>	
+		
+	</loggers>
+			
+	
+</configuration>
+
+

@@ -1,0 +1,94 @@
+package io.odilon.vfs.model;
+
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.Iterator;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
+import io.odilon.log.Logger;
+
+
+public abstract class VFSWalker implements Iterator<Path>  {
+				
+	private static final Logger logger = Logger.getLogger(VFSWalker.class.getName());
+
+	static private ObjectMapper mapper = new ObjectMapper();
+	
+	static  {
+		mapper.registerModule(new JavaTimeModule());
+		mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+	}
+
+	@JsonProperty("bucketName")
+	private String bucketName;
+	
+	@JsonProperty("agentId")
+	private String agentId = null;
+	
+	@JsonProperty("offset")
+	private Long offset = Long.valueOf(0);
+	
+	/**
+	 * @param bucketName
+	 */
+	public VFSWalker(String bucketName) {
+		this.bucketName=bucketName;
+	}
+	
+	public String getAgentId() {
+		return agentId;
+	}
+
+	public void setAgentId(String agentId) {
+		this.agentId = agentId;
+	}
+
+	
+	public String getBucketName() {
+		return bucketName;
+	}
+
+	public void setBucketName(String bucketName) {
+		this.bucketName = bucketName;
+	}
+
+	public Long getOffset() {
+		return offset;
+	}
+
+	public Long setOffset(Long offset) {
+		this.offset = offset;
+		return offset;
+	}
+
+	public void close() throws IOException  {
+	}
+
+	
+	 
+		@Override
+		public String toString() {
+			StringBuilder str = new StringBuilder();
+			str.append(this.getClass().getSimpleName() +"{");
+			str.append(toJSON());
+			str.append("}");
+			return str.toString();
+		}
+		
+	  public String toJSON() {
+	   try {
+			return mapper.writeValueAsString(this);
+		} catch (JsonProcessingException e) {
+					logger.error(e);
+					return "\"error\":\"" + e.getClass().getName()+ " | " + e.getMessage()+"\""; 
+		}
+	  }
+	
+	 
+	
+}
