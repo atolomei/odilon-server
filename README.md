@@ -54,7 +54,8 @@ Odilon will propagate each operation to the standby server. It will also run a r
 ​</p>
 
 <h2>What Odilon is not</h2>
-<ul class="group-list">
+<p>
+<ul class="group-list>
 <li class="list-item"><b>Odilon is not S3 compatible</b><br/>
 Odilon API is way simpler than S3. The only thing it has in common with AWS S3 it that uses the bucket/object methafor to organize the object space.
 <br/>
@@ -87,12 +88,15 @@ Plus the extra meta file and shards for erasure coding.
 </ul>
 
 <h2>Download</h2>
+<p>
 <ul>
 <li><a href="https://odilon.io#download" target="_blank">Odilon Server</a></li>	
 <li><a href="https://odilon.io#download" target="_blank">Odilon Java SDK</a></li>	
 </ul>
+</p>
 
 <h2>Resources</h2>
+<p>
 <ul>
 <li><a href="https://odilon.io" target="_blank">Odilon website</a></li>	
 <li><a href="https://odilon.io/configuration-linux.html" target="_blank">Installation, Configuration and Operation on Linux</a></li>	
@@ -100,12 +104,15 @@ Plus the extra meta file and shards for erasure coding.
 <li><a href="https://odilon.io/development.html" target="_blank">Java Application Development with Odilon</a></li>	
 <li><a href="https://odilon.io/javadoc/index.html" target="_blank">Odilon SDK Javadoc</a></li>	
 <li><a href="https://twitter.com/odilonSoftware" target="_blank">Twitter</a></li>
+</ul>p>
 
 <h2>SDK Source Code</h2>
+<p>
 <ul>
-<li><a href="https://github.com/atolomei/odilon-client" target="_blank">odilon-client</a></li>
-<li><a href="https://github.com/atolomei/odilon-model" target="_blank">odilon-model</a></li>
+<li class="list-item"><a href="https://github.com/atolomei/odilon-client" target="_blank">odilon-client</a></li>
+<li class="list-item"><a href="https://github.com/atolomei/odilon-model" target="_blank">odilon-model</a></li>
 </ul>
+</p>
 
 
 
