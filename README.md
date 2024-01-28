@@ -2,8 +2,7 @@
 
 <h2>Lightweight and Scalable</h2>
 <p>Odilon is a scalable and lightweight <b>Open Source</b> <b>Object Storage</b> that runs on standard hardware.</p>
-<p>It is an infrastructure software to be used by applications that need to store large amounts of unstructured digital objects such as pdf, MS Word, XLSX files, backups, videos, photos or audio.</p>
-<p>Odilon was designed for enterprise software that needs to store terabytes of medium to large size objects (like photos or pdfs) securely and safely through encryption, replication and redundancy. A typical installation would by 100M pdfs 20KB-30MB each.</p>
+<p>It is an infrastructure software designed to be used by applications that need to store to store terabytes of medium to large size objects (like photos, pdfs, audio, video) securely and safely through encryption, replication and redundancy. A typical installation would by 100M pdfs 20KB-30MB each.</p>
 <p>It has a simple single-level folder structure similar to the <b>Bucket</b> / <b>Object</b> model of <a href="https://aws.amazon.com/s3 /" target="_blank">Amazon S3</a>. It is small and easy to integrate, offers <b>encryption</b>, data protection and fault tolerance (<b>software RAID </b> and <b>Erasure Codes</b>) and detection of <b>silent data degradation</b>. Odilon also supports <b>version control</b> and <b>master - standby replication over the Internet</b> for disaster recovery and ransomware recovery.</p>
 </p>
 
