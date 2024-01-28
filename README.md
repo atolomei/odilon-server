@@ -99,11 +99,13 @@ Plus the extra meta file and shards for erasure coding.
 <li><a href="https://odilon.io/configuration-windows.html" target="_blank">Installation, Configuration and Operation on Windows</a></li>		
 <li><a href="https://odilon.io/development.html" target="_blank">Java Application Development with Odilon</a></li>	
 <li><a href="https://odilon.io/javadoc/index.html" target="_blank">Odilon SDK Javadoc</a></li>	
-<li><a href="https://twitter.com/odilonSoftware" target="_blank">Twitter</a></li>	
+<li><a href="https://twitter.com/odilonSoftware" target="_blank">Twitter</a></li>
 
 <h2>SDK Source Code</h2>
 <ul>
 <li><a href="https://github.com/atolomei/odilon-client" target="_blank">odilon-client</a></li>
 <li><a href="https://github.com/atolomei/odilon-model" target="_blank">odilon-model</a></li>
 </ul>
+
+
 
