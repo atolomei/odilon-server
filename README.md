@@ -60,6 +60,8 @@ Odilon will propagate each operation to the standby server. It will also run a r
 ![odilon-master-standby](https://github.com/atolomei/odilon-server/assets/29349757/913f7b54-1acf-46a2-97c6-3bd42190b9af)
 
 
+<br/>
+<br/>
 <h2>What Odilon is not</h2>
 <p>
 <ul class="group-list>
