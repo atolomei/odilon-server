@@ -52,12 +52,11 @@ It is a method of encoding data into blocks that can be distributed across multi
 <h2>Master Standby Architecture</h2>
 <p>Odilon supports Master - Standby Architecture for <b>disaster recovery</b>, <b>high availability</b>, <b>archival</b>, and <b>anti-ransomware</b> protection. Data replication is done asynchronously using HTTP/S over the local network or the Internet. Setting up a standby server is simple, just add the URL and credentials to the master configuration file and restart. 
 Odilon will propagate each operation to the standby server. It will also run a replication process in background for data existing before connecting the standby server. 
+<br/>
+<br/>
 ​</p>
-<br/>
-<br/>
 ![odilon-master-standby](https://github.com/atolomei/odilon-server/assets/29349757/502764de-2285-4eb8-ab8b-5ff3f65d3496)
-<br/>
-<br/>
+
 <h2>What Odilon is not</h2>
 <p>
 <ul class="group-list>
