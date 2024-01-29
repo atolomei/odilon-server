@@ -54,6 +54,8 @@ It is a method of encoding data into blocks that can be distributed across multi
 Odilon will propagate each operation to the standby server. It will also run a replication process in background for data existing before connecting the standby server. 
 ​</p>
 
+![odilon-master-standby](https://github.com/atolomei/odilon-server/assets/29349757/6d63c665-dfd6-490a-9f39-6db68e10db6f)
+
 <h2>What Odilon is not</h2>
 <p>
 <ul class="group-list>
