@@ -96,6 +96,9 @@ Plus the extra meta file and shards for erasure coding.
 </li>
 </ul>
 
+![sunflower-g72ba79a53_1280](https://github.com/atolomei/odilon-server/assets/29349757/6f2526a4-dfc2-4d7d-b7d7-cacd2c834e71)
+
+
 <h2>Download</h2>
 <p>
 <ul>
