@@ -56,8 +56,8 @@ Odilon will propagate each operation to the standby server. It will also run a r
 <br/>
 ​</p>
 
-![spring-gaede65182_1280](https://github.com/atolomei/odilon-server/assets/29349757/c9a81575-d193-4fc1-9194-27b76daf592f)
 
+![odilon-master-standby](https://github.com/atolomei/odilon-server/assets/29349757/913f7b54-1acf-46a2-97c6-3bd42190b9af)
 
 
 <h2>What Odilon is not</h2>
