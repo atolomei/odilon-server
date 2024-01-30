@@ -34,6 +34,11 @@
 <p>Odilon integrates with the KMS Open Source <a href="https://www.vaultproject.io/" target="_blank">Hashicorp Vault</a>.</p>
 <p>Communication from source to storage is via <b>HTTPS</b>, which uses encryption to increase the security of data transfers (this functionality requires Java 17. v2 02/2024).</p>
 
+![sunflower-g72ba79a53_1280](https://github.com/atolomei/odilon-server/assets/29349757/6f2526a4-dfc2-4d7d-b7d7-cacd2c834e71)
+
+
+
+
 <h2>Data Replication</h2>
 <p>Odilon can be configured to use software RAID for data replication. The supported configurations are</p>
 <p>
@@ -95,9 +100,6 @@ Plus the extra meta file and shards for erasure coding.
 <br/>
 </li>
 </ul>
-
-![sunflower-g72ba79a53_1280](https://github.com/atolomei/odilon-server/assets/29349757/6f2526a4-dfc2-4d7d-b7d7-cacd2c834e71)
-
 
 
 <h2>Using Odilon</h2>
