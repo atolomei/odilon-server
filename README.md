@@ -33,12 +33,7 @@
 <p>A KMS is software for generating, distributing, and managing cryptographic keys. It includes <i>back-end</i> functionality for key generation, distribution, and replacement, as well as client-side functionality for injecting keys, storing, and managing keys on devices. Moving key management to KMS prevents application reverse engineering attacks, simplifies operational maintenance, and compliance with security policies and regulations.</p>
 <p>Odilon integrates with the KMS Open Source <a href="https://www.vaultproject.io/" target="_blank">Hashicorp Vault</a>.</p>
 <p>Communication from source to storage is via <b>HTTPS</b>, which uses encryption to increase the security of data transfers (this functionality requires Java 17. v2 02/2024).</p>
-
-![sunflower-g72ba79a53_1280](https://github.com/atolomei/odilon-server/assets/29349757/6f2526a4-dfc2-4d7d-b7d7-cacd2c834e71)
-
-
-
-
+ 
 <h2>Data Replication</h2>
 <p>Odilon can be configured to use software RAID for data replication. The supported configurations are</p>
 <p>
