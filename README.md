@@ -115,12 +115,9 @@ A typical architecture for a Web Application is</p>
 <br/>
 Example to upload 2 pdf files:
 <br/>
+<br/>
 
-
-<div style="max-width:100%; float:left; width:100%;">
-<div class="code">
-<pre>
-<code class="language-java">
+```java
 String endpoint = "http://localhost"; 
 
 /** default port */
@@ -145,11 +142,7 @@ OdilonClient client = new ODClient(endpoint, port, accessKey, secretKey);
 
 client.putObject(bucketName, objectName1, file1);
 client.putObject(bucketName, objectName2, file2);
-</code>
-</pre>
-
-
-</div>
+```
 
 <p><a href="https://odilon.io/development.html" target="_blank">Java Application Development with Odilon</a></p>	
 
