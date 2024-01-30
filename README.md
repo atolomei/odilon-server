@@ -116,7 +116,10 @@ Example to upload 2 pdf files:
 <br/>
 
 
-<code>
+<div style="max-width:100%; float:left; width:100%;">
+<div class="code">
+<pre>
+<code class="language-java">
 String endpoint = "http://localhost"; 
 
 /** default port */
@@ -142,6 +145,10 @@ OdilonClient client = new ODClient(endpoint, port, accessKey, secretKey);
 client.putObject(bucketName, objectName1, file1);
 client.putObject(bucketName, objectName2, file2);
 </code>
+</pre>
+
+</div>
+
 
 <h2>Download</h2>
 <p>
