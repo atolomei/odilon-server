@@ -143,9 +143,10 @@ OdilonClient client = new ODClient(endpoint, port, accessKey, secretKey);
 client.putObject(bucketName, objectName1, file1);
 client.putObject(bucketName, objectName2, file2);
 ```
-
-<p><a href="https://odilon.io/development.html" target="_blank">Java Application Development with Odilon</a></p>	
-
+<p>
+More info in Odilon's website <br/>
+<a href="https://odilon.io/development.html" target="_blank">Java Application Development with Odilon</a>
+</p>
 
 <h2>Download</h2>
 <p>
