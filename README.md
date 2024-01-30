@@ -99,6 +99,50 @@ Plus the extra meta file and shards for erasure coding.
 ![sunflower-g72ba79a53_1280](https://github.com/atolomei/odilon-server/assets/29349757/6f2526a4-dfc2-4d7d-b7d7-cacd2c834e71)
 
 
+
+<h2>Using Odilon</h2>
+<p>
+A Java client program that interacts with the Odilon server must include the Odilon SDK jar in the classpath.
+A typical architecture for a Web Application is</p> 
+
+<br/>
+<br/>
+
+![web-app-odilon-en](https://github.com/atolomei/odilon-server/assets/29349757/115e1cc0-223d-4f92-a121-e3f9ad3a1418)
+
+<br/>
+<br/>
+Example to upload 2 pdf files:
+<br/>
+
+
+<code>
+String endpoint = "http://localhost"; 
+
+/** default port */
+int port = 9234; 
+
+/** default credentials */
+String accessKey = "odilon";
+String secretKey = "odilon";
+			
+String bucketName  = "demo_bucket";
+String objectName1 = "demo_object1";
+String objectName2 = "demo_object2";
+			
+File file1 = new File("test1.pdf");
+File file2 = new File("test2.pdf");
+			
+/* put two objects in the bucket,
+the bucket must exist before sending the object,
+and object names must be unique for that bucket */
+			
+OdilonClient client = new ODClient(endpoint, port, accessKey, secretKey);
+
+client.putObject(bucketName, objectName1, file1);
+client.putObject(bucketName, objectName2, file2);
+</code>
+
 <h2>Download</h2>
 <p>
 <ul>
