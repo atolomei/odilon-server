@@ -49,14 +49,15 @@ import io.odilon.vfs.DriveInfo;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.DriveStatus;
 import io.odilon.vfs.model.LockService;
+import io.odilon.vfs.model.SimpleDrive;
 import io.odilon.vfs.model.VFSBucket;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 @Component
 @Scope("prototype")
-public class RaidOneDriveImporter implements Runnable {
+public class RAIDOneDriveImporter implements Runnable {
 			
-	static private Logger logger = Logger.getLogger(RaidOneDriveImporter.class.getName());
+	static private Logger logger = Logger.getLogger(RAIDOneDriveImporter.class.getName());
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 
 	@JsonIgnore
@@ -95,7 +96,7 @@ public class RaidOneDriveImporter implements Runnable {
 	@JsonIgnore
 	private LockService vfsLockService;
 	
-	public RaidOneDriveImporter(RAIDOneDriver driver) {
+	public RAIDOneDriveImporter(RAIDOneDriver driver) {
 		this.driver=driver;
 		this.vfsLockService = this.driver.getLockService();
 	}
@@ -206,10 +207,10 @@ public class RaidOneDriveImporter implements Runnable {
 														BufferedOutputStream out = null;
 														// data ----
 														try {
-															File dataFile = enabledDrive.getObjectDataFile(item.getObject().bucketName, item.getObject().objectName);
+															File dataFile = ((SimpleDrive) enabledDrive).getObjectDataFile(item.getObject().bucketName, item.getObject().objectName);
 															is = new BufferedInputStream( new FileInputStream(dataFile));
 															byte[] buf = new byte[ VirtualFileSystemService.BUFFER_SIZE ];
-															String sPath = drive.getObjectDataFilePath(bucket.getName(), item.getObject().objectName);
+															String sPath = ((SimpleDrive) drive).getObjectDataFilePath(bucket.getName(), item.getObject().objectName);
 															out = new BufferedOutputStream(new FileOutputStream(sPath), VirtualFileSystemService.BUFFER_SIZE);
 															int bytesRead;
 															while ((bytesRead = is.read(buf, 0, buf.length)) >= 0) {

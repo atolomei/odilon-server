@@ -17,13 +17,13 @@
 package io.odilon.query;
 
 import io.odilon.service.SystemService;
-import io.odilon.vfs.model.VFSWalker;
+import io.odilon.vfs.model.BucketIterator;
 
-public interface WalkerService extends SystemService {
+public interface BucketIteratorService extends SystemService {
 	
-	public boolean  exists(String agentId);
-	public VFSWalker get(String agentId);
-	public String register(VFSWalker walker);
+	public boolean exists(String agentId);
+	public BucketIterator get(String agentId);
+	public String register(BucketIterator walker);
 	public void remove(String agentId);
 	
 }

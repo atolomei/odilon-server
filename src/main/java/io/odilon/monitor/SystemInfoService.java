@@ -75,7 +75,6 @@ public class SystemInfoService extends BaseService implements SystemService {
 	
 	private String serverMode;
 	private String serverDataStorageMode;
-	//private String serverDataStorage;
 	
 	private String isEncryptEnabled;
 	private String isEncryptionInitialized;

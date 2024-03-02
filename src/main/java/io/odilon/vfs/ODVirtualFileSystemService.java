@@ -37,7 +37,6 @@ import javax.crypto.spec.SecretKeySpec;
 
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.SpringApplication;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -47,6 +46,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.odilon.OdilonApplication;
+import io.odilon.cache.FileCacheService;
 import io.odilon.cache.ObjectCacheService;
 import io.odilon.encryption.EncryptionService;
 import io.odilon.encryption.MasterKeyService;
@@ -65,7 +65,7 @@ import io.odilon.model.SharedConstant;
 import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
 import io.odilon.monitor.SystemMonitorService;
-import io.odilon.query.WalkerService;
+import io.odilon.query.BucketIteratorService;
 import io.odilon.replication.ReplicationService;
 import io.odilon.scheduler.SchedulerService;
 import io.odilon.scheduler.ServiceRequest;
@@ -85,6 +85,7 @@ import io.odilon.vfs.model.LockService;
 import io.odilon.vfs.model.VirtualFileSystemService;
 import io.odilon.vfs.raid0.RAIDZeroDriver;
 import io.odilon.vfs.raid1.RAIDOneDriver;
+import io.odilon.vfs.raid6.RAIDSixDriver;
 				
 /**
  * <p>
@@ -130,7 +131,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 
 	@JsonIgnore
 	@Autowired
-	private final WalkerService walkerService;
+	private final BucketIteratorService walkerService;
 	
 	@JsonIgnore
 	@Autowired
@@ -143,6 +144,11 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	@JsonIgnore
 	@Autowired							
 	private final OdilonKeyEncryptorService odilonKeyEncryptorService;
+	
+	@JsonIgnore
+	@Autowired
+	private final FileCacheService fileCacheService;
+	
 	
 	@JsonIgnore
 	private Map<String, Drive> drivesAll = new ConcurrentHashMap<String, Drive>();
@@ -186,15 +192,17 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 										LockService  vfsLockService,
 										JournalService journalService,
 										SchedulerService schedulerService,
-										WalkerService walkerService,
+										BucketIteratorService walkerService,
 										ReplicationService replicationService,
 										ObjectCacheService objectCacheService,
 										MasterKeyService masterKeyEncryptorService,
-										OdilonKeyEncryptorService odilonKeyEncryptorService
+										OdilonKeyEncryptorService odilonKeyEncryptorService,
+										FileCacheService fileCacheService
 										
 								) {
 		
 		
+		this.fileCacheService=fileCacheService;
 		this.objectCacheService=objectCacheService;
 		this.vfsLockService=vfsLockService;
 		this.serverSettings=serverSettings;
@@ -454,7 +462,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	}
 	
 	/**
-	 * <p>if the object does not exist or is in state DELETE -> not found</p>
+	 * <p>if the object does not exist or is in state DELETED -> not found</p>
 	 */
 	@Override
 	public ObjectMetadata getObjectMetadata(String bucketName, String objectName) {
@@ -558,6 +566,12 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	}
 
 	@Override
+	public FileCacheService getFileCacheService() {
+		return  this.fileCacheService;
+	}
+	
+	
+	@Override
 	public ObjectCacheService getObjectCacheService() {
 		return this.objectCacheService;
 	}
@@ -577,7 +591,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 												
 		if (this.raid==RedundancyLevel.RAID_0) return getApplicationContext().getBean(RAIDZeroDriver.class,  this, vfsLockService);
 		if (this.raid==RedundancyLevel.RAID_1) return getApplicationContext().getBean(RAIDOneDriver.class, this, vfsLockService);
-		//if (this.raid==RedundancyLevel.RAID_6) return getApplicationContext().getBean(RAIDSixDriver.class, this, vfsLockService);
+		if (this.raid==RedundancyLevel.RAID_6) return getApplicationContext().getBean(RAIDSixDriver.class, this, vfsLockService);
 
 		throw new IllegalStateException("RAID not supported -> " + this.raid.toString());
 	}
@@ -638,7 +652,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	}
 	
 	@Override
-	public WalkerService getWalkerService() {
+	public BucketIteratorService getWalkerService() {
 		return walkerService;
 	}
 
@@ -886,7 +900,12 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 			drivesEnabled.clear();
 			
 			for (String dir: getServerSettings().getRootDirs()) {
-				Drive drive=new ODDrive(String.valueOf(n++), dir);
+				Drive drive;
+				if (getServerSettings().getRedundancyLevel()==RedundancyLevel.RAID_6)
+					drive=new ChunkedDrive(String.valueOf(n++), dir);
+				else
+					drive=new ODSimpleDrive(String.valueOf(n++), dir);
+				
 				drivesAll.put(drive.getName(), drive);
 				if (drive.getDriveInfo().getStatus()==DriveStatus.ENABLED) {
 					drivesEnabled.put(drive.getName(), drive);
@@ -1094,6 +1113,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	
 	/**
 	 * 
+	 * 
 	 */
 	private void setUpNewDrives() {
 		
@@ -1111,22 +1131,25 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 		if (!requireSetupDrives)
 			return;
 		
-		
 		startuplogger.info("Setting up new drives:");
 		newRoots.forEach(item -> startuplogger.info(item));
 		startuplogger.info("---------------");
 		
 		createVFSIODriver().setUpDrives();
-		
-		
-		
 	}
 	
-	 
+	/**
+	 * 
+	 * 
+	 */
 	private void lazyInjection() {
 
+		
+		/** FileCacheService -> lazy injection */
+		getFileCacheService().setVFS(this);
+		
 		/** WalkerService -> lazy injection */
-		((io.odilon.query.ODWalkerService) getWalkerService()).setVFS(this);
+		((io.odilon.query.ODBucketIteratorService) getWalkerService()).setVFS(this);
 
 		/** JournalService -> lazy injection */ 
 		((ODJournalService) getJournalService()).setVFS(this);
@@ -1157,6 +1180,8 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	}
 
 	/**
+	 * 
+	 * 
 	 * 
 	 */
 	private void checkServerInfo() {

@@ -36,8 +36,8 @@ import io.odilon.model.ServiceStatus;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
- * <p>The whole Queue is stored in memory<br/>
- * The queue is also saved in disk via VFS- for fault recovery</p>
+ * <p>The whole <{@link Queue} is stored in memory<br/>
+ * The queue is also saved in disk via the {@link VirtualFileSystem} for fault recovery</p>
  */
 @Component
 @Scope("prototype")
@@ -92,7 +92,7 @@ public class ServiceRequestQueue extends BaseService implements Queue<ServiceReq
 	}
 
 	/**
-	 * <p>Removes the Request from the Queue and also from the disk</p>
+	 * <p>Removes the {@link ServiceRequest} from the Queue and also from the disk</p>
 	 */
 	public boolean moveOut(Object o) {
 		boolean isRemoved = getQueue().remove( (ServiceRequest) o);
@@ -194,7 +194,7 @@ public class ServiceRequestQueue extends BaseService implements Queue<ServiceReq
 		
 		
 		String msg = "The " + VirtualFileSystemService.class.getName() + " must be setted during the @PostConstruct method of the " + 
-					 VirtualFileSystemService.class.getName() + " instance. It can not be injected via AutoWired beacause of circular dependencies.";
+					 VirtualFileSystemService.class.getName() + " instance. It can not be injected via @AutoWired due to circular dependencies.";
 		logger.error(msg);
 		throw new IllegalStateException(msg);
 		

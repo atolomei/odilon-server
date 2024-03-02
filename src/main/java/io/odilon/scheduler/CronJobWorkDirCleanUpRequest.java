@@ -38,7 +38,7 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 
 /**
- * removes work files older than 3 hours.
+ * <p>removes work files older than {@link CronJobWorkDirCleanUpRequest#LAPSE_HOURS LAPSE_HOURS}.</p>
  */
 @Component
 @Scope("prototype")
@@ -48,7 +48,7 @@ public class CronJobWorkDirCleanUpRequest extends CronJobRequest {
 	static private Logger logger = io.odilon.log.Logger.getLogger(CronJobWorkDirCleanUpRequest.class.getName());
 
 	private static final long serialVersionUID = 1L;
-	private static final int HOURS = 3;
+	private static final int LAPSE_HOURS = 3;
 	
 	@JsonIgnore
 	private boolean isSuccess = false;
@@ -91,7 +91,7 @@ public class CronJobWorkDirCleanUpRequest extends CronJobRequest {
 							
 							Instant instant = Instant.ofEpochMilli(fi.lastModified());
 							OffsetDateTime modified = OffsetDateTime.ofInstant(instant, ZoneId.systemDefault());
-							if(modified.plusHours(HOURS).isBefore(now)) {
+							if(modified.plusHours(LAPSE_HOURS).isBefore(now)) {
 								list.add(fi);									
 							}
 						}

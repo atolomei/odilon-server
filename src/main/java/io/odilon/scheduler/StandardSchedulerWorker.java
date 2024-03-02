@@ -19,14 +19,19 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
  * <p>Async jobs executed mainly on:
- * Object CRUD <br/>
- * Bucket CRUD <br/>
+ * . Object CRUD <br/>
+ * . Bucket CRUD <br/>
  *</p>
- * <p>After commit RAID handlers add a ServiceRequest to the {@link SchedulerService} to execute cleanup or other tasks.
- * These tasks are async and after the commit of the Transaction 
+ * <p>After commit RAID handlers add a {@link ServiceRequest} to the {@link SchedulerService} to execute cleanup or other tasks.
+ * These tasks are <b>async</b> and executed <b>after</b> the transaction commit. 
  * </p>
  * 
- * <p>There is another SchedulerWorker agent for master standby replica</p>
+ * <p>There is another {@link SchedulerWorker} agent for master standby replication.</p>
+ * 
+ * <p>Note that the error handling semantics is specific for each {@link SchedulerWorker}
+ * (retry n times and continue, block until the operation is successful, abort)</p>
+ * 
+ * @see {@link StandByReplicaSchedulerWorker}
  * 
  */
 public class StandardSchedulerWorker extends SchedulerWorker {
@@ -49,7 +54,10 @@ public class StandardSchedulerWorker extends SchedulerWorker {
 	@JsonIgnore
 	private OffsetDateTime lastFailedTry = OffsetDateTime.MIN;
 	
-	
+	/**
+	 * @param id
+	 * @param virtualFileSystemService
+	 */
 	public StandardSchedulerWorker(String id, VirtualFileSystemService virtualFileSystemService) {
 		super(id, virtualFileSystemService);
 	}
@@ -95,7 +103,7 @@ public class StandardSchedulerWorker extends SchedulerWorker {
 	 * 
 	 */
 	public void cancel(ServiceRequest request)  {
-		Check.requireNonNullArgument( request, "request is null");
+		Check.requireNonNullArgument(request, "request is null");
 		try {
 			if (getExecuting().containsKey(request.getId()))
 				getExecuting().remove(request.getId());
@@ -111,10 +119,11 @@ public class StandardSchedulerWorker extends SchedulerWorker {
 	}
 	
 	/**
-	 * <p>After 5 retires the ServiceRequest is discarded </p>
+	 * <p>In this SchedulerWorkder after {@link MAX_RETRIES} 
+	 *  retries the {@link ServiceRequest} is discarded </p>
 	 */
 	public void fail(ServiceRequest request) 	{
-		Check.requireNonNullArgument( request, "request is null");
+		Check.requireNonNullArgument(request, "request is null");
 		try {
 
 			if (getExecuting().containsKey(request.getId()))
@@ -138,9 +147,10 @@ public class StandardSchedulerWorker extends SchedulerWorker {
 	 * <p>This  method determines if a {@link ServiceRequest} can be executed in parallel along with the 
 	 * other {@link ServiceRequest} in the Map
 	 * </p>
-	 * <p>The criteria is: <br/>
+	 * <p>Normally we should build a dependency graph to decide which operations can be parallelized, but
+	 * the (simple) criteria so far is: <br/>
 	 * if all requests are Object operations, allow if the Object id is not in the map. otherwise restrict
-	 * requests for Buckets and other classes are assumed to be infrequent and executed alone
+	 * requests for {@link Bucket} and other classes are assumed to be infrequent and executed alone.
 	 * </p>
 	 * 
 	 * @param request
@@ -232,7 +242,8 @@ public class StandardSchedulerWorker extends SchedulerWorker {
 		{
 			for (int n=0; n<list.size(); n++) {
 				ServiceRequest request = list.get(n);
-				/** moveOut -> removes from the Queue without deleting the file in disk */
+				/** moveOut -> removes from the Queue without 
+				 *  deleting the file in disk */
 				getServiceRequestQueue().moveOut(request);
 				request.setApplicationContext(getApplicationContext());
 				getExecuting().put(request.getId(), request);
@@ -240,9 +251,6 @@ public class StandardSchedulerWorker extends SchedulerWorker {
 			}
 		}
 	}
-
-	
-	
 	
 	@Override
 	protected void restFullCapacity() {

@@ -42,14 +42,14 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 /***
  * <p>Set up new drives is Async for RAID 1. This object will create and start 
- * a new {@link RaidOneDriveImporter} to duplicate objects into the newly added 
+ * a new {@link RAIDOneDriveImporter} to duplicate objects into the newly added 
  * drive/s in background</p>
  */
 @Component
 @Scope("prototype")
-public class RaidOneDriveSetup implements IODriveSetup, ApplicationContextAware  {
+public class RAIDOneDriveSetup implements IODriveSetup, ApplicationContextAware  {
 			
-	static private Logger logger = Logger.getLogger(RaidOneDriveSetup.class.getName());
+	static private Logger logger = Logger.getLogger(RAIDOneDriveSetup.class.getName());
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 					
 	@JsonIgnore
@@ -79,7 +79,7 @@ public class RaidOneDriveSetup implements IODriveSetup, ApplicationContextAware 
 	@JsonIgnore
 	private ApplicationContext applicationContext;
 	
-	public RaidOneDriveSetup(RAIDOneDriver driver) {
+	public RAIDOneDriveSetup(RAIDOneDriver driver) {
 		this.driver=driver;
 	}
 
@@ -144,11 +144,11 @@ public class RaidOneDriveSetup implements IODriveSetup, ApplicationContextAware 
 			return false;
 		}
 		
-		startuplogger.info("4. Starting Async process -> " + RaidOneDriveImporter.class.getName());
+		startuplogger.info("4. Starting Async process -> " + RAIDOneDriveImporter.class.getName());
 						
 		/** The rest of the process is async */
 		@SuppressWarnings("unused")
-		RaidOneDriveImporter checker = getApplicationContext().getBean(RaidOneDriveImporter.class, getDriver());
+		RAIDOneDriveImporter checker = getApplicationContext().getBean(RAIDOneDriveImporter.class, getDriver());
 		
 		/** sleeps 20 secs and return */
 		try {

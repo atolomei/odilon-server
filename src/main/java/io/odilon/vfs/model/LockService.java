@@ -29,4 +29,8 @@ public interface LockService extends SystemService {
 	public ReadWriteLock getServerLock();
 	
 	
+	public ReadWriteLock getFileCacheLock(String bucketName, String objectName);
+	
+	
+	
 }

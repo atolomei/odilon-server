@@ -39,8 +39,8 @@ public class ServerConstant {
 
 	// 15 minutes
 	public static final long MAX_CONNECTION_IDLE_TIME_SECS = 15 * 60;
-	public static final int WALKER_DEFAULT_BUFFER_SIZE = 1000; 
-	public static final int DEFAULT_TRAFFIC_TOKENS = 12;	
+	public static final int BUCKET_ITERATOR_DEFAULT_BUFFER_SIZE = 1000; 
+	public static final int TRAFFIC_TOKENS_DEFAULT = 12;	
 	public static final int DAYS_INTEGRITY_CHECKS = 180;
 	
 	public static final String DEFAULT_ENCRYPT_ALGORITHM = "AES/ECB/PKCS5Padding";
@@ -48,5 +48,21 @@ public class ServerConstant {
 
 	public static final String ENABLE_ENCRYPTION_SCRIPT_LINUX 	= "enable-encryption.sh";
 	public static final String ENABLE_ENCRYPTION_SCRIPT_WINDOWS = "enable-encryption.bat";
+	
+	public static final double KB = 1024.0;
+	public static final double MB = 1024.0 * KB;
+	public static final double GB = 1024.0 * MB;
+	
+	public static final int iKB = 1024;
+	public static final int iMB = 1024 * iKB;
+	public static final int iGB = 1024 * iMB;
+	
+    public static final int BYTES_IN_INT = 4;
+    public static final int BYTES_IN_LONG = 16;
+
+
+    public static final int MAX_CHUNK_SIZE = 48 * iMB;
+	
+	
 	
 }

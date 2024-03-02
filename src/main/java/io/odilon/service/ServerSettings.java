@@ -267,7 +267,15 @@ public class ServerSettings implements APIObject {
 	
 	@Value("${useObjectCache:true}")
 	protected boolean useObjectCache;
-	
+
+
+	@Value("${objectCacheCapacity:500000}")
+	protected int objectCacheCapacity;
+
+				
+	@Value("${fileCacheCapacity:10000}")
+	protected int fileCacheCapacity;
+
 	
 	private static final OffsetDateTime systemStarted = OffsetDateTime.now(); 
 	
@@ -361,11 +369,11 @@ public class ServerSettings implements APIObject {
 	}
 
 	public int getRAID6ParityDrives() {
-		return raid6DataDrives;
+		return raid6ParityDrives;
 	}
 
 	public int getRAID6DataDrives() {
-		return raid6ParityDrives;
+		return raid6DataDrives;
 	}
 
 	public Map<String, Object> toMap() {
@@ -437,7 +445,7 @@ public class ServerSettings implements APIObject {
 			startuplogger.error(		"No rootDirs are defined. \n"
 										+ 	"for RAID 0. at least 1 dataDir must be defined in file -> odilon.properties \n"
 										+ 	"for RAID 1. at least 1 dataDir must be defined in file -> odilon.properties \n"
-										+ 	"for RAID 6. at least 3 dataDir must be defined in file -> odilon.properties \n"
+										+ 	"for RAID 6.  6 dataDir must be defined in file	-> odilon.properties \n"
 										+   "using default values ");
 			
 			getDefaultRootDirs().forEach( o -> startuplogger.error(o));
@@ -477,7 +485,7 @@ public class ServerSettings implements APIObject {
 			tokens = numberofpasses;
 		
 		if (tokens<1)
-			tokens = ServerConstant.DEFAULT_TRAFFIC_TOKENS;
+			tokens = ServerConstant.TRAFFIC_TOKENS_DEFAULT;
 		try {
 			dataStorage=(dataStorageMode==null) ? DataStorage.READ_WRITE : DataStorage.fromString(dataStorageMode);
 		} catch (Exception e) {
@@ -503,13 +511,13 @@ public class ServerSettings implements APIObject {
 		
 		this.redundancyLevel = RedundancyLevel.get(redundancyLevelStr);
 		
-		if (this.redundancyLevel == RedundancyLevel.RAID_6) {
-			throw new IllegalStateException(RedundancyLevel.RAID_6.getName() +  " is not supported in this version of Odilon");
-		}
+		//if (this.redundancyLevel == RedundancyLevel.RAID_6) {
+		//	throw new IllegalStateException(RedundancyLevel.RAID_6.getName() +  " is not supported in this version of Odilon");
+		//}
 		
 		if (this.redundancyLevel==RedundancyLevel.RAID_6) {
 			if (this.raid6DataDrives!=4 || this.raid6ParityDrives !=2) {
-				throw new IllegalArgumentException("the only "+ RedundancyLevel.RAID_6.getName() +" supported is dataDrives=4 parityDrives=2");
+				throw new IllegalArgumentException("the only "+ RedundancyLevel.RAID_6.getName() +" the only configuration supported in this version is -> raid6.dataDrives=4 and raid6.parityDrives=2");
 			}
 		}
 		
@@ -543,9 +551,13 @@ public class ServerSettings implements APIObject {
 	
 		
 		if (this.redundancyLevel==RedundancyLevel.RAID_1) {
-			if (this.rootDirs.size()<1)
+			if (this.rootDirs.size()<=1)
 				throw new IllegalArgumentException( "DataStorage must have at least 2 entries for -> " + 
 													redundancyLevel.getName() + " | dataStorage=" + rootDirs.toString() + " | you must use " + RedundancyLevel.RAID_0.getName() + "for only one mount directory");	
+		}
+		else if (this.redundancyLevel==RedundancyLevel.RAID_6) {
+			if (this.rootDirs.size()!=6)
+				throw new IllegalArgumentException( "DataStorage must have 6 entries for -> " +	redundancyLevel.getName());
 		}
 		
 		try {
@@ -876,9 +888,19 @@ public class ServerSettings implements APIObject {
 		return false;
 	}
 	
+
+	public int getObjectCacheCapacity() {
+		return objectCacheCapacity;
+	}
+	
+	public int getFileCacheCapacity() {
+		return fileCacheCapacity;
+	}
+	
+
 	protected String randomString(final int size) {
 		return idGenerator.randomString(size);
 	}
 
-
+	
 }

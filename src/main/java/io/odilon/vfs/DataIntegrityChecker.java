@@ -39,6 +39,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
+import io.odilon.model.ServerConstant;
 import io.odilon.model.ServiceStatus;
 import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
@@ -55,10 +56,6 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 @Scope("prototype")
 public class DataIntegrityChecker implements Runnable, ApplicationContextAware  {
 
-	static final double KB = 1024.0;
-	static final double MB = 1024.0 * KB;
-	static final double GB = 1024.0 * MB;
-	
 	static private Logger logger = Logger.getLogger(DataIntegrityChecker.class.getName());
 	static private Logger checkerLogger = Logger.getLogger("dataIntegrityCheck");
 
@@ -131,7 +128,6 @@ public class DataIntegrityChecker implements Runnable, ApplicationContextAware  
 		this.notAvailable = new AtomicLong(0);
 		this.checkOk = new AtomicLong(0);
 		this.maxProcessingThread  = settings.getIntegrityCheckThreads();
-		//this.start = OffsetDateTime.now();
 		this.start_ms = System.currentTimeMillis();
 	
 		ExecutorService executor = null;
@@ -260,7 +256,7 @@ public class DataIntegrityChecker implements Runnable, ApplicationContextAware  
 	private void logResults(Logger lg) {
 		lg.info("Threads: " + String.valueOf(this.maxProcessingThread));
 		lg.info("Total: " + String.valueOf(this.counter.get()));
-		lg.info("Total Size: " + String.format("%14.4f", Double.valueOf(totalBytes.get()).doubleValue() / GB).trim() + " GB");
+		lg.info("Total Size: " + String.format("%14.4f", Double.valueOf(totalBytes.get()).doubleValue() / ServerConstant.GB).trim() + " GB");
 		lg.info("Checked OK: " + String.valueOf(this.checkOk.get()));
 		lg.info("Errors: " + String.valueOf(this.errors.get()));
 		lg.info("Not Available: " + String.valueOf(this.notAvailable.get())); 

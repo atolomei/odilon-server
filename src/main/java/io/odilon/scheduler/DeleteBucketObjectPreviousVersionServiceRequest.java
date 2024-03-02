@@ -18,12 +18,9 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
-import io.odilon.model.ServiceStatus;
 import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
 import io.odilon.service.ServerSettings;
-import io.odilon.service.SystemService;
-import io.odilon.util.Check;
 import io.odilon.vfs.model.VFSBucket;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
@@ -36,6 +33,8 @@ public class DeleteBucketObjectPreviousVersionServiceRequest extends AbstractSer
 	static private Logger logger =	Logger.getLogger(DeleteBucketObjectPreviousVersionServiceRequest.class.getName());
 	
 	private static final long serialVersionUID = 1L;
+
+	static final int PAGESIZE = 1000;
 	
 	private String bucketName;
 
@@ -45,16 +44,33 @@ public class DeleteBucketObjectPreviousVersionServiceRequest extends AbstractSer
 	static final double MB = 1024.0 * KB;
 	static final double GB = 1024.0 * MB;
 	
-	
 	@JsonIgnore
-	long start_ms = 0;
+	private long start_ms = 0;
 	
 	@JsonIgnore
 	private boolean isSuccess = false;
 	
 	@JsonIgnore
-	private int maxProcessingThread  = 1;
+	private AtomicLong checkOk = new AtomicLong(0);
 	
+	@JsonIgnore
+	private AtomicLong counter = new AtomicLong(0);
+	
+	@JsonIgnore
+	private AtomicLong totalBytes = new AtomicLong(0);
+	
+	@JsonIgnore
+	private AtomicLong errors = new AtomicLong(0);
+	
+	@JsonIgnore
+	private AtomicLong notAvailable = new AtomicLong(0);
+	
+	@JsonIgnore
+	private volatile ExecutorService executor;
+	
+	
+	@JsonIgnore
+	private int maxProcessingThread  = 1;
 	
 	public DeleteBucketObjectPreviousVersionServiceRequest() {
 	}
@@ -81,31 +97,6 @@ public class DeleteBucketObjectPreviousVersionServiceRequest extends AbstractSer
 	public String getBucketName() {
 		return this.bucketName;
 	}
-	
-	
-	
-	@JsonIgnore
-	private AtomicLong checkOk = new AtomicLong(0);
-	
-	@JsonIgnore
-	private AtomicLong counter = new AtomicLong(0);
-	
-
-	@JsonIgnore
-	private AtomicLong totalBytes = new AtomicLong(0);
-	
-	@JsonIgnore
-	private AtomicLong errors = new AtomicLong(0);
-	
-	@JsonIgnore
-	private AtomicLong notAvailable = new AtomicLong(0);
-	
-	
-	@JsonIgnore
-	private volatile ExecutorService executor;
-	
-	
-	static final int PAGESIZE = 1000;
 	
 	
 	
@@ -157,8 +148,10 @@ public class DeleteBucketObjectPreviousVersionServiceRequest extends AbstractSer
 		}
 	}
 	
-	
-	
+	/**
+	 *
+	 * 
+	 */
 	@Override
 	public void execute() {
 
@@ -212,27 +205,20 @@ public class DeleteBucketObjectPreviousVersionServiceRequest extends AbstractSer
 		}
 	}
 
-		
-	private void process(Item<ObjectMetadata> item) {
-		try {
-			
-			
-			ObjectMetadata meta = item.getObject();
-
-			getVirtualFileSystemService().deleteObjectAllPreviousVersions(meta.bucketName, meta.objectName);
-			
-			//this.totalBytes.addAndGet(item.getObject().length);
-			this.checkOk.incrementAndGet();
-			
-		} catch (Exception e) {
-			this.errors.getAndIncrement();
-			logger.error(e);
-			logger.error("Could not process -> " + item.getObject().bucketName + " - "+item.getObject().objectName);
-			
-		}
+	@Override
+	public void stop() {
+		 isSuccess=false;
 	}
 
-	
+	private void logResults(Logger lg) {
+		lg.info("Threads: " + String.valueOf(this.maxProcessingThread));
+		lg.info("Total: " + String.valueOf(this.counter.get()));
+		lg.info("Checked OK: " + String.valueOf(this.checkOk.get()));
+		lg.info("Errors: " + String.valueOf(this.errors.get()));
+		lg.info("Not Available: " + String.valueOf(this.notAvailable.get())); 
+		lg.info("Duration: " + String.valueOf(Double.valueOf(System.currentTimeMillis() - start_ms) / Double.valueOf(1000)) + " secs");
+		lg.info("---------");
+	}
 	
 	private ServerSettings getServerSettings() {
 		return getApplicationContext().getBean(ServerSettings.class);
@@ -242,23 +228,18 @@ public class DeleteBucketObjectPreviousVersionServiceRequest extends AbstractSer
 		return getApplicationContext().getBean(VirtualFileSystemService.class);
 	}
 
-	@Override
-	public void stop() {
-		 isSuccess=false;
-	}
-
-	private void logResults(Logger lg) {
-		lg.info("Threads: " + String.valueOf(this.maxProcessingThread));
-		lg.info("Total: " + String.valueOf(this.counter.get()));
-		
-		//lg.info("Total Size: " + String.format("%14.4f", Double.valueOf(totalBytes.get()).doubleValue() / GB).trim() + " GB");
-		
-		lg.info("Checked OK: " + String.valueOf(this.checkOk.get()));
-		lg.info("Errors: " + String.valueOf(this.errors.get()));
-		lg.info("Not Available: " + String.valueOf(this.notAvailable.get())); 
-		lg.info("Duration: " + String.valueOf(Double.valueOf(System.currentTimeMillis() - start_ms) / Double.valueOf(1000)) + " secs");
-		lg.info("---------");
-		
+	private void process(Item<ObjectMetadata> item) {
+		try {
+			ObjectMetadata meta = item.getObject();
+			getVirtualFileSystemService().deleteObjectAllPreviousVersions(meta.bucketName, meta.objectName);
+			this.checkOk.incrementAndGet();
+			
+		} catch (Exception e) {
+			this.errors.getAndIncrement();
+			logger.error(e);
+			logger.error("Could not process -> " + item.getObject().bucketName + " - "+item.getObject().objectName);
+			
+		}
 	}
 
 }

@@ -38,7 +38,7 @@ import io.odilon.model.ServerConstant;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ObjectStatus;
 import io.odilon.vfs.model.Drive;
-import io.odilon.vfs.model.VFSWalker;
+import io.odilon.vfs.model.BucketIterator;
 
 
 /**
@@ -46,9 +46,9 @@ import io.odilon.vfs.model.VFSWalker;
  * 
  * 
  */
-public class RAIDZeroWalker extends VFSWalker implements Closeable {
+public class RAIDZeroBucketIterator extends BucketIterator implements Closeable {
 			
-	private static final Logger logger = Logger.getLogger(RAIDZeroWalker.class.getName());
+	private static final Logger logger = Logger.getLogger(RAIDZeroBucketIterator.class.getName());
 	
 	@JsonProperty("prefix")
 	private String prefix = null;
@@ -81,7 +81,7 @@ public class RAIDZeroWalker extends VFSWalker implements Closeable {
 	/**
 	 * 
 	 */
-	public RAIDZeroWalker(RAIDZeroDriver driver, String bucketName, Optional<Long> opOffset,  Optional<String> opPrefix) {
+	public RAIDZeroBucketIterator(RAIDZeroDriver driver, String bucketName, Optional<Long> opOffset,  Optional<String> opPrefix) {
 			this(driver, bucketName, opOffset,  opPrefix, Optional.empty());
 	}
 
@@ -89,7 +89,7 @@ public class RAIDZeroWalker extends VFSWalker implements Closeable {
 	 * @param driver
 	 * @param bucketName
 	 */
-	public RAIDZeroWalker(RAIDZeroDriver driver, String bucketName, Optional<Long> opOffset,  Optional<String> opPrefix, Optional<String> serverAgentId) {
+	public RAIDZeroBucketIterator(RAIDZeroDriver driver, String bucketName, Optional<Long> opOffset,  Optional<String> opPrefix, Optional<String> serverAgentId) {
 			super(bucketName);
 
 		opOffset.ifPresent( x -> setOffset(x));
@@ -253,7 +253,7 @@ public class RAIDZeroWalker extends VFSWalker implements Closeable {
 		{
 			int dIndex = 0;
 		
-			while (isItems && this.buffer.size() < ServerConstant.WALKER_DEFAULT_BUFFER_SIZE) {
+			while (isItems && this.buffer.size() < ServerConstant.BUCKET_ITERATOR_DEFAULT_BUFFER_SIZE) {
 				int dPoll = dIndex++ % this.drives.size();
 				Drive drive = this.drives.get(dPoll);
 				Iterator<Path> iterator = this.itMap.get(drive);

@@ -35,6 +35,7 @@ import io.odilon.scheduler.DeleteBucketObjectPreviousVersionServiceRequest;
 import io.odilon.util.Check;
 import io.odilon.vfs.RAIDDeleteObjectHandler;
 import io.odilon.vfs.model.Drive;
+import io.odilon.vfs.model.SimpleDrive;
 import io.odilon.vfs.model.VFSBucket;
 import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VFSop;
@@ -101,7 +102,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 			getLockService().getObjectLock(bucket.getName(), objectName).writeLock().lock();
 			getLockService().getBucketLock(bucket.getName()).readLock().lock();
 
-			boolean exists = getDriver().getReadDrive(bucket, objectName).existsObject(bucket.getName(), objectName);
+			boolean exists = getDriver().getReadDrive(bucket, objectName).existsObjectMetadata(bucket.getName(), objectName);
 			
 			if (!exists)
 				throw new OdilonObjectNotFoundException("object does not exist -> b:" + bucket.getName()+ " o:"+(Optional.ofNullable(objectName).isPresent() ? (objectName) :"null"));
@@ -303,7 +304,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 			
 			/** delete data versions(1..n-1). keep headVersion **/
 			for (int n=0; n<headVersion; n++)	{
-				File version_n=getWriteDrive(bucketName, objectName).getObjectDataVersionFile(bucketName, objectName, n);
+				File version_n= ((SimpleDrive) getWriteDrive(bucketName, objectName)).getObjectDataVersionFile(bucketName, objectName, n);
 				if (version_n.exists())
 					FileUtils.deleteQuietly(version_n);	
 			}
@@ -331,13 +332,13 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 		try {
 				/** delete data versions(1..n-1) **/
 				for (int n=0; n<=headVersion; n++)	{
-					File version_n=getWriteDrive(bucketName, objectName).getObjectDataVersionFile(bucketName, objectName, n);
+					File version_n= ((SimpleDrive) getWriteDrive(bucketName, objectName)).getObjectDataVersionFile(bucketName, objectName, n);
 					if (version_n.exists())
 						FileUtils.deleteQuietly(version_n);	
 				}
 				
 				/** delete data (head) */
-				File head=getWriteDrive(bucketName, objectName).getObjectDataFile(bucketName, objectName);
+				File head= ((SimpleDrive) getWriteDrive(bucketName, objectName)).getObjectDataFile(bucketName, objectName);
 				if (head.exists())
 					FileUtils.deleteQuietly(head);
 				

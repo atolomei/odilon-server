@@ -35,6 +35,7 @@ import io.odilon.scheduler.DeleteBucketObjectPreviousVersionServiceRequest;
 import io.odilon.util.Check;
 import io.odilon.vfs.RAIDDeleteObjectHandler;
 import io.odilon.vfs.model.Drive;
+import io.odilon.vfs.model.SimpleDrive;
 import io.odilon.vfs.model.VFSBucket;
 import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VFSop;
@@ -101,13 +102,11 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 			getLockService().getObjectLock(bucket.getName(), objectName).writeLock().lock();
 			getLockService().getBucketLock(bucket.getName()).readLock().lock();
 
-			boolean exists = getDriver().getReadDrive(bucket, objectName).existsObject(bucket.getName(), objectName);
+			boolean exists = getDriver().getReadDrive(bucket, objectName).existsObjectMetadata(bucket.getName(), objectName);
 			
 			if (!exists)
 				throw new OdilonObjectNotFoundException("object does not exist -> b:" + bucket.getName()+ " o:"+(Optional.ofNullable(objectName).isPresent() ? (objectName) :"null"));
 			
-			
-			// ACA
 			ObjectMetadata meta = getDriver().getReadDrive(bucket, objectName).getObjectMetadata(bucket.getName(), objectName);
 			headVersion = meta.version;
 			
@@ -202,7 +201,6 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 			getLockService().getObjectLock(bucket.getName(), objectName).writeLock().lock();
 			getLockService().getBucketLock(bucket.getName()).readLock().lock();
 										
-			// ACA
 			ObjectMetadata meta = getDriver().getReadDrive(bucket, objectName).getObjectMetadata(bucket.getName(), objectName);
 			headVersion = meta.version;
 			op = getJournalService().deleteObject(bucket.getName(), objectName, headVersion);
@@ -331,7 +329,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 			for (int n=0; n<headVersion; n++)	{
 				
 				for (Drive drive: getDriver().getDrivesAll()) {
-					File version_n=drive.getObjectDataVersionFile(bucketName, objectName, n);
+					File version_n= ((SimpleDrive) drive).getObjectDataVersionFile(bucketName, objectName, n);
 					if (version_n.exists())
 						FileUtils.deleteQuietly(version_n);
 					}
@@ -377,7 +375,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 				/** delete data versions(1..n-1) */
 				for (int n=0; n<=headVersion; n++)	{
 					for (Drive drive: getDriver().getDrivesAll()) {
-						File version_n=drive.getObjectDataVersionFile(bucketName, objectName, n);
+						File version_n= ((SimpleDrive) drive).getObjectDataVersionFile(bucketName, objectName, n);
 						if (version_n.exists())
 							FileUtils.deleteQuietly(version_n);
 						}
@@ -385,7 +383,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 				
 				/** delete data (head) */
 				for (Drive drive:getDriver().getDrivesAll()) {
-					File head=drive.getObjectDataFile(bucketName, objectName);
+					File head=((SimpleDrive) drive).getObjectDataFile(bucketName, objectName);
 					if (head.exists())
 						FileUtils.deleteQuietly(head);
 				}

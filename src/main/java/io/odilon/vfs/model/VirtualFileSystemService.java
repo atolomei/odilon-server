@@ -29,6 +29,7 @@ import java.util.Optional;
 
 import org.springframework.context.ApplicationContext;
 
+import io.odilon.cache.FileCacheService;
 import io.odilon.cache.ObjectCacheService;
 import io.odilon.encryption.EncryptionService;
 import io.odilon.encryption.MasterKeyService;
@@ -38,7 +39,7 @@ import io.odilon.model.RedundancyLevel;
 import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
 import io.odilon.monitor.SystemMonitorService;
-import io.odilon.query.WalkerService;
+import io.odilon.query.BucketIteratorService;
 import io.odilon.replication.ReplicationService;
 import io.odilon.scheduler.SchedulerService;
 import io.odilon.scheduler.ServiceRequest;
@@ -189,7 +190,7 @@ public interface VirtualFileSystemService extends SystemService {
 	public RedundancyLevel getRedundancyLevel();
 	public boolean isEmptyBucket(String bucketName);
 	
-	public WalkerService getWalkerService();
+	public BucketIteratorService getWalkerService();
 	public Map<String, VFSBucket> getBucketsCache();
 
 	public boolean checkIntegrity(String bucketName, String objectName, boolean forceCheck);
@@ -215,6 +216,9 @@ public interface VirtualFileSystemService extends SystemService {
 	 * 
 	**/
 	public byte[] HMAC(byte[] data, byte[] key) throws NoSuchAlgorithmException, InvalidKeyException;
+
+
+	FileCacheService getFileCacheService();
 
 	
 	/**

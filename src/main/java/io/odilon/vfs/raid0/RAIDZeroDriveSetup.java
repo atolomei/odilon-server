@@ -46,6 +46,7 @@ import io.odilon.vfs.DriveInfo;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.DriveStatus;
 import io.odilon.vfs.model.IODriveSetup;
+import io.odilon.vfs.model.SimpleDrive;
 import io.odilon.vfs.model.VFSBucket;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
@@ -55,9 +56,9 @@ import io.odilon.vfs.model.VirtualFileSystemService;
  */
 @Component
 @Scope("prototype")
-public class RaidZeroDriveSetup implements IODriveSetup {
+public class RAIDZeroDriveSetup implements IODriveSetup {
 	
-	static private Logger logger = Logger.getLogger(RaidZeroDriveSetup.class.getName());
+	static private Logger logger = Logger.getLogger(RAIDZeroDriveSetup.class.getName());
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 
 	
@@ -109,7 +110,7 @@ public class RaidZeroDriveSetup implements IODriveSetup {
 	/**
 	 * @param driver
 	 */
-	public RaidZeroDriveSetup(RAIDZeroDriver driver) {
+	public RAIDZeroDriveSetup(RAIDZeroDriver driver) {
 		this.driver=driver;
 		this.maxProcessingThread = Double.valueOf(Double.valueOf(Runtime.getRuntime().availableProcessors()-1) / 2.0 ).intValue() + 1;
 	}
@@ -302,7 +303,7 @@ public class RaidZeroDriveSetup implements IODriveSetup {
 									if (!newDrive.equals(currentDrive)) {
 										try {
 
-											currentDrive.deleteObject(item.getObject().bucketName, item.getObject().objectName );
+											((SimpleDrive) currentDrive).deleteObject(item.getObject().bucketName, item.getObject().objectName );
 											this.cleaned.getAndIncrement();
 										
 										} catch (Exception e) {
@@ -423,9 +424,9 @@ public class RaidZeroDriveSetup implements IODriveSetup {
 																newDrive.putObjectMetadataVersionFile(item.getObject().bucketName, item.getObject().objectName, n, meta_version_n);
 															}
 															// move Data Version
-															File version_n=currentDrive.getObjectDataVersionFile(item.getObject().bucketName, item.getObject().objectName, n);
+															File version_n= ((SimpleDrive) currentDrive).getObjectDataVersionFile(item.getObject().bucketName, item.getObject().objectName, n);
 															if (version_n.exists()) {
-																newDrive.putObjectDataVersionFile(item.getObject().bucketName, item.getObject().objectName, n, version_n);
+																((SimpleDrive) newDrive).putObjectDataVersionFile(item.getObject().bucketName, item.getObject().objectName, n, version_n);
 															}
 														}
 												}
@@ -433,9 +434,9 @@ public class RaidZeroDriveSetup implements IODriveSetup {
 													/** HEAD VERSION --------------------------------------------------------- */
 
 													/** Data */													
-													File data_head=currentDrive.getObjectDataFile(item.getObject().bucketName, item.getObject().objectName);
+													File data_head= ((SimpleDrive) currentDrive).getObjectDataFile(item.getObject().bucketName, item.getObject().objectName);
 													if (data_head.exists())
-														newDrive.putObjectDataFile(item.getObject().bucketName, item.getObject().objectName,  data_head);
+														((SimpleDrive) newDrive).putObjectDataFile(item.getObject().bucketName, item.getObject().objectName,  data_head);
 													
 													/** Metadata */													
 													ObjectMetadata meta = item.getObject();

@@ -41,6 +41,7 @@ import io.odilon.util.Check;
 import io.odilon.util.ODFileUtils;
 import io.odilon.vfs.RAIDUpdateObjectHandler;
 import io.odilon.vfs.model.Drive;
+import io.odilon.vfs.model.SimpleDrive;
 import io.odilon.vfs.model.VFSBucket;
 import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VFSop;
@@ -62,6 +63,105 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 		super(driver);
 	}
 
+	
+	/**
+	 * @param bucket
+	 * @param objectName
+	 * @param stream
+	 * @param srcFileName
+	 * @param contentType
+	 */
+	@Override
+	public void update(VFSBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType) {
+
+		VFSOperation op = null;
+		boolean done = false;
+		
+		int beforeHeadVersion = -1;
+		int afterHeadVersion = -1;
+		
+		try {
+
+			getLockService().getObjectLock( bucket.getName(), objectName).writeLock().lock();
+			getLockService().getBucketLock(bucket.getName()).readLock().lock();
+
+			boolean exists = getDriver().getReadDrive(bucket.getName(), objectName).existsObjectMetadata(bucket.getName(), objectName);
+			
+			if (!exists)
+				throw new OdilonObjectNotFoundException("object does not exist -> b:" + bucket.getName()+ " o:"+(Optional.ofNullable(objectName).isPresent() ? (objectName) :"null"));
+			
+			ObjectMetadata meta = getDriver().getObjectMetadataInternal(bucket.getName(), objectName, true);
+			beforeHeadVersion = meta.version;							
+			
+			op = getJournalService().updateObject(bucket.getName(), objectName, beforeHeadVersion);
+			
+			/** backup current head version */
+			saveVersionObjectDataFile(bucket, objectName,  meta.version);
+			saveVersionObjectMetadata(bucket, objectName,  meta.version);
+			
+			/** copy new version as head version */
+			afterHeadVersion = meta.version+1;
+			saveObjectDataFile(bucket, objectName, stream, srcFileName, meta.version+1);
+			saveObjectMetadata(bucket, objectName, srcFileName, contentType, meta.version+1);
+			
+			getVFS().getObjectCacheService().remove(bucket.getName(), objectName);
+			done = op.commit();
+		
+
+		} catch (OdilonObjectNotFoundException e1) {
+			done=false;
+			logger.error(e1);
+			throw e1;
+			
+		} catch (Exception e) {
+			done=false;
+			String msg = "b:"  	+ (Optional.ofNullable(bucket).isPresent()    ? (bucket.getName())  :"null") + 
+						 ", o:" + (Optional.ofNullable(objectName).isPresent() ? (objectName)       :"null") +  
+						 ", f:"	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)     :"null");
+				
+			logger.error(msg);
+			throw new InternalCriticalException(e, msg);
+			
+		} finally {
+			
+			try {
+				try {
+					if (stream!=null) 
+						stream.close();
+				} catch (IOException e) {
+					logger.error(e, ServerConstant.NOT_THROWN);
+				}
+				
+				boolean requiresRollback = (!done) && (op!=null);
+				
+				if (requiresRollback) {
+					try {
+						
+						rollbackJournal(op, false);
+						
+					} catch (Exception e) {
+						String msg =  	"b:"   + (Optional.ofNullable(bucket).isPresent()    	? (bucket.getName()) 	:"null") + 
+										", o:" + (Optional.ofNullable(objectName).isPresent() 	? (objectName)       	:"null") +  
+										", f:" + (Optional.ofNullable(srcFileName).isPresent() 	? (srcFileName)     	:"null");
+						logger.error(e, msg);
+						throw new InternalCriticalException(e);
+					}
+				}
+				else {
+					/**
+					 TODO AT -> Sync by the moment. see how to make it Async
+					 */
+					if (op!=null)
+						cleanUpUpdate(bucket, objectName, beforeHeadVersion, afterHeadVersion);
+				}
+			} finally {
+				getLockService().getBucketLock(bucket.getName()).readLock().unlock();
+				getLockService().getObjectLock(bucket.getName(), objectName).writeLock().unlock();
+			}
+		}
+	}
+
+	
 	public ObjectMetadata restorePreviousVersion(VFSBucket bucket, String objectName) {
 		VFSOperation op = null;
 		boolean done = false;
@@ -168,102 +268,6 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 	}
 		
 
-	/**
-	 * @param bucket
-	 * @param objectName
-	 * @param stream
-	 * @param srcFileName
-	 * @param contentType
-	 */
-	@Override
-	public void update(VFSBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType) {
-
-		VFSOperation op = null;
-		boolean done = false;
-		
-		int beforeHeadVersion = -1;
-		int afterHeadVersion = -1;
-		
-		try {
-
-			getLockService().getObjectLock( bucket.getName(), objectName).writeLock().lock();
-			getLockService().getBucketLock(bucket.getName()).readLock().lock();
-
-			boolean exists = getDriver().getReadDrive(bucket.getName(), objectName).existsObject(bucket.getName(), objectName);
-			
-			if (!exists)
-				throw new OdilonObjectNotFoundException("object does not exist -> b:" + bucket.getName()+ " o:"+(Optional.ofNullable(objectName).isPresent() ? (objectName) :"null"));
-			
-			ObjectMetadata meta = getDriver().getObjectMetadataInternal(bucket.getName(), objectName, true);
-			beforeHeadVersion = meta.version;							
-			
-			op = getJournalService().updateObject(bucket.getName(), objectName, beforeHeadVersion);
-			
-			/** backup current head version */
-			saveVersionObjectDataFile(bucket, objectName,  meta.version);
-			saveVersionObjectMetadata(bucket, objectName,  meta.version);
-			
-			/** copy new version as head version */
-			afterHeadVersion = meta.version+1;
-			saveObjectDataFile(bucket, objectName, stream, srcFileName, meta.version+1);
-			saveObjectMetadata(bucket, objectName, srcFileName, contentType, meta.version+1);
-			
-			getVFS().getObjectCacheService().remove(bucket.getName(), objectName);
-			done = op.commit();
-		
-
-		} catch (OdilonObjectNotFoundException e1) {
-			done=false;
-			logger.error(e1);
-			throw e1;
-			
-		} catch (Exception e) {
-			done=false;
-			String msg = "b:"  	+ (Optional.ofNullable(bucket).isPresent()    ? (bucket.getName())  :"null") + 
-						 ", o:" + (Optional.ofNullable(objectName).isPresent() ? (objectName)       :"null") +  
-						 ", f:"	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)     :"null");
-				
-			logger.error(msg);
-			throw new InternalCriticalException(e, msg);
-			
-		} finally {
-			
-			try {
-				try {
-					if (stream!=null) 
-						stream.close();
-				} catch (IOException e) {
-					logger.error(e, ServerConstant.NOT_THROWN);
-				}
-				
-				boolean requiresRollback = (!done) && (op!=null);
-				
-				if (requiresRollback) {
-					try {
-						
-						rollbackJournal(op, false);
-						
-					} catch (Exception e) {
-						String msg =  	"b:"   + (Optional.ofNullable(bucket).isPresent()    	? (bucket.getName()) 	:"null") + 
-										", o:" + (Optional.ofNullable(objectName).isPresent() 	? (objectName)       	:"null") +  
-										", f:" + (Optional.ofNullable(srcFileName).isPresent() 	? (srcFileName)     	:"null");
-						logger.error(e, msg);
-						throw new InternalCriticalException(e);
-					}
-				}
-				else {
-					/**
-					 TODO AT -> Sync by the moment. see how to make it Async
-					 */
-					if (op!=null)
-						cleanUpUpdate(bucket, objectName, beforeHeadVersion, afterHeadVersion);
-				}
-			} finally {
-				getLockService().getBucketLock(bucket.getName()).readLock().unlock();
-				getLockService().getObjectLock(bucket.getName(), objectName).writeLock().unlock();
-			}
-		}
-	}
 	
 	
 	/**
@@ -448,8 +452,8 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 	private void saveVersionObjectDataFile(VFSBucket bucket, String objectName, int version) {
 		try {
 			for (Drive drive: getDriver().getDrivesAll()) {
-				File file=drive.getObjectDataFile(bucket.getName(), objectName);
-				drive.putObjectDataVersionFile(bucket.getName(), objectName, version, file);
+				File file= ((SimpleDrive) drive).getObjectDataFile(bucket.getName(), objectName);
+				((SimpleDrive) drive).putObjectDataVersionFile(bucket.getName(), objectName, version, file);
 			}
 		} catch (Exception e) {
 				logger.error(e);
@@ -474,7 +478,7 @@ private void saveObjectDataFile(VFSBucket bucket, String objectName, InputStream
 			
 			int n_d=0;
 			for (Drive drive: getDriver().getDrivesAll()) { 
-				String sPath = drive.getObjectDataFilePath(bucket.getName(), objectName);
+				String sPath = ((SimpleDrive) drive).getObjectDataFilePath(bucket.getName(), objectName);
 				out[n_d++] = new BufferedOutputStream(new FileOutputStream(sPath), VirtualFileSystemService.BUFFER_SIZE);
 			}
 			int bytesRead;
@@ -549,7 +553,7 @@ private void saveObjectDataFile(VFSBucket bucket, String objectName, InputStream
 
 			for (Drive drive: getDriver().getDrivesAll()) {
 				
-					File file = drive.getObjectDataFile(bucket.getName(),  objectName);
+					File file = ((SimpleDrive) drive).getObjectDataFile(bucket.getName(),  objectName);
 				
 					try {
 					
@@ -625,9 +629,9 @@ private void saveObjectDataFile(VFSBucket bucket, String objectName, InputStream
 		try {
 			boolean success = true;
 			for (Drive drive: getDriver().getDrivesAll()) {
-				File file= drive.getObjectDataVersionFile(bucketName, objectName,version);
+				File file= ((SimpleDrive) drive).getObjectDataVersionFile(bucketName, objectName,version);
 				if (file.exists()) {
-					drive.putObjectDataFile(bucketName, objectName, file);
+					((SimpleDrive) drive).putObjectDataFile(bucketName, objectName, file);
 					FileUtils.deleteQuietly(file);
 				}
 				else
@@ -653,7 +657,7 @@ private void saveObjectDataFile(VFSBucket bucket, String objectName, InputStream
 					if (metadata.exists())
 						FileUtils.deleteQuietly(metadata);
 
-					File data=drive.getObjectDataVersionFile(bucket.getName(), objectName,  versionDiscarded);
+					File data= ((SimpleDrive) drive).getObjectDataVersionFile(bucket.getName(), objectName,  versionDiscarded);
 					if (data.exists())
 						FileUtils.deleteQuietly(data);
 				}
@@ -693,7 +697,7 @@ private void saveObjectDataFile(VFSBucket bucket, String objectName, InputStream
 				if (metadata.exists())
 					FileUtils.deleteQuietly(metadata);
 				
-				File data=drive.getObjectDataVersionFile(bucket.getName(), objectName, previousVersion);
+				File data=((SimpleDrive) drive).getObjectDataVersionFile(bucket.getName(), objectName, previousVersion);
 				if (data.exists())
 					FileUtils.deleteQuietly(data);
 				}

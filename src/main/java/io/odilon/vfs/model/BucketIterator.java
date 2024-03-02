@@ -13,9 +13,9 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.odilon.log.Logger;
 
 
-public abstract class VFSWalker implements Iterator<Path>  {
+public abstract class BucketIterator implements Iterator<Path>  {
 				
-	private static final Logger logger = Logger.getLogger(VFSWalker.class.getName());
+	private static final Logger logger = Logger.getLogger(BucketIterator.class.getName());
 
 	static private ObjectMapper mapper = new ObjectMapper();
 	
@@ -36,7 +36,7 @@ public abstract class VFSWalker implements Iterator<Path>  {
 	/**
 	 * @param bucketName
 	 */
-	public VFSWalker(String bucketName) {
+	public BucketIterator(String bucketName) {
 		this.bucketName=bucketName;
 	}
 	
@@ -47,7 +47,6 @@ public abstract class VFSWalker implements Iterator<Path>  {
 	public void setAgentId(String agentId) {
 		this.agentId = agentId;
 	}
-
 	
 	public String getBucketName() {
 		return bucketName;
@@ -69,18 +68,16 @@ public abstract class VFSWalker implements Iterator<Path>  {
 	public void close() throws IOException  {
 	}
 
-	
-	 
-		@Override
-		public String toString() {
+	@Override
+	public String toString() {
 			StringBuilder str = new StringBuilder();
 			str.append(this.getClass().getSimpleName() +"{");
 			str.append(toJSON());
 			str.append("}");
 			return str.toString();
-		}
+	}
 		
-	  public String toJSON() {
+	 public String toJSON() {
 	   try {
 			return mapper.writeValueAsString(this);
 		} catch (JsonProcessingException e) {

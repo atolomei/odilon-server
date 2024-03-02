@@ -41,6 +41,7 @@ import io.odilon.util.Check;
 import io.odilon.util.ODFileUtils;
 import io.odilon.vfs.RAIDUpdateObjectHandler;
 import io.odilon.vfs.model.Drive;
+import io.odilon.vfs.model.SimpleDrive;
 import io.odilon.vfs.model.VFSBucket;
 import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VFSop;
@@ -193,7 +194,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 			getLockService().getObjectLock( bucket.getName(), objectName).writeLock().lock();
 			getLockService().getBucketLock(bucket.getName()).readLock().lock();
 		
-			boolean exists = getDriver().getWriteDrive(bucket.getName(), objectName).existsObject(bucket.getName(), objectName);
+			boolean exists = getDriver().getWriteDrive(bucket.getName(), objectName).existsObjectMetadata(bucket.getName(), objectName);
 			
 			if (!exists)
 				throw new OdilonObjectNotFoundException("object does not exist -> b:" + bucket.getName()+ " o:"+(Optional.ofNullable(objectName).isPresent() ? (objectName) :"null"));
@@ -465,7 +466,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 		
 		try {
 				sourceStream = isEncrypt() ? getVFS().getEncryptionService().encryptStream(stream) : stream;
-				out = new BufferedOutputStream(new FileOutputStream(getWriteDrive(bucket.getName(), objectName).getObjectDataFilePath(bucket.getName(), objectName)), VirtualFileSystemService.BUFFER_SIZE);
+				out = new BufferedOutputStream(new FileOutputStream( ((SimpleDrive) getWriteDrive(bucket.getName(), objectName)).getObjectDataFilePath(bucket.getName(), objectName)), VirtualFileSystemService.BUFFER_SIZE);
 				int bytesRead;
 				while ((bytesRead = sourceStream.read(buf, 0, buf.length)) >= 0)
 					out.write(buf, 0, bytesRead);
@@ -518,7 +519,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 		
 		OffsetDateTime now =  OffsetDateTime.now();
 		Drive drive=getWriteDrive(bucket.getName(), objectName);
-		File file=drive.getObjectDataFile(bucket.getName(), objectName);
+		File file=((SimpleDrive) drive).getObjectDataFile(bucket.getName(), objectName);
 		
 		try {
 				String sha256 = ODFileUtils.calculateSHA256String(file);
@@ -570,8 +571,8 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 	private void saveVersionObjectDataFile(VFSBucket bucket, String objectName, int version) {
 		try {
 			Drive drive=getWriteDrive(bucket.getName(), objectName);
-			File file=drive.getObjectDataFile(bucket.getName(), objectName);
-			drive.putObjectDataVersionFile(bucket.getName(), objectName, version, file);
+			File file=((SimpleDrive) drive).getObjectDataFile(bucket.getName(), objectName);
+			((SimpleDrive) drive).putObjectDataVersionFile(bucket.getName(), objectName, version, file);
 			
 		} catch (Exception e) {
 				logger.error(e);
@@ -610,9 +611,9 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 	private boolean restoreVersionObjectDataFile(String bucketName, String objectName, int version) {
 		try {
 			Drive drive=getWriteDrive(bucketName, objectName);
-			File file= drive.getObjectDataVersionFile(bucketName, objectName,version);
+			File file= ((SimpleDrive) drive).getObjectDataVersionFile(bucketName, objectName,version);
 			if (file.exists()) {
-				drive.putObjectDataFile(bucketName, objectName, file);
+				((SimpleDrive) drive).putObjectDataFile(bucketName, objectName, file);
 				FileUtils.deleteQuietly(file);
 				return true;
 			}
@@ -695,7 +696,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 				if (metadata.exists())
 					FileUtils.deleteQuietly(metadata);
 				
-				File data=getDriver().getWriteDrive(bucket.getName(), objectName).getObjectDataVersionFile(bucket.getName(), objectName, previousVersion);
+				File data=  ((SimpleDrive) getDriver().getWriteDrive(bucket.getName(), objectName)).getObjectDataVersionFile(bucket.getName(), objectName, previousVersion);
 				if (data.exists())
 					FileUtils.deleteQuietly(data);
 				
@@ -720,7 +721,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 				if (metadata.exists())
 					FileUtils.deleteQuietly(metadata);
 				
-				File data=getDriver().getWriteDrive(bucket.getName(), objectName).getObjectDataVersionFile(bucket.getName(), objectName,  versionDiscarded);
+				File data=((SimpleDrive) getDriver().getWriteDrive(bucket.getName(), objectName)).getObjectDataVersionFile(bucket.getName(), objectName,  versionDiscarded);
 				if (data.exists())
 					FileUtils.deleteQuietly(data);
 				
