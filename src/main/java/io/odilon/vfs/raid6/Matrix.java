@@ -4,7 +4,7 @@
  * Copyright 2015, Backblaze, Inc.
  */
 
-package com.backblaze.erasure;
+package io.odilon.vfs.raid6;
 
 /**
  * A matrix over the 8-bit Galois field.
@@ -181,7 +181,7 @@ public class Matrix {
                 return false;
             }
         }
-        return true;
+        return true;                             
     }
 
     /**

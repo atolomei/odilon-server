@@ -17,6 +17,10 @@
 package io.odilon.service;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.FileStore;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -28,6 +32,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 
+import org.checkerframework.checker.index.qual.NonNegative;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
@@ -45,6 +50,7 @@ import io.odilon.model.RedundancyLevel;
 import io.odilon.model.ServerConstant;
 import io.odilon.service.util.ByteToString;
 import io.odilon.util.RandomIDGenerator;
+import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 @Configuration
@@ -54,7 +60,10 @@ public class ServerSettings implements APIObject {
 	static private Logger logger = Logger.getLogger(ServerSettings.class.getName());
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 
-	static private RandomIDGenerator idGenerator = new RandomIDGenerator();
+	static private final RandomIDGenerator idGenerator = new RandomIDGenerator();
+	
+	private static final OffsetDateTime systemStarted = OffsetDateTime.now(); 
+
 	
 	protected String version = "";
 
@@ -272,19 +281,20 @@ public class ServerSettings implements APIObject {
 	@Value("${objectCacheCapacity:500000}")
 	protected int objectCacheCapacity;
 
-				
-	@Value("${fileCacheCapacity:10000}")
-	protected int fileCacheCapacity;
+			
+	@Value("${fileCacheCapacity:40000}")
+	protected long fileCacheCapacity;
 
+	@Value("${fileCacheDurationDays:7}")
+	protected int fileCacheDurationDays;
 	
-	private static final OffsetDateTime systemStarted = OffsetDateTime.now(); 
-	
-	public OffsetDateTime getSystemStartTime() {
-		return systemStarted;
-	}
 	
 	@Autowired
 	public ServerSettings() {
+	}
+
+	public OffsetDateTime getSystemStartTime() {
+		return systemStarted;
 	}
 	
 	public String getAccessKey() {
@@ -364,6 +374,9 @@ public class ServerSettings implements APIObject {
 		
 		str.append(", \"trafficTokens\":" +String.valueOf(tokens) + "");
 		str.append(", \"versionControl\":\"" + (this.versioncontrol ? "true" : "false")+"\"");
+						
+		str.append("\"fileCacheCapacity\":\"" + String.valueOf(fileCacheCapacity) + "\"");
+		str.append("\"fileCacheDurationDays\":\"" + String.valueOf(fileCacheDurationDays) + "\"");
 		
 		return str.toString();
 	}
@@ -452,6 +465,8 @@ public class ServerSettings implements APIObject {
 			this.rootDirs = getDefaultRootDirs();
 		}
 
+		
+		
 		if (encryptionKey!=null)  {
 			encryptionKey=encryptionKey.trim();
 			if (encryptionKey.length()!= (2*VirtualFileSystemService.AES_KEY_SIZE_BITS/8))
@@ -516,7 +531,7 @@ public class ServerSettings implements APIObject {
 		//}
 		
 		if (this.redundancyLevel==RedundancyLevel.RAID_6) {
-			if (this.raid6DataDrives!=4 || this.raid6ParityDrives !=2) {
+			if ((this.raid6DataDrives!=4 || this.raid6ParityDrives !=2)) {
 				throw new IllegalArgumentException("the only "+ RedundancyLevel.RAID_6.getName() +" the only configuration supported in this version is -> raid6.dataDrives=4 and raid6.parityDrives=2");
 			}
 		}
@@ -596,6 +611,34 @@ public class ServerSettings implements APIObject {
 		if(this.standbyUrl==null)
 			this.isStandByEnabled=false;
 		
+		
+		if (fileCacheCapacity==-1) {
+			
+		}
+		
+		/**
+		if (fileCacheCapacity==-1) {
+			long totalSpace = 0;
+			for (String rootDir: this.rootDirs ) {
+			    try {
+			    	Path path = (new File(rootDir)).toPath();
+			    	FileStore store = Files.getFileStore(path);
+			    	totalSpace  += store.getUsableSpace();
+			    } catch (IOException e) {
+			        logger.error(e);
+			    }
+			}
+			long cacheMax=Double.valueOf(Math.floor(Double.valueOf(totalSpace).doubleValue() * 0.1 / 1000000.0)).longValue();
+			if (cacheMax>100 && cacheMax<1000000)
+				fileCacheCapacity=cacheMax;
+			else
+				fileCacheCapacity=10000;
+		}
+		**/
+		
+		if (fileCacheDurationDays<1)
+			fileCacheDurationDays=7;
+		
 		startuplogger.debug("Started -> " + ServerSettings.class.getSimpleName());
 		
 	}
@@ -659,6 +702,7 @@ public class ServerSettings implements APIObject {
 			if (getRedundancyLevel()==RedundancyLevel.RAID_1 || getRedundancyLevel()==RedundancyLevel.RAID_0)
 				return list;
 				
+			list.add("c:"+File.separator+"odilon-data"+File.separator+"drive0");
 			list.add("c:"+File.separator+"odilon-data"+File.separator+"drive1");
 			list.add("c:"+File.separator+"odilon-data"+File.separator+"drive2");
 			list.add("c:"+File.separator+"odilon-data"+File.separator+"drive3");
@@ -676,11 +720,12 @@ public class ServerSettings implements APIObject {
 			if (getRedundancyLevel()==RedundancyLevel.RAID_1 || getRedundancyLevel()==RedundancyLevel.RAID_0)
 				return list;
 				
-			list.add(File.separator + "var" + File.separator + "lib" + File.separator + "odilon-data" + File.separator + "drive1");
-			list.add(File.separator + "var" + File.separator + "lib" + File.separator + "odilon-data" + File.separator + "drive2");
-			list.add(File.separator + "var" + File.separator + "lib" + File.separator + "odilon-data" + File.separator + "drive3");
-			list.add(File.separator + "var" + File.separator + "lib" + File.separator + "odilon-data" + File.separator + "drive4");
-			list.add(File.separator + "var" + File.separator + "lib" + File.separator + "odilon-data" + File.separator + "drive5");
+			list.add(File.separator + "opt" + File.separator +  File.separator + "odilon-data" + File.separator + "drive0");
+			list.add(File.separator + "opt" + File.separator +  File.separator + "odilon-data" + File.separator + "drive1");
+			list.add(File.separator + "opt" + File.separator +  File.separator + "odilon-data" + File.separator + "drive2");
+			list.add(File.separator + "opt" + File.separator +  File.separator + "odilon-data" + File.separator + "drive3");
+			list.add(File.separator + "opt" + File.separator +  File.separator + "odilon-data" + File.separator + "drive4");
+			list.add(File.separator + "opt" + File.separator +  File.separator + "odilon-data" + File.separator + "drive5");
 			
 			return list;
 		}
@@ -893,14 +938,22 @@ public class ServerSettings implements APIObject {
 		return objectCacheCapacity;
 	}
 	
-	public int getFileCacheCapacity() {
+	public long getFileCacheCapacity() {
 		return fileCacheCapacity;
 	}
+	
+	public long getFileCacheDurationDays() {
+		return fileCacheDurationDays;
+	}
+
 	
 
 	protected String randomString(final int size) {
 		return idGenerator.randomString(size);
 	}
+
+	
+	
 
 	
 }

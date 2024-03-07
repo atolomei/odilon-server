@@ -45,7 +45,7 @@ public class ChunkedDrive extends ODDrive {
 	 * @param objectName
 	 * @param version
 	 * @return
-	 */
+	 
 	public List<File> getDataFiles(String bucketName, String objectName, Optional<Integer> version) {
 		
 		List<File> list = new ArrayList<File>();
@@ -56,7 +56,7 @@ public class ChunkedDrive extends ODDrive {
 			try {
 				stream = Files.walk(start, 1).
 						skip(1).
-						filter(file -> file.getFileName().startsWith(objectName+"."));
+						filter(file -> file.getFileName()!=null);
 			} catch (IOException e) {
 				logger.error(e);
 				throw new InternalCriticalException(e);
@@ -67,6 +67,7 @@ public class ChunkedDrive extends ODDrive {
 				while (it.hasNext()) {
 					Path item=it.next();
 					list.add(item.toFile());
+					logger.debug(item.getFileName());
 				}
 			} finally {
 					if (stream!=null)
@@ -75,12 +76,16 @@ public class ChunkedDrive extends ODDrive {
 		}
 		else {
 			
+			Path start = new File(getBucketObjectDataDirPath(bucketName)+File.separator+"version").toPath();
+			
 			
 		}
 		
 		
 		return list;
-		
-	}
+			}
+	*/
+	
+
 
 }

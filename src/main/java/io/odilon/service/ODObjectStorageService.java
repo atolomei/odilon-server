@@ -167,9 +167,10 @@ public class ODObjectStorageService extends BaseService implements ObjectStorage
 	}
 	
 	@Override
-	public void deleteObjectAllPreviousVersions(String bucketName, String objectName) {
+	public void deleteObjectAllPreviousVersions(ObjectMetadata meta) {
 		Check.requireTrue(isVFSEnabled(), "VFS invalid state -> " + getVFS().getStatus().toString());
-		getVFS().deleteObjectAllPreviousVersions(bucketName, objectName);
+		
+		getVFS().deleteObjectAllPreviousVersions(meta);
 	}
 
 	@Override

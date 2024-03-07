@@ -170,12 +170,16 @@ public class ODDrive extends ODModelObject implements Drive {
 	}
 
 	@Override
+	public String getBucketCacheDirPath(String bucketName) {
+		Check.requireNonNullStringArgument(bucketName, "bucketName is null");
+		return this.getCacheDirPath() + File.separator + bucketName;
+	}
+	
+	
+	@Override
 	public String getBucketObjectDataDirPath(String bucketName) {
 		return this.getRootDirPath() + File.separator + bucketName;
 	}
-	
-
-	
 	
 	@Override
 	public void putObjectMetadataVersionFile(String bucketName, String objectName, int version, File metaFile) throws IOException {
@@ -191,7 +195,6 @@ public class ODDrive extends ODModelObject implements Drive {
 		}
 	}
 	
-	
 	/**
 	 * @param bucketName
 	 * @return
@@ -205,8 +208,11 @@ public class ODDrive extends ODModelObject implements Drive {
 																	
 		File metadata_dir 			= new File (this.getBucketsDirPath() + File.separator + bucketName);
 		File data_dir 				= new File (this.getRootDirPath() 	 + File.separator + bucketName);
+		File cache_dir 				= new File (this.getCacheDirPath() 	 + File.separator + bucketName);
 		File data_version_dir 		= new File (this.getRootDirPath() 	 + File.separator + bucketName + File.separator + VirtualFileSystemService.VERSION_DIR);
 		File work_dir 				= new File (this.getWorkDirPath() 	 + File.separator + bucketName);
+		
+		
 		
 		try {
 			
@@ -225,6 +231,10 @@ public class ODDrive extends ODModelObject implements Drive {
 			
 			if ((!work_dir.exists()) || (!work_dir.isDirectory())) 
 				FileUtils.forceMkdir(work_dir);
+			
+					
+			if ((!cache_dir.exists()) || (!cache_dir.isDirectory())) 
+				FileUtils.forceMkdir(cache_dir);
 			
 			//if ((!data_work_dir.exists()) || (data_work_dir.isDirectory())) 
 			//	FileUtils.forceMkdir(data_work_dir);
@@ -410,6 +420,10 @@ public class ODDrive extends ODModelObject implements Drive {
 	@Override					
 	public String getWorkDirPath() 			{return getRootDirPath() + File.separator + VirtualFileSystemService.SYS + File.separator + VirtualFileSystemService.WORK; }
 
+	@Override								
+	public String getCacheDirPath() 		{return getRootDirPath() + File.separator + VirtualFileSystemService.SYS + File.separator + VirtualFileSystemService.CACHE; }
+	
+	
 	@Override							
 	public String getSchedulerDirPath() 	{return getRootDirPath() + File.separator + VirtualFileSystemService.SYS + File.separator + VirtualFileSystemService.SCHEDULER; }
 	
@@ -422,14 +436,6 @@ public class ODDrive extends ODModelObject implements Drive {
 	@Override
 	public String getTempDirPath() 			{return getRootDirPath() + File.separator + VirtualFileSystemService.SYS + File.separator + VirtualFileSystemService.TEMP;}
 
-	
-	
-	public File getObjectDataFile(String bucketName, String objectName, int chunk,  int block) {
-		return new File(this.getRootDirPath(), bucketName + File.separator + objectName + "." + String.valueOf(chunk) + "." + String.valueOf(block));
-	}
-	
-
-	
 	
 	/**
 	 * <p>ObjectMetadata</p>
@@ -739,6 +745,28 @@ public class ODDrive extends ODModelObject implements Drive {
 		 return file.getTotalSpace();
 	}
 
+									
+	public synchronized void cleanUpCacheDir(String bucketName) {
+		Check.requireNonNullStringArgument(bucketName, "bucketName is null");
+		try {
+					int n=0;
+					File bucketDir = new File (getBucketCacheDirPath(bucketName));
+					if (bucketDir.exists()) {
+						File files[] = bucketDir.listFiles();
+						for (File fi:files) {
+							logger.debug("Remove fi: " + fi.getName() + " d: " + getName() + " dir:"+ getBucketCacheDirPath(bucketName));
+							FileUtils.deleteQuietly(fi);
+							if (n++>50000)
+								break;
+						}
+					}
+					if (n>0)
+						logger.info("Removed temp files from d: " + getName() + " dir:"+ getBucketCacheDirPath(bucketName) + " | b:" + bucketName+ " total:" + String.valueOf(n));
+		} catch (Exception e) {
+			logger.error(e);
+		}
+	}
+	
 	public synchronized void cleanUpWorkDir(String bucketName) {
 		Check.requireNonNullStringArgument(bucketName, "bucketName is null");
 		try {
@@ -749,7 +777,7 @@ public class ODDrive extends ODModelObject implements Drive {
 						for (File fi:files) {
 							logger.debug("Remove fi: " + fi.getName() + " d: " + getName() + " dir:"+ getBucketWorkDirPath(bucketName));
 							FileUtils.deleteQuietly(fi);
-							if (n++>5000)
+							if (n++>10000)
 								break;
 						}
 					}
@@ -806,6 +834,12 @@ public class ODDrive extends ODModelObject implements Drive {
 			File work = new File(getWorkDirPath());
 			if (!work.exists() || !work.isDirectory())
 				createWorkDirectory();
+			
+			/** work */
+			File cache = new File(getCacheDirPath());
+			if (!cache.exists() || !cache.isDirectory())
+				createCacheDirectory();
+			
 			
 			/** version directory for data */ 
 			checkWorkBucketDirs();
@@ -992,6 +1026,21 @@ public class ODDrive extends ODModelObject implements Drive {
 	}
 	}
 
+	private void createCacheDirectory() {
+		try {
+			
+			logger.debug("Creating Directory -> " + getCacheDirPath());
+			io.odilon.util.ODFileUtils.forceMkdir(new File(getCacheDirPath()));
+			
+		} catch (IOException e) {											
+			String msg = "Can not create cache Directory ->  dir:" +getCacheDirPath()  + "  d:" + name;	
+			logger.error(e, msg);
+			throw new InternalCriticalException(e, msg);
+		}
+	}
+
+	
+	
 	private void createSchedulerDirectory() {
 		try {		
 			logger.debug("Creating Directory -> " + getSchedulerDirPath());
@@ -1070,6 +1119,7 @@ public class ODDrive extends ODModelObject implements Drive {
 				Path bucket=it.next();
 				
 				String bucketName = bucket.toFile().getName();
+				
 				File workDir = new File (getBucketWorkDirPath(bucketName));
 				if (!workDir.exists()) {
 					logger.debug("Creating Directory -> " + workDir.getName());
@@ -1080,28 +1130,16 @@ public class ODDrive extends ODModelObject implements Drive {
 					}
 				}
 				
-				/**
-				File data= new File (getBucketWorkDataDirPath(bucketName));
-				File metadata = new File (getBucketWorkMetadataDirPath(bucketName));
 				
-				if (!data.exists()) {
-					logger.debug("Creating Directory -> " + data.getName());
+				File cacheDir = new File (getBucketCacheDirPath(bucketName));
+				if (!cacheDir.exists()) {
+					logger.debug("Creating Directory -> " + cacheDir.getName());
 					try {
-						io.odilon.util.ODFileUtils.forceMkdir(data);
+						io.odilon.util.ODFileUtils.forceMkdir(cacheDir);
 					} catch (IOException e) {
-						throw new InternalCriticalException(e, "Can not create -> " + data.getName());
+						throw new InternalCriticalException(e, "Can not create -> " + cacheDir.getName());
 					}
 				}
-				
-				if (!metadata.exists()) {
-					logger.debug("Creating Directory -> " + metadata.getName());
-					try {
-						io.odilon.util.ODFileUtils.forceMkdir(metadata);
-					} catch (IOException e) {
-						throw new InternalCriticalException(e, "Can not create -> " + metadata.getName());
-					}
-				}
-				**/
 			}
 		} finally {
 			if (stream!=null)

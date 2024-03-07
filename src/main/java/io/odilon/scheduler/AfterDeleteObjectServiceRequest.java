@@ -24,6 +24,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import io.odilon.log.Logger;
+import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ServerConstant;
 import io.odilon.vfs.model.VFSop;
 import io.odilon.vfs.model.VirtualFileSystemService;
@@ -59,11 +60,16 @@ public class AfterDeleteObjectServiceRequest extends AbstractServiceRequest impl
 	
 	private static final long serialVersionUID = 1L;
 
-	@JsonProperty("bucketName")
-	String bucketName;
+	//@JsonProperty("bucketName")
+	//String bucketName;
 	
-	@JsonProperty("objectName")
-	String objectName;
+	//@JsonProperty("objectName")
+	//String objectName;
+	
+
+	@JsonProperty("meta")
+	ObjectMetadata meta;
+
 	
 	@JsonProperty("headVersion")
 	int headVersion=0;
@@ -80,11 +86,10 @@ public class AfterDeleteObjectServiceRequest extends AbstractServiceRequest impl
 	protected AfterDeleteObjectServiceRequest() {
 	}
 	
-	public AfterDeleteObjectServiceRequest(VFSop vfsop, String bucketName, String objectName, int headVersion) {
+	public AfterDeleteObjectServiceRequest(VFSop vfsop, ObjectMetadata meta, int headVersion) {
 		
 		this.vfsop=vfsop;
-		this.bucketName=bucketName;
-		this.objectName=objectName;
+		this.meta=meta;
 		this.headVersion=headVersion;
 	}
 	
@@ -114,8 +119,10 @@ public class AfterDeleteObjectServiceRequest extends AbstractServiceRequest impl
 
 	@Override
 	public String getUUID() {
-		return  ((bucketName!=null) ? bucketName :"null" ) + ":" + 
-				((objectName!=null) ? objectName :"null" );
+		if (meta==null)
+			return "null";
+		return  ((meta.bucketName!=null) ? meta.bucketName :"null" ) + ":" + 
+				((meta.objectName!=null) ? meta.objectName :"null" );
 	}
 	
 	@Override
@@ -133,10 +140,10 @@ public class AfterDeleteObjectServiceRequest extends AbstractServiceRequest impl
 		VirtualFileSystemService vfs = getApplicationContext().getBean(VirtualFileSystemService.class);
 			
 		if (this.vfsop==VFSop.DELETE_OBJECT)
-				vfs.createVFSIODriver().postObjectDeleteTransaction(bucketName, objectName, headVersion);
+				vfs.createVFSIODriver().postObjectDeleteTransaction(meta, headVersion);
 			
 		else if (this.vfsop==VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS) 
-				vfs.createVFSIODriver().postObjectPreviousVersionDeleteAllTransaction(bucketName, objectName, headVersion);
+				vfs.createVFSIODriver().postObjectPreviousVersionDeleteAllTransaction(meta, headVersion);
 			
 		else
 			logger.error("Invalid Class -> " + this.vfsop.getName());

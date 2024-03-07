@@ -1,19 +1,26 @@
 package io.odilon.cache;
 
 import java.io.File;
-import java.io.IOException;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 import javax.annotation.PostConstruct;
 
 import org.apache.commons.io.FileUtils;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import io.odilon.errors.InternalCriticalException;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.RemovalCause;
+
 import io.odilon.log.Logger;
 import io.odilon.model.BaseService;
 import io.odilon.model.ServiceStatus;
@@ -23,11 +30,17 @@ import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.LockService;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
+
 @Service
 public class FileCacheService extends BaseService {
 			
 	static private Logger logger = Logger.getLogger(FileCacheService.class.getName());
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
+	static final int INITIAL_CAPACITY = 100;
+	static final int MAX_SIZE = 25000;
+	static final int TIMEOUT_DAYS = 7;
+
+	private long cacheSizeBytes = 0;
 	
 	@JsonIgnore
 	@Autowired
@@ -37,69 +50,45 @@ public class FileCacheService extends BaseService {
 	@Autowired
 	private final ServerSettings serverSettings;
 	
-	/** lazy injection */
+	/** lazy injection due to circular dependencies */
 	@JsonIgnore
 	private VirtualFileSystemService vfs;
 
 	@JsonIgnore
-	private LRUCache<String, File> map; 
-	
-	@JsonIgnore
 	private List<Drive> listDrives;
+
+	@JsonIgnore
+	private Cache<String, File> cache;
 	
-	public LockService getLockService() {
-		return this.vfsLockService;
-	}
 	
 	public FileCacheService(ServerSettings serverSettings, LockService vfsLockService) {
 		this.serverSettings=serverSettings;
 		this.vfsLockService=vfsLockService;
 	}
 	
-	public String getFileCachePath(String bucketName, String objectName) {
-		String path = getKey(bucketName, objectName);
-		Drive drive = getDrivesAll().get(Math.abs(path.hashCode() % getDrivesAll().size()));
-		return drive.getWorkDirPath() + File.separator + path;
-		
-	}
-    public int size() {
-   		return map.size();
-    }
 
-    public boolean isEmpty() {
-   		return map.isEmpty();
-    }
-    
     public boolean containsKey(String bucketName, String objectName) {
-    	
     	Check.requireNonNullArgument(bucketName, "bucket is null");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucketName);
-
 		getLockService().getFileCacheLock(bucketName, objectName).readLock().lock();
-
 		try {
-    		return map.containsKey(getKey(bucketName, objectName));
+    		return (this.cache.getIfPresent(getKey(bucketName, objectName))!=null);
     	} finally {
     		getLockService().getFileCacheLock(bucketName, objectName).readLock().unlock();
     	}
     }
 
     /**
-     * 
      * @param bucketName
      * @param objectName
      * @return
      */
     public File get(String bucketName, String objectName) {
-
     	Check.requireNonNullArgument(bucketName, "bucket is null");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucketName);
-
 		getLockService().getFileCacheLock(bucketName, objectName).readLock().lock();
-		
     	try {
-    		return map.get(getKey(bucketName, objectName));
-    		
+    		return this.cache.getIfPresent(getKey(bucketName, objectName));
     	} finally {
     		getLockService().getFileCacheLock(bucketName, objectName).readLock().unlock();
     	}
@@ -113,63 +102,66 @@ public class FileCacheService extends BaseService {
      * @return
      */
     public void put(String bucketName, String objectName, File file, boolean lockRequired) {
-    	
     	Check.requireNonNullArgument(bucketName, "bucket is null");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucketName);
 		Check.requireNonNullArgument(file, "file is null");
-
 		if (lockRequired)
 			getLockService().getFileCacheLock(bucketName, objectName).writeLock().lock();
-
 		try {
-
-			map.put(getKey(bucketName, objectName), file);
-			
+			this.cache.put(getKey(bucketName, objectName), file);
+			cacheSizeBytes += file.length();
     	} finally {
-    		
     		if (lockRequired)
     			getLockService().getFileCacheLock(bucketName, objectName).writeLock().unlock();
     	}
-    	
+    }
+    /**
+     * @param bucketName
+     * @param objectName
+     */
+    public void remove(String bucketName, String objectName) {
+    	Check.requireNonNullArgument(bucketName, "bucket is null");
+		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucketName);
+		getLockService().getFileCacheLock(bucketName, objectName).writeLock().lock();
+    	try {
+    		File file = this.cache.getIfPresent(getKey(bucketName, objectName));
+    		this.cache.invalidate(getKey(bucketName, objectName));
+    		if (file!=null) {
+    			FileUtils.deleteQuietly(file);
+    			cacheSizeBytes -= file.length();
+    		}
+    	} finally {
+    		getLockService().getFileCacheLock(bucketName, objectName).writeLock().unlock();
+    	}
     }
 
     /**
      * 
      * @param bucketName
      * @param objectName
+     * @return
      */
-    public void remove(String bucketName, String objectName) {
-    	
-    	Check.requireNonNullArgument(bucketName, "bucket is null");
-		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucketName);
-
-		getLockService().getFileCacheLock(bucketName, objectName).writeLock().lock();
-		
-    	try {
-    		
-    		File file = map.get(getKey(bucketName, objectName));
-	    	
-	    	try {
-	    		
-	    		if (file!=null && file.exists())
-	    			FileUtils.forceDelete(file);
-	    		
-			} catch (IOException e) {
-				logger.error(e);
-				throw new InternalCriticalException(e);
-			}
-	    	map.remove(getKey(bucketName, objectName));
-	    	
-    	} finally {
-    		
-    		getLockService().getFileCacheLock(bucketName, objectName).writeLock().unlock();
-    		
-    	}
+	public String getFileCachePath(String bucketName, String objectName) {
+		String path = getKey(bucketName, objectName);
+		return getDrivesAll().get(Math.abs(path.hashCode()) % getDrivesAll().size()).getCacheDirPath() + File.separator + path;
+	}
+	
+    public long size() {
+   		return this.cache.estimatedSize();
+    }
+    
+    public long hardDiskUsage() {
+   		return this.cacheSizeBytes;
     }
 
     
-	public synchronized void setVFS(VirtualFileSystemService virtualFileSystemService) {
-		this.vfs=virtualFileSystemService;
+    public synchronized void setVFS(VirtualFileSystemService virtualFileSystemService) {
+		try {
+	    	this.vfs=virtualFileSystemService;
+    	} finally {
+			setStatus(ServiceStatus.RUNNING);
+	 		startuplogger.debug("Started -> " + FileCacheService.class.getSimpleName());
+    	}
 	}
 	
 	public VirtualFileSystemService getVFS() {
@@ -179,28 +171,60 @@ public class FileCacheService extends BaseService {
 		}
 		return this.vfs;
 	}
+
+	public LockService getLockService() {
+		return this.vfsLockService;
+	}
 	
-	public synchronized List<Drive> getDrivesAll() {
+	@PostConstruct
+	protected synchronized void onInitialize() {
+		
+		setStatus(ServiceStatus.STARTING);
+		
+		this.cache = Caffeine.newBuilder()
+					.initialCapacity(INITIAL_CAPACITY)    
+					.maximumSize(this.serverSettings.getFileCacheCapacity())
+				    .expireAfterWrite(this.serverSettings.getFileCacheDurationDays(), TimeUnit.DAYS)
+				    .evictionListener((key, value, cause) -> {
+		            	onRemoval(key, value, cause);
+				    })
+				    .removalListener((key, value, cause) -> {
+			            onRemoval(key, value, cause);
+			        })
+				    .build();
+	}
+
+	
+	/**
+	 * @param key
+	 * @param value
+	 * @param cause
+	 */
+	protected void onRemoval(@Nullable Object key, @Nullable Object value, @NonNull RemovalCause cause) {
+		if (cause.wasEvicted()) {
+			if ((key!=null) && (value!=null)) {
+				String pattern = Pattern.quote(File.separator);
+				String arr[] = ((String)key).split(pattern);
+				getLockService().getFileCacheLock(arr[0], arr[1]).writeLock().lock();
+				try {
+		    			FileUtils.deleteQuietly((File) value);
+		    			cacheSizeBytes -= ((File)value).length();
+				} finally {
+					getLockService().getFileCacheLock(arr[0], arr[1]).writeLock().unlock();
+				}
+			}
+		}
+	}
+	
+    private String getKey(String bucketName, String objectName) {
+    	return bucketName + File.separator + objectName;
+    }
+    
+	private List<Drive> getDrivesAll() {
 		if (this.listDrives ==null)
 			this.listDrives = new ArrayList<Drive>(getVFS().getDrivesAll().values());
 		return this.listDrives;
 	}
 
-	@PostConstruct
-	protected synchronized void onInitialize() {
-		
-		try {
-			setStatus(ServiceStatus.STARTING);
-			this.map = new LRUCache<String, File>(this.serverSettings.getFileCacheCapacity());
-			
-		} finally {
-			setStatus(ServiceStatus.RUNNING);
-	 		startuplogger.debug("Started -> " + FileCacheService.class.getSimpleName());
-		}
-	}
-
-    private String getKey( String bucketName, String objectName) {
-    	return bucketName+"-"+objectName;
-    }
 	
 }

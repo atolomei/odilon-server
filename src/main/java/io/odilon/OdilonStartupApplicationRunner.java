@@ -31,6 +31,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import io.odilon.log.Logger;
 import io.odilon.model.OdilonServerInfo;
+import io.odilon.model.RedundancyLevel;
 import io.odilon.model.ServerConstant;
 import io.odilon.replication.ReplicationService;
 import io.odilon.scheduler.CronJobDataIntegrityCheckRequest;
@@ -157,7 +158,14 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 		startupLogger.info("Encryption enabled -> " + String.valueOf(settingsService.isEncryptionEnabled()));
 		startupLogger.info("Version Control -> " + String.valueOf(settingsService.isVersionControl()));
 		startupLogger.info("Data Storage mode -> " + settingsService.getDataStorage().getName());
-		startupLogger.info("Data Storage redundancy level -> " + settingsService.getRedundancyLevel().getName());
+		
+		if (settingsService.getRedundancyLevel()==RedundancyLevel.RAID_6) {
+			startupLogger.info("Data Storage redundancy level -> " + settingsService.getRedundancyLevel().getName()+
+					"[ data: "+ String.valueOf(settingsService.getRAID6DataDrives())+
+					", parity: " + String.valueOf(settingsService.getRAID6ParityDrives())+" ]");
+		}
+		else
+			startupLogger.info("Data Storage redundancy level -> " + settingsService.getRedundancyLevel().getName());
 		getAppContext().getBean(VirtualFileSystemService.class).getDrivesEnabled().forEach((k,v) -> startupLogger.info("Drive: " + k +" | rootDir: " + v.getRootDirPath()));
 		return true;
 	}

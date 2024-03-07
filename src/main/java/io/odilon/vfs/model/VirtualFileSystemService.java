@@ -71,6 +71,9 @@ public interface VirtualFileSystemService extends SystemService {
 	public static final String SYS 					= ".odilon.sys";
 	public static final String BUCKETS 				= "buckets";
 	public static final String WORK 				= "work";
+						
+	public static final String CACHE	 			= "cache";
+	
 	public static final String SCHEDULER 			= "scheduler";
 	public static final String JOURNAL 				= "journal";
 	public static final String TEMP 				= "tmp";
@@ -150,7 +153,9 @@ public interface VirtualFileSystemService extends SystemService {
 
 	public ObjectMetadata restorePreviousVersion(String bucketName, String objectName);
 	
-	public void deleteObjectAllPreviousVersions(String bucketName, String objectName);
+	//public void deleteObjectAllPreviousVersions(String bucketName, String objectName);
+	public void deleteObjectAllPreviousVersions(ObjectMetadata meta);
+	
 	public void deleteBucketAllPreviousVersions(String bucketName);
 	public void wipeAllPreviousVersions();
 
@@ -190,7 +195,7 @@ public interface VirtualFileSystemService extends SystemService {
 	public RedundancyLevel getRedundancyLevel();
 	public boolean isEmptyBucket(String bucketName);
 	
-	public BucketIteratorService getWalkerService();
+	public BucketIteratorService getBucketIteratorService();
 	public Map<String, VFSBucket> getBucketsCache();
 
 	public boolean checkIntegrity(String bucketName, String objectName, boolean forceCheck);
@@ -219,6 +224,9 @@ public interface VirtualFileSystemService extends SystemService {
 
 
 	FileCacheService getFileCacheService();
+
+
+
 
 	
 	/**

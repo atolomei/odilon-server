@@ -1,5 +1,6 @@
 package io.odilon.vfs;
 
+import io.odilon.model.ObjectMetadata;
 import io.odilon.vfs.model.VFSBucket;
 import io.odilon.vfs.model.VFSOperation;
 
@@ -9,16 +10,19 @@ public interface RAIDDeleteObjectHandler {
 	public void delete(VFSBucket bucket, String objectName);
 	
 	/** Delete Version */
-	public void deleteObjectAllPreviousVersions(VFSBucket bucket, String objectName);
+	public void deleteObjectAllPreviousVersions(ObjectMetadata meta);
 	public void deleteBucketAllPreviousVersions(VFSBucket bucket);
 	public void wipeAllPreviousVersions();
-	
 
-	/** rollbackJorunal */
+	/** rollbackJournal */
 	public void rollbackJournal(VFSOperation op, boolean recoveryMode);
 	
-	/** Post transaction */
-	public void postObjectDeleteTransaction(String bucketName, String objectName, int headVersion);
-	public void postObjectPreviousVersionDeleteAllTransaction(String bucketName, String objectName, int headVersion);
+	/**  
+	 *  Post transaction
+	 *  <p>executed Async by a {@link ServiceRequest} from the {@link SchedulerService}</p>
+	 * */
+	public void postObjectDelete(ObjectMetadata meta, int headVersion);
+	public void postObjectPreviousVersionDeleteAll(ObjectMetadata meta, int headVersion);
+
 	
 }

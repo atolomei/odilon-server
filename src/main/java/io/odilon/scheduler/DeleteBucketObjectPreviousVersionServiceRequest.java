@@ -40,9 +40,9 @@ public class DeleteBucketObjectPreviousVersionServiceRequest extends AbstractSer
 
 	static AtomicBoolean instanceRunning = new AtomicBoolean(false);
 	
-	static final double KB = 1024.0;
-	static final double MB = 1024.0 * KB;
-	static final double GB = 1024.0 * MB;
+	//static final double KB = 1024.0;
+	//static final double MB = 1024.0 * KB;
+	//static final double GB = 1024.0 * MB;
 	
 	@JsonIgnore
 	private long start_ms = 0;
@@ -231,7 +231,10 @@ public class DeleteBucketObjectPreviousVersionServiceRequest extends AbstractSer
 	private void process(Item<ObjectMetadata> item) {
 		try {
 			ObjectMetadata meta = item.getObject();
-			getVirtualFileSystemService().deleteObjectAllPreviousVersions(meta.bucketName, meta.objectName);
+			//getVirtualFileSystemService().deleteObjectAllPreviousVersions(meta.bucketName, meta.objectName);
+			getVirtualFileSystemService().deleteObjectAllPreviousVersions(meta);
+			
+			
 			this.checkOk.incrementAndGet();
 			
 		} catch (Exception e) {

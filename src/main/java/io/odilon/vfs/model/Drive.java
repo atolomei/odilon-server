@@ -44,6 +44,8 @@ public interface Drive {
 	public void setDriveInfo(DriveInfo info);
 
 	 public void cleanUpWorkDir(String name);
+	 public void cleanUpCacheDir(String name);
+	 
 
 	/** -----------------
 	 *  Journal 
@@ -112,7 +114,10 @@ public interface Drive {
 	 /** ObjectMetadata. Version ---*/
 	 public ObjectMetadata getObjectMetadataVersion(String bucketName, String objectName, int version);
 	 public File getObjectMetadataVersionFile(String bucketName, String objectName, int version);
-	 public void putObjectMetadataVersionFile(String bucketName, String objectName, int version, File metaFile) throws IOException;;
+	 public void putObjectMetadataVersionFile(String bucketName, String objectName, int version, File metaFile) throws IOException;
+	String getCacheDirPath();
+	String getBucketCacheDirPath(String bucketName);
+	
 	
 	
 	/** Object. Data File Version */

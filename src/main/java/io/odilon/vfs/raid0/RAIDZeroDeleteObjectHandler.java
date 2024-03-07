@@ -57,12 +57,16 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 	}
 	
 	/**
-	 * <p>Adds a {@link DeleteBucketObjectPreviousVersionServiceRequest} to the {@link SchedulerService} to walk through all objects and delete versions. 
+	 * <p>Adds a {@link DeleteBucketObjectPreviousVersionServiceRequest} to the {@link SchedulerService} 
+	 * to walk through all objects and delete versions. 
 	 * This process is Async and handler returns immediately.</p>
-	 * <p>The {@link DeleteBucketObjectPreviousVersionServiceRequest} creates n Threads to scan all Objects and remove previous versions.
-	 * In case of failure (for example. the server is shutdown before completion), it is retried up to 5 times.</p> 
-	 * <p>Although the removal of all versions for every Object is transactional, the ServiceRequest itself is not transactional, 
-	 * and it can not be rollback</p>
+	 * 
+	 * <p>The {@link DeleteBucketObjectPreviousVersionServiceRequest} creates n Threads to scan all Objects 
+	 * and remove previous versions.In case of failure (for example. the server is shutdown before completion), 
+	 * it is retried up to 5 times.</p> 
+	 * 
+	 * <p>Although the removal of all versions for every Object is transactional, the ServiceRequest 
+	 * itself is not transactional, and it can not be rollback</p>
 	 */
 	@Override
 	public void wipeAllPreviousVersions() {
@@ -83,6 +87,8 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 			getVFS().getSchedulerService().enqueue(getVFS().getApplicationContext().getBean(DeleteBucketObjectPreviousVersionServiceRequest.class, bucket.getName()));
 	}
 
+	
+	
 	/**
 	 * <p>It does not delete the head version, only previous versions</p>
 	 *  
@@ -90,24 +96,21 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 	 * @param objectName
 	 */
 	@Override
-	public void deleteObjectAllPreviousVersions(VFSBucket bucket, String objectName) {
+	public void deleteObjectAllPreviousVersions(ObjectMetadata meta) {
 		
-		VFSOperation op = null;  
+		int headVersion = -1;		  
 		boolean done = false;
-		
-		int headVersion = -1;
+		VFSOperation op = null;
 
 		try {
 			
-			getLockService().getObjectLock(bucket.getName(), objectName).writeLock().lock();
-			getLockService().getBucketLock(bucket.getName()).readLock().lock();
-
-			boolean exists = getDriver().getReadDrive(bucket, objectName).existsObjectMetadata(bucket.getName(), objectName);
+			getLockService().getObjectLock(meta.bucketName, meta.objectName).writeLock().lock();	
+			getLockService().getBucketLock(meta.bucketName).readLock().lock();
+															
+			boolean exists = getDriver().getReadDrive(meta.bucketName, meta.objectName).existsObjectMetadata(meta.bucketName, meta.objectName);
 			
-			if (!exists)
-				throw new OdilonObjectNotFoundException("object does not exist -> b:" + bucket.getName()+ " o:"+(Optional.ofNullable(objectName).isPresent() ? (objectName) :"null"));
-			
-			ObjectMetadata meta = getDriver().getObjectMetadataInternal(bucket.getName(), objectName, true);
+			if (!exists)													
+				throw new OdilonObjectNotFoundException("object does not exist -> b:" + meta.bucketName+ " o:" + meta.objectName);
 			
 			headVersion = meta.version;
 			
@@ -115,20 +118,20 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 			if (meta.version==0)
 				return;
 									
-			op = getJournalService().deleteObjectPreviousVersions(bucket.getName(), objectName, headVersion);
+			op = getJournalService().deleteObjectPreviousVersions(meta.bucketName, meta.objectName, headVersion);
 			
-			backupMetadata(bucket, objectName);
+			backupMetadata(meta.bucketName, meta.objectName);
 
 			/** remove all "objectmetadata.json.vn" Files, but keep -> "objectmetadata.json" **/  
 			for (int version=0; version < headVersion; version++) {
-				File metadataVersionFile = getDriver().getReadDrive(bucket.getName(), objectName).getObjectMetadataVersionFile(bucket.getName(), objectName, version);
+				File metadataVersionFile = getDriver().getReadDrive(meta.bucketName, meta.objectName).getObjectMetadataVersionFile(meta.bucketName, meta.objectName, version);
 				FileUtils.deleteQuietly(metadataVersionFile);
 			}
 
 			meta.addSystemTag("delete versions");
 			meta.lastModified = OffsetDateTime.now();
 
-			getDriver().getWriteDrive(bucket.getName(), objectName).saveObjectMetadata(meta);
+			getDriver().getWriteDrive(meta.bucketName, meta.objectName).saveObjectMetadata(meta);
 			
 			getVFS().getObjectCacheService().remove(meta.bucketName, meta.objectName);
 			done=op.commit();
@@ -150,21 +153,20 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 						rollbackJournal(op, false);
 						
 					} catch (Exception e) {
-						String msg =  	"b:"   + (Optional.ofNullable(bucket).isPresent()    	? (bucket.getName()) :"null") + 
-										", o:" + (Optional.ofNullable(objectName).isPresent() 	? (objectName)       :"null");   
-						logger.error(e, msg);
+						String msg =  	"b:"   + (Optional.ofNullable(meta.bucketName).isPresent()    	? (meta.bucketName) :"null") + 
+										", o:" + (Optional.ofNullable(meta.objectName).isPresent() 	? 	(meta.objectName)       :"null");   
 						throw new InternalCriticalException(e);
 					}
 				}
 			}
 			finally {
-				getLockService().getBucketLock(bucket.getName()).readLock().unlock();
-				getLockService().getObjectLock(bucket.getName(), objectName).writeLock().unlock();
+				getLockService().getBucketLock(meta.bucketName).readLock().unlock();
+				getLockService().getObjectLock(meta.bucketName, meta.objectName).writeLock().unlock();
 			}
 		}
 
 		if(done)
-			onAfterCommit(op, headVersion);
+			onAfterCommit(op, meta, headVersion);
 	}
 	
 	
@@ -184,7 +186,8 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 		
 		Drive drive = getDriver().getDrive(bucket.getName(), objectName);
 		int headVersion = -1;
-
+		ObjectMetadata meta = null;
+		
 		try {
 			
 			getLockService().getObjectLock(bucket.getName(), objectName).writeLock().lock();
@@ -193,13 +196,13 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 			if (!getDriver().exists(bucket, objectName))
 				throw new OdilonObjectNotFoundException("object does not exist -> b:" + bucket.getName()+ " o:"+(Optional.ofNullable(objectName).isPresent() ? (objectName) :"null"));
 
-			ObjectMetadata meta = getDriver().getObjectMetadataInternal(bucket.getName(), objectName, true);
+			meta = getDriver().getObjectMetadataInternal(bucket.getName(), objectName, true);
 			
 			headVersion = meta.version;
 			
 			op = getJournalService().deleteObject(bucket.getName(), objectName,	headVersion);
 			
-			backupMetadata(bucket, objectName);
+			backupMetadata(meta.bucketName, meta.objectName);
 			
 			
 			drive.deleteObjectMetadata(bucket.getName(), objectName);
@@ -243,15 +246,16 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 		}
 
 		if(done)
-			onAfterCommit(op, headVersion);
+			onAfterCommit(op, meta, headVersion);
 	}
 
 	@Override
 	public void rollbackJournal(VFSOperation op, boolean recoveryMode) {
 
+		Check.requireNonNullArgument(op, "op is null");
+		
 		if (logger.isDebugEnabled()) {
 			/** checked by the calling driver */
-			Check.requireNonNullArgument(op, "op is null");
 			Check.requireTrue(	op.getOp()==VFSop.DELETE_OBJECT ||  
 								op.getOp()==VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS, "VFSOperation invalid -> op: " + op.getOp().getName());
 		}
@@ -276,16 +280,16 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 			done=true;
 			
 		} catch (InternalCriticalException e) {
-			String msg = "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null");
-			logger.error(msg);
 			if (!recoveryMode)
 				throw(e);
+			else
+				logger.error("Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null") + " | " + ServerConstant.NOT_THROWN );
 			
 		} catch (Exception e) {
-			String msg = "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null");
-			logger.error(msg);
 			if (!recoveryMode)
-				throw new InternalCriticalException(e, msg);
+				throw new InternalCriticalException(e, "Rollback: " + op.toString());
+			else
+				logger.error("Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null") + " | " + ServerConstant.NOT_THROWN );
 		}
 		finally {
 			if (done || recoveryMode) 
@@ -298,10 +302,15 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 	 * 
 	 */
 	@Override
-	public void postObjectPreviousVersionDeleteAllTransaction(String bucketName, String objectName, int headVersion) {
+	public void postObjectPreviousVersionDeleteAll(ObjectMetadata meta, int headVersion) {
 
+		String bucketName = meta.bucketName;
+		String objectName = meta.objectName;
+				
+		Check.requireNonNullArgument(bucketName, "bucket is null");
+		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketName);
+		
 		try {
-			
 			/** delete data versions(1..n-1). keep headVersion **/
 			for (int n=0; n<headVersion; n++)	{
 				File version_n= ((SimpleDrive) getWriteDrive(bucketName, objectName)).getObjectDataVersionFile(bucketName, objectName, n);
@@ -328,7 +337,14 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 	 * @param headVersion
 	 */
 	@Override
-	public void postObjectDeleteTransaction(String bucketName, String objectName, int headVersion) {
+	public void postObjectDelete(ObjectMetadata meta, int headVersion) {
+	
+		String bucketName = meta.bucketName;
+		String objectName = meta.objectName;
+				
+		Check.requireNonNullArgument(bucketName, "bucket is null");
+		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketName);
+		
 		try {
 				/** delete data versions(1..n-1) **/
 				for (int n=0; n<=headVersion; n++)	{
@@ -344,10 +360,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 				
 				/** delete backup Metadata */
 				String objectMetadataBackupDirPath = getDriver().getWriteDrive(bucketName, objectName).getBucketWorkDirPath(bucketName) + File.separator + objectName;
-				File omb = new File(objectMetadataBackupDirPath);
-				
-				if (omb.exists())
-					FileUtils.deleteQuietly(omb);
+				FileUtils.deleteQuietly(new File(objectMetadataBackupDirPath));
 				
 		} catch (Exception e) {
 			logger.error(e, ServerConstant.NOT_THROWN);
@@ -358,18 +371,18 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 	 * @param bucket
 	 * @param objectName
 	 */
-	private void backupMetadata(VFSBucket bucket, String objectName) {
+	private void backupMetadata(String bucketName, String objectName) {
 	
 		/** copy metadata directory */
 		try {
 			
-			String objectMetadataDirPath = getDriver().getWriteDrive(bucket.getName(), objectName).getObjectMetadataDirPath(bucket.getName(), objectName);
-			String objectMetadataBackupDirPath = getDriver().getWriteDrive(bucket.getName(), objectName).getBucketWorkDirPath(bucket.getName()) + File.separator + objectName;
+			String objectMetadataDirPath = getDriver().getWriteDrive(bucketName, objectName).getObjectMetadataDirPath(bucketName, objectName);
+			String objectMetadataBackupDirPath = getDriver().getWriteDrive(bucketName, objectName).getBucketWorkDirPath(bucketName) + File.separator + objectName;
 			FileUtils.copyDirectory(new File(objectMetadataDirPath), new File(objectMetadataBackupDirPath));
 			
 		} catch (IOException e) {
-			String msg = "b:"   + (Optional.ofNullable(bucket).isPresent()    ? (bucket.getName()) :"null") + 
-						 ", o:" + (Optional.ofNullable(objectName).isPresent() ? (objectName)      :"null");  
+			String msg = "b:"   + (Optional.ofNullable(bucketName).isPresent()    ? (bucketName) 	:"null") + 
+						 ", o:" + (Optional.ofNullable(objectName).isPresent() ? (objectName)   :"null");  
 			throw new InternalCriticalException(e, msg);
 		}
 	}
@@ -401,15 +414,18 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 	 * temp files will be removed on system startup</p>
 	 * 
 	 */
-	private void onAfterCommit(VFSOperation op, int headVersion) {
+	private void onAfterCommit(VFSOperation op, ObjectMetadata meta, int headVersion) {
+		
+		if ((op==null) || (meta==null))
+			return;
+		
 		try {
 			if (op.getOp()==VFSop.DELETE_OBJECT || op.getOp()==VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS)
-				getVFS().getSchedulerService().enqueue(getVFS().getApplicationContext().getBean(AfterDeleteObjectServiceRequest.class, op.getOp(), op.getBucketName(), op.getObjectName(), headVersion));
+				getVFS().getSchedulerService().enqueue(getVFS().getApplicationContext().getBean(AfterDeleteObjectServiceRequest.class, op.getOp(), meta, headVersion));
+			
 		} catch (Exception e) {
-			logger.error(e);
+			logger.error(e, op.toString() + " | " + ServerConstant.NOT_THROWN);
 		}
 	}
-
-	
 
 }

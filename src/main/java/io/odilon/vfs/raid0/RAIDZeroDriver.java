@@ -284,19 +284,14 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	 * 
 	 * @see {@link RAIDZeroUpdateObjectHandler}
 	 */
-	public void deleteObjectAllPreviousVersions(String bucketName, String objectName) {
+	@Override
+	public void deleteObjectAllPreviousVersions(ObjectMetadata meta) {
 
-		Check.requireNonNullArgument(bucketName, "bucket is null");
-		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucketName);
-
-		VFSBucket bucket = getVFS().getBucket(bucketName);
-
-		Check.requireNonNullArgument(bucket, "bucket does not exist -> b:" + bucketName);
-		Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie. " + BucketStatus.ARCHIVED.getName()
-				+ " or " + BucketStatus.ENABLED.getName() + ") | b:" + bucketName);
-
+		Check.requireNonNullArgument(meta, "meta is null");
+		
+		
 		RAIDZeroDeleteObjectHandler agent = new RAIDZeroDeleteObjectHandler(this);
-		agent.deleteObjectAllPreviousVersions(bucket, objectName);
+		agent.deleteObjectAllPreviousVersions(meta);
 
 	}
 
@@ -432,14 +427,16 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	 * </p>
 	 */
 	@Override
-	public void postObjectDeleteTransaction(String bucketName, String objectName, int headVersion) {
+	public void postObjectDeleteTransaction(ObjectMetadata meta, int headVersion) {
 
+		String bucketName = meta.bucketName;
+		String objectName = meta.objectName;
+				
 		Check.requireNonNullArgument(bucketName, "bucket is null");
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketName);
-
+		
 		RAIDZeroDeleteObjectHandler createAgent = new RAIDZeroDeleteObjectHandler(this);
-
-		createAgent.postObjectDeleteTransaction(bucketName, objectName, headVersion);
+		createAgent.postObjectDelete(meta, headVersion);
 	}
 
 	/**
@@ -448,14 +445,16 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	 * </p>
 	 */
 	@Override
-	public void postObjectPreviousVersionDeleteAllTransaction(String bucketName, String objectName, int headVersion) {
+	public void postObjectPreviousVersionDeleteAllTransaction(ObjectMetadata meta,int headVersion) {
 
+		String bucketName = meta.bucketName;
+		String objectName = meta.objectName;
+				
 		Check.requireNonNullArgument(bucketName, "bucket is null");
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketName);
-
+		
 		RAIDZeroDeleteObjectHandler createAgent = new RAIDZeroDeleteObjectHandler(this);
-
-		createAgent.postObjectPreviousVersionDeleteAllTransaction(bucketName, objectName, headVersion);
+		createAgent.postObjectPreviousVersionDeleteAll(meta, headVersion);
 
 	}
 
@@ -704,11 +703,11 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 			 * the query
 			 */
 			if (serverAgentId.isPresent())
-				walker = getVFS().getWalkerService().get(serverAgentId.get());
+				walker = getVFS().getBucketIteratorService().get(serverAgentId.get());
 
 			if (walker == null) {
 				walker = new RAIDZeroBucketIterator(this, bucket.getName(), offset, prefix);
-				getVFS().getWalkerService().register(walker);
+				getVFS().getBucketIteratorService().register(walker);
 			}
 
 			List<Item<ObjectMetadata>> list = new ArrayList<Item<ObjectMetadata>>();
@@ -749,7 +748,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 				/**
 				 * removing from WalkerService closes the stream
 				 */
-				getVFS().getWalkerService().remove(walker.getAgentId());
+				getVFS().getBucketIteratorService().remove(walker.getAgentId());
 			}
 		}
 	}

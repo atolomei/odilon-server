@@ -205,8 +205,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 				}
 				int bytesRead;
 				
-				//	TODO AT -> this step can be in parallel and using out of heap buffers 
-				
+				/**	TODO AT -> this step can be in parallel and using out of heap buffers */ 
 				while ((bytesRead = sourceStream.read(buf, 0, buf.length)) >= 0) {
 					for (int bytes=0; bytes<total_drives; bytes++) {
 						 out[bytes].write(buf, 0, bytesRead);

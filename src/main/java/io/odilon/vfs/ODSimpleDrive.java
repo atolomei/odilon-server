@@ -31,7 +31,6 @@ public class ODSimpleDrive extends ODDrive implements SimpleDrive {
 	
 	static private Logger logger = Logger.getLogger(ODSimpleDrive.class.getName());
 	
-
 	@Autowired
 	protected ODSimpleDrive(String rootDir) {
 		super(rootDir);
@@ -42,7 +41,6 @@ public class ODSimpleDrive extends ODDrive implements SimpleDrive {
 		setName(name);
 		onInitialize();
 	}
-	
 	
 	/**
 	 * <p></p>
@@ -68,7 +66,9 @@ public class ODSimpleDrive extends ODDrive implements SimpleDrive {
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null -> b:" + bucketName);
 		
 		try {
-    		return Files.newInputStream(getObjectDataFile(bucketName, objectName).toPath()); 
+    		
+			return Files.newInputStream(getObjectDataFile(bucketName, objectName).toPath());
+    		
 		} catch (Exception e) {
 			String msg = 	"b:"   + (Optional.ofNullable(bucketName).isPresent() ? (bucketName) : "null") + 
 							", o:" + (Optional.ofNullable(objectName).isPresent() ? (objectName) : "null") +
@@ -140,12 +140,10 @@ public class ODSimpleDrive extends ODDrive implements SimpleDrive {
 		return new File(this.getRootDirPath(), bucketName + File.separator + objectName);
 	}
 
-	
 	@Override
 	public File getObjectDataVersionFile(String bucketName, String objectName, int version) {
 		return new File(getObjectDataVersionFilePath(bucketName, objectName, version));
 	}
-
 
 	protected File putObjectDataVersionStream(String bucketName, String objectName, int version, InputStream stream) throws IOException {
 

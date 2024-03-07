@@ -37,7 +37,7 @@ import io.odilon.log.Logger;
 import io.odilon.model.BaseService;
 import io.odilon.model.ServerConstant;
 import io.odilon.model.ServiceStatus;
-import io.odilon.service.Cleaner;
+import io.odilon.service.Scavenger;
 import io.odilon.util.Check;
 import io.odilon.vfs.model.BucketIterator;
 import io.odilon.vfs.model.VirtualFileSystemService;
@@ -55,7 +55,7 @@ public class ODBucketIteratorService extends BaseService implements BucketIterat
 	private double ratePerMillisec = 1; 
 
 	@JsonIgnore
-	private Cleaner cleaner;
+	private Scavenger cleaner;
 	
 	@JsonIgnore																	
 	private ConcurrentMap<String, BucketIterator> walkers = new ConcurrentHashMap<>();
@@ -140,7 +140,7 @@ public class ODBucketIteratorService extends BaseService implements BucketIterat
 			try {
 				setStatus(ServiceStatus.STARTING);
 
-				this.cleaner = new Cleaner() {
+				this.cleaner = new Scavenger() {
 					
 			 		@Override
 			 		public void cleanUp() {

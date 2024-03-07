@@ -8,12 +8,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
-import java.util.List;
 
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.ServerConstant;
-import io.odilon.rs.ReedSolomon;
 import io.odilon.util.Check;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
@@ -41,13 +39,11 @@ public class RSEncoder {
 		this.partiy_shards = getVFS().getServerSettings().getRAID6ParityDrives();
 		this.total_shards = data_shards + partiy_shards;  
 		
-		if ((data_shards!=4) || (partiy_shards!=2))
-			throw new InternalCriticalException("Incorrect configuration for RAID 6 -> data: " + String.valueOf(data_shards) + " | parity:" + String.valueOf(partiy_shards) + " | must be 4 and 2");
+		if (!driver.isConfigurationValid(data_shards, partiy_shards))
+			throw new InternalCriticalException("Incorrect configuration for RAID 6 -> data: " + String.valueOf(data_shards) + " | parity:" + String.valueOf(partiy_shards));
 	}
 	
 	/**
-	 * 
-	 * 
 	 * @param is
 	 * @param bucketName
 	 * @param objectName
@@ -76,7 +72,6 @@ public class RSEncoder {
     	
     	encodedInfo.fileSize=this.fileSize;
     	
-    	logger.debug(encodedInfo.toString());
     	return encodedInfo;
 	}
 	
@@ -86,7 +81,7 @@ public class RSEncoder {
      */
     public boolean encodeChunk(InputStream is, String bucketName, String objectName, int chunk) {
 
-    	// BUFFER
+    	// BUFFER 1
     	final byte [] allBytes = new byte[ ServerConstant.MAX_CHUNK_SIZE ];
 
     	int bytesRead = 0;
@@ -110,7 +105,7 @@ public class RSEncoder {
 		final int storedSize = bytesRead + ServerConstant.BYTES_IN_INT;
 		final int shardSize = (storedSize + data_shards - 1) / data_shards;
 		
-    	// BUFFER
+    	// BUFFER 2
 		byte [] [] shards = new byte [total_shards] [shardSize];
 		
         // Fill in the data shards
@@ -123,22 +118,20 @@ public class RSEncoder {
         reedSolomon.encodeParity(shards, 0, shardSize);
         
         // Write out the resulting files.
-        for (int disk = 0; disk < total_shards; disk++) {
+        for (int block = 0; block < total_shards; block++) {
 
-        	String dirPath = getDriver().getDrivesEnabled().get(disk).getBucketObjectDataDirPath(bucketName);
-        	
-        	File outputFile = new File(dirPath, objectName+ "." + String.valueOf(chunk) +"." + String.valueOf(disk));
+        	String dirPath = getDriver().getDrivesEnabled().get(block).getBucketObjectDataDirPath(bucketName);
+        	String name = objectName+ "." + String.valueOf(chunk) +"." + String.valueOf(block);
+        	File outputFile = new File(dirPath, name);
         							
 			try  (OutputStream out = new BufferedOutputStream(new FileOutputStream(outputFile))) {
-				out.write(shards[disk]);
+				out.write(shards[block]);
 	        } catch (FileNotFoundException e) {
-				logger.error(e);
-				throw new InternalCriticalException(e, "o:" + objectName);
+				throw new InternalCriticalException(e, "o:" + objectName +" f: " + name);
 			} catch (IOException e) {
-				logger.error(e);
-				throw new InternalCriticalException(e, "o:" + objectName);
+				throw new InternalCriticalException(e, "o:" + objectName +" f: " + name);
 			}
-			encodedInfo.encodedBlocks.add(outputFile);
+			this.encodedInfo.encodedBlocks.add(outputFile);
         }
         
 		if (bytesRead<( ServerConstant.MAX_CHUNK_SIZE - ServerConstant.BYTES_IN_INT))

@@ -106,7 +106,6 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 			
 			getVFS().getObjectCacheService().remove(bucket.getName(), objectName);
 			done = op.commit();
-		
 
 		} catch (OdilonObjectNotFoundException e1) {
 			done=false;
@@ -161,8 +160,12 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 		}
 	}
 
-	
+	/**
+	 * 
+	 * 
+	 */
 	public ObjectMetadata restorePreviousVersion(VFSBucket bucket, String objectName) {
+	
 		VFSOperation op = null;
 		boolean done = false;
 		
@@ -335,10 +338,9 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 
 	}
 
-
-	
 	/**
-	 * 7
+	 *
+	 *
 	 */
 	@Override
 	public void onAfterCommit(VFSBucket bucket, String objectName, int previousVersion, int currentVersion) {
@@ -347,11 +349,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 	@Override
 	public void rollbackJournal(VFSOperation op, boolean recoveryMode) {
 		Check.requireNonNullArgument(op, "op is null");
-		Check.requireTrue( (op.getOp()==VFSop.UPDATE_OBJECT || 
-				op.getOp()==VFSop.UPDATE_OBJECT_METADATA ||
-				op.getOp()==VFSop.RESTORE_OBJECT_PREVIOUS_VERSION
-				), "VFSOperation can not be  ->  op: " + op.getOp().getName());
-
+		Check.requireTrue( (op.getOp()==VFSop.UPDATE_OBJECT || 	op.getOp()==VFSop.UPDATE_OBJECT_METADATA ||	op.getOp()==VFSop.RESTORE_OBJECT_PREVIOUS_VERSION ), VFSOperation.class.getSimpleName() + " can not be  ->  op: " + op.getOp().getName());
 
 		if (op.getOp()==VFSop.UPDATE_OBJECT)
 			rollbackJournalUpdate(op, recoveryMode);
@@ -361,8 +359,6 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 		
 		else if (op.getOp()==VFSop.RESTORE_OBJECT_PREVIOUS_VERSION) 
 			rollbackJournalUpdate(op, recoveryMode);
-
-		
 	}
 
 	/**
@@ -462,7 +458,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 	}
 	
 	
-private void saveObjectDataFile(VFSBucket bucket, String objectName, InputStream stream, String srcFileName, int newVersion) {
+	private void saveObjectDataFile(VFSBucket bucket, String objectName, InputStream stream, String srcFileName, int newVersion) {
 		
 		int total_drives = getDriver().getDrivesAll().size();
 		byte[] buf = new byte[ VirtualFileSystemService.BUFFER_SIZE ];
@@ -482,7 +478,6 @@ private void saveObjectDataFile(VFSBucket bucket, String objectName, InputStream
 				out[n_d++] = new BufferedOutputStream(new FileOutputStream(sPath), VirtualFileSystemService.BUFFER_SIZE);
 			}
 			int bytesRead;
-			
 			
 			while ((bytesRead = sourceStream.read(buf, 0, buf.length)) >= 0)
 				for (int bytes=0; bytes<total_drives; bytes++) {

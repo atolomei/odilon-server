@@ -4,7 +4,7 @@
  * Copyright 2015, Backblaze, Inc.
  */
 
-package com.backblaze.erasure;
+package io.odilon.vfs.raid6;
 
 /**
  * Reed-Solomon Coding over 8-bit values.

@@ -1,5 +1,6 @@
 package io.odilon.vfs.raid6;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.NoSuchAlgorithmException;
@@ -7,6 +8,8 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+
+import org.apache.commons.io.FileUtils;
 
 import io.odilon.OdilonVersion;
 import io.odilon.error.OdilonObjectNotFoundException;
@@ -23,9 +26,6 @@ import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VFSop;
 
 /**
- * 
- * objectName.[chunk#].[block#]
- * objectName.[chunk#].[block#].v[version#]
  * 
  */
 public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
@@ -61,7 +61,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 				boolean exists = getDriver().getObjectMetadataReadDrive(bucket.getName(), objectName).existsObjectMetadata(bucket.getName(), objectName);
 				
 				if (exists)											
-					throw new OdilonObjectNotFoundException("object already exist -> b:" + bucket.getName()+ " o:"+(Optional.ofNullable(objectName).isPresent() ? (objectName) :"null"));
+					throw new OdilonObjectNotFoundException("Object already exist -> b:" + bucket.getName()+ " o:"+ objectName);
 				
 				int version = 0;
 				
@@ -75,13 +75,12 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 		
 			} catch (OdilonObjectNotFoundException e1) {
 				done=false;
-				logger.error(e1);
 				throw e1;
 		
 			} catch (Exception e) {
 					done=false;
-					throw new InternalCriticalException(e, 	"b:" 	+ (Optional.ofNullable(bucket).isPresent() ? (bucket.getName()) :"null") + 
-															" o:" 	+ (Optional.ofNullable(objectName).isPresent() ? (objectName) 	:"null") + 
+					throw new InternalCriticalException(e, 	"b:" 	+ bucket.getName() + 
+															" o:" 	+ objectName + 
 															", f:" 	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null"));
 			} finally {
 					try {
@@ -93,21 +92,12 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 							} catch (IOException e) {
 								logger.error(e, ServerConstant.NOT_THROWN);
 							}
-						
 							boolean requiresRollback = (!done) && (op!=null);
-							
 							if (requiresRollback) {
-								
 								try {
-									
 									rollbackJournal(op, false);
-									
 								} catch (Exception e) {
-									String msg = "b:" + (Optional.ofNullable(bucket).isPresent() ? (bucket.getName()) 	:"null") +
-												 ", o:" + (Optional.ofNullable(objectName).isPresent() ? (objectName)	:"null") + 
-												 ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName) :"null");
-									logger.error(e, msg);
-									throw new InternalCriticalException(e);
+									throw new InternalCriticalException(e, 	"b:" 	+ bucket.getName() + " o:" 	+ objectName + ", f:" 	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null"));
 								}
 							}
 					}
@@ -119,7 +109,6 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 	}
 
 	/**
-	 * 
 	 * 
 	 */
 	@Override
@@ -134,12 +123,23 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 		boolean done = false;
 				
 		try {
+			
+			getVFS().getObjectCacheService().remove(bucketName, objectName);
+			
 			if (getVFS().getServerSettings().isStandByEnabled())
 				getVFS().getReplicationService().cancel(op);
-
-			for (Drive drive: getDriver().getDrivesAll()) {
-				// TODO AT
-				//drive.deleteObject(bucketName, objectName);
+			
+			ObjectMetadata meta = null;
+			
+			for (Drive drive: getDriver().getDrivesEnabled()) {
+				File f_meta = drive.getObjectMetadataFile(bucketName, objectName);
+				if ((meta==null) && (f_meta!=null))
+						meta=drive.getObjectMetadata(bucketName, objectName);
+				FileUtils.deleteQuietly(f_meta);
+			}
+			
+			if (meta!=null) {
+				getDriver().getObjectDataFiles(meta, Optional.empty()).forEach(file -> FileUtils.deleteQuietly(file));
 			}
 			
 			done=true;
@@ -157,14 +157,13 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 				throw new InternalCriticalException(e, msg);
 		}
 		finally {
-			if (done || recoveryMode) 
+			if (done || recoveryMode) {
 				op.cancel();
+			}
 		}
 	}
 	
-		
 	/**
-	 * 
 	 * @param bucket
 	 * @param objectName
 	 * @param stream
@@ -174,16 +173,14 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 		
 		InputStream sourceStream = null;
 		boolean isMainException = false;
-		EncodedInfo encodedInfo = null;
 		try {
-				sourceStream = isEncrypt() ? (getVFS().getEncryptionService().encryptStream(stream)) : stream;
-				RSEncoder encoder = new RSEncoder(getDriver());
-				encodedInfo = encoder.encode(stream, bucket.getName(), objectName);
-				return encodedInfo;
+
+			sourceStream = isEncrypt() ? (getVFS().getEncryptionService().encryptStream(stream)) : stream;
+			RSEncoder encoder = new RSEncoder(getDriver());
+			return encoder.encode(stream, bucket.getName(), objectName);
 				
 			} catch (Exception e) {
 				isMainException = true;
-				logger.error(e);
 				throw new InternalCriticalException(e);		
 	
 			} finally {
@@ -218,7 +215,6 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 	 */
 	private void saveObjectMetadata(VFSBucket bucket, String objectName, EncodedInfo ei, String srcFileName, String contentType, int version) {
 		
-		
 		long start = System.currentTimeMillis();
 		
 		List<String> shaBlocks = new ArrayList<String>();
@@ -240,8 +236,8 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 
 		shaBlocks.forEach(item->etag_b.append(item));
 		 		
+		String etag = null;
 		
-		String etag;
 		try {
 			
 			etag = ODFileUtils.calculateSHA256String(etag_b.toString());
@@ -250,12 +246,10 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 			String msg =  	"b:"   + (Optional.ofNullable(bucket).isPresent()    ? (bucket.getName()) 	:"null") + 
 							", o:" + (Optional.ofNullable(objectName).isPresent() ? (objectName)       	:"null") +
 							"| etag";   
-				logger.error(e,msg);
 				throw new InternalCriticalException(e, msg);
 		} 
-		
 
-		for (Drive drive: getDriver().getDrivesAll()) {
+		for (Drive drive: getDriver().getDrivesEnabled()) {
 			
 			try {
 				ObjectMetadata meta = new ObjectMetadata(bucket.getName(), objectName);

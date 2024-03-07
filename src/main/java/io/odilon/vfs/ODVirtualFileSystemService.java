@@ -268,10 +268,9 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	}
 				
 	@Override
-	public void deleteObjectAllPreviousVersions(String bucketName, String objectName) {
-		Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
-		Check.requireNonNullStringArgument(objectName, "objectName can not be null or empty | b:" + bucketName);
-		createVFSIODriver().deleteObjectAllPreviousVersions(bucketName, objectName);
+	public void deleteObjectAllPreviousVersions(ObjectMetadata meta) {
+		Check.requireNonNullArgument(meta, "meta can not be null or empty");
+		createVFSIODriver().deleteObjectAllPreviousVersions(meta);
 	}
 	
 	@Override
@@ -652,7 +651,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	}
 	
 	@Override
-	public BucketIteratorService getWalkerService() {
+	public BucketIteratorService getBucketIteratorService() {
 		return walkerService;
 	}
 
@@ -1149,7 +1148,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 		getFileCacheService().setVFS(this);
 		
 		/** WalkerService -> lazy injection */
-		((io.odilon.query.ODBucketIteratorService) getWalkerService()).setVFS(this);
+		((io.odilon.query.ODBucketIteratorService) getBucketIteratorService()).setVFS(this);
 
 		/** JournalService -> lazy injection */ 
 		((ODJournalService) getJournalService()).setVFS(this);
@@ -1284,8 +1283,11 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	private synchronized void cleanUpWorkDir() {
 		try {
 			getDrivesAll().values().forEach( item ->  {
-						for ( VFSBucket bucket:listAllBuckets()) 
-								item.cleanUpWorkDir(bucket.getName());				
+						for ( VFSBucket bucket:listAllBuckets()) { 
+								item.cleanUpWorkDir(bucket.getName());
+								item.cleanUpCacheDir(bucket.getName());
+						}
+								
 			});
 		} catch (Exception e) {
 			logger.error(e);

@@ -4,7 +4,7 @@
  * Copyright 2015, Backblaze, Inc.  All rights reserved.
  */
 
-package com.backblaze.erasure;
+package io.odilon.vfs.raid6;
 
 import java.util.ArrayList;
 import java.util.List;

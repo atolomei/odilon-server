@@ -38,7 +38,7 @@ import io.odilon.log.Logger;
 import io.odilon.model.BaseService;
 import io.odilon.model.ServerConstant;
 import io.odilon.model.ServiceStatus;
-import io.odilon.service.Cleaner;
+import io.odilon.service.Scavenger;
 import io.odilon.service.ServerSettings;
 import io.odilon.vfs.model.LockService;
 
@@ -72,7 +72,7 @@ public class ODLockService extends BaseService implements LockService {
 	private ConcurrentMap<String, ReentrantReadWriteLock> bucketLocks = new ConcurrentHashMap<>(1000);
 	
 	@JsonIgnore
-	private Cleaner cleaner;
+	private Scavenger cleaner;
 	
 	@JsonIgnore
 	@Autowired
@@ -128,7 +128,7 @@ public class ODLockService extends BaseService implements LockService {
 			setStatus(ServiceStatus.STARTING);
 			this.ratePerMillisec = this.serverSettings.getLockRateMillisecs();
 			
-			this.cleaner = new Cleaner() {
+			this.cleaner = new Scavenger() {
 
 				@Override
 		 		public long getSleepTimeMillis() {

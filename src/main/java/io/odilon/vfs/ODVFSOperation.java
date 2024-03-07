@@ -165,7 +165,7 @@ public class ODVFSOperation implements VFSOperation {
 	public String toJSON() {
 		 try {
 			return mapper.writeValueAsString(this);
-		 } catch (JsonProcessingException e) {
+		 } catch (Exception e) {
 					logger.error(e);
 					return "\"error\":\"" + e.getClass().getName()+"\""; 
 		}

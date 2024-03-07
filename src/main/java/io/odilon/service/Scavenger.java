@@ -25,16 +25,16 @@ import io.odilon.util.Check;
 /**
  * <p>Simple abstract class that can execute a cleanup process regularly</p>
  */
-public abstract class Cleaner implements Runnable {
+public abstract class Scavenger implements Runnable {
 	
-	static public Logger logger = Logger.getLogger(Cleaner.class.getName());
+	static public Logger logger = Logger.getLogger(Scavenger.class.getName());
 	
 	static final long DEFAULT_SLEEP_TIME = 1 * 60 * 1000; // 1 minute
 	
 	private AtomicBoolean exit = new AtomicBoolean(false);
 	private Thread thread;
 	
-	public Cleaner() {
+	public Scavenger() {
 	}
 	
 	public abstract void cleanUp();
