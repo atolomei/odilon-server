@@ -161,8 +161,8 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 		
 		if (settingsService.getRedundancyLevel()==RedundancyLevel.RAID_6) {
 			startupLogger.info("Data Storage redundancy level -> " + settingsService.getRedundancyLevel().getName()+
-					"[ data: "+ String.valueOf(settingsService.getRAID6DataDrives())+
-					", parity: " + String.valueOf(settingsService.getRAID6ParityDrives())+" ]");
+					" [data:"+ String.valueOf(settingsService.getRAID6DataDrives())+
+					", parity:" + String.valueOf(settingsService.getRAID6ParityDrives())+"]");
 		}
 		else
 			startupLogger.info("Data Storage redundancy level -> " + settingsService.getRedundancyLevel().getName());
