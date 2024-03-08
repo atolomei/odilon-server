@@ -43,9 +43,6 @@ import io.odilon.vfs.model.VFSop;
 
 /**
  * 
- * 
- * 
- * 
  */
 @ThreadSafe
 public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAIDDeleteObjectHandler {
@@ -57,39 +54,6 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 	}
 	
 	/**
-	 * <p>Adds a {@link DeleteBucketObjectPreviousVersionServiceRequest} to the {@link SchedulerService} 
-	 * to walk through all objects and delete versions. 
-	 * This process is Async and handler returns immediately.</p>
-	 * 
-	 * <p>The {@link DeleteBucketObjectPreviousVersionServiceRequest} creates n Threads to scan all Objects 
-	 * and remove previous versions.In case of failure (for example. the server is shutdown before completion), 
-	 * it is retried up to 5 times.</p> 
-	 * 
-	 * <p>Although the removal of all versions for every Object is transactional, the ServiceRequest 
-	 * itself is not transactional, and it can not be rollback</p>
-	 */
-	@Override
-	public void wipeAllPreviousVersions() {
-		getVFS().getSchedulerService().enqueue(getVFS().getApplicationContext().getBean(DeleteBucketObjectPreviousVersionServiceRequest.class));
-	
-	}
-
-	/**
-	 * <p>Adds a {@link DeleteBucketObjectPreviousVersionServiceRequest} to the {@link SchedulerService} to walk through all objects and delete versions. 
-	 * This process is Async and handler returns immediately.</p>
-	 * <p>The {@link DeleteBucketObjectPreviousVersionServiceRequest} creates n Threads to scan all Objects and remove previous versions.
-	 * In case of failure (for example. the server is shutdown before completion), it is retried up to 5 times.</p> 
-	 * <p>Although the removal of all versions for every Object is transactional, the ServiceRequest itself is not transactional, 
-	 * and it can not be rollback</p>
-	 */
-	@Override
-	public void deleteBucketAllPreviousVersions(VFSBucket bucket) {
-			getVFS().getSchedulerService().enqueue(getVFS().getApplicationContext().getBean(DeleteBucketObjectPreviousVersionServiceRequest.class, bucket.getName()));
-	}
-
-	
-	
-	/**
 	 * <p>It does not delete the head version, only previous versions</p>
 	 *  
 	 * @param bucket
@@ -98,6 +62,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 	@Override
 	public void deleteObjectAllPreviousVersions(ObjectMetadata meta) {
 		
+		boolean isMainExcetion = false;
 		int headVersion = -1;		  
 		boolean done = false;
 		VFSOperation op = null;
@@ -124,8 +89,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 
 			/** remove all "objectmetadata.json.vn" Files, but keep -> "objectmetadata.json" **/  
 			for (int version=0; version < headVersion; version++) {
-				File metadataVersionFile = getDriver().getReadDrive(meta.bucketName, meta.objectName).getObjectMetadataVersionFile(meta.bucketName, meta.objectName, version);
-				FileUtils.deleteQuietly(metadataVersionFile);
+				FileUtils.deleteQuietly(getDriver().getReadDrive(meta.bucketName, meta.objectName).getObjectMetadataVersionFile(meta.bucketName, meta.objectName, version));
 			}
 
 			meta.addSystemTag("delete versions");
@@ -136,10 +100,15 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 			getVFS().getObjectCacheService().remove(meta.bucketName, meta.objectName);
 			done=op.commit();
 			
+		} catch (InternalCriticalException e) {
+			done=false;
+			isMainExcetion=true;
+			throw e;
+			
 		} catch (Exception e) {
 			done=false;
-			logger.error(e);
-			throw new InternalCriticalException(e);
+			isMainExcetion=true;
+			throw new InternalCriticalException(e, "b:" + meta.bucketName + " o:" 	+ meta.objectName); 
 		}
 		finally {
 
@@ -152,10 +121,16 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 						
 						rollbackJournal(op, false);
 						
+					} catch (InternalCriticalException e) {
+						if (!isMainExcetion)
+							throw e;
+						else
+							logger.error(e, "b:" + meta.bucketName + " o:" 	+ meta.objectName+" | " + ServerConstant.NOT_THROWN );
 					} catch (Exception e) {
-						String msg =  	"b:"   + (Optional.ofNullable(meta.bucketName).isPresent()    	? (meta.bucketName) :"null") + 
-										", o:" + (Optional.ofNullable(meta.objectName).isPresent() 	? 	(meta.objectName)       :"null");   
-						throw new InternalCriticalException(e);
+						if (!isMainExcetion)
+							throw new InternalCriticalException(e, "b:" + meta.bucketName + " o:" 	+ meta.objectName);
+						else
+							logger.error(e, "b:" + meta.bucketName + " o:" 	+ meta.objectName+" | " + ServerConstant.NOT_THROWN );
 					}
 				}
 			}
@@ -298,6 +273,36 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 	}
 
 	/**
+	 * <p>Adds a {@link DeleteBucketObjectPreviousVersionServiceRequest} to the {@link SchedulerService} 
+	 * to walk through all objects and delete versions. 
+	 * This process is Async and handler returns immediately.</p>
+	 * 
+	 * <p>The {@link DeleteBucketObjectPreviousVersionServiceRequest} creates n Threads to scan all Objects 
+	 * and remove previous versions.In case of failure (for example. the server is shutdown before completion), 
+	 * it is retried up to 5 times.</p> 
+	 * 
+	 * <p>Although the removal of all versions for every Object is transactional, the ServiceRequest 
+	 * itself is not transactional, and it can not be rollback</p>
+	 */
+	@Override
+	public void wipeAllPreviousVersions() {
+		getVFS().getSchedulerService().enqueue(getVFS().getApplicationContext().getBean(DeleteBucketObjectPreviousVersionServiceRequest.class));
+	}
+
+	/**
+	 * <p>Adds a {@link DeleteBucketObjectPreviousVersionServiceRequest} to the {@link SchedulerService} to walk through all objects and delete versions. 
+	 * This process is Async and handler returns immediately.</p>
+	 * <p>The {@link DeleteBucketObjectPreviousVersionServiceRequest} creates n Threads to scan all Objects and remove previous versions.
+	 * In case of failure (for example. the server is shutdown before completion), it is retried up to 5 times.</p> 
+	 * <p>Although the removal of all versions for every Object is transactional, the ServiceRequest itself is not transactional, 
+	 * and it can not be rollback</p>
+	 */
+	@Override
+	public void deleteBucketAllPreviousVersions(VFSBucket bucket) {
+			getVFS().getSchedulerService().enqueue(getVFS().getApplicationContext().getBean(DeleteBucketObjectPreviousVersionServiceRequest.class, bucket.getName()));
+	}
+
+	/**
 	 * 
 	 * 
 	 */
@@ -402,6 +407,9 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 			FileUtils.copyDirectory(new File(objectMetadataBackupDirPath), new File(objectMetadataDirPath));
 			logger.debug("restore: " + objectMetadataBackupDirPath +" -> " +objectMetadataDirPath);
 			
+		} catch (InternalCriticalException e) {
+			throw e;
+		
 		} catch (IOException e) {
 			String msg = 	"b:"   + (Optional.ofNullable(bucketName).isPresent()    ? (bucketName) :"null") + 
 							", o:" + (Optional.ofNullable(objectName).isPresent() ? (objectName)       :"null");  
@@ -410,9 +418,9 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 	}
 
 	/**
-	 * <p>This method is called after the TRX commit. It is used to clean temp files, if the system crashes those
-	 * temp files will be removed on system startup</p>
-	 * 
+	 * <p>This method is called after the TRX commit. 
+	 * It is used to clean temp files, if the system crashes 
+	 * those temp files will be removed on system startup</p>
 	 */
 	private void onAfterCommit(VFSOperation op, ObjectMetadata meta, int headVersion) {
 		

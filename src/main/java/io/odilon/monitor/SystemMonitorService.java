@@ -255,26 +255,23 @@ public class SystemMonitorService extends BaseService implements SystemService {
 		set(me.getObjectMeter, 	this.getObjectMeter); 
 		set(me.putObjectMeter, 	this.putObjectMeter);
 		
-		me.createObjectCounter = this.createObjectCounter.getCount();
-		me.updateObjectCounter = this.updateObjectCounter.getCount();
-		me.deleteObjectCounter = this.deleteObjectCounter.getCount();
-		me.deleteObjectVersionCounter = this.deleteObjectVersionCounter.getCount();
+		me.createObjectCounter 			= this.createObjectCounter.getCount();
+		me.updateObjectCounter 			= this.updateObjectCounter.getCount();
+		me.deleteObjectCounter 			= this.deleteObjectCounter.getCount();
+		me.deleteObjectVersionCounter 	= this.deleteObjectVersionCounter.getCount();
 
+		me.replicaObjectCreate 			= this.replicaCreateObject.getCount();
+		me.replicaObjectUpdate 			= this.replicaUpdateObject.getCount();
+		me.replicaObjectDelete 			= this.replicaDeleteObject.getCount();
+
+		me.cacheObjectHitCounter 		= this.cacheObjectHitCounter.getCount();
+		me.cacheObjectMissCounter 		= this.cacheObjectMissCounter.getCount();
+		me.cacheObjectSize 				= this.objectCacheService.size();
 		
-		me.replicaObjectCreate = this.replicaCreateObject.getCount();
-		me.replicaObjectUpdate = this.replicaUpdateObject.getCount();
-		me.replicaObjectDelete = this.replicaDeleteObject.getCount();
-
-	
-		me.cacheObjectHitCounter = this.cacheObjectHitCounter.getCount();
-		me.cacheObjectMissCounter = this.cacheObjectMissCounter.getCount();
-		me.cacheObjectSize = this.objectCacheService.size();
-		
-
-		me.cacheFileHitCounter = this.cacheFileHitCounter.getCount();
-		me.cacheFileMissCounter = this.cacheFileMissCounter.getCount();
-		me.cacheFileSize = this.fileCacheService.size();
-		me.cacheFileHardDiskUsage = this.fileCacheService.hardDiskUsage();
+		me.cacheFileHitCounter 			= this.cacheFileHitCounter.getCount();
+		me.cacheFileMissCounter 		= this.cacheFileMissCounter.getCount();
+		me.cacheFileSize 				= this.fileCacheService.size();
+		me.cacheFileHardDiskUsage 		= this.fileCacheService.hardDiskUsage();
 
 		set(me.encrpytFileMeter, 	this.encrpytFileMeter);
 		set(me.decryptFileMeter, 	this.decryptFileMeter);

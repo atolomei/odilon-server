@@ -40,12 +40,6 @@ public class ChunkedDrive extends ODDrive {
 	
 
 	/**
-	 * 
-	 * @param bucketName
-	 * @param objectName
-	 * @param version
-	 * @return
-	 
 	public List<File> getDataFiles(String bucketName, String objectName, Optional<Integer> version) {
 		
 		List<File> list = new ArrayList<File>();

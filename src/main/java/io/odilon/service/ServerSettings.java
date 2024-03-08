@@ -67,15 +67,6 @@ public class ServerSettings implements APIObject {
 	
 	protected String version = "";
 
-	// 		timezone.default=America/Argentina/Buenos_Aires
-	//		email.ping.enabled=localhost
-	// 		email.server=localhost
-	//		email.port=8025
-	//		email.username=
-	//		email.password=
-	//		email.auth=false
-	// 		email.ping.address=
-	//		ping.enabled 
 	
 	// PING ------------------------
 
@@ -170,10 +161,10 @@ public class ServerSettings implements APIObject {
 	@NonNull
 	private List<String> rootDirs;
 
-	@Value("${raid6.dataDrives:4}")
+	@Value("${raid6.dataDrives:-1}")
 	protected int raid6DataDrives;
 	
-	@Value("${raid6.parityDrives:2}")
+	@Value("${raid6.parityDrives:-1}")
 	protected int raid6ParityDrives;
 	
 	// ----------------------------------
@@ -530,11 +521,6 @@ public class ServerSettings implements APIObject {
 		//	throw new IllegalStateException(RedundancyLevel.RAID_6.getName() +  " is not supported in this version of Odilon");
 		//}
 		
-		if (this.redundancyLevel==RedundancyLevel.RAID_6) {
-			if ((this.raid6DataDrives!=4 || this.raid6ParityDrives !=2)) {
-				throw new IllegalArgumentException("the only "+ RedundancyLevel.RAID_6.getName() +" the only configuration supported in this version is -> raid6.dataDrives=4 and raid6.parityDrives=2");
-			}
-		}
 		
 		List<String> dirs=new ArrayList<String>();
 		
@@ -571,10 +557,30 @@ public class ServerSettings implements APIObject {
 													redundancyLevel.getName() + " | dataStorage=" + rootDirs.toString() + " | you must use " + RedundancyLevel.RAID_0.getName() + "for only one mount directory");	
 		}
 		else if (this.redundancyLevel==RedundancyLevel.RAID_6) {
-			if (this.rootDirs.size()!=6)
-				throw new IllegalArgumentException( "DataStorage must have 6 entries for -> " +	redundancyLevel.getName());
-		}
 		
+			if (!((this.rootDirs.size()==3) || (this.rootDirs.size()==6)))
+				throw new IllegalArgumentException( "DataStorage must have 3 or 6 entries for -> " +	redundancyLevel.getName());
+			
+				if (this.rootDirs.size()==3) {
+					if (this.raid6DataDrives==-1)
+						this.raid6DataDrives=2;
+					if (this.raid6ParityDrives==-1)
+						this.raid6ParityDrives=1;
+				}
+				else if (this.rootDirs.size()==6) {
+					if (this.raid6DataDrives==-1)
+						this.raid6DataDrives=4;
+					if (this.raid6ParityDrives==-1)
+						this.raid6ParityDrives=2;
+				}
+
+				if ( !(( (this.rootDirs.size()==3) && (this.raid6DataDrives==2) && (this.raid6ParityDrives==1)) || 
+					   ( (this.rootDirs.size()==6) && (this.raid6DataDrives==4) && (this.raid6ParityDrives==2))
+					  )) { 
+					throw new IllegalArgumentException( RedundancyLevel.RAID_6.getName() +							
+							": the configurations supported are -> 6 dirs in DataStorage and raid6.dataDrives=4 and raid6.parityDrives=2 | 3 dirs in DataStorage and raid6.dataDrives=2 and raid6.parityDrives=1");
+					}
+				}
 		try {
 
 			this.lockRateMillisecs = Double.valueOf(this.s_lockRateMillisecs).doubleValue();

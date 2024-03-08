@@ -74,10 +74,8 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 				getLockService().getObjectLock( bucket.getName(), objectName).writeLock().lock();
 				getLockService().getBucketLock(bucket.getName()).readLock().lock();
 		
-				boolean exists = getDriver().getReadDrive(bucket.getName(), objectName).existsObjectMetadata(bucket.getName(), objectName);
-				
-				if (exists)											
-					throw new OdilonObjectNotFoundException("object already exist -> b:" + bucket.getName()+ " o:"+(Optional.ofNullable(objectName).isPresent() ? (objectName) :"null"));
+				if (getDriver().getReadDrive(bucket.getName(), objectName).existsObjectMetadata(bucket.getName(), objectName))											
+					throw new OdilonObjectNotFoundException("object already exist -> b:" + bucket.getName()+ " o:"+objectName);
 				
 				int version = 0;
 				
@@ -96,10 +94,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 		
 			} catch (Exception e) {
 					done=false;
-					throw new InternalCriticalException(e, 
-							"b:" 	+ (Optional.ofNullable(bucket).isPresent() ? (bucket.getName()) :"null") + 
-							" o:" 	+ (Optional.ofNullable(objectName).isPresent() ? (objectName) 	:"null") + 
-							", f:" 	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null"));
+					throw new InternalCriticalException(e,	"b:" + bucket.getName() + " o:"+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null"));
 			} finally {
 					try {
 							try {
@@ -120,11 +115,8 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 									rollbackJournal(op, false);
 									
 								} catch (Exception e) {
-									String msg = "b:" + (Optional.ofNullable(bucket).isPresent() ? (bucket.getName()) 	:"null") +
-												 ", o:" + (Optional.ofNullable(objectName).isPresent() ? (objectName)	:"null") + 
-												 ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName) :"null");
-									logger.error(e, msg);
-									throw new InternalCriticalException(e);
+									String msg = "b:" + bucket.getName() + " o:"+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null");
+									throw new InternalCriticalException(e, msg);
 								}
 							}
 					}
@@ -214,7 +206,6 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 				
 			} catch (Exception e) {
 				isMainException = true;
-				logger.error(e);
 				throw new InternalCriticalException(e);		
 	
 			} finally {
@@ -227,9 +218,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 									out[n].close();
 							}
 						} catch (IOException e) {
-							String msg ="b:"   + (Optional.ofNullable(bucket).isPresent()    ? (bucket.getName()) 	:"null") + 
-										", o:" + (Optional.ofNullable(objectName).isPresent() ? (objectName)       	:"null") +  
-										", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)     	:"null"); 
+							String msg = "b:" + bucket.getName() + " o:"+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null"); 
 							logger.error(e, msg + (isMainException ? ServerConstant.NOT_THROWN :""));
 							secEx=e;
 						}
@@ -239,9 +228,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 					if (sourceStream!=null) 
 						sourceStream.close();
 				} catch (IOException e) {
-					String msg ="b:" + (Optional.ofNullable(bucket).isPresent()    ? (bucket.getName()) 	:"null") + 
-								", o:" + (Optional.ofNullable(objectName).isPresent() ? (objectName)       	:"null") +  
-								", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)     	:"null");
+					String msg = "b:" + bucket.getName() + " o:"+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null");
 					logger.error(e, msg + (isMainException ? ServerConstant.NOT_THROWN :""));
 					secEx=e;
 				}
@@ -296,11 +283,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 				drive.saveObjectMetadata(meta);
 	
 			} catch (Exception e) {
-				String msg =  	"b:"   + (Optional.ofNullable(bucket).isPresent()    ? (bucket.getName()) 	:"null") + 
-								", o:" + (Optional.ofNullable(objectName).isPresent() ? (objectName)       	:"null") +  
-								", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)     	:"null");
-				
-				logger.error(e,msg);
+				String msg = "b:" + bucket.getName() + " o:"+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null");
 				throw new InternalCriticalException(e, msg);
 			}
 		}

@@ -546,10 +546,10 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	public boolean isEmpty(VFSBucket bucket) {
 
 		Check.requireNonNullArgument(bucket, "bucket is null");
-		Check.requireTrue(existsBucketInDrives(bucket.getName()),
-				"bucket does not exist in all drives -> b: " + bucket.getName());
+		Check.requireTrue(existsBucketInDrives(bucket.getName()), "bucket does not exist in all drives -> b: " + bucket.getName());
 
 		try {
+		
 			getLockService().getBucketLock(bucket.getName()).readLock().lock();
 			
 			for (Drive drive : getDrivesEnabled()) {
@@ -558,7 +558,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 			}
 			return true;
 		} catch (Exception e) {
-			String msg = "b:" + (Optional.ofNullable(bucket).isPresent() ? (bucket.getName()) : "null");
+			String msg = "b:" + bucket.getName();
 			logger.error(e, msg);
 			throw new InternalCriticalException(e, msg);
 
@@ -695,7 +695,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		Check.requireNonNullArgument(bucket, "bucket does not exist -> b:" + bucketName);
 		Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie. enabled or archived) b:" + bucketName);
 
-		BucketIterator walker = null;
+		BucketIterator iterator = null;
 		try {
 
 			/**
@@ -703,11 +703,11 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 			 * the query
 			 */
 			if (serverAgentId.isPresent())
-				walker = getVFS().getBucketIteratorService().get(serverAgentId.get());
+				iterator = getVFS().getBucketIteratorService().get(serverAgentId.get());
 
-			if (walker == null) {
-				walker = new RAIDZeroBucketIterator(this, bucket.getName(), offset, prefix);
-				getVFS().getBucketIteratorService().register(walker);
+			if (iterator == null) {
+				iterator = new RAIDZeroBucketIterator(this, bucket.getName(), offset, prefix);
+				getVFS().getBucketIteratorService().register(iterator);
 			}
 
 			List<Item<ObjectMetadata>> list = new ArrayList<Item<ObjectMetadata>>();
@@ -715,11 +715,11 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 			int size = pageSize.orElseGet(() -> ServerConstant.DEFAULT_PAGE_SIZE);
 			int counter = 0;
 
-			while (walker.hasNext() && (counter++ < size)) {
+			while (iterator.hasNext() && (counter++ < size)) {
 				Item<ObjectMetadata> item;
 				try {
 					item = new Item<ObjectMetadata>(
-							getOM(bucketName, walker.next().toFile().getName(), Optional.empty(), false));
+							getOM(bucketName, iterator.next().toFile().getName(), Optional.empty(), false));
 				} catch (Exception e) {
 					logger.error(e);
 					item = new Item<ObjectMetadata>(e);
@@ -733,22 +733,20 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 			 * EOD (End of Data) is used to prevent the client to send a new Request after
 			 * returning the last page of the result
 			 */
-			if (!walker.hasNext())
+			if (!iterator.hasNext())
 				result.setEOD(true);
 
-			result.setOffset(walker.getOffset());
+			result.setOffset(iterator.getOffset());
 			result.setPageSize(size);
-			result.setAgentId(walker.getAgentId());
+			result.setAgentId(iterator.getAgentId());
 
 			return result;
 
 		} finally {
 
-			if (walker != null && (!walker.hasNext())) {
-				/**
-				 * removing from WalkerService closes the stream
-				 */
-				getVFS().getBucketIteratorService().remove(walker.getAgentId());
+			if (iterator != null && (!iterator.hasNext())) {
+				/** removing from IteratorService closes the stream	 */
+				getVFS().getBucketIteratorService().remove(iterator.getAgentId());
 			}
 		}
 	}
@@ -906,10 +904,10 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 
 			ObjectMetadata meta = null;
 
-			if (o_version.isPresent())
+			if (o_version.isPresent()) {
 				meta = readDrive.getObjectMetadataVersion(bucketName, objectName, o_version.get());
+			}
 			else {
-				// 3 getOMetadata
 				meta = getObjectMetadataInternal(bucketName, objectName, addToCacheifMiss);
 			}
 
@@ -950,8 +948,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		VFSBucket bucket = getVFS().getBucket(bucketName);
 
 		Check.requireNonNullArgument(bucket, "bucket does not exist -> b:" + bucketName);
-		Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie. " + BucketStatus.ARCHIVED.getName()
-				+ " or " + BucketStatus.ENABLED.getName() + ") | b:" + bucketName);
+		Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie. " + BucketStatus.ARCHIVED.getName() + " or " + BucketStatus.ENABLED.getName() + ") | b:" + bucketName);
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 
 		try {
@@ -963,32 +960,26 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 			Drive readDrive = getReadDrive(bucket, objectName);
 
 			if (!readDrive.existsBucket(bucket.getName()))
-				throw new IllegalStateException("bucket -> b:" + bucket.getName() + " does not exist for -> d:"
-						+ readDrive.getName() + " | v:" + String.valueOf(version));
+				throw new IllegalStateException("bucket -> b:" + bucket.getName() + " does not exist for -> d:"	+ readDrive.getName() + " | v:" + String.valueOf(version));
 
 			ObjectMetadata meta = getObjectMetadataVersion(bucket.getName(), objectName, version);
 
 			if ((meta != null) && meta.isAccesible()) {
-
 				InputStream stream = getInputStreamFromSelectedDrive(readDrive, bucket.getName(), objectName, version);
 				if (meta.encrypt)
 					return getVFS().getEncryptionService().decryptStream(stream);
 				else
 					return stream;
 			} else
-				throw new OdilonObjectNotFoundException("object version does not exists for -> b:" + bucket.getName()
-						+ " | o:" + objectName + " | v:" + String.valueOf(version));
+				throw new OdilonObjectNotFoundException("object version does not exists for -> b:" + bucket.getName() + " | o:" + objectName + " | v:" + String.valueOf(version));
 
 		} catch (OdilonObjectNotFoundException e) {
 			logger.error(e);
 			throw e;
 		} catch (Exception e) {
-			final String msg = "b:" + (Optional.ofNullable(bucket).isPresent() ? (bucket.getName()) : "null") + ", o:"
-					+ (Optional.ofNullable(objectName).isPresent() ? (objectName) : "null");
-			logger.error(e, msg);
+			final String msg = "b:" + (Optional.ofNullable(bucket).isPresent() ? (bucket.getName()) : "null") + ", o:"	+ (Optional.ofNullable(objectName).isPresent() ? (objectName) : "null");
 			throw new InternalCriticalException(e, msg);
 		} finally {
-
 			getLockService().getBucketLock(bucket.getName()).readLock().unlock();
 			getLockService().getObjectLock(bucket.getName(), objectName).readLock().unlock();
 		}
@@ -1039,9 +1030,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 					+ objectName + " | class:" + this.getClass().getSimpleName());
 
 		} catch (Exception e) {
-			final String msg = "b:" + (Optional.ofNullable(bucket).isPresent() ? (bucket.getName()) : "null") + ", o:"
-					+ (Optional.ofNullable(objectName).isPresent() ? (objectName) : "null");
-			logger.error(e, msg);
+			final String msg = "b:" + (Optional.ofNullable(bucket).isPresent() ? (bucket.getName()) : "null") + ", o:"	+ (Optional.ofNullable(objectName).isPresent() ? (objectName) : "null");
 			throw new InternalCriticalException(e, msg);
 		} finally {
 
@@ -1113,11 +1102,10 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 			try {
 				list.add((ServiceRequest) getObjectMapper().readValue(file, AbstractServiceRequest.class));
 			} catch (IOException e) {
-				logger.debug(e, "f:" + (Optional.ofNullable(file).isPresent() ? (file.getName()) : "null"));
 				try {
 					Files.delete(file.toPath());
 				} catch (IOException e1) {
-					logger.error(e);
+					logger.error(e, ServerConstant.NOT_THROWN);
 				}
 			}
 		}
@@ -1298,21 +1286,19 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 
 		try {
 			try {
-				objectLock = getLockService().getObjectLock(bucketName, objectName).readLock().tryLock(10,
-						TimeUnit.SECONDS);
+				objectLock = getLockService().getObjectLock(bucketName, objectName).readLock().tryLock(20, TimeUnit.SECONDS);
 				if (!objectLock) {
-					logger.warn("Can not acquire read Lock for Object -> " + objectName + ". Assumes check is ok");
+					logger.warn("Can not acquire read Lock for o: " + objectName + ". Assumes -> check is ok");
 					return true;
 				}
 			} catch (InterruptedException e) {
-				logger.warn(e);
 				return true;
 			}
 
 			try {
-				bucketLock = getLockService().getBucketLock(bucketName).readLock().tryLock(10, TimeUnit.SECONDS);
+				bucketLock = getLockService().getBucketLock(bucketName).readLock().tryLock(20, TimeUnit.SECONDS);
 				if (!bucketLock) {
-					logger.warn("Can not acquire read Lock for Bucket -> " + bucketName + ". Assumes check is ok");
+					logger.warn("Can not acquire read Lock for b: " + bucketName + ". Assumes -> check is ok");
 					return true;
 				}
 			} catch (InterruptedException e) {
@@ -1361,8 +1347,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 				readDrive.saveObjectMetadata(metadata);
 				return true;
 			} else {
-				logger.error("Integrity Check failed for -> d: " + readDrive.getName() + " | b:" + bucketName + " | o:"
-						+ objectName);
+				logger.error("Integrity Check failed for -> d: " + readDrive.getName() + " | b:" + bucketName + " | o:" + objectName + " | " + ServerConstant.NOT_THROWN);
 			}
 			/**
 			 * it is not possible to fix the file if the integrity fails because there is no
@@ -1596,9 +1581,11 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 			}
 			done = op.commit();
 
+		} catch (InternalCriticalException e) {
+			throw(e);
+			
 		} catch (Exception e) {
-			logger.error(e, serverInfo.toString());
-			throw new InternalCriticalException(e, serverInfo.toString());
+				throw new InternalCriticalException(e, serverInfo.toString());
 
 		} finally {
 

@@ -152,6 +152,11 @@ public class SystemInfoService extends BaseService implements SystemService {
 		info.freeMemory=Runtime.getRuntime().freeMemory();
 		info.redundancyLevel=serverSettings.getRedundancyLevel();
 		
+		if (serverSettings.getRedundancyLevel()==RedundancyLevel.RAID_6) {
+			info.redundancyLevelDetail = "[data:" + String.valueOf(serverSettings.getRAID6DataDrives()) + 
+										 ", parity:" + String.valueOf(serverSettings.getRAID6ParityDrives())+"] "; 
+		}
+		
 		OperatingSystemMXBean os = ManagementFactory.getOperatingSystemMXBean();
 		
 		if (os.getSystemLoadAverage()>0)
@@ -183,7 +188,7 @@ public class SystemInfoService extends BaseService implements SystemService {
 			 * TBA
 			 * 
 			 * */
-			total = Long.valueOf(-1); //Long.valueOf(available.stream().map(d -> d).reduce(Long.valueOf(0), (a, b) -> (a<b?a:b)) * available.size() * 2/3 );
+			total = Long.valueOf(0); //Long.valueOf(available.stream().map(d -> d).reduce(Long.valueOf(0), (a, b) -> (a<b?a:b)) * available.size() * 2/3 );
 			info.availableDisk = total;
 		}
 		
@@ -249,6 +254,8 @@ public class SystemInfoService extends BaseService implements SystemService {
 				this.serverHost=getServerHost();
 				
 				this.serverMode=serverSettings.getServerMode();
+				
+				
 				this.serverDataStorageMode=serverSettings.getDataStorage().getName();
 	
 				this.isVersionControl = serverSettings.isVersionControl() ? "true" : "false";

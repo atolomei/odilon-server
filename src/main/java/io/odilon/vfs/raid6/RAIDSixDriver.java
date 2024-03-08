@@ -97,7 +97,8 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 
 	
 	protected boolean isConfigurationValid(int dataShards, int parityShards) {
-		return (dataShards==4 && parityShards==2);
+		return  (dataShards==4 && parityShards==2) ||
+			    (dataShards==2 && parityShards==1);
 	}
 	/**
 	 * 
@@ -123,8 +124,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 			if ((meta != null) && meta.isAccesible()) {
 
 				RSDecoder decoder = new RSDecoder(this);
-				
-				File file = decoder.decode(bucket.getName(), objectName);
+				File file = decoder.decode(meta, Optional.empty());
 				
 				if (meta.encrypt)
 					return getVFS().getEncryptionService().decryptStream(Files.newInputStream(file.toPath()));
@@ -173,7 +173,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 				throw new OdilonObjectNotFoundException("object version does not exists for -> b:" +  bucket.getName() +" | o:" + objectName + " | v:" + String.valueOf(version));
 			
 			RSDecoder decoder = new RSDecoder(this);  
-			File file = decoder.decode(bucketName, objectName);
+			File file = decoder.decode(meta, Optional.of(version));
 			
 			if (meta.encrypt)
 				return getVFS().getEncryptionService().decryptStream(Files.newInputStream(file.toPath()));

@@ -754,7 +754,6 @@ public class ODDrive extends ODModelObject implements Drive {
 					if (bucketDir.exists()) {
 						File files[] = bucketDir.listFiles();
 						for (File fi:files) {
-							logger.debug("Remove fi: " + fi.getName() + " d: " + getName() + " dir:"+ getBucketCacheDirPath(bucketName));
 							FileUtils.deleteQuietly(fi);
 							if (n++>50000)
 								break;
@@ -775,9 +774,8 @@ public class ODDrive extends ODModelObject implements Drive {
 					if (bucketDir.exists()) {
 						File files[] = bucketDir.listFiles();
 						for (File fi:files) {
-							logger.debug("Remove fi: " + fi.getName() + " d: " + getName() + " dir:"+ getBucketWorkDirPath(bucketName));
 							FileUtils.deleteQuietly(fi);
-							if (n++>10000)
+							if (n++>50000)
 								break;
 						}
 					}

@@ -114,11 +114,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 			
 		} catch (Exception e) {
 			done=false;
-			String msg = "b:"  	+ (Optional.ofNullable(bucket).isPresent()    ? (bucket.getName())  :"null") + 
-						 ", o:" + (Optional.ofNullable(objectName).isPresent() ? (objectName)       :"null") +  
-						 ", f:"	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)     :"null");
-				
-			logger.error(msg);
+			String msg = "b:" + bucket.getName() + " o:"+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null");
 			throw new InternalCriticalException(e, msg);
 			
 		} finally {
@@ -139,11 +135,8 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 						rollbackJournal(op, false);
 						
 					} catch (Exception e) {
-						String msg =  	"b:"   + (Optional.ofNullable(bucket).isPresent()    	? (bucket.getName()) 	:"null") + 
-										", o:" + (Optional.ofNullable(objectName).isPresent() 	? (objectName)       	:"null") +  
-										", f:" + (Optional.ofNullable(srcFileName).isPresent() 	? (srcFileName)     	:"null");
-						logger.error(e, msg);
-						throw new InternalCriticalException(e);
+						String msg = "b:" + bucket.getName() + " o:"+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null");
+						throw new InternalCriticalException(e, msg);
 					}
 				}
 				else {
@@ -221,18 +214,14 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 		} catch (OdilonObjectNotFoundException e1) {
 			done=false;
 			logger.error(e1);
-			 e1.setErrorMessage( e1.getErrorMessage() + " | " + 
-				"b:" 		+ (Optional.ofNullable(bucket).isPresent() ? (bucket.getName())  			:"null") +
-				", o:"		+ (Optional.ofNullable(objectName).isPresent() ? (objectName)       		:"null"));
+			 e1.setErrorMessage( e1.getErrorMessage() + " | " +  "b:" + bucket.getName() + " o:"+ objectName );
 
 			
 			throw e1;
 			
 		} catch (Exception e) {
 			done=false;
-			String msg = "b:"  	+ (Optional.ofNullable(bucket).isPresent()    ? (bucket.getName())  :"null") + 
-						 ", o:"	+ (Optional.ofNullable(objectName).isPresent() ? (objectName)       :"null");  
-			logger.error(msg);
+			String msg = "b:" + bucket.getName() + " o:"+ objectName ;  
 			throw new InternalCriticalException(e, msg);
 			
 		} finally {
@@ -247,11 +236,8 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 						rollbackJournal(op, false);
 						
 					} catch (Exception e) {
-						String msg =  	"b:"   + (Optional.ofNullable(bucket).isPresent()    	? (bucket.getName()) 	:"null") + 
-										", o:" + (Optional.ofNullable(objectName).isPresent() 	? (objectName)       	:"null");   
-						
-						logger.error(e, msg);
-						throw new InternalCriticalException(e);
+						String msg = "b:" + bucket.getName() + " o:"+ objectName ;						
+						throw new InternalCriticalException(e, msg);
 					}
 				}
 				else {
@@ -301,8 +287,8 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 			
 		} catch (Exception e) {
 			done=false;
-			throw new InternalCriticalException(e,  "b:"   + (Optional.ofNullable(meta.bucketName).isPresent()    ? (meta.bucketName) :"null") + 
-													", o:" + (Optional.ofNullable(meta.objectName).isPresent() ? meta.objectName  	  :"null")); 
+			String msg = "b:" + meta.bucketName + " o:"+ meta.objectName ;
+			throw new InternalCriticalException(e,  msg); 
 			
 		} finally {
 			
@@ -316,9 +302,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 							rollbackJournal(op, false);
 							
 						} catch (Exception e) {
-							logger.error(e);
-							throw new InternalCriticalException(e,  "b:"   + (Optional.ofNullable(meta.bucketName).isPresent()    ? (meta.bucketName) :"null")); 
-							
+							throw new InternalCriticalException(e,   "b:" + meta.bucketName + " o:"+ meta.objectName ); 
 						}
 				}
 				else {
@@ -380,16 +364,13 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 			done = true;
 			
 		} catch (InternalCriticalException e) {
-			String msg = "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null");
-			logger.error(msg);
+			logger.error("Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null"));
 			if (!recoveryMode)
 				throw(e);
 			
 		} catch (Exception e) {
-			String msg = "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null");
-			logger.error(msg);
 			if (!recoveryMode)
-				throw new InternalCriticalException(e, msg);
+				throw new InternalCriticalException(e, "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null"));
 		}
 		finally {
 			if (done || recoveryMode) {
@@ -433,13 +414,11 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 	
 	private void saveVersionObjectMetadata(VFSBucket bucket, String objectName,	int version) {
 		try {
-			for (Drive drive: getDriver().getDrivesAll()) {
-				File file=drive.getObjectMetadataFile(bucket.getName(), objectName);
-				drive.putObjectMetadataVersionFile(bucket.getName(), objectName, version, file);
-			}
+		
+			for (Drive drive: getDriver().getDrivesAll())
+				drive.putObjectMetadataVersionFile(bucket.getName(), objectName, version, drive.getObjectMetadataFile(bucket.getName(), objectName));
 			
 		} catch (Exception e) {
-				logger.error(e);
 				throw new InternalCriticalException(e);
 		}
 		
@@ -591,10 +570,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 			}
 			
 		} catch (Exception e) {
-				String msg =  	"b:"   + (Optional.ofNullable(bucket).isPresent()    ? (bucket.getName()) :"null") + 
-								", o:" + (Optional.ofNullable(objectName).isPresent() ? (objectName)       :"null") +  
-								", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)     :"null");
-				logger.error(e);
+				String msg = "b:" + bucket.getName() + " o:"+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null");	
 				throw new InternalCriticalException(e,msg);
 		}
 	}
@@ -614,8 +590,8 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 			}
 			return success;
 		} catch (Exception e) {
-				logger.error(e);
-				throw new InternalCriticalException(e);
+				String msg = "b:" + bucketName + " o:"+ objectName;
+				throw new InternalCriticalException(e, msg);
 		}
 	}
 
@@ -688,15 +664,9 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 		try {
 			if (!getVFS().getServerSettings().isVersionControl()) {
 				for (Drive drive: getDriver().getDrivesAll()) {
-				File metadata = drive.getObjectMetadataVersionFile(bucket.getName(), objectName, previousVersion);
-				if (metadata.exists())
-					FileUtils.deleteQuietly(metadata);
-				
-				File data=((SimpleDrive) drive).getObjectDataVersionFile(bucket.getName(), objectName, previousVersion);
-				if (data.exists())
-					FileUtils.deleteQuietly(data);
+					FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(bucket.getName(), objectName, previousVersion));
+					FileUtils.deleteQuietly(((SimpleDrive) drive).getObjectDataVersionFile(bucket.getName(), objectName, previousVersion));
 				}
-				
 			}
 		} catch (Exception e) {
 			logger.error(e, ServerConstant.NOT_THROWN);
@@ -708,13 +678,10 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 		try {
 			/** delete backup Metadata */
 			for (Drive drive: getDriver().getDrivesAll()) {
-			String objectMetadataBackupDirPath = drive.getBucketWorkDirPath(bucketName) + File.separator + objectName;
-			File omb = new File(objectMetadataBackupDirPath);
-			if (omb.exists())
-				FileUtils.deleteQuietly(omb);
+				FileUtils.deleteQuietly(new File(drive.getBucketWorkDirPath(bucketName) + File.separator + objectName));
 			}
 		} catch (Exception e) {
-			logger.error(e);
+			logger.error(e, ServerConstant.NOT_THROWN);
 		}
 	}
 	

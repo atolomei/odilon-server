@@ -452,6 +452,7 @@ private static Logger logger = Logger.getLogger(RAIDSixCreateObjectHandler.class
 			
 			try {
 				ObjectMetadata meta = new ObjectMetadata(bucket.getName(), objectName);
+				
 				meta.fileName=srcFileName;
 				meta.appVersion=OdilonVersion.VERSION;
 				meta.contentType=contentType;
@@ -459,6 +460,7 @@ private static Logger logger = Logger.getLogger(RAIDSixCreateObjectHandler.class
 				meta.version=version;
 				meta.versioncreationDate = meta.creationDate;
 				meta.length=ei.fileSize;
+				meta.totalBlocks=ei.encodedBlocks.size();
 				meta.sha256Blocks=shaBlocks;
 				meta.etag=etag;
 				meta.encrypt=getVFS().isEncrypt();

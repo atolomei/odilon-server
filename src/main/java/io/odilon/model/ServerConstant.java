@@ -60,9 +60,6 @@ public class ServerConstant {
     public static final int BYTES_IN_INT = 4;
     public static final int BYTES_IN_LONG = 16;
 
-
-    public static final int MAX_CHUNK_SIZE = 48 * iMB;
-	
-	
+    public static final int MAX_CHUNK_SIZE = 32 * iMB;
 	
 }

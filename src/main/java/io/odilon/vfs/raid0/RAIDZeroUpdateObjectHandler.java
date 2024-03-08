@@ -88,9 +88,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 			ObjectMetadata meta = getDriver().getObjectMetadataInternal(bucket.getName(), objectName, true);
 			
 			if (meta.version==0)
-				throw new IllegalArgumentException(	"Object does not have any previous version | " + "b:" + 
-													(Optional.ofNullable(bucket).isPresent() ? (bucket.getName())  :"null") +
-						 							", o:"	+ (Optional.ofNullable(objectName).isPresent() ? (objectName)       :"null"));
+				throw new IllegalArgumentException(	"Object does not have any previous version | " + "b:" + bucket.getName() + ", o:"	+ objectName);
 			
 			beforeHeadVersion = meta.version;
 			List<ObjectMetadata> metaVersions = new ArrayList<ObjectMetadata>();
@@ -127,19 +125,12 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 		} catch (OdilonObjectNotFoundException e1) {
 			done=false;
 			logger.error(e1);
-			 e1.setErrorMessage( e1.getErrorMessage() + " | " + 
-				"b:" 		+ (Optional.ofNullable(bucket).isPresent() ? (bucket.getName())  			:"null") +
-				", o:"		+ (Optional.ofNullable(objectName).isPresent() ? (objectName)       		:"null"));
-
-			
+			 e1.setErrorMessage( e1.getErrorMessage() + " | " + "b:" + bucket.getName() + ", o:"	+ objectName);
 			throw e1;
 			
 		} catch (Exception e) {
 			done=false;
-			String msg = "b:"  	+ (Optional.ofNullable(bucket).isPresent()    ? (bucket.getName())  :"null") + 
-						 ", o:"	+ (Optional.ofNullable(objectName).isPresent() ? (objectName)       :"null");  
-			logger.error(msg);
-			throw new InternalCriticalException(e, msg);
+			throw new InternalCriticalException(e, "b:" + bucket.getName() + ", o:"	+ objectName);
 			
 		} finally {
 			
@@ -149,15 +140,9 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 				if (requiresRollback) {
 					
 					try {
-
 						rollbackJournal(op, false);
-						
 					} catch (Exception e) {
-						String msg =  	"b:"   + (Optional.ofNullable(bucket).isPresent()    	? (bucket.getName()) 	:"null") + 
-										", o:" + (Optional.ofNullable(objectName).isPresent() 	? (objectName)       	:"null");   
-						
-						logger.error(e, msg);
-						throw new InternalCriticalException(e);
+						throw new InternalCriticalException(e, "b:" + bucket.getName() + ", o:"	+ objectName);
 					}
 				}
 				else {
@@ -730,7 +715,6 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 		}
 	}
 	
-
 	/**
 	 *
 	 * 

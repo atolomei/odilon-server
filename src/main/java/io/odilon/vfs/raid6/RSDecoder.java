@@ -17,6 +17,7 @@
  */
 package io.odilon.vfs.raid6;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -26,9 +27,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.util.Optional;
 
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
+import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ServerConstant;
 import io.odilon.util.Check;
 import io.odilon.vfs.model.VirtualFileSystemService;
@@ -55,34 +58,39 @@ public class RSDecoder {
 			throw new InternalCriticalException("Incorrect configuration for " + driver.getRedundancyLevel().getName()+" -> data: " + String.valueOf(data_shards) + " | parity:" + String.valueOf(parity_shards));
 	}
  	
+	
 	 /**
+	  * 
+	  * <p>ObjectMetadata must be the one of the version to decode</p>
+	  * 
      * @param is
      */
-    public File decode(String bucketName, String objectName) {
+    public File decode(ObjectMetadata meta, Optional<Integer> version) {
     	
-    	Check.requireNonNull(bucketName);
-    	Check.requireNonNull(objectName);
+    	
+    	String bucketName = meta.bucketName;
+    	String objectName = meta.objectName;
+    	
+    	int totalChunks = meta.totalBlocks / this.total_shards;
     	
     	int chunk = 0;
     	
-    	boolean done = false;
+	    	File file = getVFS().getFileCacheService().get(bucketName, objectName, version); 
 
-    	File file = getVFS().getFileCacheService().get(bucketName, objectName); 
+	    	if (file!=null) {
+	    		getDriver().getVFS().getSystemMonitorService().getCacheFileHitCounter().inc();
+	    		return file;
+	    	}
+	    	getDriver().getVFS().getSystemMonitorService().getCacheFileMissCounter().inc();
+	    	getVFS().getFileCacheService().getLockService().getFileCacheLock(bucketName, objectName, version).writeLock().lock();
     	
-    	if (file!=null) {
-    		getDriver().getVFS().getSystemMonitorService().getCacheFileHitCounter().inc();
-    		return file;
-    	}
-    	
-    	getDriver().getVFS().getSystemMonitorService().getCacheFileMissCounter().inc();
-		
-    	getVFS().getFileCacheService().getLockService().getFileCacheLock(bucketName, objectName).writeLock().lock();
 
     	try {
-	    	String tempPath = getVFS().getFileCacheService().getFileCachePath(bucketName, objectName);
+	    	String tempPath = getVFS().getFileCacheService().getFileCachePath(bucketName, objectName, version);
+	    
 	    	try (OutputStream out = new BufferedOutputStream(new FileOutputStream(tempPath))) {
-	    		while (!done) {
-	        		done = decodeChunk(bucketName, objectName, chunk++, out);
+	    		while (chunk<totalChunks) {
+	        		decodeChunk(bucketName, objectName, chunk++, out);
 	        	}
 	    	} catch (FileNotFoundException e) {
 	    		throw new InternalCriticalException(e, "b:" + bucketName +  " | o:" + objectName + " | f:" +tempPath);
@@ -90,11 +98,11 @@ public class RSDecoder {
 				throw new InternalCriticalException(e, "b:" + bucketName +  " | o:" + objectName + " | f:" +tempPath);
 			}
 	    	File decodedFile = new File(tempPath);
-	    	getVFS().getFileCacheService().put(bucketName, objectName, decodedFile, false);
+	    	getVFS().getFileCacheService().put(bucketName, objectName, version, decodedFile, false);
 	    	return decodedFile;
 	    	
     	} finally {
-    		getVFS().getFileCacheService().getLockService().getFileCacheLock(bucketName, objectName).writeLock().unlock();
+    		getVFS().getFileCacheService().getLockService().getFileCacheLock(bucketName, objectName, version).writeLock().unlock();
     	}
     }
 
@@ -118,6 +126,7 @@ public class RSDecoder {
         int shardSize = 0;
         int shardCount = 0;
         
+        
         for (int disk = 0; disk < this.total_shards; disk++) {
         	
         	String dirPath = getDriver().getDrivesEnabled().get(disk).getBucketObjectDataDirPath(bucketName);
@@ -130,7 +139,7 @@ public class RSDecoder {
                 shards[disk] = new byte [shardSize];
                 shardPresent[disk] = true;
                 shardCount += 1;
-    			try (InputStream in = new FileInputStream(shardFile)) {
+    			try (InputStream in = new BufferedInputStream(new FileInputStream(shardFile))) {
 					in.read(shards[disk], 0, shardSize);
 				} catch (FileNotFoundException e) {
 					throw new InternalCriticalException(e, "b:" + bucketName +  " | o:" + objectName + " | f:" + shardFile.getName());
@@ -178,13 +187,9 @@ public class RSDecoder {
 		} catch (IOException e) {
             throw  new InternalCriticalException(e,  "b:" + bucketName +  " | o:" + objectName);
 		}
-
-		if (shardSize<( ServerConstant.MAX_CHUNK_SIZE - ServerConstant.BYTES_IN_INT))
-			return true;
-		
-    	return false;
+        
+        return true;
     }
-    
     
 	
 	public RAIDSixDriver getDriver() {

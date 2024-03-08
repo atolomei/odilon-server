@@ -4,6 +4,7 @@ import java.io.File;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
@@ -23,6 +24,7 @@ import com.github.benmanes.caffeine.cache.RemovalCause;
 
 import io.odilon.log.Logger;
 import io.odilon.model.BaseService;
+import io.odilon.model.ServerConstant;
 import io.odilon.model.ServiceStatus;
 import io.odilon.service.ServerSettings;
 import io.odilon.util.Check;
@@ -67,14 +69,14 @@ public class FileCacheService extends BaseService {
 	}
 	
 
-    public boolean containsKey(String bucketName, String objectName) {
+    public boolean containsKey(String bucketName, String objectName, Optional<Integer> version) {
     	Check.requireNonNullArgument(bucketName, "bucket is null");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucketName);
-		getLockService().getFileCacheLock(bucketName, objectName).readLock().lock();
+		getLockService().getFileCacheLock(bucketName, objectName, version).readLock().lock();
 		try {
-    		return (this.cache.getIfPresent(getKey(bucketName, objectName))!=null);
+    		return (this.cache.getIfPresent(getKey(bucketName, objectName, version))!=null);
     	} finally {
-    		getLockService().getFileCacheLock(bucketName, objectName).readLock().unlock();
+    		getLockService().getFileCacheLock(bucketName, objectName, version).readLock().unlock();
     	}
     }
 
@@ -83,14 +85,14 @@ public class FileCacheService extends BaseService {
      * @param objectName
      * @return
      */
-    public File get(String bucketName, String objectName) {
+    public File get(String bucketName, String objectName, Optional<Integer> version) {
     	Check.requireNonNullArgument(bucketName, "bucket is null");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucketName);
-		getLockService().getFileCacheLock(bucketName, objectName).readLock().lock();
+		getLockService().getFileCacheLock(bucketName, objectName, version).readLock().lock();
     	try {
-    		return this.cache.getIfPresent(getKey(bucketName, objectName));
+    		return this.cache.getIfPresent(getKey(bucketName, objectName, version));
     	} finally {
-    		getLockService().getFileCacheLock(bucketName, objectName).readLock().unlock();
+    		getLockService().getFileCacheLock(bucketName, objectName, version).readLock().unlock();
     	}
     }
 
@@ -101,37 +103,37 @@ public class FileCacheService extends BaseService {
      * @param file
      * @return
      */
-    public void put(String bucketName, String objectName, File file, boolean lockRequired) {
+    public void put(String bucketName, String objectName, Optional<Integer> version, File file, boolean lockRequired) {
     	Check.requireNonNullArgument(bucketName, "bucket is null");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucketName);
 		Check.requireNonNullArgument(file, "file is null");
 		if (lockRequired)
-			getLockService().getFileCacheLock(bucketName, objectName).writeLock().lock();
+			getLockService().getFileCacheLock(bucketName, objectName, version).writeLock().lock();
 		try {
-			this.cache.put(getKey(bucketName, objectName), file);
+			this.cache.put(getKey(bucketName, objectName, version), file);
 			cacheSizeBytes += file.length();
     	} finally {
     		if (lockRequired)
-    			getLockService().getFileCacheLock(bucketName, objectName).writeLock().unlock();
+    			getLockService().getFileCacheLock(bucketName, objectName, version).writeLock().unlock();
     	}
     }
     /**
      * @param bucketName
      * @param objectName
      */
-    public void remove(String bucketName, String objectName) {
+    public void remove(String bucketName, String objectName, Optional<Integer> version) {
     	Check.requireNonNullArgument(bucketName, "bucket is null");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucketName);
-		getLockService().getFileCacheLock(bucketName, objectName).writeLock().lock();
+		getLockService().getFileCacheLock(bucketName, objectName, version).writeLock().lock();
     	try {
-    		File file = this.cache.getIfPresent(getKey(bucketName, objectName));
-    		this.cache.invalidate(getKey(bucketName, objectName));
+    		File file = this.cache.getIfPresent(getKey(bucketName, objectName, version));
+    		this.cache.invalidate(getKey(bucketName, objectName, version));
     		if (file!=null) {
     			FileUtils.deleteQuietly(file);
     			cacheSizeBytes -= file.length();
     		}
     	} finally {
-    		getLockService().getFileCacheLock(bucketName, objectName).writeLock().unlock();
+    		getLockService().getFileCacheLock(bucketName, objectName, version).writeLock().unlock();
     	}
     }
 
@@ -141,8 +143,8 @@ public class FileCacheService extends BaseService {
      * @param objectName
      * @return
      */
-	public String getFileCachePath(String bucketName, String objectName) {
-		String path = getKey(bucketName, objectName);
+	public String getFileCachePath(String bucketName, String objectName, Optional<Integer> version) {
+		String path = getKey(bucketName, objectName, version);
 		return getDrivesAll().get(Math.abs(path.hashCode()) % getDrivesAll().size()).getCacheDirPath() + File.separator + path;
 	}
 	
@@ -204,20 +206,26 @@ public class FileCacheService extends BaseService {
 		if (cause.wasEvicted()) {
 			if ((key!=null) && (value!=null)) {
 				String pattern = Pattern.quote(File.separator);
-				String arr[] = ((String)key).split(pattern);
-				getLockService().getFileCacheLock(arr[0], arr[1]).writeLock().lock();
+				String  arr[]  = ((String)key).split(pattern);
+				String verr[] = (arr[1].split(ServerConstant.BO_SEPARATOR));
+				
+				String bucketName = arr[0];
+				String objectName = ((verr.length==1) ? arr[1] : verr[0]);
+				Optional<Integer> version = ((verr.length==1) ? Optional.empty() : Optional.of(Integer.valueOf(verr[1]).intValue()));
+
+				getLockService().getFileCacheLock(bucketName, objectName, version).writeLock().lock();
 				try {
 		    			FileUtils.deleteQuietly((File) value);
 		    			cacheSizeBytes -= ((File)value).length();
 				} finally {
-					getLockService().getFileCacheLock(arr[0], arr[1]).writeLock().unlock();
+					getLockService().getFileCacheLock(bucketName, objectName, version).writeLock().unlock();
 				}
 			}
 		}
 	}
 	
-    private String getKey(String bucketName, String objectName) {
-    	return bucketName + File.separator + objectName;
+    private String getKey(String bucketName, String objectName, Optional<Integer> version) {
+    	return bucketName + File.separator + objectName + (version.isEmpty()?"":(ServerConstant.BO_SEPARATOR+String.valueOf(version.get().intValue())));
     }
     
 	private List<Drive> getDrivesAll() {

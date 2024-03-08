@@ -71,7 +71,6 @@ public class RSEncoder {
 	    }
     	
     	encodedInfo.fileSize=this.fileSize;
-    	
     	return encodedInfo;
 	}
 	
@@ -86,17 +85,18 @@ public class RSEncoder {
 
     	int bytesRead = 0;
         
+    	final int maxBytesToRead = ServerConstant.MAX_CHUNK_SIZE - ServerConstant.BYTES_IN_INT;
 		try {
 		
-			bytesRead = is.read(allBytes, ServerConstant.BYTES_IN_INT,  ServerConstant.MAX_CHUNK_SIZE - ServerConstant.BYTES_IN_INT);
+			bytesRead = is.read(allBytes, ServerConstant.BYTES_IN_INT, maxBytesToRead);
 			
 		} catch (IOException e) {
-				logger.error(e);
-				System.exit(1);
+			throw new InternalCriticalException(e, " reading inputStream | b:" +bucketName + ", o:" + objectName);
 		}
 
-		if (bytesRead==0)
+		if (bytesRead==0) {
 			return false;
+		}
 			
 		this.fileSize += bytesRead;
 
@@ -127,14 +127,14 @@ public class RSEncoder {
 			try  (OutputStream out = new BufferedOutputStream(new FileOutputStream(outputFile))) {
 				out.write(shards[block]);
 	        } catch (FileNotFoundException e) {
-				throw new InternalCriticalException(e, "o:" + objectName +" f: " + name);
+				throw new InternalCriticalException(e, "b:" +bucketName + ", o:" + objectName +" f: " + name);
 			} catch (IOException e) {
-				throw new InternalCriticalException(e, "o:" + objectName +" f: " + name);
+				throw new InternalCriticalException(e, "b:" +bucketName + ", o:" + objectName +" f: " + name);
 			}
 			this.encodedInfo.encodedBlocks.add(outputFile);
         }
         
-		if (bytesRead<( ServerConstant.MAX_CHUNK_SIZE - ServerConstant.BYTES_IN_INT))
+		if (bytesRead<maxBytesToRead)
 			return true;
 
         return false;

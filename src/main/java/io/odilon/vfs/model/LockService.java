@@ -16,6 +16,7 @@
  */
 package io.odilon.vfs.model;
 
+import java.util.Optional;
 import java.util.concurrent.locks.ReadWriteLock;
 
 import io.odilon.service.SystemService;
@@ -29,7 +30,7 @@ public interface LockService extends SystemService {
 	public ReadWriteLock getServerLock();
 	
 	
-	public ReadWriteLock getFileCacheLock(String bucketName, String objectName);
+	public ReadWriteLock getFileCacheLock(String bucketName, String objectName, Optional<Integer> version);
 	
 	
 	

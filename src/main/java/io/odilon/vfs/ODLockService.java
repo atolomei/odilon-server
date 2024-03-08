@@ -20,6 +20,7 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -94,8 +95,8 @@ public class ODLockService extends BaseService implements LockService {
 	}
 
 	@Override
-	public ReadWriteLock getFileCacheLock(String bucketName, String objectName) {
-		return fileCacheLocks.computeIfAbsent(getKey(bucketName, objectName), key -> new ReentrantReadWriteLock());
+	public ReadWriteLock getFileCacheLock(String bucketName, String objectName, Optional<Integer> version) {
+		return fileCacheLocks.computeIfAbsent(getFileKey(bucketName, objectName, version), key -> new ReentrantReadWriteLock());
 	}
 	
 	@Override
@@ -249,6 +250,11 @@ public class ODLockService extends BaseService implements LockService {
 	private String getKey(String bucketName, String objectName) {
 		return (bucketName +  ServerConstant.BO_SEPARATOR + objectName);
 	}
+	
+	private String getFileKey(String bucketName, String objectName, Optional<Integer> version) {
+		return (bucketName +  ServerConstant.BO_SEPARATOR + objectName +(version.isEmpty()?"":(ServerConstant.BO_SEPARATOR+String.valueOf(version.get().intValue()))));
+	}
+	
 	
 	@PreDestroy
 	private void preDestroy() {
