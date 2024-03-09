@@ -496,7 +496,7 @@ private static Logger logger = Logger.getLogger(RAIDSixCreateObjectHandler.class
 		try {
 				sourceStream = isEncrypt() ? (getVFS().getEncryptionService().encryptStream(stream)) : stream;
 				RSEncoder encoder = new RSEncoder(getDriver());
-				return encoder.encode(stream, bucket.getName(), objectName);
+				return encoder.encode(sourceStream, bucket.getName(), objectName);
 			
 			} catch (Exception e) {
 				isMainException = true;

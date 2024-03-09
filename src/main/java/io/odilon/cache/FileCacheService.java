@@ -3,6 +3,7 @@ package io.odilon.cache;
 import java.io.File;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -228,9 +229,41 @@ public class FileCacheService extends BaseService {
     	return bucketName + File.separator + objectName + (version.isEmpty()?"":(ServerConstant.BO_SEPARATOR+String.valueOf(version.get().intValue())));
     }
     
-	private List<Drive> getDrivesAll() {
+    
+	private synchronized List<Drive> getDrivesAll() {
+		
 		if (this.listDrives ==null)
-			this.listDrives = new ArrayList<Drive>(getVFS().getDrivesAll().values());
+			this.listDrives = new ArrayList<Drive>(getVFS().getMapDrivesAll().values());
+		
+		this.listDrives.sort(new Comparator<Drive>() {
+			@Override
+			public int compare(Drive o1, Drive o2) {
+				try {
+						if ((o1.getDriveInfo()==null))
+							if (o2.getDriveInfo()!=null) return 1;
+						
+						if ((o2.getDriveInfo()==null))
+							if (o1.getDriveInfo()!=null) return -1;
+						
+						if ((o1.getDriveInfo()==null) && o2.getDriveInfo()==null)
+							return 0;
+						
+						if (o1.getDriveInfo().getOrder() < o2.getDriveInfo().getOrder())
+							return -1;
+						
+						if (o1.getDriveInfo().getOrder() > o2.getDriveInfo().getOrder())
+							return 1;
+							
+						return 0;
+					}
+						catch (Exception e) {
+							return 0;		
+					}
+				}
+		});
+
+		
+		
 		return this.listDrives;
 	}
 

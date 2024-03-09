@@ -30,6 +30,7 @@ import java.security.NoSuchAlgorithmException;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -635,27 +636,89 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 	 * 
 	 */
 	@Override
-	public List<Drive> getDrivesEnabled() {
-		synchronized (this) { 
-			if (drivesEnabled!=null)
-				return drivesEnabled;
-				drivesEnabled = new ArrayList<Drive>();
-				getVFS().getDrivesEnabled().forEach( (K,V) -> drivesEnabled.add(V));	
-				return drivesEnabled;
-		}
+	public synchronized List<Drive> getDrivesEnabled() {
+		 
+			if (this.drivesEnabled!=null)
+				return this.drivesEnabled;
+			
+			this.drivesEnabled = new ArrayList<Drive>();
+			
+			getVFS().getMapDrivesEnabled().forEach( (K,V) -> this.drivesEnabled.add(V));
+			
+			this.drivesEnabled.sort(new Comparator<Drive>() {
+					@Override
+					public int compare(Drive o1, Drive o2) {
+							try {
+								
+								if ((o1.getDriveInfo()==null))
+									if (o2.getDriveInfo()!=null) return 1;
+								
+								if ((o2.getDriveInfo()==null))
+									if (o1.getDriveInfo()!=null) return -1;
+
+								if ((o1.getDriveInfo()==null) && o2.getDriveInfo()==null)
+									return 0;
+									
+								if (o1.getDriveInfo().getOrder() < o2.getDriveInfo().getOrder())
+									return -1;
+								
+								if (o1.getDriveInfo().getOrder() > o2.getDriveInfo().getOrder())
+									return 1;
+								
+								return 0;
+							}
+								catch (Exception e) {
+									return 0;		
+							}
+						}
+				});
+				
+			return this.drivesEnabled;
 	}
 
 	/**
 	 * 
 	 */
-	public List<Drive> getDrivesAll() {
-		synchronized (this) { 
+	public synchronized List<Drive> getDrivesAll() {
+		 
 			if (drivesAll!=null)
 				return drivesAll;	
-			drivesAll = new ArrayList<Drive>();
-			getVFS().getDrivesAll().forEach( (K,V) -> drivesAll.add(V));	
-			return drivesAll;
-		}
+			
+			
+			this.drivesAll = new ArrayList<Drive>();
+			getVFS().getMapDrivesAll().forEach( (K,V) -> drivesAll.add(V));
+			
+			this.drivesAll.sort(new Comparator<Drive>() {
+				@Override
+				public int compare(Drive o1, Drive o2) {
+					try {
+							if ((o1.getDriveInfo()==null))
+								if (o2.getDriveInfo()!=null) return 1;
+							
+							if ((o2.getDriveInfo()==null))
+								if (o1.getDriveInfo()!=null) return -1;
+							
+							if ((o1.getDriveInfo()==null) && o2.getDriveInfo()==null)
+								return 0;
+							
+							if (o1.getDriveInfo().getOrder() < o2.getDriveInfo().getOrder())
+								return -1;
+							
+							if (o1.getDriveInfo().getOrder() > o2.getDriveInfo().getOrder())
+								return 1;
+								
+							return 0;
+						}
+							catch (Exception e) {
+								return 0;		
+						}
+					}
+			});
+
+			return this.drivesAll;
+			
+			
+		
 	}
 
 	/**

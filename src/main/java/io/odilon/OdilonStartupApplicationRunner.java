@@ -166,7 +166,7 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 		}
 		else
 			startupLogger.info("Data Storage redundancy level -> " + settingsService.getRedundancyLevel().getName());
-		getAppContext().getBean(VirtualFileSystemService.class).getDrivesEnabled().forEach((k,v) -> startupLogger.info("Drive: " + k +" | rootDir: " + v.getRootDirPath()));
+		getAppContext().getBean(VirtualFileSystemService.class).getMapDrivesEnabled().forEach((k,v) -> startupLogger.info("Drive: " + k +" | rootDir: " + v.getRootDirPath()));
 		return true;
 	}
 	

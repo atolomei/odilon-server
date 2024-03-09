@@ -78,7 +78,7 @@ public class CronJobWorkDirCleanUpRequest extends CronJobRequest {
 			
 			List<File> list = new ArrayList<File>();
 			
-			for (Drive drive: vfs.getDrivesAll().values()) {
+			for (Drive drive: vfs.getMapDrivesAll().values()) {
 				for (VFSBucket bucket: vfs.listAllBuckets()) {
 					File bucketDir = new File (drive.getBucketWorkDirPath(bucket.getName()));
 					if (bucketDir.exists()) {

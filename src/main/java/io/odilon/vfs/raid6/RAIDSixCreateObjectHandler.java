@@ -134,7 +134,6 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 	/**
 	 * 
 	 * 
-	 * 
 	 */
 	@Override
 	public void rollbackJournal(VFSOperation op, boolean recoveryMode) {
@@ -158,8 +157,13 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 			
 			for (Drive drive: getDriver().getDrivesEnabled()) {
 				File f_meta = drive.getObjectMetadataFile(bucketName, objectName);
-				if ((meta==null) && (f_meta!=null))
+				if ((meta==null) && (f_meta!=null)) {
+					try {
 						meta=drive.getObjectMetadata(bucketName, objectName);
+					} catch (Exception e) {
+						logger.warn("can not load meta -> d: " + drive.getName());
+					}
+				}
 				FileUtils.deleteQuietly(f_meta);
 			}
 			
@@ -170,14 +174,16 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 			done=true;
 			
 		} catch (InternalCriticalException e) {
-			String msg = "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null");
 			if (!recoveryMode)
 				throw(e);
+			else
+				logger.error(e, "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null") + ServerConstant.NOT_THROWN);
 			
 		} catch (Exception e) {
-			String msg = "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null");
 			if (!recoveryMode)
-				throw new InternalCriticalException(e, msg);
+				throw new InternalCriticalException(e, "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null"));
+			else
+				logger.error(e, "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null") + ServerConstant.NOT_THROWN);
 		}
 		finally {
 			if (done || recoveryMode) {
@@ -200,7 +206,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 
 			sourceStream = isEncrypt() ? (getVFS().getEncryptionService().encryptStream(stream)) : stream;
 			RSEncoder encoder = new RSEncoder(getDriver());
-			return encoder.encode(stream, bucket.getName(), objectName);
+			return encoder.encode(sourceStream, bucket.getName(), objectName);
 				
 			} catch (Exception e) {
 				isMainException = true;
@@ -245,8 +251,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 			try {
 				shaBlocks.add(ODFileUtils.calculateSHA256String(item));
 			} catch (Exception e) {
-				String msg =  "b:"+ bucket.getName() + " o:" + objectName+ ", f:" + (Optional.ofNullable(item).isPresent() ? (item.getName()) : "null");
-			throw new InternalCriticalException(e, msg);
+				throw new InternalCriticalException(e, "b:"+ bucket.getName() + " o:" + objectName+ ", f:" + (Optional.ofNullable(item).isPresent() ? (item.getName()) : "null"));
 			}
 		});
 
@@ -284,8 +289,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 				drive.saveObjectMetadata(meta);
 	
 			} catch (Exception e) {
-				String msg = "b:"+ bucket.getName() + " o:" + objectName+", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null");
-				throw new InternalCriticalException(e, msg);
+				throw new InternalCriticalException(e, "b:"+ bucket.getName() + " o:" + objectName+", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null"));
 			}
 		}
 		logger.debug( String.valueOf(System.currentTimeMillis() - start) + " ms");

@@ -57,7 +57,7 @@ public class RSEncoder {
     	
     	this.fileSize = 0;
     	this.chunk = 0;
-    	encodedInfo = new EncodedInfo();
+    	this.encodedInfo = new EncodedInfo();
     	
     	boolean done = false;
     	
@@ -70,8 +70,8 @@ public class RSEncoder {
 	    		throw new InternalCriticalException(e, "o:" + objectName);
 	    }
     	
-    	encodedInfo.fileSize=this.fileSize;
-    	return encodedInfo;
+    	this.encodedInfo.fileSize=this.fileSize;
+    	return this.encodedInfo;
 	}
 	
 	/**
@@ -82,27 +82,32 @@ public class RSEncoder {
 
     	// BUFFER 1
     	final byte [] allBytes = new byte[ ServerConstant.MAX_CHUNK_SIZE ];
-
-    	int bytesRead = 0;
-        
-    	final int maxBytesToRead = ServerConstant.MAX_CHUNK_SIZE - ServerConstant.BYTES_IN_INT;
-		try {
-		
-			bytesRead = is.read(allBytes, ServerConstant.BYTES_IN_INT, maxBytesToRead);
-			
+    	int totalBytesRead=0;
+    	boolean eof = false;
+    	try {
+    		final int maxBytesToRead = ServerConstant.MAX_CHUNK_SIZE - ServerConstant.BYTES_IN_INT;
+    		boolean done = false;
+    		int bytesRead = 0;
+			while(!done) {
+				bytesRead = is.read(allBytes, ServerConstant.BYTES_IN_INT+totalBytesRead, maxBytesToRead-totalBytesRead);
+				if (bytesRead>0) 
+					totalBytesRead += bytesRead;
+				else 
+					eof = true;
+				done = eof || (totalBytesRead==maxBytesToRead);
+			}
 		} catch (IOException e) {
 			throw new InternalCriticalException(e, " reading inputStream | b:" +bucketName + ", o:" + objectName);
 		}
 
-		if (bytesRead==0) {
-			return false;
-		}
-			
-		this.fileSize += bytesRead;
-
-		ByteBuffer.wrap(allBytes).putInt(bytesRead);
+		if (totalBytesRead==0) 
+			return true;
 		
-		final int storedSize = bytesRead + ServerConstant.BYTES_IN_INT;
+		this.fileSize += totalBytesRead;
+
+		ByteBuffer.wrap(allBytes).putInt(totalBytesRead);
+		
+		final int storedSize = totalBytesRead + ServerConstant.BYTES_IN_INT;
 		final int shardSize = (storedSize + data_shards - 1) / data_shards;
 		
     	// BUFFER 2
@@ -119,7 +124,6 @@ public class RSEncoder {
         
         // Write out the resulting files.
         for (int block = 0; block < total_shards; block++) {
-
         	String dirPath = getDriver().getDrivesEnabled().get(block).getBucketObjectDataDirPath(bucketName);
         	String name = objectName+ "." + String.valueOf(chunk) +"." + String.valueOf(block);
         	File outputFile = new File(dirPath, name);
@@ -133,18 +137,13 @@ public class RSEncoder {
 			}
 			this.encodedInfo.encodedBlocks.add(outputFile);
         }
-        
-		if (bytesRead<maxBytesToRead)
-			return true;
-
-        return false;
-        
+		return eof;
     }
     
 	public RAIDSixDriver getDriver() {
 		return this.driver;
 	}
-	
+
 	public VirtualFileSystemService getVFS() {
 		return this.driver.getVFS();
 	}

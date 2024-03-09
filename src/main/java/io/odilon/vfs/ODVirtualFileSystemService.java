@@ -198,9 +198,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 										MasterKeyService masterKeyEncryptorService,
 										OdilonKeyEncryptorService odilonKeyEncryptorService,
 										FileCacheService fileCacheService
-										
 								) {
-		
 		
 		this.fileCacheService=fileCacheService;
 		this.objectCacheService=objectCacheService;
@@ -530,11 +528,12 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	/**
 	 */
 	@Override
-	public Map<String, Drive> getDrivesEnabled() {
+	public Map<String, Drive> getMapDrivesEnabled() {
 		return this.drivesEnabled;
 	}
 	
-	public Map<String, Drive> getDrivesAll() {
+	@Override
+	public Map<String, Drive> getMapDrivesAll() {
 		return this.drivesAll;
 	}
 
@@ -637,7 +636,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	public List<VFSBucket> listAllBuckets() {
 			List<VFSBucket> list = new ArrayList<VFSBucket>();
 			Map<String, VFSBucket> map = new HashMap<String, VFSBucket>();
-			for (Entry<String, Drive> entry: getDrivesEnabled().entrySet()) {
+			for (Entry<String, Drive> entry: getMapDrivesEnabled().entrySet()) {
 				List<DriveBucket> db = entry.getValue().getBuckets();
 				db.forEach( item -> map.put(item.getName(), new ODVFSBucket(item)));
 			}
@@ -694,7 +693,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 			str.append("\"redundancy\":" + (Optional.ofNullable(raid).isPresent() ? ("\""+raid.getName()+"\"") :"null"));
 			str.append(", \"drive\":[");
 			int n=0;
-			for (Entry<String, Drive> entry : getDrivesEnabled().entrySet()) {
+			for (Entry<String, Drive> entry : getMapDrivesEnabled().entrySet()) {
 					str.append( (n>0?", ":"") + "{\"name\":\"" + entry.getKey() + "\", \"mount\": \"" + entry.getValue().getRootDirPath() + "\"}");
 					n++;
 			}
@@ -891,6 +890,8 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	 */
 	private void loadDrives() {
 			
+		List<Drive> list = new ArrayList<Drive>();
+		
 		/** load enabled drives and new drives */
 		{	
 			int n=0;
@@ -899,11 +900,15 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 			drivesEnabled.clear();
 			
 			for (String dir: getServerSettings().getRootDirs()) {
-				Drive drive;
+
+				Drive drive = null;
+				
 				if (getServerSettings().getRedundancyLevel()==RedundancyLevel.RAID_6)
 					drive=new ChunkedDrive(String.valueOf(n++), dir);
 				else
 					drive=new ODSimpleDrive(String.valueOf(n++), dir);
+				
+				list.add(drive);
 				
 				drivesAll.put(drive.getName(), drive);
 				if (drive.getDriveInfo().getStatus()==DriveStatus.ENABLED) {
@@ -924,14 +929,21 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 			}
 			if (noneSync) {
 				drivesEnabled.clear();
-				for (Entry<String,Drive> entry: drivesAll.entrySet()) {
-					Drive drive=entry.getValue();
+				int order=0;
+				for (Drive drive: list) {
 					DriveInfo info=drive.getDriveInfo();
+					info.setOrder(order++);
 					info.setStatus(DriveStatus.ENABLED);
 					drive.setDriveInfo(info);
 					drivesEnabled.put(drive.getName(), drive);
 				}
 			}
+		
+		
+			
+			
+		
+		
 		}
 	}
 	
@@ -940,7 +952,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	 * 
 	 */
 	private void deleteGhostsBuckets() {
-		for (Entry<String,Drive> entry: getDrivesAll().entrySet()) {
+		for (Entry<String,Drive> entry: getMapDrivesAll().entrySet()) {
 			Drive drive=entry.getValue();
 			List<DriveBucket> buckets = drive.getBuckets();
 			for (DriveBucket driveBucket: buckets) {
@@ -982,7 +994,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	private void checkDriveBuckets() {
 		try {
 			Map<String, Integer> map = new HashMap<String, Integer>();
-			for (Entry<String,Drive> entry: getDrivesEnabled().entrySet()) {
+			for (Entry<String,Drive> entry: getMapDrivesEnabled().entrySet()) {
 				Drive drive=entry.getValue();
 				List<DriveBucket> folders = drive.getBuckets();
 				for (DriveBucket driveBucket: folders) {
@@ -1000,7 +1012,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 			}
 			// map.forEach((k,v) -> logger.debug(k +" -> " + v));
 			
-			int size = getDrivesEnabled().size();
+			int size = getMapDrivesEnabled().size();
 			List<String> errors = new ArrayList<String>();
 			
 			int buckets = map.size();
@@ -1061,7 +1073,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 			
 			op = getJournalService().deleteBucket(bucket.getName());
 			
-			listDrives = new ArrayList<Drive>(getDrivesAll().values());
+			listDrives = new ArrayList<Drive>(getMapDrivesAll().values());
 			
 			for (Drive drive: listDrives) {
 				try {
@@ -1119,7 +1131,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 		boolean requireSetupDrives = false;
 		List<String> newRoots = new ArrayList<String>();
 		
-		for (Entry<String,Drive> entry: getDrivesAll().entrySet()) {
+		for (Entry<String,Drive> entry: getMapDrivesAll().entrySet()) {
 			Drive drive=entry.getValue();
 			if (drive.getDriveInfo().getStatus()==DriveStatus.NOTSYNC) {
 				newRoots.add(drive.getRootDirPath());
@@ -1282,7 +1294,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	 */
 	private synchronized void cleanUpWorkDir() {
 		try {
-			getDrivesAll().values().forEach( item ->  {
+			getMapDrivesAll().values().forEach( item ->  {
 						for ( VFSBucket bucket:listAllBuckets()) { 
 								item.cleanUpWorkDir(bucket.getName());
 								item.cleanUpCacheDir(bucket.getName());

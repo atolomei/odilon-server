@@ -120,6 +120,8 @@ public class ODDrive extends ODModelObject implements Drive {
 	@JsonProperty("driveInfo")
 	DriveInfo driveInfo;
 	
+	
+	
 	@Autowired
 	protected ODDrive(String rootDir) {
 		this.name=rootDir;
@@ -1247,9 +1249,7 @@ public class ODDrive extends ODModelObject implements Drive {
 				return getObjectMapper().readValue(file, DriveInfo.class);
 				
 			} catch (Exception e) {
-				String msg = "f:"  + (Optional.ofNullable(file).isPresent()? file.getName():"null");
-				logger.error(e, msg);
-			throw new InternalCriticalException(e);
+				throw new InternalCriticalException(e, "f:"  + (Optional.ofNullable(file).isPresent()? file.getName():"null"));
 			}
 		}
 	

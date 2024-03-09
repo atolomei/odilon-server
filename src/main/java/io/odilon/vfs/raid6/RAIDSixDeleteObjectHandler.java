@@ -22,6 +22,7 @@ import java.time.OffsetDateTime;
 import java.util.Optional;
 
 import org.apache.commons.io.FileUtils;
+import org.checkerframework.checker.nullness.qual.NonNull;
 
 import io.odilon.error.OdilonObjectNotFoundException;
 import io.odilon.errors.InternalCriticalException;
@@ -54,10 +55,10 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 	 * @param bucket
 	 * @param objectName
 	 */
-	public void delete(VFSBucket bucket, String objectName) {
+	public void delete(@NonNull VFSBucket bucket, @NonNull String objectName) {
 		
-		Check.requireNonNullArgument(bucket, "bucket is null");
-		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
+		// Check.requireNonNullArgument(bucket, "bucket is null");
+		// Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 		
 		if (!getDriver().exists(bucket, objectName))
 			throw new OdilonObjectNotFoundException("object does not exist -> b:" + bucket.getName()+ " o:"+(Optional.ofNullable(objectName).isPresent() ? (objectName) :"null"));
@@ -65,12 +66,13 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 		VFSOperation op = null;
 		boolean done = false;
 		int headVersion = -1;
+		ObjectMetadata meta;
 		
 		getLockService().getObjectLock(bucket.getName(), objectName).writeLock().lock();
 		
 		try {
 			getLockService().getBucketLock(bucket.getName()).readLock().lock();
-			ObjectMetadata meta = getDriver().getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucket.getName(), objectName);
+			meta = getDriver().getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucket.getName(), objectName);
 			headVersion = meta.version;
 		
 			op = getJournalService().deleteObject(bucket.getName(), objectName, headVersion);
@@ -121,7 +123,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 		}
 		
 		if(done)
-			onAfterCommit(op, headVersion);
+			onAfterCommit(op, meta, headVersion);
 	}
 	
 
@@ -133,13 +135,15 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 		getVFS().getSchedulerService().enqueue(getVFS().getApplicationContext().getBean(DeleteBucketObjectPreviousVersionServiceRequest.class, bucket.getName()));
 	}
 
-	public void deleteObjectAllPreviousVersions(VFSBucket bucket, String objectName) {
+	
+	public void deleteObjectAllPreviousVersions(@NonNull VFSBucket bucket, @NonNull String objectName) {
 
 		VFSOperation op = null;  
 		boolean done = false;
 		
 		int headVersion = -1;
-
+		ObjectMetadata meta;
+		
 		try {
 			
 			getLockService().getObjectLock(bucket.getName(), objectName).writeLock().lock();
@@ -150,7 +154,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 			if (!exists)
 				throw new OdilonObjectNotFoundException("object does not exist -> b:" + bucket.getName()+ " o:"+(Optional.ofNullable(objectName).isPresent() ? (objectName) :"null"));
 			
-			ObjectMetadata meta = getDriver().getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucket.getName(), objectName);
+			meta = getDriver().getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucket.getName(), objectName);
 			headVersion = meta.version;
 			
 			/** It does not delete the head version, only previous versions */
@@ -212,16 +216,18 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 		}
 
 		if(done)
-			onAfterCommit(op, headVersion);
+			onAfterCommit(op, meta, headVersion);
 		
 	}
 
 	
-	public void postObjectPreviousVersionDeleteAllTransaction(ObjectMetadata meta, int headVersion) {
+	public void postObjectPreviousVersionDeleteAllTransaction(@NonNull ObjectMetadata meta, int headVersion) {
 		
-		Check.requireNonNullArgument(meta, "meta is null");
+		//Check.requireNonNullArgument(meta, "meta is null");
+		
 		String bucketName = meta.bucketName;
 		String objectName = meta.objectName;
+		
 		Check.requireNonNullArgument(bucketName, "bucket is null");
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketName);
 		
@@ -245,18 +251,17 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 
 
 	@Override
-	public void rollbackJournal(VFSOperation op, boolean recoveryMode) {
+	public void rollbackJournal(@NonNull VFSOperation op, boolean recoveryMode) {
 		
-		if (logger.isDebugEnabled()) {
-			/** checked by the calling driver */
-			Check.requireNonNullArgument(op, "op is null");
-			Check.requireTrue(	op.getOp()==VFSop.DELETE_OBJECT ||  
-								op.getOp()==VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS, "VFSOperation invalid -> op: " + op.getOp().getName());
-		}
-
+		/** checked by the calling driver */
+		Check.requireTrue(	op.getOp()==VFSop.DELETE_OBJECT ||  
+							op.getOp()==VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS, "VFSOperation invalid -> op: " + op.getOp().getName());
 			
 		String objectName = op.getObjectName();
 		String bucketName = op.getBucketName();
+		
+		Check.requireNonNullStringArgument(bucketName, "bucket is null");
+		Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucketName);
 		
 		boolean done = false;
 	 
@@ -282,7 +287,6 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 			
 		} catch (Exception e) {
 			String msg = "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null");
-			logger.error(msg);
 			if (!recoveryMode)
 				throw new InternalCriticalException(e, msg);
 		}
@@ -311,9 +315,10 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 	 * @param objectName
 	 * @param headVersion newest version of the Object just deleted
 	 */
-	public void postObjectDeleteTransaction(ObjectMetadata meta, int headVersion) {
+	public void postObjectDeleteTransaction(@NonNull ObjectMetadata meta, int headVersion) {
 		
-		Check.requireNonNullArgument(meta, "meta is null");
+		// Check.requireNonNullArgument(meta, "meta is null");
+		
 		String bucketName = meta.bucketName;
 		String objectName = meta.objectName;
 		Check.requireNonNullArgument(bucketName, "bucket is null");
@@ -322,9 +327,8 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 		try {
 			
 			/** delete data versions(0..head-1) */
-			for (int n=0; n<headVersion; n++) {
+			for (int n=0; n<headVersion; n++)
 				getDriver().getObjectDataFiles(meta, Optional.of(n)).forEach(item->FileUtils.deleteQuietly(item));
-			}
 			
 			/** delete data (head) */
 			getDriver().getObjectDataFiles(meta, Optional.empty()).forEach(item->FileUtils.deleteQuietly(item));
@@ -334,6 +338,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 				FileUtils.deleteQuietly(new File(drive.getBucketWorkDirPath(bucketName), objectName));
 		
 		} catch (Exception e) {
+			/** Exception is not thrown because this method is executed Async by the Scheduler */
 			logger.error(e, ServerConstant.NOT_THROWN);
 		}
 	}
@@ -355,7 +360,6 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 				if (src.exists())
 					FileUtils.copyDirectory(src, new File(objectMetadataBackupDirPath));
 			}
-			
 		} catch (IOException e) {
 			throw new InternalCriticalException(e, "b:" + meta.bucketName + ", o:" + meta.objectName);
 		}
@@ -365,26 +369,25 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 	 * @param op
 	 * @param headVersion
 	 */
-	private void onAfterCommit(VFSOperation op, int headVersion) {
+	private void onAfterCommit(VFSOperation op, ObjectMetadata meta, int headVersion) {
 		try {
 			if (op.getOp()==VFSop.DELETE_OBJECT || op.getOp()==VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS)
-				getVFS().getSchedulerService().enqueue(getVFS().getApplicationContext().getBean(AfterDeleteObjectServiceRequest.class, op.getOp(), op.getBucketName(), op.getObjectName(), headVersion));
+				getVFS().getSchedulerService().enqueue(getVFS().getApplicationContext().getBean(AfterDeleteObjectServiceRequest.class, op.getOp(), meta, headVersion));
 		} catch (Exception e) {
 			logger.error(e, ServerConstant.NOT_THROWN);
 		}
 	}
 	
 	
+	/**
+	 *  restore metadata directory 
+	 * */
 	private void restoreMetadata(String bucketName, String objectName) {
-		/** restore metadata directory */
 		for (Drive drive: getDriver().getDrivesEnabled()) {
 			String objectMetadataBackupDirPath = drive.getBucketWorkDirPath(bucketName) + File.separator + objectName;
 			String objectMetadataDirPath = drive.getObjectMetadataDirPath(bucketName, objectName);
-			
 			try {
 				FileUtils.copyDirectory(new File(objectMetadataBackupDirPath), new File(objectMetadataDirPath));
-				logger.debug("restore: " + objectMetadataBackupDirPath +" -> " +objectMetadataDirPath);
-				
 			} catch (IOException e) {
 				String msg = 	"b:"   + (Optional.ofNullable(bucketName).isPresent()    ? (bucketName) :"null") + 
 								", o:" + (Optional.ofNullable(objectName).isPresent() ? (objectName)       :"null");  

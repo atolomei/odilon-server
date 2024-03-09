@@ -65,8 +65,8 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 	@Override
 	public void delete(VFSBucket bucket, String objectName) {
 		
-		Check.requireNonNullArgument(bucket, "bucket is null");
-		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
+		//Check.requireNonNullArgument(bucket, "bucket is null");
+		//Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 		
 		if (!getDriver().exists(bucket, objectName))
 			throw new OdilonObjectNotFoundException("object does not exist -> b:" + bucket.getName()+ " o:"+objectName);
@@ -330,7 +330,6 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 						FileUtils.deleteQuietly(version_n);
 					}
 			}
-						
 			/** delete backup Metadata */
 			for (Drive drive: getDriver().getDrivesAll()) {
 				String objectMetadataBackupDirPath = drive.getBucketWorkDirPath(bucketName) + File.separator + objectName;

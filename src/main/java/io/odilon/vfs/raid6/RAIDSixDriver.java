@@ -65,9 +65,22 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
  * 
+ * <p>The coding convention for RS blocks is:
  * 
  * objectName.[chunk#].[block#]
  * objectName.[chunk#].[block#].v[version#]
+ 
+ where: 
+chunk# 		0..total_chunks, depending of the size of the file to encode, ServerConstant.MAX_CHUNK_SIZE =  32 MB,
+			this means that for files smaller or equal to 32 MB there will be only one chunk (chunk=0), for
+			files up to 64 MB there will be 2 chunks and so on.
+			
+block# 		is the disk [0..(data+parity-1)]
+
+version# 	is omitted for head version.
+
+the total number of files once the src file is encoded are:
+(data+parity) * (file_size / MAX_CHUNK_SIZE ) rounded to the following integer
 
  * <p>
  * RAID 6. The only configuration supported in v1.x is -> Data shards= 4 + Parity shards=2

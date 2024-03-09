@@ -101,8 +101,9 @@ public interface VirtualFileSystemService extends SystemService {
 	/**
 	 * Drives and VFS Buckets
 	 */
-	public Map<String, Drive> getDrivesAll();
-	public Map<String, Drive> getDrivesEnabled();
+	public Map<String, Drive> getMapDrivesAll();
+	public Map<String, Drive> getMapDrivesEnabled();
+	
 	public List<VFSBucket> listAllBuckets();
 	
 

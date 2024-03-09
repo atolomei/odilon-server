@@ -59,12 +59,7 @@ public class AfterDeleteObjectServiceRequest extends AbstractServiceRequest impl
 	static private Logger logger = Logger.getLogger(AfterDeleteObjectServiceRequest.class.getName());
 	
 	private static final long serialVersionUID = 1L;
-
-	//@JsonProperty("bucketName")
-	//String bucketName;
-	
-	//@JsonProperty("objectName")
-	//String objectName;
+ 
 	
 
 	@JsonProperty("meta")

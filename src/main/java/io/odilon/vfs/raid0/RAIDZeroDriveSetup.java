@@ -232,12 +232,14 @@ public class RAIDZeroDriveSetup implements IODriveSetup {
 	 * 
 	 */
 	private void updateDrives() {
+		int order=getDriver().getDrivesEnabled().size();
 		for (Drive drive: getDriver().getDrivesAll()) {
 			if (drive.getDriveInfo().getStatus()==DriveStatus.NOTSYNC) {
 				DriveInfo info=drive.getDriveInfo();
 				info.setStatus(DriveStatus.ENABLED);
+				info.setOrder(order++);
 				drive.setDriveInfo(info);
-				getDriver().getVFS().getDrivesEnabled().put(drive.getName(), drive);
+				getDriver().getVFS().getMapDrivesEnabled().put(drive.getName(), drive);
 				startuplogger.info("drive synced -> " + drive.getRootDirPath());
 			}
 		}

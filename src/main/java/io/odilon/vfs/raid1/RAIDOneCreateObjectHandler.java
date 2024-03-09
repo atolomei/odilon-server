@@ -218,8 +218,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 									out[n].close();
 							}
 						} catch (IOException e) {
-							String msg = "b:" + bucket.getName() + " o:"+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null"); 
-							logger.error(e, msg + (isMainException ? ServerConstant.NOT_THROWN :""));
+							logger.error(e, "b:" + bucket.getName() + " o:"+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null") + (isMainException ? ServerConstant.NOT_THROWN :""));
 							secEx=e;
 						}
 				}
@@ -254,8 +253,8 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 			File file =((SimpleDrive) drive).getObjectDataFile(bucket.getName(),  objectName);
 			
 			try {
+
 				String sha256 = ODFileUtils.calculateSHA256String(file);
-		
 
 				if (sha==null) {
 					sha=sha256;

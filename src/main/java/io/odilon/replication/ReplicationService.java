@@ -172,8 +172,8 @@ public class ReplicationService extends BaseService implements ApplicationContex
 				logger.debug("removing standby bucket -> " + item);	
 				getClient().deleteBucket(item);
 			} catch (Exception e) {
-				logger.error(e);
-				throw new InternalCriticalException(e);
+				logger.error(e, "removing standby bucket -> " + item);
+				throw new InternalCriticalException(e, "removing standby bucket -> " + item);
 			}
 		});
 		
@@ -182,8 +182,8 @@ public class ReplicationService extends BaseService implements ApplicationContex
 				logger.debug("creating standby bucket -> " + item);
 				getClient().createBucket(item);
 			} catch (Exception e) {
-				logger.error(e);
-				throw new InternalCriticalException(e);
+				logger.error(e, "creating standby bucket -> " + item);
+				throw new InternalCriticalException(e, "creating standby bucket -> " + item);
 			}
 		});
 		
