@@ -82,14 +82,22 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
  * <p>
- * RAID 0. Stripped Disks
+ * <b>RAID 0. Stripped Disks.</b>
  * </p>
+ * 
+ * <p>Two or more disks are combined to form a volume, which appears as a single 
+ * virtual drive. It is not aconfiguration with data replication, its function is 
+ * to provide greater storage and performance by allowing access to the disks in 
+ * parallel.</p>
+ * 
  * <p>
  * All buckets <b>must</b> exist on all drives. If a bucket is not present on a
- * drive -> the bucket is considered "non existent".<br/>
- * Each file is stored only on 1 Drive. If a file does not have the file's
- * Metadata Directory -> the file is considered "non existent"
+ * drive -> the Bucket is considered <i>"non existent"</i>.<br/>
+ * Each file is stored only on 1 Drive in RAID 0. If a file does not have the file's
+ * Metadata Directory -> the file is considered <i>"non existent"</i>.
  * </p>
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)	 
  * 
  */
 @ThreadSafe
@@ -243,15 +251,13 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 			throw e;
 			
 		} catch (Exception e) {
-			logger.error(e);
-			throw new InternalCriticalException(e);
+			if (logger.isDebugEnabled())
+				logger.error(e);
+			throw new InternalCriticalException(e, "saveServerMasterKey");
 			
 		} finally {
-			
 			try {
-				
 				if (!done) {
-					
 					if (!reqRestoreBackup) 
 						op.cancel();
 					else	
@@ -286,10 +292,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	 */
 	@Override
 	public void deleteObjectAllPreviousVersions(ObjectMetadata meta) {
-
 		Check.requireNonNullArgument(meta, "meta is null");
-		
-		
 		RAIDZeroDeleteObjectHandler agent = new RAIDZeroDeleteObjectHandler(this);
 		agent.deleteObjectAllPreviousVersions(meta);
 
@@ -379,8 +382,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	 * </p>
 	 */
 	@Override
-	public void putObject(VFSBucket bucket, String objectName, InputStream stream, String fileName,
-			String contentType) {
+	public void putObject(VFSBucket bucket, String objectName, InputStream stream, String fileName,	String contentType) {
 
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucket.getName());
@@ -623,10 +625,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		}
 
 		catch (Exception e) {
-			final String msg = "b:" + (Optional.ofNullable(bucket).isPresent() ? (bucket.getName()) : "null") + ", o:"
-					+ (Optional.ofNullable(objectName).isPresent() ? (objectName) : "null");
-			logger.error(e, msg);
-			throw new InternalCriticalException(e, msg);
+			throw new InternalCriticalException(e, "b:" + bucket.getName() +objectName);
 		} finally {
 			getLockService().getBucketLock(bucket.getName()).readLock().unlock();
 			getLockService().getObjectLock(bucket.getName(), objectName).readLock().unlock();
@@ -642,8 +641,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	public boolean exists(VFSBucket bucket, String objectName) {
 
 		Check.requireNonNullArgument(bucket, "bucket is null");
-		Check.requireTrue(bucket.isAccesible(),
-				"bucket is not Accesible (ie. enabled or archived) b:" + bucket.getName());
+		Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie. enabled or archived) b:" + bucket.getName());
 		Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 
 		try {

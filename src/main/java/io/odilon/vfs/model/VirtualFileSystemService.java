@@ -49,8 +49,12 @@ import io.odilon.service.SystemService;
 /**
  * <p>It has only 1 level deep</p>
  * 
- *  VFile
- *  VDirectory
+ * 
+ *  <p>Implementations of this interface are expected to be thread-safe, and can be safely accessed
+ * by multiple concurrent threads.</p>
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ * 
  */
 public interface VirtualFileSystemService extends SystemService {
 					
@@ -153,8 +157,7 @@ public interface VirtualFileSystemService extends SystemService {
 	public InputStream getObjectVersion(String bucketName, String ObjectName, int version);
 
 	public ObjectMetadata restorePreviousVersion(String bucketName, String objectName);
-	
-	//public void deleteObjectAllPreviousVersions(String bucketName, String objectName);
+
 	public void deleteObjectAllPreviousVersions(ObjectMetadata meta);
 	
 	public void deleteBucketAllPreviousVersions(String bucketName);
@@ -210,6 +213,7 @@ public interface VirtualFileSystemService extends SystemService {
 
 	public ReplicationService getReplicationService();
 	public ObjectCacheService getObjectCacheService();
+	public FileCacheService getFileCacheService();
 	public SystemMonitorService getSystemMonitorService();
 	public LockService getLockService();
 
@@ -224,7 +228,7 @@ public interface VirtualFileSystemService extends SystemService {
 	public byte[] HMAC(byte[] data, byte[] key) throws NoSuchAlgorithmException, InvalidKeyException;
 
 
-	FileCacheService getFileCacheService();
+	
 
 
 

@@ -10,6 +10,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.concurrent.ThreadSafe;
 
 import org.apache.commons.io.FileUtils;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -34,6 +35,13 @@ import io.odilon.vfs.model.LockService;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 
+/**
+ * <p>Uses {@link Caffeine} to keep references to entries in memory.
+ * On eviction we have to remove the File from the File System.</p>
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
+@ThreadSafe
 @Service
 public class FileCacheService extends BaseService {
 			
@@ -63,6 +71,7 @@ public class FileCacheService extends BaseService {
 	@JsonIgnore
 	private Cache<String, File> cache;
 	
+
 	
 	public FileCacheService(ServerSettings serverSettings, LockService vfsLockService) {
 		this.serverSettings=serverSettings;
@@ -139,7 +148,6 @@ public class FileCacheService extends BaseService {
     }
 
     /**
-     * 
      * @param bucketName
      * @param objectName
      * @return
@@ -169,8 +177,8 @@ public class FileCacheService extends BaseService {
 	
 	public VirtualFileSystemService getVFS() {
 		if (this.vfs==null) {
-			logger.error("The " + VirtualFileSystemService.class.getName() + " must be setted during the @PostConstruct method of the " + this.getClass().getName() + " instance. It can not be injected via AutoWired beacause of circular dependencies.");
-			throw new IllegalStateException(VirtualFileSystemService.class.getName() + " is null. it must be setted during the @PostConstruct method of the " + this.getClass().getName() + " instance");
+			logger.error("The instance of " + VirtualFileSystemService.class.getSimpleName() + " must be setted during the @PostConstruct method of the " + this.getClass().getName() + " instance. It can not be injected via AutoWired beacause of circular dependencies.");
+			throw new IllegalStateException(VirtualFileSystemService.class.getSimpleName() + " instance is null. it must be setted during the @PostConstruct method of the " + this.getClass().getName() + " instance");
 		}
 		return this.vfs;
 	}
@@ -262,8 +270,6 @@ public class FileCacheService extends BaseService {
 				}
 		});
 
-		
-		
 		return this.listDrives;
 	}
 

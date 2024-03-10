@@ -30,6 +30,10 @@ import io.odilon.scheduler.ServiceRequest;
 
 /**
  * 
+ * <p>Implementations of this interface are expected to be thread-safe, 
+ * and can be safely accessed by multiple concurrent threads.</p>
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public interface IODriver {
 
@@ -41,7 +45,7 @@ public interface IODriver {
 	public boolean 		isEmpty(VFSBucket bucket);
 	
 	/**
-	 * Object get/put
+	 * Object get/ put / delete
 	 */
 	public ObjectMetadata 	getObjectMetadata(String bucketName, String objectName);
 	public void 			putObjectMetadata(ObjectMetadata meta);
@@ -51,11 +55,10 @@ public interface IODriver {
 	public VFSObject 		getObject(VFSBucket bucket, String objectName);
 	public boolean 			exists(VFSBucket bucket, String objectName);
 	public InputStream 		getInputStream(VFSBucket bucket, String objectName) throws IOException;
-	
 	public void 			delete(VFSBucket bucket, String objectName);
 	
 	/**
-	 * List
+	 * Object List
 	 */
 	public DataList<Item<ObjectMetadata>> listObjects(String bucketName, Optional<Long> offset, Optional<Integer> pageSize,	Optional<String> prefix, Optional<String> serverAgentId);
 

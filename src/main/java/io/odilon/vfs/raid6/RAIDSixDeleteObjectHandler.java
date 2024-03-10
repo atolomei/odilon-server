@@ -21,6 +21,8 @@ import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 
+import javax.annotation.concurrent.ThreadSafe;
+
 import org.apache.commons.io.FileUtils;
 import org.checkerframework.checker.nullness.qual.NonNull;
 
@@ -37,6 +39,12 @@ import io.odilon.vfs.model.VFSBucket;
 import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VFSop;
 
+
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
+@ThreadSafe
 public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 
 	private static Logger logger = Logger.getLogger(RAIDSixDeleteObjectHandler.class.getName());

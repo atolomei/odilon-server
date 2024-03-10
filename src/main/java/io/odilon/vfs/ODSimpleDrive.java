@@ -1,13 +1,14 @@
 package io.odilon.vfs;
 
+
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
-import java.util.Optional;
 
+import javax.annotation.concurrent.NotThreadSafe;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
@@ -23,7 +24,10 @@ import io.odilon.vfs.model.VirtualFileSystemService;
  * 
  * <p>For RAID 0 and RAID 1</p>
  * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
+
+@NotThreadSafe
 @Component
 @Scope("prototype")
 public class ODSimpleDrive extends ODDrive implements SimpleDrive {
@@ -31,11 +35,22 @@ public class ODSimpleDrive extends ODDrive implements SimpleDrive {
 	
 	static private Logger logger = Logger.getLogger(ODSimpleDrive.class.getName());
 	
+	/**
+	 * Constructor called by Spring.io 
+	 * @param rootDir
+	 */
 	@Autowired
 	protected ODSimpleDrive(String rootDir) {
 		super(rootDir);
 	}
 
+	/**
+	 * 
+	 * <p>Constructor explicit
+	 * 
+	 * @param name
+	 * @param rootDir
+	 */
 	protected ODSimpleDrive(String name, String rootDir) {
 		super(rootDir);
 		setName(name);
@@ -44,7 +59,7 @@ public class ODSimpleDrive extends ODDrive implements SimpleDrive {
 	
 	/**
 	 * <p></p>
-	 */
+	 */	
 	@Override
 	public String getObjectDataFilePath(String bucketName, String objectName) {
 		return this.getRootDirPath() + File.separator + bucketName + File.separator + objectName;
@@ -56,8 +71,13 @@ public class ODSimpleDrive extends ODDrive implements SimpleDrive {
 	}
 	
 	/**
-	 * <b>DATA</b>
-	 * <p>IMPORTANT: Stream is not closed by this method</p>
+	 * <b>Object Data</b>
+	 * 
+	 * 
+	 * <p>IMPORTANT: 
+	 * Stream is not closed by this method
+	 * This method is not ThreadSafe
+	 * </p>
 	 */
 	@Override
 	public InputStream getObjectInputStream(String bucketName, String objectName) {
@@ -66,14 +86,9 @@ public class ODSimpleDrive extends ODDrive implements SimpleDrive {
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null -> b:" + bucketName);
 		
 		try {
-    		
 			return Files.newInputStream(getObjectDataFile(bucketName, objectName).toPath());
-    		
 		} catch (Exception e) {
-			String msg = 	"b:"   + (Optional.ofNullable(bucketName).isPresent() ? (bucketName) : "null") + 
-							", o:" + (Optional.ofNullable(objectName).isPresent() ? (objectName) : "null") +
-							", d:" + (Optional.ofNullable(getName()).isPresent()  ? (getName())  : "null");
-			throw new InternalCriticalException(e, msg);
+			throw new InternalCriticalException(e, "b:" +  bucketName + ", o:" + objectName +", d:" + getName());
 		}
 	}
 	
@@ -106,10 +121,7 @@ public class ODSimpleDrive extends ODDrive implements SimpleDrive {
 			return new File(dataFilePath);
 		}
 		 catch (IOException e) {
-				String msg = 	"b:"   + (Optional.ofNullable(bucketName).isPresent()? (bucketName):"null") + 
-								", o:" + (Optional.ofNullable(objectName).isPresent()? (objectName):"null") +
-								", d:" + (Optional.ofNullable(getName()).isPresent() ? (getName()) :"null");
-			logger.error(e, msg);
+			logger.error(e.getClass().getName() + " putObjectStream -> " + "b:" +  bucketName + ", o:" + objectName +", d:" + getName());
 			throw (e);
 		}
 	}
@@ -127,7 +139,6 @@ public class ODSimpleDrive extends ODDrive implements SimpleDrive {
 			putObjectDataVersionStream(bucketName, objectName, version, is);
 		}
 	}
-
 
 	@Override
 	public void deleteObject(String bucketName, String objectName) {
@@ -151,21 +162,12 @@ public class ODSimpleDrive extends ODDrive implements SimpleDrive {
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null -> b:" + bucketName);
 		
 		try {
-
 			String dataFilePath = this.getObjectDataVersionFilePath(bucketName, objectName, version); 
 			transferTo(stream, dataFilePath);
 			return new File(dataFilePath);
 		}
 		 catch (IOException e) {
-				String msg = 	"b:"   + (Optional.ofNullable(bucketName).isPresent()? (bucketName):"null") + 
-								", o:" + (Optional.ofNullable(objectName).isPresent()? (objectName):"null") +
-								", d:" + (Optional.ofNullable(getName()).isPresent() ? (getName()) :"null");
-			logger.error(e, msg);
-			throw (e);
+				logger.error(e.getClass().getName() + " getObjectDataVersionFile -> " + "b:" +  bucketName + ", o:" + objectName +", d:" + getName());			throw (e);
 		}
 	}
-
-	
-	
-
 }

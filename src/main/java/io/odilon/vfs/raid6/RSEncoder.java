@@ -29,7 +29,7 @@ public class RSEncoder {
     private final int partiy_shards;
     private final int total_shards;
 
-    private EncodedInfo encodedInfo;
+    private RSFileBlocks encodedInfo;
     
 	protected RSEncoder(RAIDSixDriver driver) {
 		
@@ -50,14 +50,14 @@ public class RSEncoder {
 	 * @return the size of the source file in bytes (note that the disk used by the shards is more (16 bytes for the file size plus the padding to make every shard 
 	 * multiple of 4)
 	 */
-	public EncodedInfo encode (InputStream is, String bucketName, String objectName) {
+	public RSFileBlocks encode (InputStream is, String bucketName, String objectName) {
 		
 		Check.requireNonNull(is);
     	Check.requireNonNull(objectName);
     	
     	this.fileSize = 0;
     	this.chunk = 0;
-    	this.encodedInfo = new EncodedInfo();
+    	this.encodedInfo = new RSFileBlocks();
     	
     	boolean done = false;
     	

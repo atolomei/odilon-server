@@ -82,6 +82,10 @@ version# 	is omitted for head version.
 the total number of files once the src file is encoded are:
 (data+parity) * (file_size / MAX_CHUNK_SIZE ) rounded to the following integer
 
+D:\odilon-data-raid6\drive0\bucket1\TOLOMEI.0.0
+D:\odilon-data-raid6\drive1\bucket1\TOLOMEI.1.0
+D:\odilon-data-raid6\drive1\bucket1\TOLOMEI.2.0
+
  * <p>
  * RAID 6. The only configuration supported in v1.x is -> Data shards= 4 + Parity shards=2
  * </p>
@@ -93,6 +97,7 @@ the total number of files once the src file is encoded are:
  * Metadata Directory -> the file is considered "non existent"
  * </p>
  * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @ThreadSafe
 @Component

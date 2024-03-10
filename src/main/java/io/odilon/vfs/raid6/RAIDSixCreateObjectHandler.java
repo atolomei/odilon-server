@@ -25,6 +25,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import javax.annotation.concurrent.ThreadSafe;
+
 import org.apache.commons.io.FileUtils;
 
 import io.odilon.OdilonVersion;
@@ -43,7 +45,11 @@ import io.odilon.vfs.model.VFSop;
 
 /**
  * 
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
+
+@ThreadSafe
 public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 																
 	private static Logger logger = Logger.getLogger(RAIDSixCreateObjectHandler.class.getName());
@@ -84,7 +90,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 				
 				op = getJournalService().createObject(bucket.getName(), objectName);
 				
-				EncodedInfo ei = saveObjectDataFile(bucket,objectName, stream);
+				RSFileBlocks ei = saveObjectDataFile(bucket,objectName, stream);
 				saveObjectMetadata(bucket, objectName, ei, srcFileName, contentType, version);
 				
 				getVFS().getObjectCacheService().remove(bucket.getName(), objectName);
@@ -198,7 +204,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 	 * @param stream
 	 * @param srcFileName
 	 */
-	private EncodedInfo saveObjectDataFile(VFSBucket bucket, String objectName, InputStream stream) {
+	private RSFileBlocks saveObjectDataFile(VFSBucket bucket, String objectName, InputStream stream) {
 		
 		InputStream sourceStream = null;
 		boolean isMainException = false;
@@ -240,7 +246,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 	 * todo en el object metadata o cada file por separado
 	 * 
 	 */
-	private void saveObjectMetadata(VFSBucket bucket, String objectName, EncodedInfo ei, String srcFileName, String contentType, int version) {
+	private void saveObjectMetadata(VFSBucket bucket, String objectName, RSFileBlocks ei, String srcFileName, String contentType, int version) {
 		
 		long start = System.currentTimeMillis();
 		

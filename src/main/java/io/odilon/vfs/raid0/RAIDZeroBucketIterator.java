@@ -45,9 +45,11 @@ import io.odilon.vfs.model.BucketIterator;
  * 
  * <p>Bucket Iterator</p>
  * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public class RAIDZeroBucketIterator extends BucketIterator implements Closeable {
 			
+	@SuppressWarnings("unused")
 	private static final Logger logger = Logger.getLogger(RAIDZeroBucketIterator.class.getName());
 	
 	@JsonProperty("prefix")

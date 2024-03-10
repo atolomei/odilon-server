@@ -831,8 +831,13 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 		}
 		
 		/** if encryption but it was not initialized yet, exit */
-		byte[] key = driver.getServerMasterKey();
-		this.odilonKeyEncryptorService.setMasterKey(key);
+		try {
+			byte[] key = driver.getServerMasterKey();
+			this.odilonKeyEncryptorService.setMasterKey(key);
+		} catch (Exception e) {
+			logger.error(e.getClass().getName() + " | " + e.getMessage());
+			throw new InternalCriticalException(e, "error with encryption key");
+		}
 
 	}
 	
@@ -879,7 +884,6 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 					
 				} catch (Exception e) {
 					setStatus(ServiceStatus.STOPPED);
-					logger.error(e);
 					throw e;
 				}
 		}

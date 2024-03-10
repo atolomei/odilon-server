@@ -288,7 +288,6 @@ public class RAIDOneDriveImporter implements Runnable {
 			
 			startuplogger.info("Duration: " + String.valueOf(Double.valueOf(System.currentTimeMillis() - start_ms) / Double.valueOf(1000)) + " secs");
 			startuplogger.info("---------");
-			
 		}
 	}
 

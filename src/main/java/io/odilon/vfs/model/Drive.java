@@ -27,13 +27,13 @@ import io.odilon.scheduler.ServiceRequest;
 import io.odilon.vfs.DriveInfo;
 
 /**
- * A Drive or Volume is File System directory that acts as a storage unit
+ * <p>A Drive or Volume is File System directory that acts 
+ * as a storage unit</p>
  * 
- * Data
- * Control
- * Sys
- * Work
+ * <p>a Drive is <b>not</b> ThreadSafe, 
+ * concurrency control is the responsibility of whoever uses its methods.</p> 
  * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public interface Drive {
 

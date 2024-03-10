@@ -25,9 +25,13 @@ import io.odilon.vfs.model.Drive;
 
 /**
  * <p><b>RAID 6</b> <br/>
- * Data is replicated and all Drives have all files</p>
+ * Data is partitioned into blocks encoded in RS and stored on all drives</p>
  *
- * <p>The RAID 6 {@link BucketIterator} uses a randomly selected Drive to walk and return ObjectMetaata files</p>
+ * <p>The RAID 6 {@link BucketIterator} uses a randomly selected Drive to 
+ * walk and return {@link ObjectMetata} instances. All Drives contain all ObjectMetadata in RAID 6.</p>
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ * 
  */
 public class RAIDSixBucketIterator extends BucketIterator implements Closeable {
 

@@ -310,7 +310,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 			System.arraycopy(bdataDec, 0, b_hmacNew, 0, b_hmacNew.length);
 			
 			if (!Arrays.equals(b_hmacOriginal, b_hmacNew)) {
-				logger.error();
 				throw new InternalCriticalException("HMAC is not correct, HMAC of 'encryption.key' in 'odilon.properties' is not match with HMAC in key.enc  -> encryption.key=" + encryptionKey);
 			}
 			
@@ -321,7 +320,16 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 
 		} catch (InternalCriticalException e) {
 			if ((e.getCause()!=null) && (e.getCause() instanceof javax.crypto.BadPaddingException)) {
+				
+				logger.error("");
+				logger.error("-----------------------------------");
 				logger.error("possible cause -> the value of 'encryption.key' in 'odilon.properties' is incorrect");
+				logger.error("-----------------------------------");
+				logger.error("");
+				try {
+					Thread.sleep(10000);
+				} catch (InterruptedException e1) {
+				}
 			}
 			throw e;
 			

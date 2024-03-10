@@ -43,7 +43,7 @@ import io.odilon.service.ServerSettings;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
- * <p>The method run is executed after application startup but before it starts accepting traffic.</p>
+ * <p>This method is executed after application startup but <b>before</b> it starts accepting traffic.</p>
  */
 @Component
 public class OdilonStartupApplicationRunner implements ApplicationRunner {

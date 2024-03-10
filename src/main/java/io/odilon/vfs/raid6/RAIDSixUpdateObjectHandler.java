@@ -28,6 +28,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import javax.annotation.concurrent.ThreadSafe;
+
 import org.apache.commons.io.FileUtils;
 
 import io.odilon.OdilonVersion;
@@ -45,6 +47,8 @@ import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VFSop;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
+
+@ThreadSafe
 public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
 			
 	
@@ -101,7 +105,7 @@ private static Logger logger = Logger.getLogger(RAIDSixCreateObjectHandler.class
 			
 			/** copy new version as head version */
 			afterHeadVersion = meta.version+1;
-			EncodedInfo ei = saveObjectDataFile(bucket,objectName, stream);
+			RSFileBlocks ei = saveObjectDataFile(bucket,objectName, stream);
 			saveObjectMetadata(bucket, objectName, ei, srcFileName, contentType, afterHeadVersion);
 			
 			done = op.commit();
@@ -414,7 +418,7 @@ private static Logger logger = Logger.getLogger(RAIDSixCreateObjectHandler.class
 	}
 	
 	
-	private void saveObjectMetadata(VFSBucket bucket, String objectName, EncodedInfo ei, String srcFileName, String contentType, int version) {
+	private void saveObjectMetadata(VFSBucket bucket, String objectName, RSFileBlocks ei, String srcFileName, String contentType, int version) {
 		
 		long start = System.currentTimeMillis();
 		
@@ -489,7 +493,7 @@ private static Logger logger = Logger.getLogger(RAIDSixCreateObjectHandler.class
 	 * @param stream
 	 * @param srcFileName
 	 */
-	private EncodedInfo saveObjectDataFile(VFSBucket bucket, String objectName, InputStream stream) {
+	private RSFileBlocks saveObjectDataFile(VFSBucket bucket, String objectName, InputStream stream) {
 		
 		InputStream sourceStream = null;
 		boolean isMainException = false;

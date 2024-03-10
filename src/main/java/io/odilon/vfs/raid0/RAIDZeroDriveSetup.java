@@ -52,7 +52,9 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
  * <p>Set up a new <b>Drive</b> added to the odilon.properties file</p>
- * <p>Fir RAID 0 this process is Sync when the server starts up (the RAID 1 version runs in background)</p>  
+ * <p>Fir RAID 0 this process is Sync when the server starts up (the RAID 1 version runs in background)</p>
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @Component
 @Scope("prototype")

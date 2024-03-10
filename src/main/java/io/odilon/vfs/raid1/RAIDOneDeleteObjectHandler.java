@@ -265,16 +265,15 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 	@Override
 	public  void rollbackJournal(VFSOperation op, boolean recoveryMode) {
 		
-		if (logger.isDebugEnabled()) {
-			/** checked by the calling driver */
-			Check.requireNonNullArgument(op, "op is null");
-			Check.requireTrue(	op.getOp()==VFSop.DELETE_OBJECT ||  
-								op.getOp()==VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS, "VFSOperation invalid -> op: " + op.getOp().getName());
-		}
-
+		/** checked by the calling driver */
+		Check.requireNonNullArgument(op, "op is null");
+		Check.requireTrue(op.getOp()==VFSop.DELETE_OBJECT || op.getOp()==VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS, "VFSOperation invalid -> op: " + op.getOp().getName());
 			
 		String objectName = op.getObjectName();
 		String bucketName = op.getBucketName();
+		
+		Check.requireNonNullArgument(bucketName, "bucket is null");
+		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketName);
 		
 		boolean done = false;
 	 
@@ -293,16 +292,17 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 			done=true;
 			
 		} catch (InternalCriticalException e) {
-			String msg = "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null");
-			logger.error(msg);
 			if (!recoveryMode)
 				throw(e);
-			
+			else
+				logger.error("Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null"));
 		} catch (Exception e) {
 			String msg = "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null");
-			logger.error(msg);
 			if (!recoveryMode)
 				throw new InternalCriticalException(e, msg);
+			else
+				logger.error(msg);
+				
 		}
 		finally {
 			if (done || recoveryMode) 
@@ -323,12 +323,8 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 			
 			/** delete data versions(1..n-1). keep headVersion **/
 			for (int n=0; n<headVersion; n++)	{
-				
-				for (Drive drive: getDriver().getDrivesAll()) {
-					File version_n= ((SimpleDrive) drive).getObjectDataVersionFile(bucketName, objectName, n);
-					if (version_n.exists())
-						FileUtils.deleteQuietly(version_n);
-					}
+				for (Drive drive: getDriver().getDrivesAll()) 
+					FileUtils.deleteQuietly(((SimpleDrive) drive).getObjectDataVersionFile(bucketName, objectName, n));
 			}
 			/** delete backup Metadata */
 			for (Drive drive: getDriver().getDrivesAll()) {
@@ -411,7 +407,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 			
 		} catch (IOException e) {
 			String msg = 	"b:"   + (Optional.ofNullable(meta.bucketName).isPresent()    ? (meta.bucketName) :"null") + 
-							", o:" + (Optional.ofNullable(meta.objectName).isPresent() ? 	(meta.objectName)       :"null");  
+							", o:" + (Optional.ofNullable(meta.objectName).isPresent() ? 	(meta.objectName) :"null");  
 			throw new InternalCriticalException(e, msg);
 		}
 	}
@@ -423,11 +419,8 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 		for (Drive drive: getDriver().getDrivesAll()) {
 			String objectMetadataBackupDirPath = drive.getBucketWorkDirPath(bucketName) + File.separator + objectName;
 			String objectMetadataDirPath = drive.getObjectMetadataDirPath(bucketName, objectName);
-			
 			try {
 				FileUtils.copyDirectory(new File(objectMetadataBackupDirPath), new File(objectMetadataDirPath));
-				logger.debug("restore: " + objectMetadataBackupDirPath +" -> " +objectMetadataDirPath);
-				
 			} catch (IOException e) {
 				String msg = 	"b:"   + (Optional.ofNullable(bucketName).isPresent()    ? (bucketName) :"null") + 
 								", o:" + (Optional.ofNullable(objectName).isPresent() ? (objectName)       :"null");  

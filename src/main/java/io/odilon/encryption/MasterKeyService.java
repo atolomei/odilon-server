@@ -63,8 +63,7 @@ public class MasterKeyService extends BaseService implements KeyEncryptor {
         try {
             return processBytes(keyWithSalt,Cipher.ENCRYPT_MODE, keyToEncryptMasterKey);
         } catch (Exception e){
-        	logger.error(e);
-            throw new InternalCriticalException(e);
+            throw new InternalCriticalException(e, "encryptKey");
         }
     }
 
@@ -76,8 +75,7 @@ public class MasterKeyService extends BaseService implements KeyEncryptor {
         try {
             return processBytes(keyWithSalt,Cipher.DECRYPT_MODE, keyToEncryptMasterKey);
         } catch (Exception e){
-        	logger.error(e);
-        	throw new InternalCriticalException(e);
+        	throw new InternalCriticalException(e, "decryptKey");
         }
     }
     
@@ -102,10 +100,8 @@ public class MasterKeyService extends BaseService implements KeyEncryptor {
 
 		
 		} catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException e) {
-			startuplogger.error(e);
-			logger.error(e);
 			setStatus(ServiceStatus.STOPPED);
-			throw new InternalCriticalException(e);
+			throw new InternalCriticalException(e, "setKeyToEncryptMasterKey");
 		}
 	}
     
