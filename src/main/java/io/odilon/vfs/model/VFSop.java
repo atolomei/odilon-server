@@ -7,9 +7,9 @@ import java.util.ResourceBundle;
 
 public enum VFSop {
 	
-	CREATE_BUCKET 	("create_bucket", 0, "b"),
-	UPDATE_BUCKET 	("update_bucket", 1, "b"), 
-	DELETE_BUCKET 	("delete_bucket", 2, "b"),
+	CREATE_BUCKET 						("create_bucket", 0, "b"),
+	UPDATE_BUCKET 						("update_bucket", 1, "b"), 
+	DELETE_BUCKET 						("delete_bucket", 2, "b"),
 	
 	CREATE_OBJECT 						("create_object", 10, "o"),
 	UPDATE_OBJECT 						("update_object", 21, "o"),
@@ -18,16 +18,14 @@ public enum VFSop {
 	DELETE_OBJECT_PREVIOUS_VERSIONS 	("delete_object_previous_versions", 24, "o"),
 	RESTORE_OBJECT_PREVIOUS_VERSION 	("restore_object_previous_versions", 25, "o"),
 	
+	CREATE_SERVER_METADATA 				("create_server_metadata", 70, "s"),
+	UPDATE_SERVER_METADATA 				("update_server_metadata", 88, "s"),
 	
-	CREATE_SERVER_METADATA 			("create_server_metadata", 70, "s"),
-	UPDATE_SERVER_METADATA 			("update_server_metadata", 88, "s"),
-	
-	CREATE_SERVER_MASTERKEY		 	("create_server_key", 90, "s");
+	CREATE_SERVER_MASTERKEY		 		("create_server_key", 90, "s");
 	
 	private String name;
 	private int code;
 	private String enttiyGroupCode;
-	
 	
 	static List<VFSop> ops;
 	
@@ -160,23 +158,21 @@ public enum VFSop {
 		return code;
 	}
 	
-	private VFSop(String name, int code, String groupCode) {
-		this.name = name;
-		this.code = code;
-		this.enttiyGroupCode=groupCode;
-	}
-
 	public boolean isObjectOperation() {
-		if (CREATE_OBJECT.equals(this)) return true;
-		if (UPDATE_OBJECT.equals(this)) return true;
-		if (DELETE_OBJECT.equals(this)) return true;
-		if (UPDATE_OBJECT_METADATA.equals(this)) return true;
-		return false;
+		return	(CREATE_OBJECT.equals(this) ||
+				 UPDATE_OBJECT.equals(this) ||
+				 DELETE_OBJECT.equals(this) || 
+				 UPDATE_OBJECT_METADATA.equals(this)); 	
 	}
 	
 	public String getEntityGroupCode() {
 		return enttiyGroupCode;
-		
+	}
+
+	private VFSop(String name, int code, String groupCode) {
+		this.name = name;
+		this.code = code;
+		this.enttiyGroupCode=groupCode;
 	}
 
 

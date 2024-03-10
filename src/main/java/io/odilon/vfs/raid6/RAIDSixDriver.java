@@ -21,11 +21,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 import javax.annotation.concurrent.ThreadSafe;
 
@@ -66,30 +68,45 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 /**
  * 
  * <p>The coding convention for RS blocks is:
- * 
- * objectName.[chunk#].[block#]
- * objectName.[chunk#].[block#].v[version#]
- 
- where: 
-chunk# 		0..total_chunks, depending of the size of the file to encode, ServerConstant.MAX_CHUNK_SIZE =  32 MB,
-			this means that for files smaller or equal to 32 MB there will be only one chunk (chunk=0), for
-			files up to 64 MB there will be 2 chunks and so on.
-			
-block# 		is the disk [0..(data+parity-1)]
-
-version# 	is omitted for head version.
-
-the total number of files once the src file is encoded are:
-(data+parity) * (file_size / MAX_CHUNK_SIZE ) rounded to the following integer
-
-D:\odilon-data-raid6\drive0\bucket1\TOLOMEI.0.0
-D:\odilon-data-raid6\drive1\bucket1\TOLOMEI.1.0
-D:\odilon-data-raid6\drive1\bucket1\TOLOMEI.2.0
-
+ * <ul>
+ * <li>objectName.[chunk#].[block#]</li>
+ * <li>objectName.[chunk#].[block#].v[version#]</li>
+ *<ul>
+ *<ul>
+ * where:
+ *  
+ * <li><b>chunk#</b> 	
+ * 0..total_chunks, depending of the size of the file to encode (ServerConstant.MAX_CHUNK_SIZE is 32 MB)
+ *this means that for files smaller or equal to 32 MB there will be only one chunk (chunk=0), for
+ *files up to 64 MB there will be 2 chunks and so on.
+ *</li>		
+ * <li><b>block#</b>
+ * is the disk order [0..(data+parity-1)]
+ * </li>
+ * <li><b>version#</b> 
+ * is omitted for head version.
+ * </li>
+ *</ul>
+ *<p> The total number of files once the src file is encoded are:
+ * <br/>
+ * (data+parity) * (file_size / MAX_CHUNK_SIZE ) rounded to the following integer. Examples:
+ *</p>
+ *<p> 
+ * File                                objectname  block#  .disk# <br/>
+ * -------------------------------------------------------------  <br/>                                  
+ * D:\odilon-data-raid6\drive0\bucket1\TOLOMEI     .0       .0    <br/>                                  
+ * ------------------------------------------------------------- <br/>
+ * <br/>                                       
+ * D:\odilon-data-raid6\drive0\bucket1\TOLOMEI.0.0 <br/>
+ * D:\odilon-data-raid6\drive1\bucket1\TOLOMEI.1.0 <br/>
+ * D:\odilon-data-raid6\drive1\bucket1\TOLOMEI.2.0 <br/>
+ *</p>
  * <p>
- * RAID 6. The only configuration supported in v1.x is -> Data shards= 4 + Parity shards=2
+ * RAID 6. The only configurations supported in v1.x is -><br/>   
+ * <br/>
+ * data shards = 2 + parity shards=1 -> 3 disks <br/>
+ * data shards = 4 + parity shards=2 -> 6 disks <br/>
  * </p>
- * 
  * <p>
  * All buckets <b>must</b> exist on all drives. If a bucket is not present on a
  * drive -> the bucket is considered "non existent".<br/>
@@ -111,12 +128,6 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
  
 	public RAIDSixDriver(VirtualFileSystemService vfs, LockService vfsLockService) {
 		super(vfs, vfsLockService);
-	}
-
-	
-	protected boolean isConfigurationValid(int dataShards, int parityShards) {
-		return  (dataShards==4 && parityShards==2) ||
-			    (dataShards==2 && parityShards==1);
 	}
 	/**
 	 * 
@@ -214,8 +225,97 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 	
 	@Override
 	public boolean checkIntegrity(String bucketName, String objectName, boolean forceCheck) {
-		logger.debug("not done in this version");
-		return true;
+		
+		
+		Check.requireNonNullArgument(bucketName, "bucketName is null");
+		Check.requireNonNullArgument(objectName, "objectName is null");
+
+		OffsetDateTime thresholdDate = OffsetDateTime.now().minusDays(getVFS().getServerSettings().getIntegrityCheckDays());
+
+		Drive readDrive = null;
+		ObjectMetadata metadata = null;
+
+		boolean objectLock = false;
+		boolean bucketLock = false;
+
+		try {
+			try {
+				objectLock = getLockService().getObjectLock(bucketName, objectName).readLock().tryLock(20, TimeUnit.SECONDS);
+				if (!objectLock) {
+					logger.error("Can not acquire read Lock for o: " + objectName + ". Assumes -> check is ok");
+					return true;
+				}
+			} catch (InterruptedException e) {
+				return true;
+			}
+
+			try {
+				bucketLock = getLockService().getBucketLock(bucketName).readLock().tryLock(20, TimeUnit.SECONDS);
+				if (!bucketLock) {
+					logger.error("Can not acquire read Lock for b: " + bucketName + ". Assumes -> check is ok");
+					return true;
+				}
+			} catch (InterruptedException e) {
+				return true;
+			}
+
+			// ---
+			//
+			// For RAID 0 the check is in the head version
+			// there is no way to fix a damaged file
+			// the goal of this process is to warn that a Object is damaged
+			//
+			//
+			readDrive = getObjectMetadataReadDrive(bucketName, objectName);
+			metadata = readDrive.getObjectMetadata(bucketName, objectName);
+
+			if ((forceCheck) || (metadata.integrityCheck != null) && (metadata.integrityCheck.isAfter(thresholdDate))) 
+				return true;
+
+			return true;
+			
+			// OffsetDateTime now = OffsetDateTime.now();
+
+			//String originalSha256 = metadata.sha256;
+
+			//if (originalSha256 == null) {
+			//	metadata.integrityCheck = now;
+			//	getVFS().getObjectCacheService().remove(metadata.bucketName, metadata.objectName);
+			//	readDrive.saveObjectMetadata(metadata);
+			//	return true;
+			//}
+
+			//File file = ((SimpleDrive) readDrive).getObjectDataFile(bucketName, objectName);
+			//String sha256 = null;
+			//
+			//try {
+			//	sha256 = ODFileUtils.calculateSHA256String(file);
+			//
+			//} catch (NoSuchAlgorithmException | IOException e) {
+			//	logger.error(e);
+			//	return false;
+			//}
+			//
+			// if (originalSha256.equals(sha256)) {
+			//	metadata.integrityCheck = now;
+			//	readDrive.saveObjectMetadata(metadata);
+			//	return true;
+			//} else {
+			//	logger.error("Integrity Check failed for -> d: " + readDrive.getName() + " | b:" + bucketName + " | o:" + objectName + " | " + ServerConstant.NOT_THROWN);
+			//}
+			/**
+			 * it is not possible to fix the file if the integrity fails because there is no
+			 * redundancy in RAID 0
+			 **/
+			// return false;
+			
+		} finally {
+			if (bucketLock)
+				getLockService().getBucketLock(bucketName).readLock().unlock();
+
+			if (objectLock)
+				getLockService().getObjectLock(bucketName, objectName).readLock().unlock();
+		}
 		
 	}
 	
@@ -224,34 +324,35 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 	public void rollbackJournal(VFSOperation op, boolean recoveryMode) {
 			
 			Check.requireNonNullArgument(op, "VFSOperation is null");
-			
-			if (op.getOp()==VFSop.CREATE_OBJECT) {
-				RAIDSixCreateObjectHandler handler = new RAIDSixCreateObjectHandler(this);
-				handler.rollbackJournal(op, recoveryMode);
-				return;
-			}
-			else if (op.getOp()==VFSop.UPDATE_OBJECT) {
-				RAIDSixUpdateObjectHandler handler = new RAIDSixUpdateObjectHandler(this);
-				handler.rollbackJournal(op, recoveryMode);
-				return;
-				
-			}
-			else if (op.getOp()==VFSop.DELETE_OBJECT) {
-				RAIDSixDeleteObjectHandler handler = new RAIDSixDeleteObjectHandler(this);
-				handler.rollbackJournal(op, recoveryMode);
-				return;
-			}
-			
-			else if (op.getOp()==VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS) {
-				RAIDSixDeleteObjectHandler handler = new RAIDSixDeleteObjectHandler(this);
-				handler.rollbackJournal(op, recoveryMode);
-				return;
-			}
-			
-			else if (op.getOp()==VFSop.UPDATE_OBJECT_METADATA) {
-				RAIDSixUpdateObjectHandler handler = new RAIDSixUpdateObjectHandler(this);
-				handler.rollbackJournal(op, recoveryMode);
-				return;
+		
+			switch (op.getOp()) {
+				case CREATE_OBJECT: {
+					RAIDSixCreateObjectHandler handler = new RAIDSixCreateObjectHandler(this);
+					handler.rollbackJournal(op, recoveryMode);
+					return;
+				}
+				case UPDATE_OBJECT: {
+					RAIDSixUpdateObjectHandler handler = new RAIDSixUpdateObjectHandler(this);
+					handler.rollbackJournal(op, recoveryMode);
+					return;
+				}
+				case DELETE_OBJECT: {
+					RAIDSixDeleteObjectHandler handler = new RAIDSixDeleteObjectHandler(this);
+					handler.rollbackJournal(op, recoveryMode);
+					return;
+				}
+				case DELETE_OBJECT_PREVIOUS_VERSIONS: {
+					RAIDSixDeleteObjectHandler handler = new RAIDSixDeleteObjectHandler(this);
+					handler.rollbackJournal(op, recoveryMode);
+					return;
+				}
+				case UPDATE_OBJECT_METADATA: {
+					RAIDSixUpdateObjectHandler handler = new RAIDSixUpdateObjectHandler(this);
+					handler.rollbackJournal(op, recoveryMode);
+					return;
+				}
+				default:
+					break;
 			}
 			
 			
@@ -304,11 +405,8 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 					}
 					done=true;
 				}
-				
-				
 			} catch (Exception e) {
-				logger.error(e);
-				throw new InternalCriticalException(e);
+				throw new InternalCriticalException(e, op.toString());
 			}
 			finally {
 				if (done) {
@@ -728,10 +826,10 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 					item = new Item<ObjectMetadata>(getObjectMetadata(bucketName,objectName));
 				
 				} catch (IllegalMonitorStateException e) {
-					logger.debug(e);
+					logger.error(e, ServerConstant.NOT_THROWN);
 					item = new Item<ObjectMetadata>(e);
 				} catch (Exception e) {
-					logger.error(e);
+					logger.error(e, ServerConstant.NOT_THROWN);
 					item = new Item<ObjectMetadata>(e);
 				}
 				list.add(item);
@@ -751,13 +849,13 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		} finally {
 
 			if (walker!=null && (!walker.hasNext()))
-				/**{@link WalkerService} closes the stream upon removal */
+				/** closes the stream upon removal */
 				getVFS().getBucketIteratorService().remove(walker.getAgentId());
 		}
 	}
  	
 	/**
-	 * <p>RAID 6: return any drive randomly, all {@link Drive} contain the same ObjectMetadata</p>
+	 * <p>RAID 6: return an enabled drive randomly, all enabled {@link Drive} contain the same ObjectMetadata</p>
 	 */
 	protected Drive getObjectMetadataReadDrive(VFSBucket bucket, String objectName) {
 		return getObjectMetadataReadDrive(bucket.getName(), objectName);
@@ -821,10 +919,10 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 			readDrive = getObjectMetadataReadDrive(bucket, objectName);
 			
 			if (!readDrive.existsBucket(bucket.getName()))												
-				  throw new IllegalArgumentException("bucket -> b:" +  bucket.getName() + " does not exist for -> d:" + readDrive.getName() +" | raid -> " + this.getClass().getSimpleName());
+				  throw new IllegalArgumentException("b:" +  bucket.getName() + " does not exist for -> d:" + readDrive.getName() +" | raid -> " + this.getClass().getSimpleName());
 
 			if (!exists(bucket, objectName))
-				  throw new IllegalArgumentException("Object does not exists for ->  b:" +  bucket.getName() +" | o:" + objectName + " | class:" + this.getClass().getSimpleName());			
+				  throw new IllegalArgumentException("b:" +  bucket.getName() +" | o:" + objectName + " | class:" + this.getClass().getSimpleName());			
 
 			if (o_version.isPresent())
 				return readDrive.getObjectMetadataVersion(bucketName, objectName, o_version.get());
@@ -856,6 +954,8 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 	 */
 	protected Map<Drive, List<String>> getObjectDataFilesNames(ObjectMetadata meta, Optional<Integer> version) {
 		
+		Check.requireNonNullArgument(meta, "meta is null");
+		
 		Map<Drive, List<String>> map = new HashMap<Drive, List<String>>();
 								
 		for(Drive drive: getDrivesEnabled())
@@ -880,6 +980,9 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 	}
 	
 	
+	protected boolean isConfigurationValid(int dataShards, int parityShards) {
+	  return getVFS().getServerSettings().isRAID6ConfigurationValid(dataShards, parityShards);	
+	}
 	
 	/**
 	 * 
@@ -890,6 +993,9 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 	protected List<File> getObjectDataFiles(ObjectMetadata meta, Optional<Integer> version) {
 	
 		List<File> files = new ArrayList<File>();
+		
+		if (meta==null)
+			return files;
 		
 		int totalBlocks = meta.getSha256Blocks().size();
 
@@ -903,13 +1009,11 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 			for (int block=0; block<getDrivesEnabled().size(); block++) {
 				String suffix = "."+String.valueOf(block)+"."+String.valueOf(chunk) + (version.isEmpty() ? "" : (".v"+String.valueOf(version)));						
 				Drive drive = getDrivesEnabled().get(block);
-				
-				File file;
-				if (version.isEmpty()) 
-					 file = new File(drive.getBucketObjectDataDirPath(meta.bucketName), meta.objectName+suffix);
+				if (version.isEmpty())
+					files.add(new File(drive.getBucketObjectDataDirPath(meta.bucketName), meta.objectName+suffix));
 				else
-					 file = new File(drive.getBucketObjectDataDirPath(meta.bucketName)+File.separator + VirtualFileSystemService.VERSION_DIR, meta.objectName+suffix);
-				files.add(file);
+					 files.add(new File(drive.getBucketObjectDataDirPath(meta.bucketName)+File.separator + VirtualFileSystemService.VERSION_DIR, meta.objectName+suffix));
+				
 			}
 		}
 		return files;

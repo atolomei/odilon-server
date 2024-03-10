@@ -81,9 +81,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 				getLockService().getObjectLock( bucket.getName(), objectName).writeLock().lock();
 				getLockService().getBucketLock(bucket.getName()).readLock().lock();
 		
-				boolean exists = getDriver().getObjectMetadataReadDrive(bucket.getName(), objectName).existsObjectMetadata(bucket.getName(), objectName);
-				
-				if (exists)											
+				if (getDriver().getObjectMetadataReadDrive(bucket.getName(), objectName).existsObjectMetadata(bucket.getName(), objectName))											
 					throw new OdilonObjectNotFoundException("Object already exist -> b:" + bucket.getName()+ " o:"+ objectName);
 				
 				int version = 0;
@@ -94,6 +92,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 				saveObjectMetadata(bucket, objectName, ei, srcFileName, contentType, version);
 				
 				getVFS().getObjectCacheService().remove(bucket.getName(), objectName);
+				
 				done = op.commit();
 		
 			} catch (OdilonObjectNotFoundException e1) {
@@ -107,7 +106,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 			} catch (Exception e) {
 					done=false;
 					isMainException=true;
-					throw new InternalCriticalException(e, 	"b:" + bucket.getName() + " o:" 	+ objectName + ", f:" 	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null"));
+					throw new InternalCriticalException(e, "b:" + bucket.getName() + " o:" 	+ objectName + ", f:" 	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null"));
 			} finally {
 					try {
 							try {
@@ -172,24 +171,20 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 				}
 				FileUtils.deleteQuietly(f_meta);
 			}
-			
-			if (meta!=null) {
-				getDriver().getObjectDataFiles(meta, Optional.empty()).forEach(file -> FileUtils.deleteQuietly(file));
-			}
-			
+			getDriver().getObjectDataFiles(meta, Optional.empty()).forEach(file -> FileUtils.deleteQuietly(file));
 			done=true;
 			
 		} catch (InternalCriticalException e) {
 			if (!recoveryMode)
 				throw(e);
 			else
-				logger.error(e, "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null") + ServerConstant.NOT_THROWN);
+				logger.error(e, "Rollback: " + op.toString() + ServerConstant.NOT_THROWN);
 			
 		} catch (Exception e) {
 			if (!recoveryMode)
-				throw new InternalCriticalException(e, "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null"));
+				throw new InternalCriticalException(e, "Rollback: " + op.toString() + ServerConstant.NOT_THROWN);
 			else
-				logger.error(e, "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null") + ServerConstant.NOT_THROWN);
+				logger.error(e, "Rollback: " + op.toString() + ServerConstant.NOT_THROWN);
 		}
 		finally {
 			if (done || recoveryMode) {
@@ -248,7 +243,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 	 */
 	private void saveObjectMetadata(VFSBucket bucket, String objectName, RSFileBlocks ei, String srcFileName, String contentType, int version) {
 		
-		long start = System.currentTimeMillis();
+		//long start = System.currentTimeMillis();
 		
 		List<String> shaBlocks = new ArrayList<String>();
 		StringBuilder etag_b = new StringBuilder();
@@ -298,7 +293,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 				throw new InternalCriticalException(e, "b:"+ bucket.getName() + " o:" + objectName+", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null"));
 			}
 		}
-		logger.debug( String.valueOf(System.currentTimeMillis() - start) + " ms");
+		//logger.debug( String.valueOf(System.currentTimeMillis() - start) + " ms");
 	}
 
 }

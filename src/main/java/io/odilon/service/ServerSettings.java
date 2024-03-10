@@ -953,7 +953,13 @@ public class ServerSettings implements APIObject {
 	}
 
 	
+	public boolean isRAID6ConfigurationValid(int dataShards, int parityShards) {
+		return  (dataShards==4 && parityShards==2) ||
+			    (dataShards==2 && parityShards==1);
+	}
 
+	
+	
 	protected String randomString(final int size) {
 		return idGenerator.randomString(size);
 	}

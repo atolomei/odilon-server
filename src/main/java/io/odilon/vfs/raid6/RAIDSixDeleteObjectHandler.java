@@ -65,8 +65,8 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 	 */
 	public void delete(@NonNull VFSBucket bucket, @NonNull String objectName) {
 		
-		// Check.requireNonNullArgument(bucket, "bucket is null");
-		// Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
+		 Check.requireNonNullArgument(bucket, "bucket is null");
+		 Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 		
 		if (!getDriver().exists(bucket, objectName))
 			throw new OdilonObjectNotFoundException("object does not exist -> b:" + bucket.getName()+ " o:"+(Optional.ofNullable(objectName).isPresent() ? (objectName) :"null"));
@@ -136,14 +136,20 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 	
 
 	public void wipeAllPreviousVersions() {
-		getVFS().getSchedulerService().enqueue(getVFS().getApplicationContext().getBean(DeleteBucketObjectPreviousVersionServiceRequest.class));
+		getVFS().getSchedulerService().enqueue(getVFS().getApplicationContext().
+				getBean(DeleteBucketObjectPreviousVersionServiceRequest.class));
 	}
 
 	public void deleteBucketAllPreviousVersions(VFSBucket bucket) {
-		getVFS().getSchedulerService().enqueue(getVFS().getApplicationContext().getBean(DeleteBucketObjectPreviousVersionServiceRequest.class, bucket.getName()));
+		getVFS().getSchedulerService().enqueue(getVFS().getApplicationContext().
+				getBean(DeleteBucketObjectPreviousVersionServiceRequest.class, bucket.getName()));
 	}
 
-	
+	/**
+	 * 
+	 * @param bucket
+	 * @param objectName
+	 */
 	public void deleteObjectAllPreviousVersions(@NonNull VFSBucket bucket, @NonNull String objectName) {
 
 		VFSOperation op = null;  
@@ -157,9 +163,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 			getLockService().getObjectLock(bucket.getName(), objectName).writeLock().lock();
 			getLockService().getBucketLock(bucket.getName()).readLock().lock();
 
-			boolean exists = getDriver().getObjectMetadataReadDrive(bucket, objectName).existsObjectMetadata(bucket.getName(), objectName);
-			
-			if (!exists)
+			if (!getDriver().getObjectMetadataReadDrive(bucket, objectName).existsObjectMetadata(bucket.getName(), objectName))
 				throw new OdilonObjectNotFoundException("object does not exist -> b:" + bucket.getName()+ " o:"+(Optional.ofNullable(objectName).isPresent() ? (objectName) :"null"));
 			
 			meta = getDriver().getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucket.getName(), objectName);
@@ -231,7 +235,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 	
 	public void postObjectPreviousVersionDeleteAllTransaction(@NonNull ObjectMetadata meta, int headVersion) {
 		
-		//Check.requireNonNullArgument(meta, "meta is null");
+		Check.requireNonNullArgument(meta, "meta is null");
 		
 		String bucketName = meta.bucketName;
 		String objectName = meta.objectName;
@@ -257,13 +261,20 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 
 	}
 
-
+	/**
+	 * 
+	 * 
+	 * 
+	 */
 	@Override
 	public void rollbackJournal(@NonNull VFSOperation op, boolean recoveryMode) {
 		
+		Check.requireNonNullArgument(op, "op is null");
+		
 		/** checked by the calling driver */
 		Check.requireTrue(	op.getOp()==VFSop.DELETE_OBJECT ||  
-							op.getOp()==VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS, "VFSOperation invalid -> op: " + op.getOp().getName());
+							op.getOp()==VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS, 
+							"invalid -> op: " + op.getOp().getName());
 			
 		String objectName = op.getObjectName();
 		String bucketName = op.getBucketName();
@@ -325,10 +336,11 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 	 */
 	public void postObjectDeleteTransaction(@NonNull ObjectMetadata meta, int headVersion) {
 		
-		// Check.requireNonNullArgument(meta, "meta is null");
+		 Check.requireNonNullArgument(meta, "meta is null");
 		
 		String bucketName = meta.bucketName;
 		String objectName = meta.objectName;
+		
 		Check.requireNonNullArgument(bucketName, "bucket is null");
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketName);
 		
@@ -397,7 +409,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 			try {
 				FileUtils.copyDirectory(new File(objectMetadataBackupDirPath), new File(objectMetadataDirPath));
 			} catch (IOException e) {
-				String msg = 	"b:"   + (Optional.ofNullable(bucketName).isPresent()    ? (bucketName) :"null") + 
+				String msg = 	"b:"   + (Optional.ofNullable(bucketName).isPresent() ? (bucketName) :"null") + 
 								", o:" + (Optional.ofNullable(objectName).isPresent() ? (objectName)       :"null");  
 				throw new InternalCriticalException(e, msg);
 			}
