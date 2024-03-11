@@ -76,21 +76,20 @@ import org.springframework.context.annotation.Scope;
  * called {@link buckets}
  * </p>
  * <p>
- * Drives do not apply concurrency control mechanism. 
- * It is up to the driver that uses it {@link IODriver} to ensure concurrency control.
+ * Drives are <b>NOT</b> Thread safe, they do not apply concurrency control mechanism. 
+ * It is up to the {@link IODriver} to ensure concurrency control.
  * </p>
  * Path -> String, the File may not exist
 
  * Dir -> File
  * File -> File
  
- *
  *             [0-n][0.6] 
  *  objectName.chunk.block.v[Version]
  *  objectName (there is one chunk and one block)
  *  objectName
  *
- *
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @Component
 @Scope("prototype")
@@ -116,9 +115,15 @@ public class ODDrive extends ODModelObject implements Drive {
 	
 	@JsonProperty("rootDir")
 	private String rootDir;
-	
+
+	@JsonProperty("configOrder")
+	private int configOrder;
+
 	@JsonProperty("driveInfo")
 	DriveInfo driveInfo;
+	
+	
+	
 	
 	
 	
@@ -474,28 +479,44 @@ public class ODDrive extends ODModelObject implements Drive {
 	}
 	
 	
-	
 	@Override
 	public void saveObjectMetadata(ObjectMetadata meta) {
+		saveObjectMetadata(meta, Optional.empty());
+	}
+	
+	@Override
+	public void saveObjectMetadata(ObjectMetadata meta, Optional<Integer> version) {
+
+		Check.requireNonNullArgument(meta, "meta");
+		
+		Check.requireNonNullStringArgument(meta.bucketName, "bucketName is null");
+		Check.requireNonNullStringArgument(meta.objectName, "objectName is null");
+		
 		try {
 			File dir = new File (getObjectMetadataDirPath(meta.bucketName, meta.objectName));
+			
 			if (!dir.exists())
 				FileUtils.forceMkdir(dir);
-			String fileName = meta.objectName + ServerConstant.JSON;
+			
 			meta.lastModified=OffsetDateTime.now();
 			String jsonString = getObjectMapper().writeValueAsString(meta);
-			Files.writeString(Paths.get(getObjectMetadataDirPath(meta.bucketName, meta.objectName) + File.separator + fileName), jsonString);
 			
+			if (version.isPresent()) {
+				Files.writeString(Paths.get(getObjectMetadataVersionFilePath(meta.bucketName, meta.objectName, version.get().intValue())), jsonString);
+			}
+			else {
+				String fileName = meta.objectName + ServerConstant.JSON;
+				Files.writeString(Paths.get(getObjectMetadataDirPath(meta.bucketName, meta.objectName) + File.separator + fileName), jsonString);
+			}
 		} catch (Exception e) {
-			throw new InternalCriticalException(e);
+			throw new InternalCriticalException(e, "b:" + meta.bucketName + "o: + " + meta.objectName + " v: " + (version.isPresent()? String.valueOf(version.get()):"head"));
 		}
 	}
 	
 	@Override
 	public void removeScheduler(ServiceRequest serviceRequest, String queueId) {
 		try {
-
-			String name = getSchedulerDirPath() + File.separator + queueId + File.separator + serviceRequest.getId() +".json";
+			String name = getSchedulerDirPath() + File.separator + queueId + File.separator + serviceRequest.getId() + ServerConstant.JSON;
 			File file = new File(name);
 			if (file.exists())
 				Files.delete(Paths.get(name));
@@ -522,7 +543,7 @@ public class ODDrive extends ODModelObject implements Drive {
 					throw new InternalCriticalException(e, "Can not create dir -> d: " + getName() + " dir:" + dir.getName());
 				}
 			}
-			String name = getSchedulerDirPath() + File.separator + queueId + File.separator + serviceRequest.getId() +".json";
+			String name = getSchedulerDirPath() + File.separator + queueId + File.separator + serviceRequest.getId() + ServerConstant.JSON;
 			Files.writeString(Paths.get(name), jsonString);
 			
 		} catch (Exception e) {
@@ -555,7 +576,7 @@ public class ODDrive extends ODModelObject implements Drive {
 	public void saveJournal(VFSOperation op) {
 		try {
 			String jsonString = getObjectMapper().writeValueAsString(op);
-			Files.writeString(Paths.get(getJournalDirPath() + File.separator + op.getId() +".json"), jsonString);
+			Files.writeString(Paths.get(getJournalDirPath() + File.separator + op.getId() +ServerConstant.JSON), jsonString);
 		} catch (Exception e) {
 			throw new InternalCriticalException(e, "op: " + (Optional.ofNullable(op).isPresent() ? (op.toString()) : "null"));
 		}
@@ -564,7 +585,7 @@ public class ODDrive extends ODModelObject implements Drive {
 	@Override
 	public void removeJournal(String id) {
 		try {
-			Files.delete(Paths.get(getJournalDirPath() + File.separator + id + ".json"));
+			Files.delete(Paths.get(getJournalDirPath() + File.separator + id + ServerConstant.JSON));
 		} catch (Exception e) {
 			throw new InternalCriticalException(e, "id: " + (Optional.ofNullable(id).isPresent() ? id : "null"));
 		}
@@ -747,7 +768,15 @@ public class ODDrive extends ODModelObject implements Drive {
 		 return file.getTotalSpace();
 	}
 
-									
+	public void setConfigOrder(int order) {
+		this.configOrder=order;
+	}
+	
+	@Override
+	public int getConfigOrder() {
+		return this.configOrder;
+	}
+	
 	public synchronized void cleanUpCacheDir(String bucketName) {
 		Check.requireNonNullStringArgument(bucketName, "bucketName is null");
 		try {
@@ -932,7 +961,7 @@ public class ODDrive extends ODModelObject implements Drive {
 
 	protected BucketMetadata getBucketMetadata(String bucketName) {
 		try {
-				return getObjectMapper().readValue(Paths.get(this.getBucketsDirPath() + File.separator + bucketName + File.separator + bucketName+".json").toFile(), BucketMetadata.class);
+				return getObjectMapper().readValue(Paths.get(this.getBucketsDirPath() + File.separator + bucketName + File.separator + bucketName+ServerConstant.JSON).toFile(), BucketMetadata.class);
 		} catch (IOException e) {
 			logger.error(e);
 			String msg = 	"b:"   + (Optional.ofNullable(bucketName).isPresent()    ? (bucketName) 		:"null") + 
@@ -946,7 +975,7 @@ public class ODDrive extends ODModelObject implements Drive {
 		Check.requireNonNullArgument(meta, "meta is null");
 		try {
 			String jsonString = getObjectMapper().writeValueAsString(meta);
-			Files.writeString(Paths.get(this.getBucketsDirPath() + File.separator + meta.bucketName + File.separator + meta.bucketName+".json"), jsonString);
+			Files.writeString(Paths.get(this.getBucketsDirPath() + File.separator + meta.bucketName + File.separator + meta.bucketName+ServerConstant.JSON), jsonString);
 			this.driveBuckets.put(meta.bucketName, new DriveBucket(this, meta));
 		
 		} catch (Exception e) {
@@ -1097,17 +1126,14 @@ public class ODDrive extends ODModelObject implements Drive {
 
 	
 	private void checkWorkBucketDirs() {
-
 		Path start = new File(this.getBucketsDirPath()).toPath();
 		Stream<Path> stream = null;
-		
 		try {
 			stream = Files.walk(start, 1).
 					skip(1).
 					filter(file -> Files.isDirectory(file));
 		} catch (IOException e) {
-			logger.error(e);
-			throw new InternalCriticalException(e);
+			throw new InternalCriticalException(e, "checkWorkBucketDirs");
 		}
 		
 		try {
@@ -1214,8 +1240,7 @@ public class ODDrive extends ODModelObject implements Drive {
 					}
 				);
 			} catch (IOException e) {
-				logger.error(e);
-				throw new InternalCriticalException(e);
+				throw new InternalCriticalException(e, "loadbuckets");
 			}
 		}
 		finally {
@@ -1232,9 +1257,7 @@ public class ODDrive extends ODModelObject implements Drive {
 			Files.writeString(Paths.get(getSysDirPath() + File.separator + VirtualFileSystemService.DRIVE_INFO), jsonString);
 				
 			} catch (Exception e) {
-				String msg = "json:"  + (Optional.ofNullable(jsonString).isPresent()? jsonString : "null");
-				logger.error(e, msg);
-				throw new InternalCriticalException(e);
+				throw new InternalCriticalException(e, "json:"  + (Optional.ofNullable(jsonString).isPresent()? jsonString : "null"));
 			}
 		}
 		
@@ -1317,6 +1340,8 @@ public class ODDrive extends ODModelObject implements Drive {
 			throw new InternalCriticalException(e,msg);
 		}
 	}
-	
+
+
+
 	
 }

@@ -103,18 +103,15 @@ public class RAIDOneDriver extends BaseIODriver  {
 
 	@Override
 	public void deleteBucketAllPreviousVersions(String bucketName) {
-		
 		Check.requireNonNullArgument(bucketName, "bucket is null");
 		VFSBucket bucket = getVFS().getBucket(bucketName);
 		Check.requireNonNullArgument(bucket, "bucket does not exist -> b:" + bucketName);
 		Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie. " + BucketStatus.ARCHIVED.getName() +" or " + BucketStatus.ENABLED.getName() + ") | b:" + bucketName);
-
 		RAIDOneDeleteObjectHandler agent = new RAIDOneDeleteObjectHandler(this);
 		agent.deleteBucketAllPreviousVersions(bucket);
 	}
 
 	/**
-	 * 
 	 * 
 	 */
 	public ObjectMetadata restorePreviousVersion(String bucketName, String objectName) {
@@ -128,7 +125,6 @@ public class RAIDOneDriver extends BaseIODriver  {
 		return agent.restorePreviousVersion(bucket, objectName);
 	}
 
-	
 	/**
 	 * <p>
 	 * If version does not exist -> throws OdilonObjectNotFoundException
@@ -143,44 +139,51 @@ public class RAIDOneDriver extends BaseIODriver  {
 		Check.requireNonNullArgument(bucket, "bucket does not exist -> b:" + bucketName);
 		Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie. " + BucketStatus.ARCHIVED.getName() +" or " + BucketStatus.ENABLED.getName() + ") | b:" + bucketName);
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
-				
+		
 		try {
-			
 			getLockService().getObjectLock(bucket.getName(), objectName).readLock().lock();
-			getLockService().getBucketLock(bucket.getName()).readLock().lock();
+			try {
+				getLockService().getBucketLock(bucket.getName()).readLock().lock();
+				
+				/** RAID 1: read is from any of the drives */
+				Drive readDrive = getReadDrive(bucket, objectName);
+				
+				if (!readDrive.existsBucket(bucket.getName()))
+					throw new IllegalStateException("bucket -> b:" +  bucket.getName() + " does not exist for -> d:" + readDrive.getName() + " | v:" + String.valueOf(version));
+	
+				ObjectMetadata meta = getObjectMetadataVersion(bucket.getName(), objectName, version);
+				
+				if ((meta==null) || (!meta.isAccesible()))
+					throw new OdilonObjectNotFoundException("object version does not exists for -> b:" +  bucket.getName() +" | o:" + objectName + " | v:" + String.valueOf(version));
+				
+				if (meta.encrypt)
+					return getVFS().getEncryptionService().decryptStream(getInputStreamFromSelectedDrive(readDrive, bucket.getName(), objectName, version));
+				else
+					return getInputStreamFromSelectedDrive(readDrive, bucket.getName(), objectName, version);	
+			}
+			catch ( OdilonObjectNotFoundException e) {
+				logger.error(e);
+				throw e;
+			}
+			catch (Exception e) {
+					final String msg = "b:"   + (Optional.ofNullable( bucket).isPresent()    ? (bucket.getName()) :"null") + ", o:" + (Optional.ofNullable(objectName).isPresent() ? (objectName)       :"null") + " | v:" + String.valueOf(version);
+					logger.error(e, msg);
+					throw new InternalCriticalException(e, msg);
+			}
+			finally {
+				getLockService().getBucketLock(bucket.getName()).readLock().unlock();
 			
-			/** RAID 1: read is from any of the drives */
-			Drive readDrive = getReadDrive(bucket, objectName);
-			
-			if (!readDrive.existsBucket(bucket.getName()))
-				throw new IllegalStateException("bucket -> b:" +  bucket.getName() + " does not exist for -> d:" + readDrive.getName() + " | v:" + String.valueOf(version));
-
-			ObjectMetadata meta = getObjectMetadataVersion(bucket.getName(), objectName, version);
-			
-			if ((meta==null) || (!meta.isAccesible()))
-				throw new OdilonObjectNotFoundException("object version does not exists for -> b:" +  bucket.getName() +" | o:" + objectName + " | v:" + String.valueOf(version));
-			
-			if (meta.encrypt)
-				return getVFS().getEncryptionService().decryptStream(getInputStreamFromSelectedDrive(readDrive, bucket.getName(), objectName, version));
-			else
-				return getInputStreamFromSelectedDrive(readDrive, bucket.getName(), objectName, version);	
-		}
-		catch ( OdilonObjectNotFoundException e) {
-			logger.error(e);
-			throw e;
-		}
-		catch (Exception e) {
-				final String msg = "b:"   + (Optional.ofNullable( bucket).isPresent()    ? (bucket.getName()) :"null") + ", o:" + (Optional.ofNullable(objectName).isPresent() ? (objectName)       :"null") + " | v:" + String.valueOf(version);
-				logger.error(e, msg);
-				throw new InternalCriticalException(e, msg);
+			}
 		}
 		finally {
-			
-			getLockService().getBucketLock(bucket.getName()).readLock().unlock();
 			getLockService().getObjectLock(bucket.getName(), objectName).readLock().unlock();
 		}
 	}
-	
+
+	/**
+	 * 
+	 * 
+	 */
 	@Override
 	public void deleteObjectAllPreviousVersions(ObjectMetadata meta) {
 										
@@ -245,7 +248,6 @@ public class RAIDOneDriver extends BaseIODriver  {
 	 */
 	@Override
 	public void postObjectDeleteTransaction(ObjectMetadata meta, int headVersion) {
-		
 		Check.requireNonNullArgument(meta, "meta is null");
 		String bucketName = meta.bucketName;
 		String objectName = meta.objectName;
@@ -253,7 +255,6 @@ public class RAIDOneDriver extends BaseIODriver  {
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketName);
 		RAIDOneDeleteObjectHandler deleteAgent = new RAIDOneDeleteObjectHandler(this);
 		deleteAgent.postObjectDelete(meta, headVersion);
-		
 	}
 
 	/**

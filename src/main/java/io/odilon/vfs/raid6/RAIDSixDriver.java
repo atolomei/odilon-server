@@ -64,31 +64,34 @@ import io.odilon.vfs.model.VFSObject;
 import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VFSop;
 import io.odilon.vfs.model.VirtualFileSystemService;
+import io.odilon.vfs.raid1.RAIDOneDriveSetup;
 
 /**
  * 
  * <p>The coding convention for RS blocks is:
  * <ul>
- * <li>objectName.[chunk#].[block#]</li>
- * <li>objectName.[chunk#].[block#].v[version#]</li>
+ * <li><b>objectName.[chunk#].[block#]</b></li>
+ * <li><b>objectName.[chunk#].[block#].v[version#]</b></li>
+ *</ul>
+ *where: <br/>
  *<ul>
- *<ul>
- * where:
- *  
- * <li><b>chunk#</b> 	
- * 0..total_chunks, depending of the size of the file to encode (ServerConstant.MAX_CHUNK_SIZE is 32 MB)
+ * <li><b>chunk#</b><br/> 	
+ * 0..total_chunks, depending of the size of the file to encode ({@link ServerConstant.MAX_CHUNK_SIZE} is 32 MB)
  *this means that for files smaller or equal to 32 MB there will be only one chunk (chunk=0), for
  *files up to 64 MB there will be 2 chunks and so on.
+ *<br/><br/>
  *</li>		
- * <li><b>block#</b>
+ * <li><b>block#</b><br/>
  * is the disk order [0..(data+parity-1)]
+ * <br/><br/>
  * </li>
- * <li><b>version#</b> 
+ * <li><b>version#</b><br/>
  * is omitted for head version.
+ * <br/><br/>
  * </li>
  *</ul>
  *<p> The total number of files once the src file is encoded are:
- * <br/>
+ * <br/><br/>
  * (data+parity) * (file_size / MAX_CHUNK_SIZE ) rounded to the following integer. Examples:
  *</p>
  *<p> 
@@ -138,39 +141,45 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie. " + BucketStatus.ENABLED.getName() +" or " + BucketStatus.ENABLED.getName() + "  | b:" +  bucket.getName());
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
+
 		try {
-
+			
 			getLockService().getObjectLock(bucket.getName(), objectName).readLock().lock();
-			getLockService().getBucketLock(bucket.getName()).readLock().lock();
-		
-			Drive readDrive = getObjectMetadataReadDrive(bucket, objectName);
-
-			if (!readDrive.existsBucket(bucket.getName()))
-				throw new IllegalStateException("bucket -> b:" + bucket.getName() + " does not exist for drive -> d:" + readDrive.getName() + " | class -> " + this.getClass().getSimpleName());
-
-			ObjectMetadata meta = getObjectMetadataInternal(bucket.getName(), objectName, true);
-
-			if ((meta != null) && meta.isAccesible()) {
-
-				RSDecoder decoder = new RSDecoder(this);
-				File file = decoder.decode(meta, Optional.empty());
+			
+			try {
 				
-				if (meta.encrypt)
-					return getVFS().getEncryptionService().decryptStream(Files.newInputStream(file.toPath()));
-				else
-					return Files.newInputStream(file.toPath());
+				getLockService().getBucketLock(bucket.getName()).readLock().lock();
+				
+				Drive readDrive = getObjectMetadataReadDrive(bucket, objectName);
+	
+				if (!readDrive.existsBucket(bucket.getName()))
+					throw new IllegalStateException("bucket -> b:" + bucket.getName() + " does not exist for drive -> d:" + readDrive.getName() + " | class -> " + this.getClass().getSimpleName());
+	
+				ObjectMetadata meta = getObjectMetadataInternal(bucket.getName(), objectName, true);
+	
+				if ((meta != null) && meta.isAccesible()) {
+
+					RSDecoder decoder = new RSDecoder(this);
+					File file = decoder.decode(meta, Optional.empty());
+					
+					if (meta.encrypt)
+						return getVFS().getEncryptionService().decryptStream(Files.newInputStream(file.toPath()));
+					else
+						return Files.newInputStream(file.toPath());
+				}
+				throw new OdilonObjectNotFoundException("object does not exists for -> b:" + bucket.getName() + " | o:" + objectName + " | class:" + this.getClass().getSimpleName());
+			
+			} catch (Exception e) {
+				
+				final String msg = "b:" + (Optional.ofNullable(bucket).isPresent() ? (bucket.getName()) : "null") + ", o:"	+ (Optional.ofNullable(objectName).isPresent() ? (objectName) : "null");
+				logger.error(e, msg);
+				throw new InternalCriticalException(e, msg);
+				
+			} finally {
+				getLockService().getObjectLock(bucket.getName(), objectName).readLock().unlock();
 			}
-			throw new OdilonObjectNotFoundException("object does not exists for -> b:" + bucket.getName() + " | o:" + objectName + " | class:" + this.getClass().getSimpleName());
-		
-		} catch (Exception e) {
-			
-			final String msg = "b:" + (Optional.ofNullable(bucket).isPresent() ? (bucket.getName()) : "null") + ", o:"	+ (Optional.ofNullable(objectName).isPresent() ? (objectName) : "null");
-			logger.error(e, msg);
-			throw new InternalCriticalException(e, msg);
-			
 		} finally {
 			getLockService().getBucketLock(bucket.getName()).readLock().unlock();
-			getLockService().getObjectLock(bucket.getName(), objectName).readLock().unlock();
 		}
 	}
 
@@ -785,7 +794,8 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 	 */
 	@Override
 	public boolean setUpDrives() {
-		return true;
+		logger.debug("Starting async process to set up drives");
+		return getApplicationContext().getBean(RAIDSixDriveSetup.class, this).setup();
 	}
 	
 	/**
@@ -804,6 +814,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		BucketIteratorService walkerService = getVFS().getBucketIteratorService();
 		
 		try {
+		
 			if (serverAgentId.isPresent())
 				walker = walkerService.get(serverAgentId.get());
 			

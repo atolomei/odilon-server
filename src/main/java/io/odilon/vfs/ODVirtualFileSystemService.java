@@ -218,7 +218,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	
 	@Override
 	public byte [] HMAC(byte [] data, byte [] key)  throws NoSuchAlgorithmException, InvalidKeyException {
-		String algorithm = "HmacSHA256";
+		final String algorithm = "HmacSHA256";
 		SecretKeySpec secretKeySpec = new SecretKeySpec(key, algorithm);
 			    Mac mac = Mac.getInstance(algorithm);
 			    mac.init(secretKeySpec);
@@ -288,18 +288,13 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null or empty | b:" + bucketName);
 		return createVFSIODriver().restorePreviousVersion(bucketName, objectName);
 	}
-	
 
 	/**
-	 * <p>
-	 * Creates the bucket folder in every Drive
+	 * <p>Creates the bucket folder in every Drive
 	 * if the bucket does not exist
 	 * creates the bucket
-	 * rollback -> delete the bucket
-	 * 
-	 * if the bucket exists
-	 * mark as deleted
-	 * </p>
+	 * rollback -> delete the bucket</p>
+	 * <p>if the bucket exists mark as deleted</p>
 	 */
 	@Override
 	public VFSBucket createBucket(String bucketName) throws IOException {
@@ -354,6 +349,9 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 		return isEmpty(buckets.get(bucketName));
 	}
 	/**
+	 * 
+	 * 
+	 * 
 	 */
 	@Override
 	public boolean isEmpty(VFSBucket bucket) {
@@ -362,6 +360,9 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 		return createVFSIODriver().isEmpty(bucket);
 	}
 	/**
+	 * 
+	 * 
+	 * 
 	 */
 	@Override
 	public void putObject(VFSBucket bucket, String objectName, File file) {
@@ -371,6 +372,9 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	}
 
 	/**
+	 * 
+	 * 
+	 * 
 	 */
 	@Override
 	public void putObject(String bucketName, String objectName, InputStream is, String fileName, String contentType) {
@@ -467,10 +471,10 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null or empty | b:" + bucketName);
 		Check.requireTrue(this.buckets.containsKey(bucketName), "bucket does not exist | b: " + bucketName);
 		return createVFSIODriver().getObjectMetadata(bucketName, objectName);
-		
 	}
 	
 	/**
+	 * 
 	 * 
 	 */
 	@Override					
@@ -526,12 +530,16 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	}
 	
 	/**
+	 * 
 	 */
 	@Override
 	public Map<String, Drive> getMapDrivesEnabled() {
 		return this.drivesEnabled;
 	}
 	
+	/**
+	 * 
+	 */
 	@Override
 	public Map<String, Drive> getMapDrivesAll() {
 		return this.drivesAll;
@@ -894,7 +902,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	 */
 	private void loadDrives() {
 			
-		List<Drive> list = new ArrayList<Drive>();
+		List<Drive> baselist = new ArrayList<Drive>();
 		
 		/** load enabled drives and new drives */
 		{	
@@ -911,8 +919,8 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 					drive=new ChunkedDrive(String.valueOf(n++), dir);
 				else
 					drive=new ODSimpleDrive(String.valueOf(n++), dir);
-				
-				list.add(drive);
+
+				baselist.add(drive);
 				
 				drivesAll.put(drive.getName(), drive);
 				if (drive.getDriveInfo().getStatus()==DriveStatus.ENABLED) {
@@ -934,7 +942,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 			if (noneSync) {
 				drivesEnabled.clear();
 				int order=0;
-				for (Drive drive: list) {
+				for (Drive drive: baselist) {
 					DriveInfo info=drive.getDriveInfo();
 					info.setOrder(order++);
 					info.setStatus(DriveStatus.ENABLED);
@@ -942,12 +950,12 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 					drivesEnabled.put(drive.getName(), drive);
 				}
 			}
-		
-		
-			
-			
-		
-		
+			else {
+				
+				
+				
+				
+			}
 		}
 	}
 	

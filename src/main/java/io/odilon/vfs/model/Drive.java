@@ -20,6 +20,7 @@ package io.odilon.vfs.model;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 import io.odilon.model.BucketMetadata;
 import io.odilon.model.ObjectMetadata;
@@ -77,6 +78,9 @@ public interface Drive {
 	public long getAvailableSpace();
 	public String getName();
 	
+	/** order in the rootDirs variable in odilon.properties */
+	public int getConfigOrder();
+	
 	/** -----------------
 	  *  Scheduler
    ------------------*/
@@ -107,6 +111,7 @@ public interface Drive {
     public String getObjectMetadataDirPath(String bucketName, String objectName); 
     public ObjectMetadata getObjectMetadata(String bucketName, String objectName);
 	public void saveObjectMetadata(ObjectMetadata meta);
+	
 	public void deleteObjectMetadata(String bucketName, String objectName);
 	public File getObjectMetadataFile(String bucketName, String objectName);
 	public void putObjectMetadataFile(String bucketName, String objectName, File metaFile) throws IOException;;
@@ -115,8 +120,10 @@ public interface Drive {
 	 public ObjectMetadata getObjectMetadataVersion(String bucketName, String objectName, int version);
 	 public File getObjectMetadataVersionFile(String bucketName, String objectName, int version);
 	 public void putObjectMetadataVersionFile(String bucketName, String objectName, int version, File metaFile) throws IOException;
-	String getCacheDirPath();
+	 public void saveObjectMetadata(ObjectMetadata meta, Optional<Integer> version); 
+	 String getCacheDirPath();
 	String getBucketCacheDirPath(String bucketName);
+	
 	
 	
 	

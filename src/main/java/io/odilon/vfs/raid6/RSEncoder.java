@@ -8,15 +8,19 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.util.List;
+import java.util.Optional;
 
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.ServerConstant;
 import io.odilon.util.Check;
+import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 public class RSEncoder {
 
+	@SuppressWarnings("unused")
 	static private Logger logger = Logger.getLogger(RSEncoder.class.getName());
 
 	private RAIDSixDriver driver;
@@ -31,26 +35,49 @@ public class RSEncoder {
 
     private RSFileBlocks encodedInfo;
     
-	protected RSEncoder(RAIDSixDriver driver) {
+    List<Drive> zDrives;
+    
+    
+    protected RSEncoder(RAIDSixDriver driver) {
+    	this(driver, null);
+    }
+	protected RSEncoder(RAIDSixDriver driver, List<Drive> udrives) {
 		
 		this.driver=driver;
+		
+		if (udrives==null)
+			zDrives = udrives;
+		else
+			zDrives=driver.getDrivesEnabled();
 		
 		this.data_shards = getVFS().getServerSettings().getRAID6DataDrives();
 		this.partiy_shards = getVFS().getServerSettings().getRAID6ParityDrives();
 		this.total_shards = data_shards + partiy_shards;  
 		
+		
+		
 		if (!driver.isConfigurationValid(data_shards, partiy_shards))
 			throw new InternalCriticalException("Incorrect configuration for RAID 6 -> data: " + String.valueOf(data_shards) + " | parity:" + String.valueOf(partiy_shards));
+		
+		if (zDrives.size()<total_shards)
+			throw new InternalCriticalException("There are not enough drives to encode the file in RAID 6 -> " + String.valueOf(zDrives.size()) +" | required: " + String.valueOf(total_shards));
 	}
+	
 	
 	/**
 	 * @param is
 	 * @param bucketName
 	 * @param objectName
-	 * @return the size of the source file in bytes (note that the disk used by the shards is more (16 bytes for the file size plus the padding to make every shard 
-	 * multiple of 4)
+	 * @return the size of the source file in bytes (note that the disk used by the shards 
+	 * is more (16 bytes for the file size plus the padding to make every shard multiple of 4)
 	 */
+	
 	public RSFileBlocks encode (InputStream is, String bucketName, String objectName) {
+		return encode(is, bucketName, objectName, Optional.empty());
+	}
+	
+	
+	public RSFileBlocks encode (InputStream is, String bucketName, String objectName, Optional<Integer> version) {
 		
 		Check.requireNonNull(is);
     	Check.requireNonNull(objectName);
@@ -62,11 +89,11 @@ public class RSEncoder {
     	boolean done = false;
     	
     	try (is) {
-	    	while (!done) { 
-	    		done = encodeChunk(is, bucketName, objectName, chunk++);
-	    	}
+
+    		while (!done)  
+	    		done = encodeChunk(is, bucketName, objectName, chunk++, version);
+	    	
 	    } catch (Exception e) {
-	    		logger.error(e);
 	    		throw new InternalCriticalException(e, "o:" + objectName);
 	    }
     	
@@ -78,7 +105,7 @@ public class RSEncoder {
      * 
      * @param is
      */
-    public boolean encodeChunk(InputStream is, String bucketName, String objectName, int chunk) {
+    public boolean encodeChunk(InputStream is, String bucketName, String objectName, int chunk, Optional<Integer> o_version) {
 
     	// BUFFER 1
     	final byte [] allBytes = new byte[ ServerConstant.MAX_CHUNK_SIZE ];
@@ -113,21 +140,26 @@ public class RSEncoder {
     	// BUFFER 2
 		byte [] [] shards = new byte [total_shards] [shardSize];
 		
-        // Fill in the data shards
-        for (int i = 0; i < data_shards; i++) {
+        /** Fill in the data shards */
+        for (int i = 0; i < data_shards; i++) 
             System.arraycopy(allBytes, i * shardSize, shards[i], 0, shardSize);
-        }
-                
-        // Use Reed-Solomon to calculate the parity.
+
+        
+        /** Use Reed-Solomon to calculate the parity. */
         ReedSolomon reedSolomon = new ReedSolomon(data_shards, partiy_shards);
         reedSolomon.encodeParity(shards, 0, shardSize);
         
-        // Write out the resulting files.
+        /**
+         * Write out the resulting files.
+         * zDrives is DrivesEnabled normally, or DrivesAll when it 
+         * is called from an RaidSixDriveImporter (in the process to become "enabled")
+         */
         for (int block = 0; block < total_shards; block++) {
-        	String dirPath = getDriver().getDrivesEnabled().get(block).getBucketObjectDataDirPath(bucketName);
-        	String name = objectName+ "." + String.valueOf(chunk) +"." + String.valueOf(block);
+
+        	String dirPath = zDrives.get(block).getBucketObjectDataDirPath(bucketName) +( (o_version.isEmpty()) ? "" : (File.separator+VirtualFileSystemService.VERSION_DIR));
+        	String name = objectName+ "." + String.valueOf(chunk) +"." + String.valueOf(block) + (o_version.isEmpty()?"":"v."+ String.valueOf(o_version.get().intValue()));
+        	
         	File outputFile = new File(dirPath, name);
-        							
 			try  (OutputStream out = new BufferedOutputStream(new FileOutputStream(outputFile))) {
 				out.write(shards[block]);
 	        } catch (FileNotFoundException e) {

@@ -62,7 +62,6 @@ public class RAIDZeroDriveSetup implements IODriveSetup {
 	
 	static private Logger logger = Logger.getLogger(RAIDZeroDriveSetup.class.getName());
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
-
 	
 	@JsonIgnore
 	private RAIDZeroDriver driver;
@@ -137,7 +136,6 @@ public class RAIDZeroDriveSetup implements IODriveSetup {
 		try {
 			jsonString = getDriver().getObjectMapper().writeValueAsString(serverInfo);
 		} catch (JsonProcessingException e) {
-			logger.error(e);
 			throw new InternalCriticalException(e);
 		}
 	
@@ -146,13 +144,10 @@ public class RAIDZeroDriveSetup implements IODriveSetup {
 		getDriver().getDrivesAll().forEach( item ->
 		{
 			File file = item.getSysFile(VirtualFileSystemService.SERVER_METADATA_FILE);
-		
-			
-			if ( (item.getDriveInfo().getStatus()==DriveStatus.NOTSYNC) && ((file==null) || (!file.exists()))) {
+			if ((item.getDriveInfo().getStatus()==DriveStatus.NOTSYNC) && ((file==null) || (!file.exists()))) {
 				try {
 					item.putSysFile(VirtualFileSystemService.SERVER_METADATA_FILE, jsonString);
 				} catch (Exception e) {
-						logger.error(e);
 						throw new InternalCriticalException(e, "Drive -> " + item.getName());
 				}
 			}
@@ -162,18 +157,15 @@ public class RAIDZeroDriveSetup implements IODriveSetup {
 		getDriver().getDrivesAll().forEach( item ->
 		{
 			File file = item.getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE);
-		
-			if ( (item.getDriveInfo().getStatus()==DriveStatus.NOTSYNC) && ((file==null) || (!file.exists()))) {
+			if ((item.getDriveInfo().getStatus()==DriveStatus.NOTSYNC) && ((file==null) || (!file.exists()))) {
 				try {
 					Files.copy(keyFile, file);
 				} catch (Exception e) {
-					logger.error(e);
 					throw new InternalCriticalException(e, "Drive -> " + item.getName());
 				}
 			}
 		});
 		
-
 		createBuckets();
 		
 		if (this.errors.get()>0 || this.notAvailable.get()>0) {
@@ -234,12 +226,11 @@ public class RAIDZeroDriveSetup implements IODriveSetup {
 	 * 
 	 */
 	private void updateDrives() {
-		int order=getDriver().getDrivesEnabled().size();
 		for (Drive drive: getDriver().getDrivesAll()) {
 			if (drive.getDriveInfo().getStatus()==DriveStatus.NOTSYNC) {
 				DriveInfo info=drive.getDriveInfo();
 				info.setStatus(DriveStatus.ENABLED);
-				info.setOrder(order++);
+				info.setOrder(drive.getConfigOrder());
 				drive.setDriveInfo(info);
 				getDriver().getVFS().getMapDrivesEnabled().put(drive.getName(), drive);
 				startuplogger.info("drive synced -> " + drive.getRootDirPath());
@@ -306,7 +297,6 @@ public class RAIDZeroDriveSetup implements IODriveSetup {
 									
 									if (!newDrive.equals(currentDrive)) {
 										try {
-
 											((SimpleDrive) currentDrive).deleteObject(item.getObject().bucketName, item.getObject().objectName );
 											this.cleaned.getAndIncrement();
 										
@@ -354,7 +344,7 @@ public class RAIDZeroDriveSetup implements IODriveSetup {
 
 	
 	/**
-	 * 
+	 * <p>Copy data that 
 	 * 
 	 */
 	private void copy() {
@@ -450,7 +440,7 @@ public class RAIDZeroDriveSetup implements IODriveSetup {
 											}
 										
 										} catch (Exception e) {
-											logger.error(e);
+											logger.error(e,ServerConstant.NOT_THROWN);
 											this.errors.getAndIncrement();
 										}
 									}
@@ -459,7 +449,7 @@ public class RAIDZeroDriveSetup implements IODriveSetup {
 									this.notAvailable.getAndIncrement();
 								}
 							} catch (Exception e) {
-								logger.error(e);
+								logger.error(e, ServerConstant.NOT_THROWN);
 								this.errors.getAndIncrement();
 							}
 							return null;
@@ -525,7 +515,7 @@ public class RAIDZeroDriveSetup implements IODriveSetup {
 						}
 					} catch (Exception e) {
 						this.errors.getAndIncrement();
-						logger.error(e);
+						logger.error(e, ServerConstant.NOT_THROWN);
 						return;
 					}
 				}

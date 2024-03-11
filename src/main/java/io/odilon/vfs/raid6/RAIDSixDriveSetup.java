@@ -14,9 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.odilon.vfs.raid1;
+package io.odilon.vfs.raid6;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -34,24 +35,31 @@ import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.BucketMetadata;
 import io.odilon.model.OdilonServerInfo;
+import io.odilon.model.ServerConstant;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.DriveStatus;
 import io.odilon.vfs.model.IODriveSetup;
 import io.odilon.vfs.model.VFSBucket;
 import io.odilon.vfs.model.VirtualFileSystemService;
+import io.odilon.vfs.raid1.RAIDOneDriveImporter;
 
-/***
- * <p>Set up new drives is <b>Async</b> for RAID 1.<br/> 
- * This object will create and start a new {@link RAIDOneDriveImporter} 
- * to duplicate objects into the newly added drive/s in background</p>
+/**
+ * <p>Set up a new <b>Drive</b> added to the odilon.properties file</p>
+ * <p>For RAID 6 this process is Async when the server starts up (runs in background)</p>
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
+
 @Component
 @Scope("prototype")
-public class RAIDOneDriveSetup implements IODriveSetup, ApplicationContextAware  {
-			
-	static private Logger logger = Logger.getLogger(RAIDOneDriveSetup.class.getName());
+public class RAIDSixDriveSetup implements IODriveSetup, ApplicationContextAware  {
+				
+	static private Logger logger = Logger.getLogger(RAIDSixDriveSetup.class.getName());
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
-					
+
+	@JsonIgnore
+	private RAIDSixDriver driver;
+	
 	@JsonIgnore
 	private AtomicLong checkOk = new AtomicLong(0);
 	
@@ -59,14 +67,17 @@ public class RAIDOneDriveSetup implements IODriveSetup, ApplicationContextAware 
 	private AtomicLong counter = new AtomicLong(0);
 	
 	@JsonIgnore			
-	private AtomicLong copied = new AtomicLong(0);
+	private AtomicLong moved = new AtomicLong(0);
 	
 	@JsonIgnore
-	private AtomicLong totalBytes = new AtomicLong(0);
+	private AtomicLong totalBytesMoved = new AtomicLong(0);
+	
+	@JsonIgnore					
+	private AtomicLong totalBytesCleaned = new AtomicLong(0);
 	
 	@JsonIgnore
 	private AtomicLong errors = new AtomicLong(0);
-	
+
 	@JsonIgnore			
 	private AtomicLong cleaned = new AtomicLong(0);
 
@@ -74,21 +85,39 @@ public class RAIDOneDriveSetup implements IODriveSetup, ApplicationContextAware 
 	private AtomicLong notAvailable = new AtomicLong(0);
 
 	@JsonIgnore
-	private RAIDOneDriver driver;
+	int maxProcessingThread;
+
+	@JsonIgnore
+	private long start_ms;
+
+	@JsonIgnore
+	private long start_move;
 	
 	@JsonIgnore
-	private ApplicationContext applicationContext;
+	private long start_cleanup;
+
+	@JsonIgnore
+	private List<Drive> listEnabledBefore = new ArrayList<Drive>();
 	
-	public RAIDOneDriveSetup(RAIDOneDriver driver) {
+	@JsonIgnore
+	private List<Drive> listAllBefore = new ArrayList<Drive>(); 
+
+	@JsonIgnore
+	private ApplicationContext applicationContext;
+
+	/**
+	 * @param driver
+	 */
+	public RAIDSixDriveSetup(RAIDSixDriver driver) {
 		this.driver=driver;
 	}
-
+	
 	@Override
 	public boolean setup() {
 		
-		startuplogger.info("This process is async for RAID 1");
+		startuplogger.info("This process is async for RAID 6");
 		startuplogger.info("It will start a background process to setup the new drives.");
-		startuplogger.info("The background process will duplicate all objects into the newly added drives");
+		startuplogger.info("The background process will copy all objects into the newly added drives");
 		
 		final OdilonServerInfo serverInfo = getDriver().getServerInfo();
 		final File keyFile = getDriver().getDrivesEnabled().get(0).getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE); 
@@ -100,37 +129,39 @@ public class RAIDOneDriveSetup implements IODriveSetup, ApplicationContextAware 
 			startuplogger.error(e);
 			return false;
 		}
-	
-		try {
-				startuplogger.info("1. Copying -> " + VirtualFileSystemService.SERVER_METADATA_FILE);
-				getDriver().getDrivesAll().forEach( item ->
-				{
-					File file = item.getSysFile(VirtualFileSystemService.SERVER_METADATA_FILE);
-					if ( (item.getDriveInfo().getStatus()==DriveStatus.NOTSYNC) && ((file==null) || (!file.exists()))) {
-						try {
-							item.putSysFile(VirtualFileSystemService.SERVER_METADATA_FILE, jsonString);
-						} catch (Exception e) {
-							startuplogger.error(e, "Drive -> " + item.getName());
-							throw new InternalCriticalException(e, "Drive -> " + item.getName());
-						}
-					}
-				});
-				
-				startuplogger.info("2. Copying -> " + VirtualFileSystemService.ENCRYPTION_KEY_FILE);
-				getDriver().getDrivesAll().forEach( item ->
-				{
-					File file = item.getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE);
-					if ( (item.getDriveInfo().getStatus()==DriveStatus.NOTSYNC) && ((file==null) || (!file.exists()))) {
-						try {
-							Files.copy(keyFile, file);
-						} catch (Exception e) {
-							throw new InternalCriticalException(e, "Drive -> " + item.getName());
-						}
-					}
-				});
 		
+		try {
+			
+			startuplogger.info("1. Copying -> " + VirtualFileSystemService.SERVER_METADATA_FILE);
+			getDriver().getDrivesAll().forEach( item ->
+			{
+				File file = item.getSysFile(VirtualFileSystemService.SERVER_METADATA_FILE);
+				if ( (item.getDriveInfo().getStatus()==DriveStatus.NOTSYNC) && ((file==null) || (!file.exists()))) {
+					try {
+						item.putSysFile(VirtualFileSystemService.SERVER_METADATA_FILE, jsonString);
+					} catch (Exception e) {
+						startuplogger.error(e, "Drive -> " + item.getName());
+						throw new InternalCriticalException(e, "Drive -> " + item.getName());
+							
+					}
+				}
+			});
+			
+			startuplogger.info("2. Copying -> " + VirtualFileSystemService.ENCRYPTION_KEY_FILE);
+			getDriver().getDrivesAll().forEach( item ->
+			{
+				File file = item.getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE);
+				if ( (item.getDriveInfo().getStatus()==DriveStatus.NOTSYNC) && ((file==null) || (!file.exists()))) {
+					try {
+						Files.copy(keyFile, file);
+					} catch (Exception e) {
+						throw new InternalCriticalException(e, "Drive -> " + item.getName());
+					}
+				}
+			});
+	
 		} catch (Exception e) {
-			startuplogger.error(e);
+			startuplogger.error(e, ServerConstant.NOT_THROWN);
 			startuplogger.error("The process can not be completed due to errors");
 			return false;
 		}
@@ -142,11 +173,11 @@ public class RAIDOneDriveSetup implements IODriveSetup, ApplicationContextAware 
 			return false;
 		}
 		
-		startuplogger.info("4. Starting Async process -> " + RAIDOneDriveImporter.class.getName());
+		startuplogger.info("4. Starting Async process -> " + RAIDSixDriveImporter.class.getSimpleName());
 						
 		/** The rest of the process is async */
 		@SuppressWarnings("unused")
-		RAIDOneDriveImporter checker = getApplicationContext().getBean(RAIDOneDriveImporter.class, getDriver());
+		RAIDSixDriveImporter checker = getApplicationContext().getBean(RAIDSixDriveImporter.class, getDriver());
 		
 		/** sleeps 20 secs and return */
 		try {
@@ -158,7 +189,8 @@ public class RAIDOneDriveSetup implements IODriveSetup, ApplicationContextAware 
 		
 		return true;
 	}
-
+	
+	
 	public ApplicationContext getApplicationContext()  {
 		return this.applicationContext;
 	}
@@ -168,16 +200,9 @@ public class RAIDOneDriveSetup implements IODriveSetup, ApplicationContextAware 
         this.applicationContext = applicationContext;
 	}
 	
-	/**
-	 * 
-	 */
-	private RAIDOneDriver getDriver() {
-		return this.driver;
-	}
-	
 	
 	private void createBuckets() {
-			
+		
 		List<VFSBucket> list = getDriver().getVFS().listAllBuckets();
 																			
 		startuplogger.info("3. Creating " + String.valueOf(list.size()) +" Buckets");
@@ -199,4 +224,13 @@ public class RAIDOneDriveSetup implements IODriveSetup, ApplicationContextAware 
 				}
 			}
 	}
+	
+	/**
+	 * 
+	 */
+	private RAIDSixDriver getDriver() {
+		return this.driver;
+	}
+
+
 }

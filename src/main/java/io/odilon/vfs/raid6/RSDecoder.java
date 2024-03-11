@@ -38,7 +38,6 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 public class RSDecoder {
 
-	@SuppressWarnings("unused")
 	static private Logger logger = Logger.getLogger(RSEncoder.class.getName());
 
 	private RAIDSixDriver driver;
@@ -113,14 +112,13 @@ public class RSDecoder {
      * @param out
      * @return
      */
-    public boolean decodeChunk(String bucketName, String objectName, int chunk, OutputStream out) {
+    protected boolean decodeChunk(String bucketName, String objectName, int chunk, OutputStream out) {
     	
     	// Read in any of the shards that are present.
         // (There should be checking here to make sure the input
         // shards are the same size, but there isn't.)
     	
-    	// BUFFER 3
-        final byte [] [] shards = new byte [this.total_shards] [];
+        final byte [] [] shards = new byte [this.total_shards] [];     	// BUFFER 3
         final boolean [] shardPresent = new boolean [this.total_shards];
         
         int shardSize = 0;
@@ -129,55 +127,49 @@ public class RSDecoder {
         
         for (int disk = 0; disk < this.total_shards; disk++) {
         	
+        	/** As we must encode using DrivesAll, we must decode only with DrivesEnabled */
         	String dirPath = getDriver().getDrivesEnabled().get(disk).getBucketObjectDataDirPath(bucketName);
         	File shardFile = new File(dirPath, objectName+ "." + String.valueOf(chunk) +"." + String.valueOf(disk));
            
             if (shardFile.exists()) {
                 shardSize = (int) shardFile.length();
-                
-            	// BUFFER 4
-                shards[disk] = new byte [shardSize];
+                shards[disk] = new byte [shardSize];             	// BUFFER 4
                 shardPresent[disk] = true;
                 shardCount += 1;
     			try (InputStream in = new BufferedInputStream(new FileInputStream(shardFile))) {
 					in.read(shards[disk], 0, shardSize);
 				} catch (FileNotFoundException e) {
-					throw new InternalCriticalException(e, "b:" + bucketName +  " | o:" + objectName + " | f:" + shardFile.getName());
+					logger.error(e.getClass().getName() + " | b:" + bucketName +  " | o:" + objectName + " | f:" + shardFile.getName());
+					shardPresent[disk] = false;
 				} catch (IOException e) {
-					throw new InternalCriticalException(e, "b:" + bucketName +  " | o:" + objectName + " | f:" + shardFile.getName());
+					logger.error(e.getClass().getName() + " | b:" + bucketName +  " | o:" + objectName + " | f:" + shardFile.getName());
+					shardPresent[disk] = false;
 				}
             }
         }
         
-        // We need at least DATA_SHARDS to be able to reconstruct the file.
-        //
+        /** We need at least DATA_SHARDS to be able to reconstruct the file */
         if (shardCount < this.data_shards) {
-        	throw new InternalCriticalException("We need at least " + String.valueOf(this.data_shards)+ " shards to be able to reconstruct the file | b:" + bucketName +  " | o:" + objectName);
+        	throw new InternalCriticalException("We need at least " + String.valueOf(this.data_shards)+ " shards to be able to reconstruct the file | b:" + bucketName +  " | o:" + objectName +" | shardCount: "+ String.valueOf(shardCount));
         }
         
-        // Make empty buffers for the missing shards.
-        //
+        /** Make empty buffers for the missing shards  */
         for (int i = 0; i < this.total_shards; i++) {
             if (!shardPresent[i]) {
-            	// BUFFER 5
-            	shards[i] = new byte [shardSize];
+            	shards[i] = new byte [shardSize];             	// BUFFER 5
             }
         }
         
-        // Use Reed-Solomon to fill in the missing shards
-        //
+        /** Use Reed-Solomon to fill in the missing shards */
         ReedSolomon reedSolomon = new ReedSolomon(this.data_shards, this.parity_shards);
         reedSolomon.decodeMissing(shards, shardPresent, 0, shardSize);
 
-        
         // Combine the data shards into one buffer for convenience.
         // (This is not efficient, but it is convenient.)
         
-    	// BUFFER 6
-        byte [] allBytes = new byte [shardSize * this.data_shards];
-        for (int i = 0; i < this.data_shards; i++) {
+        byte [] allBytes = new byte [shardSize * this.data_shards];     	// BUFFER 6
+        for (int i = 0; i < this.data_shards; i++) 
             System.arraycopy(shards[i], 0, allBytes, shardSize * i, shardSize);
-        }
 
         // Extract the file length
         int fileSize = ByteBuffer.wrap(allBytes).getInt();
