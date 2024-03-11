@@ -38,47 +38,7 @@ public class ChunkedDrive extends ODDrive {
 		onInitialize();
 	}
 	
-
-	/**
-	public List<File> getDataFiles(String bucketName, String objectName, Optional<Integer> version) {
-		
-		List<File> list = new ArrayList<File>();
-		
-		if (version.isEmpty()) {
-			Path start = new File(getBucketObjectDataDirPath(bucketName)).toPath();
-			Stream<Path> stream = null;
-			try {
-				stream = Files.walk(start, 1).
-						skip(1).
-						filter(file -> file.getFileName()!=null);
-			} catch (IOException e) {
-				logger.error(e);
-				throw new InternalCriticalException(e);
-			}
-			
-			try {
-				Iterator<Path> it = stream.iterator();
-				while (it.hasNext()) {
-					Path item=it.next();
-					list.add(item.toFile());
-					logger.debug(item.getFileName());
-				}
-			} finally {
-					if (stream!=null)
-						stream.close();	
-			}
-		}
-		else {
-			
-			Path start = new File(getBucketObjectDataDirPath(bucketName)+File.separator+"version").toPath();
-			
-			
-		}
-		
-		
-		return list;
-			}
-	*/
+ 
 	
 
 
