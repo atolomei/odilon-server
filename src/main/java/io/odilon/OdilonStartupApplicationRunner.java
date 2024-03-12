@@ -77,6 +77,10 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 		
 		initCronJobs();
 		
+		boolean iLicense = initLicense();
+		if (iLicense)	
+			startupLogger.info(ServerConstant.SEPARATOR);
+
 		boolean iGeneral = initGeneral();
 		if(iGeneral)
 			startupLogger.info(ServerConstant.SEPARATOR);
@@ -92,6 +96,8 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 		boolean iStandby = initStandby();
 		if(iStandby)
 			startupLogger.info(ServerConstant.SEPARATOR);
+		
+		
 		
 		startupLogger.info	("Startup at -> " + OffsetDateTime.now().toString());
 	}
@@ -144,6 +150,18 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 		}
 	}
 	
+	/**
+	 *
+	 * 
+	 */
+	private boolean initLicense() {
+		startupLogger.info("This software is licensed under the Apache License, Version 2.0");
+		startupLogger.info("http://www.apache.org/licenses/LICENSE-2.0");
+		return true;
+		
+	}
+	
+		
 	/**
 	 *
 	 * 
@@ -272,7 +290,6 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 					startupLogger.error("Current value for standby.enabled -> " + settingsService.isStandByEnabled());	
 					startupLogger.error("Exiting");
 					startupLogger.error(ServerConstant.SEPARATOR);
-					
 					try {
 						Thread.sleep(2500);
 					} catch (InterruptedException e) {
@@ -287,23 +304,5 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 	}
 }
 
-
-/**
-boolean isRecoveryMode=false;
-for (String s:args.getSourceArgs()) {
-	if(s.toLowerCase().trim().startsWith("-drecoverymode")) {
-		String arr[]=s.split("=");
-		if (arr.length>1) {
-		 	isRecoveryMode=arr[1].trim().toLowerCase().equals("true") || arr[1].trim().toLowerCase().equals("yes");
-			break;
-		}
-	}
-}
-if (isRecoveryMode) {
-	ServerSettings settingsService = getAppContext().getBean(ServerSettings.class);
-	settingsService.setRecoveryMode(isRecoveryMode);
-	startupLogger.info("Server is started in recovery mode");
-}
-**/
 
 

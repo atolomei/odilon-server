@@ -43,27 +43,29 @@ import io.odilon.vfs.model.VFSop;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
- * <p>Registro persistente en disco de las operaciones atómicas{@link VFSOp}
- *   
+ * 	<p>Persistent disk logging of atomic operations{@link VFSOp}
+ *
  * <ul>
- * 		<li> alta de bucket </li>
- * 		<li> baja de bucket </li>
- * 		<li> alta de objeto </li>
- * 		<li> actualización de objeto </li>
- * 		<li>baja de objeto </li>
+ * <li> bucket registration </li>
+ * <li> bucket deletion </li>
+ * <li> object registration </li>
+ * <li> object update </li>
+ * <li>object removal </li>
+ * <li>object sync in new Drive</li>
  * </ul>
  * </p>
- * 
- * <p>Al realizarse una de operacion se graba un registro en el Journal y
- * al completarse exitosamente o cancelar se borra el registro.
+ *
+ * <p>When an operation is performed, a Journal record is stored in disk and
+ * upon successful completion or cancellation the registration is deleted.
  *</p>
- * 
- * <h3>En caso que problemas criticos</h3> 
+ *
+ * <h3>In case of critical problems</h3>
  * <p>
- * al reiniciarse el sistema, se toman del disco las operaciones
- * que no pudieron ser terminadas (sea commit o cancel) y se realiza el rollback de la operación.
- *</p>
- */
+ * when the system restarts, the operations are taken from the disk
+ * that could not be completed (whether commit or cancel) and the operation is rolled back.
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+*/
 
 @ThreadSafe
 @Service
@@ -94,6 +96,8 @@ public class ODJournalService extends BaseService implements JournalService {
 	
 	public ODJournalService() {
 	}
+	
+	
 	
 	@Override														
 	public VFSOperation saveServerKey() {
@@ -129,6 +133,15 @@ public class ODJournalService extends BaseService implements JournalService {
 				Optional.ofNullable(objectName), 
 				Optional.of(Integer.valueOf(currentHeadVersion)));
 	}
+	
+	@Override							
+	public VFSOperation syncObject(String bucketName, String objectName) {
+		return createNew(VFSop.SYNC_OBJECT_NEW_DRIVE, 
+				Optional.of(bucketName), 
+				Optional.ofNullable(objectName), 
+				Optional.empty());
+	}
+	
 	
 	@Override			
 	public VFSOperation deleteObject(String bucketName, String objectName, int currentHeadVersion) {

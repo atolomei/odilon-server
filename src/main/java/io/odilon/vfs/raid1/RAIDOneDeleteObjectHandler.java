@@ -66,7 +66,10 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 	public void delete(VFSBucket bucket, String objectName) {
 		
 		Check.requireNonNullArgument(bucket, "bucket is null");
-		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
+		String bucketName = bucket.getName();
+		
+		Check.requireNonNullStringArgument(bucketName, "bucketName is null");
+		Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucketName);
 		
 		if (!getDriver().exists(bucket, objectName))
 			throw new OdilonObjectNotFoundException("object does not exist -> b:" + bucket.getName()+ " o:"+objectName);
@@ -78,19 +81,19 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 		
 		try {
 
-			getLockService().getObjectLock(bucket.getName(), objectName).writeLock().lock();
-			getLockService().getBucketLock(bucket.getName()).readLock().lock();
+			getLockService().getObjectLock(bucketName, objectName).writeLock().lock();
+			getLockService().getBucketLock(bucketName).readLock().lock();
 										
-			meta = getDriver().getReadDrive(bucket, objectName).getObjectMetadata(bucket.getName(), objectName);
+			meta = getDriver().getReadDrive(bucketName, objectName).getObjectMetadata(bucket.getName(), objectName);
 			headVersion = meta.version;
-			op = getJournalService().deleteObject(bucket.getName(), objectName, headVersion);
+			op = getJournalService().deleteObject(bucketName, objectName, headVersion);
 			
 			backupMetadata(meta);
 			
 			for (Drive drive: getDriver().getDrivesAll()) 
-				((SimpleDrive)drive).deleteObjectMetadata(bucket.getName(), objectName);
+				((SimpleDrive)drive).deleteObjectMetadata(bucketName, objectName);
 			
-			getVFS().getObjectCacheService().remove(bucket.getName(), meta.objectName);
+			getVFS().getObjectCacheService().remove(bucketName, meta.objectName);
 			done = op.commit();
 			
 		} catch (OdilonObjectNotFoundException e1) {
@@ -100,7 +103,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 			
 		} catch (Exception e) {
 			done=false;
-			throw new InternalCriticalException(e, "op:" + op.getOp().getName() + ", b:"  + bucket.getName() +	", o:" 	+ objectName);
+			throw new InternalCriticalException(e, "op:" + op.getOp().getName() + ", b:"  + bucketName +	", o:" 	+ objectName);
 		}
 		finally {
 			
@@ -112,7 +115,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 					try {
 						rollbackJournal(op, false);
 					} catch (Exception e) {
-						throw new InternalCriticalException(e, "op:" + op.getOp().getName() + ", b:"  + bucket.getName() +	", o:" 	+ objectName);
+						throw new InternalCriticalException(e, "op:" + op.getOp().getName() + ", b:"  + bucketName +	", o:" 	+ objectName);
 					}
 				}
 
@@ -123,11 +126,11 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 				 */
 				
 			} catch (Exception e) {
-				logger.error(e, "op:" + op.getOp().getName() + ", b:"  + bucket.getName() +	", o:" 	+ objectName, ServerConstant.NOT_THROWN);
+				logger.error(e, "op:" + op.getOp().getName() + ", b:"  + bucketName +	", o:" 	+ objectName, ServerConstant.NOT_THROWN);
 			}
 			finally {
-				getLockService().getBucketLock(bucket.getName()).readLock().unlock();
-				getLockService().getObjectLock(bucket.getName() , objectName).writeLock().unlock();
+				getLockService().getBucketLock(bucketName).readLock().unlock();
+				getLockService().getObjectLock(bucketName, objectName).writeLock().unlock();
 			}
 		}
 		
@@ -221,7 +224,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 			meta.lastModified = OffsetDateTime.now();
 									
 			for (Drive drive: getDriver().getDrivesAll())
-				drive.saveObjectMetadata(meta,true);
+				drive.saveObjectMetadata(meta);
 			
 			getVFS().getObjectCacheService().remove(bucketName, objectName);
 			done=op.commit();

@@ -457,6 +457,10 @@ public class ODDrive extends ODModelObject implements Drive {
 	@Override
 	public ObjectMetadata getObjectMetadataVersion(String bucketName, String objectName, int version) {
 		try {
+
+			Check.requireNonNullStringArgument(bucketName, "bucketName is null");
+			Check.requireNonNullStringArgument(objectName, "objectName is null");
+
 			File file = getObjectMetadataVersionFile(bucketName,objectName, version);
 
 			if (!file.exists())
@@ -465,19 +469,25 @@ public class ODDrive extends ODModelObject implements Drive {
 			return getObjectMapper().readValue(file, ObjectMetadata.class);
 			
 		} catch (Exception e) {
-			throw new InternalCriticalException(e);
+			throw new InternalCriticalException(e, "b:" + bucketName + " o:" + objectName);
 		}
 	}
 	
 	
+	/**
+	 * Head Version	
+	 */
+	public void saveObjectMetadata(ObjectMetadata meta) {
+		saveObjectMetadata(meta, true);
+	}
 	
+	public void saveObjectMetadataVersion(ObjectMetadata meta) {
+		saveObjectMetadata(meta, false);
+	}
 	
-	@Override
-	public void saveObjectMetadata(ObjectMetadata meta, boolean isHead) {
-
+	protected void saveObjectMetadata(ObjectMetadata meta, boolean isHead) {
 			
 		Check.requireNonNullArgument(meta, "meta");
-		
 		Check.requireNonNullStringArgument(meta.bucketName, "bucketName is null");
 		Check.requireNonNullStringArgument(meta.objectName, "objectName is null");
 
@@ -513,8 +523,7 @@ public class ODDrive extends ODModelObject implements Drive {
 				logger.debug("Remove file not found -> d: " + getName() +" | f:" + (file!=null?file.getName():"null"));
 			
 		} catch (Exception e) {
-			String msg = "op: " + (Optional.ofNullable(serviceRequest).isPresent() ? (serviceRequest.toString()):"null");
-			throw new InternalCriticalException(e, msg);
+			throw new InternalCriticalException(e, "op: " + (Optional.ofNullable(serviceRequest).isPresent() ? (serviceRequest.toString()):"null"));
 		}
 	}
 

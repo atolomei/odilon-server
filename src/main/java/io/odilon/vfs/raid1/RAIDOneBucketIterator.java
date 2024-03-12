@@ -41,18 +41,23 @@ import io.odilon.vfs.model.BucketIterator;
 /**
  * <p><b>RAID 1</b> <br/>
  * Data is replicated and all Drives have all files</p>
+ * Drives that are in status NOT_SYNC are being synced un background. 
+ * All new Objects (since the Drive started the sync process) are replicated in the NOT_SYNC drive  while the drive is being synced.
  *
- *<p>The RAID 1 {@link BucketIterator} uses a randomly selected Drive to walk and return ObjectMetaata files</p>
+ *<p>The RAID 1 {@link BucketIterator} uses a randomly 
+ *   selected Drive (among the drives in status DriveStatus.ENABLED) to walk and return ObjectMetaata files</p>
+ *   
+ *  @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public class RAIDOneBucketIterator extends BucketIterator implements Closeable {
 		
 	private static final Logger logger = Logger.getLogger(RAIDOneBucketIterator.class.getName());
 	
 	@JsonProperty("prefix")
-	private String prefix = null;
+	private String prefix;
 	
 	@JsonProperty("drive")
-	private Drive drive;
+	private final Drive drive;
 	
 	@JsonProperty("cumulativeIndex")		
 	private long cumulativeIndex = 0;
@@ -78,7 +83,7 @@ public class RAIDOneBucketIterator extends BucketIterator implements Closeable {
 	
 	public RAIDOneBucketIterator(RAIDOneDriver driver, String bucketName, Optional<Long> opOffset,  Optional<String> opPrefix) {
 		super(bucketName);
-		opPrefix.ifPresent( x -> this.prefix=x.toLowerCase().trim());
+		opPrefix.ifPresent( x -> this.prefix = x.toLowerCase().trim());
 		opOffset.ifPresent( x -> setOffset(x));
 		this.driver = driver;
 		this.drive  = driver.getDrivesEnabled().get(Double.valueOf(Math.abs(Math.random()*10000)).intValue() % driver.getDrivesEnabled().size());
@@ -131,15 +136,23 @@ public class RAIDOneBucketIterator extends BucketIterator implements Closeable {
 	}
 
 
+	/**
+	 * 
+	 * 
+	 */
 	@Override
 	public synchronized void close() throws IOException {
 		if (this.stream!=null)
 			this.stream.close();
 	}
 	
+
+	private Drive getDrive() {
+		return this.drive;
+	}
 	private void init() {
 		
-			Path start = new File(this.drive.getBucketMetadataDirPath(getBucketName())).toPath();
+			Path start = new File( getDrive().getBucketMetadataDirPath(getBucketName())).toPath();
 			try {
 				this.stream = Files.walk(start, 1).skip(1).
 						filter(file -> Files.isDirectory(file)).
@@ -155,20 +168,6 @@ public class RAIDOneBucketIterator extends BucketIterator implements Closeable {
 		this.initiated = true;
 	}
 	
-	/**
-	 * <p>This method should be used when the delete operation is logical (ObjectStatus.DELETED)</p>
-	 * @param path
-	 * @return
-	 */
-	@SuppressWarnings("unused")
-	private boolean isObjectStateEnabled(Path path) {
-		ObjectMetadata meta = getDriver().getObjectMetadata(getBucketName(), path.toFile().getName());
-		if (meta==null)
-			return false;
-		if (meta.status == ObjectStatus.ENABLED) 
-			return true;
-		return false;
-	}
 	
 	private void skipOffset() {
 		if (getOffset()==0)
@@ -190,7 +189,6 @@ public class RAIDOneBucketIterator extends BucketIterator implements Closeable {
 	 * @return false if there are no more items
 	 */
 	private boolean fetch() {
-
 		this.relativeIndex = 0;
 		this.buffer = new ArrayList<Path>();
 		boolean isItems = true;
@@ -206,5 +204,22 @@ public class RAIDOneBucketIterator extends BucketIterator implements Closeable {
 	private RAIDOneDriver getDriver() {
 		return driver;
 	}
+	
+	/**
+	 * <p>This method should be used when the delete 
+	 *  operation is logical (ObjectStatus.DELETED)</p>
+	 * @param path
+	 * @return
+	 */
+	@SuppressWarnings("unused")
+	private boolean isObjectStateEnabled(Path path) {
+		ObjectMetadata meta = getDriver().getObjectMetadata(getBucketName(), path.toFile().getName());
+		if (meta==null)
+			return false;
+		if (meta.status == ObjectStatus.ENABLED) 
+			return true;
+		return false;
+	}
+
 }
 	

@@ -142,10 +142,10 @@ public class ODSimpleDrive extends ODDrive implements SimpleDrive {
 		}
 	}
 
-	@Override
-	public void deleteObject(String bucketName, String objectName) {
-		deleteObject(bucketName, objectName, false); 
-	}
+	
+	//public void deleteObject(String bucketName, String objectName) {
+	//	deleteObject(bucketName, objectName, false); 
+	//}
 	
 	
 	@Override
@@ -176,25 +176,20 @@ public class ODSimpleDrive extends ODDrive implements SimpleDrive {
 	/**
 	 * 
 	 * 
-	 */
+	 
 	protected void deleteObject(String bucketName, String objectName, boolean onlyMetadata) {
 	
 		Check.requireNonNullStringArgument(bucketName, "bucketName is null");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null -> b:" + bucketName);
-
-		super.deleteObjectMetadata(bucketName, objectName);
 		
+		super.deleteObjectMetadata(bucketName, objectName);
 		
 		if (onlyMetadata)
 			return;
-		
-		/** Deletes data object 
-		 *   TBA what to do with blocks raid 6
-		 * */
 		File data = new File (this.getRootDirPath(), bucketName + File.separator + objectName);
 		FileUtils.deleteQuietly(data);
 		
 	}
-
+*/
 	
 }
