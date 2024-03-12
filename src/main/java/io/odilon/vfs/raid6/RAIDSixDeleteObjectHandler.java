@@ -187,7 +187,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 			meta.lastModified = OffsetDateTime.now();
 									
 			for (Drive drive: getDriver().getDrivesEnabled())
-				drive.saveObjectMetadata(meta);
+				drive.saveObjectMetadata(meta, true);
 			
 			getVFS().getObjectCacheService().remove(bucket.getName(), meta.objectName);
 			done=op.commit();
@@ -214,10 +214,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 						rollbackJournal(op, false);
 						
 					} catch (Exception e) {
-						String msg =  	"b:"   + (Optional.ofNullable(bucket).isPresent()    	? (bucket.getName()) :"null") + 
-										", o:" + (Optional.ofNullable(objectName).isPresent() 	? (objectName)       :"null");   
-						logger.error(e, msg);
-						throw new InternalCriticalException(e);
+						throw new InternalCriticalException(e, "b:" + bucket.getName() + ", o:" + objectName);
 					}
 				}
 			}
@@ -232,7 +229,12 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 		
 	}
 
-	
+
+	/**
+	 * 
+	 * @param meta
+	 * @param headVersion
+	 */
 	public void postObjectPreviousVersionDeleteAllTransaction(@NonNull ObjectMetadata meta, int headVersion) {
 		
 		Check.requireNonNullArgument(meta, "meta is null");

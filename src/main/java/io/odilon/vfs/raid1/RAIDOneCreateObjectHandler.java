@@ -279,7 +279,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 				meta.status=ObjectStatus.ENABLED;
 				meta.drive=drive.getName();
 				meta.raid=String.valueOf(getRedundancyLevel().getCode()).trim();
-				drive.saveObjectMetadata(meta);
+				drive.saveObjectMetadata(meta, true);
 	
 			} catch (Exception e) {
 				String msg = "b:" + bucket.getName() + " o:"+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null");

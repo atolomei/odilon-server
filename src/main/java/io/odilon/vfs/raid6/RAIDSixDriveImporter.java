@@ -1,14 +1,11 @@
 package io.odilon.vfs.raid6;
 
 import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -39,9 +36,7 @@ import io.odilon.vfs.DriveInfo;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.DriveStatus;
 import io.odilon.vfs.model.LockService;
-import io.odilon.vfs.model.SimpleDrive;
 import io.odilon.vfs.model.VFSBucket;
-import io.odilon.vfs.model.VirtualFileSystemService;
 import io.odilon.vfs.raid1.RAIDOneDriveImporter;
 
 @Component
@@ -122,6 +117,9 @@ public class RAIDSixDriveImporter implements Runnable {
 	}
 	
 	private List<Drive> zDrives = new ArrayList<Drive>();
+	
+	
+	
 	
 	/**
 	 * 
@@ -262,11 +260,11 @@ public class RAIDSixDriveImporter implements Runnable {
 	private void encode(Item<ObjectMetadata> item) {
 		
 		try {
+		
 			getLockService().getObjectLock(item.getObject().bucketName, item.getObject().objectName).writeLock().lock();
 			getLockService().getBucketLock(item.getObject().bucketName).readLock().lock();
 			
 			ObjectMetadata meta = item.getObject();
-			
 			
 			/** HEAD VERSION --------------------------------------------------------- */
 			{
@@ -275,11 +273,11 @@ public class RAIDSixDriveImporter implements Runnable {
 				
 				File file = decoder.decode(meta, Optional.empty());
 				
-				RSEncoder encoder = new RSEncoder(getDriver(), this.zDrives);
+				RSDriveInitializationEncoder driveInitEncoder = new RSDriveInitializationEncoder(getDriver(), getDrives());
 				
 				try (InputStream in = new BufferedInputStream(new FileInputStream(file.getAbsolutePath()))) {
-						
-					encoder.encode(in, meta.bucketName, meta.objectName);
+					
+					driveInitEncoder.encode(in, meta.bucketName, meta.objectName);
 					
 				} catch (FileNotFoundException e) {
 		    		throw new InternalCriticalException(e, "b:" + meta.bucketName +  " | o:" + meta.objectName );
@@ -287,10 +285,10 @@ public class RAIDSixDriveImporter implements Runnable {
 					throw new InternalCriticalException(e, "b:" + meta.bucketName +  " | o:" + meta.objectName );
 				}
 				
+				// TODO VER AT
 				meta.dateSynced=OffsetDateTime.now();
-				
-				for (Drive drive: getDriver().getDrivesAll()) {
-						drive.saveObjectMetadata(meta);
+				for (Drive drive: getDrives()) {
+						drive.saveObjectMetadata(meta, true);
 				}
 			}
 			/** PREVIOUS VERSIONS --------------------------------------------------------- */
@@ -298,16 +296,17 @@ public class RAIDSixDriveImporter implements Runnable {
 			if (getDriver().getVFS().getServerSettings().isVersionControl()) {
 				
 				for (int version=0; version<item.getObject().version; version++) {
+					
 					ObjectMetadata versionMeta = getDriver().getObjectMetadataVersion(meta.bucketName, meta.objectName, version);	
 				
 					RSDecoder decoder = new RSDecoder(getDriver());
 					File file = decoder.decode(meta, Optional.of(version));
 					
-					RSEncoder encoder = new RSEncoder(getDriver(), this.zDrives);
-					
+					RSDriveInitializationEncoder driveInitEncoder = new RSDriveInitializationEncoder(getDriver(), getDrives());
+													
 					try (InputStream in = new BufferedInputStream(new FileInputStream(file.getAbsolutePath()))) {
 						
-						encoder.encode(in, meta.bucketName, meta.objectName, Optional.of(version));
+						driveInitEncoder.encode(in, meta.bucketName, meta.objectName, Optional.of(version));
 						
 					} catch (FileNotFoundException e) {
 			    		throw new InternalCriticalException(e, "b:" + meta.bucketName +  " | o:" + meta.objectName );
@@ -316,9 +315,11 @@ public class RAIDSixDriveImporter implements Runnable {
 					}
 					
 					versionMeta.lastModified=OffsetDateTime.now();
-					//getDriver().s
-					//drive.saveObjectMetadata(versionMeta);
-					// TODO AT
+					
+					// TODO VER AT (TRX)
+					for (Drive drive: getDrives()) {
+						drive.saveObjectMetadata(versionMeta, false);
+					}
 				}
 
 				this.encoded.getAndIncrement();
@@ -332,23 +333,6 @@ public class RAIDSixDriveImporter implements Runnable {
 			getLockService().getBucketLock(item.getObject().bucketName).readLock().unlock();
 			getLockService().getObjectLock(item.getObject().bucketName, item.getObject().objectName).writeLock().unlock();
 		}
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
 	}
 
 	protected RAIDSixDriver getDriver() {
@@ -358,6 +342,11 @@ public class RAIDSixDriveImporter implements Runnable {
 	protected LockService getLockService() {
 		return this.vfsLockService;
 	}
+
+	protected List<Drive> getDrives() {
+		return zDrives;
+	}
+	
 	
 	private void updateDrives() {
 		for (Drive drive: getDriver().getDrivesAll()) {

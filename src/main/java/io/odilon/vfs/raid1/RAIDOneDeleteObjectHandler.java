@@ -88,7 +88,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 			backupMetadata(meta);
 			
 			for (Drive drive: getDriver().getDrivesAll()) 
-				drive.deleteObjectMetadata(bucket.getName(), objectName);
+				((SimpleDrive)drive).deleteObjectMetadata(bucket.getName(), objectName);
 			
 			getVFS().getObjectCacheService().remove(bucket.getName(), meta.objectName);
 			done = op.commit();
@@ -221,7 +221,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 			meta.lastModified = OffsetDateTime.now();
 									
 			for (Drive drive: getDriver().getDrivesAll())
-				drive.saveObjectMetadata(meta);
+				drive.saveObjectMetadata(meta,true);
 			
 			getVFS().getObjectCacheService().remove(bucketName, objectName);
 			done=op.commit();

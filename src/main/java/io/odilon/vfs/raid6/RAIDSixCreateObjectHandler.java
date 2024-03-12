@@ -73,6 +73,9 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 	 */
 	public void create(VFSBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType) {
 	
+		Check.requireNonNullArgument(bucket, "bucket is null");
+		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
+		
 		VFSOperation op = null;
 		boolean done = false;
 		boolean isMainException = false;
@@ -214,14 +217,10 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 				throw new InternalCriticalException(e);		
 	
 			} finally {
-				
 				IOException secEx = null;
-				
 				try {
-					
 					if (sourceStream!=null) 
 						sourceStream.close();
-					
 				} catch (IOException e) {
 					logger.error(e, "b:" + bucket.getName()+", o:" + objectName + (isMainException ? ServerConstant.NOT_THROWN :""));
 					secEx=e;
@@ -287,7 +286,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 				meta.status=ObjectStatus.ENABLED;
 				meta.drive=drive.getName();
 				meta.raid=String.valueOf(getRedundancyLevel().getCode()).trim();
-				drive.saveObjectMetadata(meta);
+				drive.saveObjectMetadata(meta, true);
 	
 			} catch (Exception e) {
 				throw new InternalCriticalException(e, "b:"+ bucket.getName() + " o:" + objectName+", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null"));

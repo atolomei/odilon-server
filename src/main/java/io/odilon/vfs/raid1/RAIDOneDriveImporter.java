@@ -247,7 +247,7 @@ public class RAIDOneDriveImporter implements Runnable {
 														// metadata ----
 														ObjectMetadata meta = item.getObject();
 														meta.drive=drive.getName();
-														drive.saveObjectMetadata(meta);
+														drive.saveObjectMetadata(meta, true);
 														this.copied.getAndIncrement();
 												}
 												

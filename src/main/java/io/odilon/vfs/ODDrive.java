@@ -123,10 +123,6 @@ public class ODDrive extends ODModelObject implements Drive {
 	DriveInfo driveInfo;
 	
 	
-	
-	
-	
-	
 	@Autowired
 	protected ODDrive(String rootDir) {
 		this.name=rootDir;
@@ -350,16 +346,11 @@ public class ODDrive extends ODModelObject implements Drive {
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null -> b:" + bucketName);
 		ObjectMetadata meta = getObjectMetadata(bucketName, objectName);
 		meta.status = ObjectStatus.DELETED;
-		saveObjectMetadata(meta);
+		saveObjectMetadata(meta, true);
 	}
 	
 
 	
-	
-	@Override
-	public void deleteObjectMetadata(String bucketName, String objectName) {
-		deleteObject(bucketName, objectName, true);
-	}
 	
 	
 	
@@ -479,18 +470,18 @@ public class ODDrive extends ODModelObject implements Drive {
 	}
 	
 	
-	@Override
-	public void saveObjectMetadata(ObjectMetadata meta) {
-		saveObjectMetadata(meta, Optional.empty());
-	}
+	
 	
 	@Override
-	public void saveObjectMetadata(ObjectMetadata meta, Optional<Integer> version) {
+	public void saveObjectMetadata(ObjectMetadata meta, boolean isHead) {
 
+			
 		Check.requireNonNullArgument(meta, "meta");
 		
 		Check.requireNonNullStringArgument(meta.bucketName, "bucketName is null");
 		Check.requireNonNullStringArgument(meta.objectName, "objectName is null");
+
+		Optional<Integer> version = isHead ? Optional.empty() : Optional.of(meta.version);
 		
 		try {
 			File dir = new File (getObjectMetadataDirPath(meta.bucketName, meta.objectName));
@@ -501,13 +492,11 @@ public class ODDrive extends ODModelObject implements Drive {
 			meta.lastModified=OffsetDateTime.now();
 			String jsonString = getObjectMapper().writeValueAsString(meta);
 			
-			if (version.isPresent()) {
+			if (isHead)
+				Files.writeString(Paths.get(getObjectMetadataDirPath(meta.bucketName, meta.objectName) + File.separator + meta.objectName + ServerConstant.JSON), jsonString);
+			else
 				Files.writeString(Paths.get(getObjectMetadataVersionFilePath(meta.bucketName, meta.objectName, version.get().intValue())), jsonString);
-			}
-			else {
-				String fileName = meta.objectName + ServerConstant.JSON;
-				Files.writeString(Paths.get(getObjectMetadataDirPath(meta.bucketName, meta.objectName) + File.separator + fileName), jsonString);
-			}
+
 		} catch (Exception e) {
 			throw new InternalCriticalException(e, "b:" + meta.bucketName + "o: + " + meta.objectName + " v: " + (version.isPresent()? String.valueOf(version.get()):"head"));
 		}
@@ -1276,33 +1265,6 @@ public class ODDrive extends ODModelObject implements Drive {
 			}
 		}
 	
-	/**
-	 * 
-	 * 
-	 */
-	protected void deleteObject(String bucketName, String objectName, boolean onlyMetadata) {
-
-		Check.requireNonNullStringArgument(bucketName, "bucketName is null");
-		Check.requireNonNullStringArgument(objectName, "objectName can not be null -> b:" + bucketName);
-		
-		
-		/** Delete Metadata directory */
-		File metaDir = new File (this.getObjectMetadataDirPath(bucketName, objectName));
-
-		if (metaDir.exists())
-			FileUtils.deleteQuietly(metaDir);
-		
-		if (onlyMetadata)
-			return;
-		
-		/** Deletes data object 
-		 *   TBA what to do with blocks raid 6
-		 * */
-		File data = new File (this.getRootDirPath(), bucketName + File.separator + objectName);
-		
-		if (data.exists()) 
-			FileUtils.deleteQuietly(data);
-	}
 
 	
 	private String getObjectMetadataFilePath(String bucketName, String objectName) {
@@ -1328,17 +1290,21 @@ public class ODDrive extends ODModelObject implements Drive {
 		Check.requireNonNullArgument(stream, "stream is null");
 		
 		if (!existBucketMetadataDir(bucketName))
-			  throw new IllegalArgumentException("Bucket Metadata Directory must exist -> d:" + getName() + " | dir:" + bucketName);
-		
+			  throw new IllegalArgumentException("Bucket Metadata Directory must exist -> d:" + getName() + " | b:" + bucketName);
 		try {
 			transferTo(stream, this.getBucketMetadataDirPath(bucketName) + File.separator + objectName + File.separator + objectName + ServerConstant.JSON);
 		}
 		 catch (Exception e) {
-			 String msg = 	"b:"  + (Optional.ofNullable(bucketName).isPresent()    ? (bucketName) 		:"null") + 
-					 		", o:" + (Optional.ofNullable(objectName).isPresent() ? (objectName)     	:"null") +
-					 		", d:" + (Optional.ofNullable(getName()).isPresent() ? (getName())  		:"null");
-			throw new InternalCriticalException(e,msg);
+			throw new InternalCriticalException(e,"b:" + bucketName + ", o:" +objectName + getName());
 		}
+	}
+
+	/** Delete Metadata directory */
+	@Override
+	public void deleteObjectMetadata(String bucketName, String objectName) {
+		Check.requireNonNullStringArgument(bucketName, "bucketName is null");
+		Check.requireNonNullStringArgument(objectName, "objectName can not be null -> b:" + bucketName);
+		FileUtils.deleteQuietly(new File (this.getObjectMetadataDirPath(bucketName, objectName)));
 	}
 
 

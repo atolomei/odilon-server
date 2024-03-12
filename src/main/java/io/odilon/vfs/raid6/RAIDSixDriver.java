@@ -64,10 +64,8 @@ import io.odilon.vfs.model.VFSObject;
 import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VFSop;
 import io.odilon.vfs.model.VirtualFileSystemService;
-import io.odilon.vfs.raid1.RAIDOneDriveSetup;
 
 /**
- * 
  * <p>The coding convention for RS blocks is:
  * <ul>
  * <li><b>objectName.[chunk#].[block#]</b></li>
@@ -95,10 +93,10 @@ import io.odilon.vfs.raid1.RAIDOneDriveSetup;
  * (data+parity) * (file_size / MAX_CHUNK_SIZE ) rounded to the following integer. Examples:
  *</p>
  *<p> 
- * File                                objectname  block#  .disk# <br/>
- * -------------------------------------------------------------  <br/>                                  
- * D:\odilon-data-raid6\drive0\bucket1\TOLOMEI     .0       .0    <br/>                                  
- * ------------------------------------------------------------- <br/>
+ * objectname.block#.disk# <br/>
+ * <br/>
+ * D:\odilon-data-raid6\drive0\bucket1\TOLOMEI.0.0 <br/>                                  
+ * _______________________________________________________________ <br/>
  * <br/>                                       
  * D:\odilon-data-raid6\drive0\bucket1\TOLOMEI.0.0 <br/>
  * D:\odilon-data-raid6\drive1\bucket1\TOLOMEI.1.0 <br/>
@@ -517,7 +515,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 	public void putObjectMetadata(ObjectMetadata meta) {
 		Check.requireNonNullArgument(meta, "meta is null");
 		RAIDSixUpdateObjectHandler updateAgent = new RAIDSixUpdateObjectHandler(this);
-		updateAgent.updateObjectMetadata(meta);
+		updateAgent.updateObjectMetadataHeadVersion(meta);
 		getVFS().getSystemMonitorService().getUpdateObjectCounter().inc();
 	}
 

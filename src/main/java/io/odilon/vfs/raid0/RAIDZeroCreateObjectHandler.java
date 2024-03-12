@@ -249,7 +249,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler implements RAID
 				meta.drive=drive.getName();
 				meta.raid=String.valueOf(getRedundancyLevel().getCode()).trim();
 				
-				drive.saveObjectMetadata(meta);
+				drive.saveObjectMetadata(meta, true);
 			
 		} catch (Exception e) {
 				throw new InternalCriticalException(e, "b:"  + bucket.getName() + ", o:" + objectName + ", f:" + srcFileName);

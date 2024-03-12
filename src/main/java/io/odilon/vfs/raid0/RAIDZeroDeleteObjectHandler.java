@@ -95,7 +95,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 			meta.addSystemTag("delete versions");
 			meta.lastModified = OffsetDateTime.now();
 
-			getDriver().getWriteDrive(meta.bucketName, meta.objectName).saveObjectMetadata(meta);
+			getDriver().getWriteDrive(meta.bucketName, meta.objectName).saveObjectMetadata(meta, true);
 			
 			getVFS().getObjectCacheService().remove(meta.bucketName, meta.objectName);
 			done=op.commit();
@@ -180,7 +180,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 			backupMetadata(meta.bucketName, meta.objectName);
 			
 			
-			drive.deleteObjectMetadata(bucket.getName(), objectName);
+			((SimpleDrive)drive).deleteObjectMetadata(bucket.getName(), objectName);
 			
 			getVFS().getObjectCacheService().remove(meta.bucketName, meta.objectName);
 			done=op.commit();

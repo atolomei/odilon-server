@@ -110,9 +110,9 @@ public interface Drive {
     public void markAsDeletedObject(String name, String objectName);
     public String getObjectMetadataDirPath(String bucketName, String objectName); 
     public ObjectMetadata getObjectMetadata(String bucketName, String objectName);
-	public void saveObjectMetadata(ObjectMetadata meta);
-	
+	public void saveObjectMetadata(ObjectMetadata meta, boolean isHead);
 	public void deleteObjectMetadata(String bucketName, String objectName);
+	
 	public File getObjectMetadataFile(String bucketName, String objectName);
 	public void putObjectMetadataFile(String bucketName, String objectName, File metaFile) throws IOException;;
 	 
@@ -120,9 +120,8 @@ public interface Drive {
 	 public ObjectMetadata getObjectMetadataVersion(String bucketName, String objectName, int version);
 	 public File getObjectMetadataVersionFile(String bucketName, String objectName, int version);
 	 public void putObjectMetadataVersionFile(String bucketName, String objectName, int version, File metaFile) throws IOException;
-	 public void saveObjectMetadata(ObjectMetadata meta, Optional<Integer> version); 
-	 String getCacheDirPath();
-	String getBucketCacheDirPath(String bucketName);
+	 public String getCacheDirPath();
+	 public String getBucketCacheDirPath(String bucketName);
 	
 	
 	

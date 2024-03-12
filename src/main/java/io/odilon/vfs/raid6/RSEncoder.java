@@ -16,6 +16,7 @@ import io.odilon.log.Logger;
 import io.odilon.model.ServerConstant;
 import io.odilon.util.Check;
 import io.odilon.vfs.model.Drive;
+import io.odilon.vfs.model.DriveStatus;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 public class RSEncoder {
@@ -35,32 +36,25 @@ public class RSEncoder {
 
     private RSFileBlocks encodedInfo;
     
-    List<Drive> zDrives;
+    private List<Drive> zDrives;
+    private Boolean onlyNotSync = Boolean.valueOf(false);
     
+
     
     protected RSEncoder(RAIDSixDriver driver) {
     	this(driver, null);
     }
+    
 	protected RSEncoder(RAIDSixDriver driver, List<Drive> udrives) {
 		
 		this.driver=driver;
-		
-		if (udrives==null)
-			zDrives = udrives;
-		else
-			zDrives=driver.getDrivesEnabled();
+		this.zDrives = (udrives!=null) ? udrives : driver.getDrivesEnabled();
 		
 		this.data_shards = getVFS().getServerSettings().getRAID6DataDrives();
 		this.partiy_shards = getVFS().getServerSettings().getRAID6ParityDrives();
 		this.total_shards = data_shards + partiy_shards;  
 		
 		
-		
-		if (!driver.isConfigurationValid(data_shards, partiy_shards))
-			throw new InternalCriticalException("Incorrect configuration for RAID 6 -> data: " + String.valueOf(data_shards) + " | parity:" + String.valueOf(partiy_shards));
-		
-		if (zDrives.size()<total_shards)
-			throw new InternalCriticalException("There are not enough drives to encode the file in RAID 6 -> " + String.valueOf(zDrives.size()) +" | required: " + String.valueOf(total_shards));
 	}
 	
 	
@@ -76,12 +70,17 @@ public class RSEncoder {
 		return encode(is, bucketName, objectName, Optional.empty());
 	}
 	
-	
 	public RSFileBlocks encode (InputStream is, String bucketName, String objectName, Optional<Integer> version) {
 		
 		Check.requireNonNull(is);
     	Check.requireNonNull(objectName);
-    	
+
+    	if (!driver.isConfigurationValid(data_shards, partiy_shards))
+			throw new InternalCriticalException("Incorrect configuration for RAID 6 -> data: " + String.valueOf(data_shards) + " | parity:" + String.valueOf(partiy_shards));
+		
+		if (getDrives().size()<total_shards)
+			throw new InternalCriticalException("There are not enough drives to encode the file in RAID 6 -> " + String.valueOf(getDrives().size()) +" | required: " + String.valueOf(total_shards));
+		
     	this.fileSize = 0;
     	this.chunk = 0;
     	this.encodedInfo = new RSFileBlocks();
@@ -148,7 +147,7 @@ public class RSEncoder {
         /** Use Reed-Solomon to calculate the parity. */
         ReedSolomon reedSolomon = new ReedSolomon(data_shards, partiy_shards);
         reedSolomon.encodeParity(shards, 0, shardSize);
-        
+
         /**
          * Write out the resulting files.
          * zDrives is DrivesEnabled normally, or DrivesAll when it 
@@ -156,22 +155,29 @@ public class RSEncoder {
          */
         for (int block = 0; block < total_shards; block++) {
 
-        	String dirPath = zDrives.get(block).getBucketObjectDataDirPath(bucketName) +( (o_version.isEmpty()) ? "" : (File.separator+VirtualFileSystemService.VERSION_DIR));
-        	String name = objectName+ "." + String.valueOf(chunk) +"." + String.valueOf(block) + (o_version.isEmpty()?"":"v."+ String.valueOf(o_version.get().intValue()));
-        	
-        	File outputFile = new File(dirPath, name);
-			try  (OutputStream out = new BufferedOutputStream(new FileOutputStream(outputFile))) {
-				out.write(shards[block]);
-	        } catch (FileNotFoundException e) {
-				throw new InternalCriticalException(e, "b:" +bucketName + ", o:" + objectName +" f: " + name);
-			} catch (IOException e) {
-				throw new InternalCriticalException(e, "b:" +bucketName + ", o:" + objectName +" f: " + name);
-			}
-			this.encodedInfo.encodedBlocks.add(outputFile);
+        	if (isWrite(block)) {
+	        	String dirPath = getDrives().get(block).getBucketObjectDataDirPath(bucketName)      + ((o_version.isEmpty()) ? "" : (File.separator + VirtualFileSystemService.VERSION_DIR));
+	        	String name = objectName+ "." + String.valueOf(chunk) +"." + String.valueOf(block)  + (o_version.isEmpty()   ? "" : "v." +  String.valueOf(o_version.get().intValue()));
+	        	
+	        	File outputFile = new File(dirPath, name);
+				try  (OutputStream out = new BufferedOutputStream(new FileOutputStream(outputFile))) {
+					out.write(shards[block]);
+		        } catch (FileNotFoundException e) {
+					throw new InternalCriticalException(e, "b:" +bucketName + ", o:" + objectName +" f: " + name);
+				} catch (IOException e) {
+					throw new InternalCriticalException(e, "b:" +bucketName + ", o:" + objectName +" f: " + name);
+				}
+				this.encodedInfo.encodedBlocks.add(outputFile);
+        	}
         }
 		return eof;
     }
     
+    
+	protected boolean isWrite(int disk) {
+		return true;
+	}
+
 	public RAIDSixDriver getDriver() {
 		return this.driver;
 	}
@@ -179,5 +185,10 @@ public class RSEncoder {
 	public VirtualFileSystemService getVFS() {
 		return this.driver.getVFS();
 	}
+	
+    protected List<Drive> getDrives() {
+    	return zDrives;
+    }
+
 	
 }

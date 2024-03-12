@@ -435,7 +435,7 @@ public class RAIDZeroDriveSetup implements IODriveSetup {
 													/** Metadata */													
 													ObjectMetadata meta = item.getObject();
 													meta.drive=newDrive.getName();
-													newDrive.saveObjectMetadata(meta);
+													newDrive.saveObjectMetadata(meta, true);
 													this.moved.getAndIncrement();
 											}
 										

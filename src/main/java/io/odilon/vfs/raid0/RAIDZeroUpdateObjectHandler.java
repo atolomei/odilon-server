@@ -524,7 +524,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 				meta.status=ObjectStatus.ENABLED;
 				meta.drive=drive.getName();
 				meta.raid=String.valueOf(getRedundancyLevel().getCode()).trim();
-				drive.saveObjectMetadata(meta);
+				drive.saveObjectMetadata(meta, true);
 			
 		} catch (Exception e) {
 				logger.error(e);
@@ -722,7 +722,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 	private void saveObjectMetadata(ObjectMetadata meta) {
 		Check.requireNonNullArgument(meta, "meta is null");
 		Drive drive=getWriteDrive(meta.bucketName, meta.objectName);
-		drive.saveObjectMetadata(meta);
+		drive.saveObjectMetadata(meta, true);
 	}
 
 	/**

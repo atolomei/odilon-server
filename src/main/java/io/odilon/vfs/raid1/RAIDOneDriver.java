@@ -744,7 +744,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 								goodDrive=drive;
 							
 							meta.integrityCheck=OffsetDateTime.now();
-							drive.saveObjectMetadata(meta);
+							drive.saveObjectMetadata(meta, true);
 							iCheck[n] = Boolean.valueOf(true);
 							
 						}
@@ -983,7 +983,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 							InputStream in = ((SimpleDrive) goodDrive).getObjectInputStream(bucketName, objectName);
 							destDrive.putObjectStream(bucketName, objectName, in);
 							goodDriveMeta.drive=destDrive.getName();
-							destDrive.saveObjectMetadata(goodDriveMeta);
+							destDrive.saveObjectMetadata(goodDriveMeta, true);
 							logger.debug("Fixed -> d: " + destDrive.getName() + " | b:"+ bucketName + " | o:" + objectName);
 						}
 						

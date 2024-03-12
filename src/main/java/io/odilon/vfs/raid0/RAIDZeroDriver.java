@@ -1284,7 +1284,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 			if (originalSha256 == null) {
 				metadata.integrityCheck = now;
 				getVFS().getObjectCacheService().remove(metadata.bucketName, metadata.objectName);
-				readDrive.saveObjectMetadata(metadata);
+				readDrive.saveObjectMetadata(metadata, true);
 				return true;
 			}
 
@@ -1301,7 +1301,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 
 			if (originalSha256.equals(sha256)) {
 				metadata.integrityCheck = now;
-				readDrive.saveObjectMetadata(metadata);
+				readDrive.saveObjectMetadata(metadata, true);
 				return true;
 			} else {
 				logger.error("Integrity Check failed for -> d: " + readDrive.getName() + " | b:" + bucketName + " | o:" + objectName + " | " + ServerConstant.NOT_THROWN);

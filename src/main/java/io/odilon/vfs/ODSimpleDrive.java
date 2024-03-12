@@ -9,6 +9,8 @@ import java.io.InputStream;
 import java.nio.file.Files;
 
 import javax.annotation.concurrent.NotThreadSafe;
+
+import org.apache.commons.io.FileUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
@@ -142,7 +144,7 @@ public class ODSimpleDrive extends ODDrive implements SimpleDrive {
 
 	@Override
 	public void deleteObject(String bucketName, String objectName) {
-		super.deleteObject(bucketName, objectName, false); 
+		deleteObject(bucketName, objectName, false); 
 	}
 	
 	
@@ -170,4 +172,29 @@ public class ODSimpleDrive extends ODDrive implements SimpleDrive {
 				logger.error(e.getClass().getName() + " getObjectDataVersionFile -> " + "b:" +  bucketName + ", o:" + objectName +", d:" + getName());			throw (e);
 		}
 	}
+	
+	/**
+	 * 
+	 * 
+	 */
+	protected void deleteObject(String bucketName, String objectName, boolean onlyMetadata) {
+	
+		Check.requireNonNullStringArgument(bucketName, "bucketName is null");
+		Check.requireNonNullStringArgument(objectName, "objectName can not be null -> b:" + bucketName);
+
+		super.deleteObjectMetadata(bucketName, objectName);
+		
+		
+		if (onlyMetadata)
+			return;
+		
+		/** Deletes data object 
+		 *   TBA what to do with blocks raid 6
+		 * */
+		File data = new File (this.getRootDirPath(), bucketName + File.separator + objectName);
+		FileUtils.deleteQuietly(data);
+		
+	}
+
+	
 }
