@@ -14,6 +14,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import io.odilon.log.Logger;
+import io.odilon.model.ServerConstant;
 import io.odilon.util.Check;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
@@ -95,7 +96,7 @@ public class StandardSchedulerWorker extends SchedulerWorker {
 			getServiceRequestQueue().remove(request);
 		
 		} catch (Exception e) {
-			logger.error(e);
+			logger.error(e, ServerConstant.NOT_THROWN);
 		}	
 	}
 	
@@ -114,7 +115,7 @@ public class StandardSchedulerWorker extends SchedulerWorker {
 			getServiceRequestQueue().remove(request);
 			
 		} catch (Exception e) {
-			logger.error(e);
+			logger.error(e, ServerConstant.NOT_THROWN);
 		}
 	}
 	
@@ -139,7 +140,7 @@ public class StandardSchedulerWorker extends SchedulerWorker {
 				}
 			
 		} catch (Exception e) {
-			logger.error(e);
+			logger.error(e, ServerConstant.NOT_THROWN);
 		}
 	}
 

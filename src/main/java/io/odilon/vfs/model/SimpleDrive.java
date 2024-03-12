@@ -12,7 +12,7 @@ public interface SimpleDrive extends Drive {
 	public File putObjectStream(String bucketName, String objectName, InputStream stream) throws IOException;
 	public void putObjectDataFile(String bucketName, String objectName, File objectFile) throws IOException;
 	public void putObjectDataVersionFile(String bucketName, String objectName, int version, File objectFile) throws IOException;
-	public void deleteObject(String bucketName, String objectName);
+
 	public void deleteObjectMetadata(String bucketName, String objectName);
 	
 	public File getObjectDataFile(String bucketName, String objectName);
@@ -28,3 +28,6 @@ public interface SimpleDrive extends Drive {
 		
 	
 }
+
+
+//public void deleteObject(String bucketName, String objectName);

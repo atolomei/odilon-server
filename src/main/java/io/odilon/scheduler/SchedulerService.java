@@ -29,6 +29,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import io.odilon.log.Logger;
 import io.odilon.model.BaseService;
+import io.odilon.model.ServerConstant;
 import io.odilon.model.ServiceStatus;
 import io.odilon.monitor.SystemMonitorService;
 import io.odilon.service.ServerSettings;
@@ -37,6 +38,11 @@ import io.odilon.util.Check;
 import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
+/**
+ * 
+ *  
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 @Service
 public class SchedulerService extends BaseService implements SystemService, ApplicationContextAware {
 			
@@ -60,12 +66,18 @@ public class SchedulerService extends BaseService implements SystemService, Appl
 	@Autowired
 	private ApplicationContext applicationContext;
 
+	/** blocking semantics.
+	 * Standard local. CRUD operations after the TRX is commited  */
+	@JsonIgnore
+	private StandardSchedulerWorker standardSchedulerWorker;
+
+	/** non blocking semantics */
 	@JsonIgnore
 	private SchedulerWorker cronjobsWorker;
 	
-	@JsonIgnore
-	private StandardSchedulerWorker standardSchedulerWorker;
-	
+	/** non blocking semantics. 
+	 * It will not be started if there is no Standby server connected.  
+	 * */
 	@JsonIgnore
 	private StandByReplicaSchedulerWorker replicaWorker;
 
@@ -75,6 +87,11 @@ public class SchedulerService extends BaseService implements SystemService, Appl
 		this.monitoringService=montoringService;
 	}
 
+	/**
+	 * 
+	 * @param request
+	 * @return
+	 */
 	public Serializable enqueue(ServiceRequest request) {
 
 		Check.requireNonNullArgument(request, "request is null");
@@ -100,7 +117,7 @@ public class SchedulerService extends BaseService implements SystemService, Appl
 			}
 		}
 		else 
-			logger.error("invalid " + ServiceRequest.class.getSimpleName() + " of class -> " + request.getClass().getName());
+			logger.error("invalid " + ServiceRequest.class.getSimpleName() + " of class -> " + request.getClass().getName() + ServerConstant.NOT_THROWN);
 		
 		return request.getId();
 	}
@@ -137,7 +154,6 @@ public class SchedulerService extends BaseService implements SystemService, Appl
 		}
 		catch (Exception e) {
 			setStatus(ServiceStatus.STOPPED);
-			logger.error(e);
 			throw(e);
 		}
 	}
@@ -234,7 +250,6 @@ public class SchedulerService extends BaseService implements SystemService, Appl
 	protected void setStandardWorker(StandardSchedulerWorker worker) {
 		this.standardSchedulerWorker = worker;
 	}
-
 	
 	protected StandByReplicaSchedulerWorker getReplicaWorker() {
 		return replicaWorker;
@@ -243,8 +258,5 @@ public class SchedulerService extends BaseService implements SystemService, Appl
 	protected void setReplicaWorker(StandByReplicaSchedulerWorker replicaWorker) {
 		this.replicaWorker = replicaWorker;
 	}
-
-
-	
 
 }

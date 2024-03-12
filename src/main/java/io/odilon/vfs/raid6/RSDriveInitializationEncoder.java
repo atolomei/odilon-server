@@ -25,9 +25,9 @@ import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.DriveStatus;
 
 /**
- * <p>The difference between this encoder and the standard {@link RSEncoder} 
- * is that this one only saves the RS Blocks that go to the newly added disks 
- * (ie. blocks on enabled Drives are not touched).
+ * <p>The difference between {@code RSDriveInitializationEncoder} and the standard {@link RSEncoder} 
+ * is that this one only saves the RS Blocks that go to the newly added disks (ie. blocks on enabled 
+ * Drives are not touched).
  * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
