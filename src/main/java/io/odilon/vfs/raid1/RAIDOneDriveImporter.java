@@ -53,6 +53,15 @@ import io.odilon.vfs.model.SimpleDrive;
 import io.odilon.vfs.model.VFSBucket;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
+
+/**
+ * <p>Async process that replicates into the new Drive/s, 
+ * all Objects created before the drive/s is/are connected.</p>
+ * 
+ * @see {@link RAIDOneDriveImporter}
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 @Component
 @Scope("prototype")
 public class RAIDOneDriveImporter implements Runnable {
@@ -158,7 +167,7 @@ public class RAIDOneDriveImporter implements Runnable {
 			
 			executor = Executors.newFixedThreadPool(maxProcessingThread);
 			
-			for (VFSBucket bucket: this.driver.getVFS().listAllBuckets()) {
+			for (VFSBucket bucket: this.getDriver().getVFS().listAllBuckets()) {
 				
 				Integer pageSize = Integer.valueOf(ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE);
 				Long offset = Long.valueOf(0);
@@ -199,65 +208,70 @@ public class RAIDOneDriveImporter implements Runnable {
 										
 											try {
 												getLockService().getObjectLock(item.getObject().bucketName, item.getObject().objectName).writeLock().lock();
-												getLockService().getBucketLock(item.getObject().bucketName).readLock().lock();
 												
-												
-												/** PREVIOUS VERSIONS --------------------------------------------------------- */
-												
-												if (getDriver().getVFS().getServerSettings().isVersionControl()) {
-													for (int n=0; n<item.getObject().version; n++) {
-														// move Meta Version
-														File meta_version_n=enabledDrive.getObjectMetadataVersionFile(item.getObject().bucketName, item.getObject().objectName, n);
-														if (meta_version_n.exists()) {
-															drive.putObjectMetadataVersionFile(item.getObject().bucketName, item.getObject().objectName, n, meta_version_n);
-														}
-														// move Data Version
-														File version_n= ((SimpleDrive) enabledDrive).getObjectDataVersionFile(item.getObject().bucketName, item.getObject().objectName, n);
-														if (version_n.exists()) {
-															((SimpleDrive) drive).putObjectDataVersionFile(item.getObject().bucketName, item.getObject().objectName, n, version_n);
+												try {
+													
+													getLockService().getBucketLock(item.getObject().bucketName).readLock().lock();
+													
+													/** PREVIOUS VERSIONS --------------------------------------------------------- */
+													
+													if (getDriver().getVFS().getServerSettings().isVersionControl()) {
+
+														
+														for (int version=0; version<item.getObject().version; version++) {
+															// duplicate Meta Version
+															File meta_version_n=enabledDrive.getObjectMetadataVersionFile(item.getObject().bucketName, item.getObject().objectName, version);
+															if (meta_version_n.exists()) {
+																drive.putObjectMetadataVersionFile(item.getObject().bucketName, item.getObject().objectName, version, meta_version_n);
+															}
+															// duplicate Data Version
+															File version_n = ((SimpleDrive) enabledDrive).getObjectDataVersionFile(item.getObject().bucketName, item.getObject().objectName, version);
+															if (version_n.exists()) {
+																((SimpleDrive) drive).putObjectDataVersionFile(item.getObject().bucketName, item.getObject().objectName, version, version_n);
+															}
 														}
 													}
-												}
-												
-												/** HEAD VERSION --------------------------------------------------------- */
-												
-												File newmeta = drive.getObjectMetadataFile(item.getObject().bucketName, item.getObject().objectName);
-												
-												if (!newmeta.exists()) {
-														InputStream is = null;
-														BufferedOutputStream out = null;
-														// data ----
-														try {
+													
+													/** HEAD VERSION --------------------------------------------------------- */
+													
+													File newmeta = drive.getObjectMetadataFile(item.getObject().bucketName, item.getObject().objectName);
+													
+													// If ObjectMetadata exists -> the file was already synced, skip
+													
+													if (!newmeta.exists()) {
+														
+															// duplicate data ----
 															File dataFile = ((SimpleDrive) enabledDrive).getObjectDataFile(item.getObject().bucketName, item.getObject().objectName);
-															is = new BufferedInputStream( new FileInputStream(dataFile));
-															byte[] buf = new byte[ VirtualFileSystemService.BUFFER_SIZE ];
-															String sPath = ((SimpleDrive) drive).getObjectDataFilePath(bucket.getName(), item.getObject().objectName);
-															out = new BufferedOutputStream(new FileOutputStream(sPath), VirtualFileSystemService.BUFFER_SIZE);
-															int bytesRead;
-															while ((bytesRead = is.read(buf, 0, buf.length)) >= 0) {
-																out.write(buf, 0, bytesRead);
+
+															try (InputStream is = new BufferedInputStream( new FileInputStream(dataFile))) {
+															
+																byte[] buf = new byte[ VirtualFileSystemService.BUFFER_SIZE ];
+																String sPath = ((SimpleDrive) drive).getObjectDataFilePath(bucket.getName(), item.getObject().objectName);
+															
+																try (BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(sPath), VirtualFileSystemService.BUFFER_SIZE)) {
+																	int bytesRead;
+																	while ((bytesRead = is.read(buf, 0, buf.length)) >= 0) {
+																		out.write(buf, 0, bytesRead);
+																	}
+																	this.totalBytes.addAndGet(dataFile.length());
+																} 
 															}
-															this.totalBytes.addAndGet(dataFile.length());
-														} finally {
-															if (is!=null)
-																is.close();
-															if (out!=null)
-																out.close();
-														}
-														// metadata ----
-														ObjectMetadata meta = item.getObject();
-														meta.drive=drive.getName();
-														drive.saveObjectMetadata(meta, true);
-														this.copied.getAndIncrement();
+															// metadata ----
+															ObjectMetadata meta = item.getObject();
+															meta.drive=drive.getName();
+															drive.saveObjectMetadata(meta);
+															this.copied.getAndIncrement();
+													}
+													
+												} catch (Exception e) {
+													logger.error(e);
+													this.errors.getAndIncrement();
 												}
-												
-											} catch (Exception e) {
-												logger.error(e);
-												this.errors.getAndIncrement();
-											}
-											finally {
-												getLockService().getBucketLock(item.getObject().bucketName).readLock().unlock();
-												getLockService().getObjectLock(item.getObject().bucketName, item.getObject().objectName).writeLock().unlock();
+												finally {
+													getLockService().getBucketLock(item.getObject().bucketName).readLock().unlock();
+												}
+											} finally {
+												getLockService().getObjectLock(item.getObject().bucketName, item.getObject().objectName).writeLock().unlock();	
 											}
 										}
 									}
@@ -266,7 +280,7 @@ public class RAIDOneDriveImporter implements Runnable {
 									this.notAvailable.getAndIncrement();
 								}
 							} catch (Exception e) {
-								logger.error(e);
+								logger.error(e, ServerConstant.NOT_THROWN);
 								this.errors.getAndIncrement();
 							}
 							return null;
@@ -277,7 +291,7 @@ public class RAIDOneDriveImporter implements Runnable {
 						executor.invokeAll(tasks, 10, TimeUnit.MINUTES);
 						
 					} catch (InterruptedException e) {
-						logger.error(e);
+						logger.error(e, ServerConstant.NOT_THROWN);
 					}
 					
 					offset += Long.valueOf(Integer.valueOf(data.getList().size()).longValue());

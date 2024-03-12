@@ -286,7 +286,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 				meta.status=ObjectStatus.ENABLED;
 				meta.drive=drive.getName();
 				meta.raid=String.valueOf(getRedundancyLevel().getCode()).trim();
-				drive.saveObjectMetadata(meta, true);
+				drive.saveObjectMetadata(meta);
 	
 			} catch (Exception e) {
 				throw new InternalCriticalException(e, "b:"+ bucket.getName() + " o:" + objectName+", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null"));

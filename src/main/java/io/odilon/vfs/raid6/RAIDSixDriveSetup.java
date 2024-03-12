@@ -16,6 +16,7 @@
  */
 package io.odilon.vfs.raid6;
 
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,7 +42,6 @@ import io.odilon.vfs.model.DriveStatus;
 import io.odilon.vfs.model.IODriveSetup;
 import io.odilon.vfs.model.VFSBucket;
 import io.odilon.vfs.model.VirtualFileSystemService;
-import io.odilon.vfs.raid1.RAIDOneDriveImporter;
 
 /**
  * <p>Set up a new <b>Drive</b> added to the odilon.properties file</p>

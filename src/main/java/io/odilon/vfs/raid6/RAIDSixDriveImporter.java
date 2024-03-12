@@ -1,3 +1,20 @@
+/*
+ * Odilon Object Storage
+ * (C) Novamens 
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package io.odilon.vfs.raid6;
 
 import java.io.BufferedInputStream;
@@ -39,6 +56,13 @@ import io.odilon.vfs.model.LockService;
 import io.odilon.vfs.model.VFSBucket;
 import io.odilon.vfs.raid1.RAIDOneDriveImporter;
 
+
+/**
+ * <p>
+ * 
+ * </p>
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 @Component
 @Scope("prototype")
 public class RAIDSixDriveImporter implements Runnable {
@@ -46,6 +70,9 @@ public class RAIDSixDriveImporter implements Runnable {
 	static private Logger logger = Logger.getLogger(RAIDOneDriveImporter.class.getName());
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 
+	@JsonIgnore
+	private List<Drive> drives = new ArrayList<Drive>();
+	
 	@JsonIgnore
 	private AtomicBoolean bucketsCreated = new AtomicBoolean(false);
 
@@ -82,6 +109,7 @@ public class RAIDSixDriveImporter implements Runnable {
 	@JsonIgnore
 	private LockService vfsLockService;
 	
+	
 	public RAIDSixDriveImporter(RAIDSixDriver driver) {
 		this.driver=driver;
 		this.vfsLockService = this.driver.getLockService();
@@ -116,10 +144,6 @@ public class RAIDSixDriveImporter implements Runnable {
 		this.done = new AtomicBoolean(true);
 	}
 	
-	private List<Drive> zDrives = new ArrayList<Drive>();
-	
-	
-	
 	
 	/**
 	 * 
@@ -132,11 +156,7 @@ public class RAIDSixDriveImporter implements Runnable {
 		this.thread.start();
 	}
 
-	
-	
-	
 	/**
-	 * 
 	 */
 	private void encode() {
 		
@@ -144,15 +164,18 @@ public class RAIDSixDriveImporter implements Runnable {
 		
 		final int maxProcessingThread = Double.valueOf(Double.valueOf(Runtime.getRuntime().availableProcessors()-1) / 2.0 ).intValue() + 1;
 		
-		getDriver().getDrivesAll().forEach( d -> zDrives.add(d));
-		this.zDrives.sort( new Comparator<Drive>() {
+		getDriver().getDrivesAll().forEach( d -> drives.add(d));
+		this.drives.sort( new Comparator<Drive>() {
 			@Override
 			public int compare(Drive o1, Drive o2) {
-				return o1.getDriveInfo().getOrder()<o2.getDriveInfo().getOrder()?-1:1;
+				try {
+					return o1.getDriveInfo().getOrder()<o2.getDriveInfo().getOrder()?-1:1;
+				} catch (Exception e) {
+					return 0;
+				}
 			}
 		});
 		
-
 		ExecutorService executor = null;
 
 		try {
@@ -203,7 +226,7 @@ public class RAIDSixDriveImporter implements Runnable {
 								
 								if (item.isOk()) {
 									if (item.getObject().lastModified.isBefore(dateConnected)) {
-										encode(item);
+										encodeItem(item);
 									}
 								}
 								else {
@@ -257,7 +280,12 @@ public class RAIDSixDriveImporter implements Runnable {
 	}
 
 	
-	private void encode(Item<ObjectMetadata> item) {
+	/**
+	 * <p>Encode all versions of the Object</p>
+	 * 
+	 * @param item
+	 */
+	private void encodeItem(Item<ObjectMetadata> item) {
 		
 		try {
 		
@@ -288,9 +316,10 @@ public class RAIDSixDriveImporter implements Runnable {
 				// TODO VER AT
 				meta.dateSynced=OffsetDateTime.now();
 				for (Drive drive: getDrives()) {
-						drive.saveObjectMetadata(meta, true);
+						drive.saveObjectMetadata(meta);
 				}
 			}
+			
 			/** PREVIOUS VERSIONS --------------------------------------------------------- */
 				
 			if (getDriver().getVFS().getServerSettings().isVersionControl()) {
@@ -318,7 +347,7 @@ public class RAIDSixDriveImporter implements Runnable {
 					
 					// TODO VER AT (TRX)
 					for (Drive drive: getDrives()) {
-						drive.saveObjectMetadata(versionMeta, false);
+						drive.saveObjectMetadataVersion(versionMeta);
 					}
 				}
 
@@ -344,7 +373,7 @@ public class RAIDSixDriveImporter implements Runnable {
 	}
 
 	protected List<Drive> getDrives() {
-		return zDrives;
+		return drives;
 	}
 	
 	

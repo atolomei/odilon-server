@@ -187,7 +187,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 			meta.lastModified = OffsetDateTime.now();
 									
 			for (Drive drive: getDriver().getDrivesEnabled())
-				drive.saveObjectMetadata(meta, true);
+				drive.saveObjectMetadata(meta);
 			
 			getVFS().getObjectCacheService().remove(bucket.getName(), meta.objectName);
 			done=op.commit();

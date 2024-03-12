@@ -1,3 +1,20 @@
+/*
+ * Odilon Object Storage
+ * (C) Novamens 
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package io.odilon.vfs.raid6;
 
 import java.io.Closeable;
@@ -41,7 +58,7 @@ public class RAIDSixBucketIterator extends BucketIterator implements Closeable {
 	private String prefix = null;
 	
 	@JsonProperty("drive")
-	private Drive drive;
+	private final Drive drive;
 	
 	@JsonProperty("cumulativeIndex")		
 	private long cumulativeIndex = 0;
@@ -65,12 +82,15 @@ public class RAIDSixBucketIterator extends BucketIterator implements Closeable {
 	@JsonIgnore
 	RAIDSixDriver driver;
 				
+	
 	public RAIDSixBucketIterator(RAIDSixDriver driver, String bucketName, Optional<Long> opOffset,  Optional<String> opPrefix) {
 		super(bucketName);
 		opPrefix.ifPresent( x -> this.prefix=x.toLowerCase().trim());
 		opOffset.ifPresent( x -> setOffset(x));
 		this.driver = driver;
-		this.drive  = driver.getDrivesEnabled().get(Double.valueOf(Math.abs(Math.random()*10000)).intValue() % driver.getDrivesEnabled().size());
+		
+		/** must use DrivesEnabled */
+		this.drive  = driver.getDrivesEnabled().get(Double.valueOf(Math.abs(Math.random()*1000)).intValue() % driver.getDrivesEnabled().size());
 	}
 	
 	
@@ -128,7 +148,7 @@ public class RAIDSixBucketIterator extends BucketIterator implements Closeable {
 	
 	private void init() {
 		
-		Path start = new File(this.drive.getBucketMetadataDirPath(getBucketName())).toPath();
+		Path start = new File(getDrive().getBucketMetadataDirPath(getBucketName())).toPath();
 		try {
 			this.stream = Files.walk(start, 1).skip(1).
 					filter(file -> Files.isDirectory(file)).
@@ -197,4 +217,9 @@ public class RAIDSixBucketIterator extends BucketIterator implements Closeable {
 		return driver;
 	}
 
+	private Drive getDrive() {
+		return this.drive;
+	}
+
+	
 }

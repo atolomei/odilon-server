@@ -507,7 +507,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 	private void saveObjectMetadata(ObjectMetadata meta) {
 		Check.requireNonNullArgument(meta, "meta is null");
 		for (Drive drive: getDriver().getDrivesAll()) {
-			drive.saveObjectMetadata(meta, true);
+			drive.saveObjectMetadata(meta);
 		}
 	}
 	
@@ -558,7 +558,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 						meta.status=ObjectStatus.ENABLED;
 						meta.drive=drive.getName();
 						meta.raid=String.valueOf(getRedundancyLevel().getCode()).trim();
-						drive.saveObjectMetadata(meta, true);
+						drive.saveObjectMetadata(meta);
 					} catch (Exception e) {
 						String msg =  	"b:"   + (Optional.ofNullable(bucket).isPresent()    ? (bucket.getName()) :"null") + 
 										", o:" + (Optional.ofNullable(objectName).isPresent() ? (objectName)       :"null") +  
