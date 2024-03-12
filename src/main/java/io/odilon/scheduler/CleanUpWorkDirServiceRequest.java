@@ -15,6 +15,8 @@ import io.odilon.vfs.model.VFSOperation;
 * <p>NOT USED YET</p>
 * 
 * @see {@link RAIDZeroUpdateObjectHandler}, {@link RAIDOneUpdateObjectHandler}
+* 
+* @author atolomei@novamens.com (Alejandro Tolomei) 
 */
 
 @Component

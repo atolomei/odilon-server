@@ -30,6 +30,8 @@ import io.odilon.log.Logger;
  * </p>
  * 
  * @see {@link RAIDZeroUpdateObjectHandler}, {@link RAIDOneUpdateObjectHandler}
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei) 
  */
 @Component
 @Scope("prototype")

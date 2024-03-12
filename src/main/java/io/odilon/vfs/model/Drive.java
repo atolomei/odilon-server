@@ -67,8 +67,12 @@ public interface Drive {
 	public String getRootDirPath();
 	public String getSysDirPath();
 	public String getBucketsDirPath();
-
+	public String getCacheDirPath();
+	public String getBucketCacheDirPath(String bucketName);
+	
 	public String getWorkDirPath();
+	public String getBucketWorkDirPath(String bucketName);
+	
 	String getJournalDirPath();
 	String getTempDirPath();
 	public String getSchedulerDirPath();
@@ -92,51 +96,38 @@ public interface Drive {
 	/** -----------------
 	 * Bucket
 	 ------------------*/
-	public File createBucket(String bucketName, BucketMetadata meta) throws IOException; 	
-	public boolean existsBucket(String bucketName);
-	public void deleteBucket(String bucketName); 											
-	public List<DriveBucket> getBuckets();
-	public void markAsDeletedBucket(String bucketName);
-	public void markAsEnabledBucket(String bucketName);
-	public boolean isEmpty(String bucketName); 												
-	public String getBucketMetadataDirPath(String bucketName);
-	public String getBucketObjectDataDirPath(String bucketName);
-	public String getBucketWorkDirPath(String bucketName);
-
-	/** -----------------
-	 *  ObjectMetadata 
-		------------------*/
-    public boolean existsObjectMetadata(String bucketName, String objectName);
-    public void markAsDeletedObject(String name, String objectName);
-    public String getObjectMetadataDirPath(String bucketName, String objectName); 
-    public ObjectMetadata getObjectMetadata(String bucketName, String objectName);
-	public void saveObjectMetadata(ObjectMetadata meta, boolean isHead);
-	public void deleteObjectMetadata(String bucketName, String objectName);
+	public File 				createBucket(String bucketName, BucketMetadata meta) throws IOException; 	
+	public boolean 				existsBucket(String bucketName);
+	public void 				deleteBucket(String bucketName); 											
+	public List<DriveBucket> 	getBuckets();
+	public void 				markAsDeletedBucket(String bucketName);
+	public void 				markAsEnabledBucket(String bucketName);
+	public boolean 				isEmpty(String bucketName); 												
+	public String 				getBucketMetadataDirPath(String bucketName);
+	public String 				getBucketObjectDataDirPath(String bucketName);
 	
-	public File getObjectMetadataFile(String bucketName, String objectName);
-	public void putObjectMetadataFile(String bucketName, String objectName, File metaFile) throws IOException;;
+
+	/** ----------------------
+	 *  ObjectMetadata (head)
+		----------------------*/
+    public boolean existsObjectMetadata		(String bucketName, String objectName);
+    public void markAsDeletedObject			(String name, String objectName);
+    public String getObjectMetadataDirPath	(String bucketName, String objectName); 
+    public ObjectMetadata getObjectMetadata	(String bucketName, String objectName);
+	
+	public void deleteObjectMetadata		(String bucketName, String objectName);
+	
+	public void saveObjectMetadata			(ObjectMetadata meta);
+	public File getObjectMetadataFile		(String bucketName, String objectName);
+	public void putObjectMetadataFile		(String bucketName, String objectName, File metaFile) throws IOException;;
 	 
 	 /** ObjectMetadata. Version ---*/
-	 public ObjectMetadata getObjectMetadataVersion(String bucketName, String objectName, int version);
-	 public File getObjectMetadataVersionFile(String bucketName, String objectName, int version);
-	 public void putObjectMetadataVersionFile(String bucketName, String objectName, int version, File metaFile) throws IOException;
-	 public String getCacheDirPath();
-	 public String getBucketCacheDirPath(String bucketName);
-	
-	
-	
-	
-	/** Object. Data File Version */
-	/** ----------------
-  	* Object. Data File
-     public void deleteObject(String bucketName, String objectName); // TBA
-     public InputStream getObjectInputStream	(String bucketName, String objectName);
-     public File putObjectStream				(String bucketName, String objectName, InputStream stream) throws IOException;
-     public void putObjectDataFile				(String bucketName, String objectName, File objectFile) throws IOException;
-	 public File getObjectDataFile				(String bucketName, String objectName);
-	 public File getObjectDataVersionFile		(String bucketName, String objectName, int version);
-     public void putObjectDataVersionFile		(String bucketName, String objectName, int version, File objectFile) throws IOException;
-     ------------------*/
+	public void saveObjectMetadataVersion			(ObjectMetadata meta);
+	public ObjectMetadata getObjectMetadataVersion	(String bucketName, String objectName, int version);
+	 public File getObjectMetadataVersionFile		(String bucketName, String objectName, int version);
+	 public void putObjectMetadataVersionFile		(String bucketName, String objectName, int version, File metaFile) throws IOException;
+	 
+	 
 	
 	
 }	

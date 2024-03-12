@@ -30,26 +30,25 @@ import io.odilon.vfs.model.VFSop;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
+ * <p>ServiceRequest executed Async after a 
+ * {@code VFSop.DELETE_OBJECT} or {@code VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS}</p>  
  * 
- * 
- * <p>ServiceRequest executed Async after a {@code VFSop.DELETE_OBJECT} or {@code VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS}</p>  
- * 
- * 
- * <h3>VFSop.DELETE_OBJECT</h3>
+ * <b>VFSop.DELETE_OBJECT</b>
  * <p>Cleans up all previous versions of an {@link VFSObject} (ObjectMetadata and Data).<br/>
  * Delete backup directory. <br/>
  * This request is executed Async after the delete transaction commited.</p>
  *	 
- * <h3>VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS</h3>
+ * <b>VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS</b>
  * <p>Cleans up all previous versions of an {@link VFSObject} (ObjectMetadata and Data), but keeps the head version.<br/>
  * Delete backup directory. <br/>
  * This request is executed Async after the delete transaction commited.</p>
  *
- * <h3>RETRIES</h3>
+ * <b>RETRIES</b>
  * <p>if the request can not complete due to serious system issue, the request is discarded after 5 attemps. 
  * The clean up process will be executed after next system startup</p>
  * 
  * @see {@link RAIDZeroDeleteObjectHandler}, {@link RAIDOneDeleteObjectHandler} 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
   */
 @Component
 @Scope("prototype")
@@ -60,11 +59,8 @@ public class AfterDeleteObjectServiceRequest extends AbstractServiceRequest impl
 	
 	private static final long serialVersionUID = 1L;
  
-	
-
 	@JsonProperty("meta")
 	ObjectMetadata meta;
-
 	
 	@JsonProperty("headVersion")
 	int headVersion=0;
@@ -99,7 +95,6 @@ public class AfterDeleteObjectServiceRequest extends AbstractServiceRequest impl
 	@Override
 	public void execute() {
 		try {
-
 			setStatus(ServiceRequestStatus.RUNNING);
 			clean();
 			isSuccess=true;
@@ -139,9 +134,8 @@ public class AfterDeleteObjectServiceRequest extends AbstractServiceRequest impl
 			
 		else if (this.vfsop==VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS) 
 				vfs.createVFSIODriver().postObjectPreviousVersionDeleteAllTransaction(meta, headVersion);
-			
 		else
-			logger.error("Invalid Class -> " + this.vfsop.getName());
+			logger.error("Invalid " + VFSop.class.getName() + " -> " + this.vfsop.getName(), ServerConstant.NOT_THROWN);
 	}
 
 }

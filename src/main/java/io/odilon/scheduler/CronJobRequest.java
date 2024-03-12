@@ -31,6 +31,12 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import io.odilon.errors.InternalCriticalException;
 
+/**
+ * 
+ * <p>{@link ServiceRequest} that executes regularly based on a {@link CronExpressionJ8}</p>
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 @Component
 @Scope("prototype")
 public abstract class CronJobRequest extends AbstractServiceRequest {
@@ -52,6 +58,7 @@ public abstract class CronJobRequest extends AbstractServiceRequest {
 	private boolean enabled = true;
 	
 	private CronExpressionJ8 cron_expression;
+	
 	
 	public CronJobRequest() {
 		super();
@@ -78,12 +85,8 @@ public abstract class CronJobRequest extends AbstractServiceRequest {
 	}
 	
 	public ZonedDateTime getTime() {
-		if (this.ztime==null) {
-			if (getTimeZone()==null)
-				this.ztime = getCronExpression().nextTimeAfter(ZonedDateTime.now());
-			else
-				this.ztime = getCronExpression().nextTimeAfter(ZonedDateTime.now(ZoneId.of(getTimeZone())));			
-	}
+		if (this.ztime==null) 
+			this.ztime = getCronExpression().nextTimeAfter((getTimeZone()==null) ? ZonedDateTime.now() : ZonedDateTime.now(ZoneId.of(getTimeZone())));
 		return this.ztime;
 	}
 	

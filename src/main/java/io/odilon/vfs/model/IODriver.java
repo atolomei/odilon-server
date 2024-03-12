@@ -133,9 +133,12 @@ public interface IODriver {
 	 * 
 	 * 
 	 */
+	
+	
 	/**
 	 * 
 	 */
+	public void syncObject(String bucketName, String objectName);
 	
 
 	

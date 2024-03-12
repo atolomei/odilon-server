@@ -32,6 +32,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import io.odilon.log.Logger;
+import io.odilon.model.ServerConstant;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.VFSBucket;
 import io.odilon.vfs.model.VirtualFileSystemService;
@@ -39,6 +40,8 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
  * <p>removes work files older than {@link CronJobWorkDirCleanUpRequest#LAPSE_HOURS LAPSE_HOURS}.</p>
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @Component
 @Scope("prototype")
@@ -110,7 +113,7 @@ public class CronJobWorkDirCleanUpRequest extends CronJobRequest {
 			isSuccess = true;
 
 		} catch (Exception e) {
-			logger.error(e);
+			logger.error(e, ServerConstant.NOT_THROWN);
 		} finally {
 			setStatus(ServiceRequestStatus.COMPLETED);
 		}

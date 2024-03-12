@@ -24,6 +24,11 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 
+
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public class CronExpressionDeserializer extends StdDeserializer<CronExpressionJ8>  {
 
 	private static final long serialVersionUID = 1L;
@@ -48,16 +53,5 @@ public class CronExpressionDeserializer extends StdDeserializer<CronExpressionJ8
 }
 
 
-/**
-Integer id = (Integer) ((IntNode) node.get("id")).numberValue();
-String timestamp = node.get("timestamp").asText();
-ArchiveStatus status = new ArchiveStatus(false);
-if(node.get("status") != null) {
-  String active = node.get("status").asText();
-  if("active".equalsIgnoreCase(active)) {
-    status.setActive(true);
-  }
-}
-return new Record(id.longValue(), message, ZonedDateTime.parse(timestamp, dtf), status);
-**/
+
 
