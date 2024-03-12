@@ -97,8 +97,12 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
 		serverAgentId.ifPresent( x -> setAgentId(x));
 		opPrefix.ifPresent( x -> this.prefix=x);
 		this.driver = driver;
+		
+		/** after the VirtualFileService starts up
+		 * all drives are in state {@link DriveStatus.ENABLED} in RAID 0 */
 		this.drives = new ArrayList<Drive>();
 		this.drives.addAll(driver.getDrivesEnabled());
+		
 		this.streamMap = new HashMap<Drive, Stream<Path>>();
 		this.itMap = new HashMap<Drive, Iterator<Path>>();
 	}
@@ -155,10 +159,22 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
 	}
 	
 	/**
+	 * <p>There are no Drives in mode DriveStatus.NOTSYNC in RAID 0. 
+	 * All new drives are synced before the VirtualFileSystemService 
+	 * completes its initialization. </p>
+	 *  
+	 * @return
+	 */
+	protected List<Drive> getDrives() {
+		return this.drives;
+	}
+
+	
+	/**
 	 * 
 	 */
 	private void init() {
-		for (Drive drive: this.drives) {
+		for (Drive drive: getDrives()) {
 			Path start = new File(drive.getBucketMetadataDirPath(getBucketName())).toPath();
 			Stream<Path> stream = null;
 			try {
@@ -196,7 +212,7 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
 
 			boolean isItems = false;
 			{
-				for (Drive drive: this.drives) {
+				for (Drive drive: this.getDrives()) {
 					if (this.itMap.get(drive).hasNext()) {
 						isItems = true;
 						break;
@@ -208,8 +224,8 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
 			
 			while (isItems && skipped<getOffset()) {
 				int d_index = 0;
-				int d_poll = d_index++ % this.drives.size();
-				Drive drive = this.drives.get(d_poll);
+				int d_poll = d_index++ % this.getDrives().size();
+				Drive drive = this.getDrives().get(d_poll);
 				Iterator<Path> iterator = itMap.get(drive);
 				if (iterator.hasNext()) {
 					iterator.next();
@@ -219,8 +235,8 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
 					// drive has no more items
 					this.streamMap.get(drive).close();
 					this.itMap.remove(drive);
-					this.drives.remove(d_poll);
-					isItems = !this.drives.isEmpty();
+					this.getDrives().remove(d_poll);
+					isItems = !this.getDrives().isEmpty();
 				}
 			}
 	}
@@ -235,11 +251,11 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
 		
 		boolean isItems = false;
 
-		if (this.drives.isEmpty())
+		if (this.getDrives().isEmpty())
 			return false;
 		
 		{
-			for (Drive drive: this.drives) {
+			for (Drive drive: this.getDrives()) {
 				if (this.itMap.get(drive).hasNext()) {
 					isItems = true;
 					break;
@@ -249,8 +265,8 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
 		{
 			int dIndex = 0;
 			while (isItems && this.buffer.size() < ServerConstant.BUCKET_ITERATOR_DEFAULT_BUFFER_SIZE) {
-				int dPoll = dIndex++ % this.drives.size();
-				Drive drive = this.drives.get(dPoll);
+				int dPoll = dIndex++ % this.getDrives().size();
+				Drive drive = this.getDrives().get(dPoll);
 				Iterator<Path> iterator = this.itMap.get(drive);
 				if (iterator.hasNext()) {
 					this.buffer.add(iterator.next());		
@@ -259,11 +275,12 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
 					/** drive has no more items */
 					this.streamMap.get(drive).close();
 					this.itMap.remove(drive);
-					this.drives.remove(dPoll);
-					isItems = !this.drives.isEmpty();
+					this.getDrives().remove(dPoll);
+					isItems = !this.getDrives().isEmpty();
 				}
 			}
 		}
 		return !this.buffer.isEmpty();
 	}
+	
 }

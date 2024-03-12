@@ -43,6 +43,7 @@ import io.odilon.vfs.model.VFSop;
 
 /**
  * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @ThreadSafe
 public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAIDDeleteObjectHandler {
@@ -54,7 +55,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 	}
 	
 	/**
-	 * <p>It does not delete the head version, only previous versions</p>
+	 * <p>This method does <b>not</b> delete the head version, only previous versions</p>
 	 *  
 	 * @param bucket
 	 * @param objectName
@@ -62,6 +63,10 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 	@Override
 	public void deleteObjectAllPreviousVersions(ObjectMetadata meta) {
 		
+		Check.requireNonNullArgument(meta, "meta is null");
+		Check.requireNonNullArgument(meta.bucketName, "bucketName is null");
+		Check.requireNonNullArgument(meta.objectName, "objectName is null or empty | b:" + meta.bucketName);
+
 		boolean isMainExcetion = false;
 		int headVersion = -1;		  
 		boolean done = false;
@@ -95,7 +100,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 			meta.addSystemTag("delete versions");
 			meta.lastModified = OffsetDateTime.now();
 
-			getDriver().getWriteDrive(meta.bucketName, meta.objectName).saveObjectMetadata(meta, true);
+			getDriver().getWriteDrive(meta.bucketName, meta.objectName).saveObjectMetadata(meta);
 			
 			getVFS().getObjectCacheService().remove(meta.bucketName, meta.objectName);
 			done=op.commit();
@@ -155,7 +160,9 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 	@Override
 	public void delete(VFSBucket bucket, String objectName) {
 		
-				
+		Check.requireNonNullArgument(bucket, "bucket is null");
+		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
+
 		VFSOperation op = null;  
 		boolean done = false;
 		
@@ -179,7 +186,6 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 			
 			backupMetadata(meta.bucketName, meta.objectName);
 			
-			
 			((SimpleDrive)drive).deleteObjectMetadata(bucket.getName(), objectName);
 			
 			getVFS().getObjectCacheService().remove(meta.bucketName, meta.objectName);
@@ -187,12 +193,10 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 			
 		} catch (OdilonObjectNotFoundException e1) {
 			done=false;
-			logger.error(e1);
 			throw e1;
 		
 		} catch (Exception e) {
 			done=false;
-			logger.error(e);
 			throw new InternalCriticalException(e);
 		}
 		finally {
@@ -203,14 +207,9 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 				
 				if (requiresRollback) {
 					try {
-						
 						rollbackJournal(op, false);
-						
 					} catch (Exception e) {
-						String msg =  	"b:"   + (Optional.ofNullable(bucket).isPresent()    	? (bucket.getName()) :"null") + 
-										", o:" + (Optional.ofNullable(objectName).isPresent() 	? (objectName)       :"null");   
-						logger.error(e, msg);
-						throw new InternalCriticalException(e);
+						throw new InternalCriticalException(e, "b:" + bucket.getName() + ", o:" + objectName);
 					}
 				}
 			}
@@ -224,19 +223,23 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 			onAfterCommit(op, meta, headVersion);
 	}
 
+	/**
+	 * 
+	 * 
+	 */
 	@Override
 	public void rollbackJournal(VFSOperation op, boolean recoveryMode) {
 
 		Check.requireNonNullArgument(op, "op is null");
-		
-		if (logger.isDebugEnabled()) {
-			/** checked by the calling driver */
-			Check.requireTrue(	op.getOp()==VFSop.DELETE_OBJECT ||  
-								op.getOp()==VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS, "VFSOperation invalid -> op: " + op.getOp().getName());
-		}
+
+		/** also checked by the calling driver */
+		Check.requireTrue(op.getOp()==VFSop.DELETE_OBJECT || op.getOp()==VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS, VFSOperation.class.getName() + " invalid -> op: " + op.getOp().getName());
 		
 		String objectName = op.getObjectName();
 		String bucketName = op.getBucketName();
+		
+		Check.requireNonNullArgument(bucketName, "bucketName is null");
+		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketName);
 		
 		boolean done = false;
 	 
@@ -281,7 +284,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 	 * and remove previous versions.In case of failure (for example. the server is shutdown before completion), 
 	 * it is retried up to 5 times.</p> 
 	 * 
-	 * <p>Although the removal of all versions for every Object is transactional, the ServiceRequest 
+	 * <p>Although the removal of all versions for every Object is transactional, the {@link ServiceRequest} 
 	 * itself is not transactional, and it can not be rollback</p>
 	 */
 	@Override
@@ -309,10 +312,12 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 	@Override
 	public void postObjectPreviousVersionDeleteAll(ObjectMetadata meta, int headVersion) {
 
+		Check.requireNonNullArgument(meta, "meta is null");
+
 		String bucketName = meta.bucketName;
 		String objectName = meta.objectName;
 				
-		Check.requireNonNullArgument(bucketName, "bucket is null");
+		Check.requireNonNullArgument(bucketName, "bucketName is null");
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketName);
 		
 		try {
@@ -343,11 +348,13 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 	 */
 	@Override
 	public void postObjectDelete(ObjectMetadata meta, int headVersion) {
-	
+
+		Check.requireNonNullArgument(meta, "meta is null");
+		
 		String bucketName = meta.bucketName;
 		String objectName = meta.objectName;
 				
-		Check.requireNonNullArgument(bucketName, "bucket is null");
+		Check.requireNonNullArgument(bucketName, "bucketName is null");
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketName);
 		
 		try {

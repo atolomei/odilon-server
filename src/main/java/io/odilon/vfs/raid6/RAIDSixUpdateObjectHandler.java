@@ -447,7 +447,7 @@ private static Logger logger = Logger.getLogger(RAIDSixCreateObjectHandler.class
 				meta.status=ObjectStatus.ENABLED;
 				meta.drive=drive.getName();
 				meta.raid=String.valueOf(getRedundancyLevel().getCode()).trim();
-				drive.saveObjectMetadata(meta, true);
+				drive.saveObjectMetadata(meta);
 	
 			} catch (Exception e) {
 				throw new InternalCriticalException(e, "saveObjectMetadata" + "b:" + bucket.getName() + " o:" 	+ objectName);
@@ -551,15 +551,12 @@ private static Logger logger = Logger.getLogger(RAIDSixCreateObjectHandler.class
 			done = true;
 		
 		} catch (InternalCriticalException e) {
-			
 			String msg = "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null");
 			logger.error(msg);
-		
 			if (!recoveryMode)
 				throw(e);
 			
 		} catch (Exception e) {
-			
 			String msg = "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null");
 			logger.error(msg);
 			
@@ -637,7 +634,10 @@ private static Logger logger = Logger.getLogger(RAIDSixCreateObjectHandler.class
 	private void saveObjectMetadata(ObjectMetadata meta, boolean isHead) {
 		Check.requireNonNullArgument(meta, "meta is null");
 		for (Drive drive: getDriver().getDrivesEnabled()) {
-			drive.saveObjectMetadata(meta, isHead);
+			if (isHead)
+				drive.saveObjectMetadata(meta);
+			else
+				drive.saveObjectMetadataVersion(meta);
 		}
 	}
 	

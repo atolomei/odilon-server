@@ -97,6 +97,10 @@ import io.odilon.vfs.model.VirtualFileSystemService;
  * Metadata Directory -> the file is considered <i>"non existent"</i>.
  * </p>
  * 
+ * <p>NOTE:- There are no {@link Drive} in mode {@link DriveStatus.NOTSYNC} in RAID 0. 
+ * All new drives are synced before the VirtualFileSystemService* completes its 
+ * initialization. </p>
+ * 
  * @author atolomei@novamens.com (Alejandro Tolomei)	 
  * 
  */
@@ -159,7 +163,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 			System.arraycopy(bdataDec, 0, b_hmacNew, 0, b_hmacNew.length);
 			
 			if (!Arrays.equals(b_hmacOriginal, b_hmacNew)) {
-				logger.error();
+				logger.error("HMAC is not correct, HMAC of 'encryption.key' in 'odilon.properties' does not match with HMAC in 'key.enc'  -> encryption.key=" + encryptionKey);
 				throw new InternalCriticalException("HMAC is not correct, HMAC of 'encryption.key' in 'odilon.properties' does not match with HMAC in 'key.enc'  -> encryption.key=" + encryptionKey);
 			}
 			
@@ -777,16 +781,10 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 				return list;
 	
 			} catch (OdilonObjectNotFoundException e) {
-				String msg = "b:" + (Optional.ofNullable(bucket).isPresent() ? (bucket.getName()) : "null") + ", o:"
-						+ (Optional.ofNullable(objectName).isPresent() ? (objectName) : "null") + ", d:"
-						+ (Optional.ofNullable(readDrive).isPresent() ? (readDrive.getName()) : "null");
-				e.setErrorMessage((e.getMessage() != null ? (e.getMessage() + " | ") : "") + msg);
+				e.setErrorMessage((e.getMessage() != null ? (e.getMessage() + " | ") : "") + "b:" + bucketName + ", o:" + objectName +", d:" + (Optional.ofNullable(readDrive).isPresent() ? (readDrive.getName()) : "null"));
 				throw e;
 			} catch (Exception e) {
-				String msg = "b:" + (Optional.ofNullable(bucket).isPresent() ? (bucket.getName()) : "null") + ", o:"
-						+ (Optional.ofNullable(objectName).isPresent() ? (objectName) : "null") + ", d:"
-						+ (Optional.ofNullable(readDrive).isPresent() ? (readDrive.getName()) : "null");
-				throw new InternalCriticalException(e, msg);
+				throw new InternalCriticalException(e, "b:" + bucketName + ", o:" + objectName +", d:" + (Optional.ofNullable(readDrive).isPresent() ? (readDrive.getName()) : "null"));
 			} finally {
 				getLockService().getBucketLock(bucket.getName()).readLock().unlock();
 			}
@@ -1284,7 +1282,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 			if (originalSha256 == null) {
 				metadata.integrityCheck = now;
 				getVFS().getObjectCacheService().remove(metadata.bucketName, metadata.objectName);
-				readDrive.saveObjectMetadata(metadata, true);
+				readDrive.saveObjectMetadata(metadata);
 				return true;
 			}
 
@@ -1301,7 +1299,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 
 			if (originalSha256.equals(sha256)) {
 				metadata.integrityCheck = now;
-				readDrive.saveObjectMetadata(metadata, true);
+				readDrive.saveObjectMetadata(metadata);
 				return true;
 			} else {
 				logger.error("Integrity Check failed for -> d: " + readDrive.getName() + " | b:" + bucketName + " | o:" + objectName + " | " + ServerConstant.NOT_THROWN);
@@ -1547,6 +1545,12 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 				getLockService().getServerLock().writeLock().unlock();
 			}
 		}
+	}
+
+	@Override
+	public void syncObject(String bucketName, String objectName) {
+		// TODO Auto-generated method stub
+		
 	}
 
 

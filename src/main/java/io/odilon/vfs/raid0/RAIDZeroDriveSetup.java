@@ -26,6 +26,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.commons.io.FileUtils;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
@@ -51,8 +52,9 @@ import io.odilon.vfs.model.VFSBucket;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
- * <p>Set up a new <b>Drive</b> added to the odilon.properties file</p>
- * <p>Fir RAID 0 this process is Sync when the server starts up (the RAID 1 version runs in background)</p>
+ * <p>Set up a new <b>Drive</b> added to the <b>odilon.properties</b> config file.
+ * For RAID 0 this process is <b>Sync</b> when the server starts up  (for RAID 1 
+ * and RAID 6 the process is Async and runs in background)</p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
@@ -269,7 +271,7 @@ public class RAIDZeroDriveSetup implements IODriveSetup {
 				
 				while (!done) {
 					 
-					DataList<Item<ObjectMetadata>> data = this.driver.getVFS().listObjects(
+					DataList<Item<ObjectMetadata>> bucketItems = this.driver.getVFS().listObjects(
 							bucket.getName(), 
 							Optional.of(offset),
 							Optional.ofNullable(pageSize),
@@ -277,11 +279,11 @@ public class RAIDZeroDriveSetup implements IODriveSetup {
 							Optional.ofNullable(agentId)); 
 	
 					if (agentId==null)
-						agentId = data.getAgentId();
+						agentId = bucketItems.getAgentId();
 
-					List<Callable<Object>> tasks = new ArrayList<>(data.getList().size());
+					List<Callable<Object>> tasks = new ArrayList<>(bucketItems.getList().size());
 					
-					for (Item<ObjectMetadata> item: data.getList()) {
+					for (Item<ObjectMetadata> item: bucketItems.getList()) {
 						tasks.add(() -> {
 							try {
 								
@@ -297,7 +299,10 @@ public class RAIDZeroDriveSetup implements IODriveSetup {
 									
 									if (!newDrive.equals(currentDrive)) {
 										try {
-											((SimpleDrive) currentDrive).deleteObject(item.getObject().bucketName, item.getObject().objectName );
+											//((SimpleDrive) currentDrive).deleteObject(item.getObject().bucketName, item.getObject().objectName );
+											currentDrive.deleteObjectMetadata(item.getObject().bucketName, item.getObject().objectName );
+											FileUtils.deleteQuietly(new File (currentDrive.getRootDirPath(), item.getObject().bucketName + File.separator + item.getObject().objectName));
+
 											this.cleaned.getAndIncrement();
 										
 										} catch (Exception e) {
@@ -325,8 +330,8 @@ public class RAIDZeroDriveSetup implements IODriveSetup {
 						logger.error(e);
 					}
 					
-					offset += Long.valueOf(Integer.valueOf(data.getList().size()).longValue());
-					done = (data.isEOD() || (this.errors.get()>0));
+					offset += Long.valueOf(Integer.valueOf(bucketItems.getList().size()).longValue());
+					done = (bucketItems.isEOD() || (this.errors.get()>0));
 				}
 			}
 			
@@ -435,7 +440,7 @@ public class RAIDZeroDriveSetup implements IODriveSetup {
 													/** Metadata */													
 													ObjectMetadata meta = item.getObject();
 													meta.drive=newDrive.getName();
-													newDrive.saveObjectMetadata(meta, true);
+													newDrive.saveObjectMetadata(meta);
 													this.moved.getAndIncrement();
 											}
 										
