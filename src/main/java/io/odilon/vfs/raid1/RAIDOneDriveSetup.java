@@ -116,18 +116,23 @@ public class RAIDOneDriveSetup implements IODriveSetup, ApplicationContextAware 
 					}
 				});
 				
-				startuplogger.info("2. Copying -> " + VirtualFileSystemService.ENCRYPTION_KEY_FILE);
-				getDriver().getDrivesAll().forEach( item ->
-				{
-					File file = item.getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE);
-					if ( (item.getDriveInfo().getStatus()==DriveStatus.NOTSYNC) && ((file==null) || (!file.exists()))) {
-						try {
-							Files.copy(keyFile, file);
-						} catch (Exception e) {
-							throw new InternalCriticalException(e, "Drive -> " + item.getName());
+				if ( (keyFile!=null) && keyFile.exists()) {
+					startuplogger.info("2. Copying -> " + VirtualFileSystemService.ENCRYPTION_KEY_FILE);
+					getDriver().getDrivesAll().forEach( item ->
+					{
+						File file = item.getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE);
+						if ( (item.getDriveInfo().getStatus()==DriveStatus.NOTSYNC) && ((file==null) || (!file.exists()))) {
+							try {
+								Files.copy(keyFile, file);
+							} catch (Exception e) {
+								throw new InternalCriticalException(e, "Drive -> " + item.getName());
+							}
 						}
-					}
-				});
+					});
+				}
+				else {
+					startuplogger.info("2. Copying -> " + VirtualFileSystemService.ENCRYPTION_KEY_FILE + " | file not exist. skipping");
+				}
 		
 		} catch (Exception e) {
 			startuplogger.error(e);

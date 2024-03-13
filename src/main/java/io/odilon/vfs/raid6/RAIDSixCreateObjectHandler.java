@@ -94,7 +94,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 				
 				op = getJournalService().createObject(bucketName, objectName);
 				
-				RSFileBlocks ei = saveObjectDataFile(bucketName, objectName, stream);
+				RAIDSixBlocks ei = saveObjectDataFile(bucketName, objectName, stream);
 				saveObjectMetadata(bucketName, objectName, ei, srcFileName, contentType, version);
 				
 				getVFS().getObjectCacheService().remove(bucketName, objectName);
@@ -205,14 +205,14 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 	 * @param stream
 	 * @param srcFileName
 	 */
-	private RSFileBlocks saveObjectDataFile(String bucketName, String objectName, InputStream stream) {
+	private RAIDSixBlocks saveObjectDataFile(String bucketName, String objectName, InputStream stream) {
 		
 		InputStream sourceStream = null;
 		boolean isMainException = false;
 		try {
 
 			sourceStream = isEncrypt() ? (getVFS().getEncryptionService().encryptStream(stream)) : stream;
-			RSEncoder encoder = new RSEncoder(getDriver());
+			RAIDSixEncoder encoder = new RAIDSixEncoder(getDriver());
 			return encoder.encodeHead(sourceStream, bucketName, objectName);
 				
 			} catch (Exception e) {
@@ -243,7 +243,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 	 * todo en el object metadata o cada file por separado
 	 * 
 	 */
-	private void saveObjectMetadata(String bucketName, String objectName, RSFileBlocks ei, String srcFileName, String contentType, int version) {
+	private void saveObjectMetadata(String bucketName, String objectName, RAIDSixBlocks ei, String srcFileName, String contentType, int version) {
 		
 		//long start = System.currentTimeMillis();
 		

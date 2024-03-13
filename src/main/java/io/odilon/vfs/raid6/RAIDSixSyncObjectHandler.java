@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
+import io.odilon.model.ServerConstant;
 import io.odilon.util.Check;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.VFSOperation;
@@ -37,31 +38,13 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 		super(driver);
 	}
 	
-	
-	protected synchronized List<Drive> getDrives() {
-		
-		if (this.drives!=null)
-			return this.drives;
-		
-		this.drives = new ArrayList<Drive>();
-		
-		getDriver().getDrivesAll().forEach( d -> drives.add(d));
-		this.drives.sort( new Comparator<Drive>() {
-			@Override
-			public int compare(Drive o1, Drive o2) {
-				try {
-					return o1.getDriveInfo().getOrder()<o2.getDriveInfo().getOrder()?-1:1;
-				} catch (Exception e) {
-					return 0;
-				}
-			}
-		});
-		
-		return this.drives;
-		
-	}
+	/**
+	 * 
+	 * @param meta
+	 */
 	public void sync(ObjectMetadata meta) {
-		
+							
+		Check.requireNonNullArgument(meta, "meta is null");
 		Check.requireNonNullStringArgument(meta.bucketName, "bucketName is null");
 		Check.requireNonNullStringArgument(meta.objectName, "objectName is null or empty | b:" + meta.bucketName);
 		
@@ -79,53 +62,52 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 			
 				getLockService().getBucketLock(bucketName).readLock().lock();
 				
+				/** backup metadata, there is no need to backup data because existing data files are not touched. **/
 				backupMetadata(meta);
-				
-				/** there is no need to backup data because 
-				 *  existing data files are not touched. 
-				 **/
 				
 				op = getJournalService().syncObject(bucketName, objectName);
 				
 				
 				/** PREVIOUS VERSIONS ---------------------------------------------------- */ 
 				
-				for (int version=0; version < meta.version; version++) {
-					
-					ObjectMetadata versionMeta = getDriver().getDrivesEnabled().get(0).getObjectMetadataVersion(meta.bucketName, meta.objectName, version);
-					
-					/** Data (version) */
-					RSDecoder decoder = new RSDecoder(getDriver());
-					File file = decoder.decodeVersion(versionMeta);
-					
-					RSDriveInitializationEncoder driveInitEncoder = new RSDriveInitializationEncoder(getDriver(), getDrives());
-					
-					try (InputStream in = new BufferedInputStream(new FileInputStream(file.getAbsolutePath()))) {
+				if (getDriver().getVFS().getServerSettings().isVersionControl()) {
+					for (int version=0; version < meta.version; version++) {
 						
-						driveInitEncoder.encodeVersion(in, bucketName, objectName, versionMeta.version);
+						ObjectMetadata versionMeta = getDriver().getObjectMetadataReadDrive(bucketName, objectName).getObjectMetadataVersion(bucketName, objectName, version);
 						
-					} catch (FileNotFoundException e) {
-			    		throw new InternalCriticalException(e, "b:" + meta.bucketName +  " | o:" + meta.objectName);
-					} catch (IOException e) {
-						throw new InternalCriticalException(e, "b:" + meta.bucketName +  " | o:" + meta.objectName);
-					}
-					
-					/** Metadata (version) */
-					versionMeta.dateSynced=OffsetDateTime.now();
-					
-					for (Drive drive:getDrives()) {
-						drive.saveObjectMetadataVersion(versionMeta);
+						/** Data (version) */
+						RAIDSixDecoder decoder = new RAIDSixDecoder(getDriver());
+						File file = decoder.decodeVersion(versionMeta);
+						
+						RAIDSixSDriveSyncEncoder driveEncoder = new RAIDSixSDriveSyncEncoder(getDriver(), getDrives());
+						
+						try (InputStream in = new BufferedInputStream(new FileInputStream(file.getAbsolutePath()))) {
+							
+							/** encodes version without saving existing blocks, only the ones that go to the new drive/s */
+							driveEncoder.encodeVersion(in, bucketName, objectName, versionMeta.version);
+							
+						} catch (FileNotFoundException e) {
+				    		throw new InternalCriticalException(e, "b:" + meta.bucketName +  " | o:" + meta.objectName);
+						} catch (IOException e) {
+							throw new InternalCriticalException(e, "b:" + meta.bucketName +  " | o:" + meta.objectName);
+						}
+						
+						/** Metadata (version) */
+						/** changes the date of sync in order to prevent this object's sync if the process is re run */ 
+						versionMeta.dateSynced=OffsetDateTime.now();
+						for (Drive drive:getDrives()) {
+							drive.saveObjectMetadataVersion(versionMeta);
+						}
 					}
 				}
-				
 				 
 				/** HEAD VERSION --------------------------------------------------------- */
 
 				/** Data (head) */
-				RSDecoder decoder = new RSDecoder(getDriver());
+				RAIDSixDecoder decoder = new RAIDSixDecoder(getDriver());
 				File file = decoder.decodeHead(meta);
 				
-				RSDriveInitializationEncoder driveInitEncoder = new RSDriveInitializationEncoder(getDriver(), getDrives());
+				RAIDSixSDriveSyncEncoder driveInitEncoder = new RAIDSixSDriveSyncEncoder(getDriver(), getDrives());
 				
 				try (InputStream in = new BufferedInputStream(new FileInputStream(file.getAbsolutePath()))) {
 					driveInitEncoder.encodeHead(in, bucketName, objectName);
@@ -137,17 +119,19 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 
 				/** MetaData (head) */
 				meta.dateSynced=OffsetDateTime.now();
+				
 				for (Drive drive:getDrives()) {
 					drive.saveObjectMetadataVersion(meta);
 				}
 				
 				done = op.commit();
 				
+				logger.debug("Sync -> " +  "b:" + meta.bucketName +  " | o:" + meta.objectName);
+				
 			} finally {
 				
 				try {
-					boolean requiresRollback = (!done) && (op!=null);
-					if (requiresRollback) {
+					if ((!done) && (op!=null)) {
 						try {
 							rollbackJournal(op, false);
 						} catch (Exception e) {
@@ -185,27 +169,31 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 					}
 		}
 	}
-	
-	/**
-	 * 
-	 * @param bucketName
-	 * @param objectName
-	 * @param version
-	 */
-	private boolean restoreVersionObjectMetadata(String bucketName, String objectName, int versionToRestore) {
-		try {
-			for (Drive drive:getDrives()) {
-				File file=drive.getObjectMetadataVersionFile(bucketName, objectName, versionToRestore);
-				if (file.exists()) {
-					drive.putObjectMetadataFile(bucketName, objectName, file);
-					FileUtils.deleteQuietly(file);
+
+	protected synchronized List<Drive> getDrives() {
+		
+		if (this.drives!=null)
+			return this.drives;
+		
+		this.drives = new ArrayList<Drive>();
+		
+		getDriver().getDrivesAll().forEach( d -> drives.add(d));
+		this.drives.sort( new Comparator<Drive>() {
+			@Override
+			public int compare(Drive o1, Drive o2) {
+				try {
+					return o1.getDriveInfo().getOrder()<o2.getDriveInfo().getOrder()?-1:1;
+				} catch (Exception e) {
+					return 0;
+				}
 			}
-		}
-			return true;
-		} catch (Exception e) {
-			throw new InternalCriticalException(e);
-		}
+		});
+		
+		return this.drives;
+		
 	}
+
+	
 	
 	/**
 	 * 
@@ -219,38 +207,44 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 		String bucketName = op.getBucketName();
 		String objectName = op.getObjectName();
 		
+		getLockService().getObjectLock(bucketName, objectName).writeLock().lock();
+		
 		try {
-				getLockService().getObjectLock(bucketName, objectName).writeLock().lock();
-				getLockService().getBucketLock(bucketName).readLock().lock();
+			getLockService().getBucketLock(bucketName).readLock().lock();
 			
-				restoreVersionObjectMetadata(op.getBucketName(), op.getObjectName(), op.getVersion());
+			try {
+					restoreMetadata(bucketName, objectName);
+					done = true;
 				
-				done = true;
-			
-		} catch (InternalCriticalException e) {
-			String msg = "Rollback -> " + op.toString();
-			logger.error(msg);
-			if (!recoveryMode)
-				throw(e);
-	
-		} catch (Exception e) {
-			String msg = "Rollback -> " + op.toString();
-			logger.error(msg);
-			
-			if (!recoveryMode)
-				throw new InternalCriticalException(e, msg);
+			} catch (InternalCriticalException e) {
+				if (!recoveryMode)
+					throw(e);
+				else
+					logger.error("Rollback -> " + op.toString(), ServerConstant.NOT_THROWN);
+		
+			} catch (Exception e) {
+				String msg = "Rollback -> " + op.toString();
+				if (!recoveryMode)
+					throw new InternalCriticalException(e, msg);
+				else
+					logger.error(e, msg + ServerConstant.NOT_THROWN);
+			}
+			finally {
+				try {	
+					if (done || recoveryMode) {
+							op.cancel();
+						}
+				} finally {
+					getLockService().getBucketLock(bucketName).readLock().unlock();
+				}
+			}
 		}
 		finally {
-				if (done || recoveryMode) {
-					op.cancel();
-				}
-				getLockService().getBucketLock(bucketName).readLock().unlock();
-				getLockService().getObjectLock(bucketName, objectName).writeLock().unlock();
+			getLockService().getObjectLock(bucketName, objectName).writeLock().unlock();
 		}
 	}
 
 	/**
-	 * 
 	 * <p>copy metadata directory <br/>. 
 	 * back up the full metadata directory (ie. ObjectMetadata for all versions)</p>
 	 * 
@@ -260,16 +254,31 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 	private void backupMetadata(ObjectMetadata meta) {
 		try {
 			for (Drive drive: getDriver().getDrivesEnabled()) {
-				String objectMetadataDirPath = drive.getObjectMetadataDirPath(meta.bucketName, meta.objectName);
-				String objectMetadataBackupDirPath = drive.getBucketWorkDirPath(meta.bucketName) + File.separator + meta.objectName;
-				File src=new File(objectMetadataDirPath);
+				File src	= new File(drive.getObjectMetadataDirPath(meta.bucketName, meta.objectName));
+				File dest	= new File(drive.getBucketWorkDirPath(meta.bucketName) + File.separator + meta.objectName);
+				
 				if (src.exists())
-					FileUtils.copyDirectory(src, new File(objectMetadataBackupDirPath));
+					FileUtils.copyDirectory(src, dest);
 			}
 		} catch (IOException e) {
 			throw new InternalCriticalException(e, "b:"+ meta.bucketName +" o:" + meta.objectName);
 		}
 	}
-
+				
+	private void restoreMetadata(String bucketName, String objectName) {
+		try {
+			for (Drive drive: getDriver().getDrivesEnabled()) {
+				File dest = new File(drive.getObjectMetadataDirPath(bucketName, objectName));
+				File src  = new File(drive.getBucketWorkDirPath(bucketName) + File.separator + objectName);
+				if (src.exists())
+					FileUtils.copyDirectory(src, dest);
+				else
+					throw new InternalCriticalException("backup dir does not exist " + "b:"+ bucketName +" o:" + objectName + "dir:" + src.getAbsolutePath());
+			}
+		} catch (IOException e) {
+			throw new InternalCriticalException(e, "b:"+ bucketName +" o:" + objectName);
+		}
+	}
+	
 
 }

@@ -36,9 +36,9 @@ import io.odilon.model.ServerConstant;
 import io.odilon.util.Check;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
-public class RSDecoder {
+public class RAIDSixDecoder {
 
-	static private Logger logger = Logger.getLogger(RSEncoder.class.getName());
+	static private Logger logger = Logger.getLogger(RAIDSixEncoder.class.getName());
 
 	private RAIDSixDriver driver;
 
@@ -47,7 +47,7 @@ public class RSDecoder {
     private final int total_shards;
 
     
-	protected RSDecoder(RAIDSixDriver driver) {
+	protected RAIDSixDecoder(RAIDSixDriver driver) {
     	Check.requireNonNull(driver);
 		this.driver=driver;
 		this.data_shards = getVFS().getServerSettings().getRAID6DataDrives();

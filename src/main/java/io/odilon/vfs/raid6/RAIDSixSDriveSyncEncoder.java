@@ -26,22 +26,22 @@ import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.DriveStatus;
 
 /**
- * <p>The difference between {@code RSDriveInitializationEncoder} and the standard {@link RSEncoder} 
+ * <p>The difference between {@code RSDriveInitializationEncoder} and the standard {@link RAIDSixEncoder} 
  * is that this one only saves the RS Blocks that go to the newly added disks (ie. blocks on enabled 
  * Drives are not touched).
  * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
-public class RSDriveInitializationEncoder extends RSEncoder {
+public class RAIDSixSDriveSyncEncoder extends RAIDSixEncoder {
 		
 	@SuppressWarnings("unused")	
-	static private Logger logger = Logger.getLogger(RSDriveInitializationEncoder.class.getName());
+	static private Logger logger = Logger.getLogger(RAIDSixSDriveSyncEncoder.class.getName());
 
-	protected RSDriveInitializationEncoder(RAIDSixDriver driver) {
+	protected RAIDSixSDriveSyncEncoder(RAIDSixDriver driver) {
     	super(driver);
     }
-	protected RSDriveInitializationEncoder(RAIDSixDriver driver, List<Drive> zDrives) {
+	protected RAIDSixSDriveSyncEncoder(RAIDSixDriver driver, List<Drive> zDrives) {
 		super(driver, zDrives);
 	}
 
@@ -52,7 +52,7 @@ public class RSDriveInitializationEncoder extends RSEncoder {
 	 * - create ObjectMetadata <br/>
 	 * </p>
  	 */
-	public RSFileBlocks encodeHead (InputStream is, String bucketName, String objectName) {
+	public RAIDSixBlocks encodeHead (InputStream is, String bucketName, String objectName) {
 		return super.encodeHead(is, bucketName, objectName);
 	}
 
@@ -64,7 +64,7 @@ public class RSDriveInitializationEncoder extends RSEncoder {
 	 * </p>
  	 */
 
-	public RSFileBlocks encodeVersion (InputStream is, String bucketName, String objectName, int version) {
+	public RAIDSixBlocks encodeVersion (InputStream is, String bucketName, String objectName, int version) {
 		return super.encodeVersion(is, bucketName, objectName, version);
 	}
 	

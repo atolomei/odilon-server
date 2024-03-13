@@ -141,7 +141,7 @@ public class RAIDZeroDriveSetup implements IODriveSetup {
 			throw new InternalCriticalException(e);
 		}
 	
-		startuplogger.info("Copying -> " + VirtualFileSystemService.SERVER_METADATA_FILE);
+		startuplogger.info("1. Copying -> " + VirtualFileSystemService.SERVER_METADATA_FILE);
 		
 		getDriver().getDrivesAll().forEach( item ->
 		{
@@ -155,18 +155,24 @@ public class RAIDZeroDriveSetup implements IODriveSetup {
 			}
 		});
 		
-		startuplogger.info("Copying -> " + VirtualFileSystemService.ENCRYPTION_KEY_FILE);
-		getDriver().getDrivesAll().forEach( item ->
-		{
-			File file = item.getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE);
-			if ((item.getDriveInfo().getStatus()==DriveStatus.NOTSYNC) && ((file==null) || (!file.exists()))) {
-				try {
-					Files.copy(keyFile, file);
-				} catch (Exception e) {
-					throw new InternalCriticalException(e, "Drive -> " + item.getName());
+		if ( (keyFile!=null) && keyFile.exists()) {
+			startuplogger.info("2. Copying -> " + VirtualFileSystemService.ENCRYPTION_KEY_FILE);
+			getDriver().getDrivesAll().forEach( item ->
+			{
+				File file = item.getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE);
+				if ( (item.getDriveInfo().getStatus()==DriveStatus.NOTSYNC) && ((file==null) || (!file.exists()))) {
+					try {
+						Files.copy(keyFile, file);
+					} catch (Exception e) {
+						throw new InternalCriticalException(e, "Drive -> " + item.getName());
+					}
 				}
-			}
-		});
+			});
+		}
+		else {
+			startuplogger.info("2. Copying -> " + VirtualFileSystemService.ENCRYPTION_KEY_FILE + " | file not exist. skipping");
+		}
+
 		
 		createBuckets();
 		
@@ -235,7 +241,7 @@ public class RAIDZeroDriveSetup implements IODriveSetup {
 				info.setOrder(drive.getConfigOrder());
 				drive.setDriveInfo(info);
 				getDriver().getVFS().getMapDrivesEnabled().put(drive.getName(), drive);
-				startuplogger.info("drive synced -> " + drive.getRootDirPath());
+				startuplogger.info("drive added -> " + drive.getRootDirPath());
 			}
 		}
 	}
@@ -248,7 +254,7 @@ public class RAIDZeroDriveSetup implements IODriveSetup {
 		
 		ExecutorService executor = null;
 						
-		startuplogger.info("Starting clean up step");
+		startuplogger.info("5. Starting clean up step");
 		startuplogger.info("The new Drives are already operational");
 		startuplogger.info("This process eliminates duplicates");
 		
@@ -358,7 +364,7 @@ public class RAIDZeroDriveSetup implements IODriveSetup {
 
 		try {
 			
-			startuplogger.info("Starting to copy data");
+			startuplogger.info("4. Starting to copy data");
 			
 			this.start_move = System.currentTimeMillis();
 			this.errors = new AtomicLong(0);
@@ -508,7 +514,7 @@ public class RAIDZeroDriveSetup implements IODriveSetup {
 		
 		List<VFSBucket> list = getDriver().getVFS().listAllBuckets();
 		
-		startuplogger.info("Creating " + String.valueOf(list.size()) +" Buckets");
+		startuplogger.info("3. Creating " + String.valueOf(list.size()) +" Buckets");
 
 		for (VFSBucket bucket:list) {
 			for (Drive drive: getDriver().getDrivesAll()) {

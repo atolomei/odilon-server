@@ -906,7 +906,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 		
 		/** load enabled drives and new drives */
 		{	
-			int n=0;
+			int configOrder=0;
 			
 			drivesAll.clear();
 			drivesEnabled.clear();
@@ -915,10 +915,15 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 
 				Drive drive = null;
 				
-				if (getServerSettings().getRedundancyLevel()==RedundancyLevel.RAID_6)
-					drive=new ChunkedDrive(String.valueOf(n++), dir);
-				else
-					drive=new ODSimpleDrive(String.valueOf(n++), dir);
+				if (getServerSettings().getRedundancyLevel()==RedundancyLevel.RAID_6) {
+					drive=new ChunkedDrive(String.valueOf(configOrder), dir, configOrder);
+					logger.debug(drive.toString());
+					configOrder++;
+				}
+				else {
+					drive=new ODSimpleDrive(String.valueOf(configOrder), dir, configOrder);
+					configOrder++;
+				}
 
 				baselist.add(drive);
 				
@@ -943,8 +948,8 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 				drivesEnabled.clear();
 				int order=0;
 				for (Drive drive: baselist) {
-					DriveInfo info=drive.getDriveInfo();
-					info.setOrder(order++);
+					DriveInfo info = drive.getDriveInfo();
+					info.setOrder(drive.getConfigOrder());
 					info.setStatus(DriveStatus.ENABLED);
 					drive.setDriveInfo(info);
 					drivesEnabled.put(drive.getName(), drive);

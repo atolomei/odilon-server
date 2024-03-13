@@ -148,7 +148,6 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler implements RAIDDe
 	
 	}
 	
-
 	public void wipeAllPreviousVersions() {
 		getVFS().getSchedulerService().enqueue(getVFS().getApplicationContext().
 				getBean(DeleteBucketObjectPreviousVersionServiceRequest.class));
@@ -159,7 +158,10 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler implements RAIDDe
 				getBean(DeleteBucketObjectPreviousVersionServiceRequest.class, bucket.getName()));
 	}
 
-
+	/**
+	 *
+	 * 
+	 */
 	@Override
 	public void deleteObjectAllPreviousVersions(ObjectMetadata meta) {
 	
@@ -244,9 +246,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler implements RAIDDe
 		
 	}
 
-	
-
-	
+	/** not used by de moment */
 	protected void postObjectDelete(ObjectMetadata meta, int headVersion) 						{}
 	protected void postObjectPreviousVersionDeleteAll(ObjectMetadata meta, int headVersion) 	{}
 	

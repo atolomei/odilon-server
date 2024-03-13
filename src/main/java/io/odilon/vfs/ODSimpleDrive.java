@@ -53,10 +53,8 @@ public class ODSimpleDrive extends ODDrive implements SimpleDrive {
 	 * @param name
 	 * @param rootDir
 	 */
-	protected ODSimpleDrive(String name, String rootDir) {
-		super(rootDir);
-		setName(name);
-		onInitialize();
+	protected ODSimpleDrive(String name, String rootDir, int configOrder) {
+		super(rootDir, name, configOrder);
 	}
 	
 	/**

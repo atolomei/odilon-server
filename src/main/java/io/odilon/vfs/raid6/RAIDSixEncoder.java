@@ -20,10 +20,10 @@ import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.DriveStatus;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
-public class RSEncoder {
+public class RAIDSixEncoder {
 
 	@SuppressWarnings("unused")
-	static private Logger logger = Logger.getLogger(RSEncoder.class.getName());
+	static private Logger logger = Logger.getLogger(RAIDSixEncoder.class.getName());
 
 	private RAIDSixDriver driver;
 
@@ -35,17 +35,17 @@ public class RSEncoder {
     private final int partiy_shards;
     private final int total_shards;
 
-    private RSFileBlocks encodedInfo;
+    private RAIDSixBlocks encodedInfo;
     
     private List<Drive> zDrives;
     
 
     
-    protected RSEncoder(RAIDSixDriver driver) {
+    protected RAIDSixEncoder(RAIDSixDriver driver) {
     	this(driver, null);
     }
     
-	protected RSEncoder(RAIDSixDriver driver, List<Drive> udrives) {
+	protected RAIDSixEncoder(RAIDSixDriver driver, List<Drive> udrives) {
 		
 		this.driver=driver;
 		this.zDrives = (udrives!=null) ? udrives : driver.getDrivesEnabled();
@@ -80,16 +80,16 @@ public class RSEncoder {
 	 * is more (16 bytes for the file size plus the padding to make every shard multiple of 4)
 	 */
 	
-	public RSFileBlocks encodeHead (InputStream is, String bucketName, String objectName) {
+	public RAIDSixBlocks encodeHead (InputStream is, String bucketName, String objectName) {
 		return encode(is, bucketName, objectName, Optional.empty());
 	}
 	
-	public RSFileBlocks encodeVersion (InputStream is, String bucketName, String objectName, int version) {
+	public RAIDSixBlocks encodeVersion (InputStream is, String bucketName, String objectName, int version) {
 		return encode(is, bucketName, objectName, Optional.of(version));
 		
 	}
 	
-	protected RSFileBlocks encode (InputStream is, String bucketName, String objectName, Optional<Integer> version ) {
+	protected RAIDSixBlocks encode (InputStream is, String bucketName, String objectName, Optional<Integer> version ) {
 		
 		Check.requireNonNull(is);
 		
@@ -104,7 +104,7 @@ public class RSEncoder {
 		
     	this.fileSize = 0;
     	this.chunk = 0;
-    	this.encodedInfo = new RSFileBlocks();
+    	this.encodedInfo = new RAIDSixBlocks();
     	
     	boolean done = false;
     	

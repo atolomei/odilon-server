@@ -136,18 +136,21 @@ public class ODDrive extends ODModelObject implements Drive {
 	 * @param name
 	 * @param rootDir
 	 */
-	protected ODDrive(String name, String rootDir) {
+	protected ODDrive(String name, String rootDir, int configOrder) {
 		this.name=name;
 		this.rootDir=rootDir;
+		this.configOrder=configOrder;
 		onInitialize();
 	}
 	
+	@JsonIgnore
 	@Override
 	public String getBucketMetadataDirPath(String bucketName) {
 		Check.requireNonNullStringArgument(bucketName, "bucketName is null");
 		return this.getBucketsDirPath() + File.separator + bucketName;
 	}
 
+	@JsonIgnore
 	@Override
 	public String getObjectMetadataDirPath(String bucketName, String objectName) {
 		Check.requireNonNullStringArgument(bucketName, "bucketName is null");
@@ -155,6 +158,7 @@ public class ODDrive extends ODModelObject implements Drive {
 		return this.getBucketsDirPath() + File.separator + bucketName + File.separator + objectName;
 	}
 
+	@JsonIgnore
 	@Override
 	public DriveInfo getDriveInfo() {
 		return this.driveInfo;
@@ -166,19 +170,21 @@ public class ODDrive extends ODModelObject implements Drive {
 		saveDriveMetadata(info);
 	}
 
+	@JsonIgnore
 	@Override
 	public String getBucketWorkDirPath(String bucketName) {
 		Check.requireNonNullStringArgument(bucketName, "bucketName is null");
 		return this.getWorkDirPath() + File.separator + bucketName;
 	}
 
+	@JsonIgnore
 	@Override
 	public String getBucketCacheDirPath(String bucketName) {
 		Check.requireNonNullStringArgument(bucketName, "bucketName is null");
 		return this.getCacheDirPath() + File.separator + bucketName;
 	}
 	
-	
+	@JsonIgnore
 	@Override
 	public String getBucketObjectDataDirPath(String bucketName) {
 		return this.getRootDirPath() + File.separator + bucketName;
@@ -350,10 +356,6 @@ public class ODDrive extends ODModelObject implements Drive {
 	}
 	
 
-	
-	
-	
-	
 	public void setName(String name) {
 		this.name = name;
 	}
@@ -362,6 +364,7 @@ public class ODDrive extends ODModelObject implements Drive {
 		this.rootDir = rootDir;
 	}
 	
+	@JsonIgnore
 	public List<DriveBucket> getBuckets() {
 		try {
 			this.drive_lock.readLock().lock();
@@ -387,6 +390,7 @@ public class ODDrive extends ODModelObject implements Drive {
 		}
 	}
 
+	@JsonIgnore
 	@Override
 	public String getName() {
 		return name;
@@ -394,7 +398,7 @@ public class ODDrive extends ODModelObject implements Drive {
 	
 	/**
 	 * 
-	 */
+	
 	@Override
 	public String toString() {
 		StringBuilder str = new StringBuilder();
@@ -405,32 +409,41 @@ public class ODDrive extends ODModelObject implements Drive {
 			str.append("\"status\": \"" + driveInfo.getStatus() + "\" ");
 		return str.toString();
 	}
+	 */
 	
 	/**
 	 * 
 	 */
+	@JsonIgnore
 	@Override
 	public String getRootDirPath() 			{return rootDir;}
 	
+	@JsonIgnore
 	@Override
 	public String getSysDirPath() 			{return getRootDirPath() + File.separator + VirtualFileSystemService.SYS; }
 	
+	@JsonIgnore
 	@Override					
 	public String getWorkDirPath() 			{return getRootDirPath() + File.separator + VirtualFileSystemService.SYS + File.separator + VirtualFileSystemService.WORK; }
 
+	@JsonIgnore
 	@Override								
 	public String getCacheDirPath() 		{return getRootDirPath() + File.separator + VirtualFileSystemService.SYS + File.separator + VirtualFileSystemService.CACHE; }
 	
-	
+	@JsonIgnore
 	@Override							
 	public String getSchedulerDirPath() 	{return getRootDirPath() + File.separator + VirtualFileSystemService.SYS + File.separator + VirtualFileSystemService.SCHEDULER; }
+
 	
+	@JsonIgnore
 	@Override
 	public String getJournalDirPath() 		{return getRootDirPath() + File.separator + VirtualFileSystemService.SYS + File.separator + VirtualFileSystemService.JOURNAL;}
 	
+	@JsonIgnore
 	@Override
 	public String getBucketsDirPath()		{return getRootDirPath() + File.separator + VirtualFileSystemService.SYS + File.separator + VirtualFileSystemService.BUCKETS;}
 	
+	@JsonIgnore
 	@Override
 	public String getTempDirPath() 			{return getRootDirPath() + File.separator + VirtualFileSystemService.SYS + File.separator + VirtualFileSystemService.TEMP;}
 
@@ -545,8 +558,7 @@ public class ODDrive extends ODModelObject implements Drive {
 			Files.writeString(Paths.get(name), jsonString);
 			
 		} catch (Exception e) {
-			String msg = "op: " + (Optional.ofNullable(serviceRequest).isPresent() ? (serviceRequest.toString()):"null");
-			throw new InternalCriticalException(e, msg);
+			throw new InternalCriticalException(e, "op: " + (Optional.ofNullable(serviceRequest).isPresent() ? (serviceRequest.toString()):"null"));
 		}
 	}
 	
@@ -689,6 +701,7 @@ public class ODDrive extends ODModelObject implements Drive {
 		this.status=status;
 	}
 	
+	@JsonIgnore
 	public ServiceStatus getStatus() {
 		return this.status;
 	}
@@ -754,12 +767,15 @@ public class ODDrive extends ODModelObject implements Drive {
 		}
 	}
 
+	@JsonIgnore
 	@Override
 	public long getAvailableSpace() {
 		 File file = new File(getRootDirPath());
 		 return file.getUsableSpace();
 	}
 	
+	
+	@JsonIgnore
 	@Override
 	public long getTotalSpace() {
 		 File file=new File(getRootDirPath());
@@ -770,6 +786,7 @@ public class ODDrive extends ODModelObject implements Drive {
 		this.configOrder=order;
 	}
 	
+	@JsonIgnore
 	@Override
 	public int getConfigOrder() {
 		return this.configOrder;
@@ -881,6 +898,7 @@ public class ODDrive extends ODModelObject implements Drive {
 			
 			if (readDriveMetadata()==null) {
 				info = new DriveInfo(getName(), randomString(12), OffsetDateTime.now(), DriveStatus.NOTSYNC);
+				info.setOrder(getConfigOrder());
 				saveDriveMetadata(info);
 			}
 			

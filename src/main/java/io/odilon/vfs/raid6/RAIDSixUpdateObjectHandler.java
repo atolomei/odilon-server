@@ -112,7 +112,7 @@ private static Logger logger = Logger.getLogger(RAIDSixCreateObjectHandler.class
 			
 			/** copy new version as head version */
 			afterHeadVersion = meta.version+1;
-			RSFileBlocks ei = saveObjectDataFile(bucket,objectName, stream);
+			RAIDSixBlocks ei = saveObjectDataFile(bucket,objectName, stream);
 			saveObjectMetadata(bucket, objectName, ei, srcFileName, contentType, afterHeadVersion);
 			
 			done = op.commit();
@@ -408,7 +408,7 @@ private static Logger logger = Logger.getLogger(RAIDSixCreateObjectHandler.class
 	}
 	
 	
-	private void saveObjectMetadata(VFSBucket bucket, String objectName, RSFileBlocks ei, String srcFileName, String contentType, int version) {
+	private void saveObjectMetadata(VFSBucket bucket, String objectName, RAIDSixBlocks ei, String srcFileName, String contentType, int version) {
 		
 		List<String> shaBlocks = new ArrayList<String>();
 		StringBuilder etag_b = new StringBuilder();
@@ -463,13 +463,13 @@ private static Logger logger = Logger.getLogger(RAIDSixCreateObjectHandler.class
 	 * @param stream
 	 * @param srcFileName
 	 */
-	private RSFileBlocks saveObjectDataFile(VFSBucket bucket, String objectName, InputStream stream) {
+	private RAIDSixBlocks saveObjectDataFile(VFSBucket bucket, String objectName, InputStream stream) {
 		
 		InputStream sourceStream = null;
 		boolean isMainException = false;
 		try {
 				sourceStream = isEncrypt() ? (getVFS().getEncryptionService().encryptStream(stream)) : stream;
-				RSEncoder encoder = new RSEncoder(getDriver());
+				RAIDSixEncoder encoder = new RAIDSixEncoder(getDriver());
 				return encoder.encodeHead(sourceStream, bucket.getName(), objectName);
 			
 			} catch (Exception e) {

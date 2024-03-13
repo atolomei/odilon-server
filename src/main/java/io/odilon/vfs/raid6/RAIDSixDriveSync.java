@@ -50,25 +50,23 @@ import io.odilon.vfs.model.LockService;
 import io.odilon.vfs.model.VFSBucket;
 import io.odilon.vfs.raid1.RAIDOneDriveImporter;
 
-
-/**
- * <p>Al iniciar el VFS se detecta si hay uno o mas Drives nuevos.
+/**					
+ * <p>Al iniciar el {@link VirtualFileSystemService} se detecta si hay uno o mas Drives nuevos.
  * Si hay al menos un Drive nuevo se corre este proceso de incorporacion 
  * del nuevo Drive. 
  * 
- * . Para los Object creados a partir del inicio del VFS se utilizan los discos enabled y los not sync
+ * . Para los Object creados a partir del inicio del {@link VirtualFileSystemService} se utilizan los discos enabled y los not sync
  * . Para los Object anteriores al inicio del VFS se lleva a cabo la sincronizacion en el o los discos nuevos
  *   - grabar ObjectMetadata head y versiones anteriores
  *   - grabar el/los Block/s RS del data file que correspondan en cada disco nuevo   
  * 
  * Al terminar el proceso de integracion del nuevo disco, los discos pasan a status enabled.
- * 
  * </p>
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @Component
 @Scope("prototype")
-public class RAIDSixDriveImporter implements Runnable {
+public class RAIDSixDriveSync implements Runnable {
 
 	static private Logger logger = Logger.getLogger(RAIDOneDriveImporter.class.getName());
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
@@ -115,7 +113,7 @@ public class RAIDSixDriveImporter implements Runnable {
 	private OffsetDateTime dateConnected;
 	
 	
-	public RAIDSixDriveImporter(RAIDSixDriver driver) {
+	public RAIDSixDriveSync(RAIDSixDriver driver) {
 		this.driver=driver;
 		this.vfsLockService = this.driver.getLockService();
 	}
@@ -274,9 +272,8 @@ public class RAIDSixDriveImporter implements Runnable {
 			startuplogger.debug("Threads: " + String.valueOf(maxProcessingThread));
 			startuplogger.info("Total scanned: " + String.valueOf(this.counter.get()));
 			startuplogger.info("Total encoded: " + String.valueOf(this.encoded.get()));
-			double val = Double.valueOf(totalBytes.get()).doubleValue() / SharedConstant.d_gigabyte;
-			startuplogger.info("Total size: " + String.format("%14.4f", val).trim() + " GB");
-			
+			startuplogger.info("Total size: " + String.format("%14.4f", Double.valueOf(totalBytes.get()).doubleValue() / SharedConstant.d_gigabyte).trim() + " GB");
+
 			if (this.errors.get()>0)
 				startuplogger.info("Errors: " + String.valueOf(this.errors.get()));
 			
@@ -308,7 +305,7 @@ public class RAIDSixDriveImporter implements Runnable {
 				info.setOrder(drive.getConfigOrder());
 				drive.setDriveInfo(info);
 				getDriver().getVFS().getMapDrivesEnabled().put(drive.getName(), drive);
-				startuplogger.debug("drive synced -> " + drive.getRootDirPath());
+				startuplogger.debug("drive notsynced -> " + drive.toString());
 			}
 		}
 	}

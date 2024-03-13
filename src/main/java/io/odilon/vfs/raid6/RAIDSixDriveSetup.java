@@ -147,18 +147,23 @@ public class RAIDSixDriveSetup implements IODriveSetup, ApplicationContextAware 
 				}
 			});
 			
-			startuplogger.info("2. Copying -> " + VirtualFileSystemService.ENCRYPTION_KEY_FILE);
-			getDriver().getDrivesAll().forEach( item ->
-			{
-				File file = item.getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE);
-				if ( (item.getDriveInfo().getStatus()==DriveStatus.NOTSYNC) && ((file==null) || (!file.exists()))) {
-					try {
-						Files.copy(keyFile, file);
-					} catch (Exception e) {
-						throw new InternalCriticalException(e, "Drive -> " + item.getName());
+			if ( (keyFile!=null) && keyFile.exists()) {
+				startuplogger.info("2. Copying -> " + VirtualFileSystemService.ENCRYPTION_KEY_FILE);
+				getDriver().getDrivesAll().forEach( item ->
+				{
+					File file = item.getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE);
+					if ( (item.getDriveInfo().getStatus()==DriveStatus.NOTSYNC) && ((file==null) || (!file.exists()))) {
+						try {
+							Files.copy(keyFile, file);
+						} catch (Exception e) {
+							throw new InternalCriticalException(e, "Drive -> " + item.getName());
+						}
 					}
-				}
-			});
+				});
+			}
+			else {
+				startuplogger.info("2. Copying -> " + VirtualFileSystemService.ENCRYPTION_KEY_FILE + " | file not exist. skipping");
+			}
 	
 		} catch (Exception e) {
 			startuplogger.error(e, ServerConstant.NOT_THROWN);
@@ -173,11 +178,11 @@ public class RAIDSixDriveSetup implements IODriveSetup, ApplicationContextAware 
 			return false;
 		}
 		
-		startuplogger.info("4. Starting Async process -> " + RAIDSixDriveImporter.class.getSimpleName());
+		startuplogger.info("4. Starting Async process -> " + RAIDSixDriveSync.class.getSimpleName());
 						
 		/** The rest of the process is async */
-		@SuppressWarnings("unused")
-		RAIDSixDriveImporter checker = getApplicationContext().getBean(RAIDSixDriveImporter.class, getDriver());
+		//@SuppressWarnings("unused")
+		//RAIDSixDriveSync checker = getApplicationContext().getBean(RAIDSixDriveSync.class, getDriver());
 		
 		/** sleeps 20 secs and return */
 		try {

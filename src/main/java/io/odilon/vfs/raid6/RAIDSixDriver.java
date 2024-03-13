@@ -170,7 +170,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 				ObjectMetadata meta = getObjectMetadataInternal(bucketName, objectName, true);
 	
 				if ((meta != null) && meta.isAccesible()) {
-					RSDecoder decoder = new RSDecoder(this);
+					RAIDSixDecoder decoder = new RAIDSixDecoder(this);
 					return (meta.encrypt) ? getVFS().getEncryptionService().decryptStream(Files.newInputStream(decoder.decodeHead(meta).toPath())) : Files.newInputStream(decoder.decodeHead(meta).toPath());
 				}
 				throw new OdilonObjectNotFoundException("b:" + bucketName + " | o:" + objectName + " | class:" + this.getClass().getSimpleName());
@@ -218,7 +218,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 			if ((meta==null) || (!meta.isAccesible()))
 				throw new OdilonObjectNotFoundException("object version does not exists for -> b:" +  bucket.getName() +" | o:" + objectName + " | v:" + String.valueOf(version));
 			
-			RSDecoder decoder = new RSDecoder(this);  
+			RAIDSixDecoder decoder = new RAIDSixDecoder(this);  
 			File file = decoder.decodeVersion(meta);
 			
 			if (meta.encrypt)
