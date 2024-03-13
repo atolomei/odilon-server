@@ -47,7 +47,8 @@ import io.odilon.vfs.model.VFSop;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
- * <p>RAID 0. Handler that creates new Objects</p>
+ * <p>RAID 0 Handler <br/>  
+ * Creates new Objects ({@link VFSop.CREATE_OBJECT})</p>
  *
  * @author atolomei@novamens.com (Alejandro Tolomei)	 
  */
@@ -57,15 +58,14 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler implements RAID
 	private static Logger logger = Logger.getLogger(RAIDZeroCreateObjectHandler.class.getName());
 		
 	/** 
-	 * <p>Created by and used only from {@link RAIDZeroDriver}
-	 * </p>
+	 * <p>Created by and used only from {@link RAIDZeroDriver}</p>
 	 */
 	protected RAIDZeroCreateObjectHandler(RAIDZeroDriver driver) {
 		super(driver);
 	}
 
 	/**
-	 * <p>The procedure is the same whether there is version control or not</p>
+	 * <p>The procedure is the same whether there version control is enabled or not</p>
 	 * 
 	 * @param bucket
 	 * @param objectName
@@ -73,16 +73,17 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler implements RAID
 	 * @param srcFileName
 	 * @param contentType
 	 */
-	public void create(@NonNull VFSBucket bucket, @NonNull String objectName, @NonNull InputStream stream,String srcFileName, String contentType) {
+	public void create(@NonNull VFSBucket bucket, @NonNull String objectName, @NonNull InputStream stream, String srcFileName, String contentType) {
 	
 		VFSOperation op = null;
 		boolean done = false;
 		
 		try {
 			
-			getLockService().getObjectLock( bucket.getName(), objectName).writeLock().lock();
+			getLockService().getObjectLock(bucket.getName(), objectName).writeLock().lock();
 			
-				try {
+				try (stream) {
+					
 						getLockService().getBucketLock(bucket.getName()).readLock().lock();
 
 						if (getDriver().getWriteDrive(bucket.getName(), objectName).existsObjectMetadata(bucket.getName(), objectName))											
@@ -107,19 +108,11 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler implements RAID
 							throw new InternalCriticalException(e, "b:" + bucket.getName() + " o:" 	+ objectName + ", f:" 	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null"));
 				} finally {
 							try {
-									try {
-										if (stream!=null)
-											stream.close();
-										
-									} catch (IOException e) {
-										logger.error(e, ServerConstant.NOT_THROWN);
-									}
-								
-									boolean requiresRollback = (!done) && (op!=null);
-									
-									if (requiresRollback) {
+									if ((!done) && (op!=null)) {
 										try {
+											
 											rollbackJournal(op, false);
+											
 										} catch (InternalCriticalException e) {
 											throw e;
 										} catch (Exception e) {
@@ -139,7 +132,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler implements RAID
 
 	/**
 	 * <p>Concurrecy Control</p>
-	 * This method is not ThreadSafe, callers must ensure proper concurrency control
+	 * This method is <b>not</b> ThreadSafe, callers must ensure proper concurrency control
 	 */
 	@Override
 	public void rollbackJournal(VFSOperation op, boolean recoveryMode) {
@@ -157,8 +150,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler implements RAID
 				getVFS().getReplicationService().cancel(op);
 			
 			getWriteDrive(bucketName, objectName).deleteObjectMetadata(bucketName, objectName);
-			File data = new File (getWriteDrive(bucketName, objectName).getRootDirPath(), bucketName + File.separator + objectName);
-			FileUtils.deleteQuietly(data);
+			FileUtils.deleteQuietly(new File (getWriteDrive(bucketName, objectName).getRootDirPath(), bucketName + File.separator + objectName));
 			// ((SimpleDrive) getWriteDrive(bucketName, objectName)).deleteObject(bucketName , objectName);
 			done=true;
 			
@@ -191,13 +183,13 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler implements RAID
 		byte[] buf = new byte[VirtualFileSystemService.BUFFER_SIZE];
 
 		BufferedOutputStream out = null;
-		InputStream sourceStream = null;
 		boolean isMainException = false;
 		
-		try {
-				sourceStream = isEncrypt() ? getVFS().getEncryptionService().encryptStream(stream) : stream;
+		try (InputStream sourceStream = isEncrypt() ? getVFS().getEncryptionService().encryptStream(stream) : stream) {
+			
 				out = new BufferedOutputStream(new FileOutputStream(((SimpleDrive) getWriteDrive(bucket.getName(), objectName)).getObjectDataFilePath(bucket.getName(), objectName)), VirtualFileSystemService.BUFFER_SIZE);
 				int bytesRead;
+				
 				while ((bytesRead = sourceStream.read(buf, 0, buf.length)) >= 0) {
 					out.write(buf, 0, bytesRead);
 				}
@@ -213,19 +205,10 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler implements RAID
 						out.close();
 						
 					} catch (IOException e) {
-						logger.error(e, "b:"  + bucket.getName() + ", o:" + objectName + ", f:" + srcFileName + (isMainException ? ServerConstant.NOT_THROWN :""));
+						if (isMainException)
+							logger.error(e, "b:"  + bucket.getName() + ", o:" + objectName + ", f:" + srcFileName + (isMainException ? ServerConstant.NOT_THROWN :""));
 						secEx=e;
 					}
-				
-				try {
-					
-					if (sourceStream!=null) 
-						sourceStream.close();
-					
-				} catch (IOException e) {
-					logger.error(e, "b:"  + bucket.getName() + ", o:" + objectName + ", f:" + srcFileName + (isMainException ? ServerConstant.NOT_THROWN :""));
-					secEx=e;
-				}
 				if (!isMainException && (secEx!=null)) 
 				 		throw new InternalCriticalException(secEx);
 			}

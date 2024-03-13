@@ -42,8 +42,10 @@ import io.odilon.vfs.model.BucketIterator;
 
 
 /**
- * 
- * <p>Bucket Iterator</p>
+ * <p>RAID 0. Bucket Iterator <br/>
+ *  All Drives are enabled in RAID 0 because the Drive sync process is blocking 
+ *  when the {@link VirtualFileSystemService} starts
+ *  </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
@@ -80,16 +82,12 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
 	@JsonIgnore
 	private boolean initiated = false;
 
-	/**
-	 * 
-	 */
+
 	public RAIDZeroBucketIterator(RAIDZeroDriver driver, String bucketName, Optional<Long> opOffset,  Optional<String> opPrefix) {
 			this(driver, bucketName, opOffset, opPrefix, Optional.empty());
 	}
 
-	/**
-	 * 
-	 */
+	
 	public RAIDZeroBucketIterator(RAIDZeroDriver driver, String bucketName, Optional<Long> opOffset,  Optional<String> opPrefix, Optional<String> serverAgentId) {
 			super(bucketName);
 
@@ -107,9 +105,6 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
 		this.itMap = new HashMap<Drive, Iterator<Path>>();
 	}
 	
-	/**
-	 * 
-	 */
 	@Override
 	public synchronized boolean hasNext() {
 		
@@ -159,7 +154,7 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
 	}
 	
 	/**
-	 * <p>There are no Drives in mode DriveStatus.NOTSYNC in RAID 0. 
+	 * <p>There are no Drives in mode {@link DriveStatus#NOTSYNC} in RAID 0. <br/> 
 	 * All new drives are synced before the VirtualFileSystemService 
 	 * completes its initialization. </p>
 	 *  
