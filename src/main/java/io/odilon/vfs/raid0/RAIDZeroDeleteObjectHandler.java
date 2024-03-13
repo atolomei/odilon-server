@@ -306,8 +306,10 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 	}
 
 	/**
-	 * 
-	 * 
+	 * <p>This method is ThreadSafe <br/>
+	 * It does not require lock because once previous versions have been deleted
+	 * they can not be created again by another Thread</p> 
+	 *  
 	 */
 	@Override
 	public void postObjectPreviousVersionDeleteAll(ObjectMetadata meta, int headVersion) {
@@ -349,6 +351,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 	@Override
 	public void postObjectDelete(ObjectMetadata meta, int headVersion) {
 
+		
 		Check.requireNonNullArgument(meta, "meta is null");
 		
 		String bucketName = meta.bucketName;
@@ -357,7 +360,21 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 		Check.requireNonNullArgument(bucketName, "bucketName is null");
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketName);
 		
+		
 		try {
+			
+			getLockService().getObjectLock(meta.bucketName, meta.objectName).writeLock().lock();	
+			getLockService().getBucketLock(meta.bucketName).readLock().lock();
+
+			VFSBucket bucket = getVFS().getBucket(bucketName);
+			Drive drive = getDriver().getDrive(bucket.getName(), objectName);
+			
+			/** if exists is true, means that the object was created in the short time span
+			 * since the object was deleted and the async scheduler called this method
+			 */
+			boolean exists = drive.existsObjectMetadata(bucket.getName(), objectName);
+			
+			if (!exists) {
 				/** delete data versions(1..n-1) **/
 				for (int n=0; n<=headVersion; n++)	{
 					File version_n= ((SimpleDrive) getWriteDrive(bucketName, objectName)).getObjectDataVersionFile(bucketName, objectName, n);
@@ -373,9 +390,14 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 				/** delete backup Metadata */
 				String objectMetadataBackupDirPath = getDriver().getWriteDrive(bucketName, objectName).getBucketWorkDirPath(bucketName) + File.separator + objectName;
 				FileUtils.deleteQuietly(new File(objectMetadataBackupDirPath));
+			}
 				
 		} catch (Exception e) {
 			logger.error(e, ServerConstant.NOT_THROWN);
+		}
+		finally {
+			getLockService().getObjectLock(meta.bucketName, meta.objectName).writeLock().unlock();	
+			getLockService().getBucketLock(meta.bucketName).readLock().unlock();
 		}
 	}
 
@@ -387,15 +409,12 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 	
 		/** copy metadata directory */
 		try {
-			
 			String objectMetadataDirPath = getDriver().getWriteDrive(bucketName, objectName).getObjectMetadataDirPath(bucketName, objectName);
 			String objectMetadataBackupDirPath = getDriver().getWriteDrive(bucketName, objectName).getBucketWorkDirPath(bucketName) + File.separator + objectName;
 			FileUtils.copyDirectory(new File(objectMetadataDirPath), new File(objectMetadataBackupDirPath));
 			
 		} catch (IOException e) {
-			String msg = "b:"   + (Optional.ofNullable(bucketName).isPresent()    ? (bucketName) 	:"null") + 
-						 ", o:" + (Optional.ofNullable(objectName).isPresent() ? (objectName)   :"null");  
-			throw new InternalCriticalException(e, msg);
+			throw new InternalCriticalException(e, "b:"   + bucketName + ", o:" +  objectName);
 		}
 	}
 
@@ -409,18 +428,13 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 		/** restore metadata directory */
 		String objectMetadataBackupDirPath = getDriver().getWriteDrive(bucketName, objectName).getBucketWorkDirPath(bucketName) + File.separator + objectName;
 		String objectMetadataDirPath = getDriver().getWriteDrive(bucketName, objectName).getObjectMetadataDirPath(bucketName, objectName);
-		
 		try {
 			FileUtils.copyDirectory(new File(objectMetadataBackupDirPath), new File(objectMetadataDirPath));
-			logger.debug("restore: " + objectMetadataBackupDirPath +" -> " +objectMetadataDirPath);
-			
 		} catch (InternalCriticalException e) {
 			throw e;
 		
 		} catch (IOException e) {
-			String msg = 	"b:"   + (Optional.ofNullable(bucketName).isPresent()    ? (bucketName) :"null") + 
-							", o:" + (Optional.ofNullable(objectName).isPresent() ? (objectName)       :"null");  
-			throw new InternalCriticalException(e, msg);
+			throw new InternalCriticalException(e, "b:"   + bucketName + ", o:" +  objectName);
 		}
 	}
 

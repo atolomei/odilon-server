@@ -575,8 +575,11 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 
 		try {
+			
 			getLockService().getObjectLock(bucket.getName(), objectName).readLock().lock();
+			
 			try {
+			
 				getLockService().getBucketLock(bucket.getName()).readLock().lock();
 	
 				/** read is from only 1 drive in RAID 0 */
@@ -631,10 +634,13 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie. enabled or archived) b:" + bucket.getName());
 		Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 
+		getLockService().getObjectLock(bucket.getName(), objectName).readLock().lock();
+		
 		try {
-			getLockService().getObjectLock(bucket.getName(), objectName).readLock().lock();
+			
+			getLockService().getBucketLock(bucket.getName()).readLock().lock();
+			
 			try {
-				getLockService().getBucketLock(bucket.getName()).readLock().lock();
 				boolean exists = getDrive(bucket.getName(), objectName).existsObjectMetadata(bucket.getName(), objectName);
 				if (!exists)
 					return false;
@@ -754,11 +760,14 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 
 		Drive readDrive = null;
 
+		getLockService().getObjectLock(bucket.getName(), objectName).readLock().lock();
+		
 		try {
-			getLockService().getObjectLock(bucket.getName(), objectName).readLock().lock();
+			
+			getLockService().getBucketLock(bucket.getName()).readLock().lock();
+			
 			try {
-				getLockService().getBucketLock(bucket.getName()).readLock().lock();
-	
+				
 				/** read is from only 1 drive */
 				readDrive = getReadDrive(bucket, objectName);
 	
@@ -857,11 +866,14 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 
 		Drive readDrive = null;
 		
+		getLockService().getObjectLock(bucket.getName(), objectName).readLock().lock();
+		
 		try {
-			getLockService().getObjectLock(bucket.getName(), objectName).readLock().lock();
+		
+			getLockService().getBucketLock(bucket.getName()).readLock().lock();
+			
 			try {
-				getLockService().getBucketLock(bucket.getName()).readLock().lock();
-	
+		
 				/** read is from only 1 drive */
 				readDrive = getReadDrive(bucket, objectName);
 	
@@ -912,10 +924,13 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie. " + BucketStatus.ARCHIVED.getName() + " or " + BucketStatus.ENABLED.getName() + ") | b:" + bucketName);
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 
+		getLockService().getObjectLock(bucket.getName(), objectName).readLock().lock();
+		
 		try {
-			getLockService().getObjectLock(bucket.getName(), objectName).readLock().lock();
+		
+			getLockService().getBucketLock(bucket.getName()).readLock().lock();
+			
 			try {
-				getLockService().getBucketLock(bucket.getName()).readLock().lock();
 	
 				/** RAID 0: read is from only 1 drive */
 				Drive readDrive = getReadDrive(bucket, objectName);
@@ -966,10 +981,13 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		Check.requireTrue(bucket.isAccesible(),	"bucket is not Accesible (ie. enabled or archived) b:" + bucket.getName());
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 
+		getLockService().getObjectLock(bucket.getName(), objectName).readLock().lock();
+		
 		try {
-			getLockService().getObjectLock(bucket.getName(), objectName).readLock().lock();
+		
+			getLockService().getBucketLock(bucket.getName()).readLock().lock();
+			
 			try {
-				getLockService().getBucketLock(bucket.getName()).readLock().lock();
 	
 				/** RAID 0: read is from only 1 drive */
 				Drive readDrive = getReadDrive(bucket, objectName);
@@ -1548,10 +1566,12 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	}
 
 	@Override
-	public void syncObject(String bucketName, String objectName) {
+	public void syncObject(ObjectMetadata meta) {
 		// TODO Auto-generated method stub
 		
 	}
+
+	
 
 
 }

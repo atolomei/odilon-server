@@ -16,11 +16,12 @@
  */
 package io.odilon.vfs.raid6;
 
+
 import java.io.InputStream;
 import java.util.List;
-import java.util.Optional;
 
 import io.odilon.log.Logger;
+import io.odilon.model.ObjectMetadata;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.DriveStatus;
 
@@ -43,13 +44,28 @@ public class RSDriveInitializationEncoder extends RSEncoder {
 	protected RSDriveInitializationEncoder(RAIDSixDriver driver, List<Drive> zDrives) {
 		super(driver, zDrives);
 	}
-	
-	public RSFileBlocks encode (InputStream is, String bucketName, String objectName) {
-		return super.encode(is, bucketName, objectName);
+
+	/**
+	 * <p> We can not use the {@link ObjectMetadata} here because it may 
+	 * not exist yet. The steps to upload objects are: <br/>
+	 * - upload binary data <br/>
+	 * - create ObjectMetadata <br/>
+	 * </p>
+ 	 */
+	public RSFileBlocks encodeHead (InputStream is, String bucketName, String objectName) {
+		return super.encodeHead(is, bucketName, objectName);
 	}
-	
-	public RSFileBlocks encode (InputStream is, String bucketName, String objectName, Optional<Integer> version) {
-		return super.encode(is, bucketName, objectName, version);
+
+	/**
+	 * <p> We can not use the {@link ObjectMetadata} here because it may 
+	 * not exist yet. The steps to upload objects are: <br/>
+	 * - upload binary data <br/>
+	 * - create ObjectMetadata <br/>
+	 * </p>
+ 	 */
+
+	public RSFileBlocks encodeVersion (InputStream is, String bucketName, String objectName, int version) {
+		return super.encodeVersion(is, bucketName, objectName, version);
 	}
 	
 	protected boolean isWrite(int disk) {

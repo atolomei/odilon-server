@@ -71,23 +71,30 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 		if (!getDriver().exists(bucket, objectName))
 			throw new OdilonObjectNotFoundException("object does not exist -> b:" + bucket.getName()+ " o:"+(Optional.ofNullable(objectName).isPresent() ? (objectName) :"null"));
 		
+		String bucketName = bucket.getName();
+		
 		VFSOperation op = null;
 		boolean done = false;
 		int headVersion = -1;
 		ObjectMetadata meta;
 		
-		getLockService().getObjectLock(bucket.getName(), objectName).writeLock().lock();
+		
+	try {
+		
+		getLockService().getObjectLock(bucketName, objectName).writeLock().lock();
 		
 		try {
-			getLockService().getBucketLock(bucket.getName()).readLock().lock();
-			meta = getDriver().getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucket.getName(), objectName);
+			
+			getLockService().getBucketLock(bucketName).readLock().lock();
+			
+			meta = getDriver().getObjectMetadataReadDrive(bucketName, objectName).getObjectMetadata(bucket.getName(), objectName);
 			headVersion = meta.version;
 		
-			op = getJournalService().deleteObject(bucket.getName(), objectName, headVersion);
+			op = getJournalService().deleteObject(bucketName, objectName, headVersion);
 			
 			backupMetadata(meta);
 			
-			getVFS().getObjectCacheService().remove(bucket.getName(), meta.objectName);
+			getVFS().getObjectCacheService().remove(bucketName, meta.objectName);
 			
 			for (Drive drive: getDriver().getDrivesEnabled()) 
 				drive.deleteObjectMetadata(bucket.getName(), objectName);
@@ -126,12 +133,14 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 			}
 			finally {
 				getLockService().getBucketLock(bucket.getName()).readLock().unlock();
-				getLockService().getObjectLock(bucket.getName() , objectName).writeLock().unlock();
 			}
 		}
+	} finally {
+		getLockService().getObjectLock(bucket.getName() , objectName).writeLock().unlock();
+	}
 		
-		if(done)
-			onAfterCommit(op, meta, headVersion);
+	if(done)
+		onAfterCommit(op, meta, headVersion);
 	}
 	
 
@@ -152,21 +161,25 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 	 */
 	public void deleteObjectAllPreviousVersions(@NonNull VFSBucket bucket, @NonNull String objectName) {
 
+		// TODO VER SI HUBO NUEVA VERSION DESDE QE SE LLAMO A ESTE REQUEST !!!!
+		
 		VFSOperation op = null;  
 		boolean done = false;
 		
 		int headVersion = -1;
 		ObjectMetadata meta;
 		
+		String bucketName = bucket.getName();
+		
 		try {
 			
 			getLockService().getObjectLock(bucket.getName(), objectName).writeLock().lock();
 			getLockService().getBucketLock(bucket.getName()).readLock().lock();
 
-			if (!getDriver().getObjectMetadataReadDrive(bucket, objectName).existsObjectMetadata(bucket.getName(), objectName))
+			if (!getDriver().getObjectMetadataReadDrive(bucketName, objectName).existsObjectMetadata(bucket.getName(), objectName))
 				throw new OdilonObjectNotFoundException("object does not exist -> b:" + bucket.getName()+ " o:"+(Optional.ofNullable(objectName).isPresent() ? (objectName) :"null"));
 			
-			meta = getDriver().getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucket.getName(), objectName);
+			meta = getDriver().getObjectMetadataReadDrive(bucketName, objectName).getObjectMetadata(bucket.getName(), objectName);
 			headVersion = meta.version;
 			
 			/** It does not delete the head version, only previous versions */
@@ -179,7 +192,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 
 			/** remove all "objectmetadata.json.vn" Files, but keep -> "objectmetadata.json" **/  
 			for (int version=0; version < headVersion; version++) {
-				File metadataVersionFile = getDriver().getObjectMetadataReadDrive(bucket, objectName).getObjectMetadataVersionFile(bucket.getName(), objectName, version);
+				File metadataVersionFile = getDriver().getObjectMetadataReadDrive(bucketName, objectName).getObjectMetadataVersionFile(bucket.getName(), objectName, version);
 				FileUtils.deleteQuietly(metadataVersionFile);
 			}
 
@@ -318,20 +331,6 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 	}
 	
 	/**
-	 * 
-	 * <p>This method is called <b>Async</b> by the Scheduler after the transaction is committed
-	 * It does not require locking
-	 * <br/>
-	 * bucketName and objectName may not be the same called in other methods
-	 * </p>
-	 * 
-	 * <p>
-	 * data (head)
-	 * data (versions)
-	 * metadata dir (all versions) backup
-	 * 
-	 * metadata dir -> this was already deleted before the commit
-	 * </p>
 	 * @param bucketName 
 	 * @param objectName
 	 * @param headVersion newest version of the Object just deleted
@@ -347,24 +346,36 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketName);
 		
 		try {
+		
+			getLockService().getObjectLock(meta.bucketName, meta.objectName).writeLock().lock();	
+			getLockService().getBucketLock(meta.bucketName).readLock().lock();
 			
-			/** delete data versions(0..head-1) */
-			for (int n=0; n<headVersion; n++)
-				getDriver().getObjectDataFiles(meta, Optional.of(n)).forEach(item->FileUtils.deleteQuietly(item));
+			boolean exists = getDriver().getObjectMetadataReadDrive(bucketName, objectName).existsObjectMetadata(bucketName, objectName);
 			
-			/** delete data (head) */
-			getDriver().getObjectDataFiles(meta, Optional.empty()).forEach(item->FileUtils.deleteQuietly(item));
+			if (!exists) {
+				/** delete data versions(0..head-1) */
+				for (int n=0; n<headVersion; n++)
+					getDriver().getObjectDataFiles(meta, Optional.of(n)).forEach(item->FileUtils.deleteQuietly(item));
+				
+				/** delete data (head) */
+				getDriver().getObjectDataFiles(meta, Optional.empty()).forEach(item->FileUtils.deleteQuietly(item));
+				
+				/** delete backup Metadata */
+				for (Drive drive:getDriver().getDrivesAll())
+					FileUtils.deleteQuietly(new File(drive.getBucketWorkDirPath(bucketName), objectName));
+			}
 			
-			/** delete backup Metadata */
-			for (Drive drive:getDriver().getDrivesEnabled())
-				FileUtils.deleteQuietly(new File(drive.getBucketWorkDirPath(bucketName), objectName));
+			
 		
 		} catch (Exception e) {
 			/** Exception is not thrown because this method is executed Async by the Scheduler */
 			logger.error(e, ServerConstant.NOT_THROWN);
 		}
+		finally {
+			getLockService().getObjectLock(meta.bucketName, meta.objectName).writeLock().unlock();	
+			getLockService().getBucketLock(meta.bucketName).readLock().unlock();
+		}
 	}
-
 	
 	
 	/**

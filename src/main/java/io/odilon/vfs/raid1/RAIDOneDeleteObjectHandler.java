@@ -370,26 +370,42 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 				
 		Check.requireNonNullArgument(bucketName, "bucket is null");
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketName);
-
 		
 		try {
-				/** delete data versions(1..n-1) */
-				for (int n=0; n<=headVersion; n++)	{
-					for (Drive drive: getDriver().getDrivesAll())
-						FileUtils.deleteQuietly(((SimpleDrive) drive).getObjectDataVersionFile(bucketName, objectName, n));
+				getLockService().getObjectLock(meta.bucketName, meta.objectName).writeLock().lock();	
+				getLockService().getBucketLock(meta.bucketName).readLock().lock();
+
+				VFSBucket bucket = getVFS().getBucket(bucketName);
+				
+				/** if exists is true, means that the object was created in the short time span
+				 * since the object was deleted and the async scheduler called this method
+				 */
+				boolean exists = getDriver().getReadDrive(bucket.getName(), objectName).existsObjectMetadata(bucket.getName(), objectName);
+				
+				if (!exists) {
+					/** delete data versions(1..n-1) */
+					for (int n=0; n<=headVersion; n++)	{
+						for (Drive drive: getDriver().getDrivesAll())
+							FileUtils.deleteQuietly(((SimpleDrive) drive).getObjectDataVersionFile(bucketName, objectName, n));
+					}
+					
+					/** delete data (head) */
+					for (Drive drive:getDriver().getDrivesAll())
+						FileUtils.deleteQuietly(((SimpleDrive) drive).getObjectDataFile(bucketName, objectName));
+					
+					/** delete backup Metadata */
+					for (Drive drive:getDriver().getDrivesAll()) 
+						FileUtils.deleteQuietly(new File(drive.getBucketWorkDirPath(bucketName) + File.separator + objectName));
 				}
-				
-				/** delete data (head) */
-				for (Drive drive:getDriver().getDrivesAll())
-					FileUtils.deleteQuietly(((SimpleDrive) drive).getObjectDataFile(bucketName, objectName));
-				
-				/** delete backup Metadata */
-				for (Drive drive:getDriver().getDrivesAll()) 
-					FileUtils.deleteQuietly(new File(drive.getBucketWorkDirPath(bucketName) + File.separator + objectName));
 			
 		} catch (Exception e) {
 			logger.error(e, ServerConstant.NOT_THROWN);
 		}
+		finally {
+			getLockService().getObjectLock(meta.bucketName, meta.objectName).writeLock().unlock();	
+			getLockService().getBucketLock(meta.bucketName).readLock().unlock();
+		}
+		
 	}
 
 	/**

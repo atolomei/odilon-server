@@ -57,52 +57,62 @@ public class RSDecoder {
 			throw new InternalCriticalException("Incorrect configuration for " + driver.getRedundancyLevel().getName()+" -> data: " + String.valueOf(data_shards) + " | parity:" + String.valueOf(parity_shards));
 	}
  	
-	
 	 /**
-	  * 
 	  * <p>ObjectMetadata must be the one of the version to decode</p>
 	  * 
-     * @param is
-     */
-    public File decode(ObjectMetadata meta, Optional<Integer> version) {
-    	
+      * @param is
+      */
+	// Optional<Integer> version
+	
+	public File decodeHead(ObjectMetadata meta) {
+		return decode(meta, true);
+	}
+	
+	public File decodeVersion(ObjectMetadata meta) {
+		return decode(meta, false);
+	}
+	
+	
+    private File decode(ObjectMetadata meta, boolean isHead) {
     	
     	String bucketName = meta.bucketName;
     	String objectName = meta.objectName;
     	
     	int totalChunks = meta.totalBlocks / this.total_shards;
     	
+    	Optional<Integer> ver = isHead ? Optional.empty() :  Optional.of(Integer.valueOf(meta.version));
     	int chunk = 0;
     	
-	    	File file = getVFS().getFileCacheService().get(bucketName, objectName, version); 
+	    	File file = getVFS().getFileCacheService().get(bucketName, objectName, ver); 
 
 	    	if (file!=null) {
 	    		getDriver().getVFS().getSystemMonitorService().getCacheFileHitCounter().inc();
 	    		return file;
 	    	}
 	    	getDriver().getVFS().getSystemMonitorService().getCacheFileMissCounter().inc();
-	    	getVFS().getFileCacheService().getLockService().getFileCacheLock(bucketName, objectName, version).writeLock().lock();
-    	
-
-    	try {
-	    	String tempPath = getVFS().getFileCacheService().getFileCachePath(bucketName, objectName, version);
-	    
-	    	try (OutputStream out = new BufferedOutputStream(new FileOutputStream(tempPath))) {
-	    		while (chunk<totalChunks) {
-	        		decodeChunk(bucketName, objectName, chunk++, out);
-	        	}
-	    	} catch (FileNotFoundException e) {
-	    		throw new InternalCriticalException(e, "b:" + bucketName +  " | o:" + objectName + " | f:" +tempPath);
-			} catch (IOException e) {
-				throw new InternalCriticalException(e, "b:" + bucketName +  " | o:" + objectName + " | f:" +tempPath);
-			}
-	    	File decodedFile = new File(tempPath);
-	    	getVFS().getFileCacheService().put(bucketName, objectName, version, decodedFile, false);
-	    	return decodedFile;
 	    	
-    	} finally {
-    		getVFS().getFileCacheService().getLockService().getFileCacheLock(bucketName, objectName, version).writeLock().unlock();
-    	}
+	    	getVFS().getFileCacheService().getLockService().getFileCacheLock(bucketName, objectName, ver).writeLock().lock();
+
+	    	try {
+	    	
+	    		String tempPath = getVFS().getFileCacheService().getFileCachePath(bucketName, objectName, ver);
+		    
+		    	try (OutputStream out = new BufferedOutputStream(new FileOutputStream(tempPath))) {
+		    		while (chunk<totalChunks) {
+		        		decodeChunk(meta, chunk++, out, isHead);
+		        	}
+		    	} catch (FileNotFoundException e) {
+		    		throw new InternalCriticalException(e, "b:" + bucketName +  " | o:" + objectName + " | f:" +tempPath);
+				} catch (IOException e) {
+					throw new InternalCriticalException(e, "b:" + bucketName +  " | o:" + objectName + " | f:" +tempPath);
+				}
+		    	File decodedFile = new File(tempPath);
+		    	getVFS().getFileCacheService().put(bucketName, objectName, ver, decodedFile, false);
+		    	return decodedFile;
+		    	
+	    	} finally {
+	    		getVFS().getFileCacheService().getLockService().getFileCacheLock(bucketName, objectName, ver).writeLock().unlock();
+	    	}
     }
 
     /**
@@ -112,7 +122,7 @@ public class RSDecoder {
      * @param out
      * @return
      */
-    protected boolean decodeChunk(String bucketName, String objectName, int chunk, OutputStream out) {
+    protected boolean decodeChunk(ObjectMetadata meta, int chunk, OutputStream out, boolean isHead) {
     	
     	// Read in any of the shards that are present.
         // (There should be checking here to make sure the input
@@ -124,13 +134,20 @@ public class RSDecoder {
         int shardSize = 0;
         int shardCount = 0;
         
-        
         for (int disk = 0; disk < this.total_shards; disk++) {
         	
-        	/** As we must encode using DrivesAll, we must decode only with DrivesEnabled */
-        	String dirPath = getDriver().getDrivesEnabled().get(disk).getBucketObjectDataDirPath(bucketName);
-        	File shardFile = new File(dirPath, objectName+ "." + String.valueOf(chunk) +"." + String.valueOf(disk));
-           
+        	/** We must encode using 	->  DrivesAll, 
+        	 *  we must decode only with ->  DrivesEnabled */
+        	
+        	File shardFile = null;
+        	
+        	if (isHead) {
+        		shardFile = new File(getDriver().getDrivesEnabled().get(disk).getBucketObjectDataDirPath(meta.bucketName), meta.objectName+ "." + String.valueOf(chunk) +"." + String.valueOf(disk));	
+        	}
+        	else {
+        		shardFile = new File(getDriver().getDrivesEnabled().get(disk).getBucketObjectDataDirPath(meta.bucketName)+ File.separator + VirtualFileSystemService.VERSION_DIR, meta.objectName+ "." + String.valueOf(chunk) +"." + String.valueOf(disk)+ ".v" + String.valueOf(meta.version));
+        	}
+        	
             if (shardFile.exists()) {
                 shardSize = (int) shardFile.length();
                 shards[disk] = new byte [shardSize];             	// BUFFER 4
@@ -139,18 +156,18 @@ public class RSDecoder {
     			try (InputStream in = new BufferedInputStream(new FileInputStream(shardFile))) {
 					in.read(shards[disk], 0, shardSize);
 				} catch (FileNotFoundException e) {
-					logger.error(e.getClass().getName() + " | b:" + bucketName +  " | o:" + objectName + " | f:" + shardFile.getName());
+					logger.error(e.getClass().getName() + " | b:" + meta.bucketName +  " | o:" + meta.objectName + " | f:" + shardFile.getName() + (isHead?"":(" v:" + String.valueOf(meta.version))));
 					shardPresent[disk] = false;
 				} catch (IOException e) {
-					logger.error(e.getClass().getName() + " | b:" + bucketName +  " | o:" + objectName + " | f:" + shardFile.getName());
+					logger.error(e.getClass().getName() + " | b:" + meta.bucketName +  " | o:" + meta.objectName + " | f:" + shardFile.getName()  + (isHead?"":(" v:" + String.valueOf(meta.version))));
 					shardPresent[disk] = false;
 				}
             }
         }
-        
+
         /** We need at least DATA_SHARDS to be able to reconstruct the file */
         if (shardCount < this.data_shards) {
-        	throw new InternalCriticalException("We need at least " + String.valueOf(this.data_shards)+ " shards to be able to reconstruct the file | b:" + bucketName +  " | o:" + objectName +" | shardCount: "+ String.valueOf(shardCount));
+        	throw new InternalCriticalException("We need at least " + String.valueOf(this.data_shards) +" shards to be able to reconstruct the data file | b:" + meta.bucketName +  " | o:" + meta.objectName + " | f:" + (isHead?"":(" v:" + String.valueOf(meta.version))) + " | shardCount: "+ String.valueOf(shardCount));
         }
         
         /** Make empty buffers for the missing shards  */
@@ -177,9 +194,8 @@ public class RSDecoder {
         try {
 			out.write(allBytes, ServerConstant.BYTES_IN_INT, fileSize);
 		} catch (IOException e) {
-            throw  new InternalCriticalException(e,  "b:" + bucketName +  " | o:" + objectName);
+            throw  new InternalCriticalException(e,  "b:" + meta.bucketName +  " | o:" + meta.objectName);
 		}
-        
         return true;
     }
     

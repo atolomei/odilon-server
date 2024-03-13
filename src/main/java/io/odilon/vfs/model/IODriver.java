@@ -138,7 +138,7 @@ public interface IODriver {
 	/**
 	 * 
 	 */
-	public void syncObject(String bucketName, String objectName);
+	public void syncObject(ObjectMetadata meta);
 	
 
 	

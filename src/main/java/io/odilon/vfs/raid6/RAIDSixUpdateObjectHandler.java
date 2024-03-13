@@ -81,7 +81,8 @@ private static Logger logger = Logger.getLogger(RAIDSixCreateObjectHandler.class
 	
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
-		
+
+		String bucketName = bucket.getName();
 		VFSOperation op = null;
 		boolean done = false;
 		
@@ -89,21 +90,21 @@ private static Logger logger = Logger.getLogger(RAIDSixCreateObjectHandler.class
 		int afterHeadVersion = -1;
 		ObjectMetadata meta = null;
 		
-		getLockService().getObjectLock( bucket.getName(), objectName).writeLock().lock();
+		getLockService().getObjectLock(bucketName, objectName).writeLock().lock();
 		
 		try {
 			
-			getLockService().getBucketLock(bucket.getName()).readLock().lock();
+			getLockService().getBucketLock(bucketName).readLock().lock();
 
-			if (!getDriver().getObjectMetadataReadDrive(bucket.getName(), objectName).existsObjectMetadata(bucket.getName(), objectName))
-				throw new OdilonObjectNotFoundException("b:" + bucket.getName()+ " o:"+ objectName);
+			if (!getDriver().getObjectMetadataReadDrive(bucketName, objectName).existsObjectMetadata(bucketName, objectName))
+				throw new OdilonObjectNotFoundException("b:" + bucketName + " o:"+ objectName);
 			
-			meta = getDriver().getObjectMetadataInternal(bucket.getName(), objectName, true);
+			meta = getDriver().getObjectMetadataInternal(bucketName, objectName, true);
 			beforeHeadVersion = meta.version;							
+														
+			op = getJournalService().updateObject(bucketName, objectName, beforeHeadVersion);
 			
-			op = getJournalService().updateObject(bucket.getName(), objectName, beforeHeadVersion);
-			
-			getVFS().getObjectCacheService().remove(bucket.getName(), objectName);
+			getVFS().getObjectCacheService().remove(bucketName, objectName);
 			
 			/** backup current head version */
 			backupVersionObjectDataFile(meta, meta.version);
@@ -145,7 +146,7 @@ private static Logger logger = Logger.getLogger(RAIDSixCreateObjectHandler.class
 						rollbackJournal(op, false);
 						
 					} catch (Exception e) {
-						throw new InternalCriticalException(e, "b:"+ bucket.getName() + " o:"  + objectName +	 ", f:"	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName) :"null"));
+						throw new InternalCriticalException(e, "b:"+ bucketName + " o:"  + objectName +	 ", f:"	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName) :"null"));
 					}
 				}
 				else {
@@ -469,7 +470,7 @@ private static Logger logger = Logger.getLogger(RAIDSixCreateObjectHandler.class
 		try {
 				sourceStream = isEncrypt() ? (getVFS().getEncryptionService().encryptStream(stream)) : stream;
 				RSEncoder encoder = new RSEncoder(getDriver());
-				return encoder.encode(sourceStream, bucket.getName(), objectName);
+				return encoder.encodeHead(sourceStream, bucket.getName(), objectName);
 			
 			} catch (Exception e) {
 				isMainException = true;

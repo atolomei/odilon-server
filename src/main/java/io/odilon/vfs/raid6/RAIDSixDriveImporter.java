@@ -17,12 +17,7 @@
 
 package io.odilon.vfs.raid6;
 
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
+
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -42,7 +37,6 @@ import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ServerConstant;
@@ -58,7 +52,16 @@ import io.odilon.vfs.raid1.RAIDOneDriveImporter;
 
 
 /**
- * <p>
+ * <p>Al iniciar el VFS se detecta si hay uno o mas Drives nuevos.
+ * Si hay al menos un Drive nuevo se corre este proceso de incorporacion 
+ * del nuevo Drive. 
+ * 
+ * . Para los Object creados a partir del inicio del VFS se utilizan los discos enabled y los not sync
+ * . Para los Object anteriores al inicio del VFS se lleva a cabo la sincronizacion en el o los discos nuevos
+ *   - grabar ObjectMetadata head y versiones anteriores
+ *   - grabar el/los Block/s RS del data file que correspondan en cada disco nuevo   
+ * 
+ * Al terminar el proceso de integracion del nuevo disco, los discos pasan a status enabled.
  * 
  * </p>
  * @author atolomei@novamens.com (Alejandro Tolomei)
@@ -109,6 +112,8 @@ public class RAIDSixDriveImporter implements Runnable {
 	@JsonIgnore
 	private LockService vfsLockService;
 	
+	private OffsetDateTime dateConnected;
+	
 	
 	public RAIDSixDriveImporter(RAIDSixDriver driver) {
 		this.driver=driver;
@@ -155,8 +160,9 @@ public class RAIDSixDriveImporter implements Runnable {
 		this.thread.setName(this.getClass().getSimpleName());
 		this.thread.start();
 	}
-
+	
 	/**
+	 * 
 	 */
 	private void encode() {
 		
@@ -176,6 +182,16 @@ public class RAIDSixDriveImporter implements Runnable {
 			}
 		});
 		
+							
+		this.dateConnected = getDriver().getVFS().getMapDrivesAll().values().
+				stream().
+				filter(d -> d.getDriveInfo().getStatus()==DriveStatus.NOTSYNC).
+				map(v -> v.getDriveInfo().getDateConnected()).
+				reduce( OffsetDateTime.MIN, (a, b) -> 
+				a.isAfter(b) ?
+				a:
+				b);
+		
 		ExecutorService executor = null;
 
 		try {
@@ -192,14 +208,7 @@ public class RAIDSixDriveImporter implements Runnable {
 				
 				boolean done = false;
 				
-				OffsetDateTime dateConnected = 	getDriver().getVFS().getMapDrivesAll().values().
-												stream().
-												filter(d -> d.getDriveInfo().getStatus()==DriveStatus.NOTSYNC).
-												map(v -> v.getDriveInfo().getDateConnected()).
-												reduce( OffsetDateTime.MIN, (a, b) -> 
-												a.isAfter(b) ?
-												a:
-												b);
+				
 				 
 				 
 				while (!done) {
@@ -225,8 +234,8 @@ public class RAIDSixDriveImporter implements Runnable {
 									logger.debug("scanned (encoded) so far -> " + String.valueOf(this.counter.get()));
 								
 								if (item.isOk()) {
-									if (item.getObject().lastModified.isBefore(dateConnected)) {
-										encodeItem(item);
+									if ( requireSync(item) ) {
+										getDriver().syncObject(item.getObject());
 									}
 								}
 								else {
@@ -279,91 +288,6 @@ public class RAIDSixDriveImporter implements Runnable {
 		}
 	}
 
-	
-	/**
-	 * <p>Encode all versions of the Object</p>
-	 * 
-	 * @param item
-	 */
-	private void encodeItem(Item<ObjectMetadata> item) {
-		
-		try {
-		
-			getLockService().getObjectLock(item.getObject().bucketName, item.getObject().objectName).writeLock().lock();
-			getLockService().getBucketLock(item.getObject().bucketName).readLock().lock();
-			
-			ObjectMetadata meta = item.getObject();
-			
-			/** HEAD VERSION --------------------------------------------------------- */
-			{
-	
-				RSDecoder decoder = new RSDecoder(getDriver());
-				
-				File file = decoder.decode(meta, Optional.empty());
-				
-				RSDriveInitializationEncoder driveInitEncoder = new RSDriveInitializationEncoder(getDriver(), getDrives());
-				
-				try (InputStream in = new BufferedInputStream(new FileInputStream(file.getAbsolutePath()))) {
-					
-					driveInitEncoder.encode(in, meta.bucketName, meta.objectName);
-					
-				} catch (FileNotFoundException e) {
-		    		throw new InternalCriticalException(e, "b:" + meta.bucketName +  " | o:" + meta.objectName );
-				} catch (IOException e) {
-					throw new InternalCriticalException(e, "b:" + meta.bucketName +  " | o:" + meta.objectName );
-				}
-				
-				// TODO VER AT
-				meta.dateSynced=OffsetDateTime.now();
-				for (Drive drive: getDrives()) {
-						drive.saveObjectMetadata(meta);
-				}
-			}
-			
-			/** PREVIOUS VERSIONS --------------------------------------------------------- */
-				
-			if (getDriver().getVFS().getServerSettings().isVersionControl()) {
-				
-				for (int version=0; version<item.getObject().version; version++) {
-					
-					ObjectMetadata versionMeta = getDriver().getObjectMetadataVersion(meta.bucketName, meta.objectName, version);	
-				
-					RSDecoder decoder = new RSDecoder(getDriver());
-					File file = decoder.decode(meta, Optional.of(version));
-					
-					RSDriveInitializationEncoder driveInitEncoder = new RSDriveInitializationEncoder(getDriver(), getDrives());
-													
-					try (InputStream in = new BufferedInputStream(new FileInputStream(file.getAbsolutePath()))) {
-						
-						driveInitEncoder.encode(in, meta.bucketName, meta.objectName, Optional.of(version));
-						
-					} catch (FileNotFoundException e) {
-			    		throw new InternalCriticalException(e, "b:" + meta.bucketName +  " | o:" + meta.objectName );
-					} catch (IOException e) {
-						throw new InternalCriticalException(e, "b:" + meta.bucketName +  " | o:" + meta.objectName );
-					}
-					
-					versionMeta.lastModified=OffsetDateTime.now();
-					
-					// TODO VER AT (TRX)
-					for (Drive drive: getDrives()) {
-						drive.saveObjectMetadataVersion(versionMeta);
-					}
-				}
-
-				this.encoded.getAndIncrement();
-			}
-			
-		} catch (Exception e) {
-			logger.error(e,ServerConstant.NOT_THROWN);
-			this.errors.getAndIncrement();
-		}
-		finally {
-			getLockService().getBucketLock(item.getObject().bucketName).readLock().unlock();
-			getLockService().getObjectLock(item.getObject().bucketName, item.getObject().objectName).writeLock().unlock();
-		}
-	}
-
 	protected RAIDSixDriver getDriver() {
 		return this.driver;
 	}
@@ -375,7 +299,6 @@ public class RAIDSixDriveImporter implements Runnable {
 	protected List<Drive> getDrives() {
 		return drives;
 	}
-	
 	
 	private void updateDrives() {
 		for (Drive drive: getDriver().getDrivesAll()) {
@@ -389,4 +312,9 @@ public class RAIDSixDriveImporter implements Runnable {
 			}
 		}
 	}
+	
+	private boolean requireSync(Item<ObjectMetadata> item) {
+		return item.getObject().lastModified.isBefore(dateConnected);
+	}
+
 }

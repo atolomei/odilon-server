@@ -79,7 +79,9 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler implements RAID
 		boolean done = false;
 		
 		try {
+			
 			getLockService().getObjectLock( bucket.getName(), objectName).writeLock().lock();
+			
 				try {
 						getLockService().getBucketLock(bucket.getName()).readLock().lock();
 
@@ -136,7 +138,8 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler implements RAID
 	}
 
 	/**
-	 * 
+	 * <p>Concurrecy Control</p>
+	 * This method is not ThreadSafe, callers must ensure proper concurrency control
 	 */
 	@Override
 	public void rollbackJournal(VFSOperation op, boolean recoveryMode) {

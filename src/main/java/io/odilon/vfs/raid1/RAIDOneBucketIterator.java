@@ -123,9 +123,8 @@ public class RAIDOneBucketIterator extends BucketIterator implements Closeable {
 
 		boolean hasItems = fetch();
 		
-		if (!hasItems)
-			throw new IndexOutOfBoundsException(   "No more items available. hasNext() should be called before this method. "
-												 + "[returned so far -> " + String.valueOf(cumulativeIndex)+"]" );
+		if (!hasItems)																							
+			throw new IndexOutOfBoundsException("No more items available. hasNext() should be called before this method. " + "[returned so far -> " + String.valueOf(cumulativeIndex)+"]");
 		
 		Path object = this.buffer.get(this.relativeIndex);
 

@@ -42,10 +42,11 @@ import io.odilon.vfs.model.Drive;
 
 /**
  * <p><b>RAID 6</b> <br/>
- * Data is partitioned into blocks encoded in RS and stored on all drives</p>
+ * Data is partitioned into blocks encoded using RS Erasure code and stored on all drives. 
+ * The encoding convention for block in the File System is detailed in {qlink RAIDSixDriver}</p>
  *
- * <p>The RAID 6 {@link BucketIterator} uses a randomly selected Drive to 
- * walk and return {@link ObjectMetata} instances. All Drives contain all ObjectMetadata in RAID 6.</p>
+ * <p>This {@link BucketIterator} uses a randomly selected {@link Drive} to iterate and return {@link ObjectMetata} 
+ * instances. All enabled Drives contain all {@link ObjectMetadata} in RAID 6.</p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  * 
@@ -127,7 +128,7 @@ public class RAIDSixBucketIterator extends BucketIterator implements Closeable {
 		boolean hasItems = fetch();
 		
 		if (!hasItems)
-			throw new IndexOutOfBoundsException(   "No more items available. hasNext() should be called before this method. "
+			throw new IndexOutOfBoundsException( "No more items available. hasNext() should be called before this method. "
 												 + "[returned so far -> " + String.valueOf(cumulativeIndex)+"]" );
 		
 		Path object = this.buffer.get(this.relativeIndex);

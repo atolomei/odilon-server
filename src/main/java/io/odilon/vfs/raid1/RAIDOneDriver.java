@@ -1069,8 +1069,8 @@ public class RAIDOneDriver extends BaseIODriver  {
 	}
 
 	@Override
-	public void syncObject(String bucketName, String objectName) {
-		logger.debug("syncObject -> b:" + bucketName + ", o:" + objectName);
+	public void syncObject(ObjectMetadata meta) {
+		// TODO Auto-generated method stub
 		
 	}
 }
