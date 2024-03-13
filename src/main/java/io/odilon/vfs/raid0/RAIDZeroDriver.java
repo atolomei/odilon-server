@@ -1258,6 +1258,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		boolean bucketLock = false;
 
 		try {
+			
 			try {
 				objectLock = getLockService().getObjectLock(bucketName, objectName).readLock().tryLock(20, TimeUnit.SECONDS);
 				if (!objectLock) {
@@ -1328,11 +1329,21 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 			 **/
 			return false;
 		} finally {
-			if (bucketLock)
-				getLockService().getBucketLock(bucketName).readLock().unlock();
+			
+			try {
+				if (bucketLock)
+					getLockService().getBucketLock(bucketName).readLock().unlock();
+			} catch (Exception e) {
+				logger.error(e, ServerConstant.NOT_THROWN);
+			}
+			
+			try {
+				if (objectLock)
+					getLockService().getObjectLock(bucketName, objectName).readLock().unlock();
+			} catch (Exception e) {
+				logger.error(e, ServerConstant.NOT_THROWN);
+			}
 
-			if (objectLock)
-				getLockService().getObjectLock(bucketName, objectName).readLock().unlock();
 		}
 	}
 

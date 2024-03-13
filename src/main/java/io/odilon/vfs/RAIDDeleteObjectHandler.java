@@ -21,8 +21,8 @@ public interface RAIDDeleteObjectHandler {
 	 *  Post transaction
 	 *  <p>executed Async by a {@link ServiceRequest} from the {@link SchedulerService}</p>
 	 * */
-	public void postObjectDelete(ObjectMetadata meta, int headVersion);
-	public void postObjectPreviousVersionDeleteAll(ObjectMetadata meta, int headVersion);
+	//public void postObjectDelete(ObjectMetadata meta, int headVersion);
+	//public void postObjectPreviousVersionDeleteAll(ObjectMetadata meta, int headVersion);
 
 	
 }

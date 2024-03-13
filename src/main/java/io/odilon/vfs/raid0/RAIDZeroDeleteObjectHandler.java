@@ -340,41 +340,10 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 	 * they can not be created again by another Thread</p> 
 	 *  
 	 */
-	@Override
-	public void postObjectPreviousVersionDeleteAll(ObjectMetadata meta, int headVersion) {
 
-		Check.requireNonNullArgument(meta, "meta is null");
-		String bucketName = meta.bucketName;
-		String objectName = meta.objectName;
-		logger.debug("post delete | do nothing -> " + "b:" + bucketName + ", o:" +  objectName );
-		
-		/**
-		Check.requireNonNullArgument(meta, "meta is null");
-
-		String bucketName = meta.bucketName;
-		String objectName = meta.objectName;
-				
-		Check.requireNonNullArgument(bucketName, "bucketName is null");
-		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketName);
-		
-		try {
-			/// delete data versions(1..n-1). keep headVersion 
-			for (int n=0; n<headVersion; n++)	{
-				File version_n = ((SimpleDrive) getWriteDrive(bucketName, objectName)).getObjectDataVersionFile(bucketName, objectName, n);
-				if (version_n.exists())
-					FileUtils.deleteQuietly(version_n);	
-			}
-						
-			// delete backup Metadata
-			String objectMetadataBackupDirPath = getDriver().getWriteDrive(bucketName, objectName).getBucketWorkDirPath(bucketName) + File.separator + objectName;
-			File omb = new File(objectMetadataBackupDirPath);
-			if (omb.exists())
-				FileUtils.deleteQuietly(omb);
-			
-		} catch (Exception e) {
-			logger.error(e, ServerConstant.NOT_THROWN);
-		}**/
-	}
+	
+	public void postObjectPreviousVersionDeleteAll(ObjectMetadata meta, int headVersion) 	{}
+	public void postObjectDelete(ObjectMetadata meta, int headVersion) 						{}
 
 
 
@@ -437,13 +406,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 		FileUtils.deleteQuietly(new File(getDriver().getWriteDrive(bucketName, objectName).getBucketWorkDirPath(bucketName) + File.separator + objectName));
 	}
 	
-	@Override
-	public void postObjectDelete(ObjectMetadata meta, int headVersion) {
-		Check.requireNonNullArgument(meta, "meta is null");
-		String bucketName = meta.bucketName;
-		String objectName = meta.objectName;
-		logger.debug("post delete | do nothing -> " + "b:" + bucketName + ", o:" +  objectName );
-	}
+	
 	
 	/**
 	 * <p>This method is executed <b>Async</b> 

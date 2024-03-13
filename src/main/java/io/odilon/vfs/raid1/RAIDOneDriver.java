@@ -690,7 +690,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 		try {
 			
 			try {
-				objectLock = getLockService().getObjectLock(bucketName, objectName).readLock().tryLock(10, TimeUnit.SECONDS);
+				objectLock = getLockService().getObjectLock(bucketName, objectName).readLock().tryLock(20, TimeUnit.SECONDS);
 				if(!objectLock) {
 					logger.warn("Can not acquire read Lock for Object. Assumes check is ok -> " + objectName);
 					return true;
@@ -702,7 +702,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 			}
 			
 			try {
-				bucketLock = getLockService().getBucketLock(bucketName).readLock().tryLock(10, TimeUnit.SECONDS);
+				bucketLock = getLockService().getBucketLock(bucketName).readLock().tryLock(20, TimeUnit.SECONDS);
 				if(!bucketLock) {
 					logger.warn("Can not acquire read Lock for Bucket. Assumes check is ok -> " + bucketName);
 					return true;
@@ -773,11 +773,20 @@ public class RAIDOneDriver extends BaseIODriver  {
 		}
 		finally {
 			
-			if (bucketLock)
-				getLockService().getBucketLock(bucketName).readLock().unlock();
+			try {
+				if (bucketLock)
+					getLockService().getBucketLock(bucketName).readLock().unlock();
+			} catch (Exception e) {
+				logger.error(e, ServerConstant.NOT_THROWN);
+			}
+			
+			try {
+				if (objectLock)
+					getLockService().getObjectLock(bucketName, objectName).readLock().unlock();
+			} catch (Exception e) {
+				logger.error(e, ServerConstant.NOT_THROWN);
+			}
 
-			if (objectLock)
-				getLockService().getObjectLock(bucketName, objectName).readLock().unlock();
 		}
 		
 		if (bucketLock && objectLock && (!retValue)) {

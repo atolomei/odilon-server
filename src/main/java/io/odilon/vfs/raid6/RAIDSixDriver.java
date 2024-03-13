@@ -257,6 +257,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		boolean bucketLock = false;
 
 		try {
+			
 			try {
 				objectLock = getLockService().getObjectLock(bucketName, objectName).readLock().tryLock(20, TimeUnit.SECONDS);
 				if (!objectLock) {
@@ -328,11 +329,20 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 			// return false;
 			
 		} finally {
-			if (bucketLock)
-				getLockService().getBucketLock(bucketName).readLock().unlock();
-
-			if (objectLock)
-				getLockService().getObjectLock(bucketName, objectName).readLock().unlock();
+			
+			try {
+				if (bucketLock)
+					getLockService().getBucketLock(bucketName).readLock().unlock();
+			} catch (Exception e) {
+				logger.error(e, ServerConstant.NOT_THROWN);
+			}
+			
+			try {
+				if (objectLock)
+					getLockService().getObjectLock(bucketName, objectName).readLock().unlock();
+			} catch (Exception e) {
+				logger.error(e, ServerConstant.NOT_THROWN);
+			}
 		}
 		
 	}
@@ -613,7 +623,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketName);
 
 		RAIDSixDeleteObjectHandler deleteAgent = new RAIDSixDeleteObjectHandler(this);
-		deleteAgent.postObjectDeleteTransaction(meta, headVersion);
+		deleteAgent.postObjectDelete(meta, headVersion);
 	}
 
 	/**
@@ -629,7 +639,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketName);
 		
 		RAIDSixDeleteObjectHandler deleteAgent = new RAIDSixDeleteObjectHandler(this);
-		deleteAgent.postObjectPreviousVersionDeleteAllTransaction(meta, headVersion);
+		deleteAgent.postObjectPreviousVersionDeleteAll(meta, headVersion);
 	}
 
  	/**
@@ -765,7 +775,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 			throw new OdilonObjectNotFoundException("object does not exist -> b:" + bucket.getName()+ " o:"+(Optional.ofNullable(objectName).isPresent() ? (objectName) :"null"));
 		
 		RAIDSixDeleteObjectHandler agent = new RAIDSixDeleteObjectHandler(this);
-		agent.deleteObjectAllPreviousVersions(bucket, objectName);
+		agent.deleteObjectAllPreviousVersions(meta);
  	}
 
 	/**
