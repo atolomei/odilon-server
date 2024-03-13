@@ -85,15 +85,13 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 		boolean done = false;
 		
 		
+		getLockService().getObjectLock( bucketName, objectName).writeLock().lock();
 		
-		try {
+		try  {
 		
-			getLockService().getObjectLock( bucketName, objectName).writeLock().lock();
-		
-			try {
-					
-					getLockService().getBucketLock(bucketName).readLock().lock();
+			getLockService().getBucketLock(bucketName).readLock().lock();
 			
+			try (stream) {
 					if (getDriver().getReadDrive(bucketName, objectName).existsObjectMetadata(bucketName, objectName))											
 						throw new IllegalArgumentException("object already exist -> b:" + bucketName + " o:"+objectName);
 					
@@ -105,6 +103,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 					saveObjectMetadata(bucketName, objectName, srcFileName, contentType, version);
 					
 					getVFS().getObjectCacheService().remove(bucketName, objectName);
+					
 					done = op.commit();
 			
 				} catch (OdilonObjectNotFoundException e1) {
@@ -117,18 +116,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 						throw new InternalCriticalException(e, "b:" + bucketName + " o:"+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null"));
 				} finally {
 						try {
-								try {
-									
-									if (stream!=null)
-										stream.close();
-									
-								} catch (IOException e) {
-									logger.error(e, ServerConstant.NOT_THROWN);
-								}
-							
-								boolean requiresRollback = (!done) && (op!=null);
-								
-								if (requiresRollback) {
+								if ((!done) && (op!=null)) {
 									try {
 										rollbackJournal(op, false);
 									} catch (Exception e) {

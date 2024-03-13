@@ -97,6 +97,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler implements RAID
 						saveObjectMetadata(bucket,objectName, srcFileName, contentType, version);
 						
 						getVFS().getObjectCacheService().remove(bucket.getName(), objectName);
+						
 						done = op.commit();
 					
 				} catch (OdilonObjectNotFoundException e1) {
