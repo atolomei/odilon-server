@@ -74,7 +74,7 @@ Odilon API is way simpler than S3. The only thing it has in common with AWS S3 i
 <br/>
 <br/>
 </li>
-<li><b>Odilon is not a Distributed Storage like Cassandra, Hadoop etc.</b><br/>
+<li class="list-item"><b>Odilon is not a Distributed Storage like Cassandra, Hadoop etc.</b><br/>
 Odilon supports master-standby architecture for archival, backup and data protection, 
 but it is not a Distributed Storage and it does not support active-active replication.
 <br/>
