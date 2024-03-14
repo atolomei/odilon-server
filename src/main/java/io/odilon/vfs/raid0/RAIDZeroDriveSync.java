@@ -62,9 +62,9 @@ import io.odilon.vfs.model.VirtualFileSystemService;
  */
 @Component
 @Scope("prototype")
-public class RAIDZeroDriveSetup implements IODriveSetup {
+public class RAIDZeroDriveSync implements IODriveSetup {
 	
-	static private Logger logger = Logger.getLogger(RAIDZeroDriveSetup.class.getName());
+	static private Logger logger = Logger.getLogger(RAIDZeroDriveSync.class.getName());
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 	
 	@JsonIgnore
@@ -115,7 +115,7 @@ public class RAIDZeroDriveSetup implements IODriveSetup {
 	/**
 	 * @param driver
 	 */
-	public RAIDZeroDriveSetup(RAIDZeroDriver driver) {
+	public RAIDZeroDriveSync(RAIDZeroDriver driver) {
 		this.driver=driver;
 		this.maxProcessingThread = Double.valueOf(Double.valueOf(Runtime.getRuntime().availableProcessors()-1) / 2.0 ).intValue() + 1;
 	}
@@ -183,7 +183,7 @@ public class RAIDZeroDriveSetup implements IODriveSetup {
 		
 		if (this.errors.get()>0 || this.notAvailable.get()>0) {
 			startuplogger.error("The process can not be completed due to errors");
-			startuplogger.error("-------------------");
+			startuplogger.error(ServerConstant.SEPARATOR);
 			return false;
 		}
 		
@@ -192,7 +192,7 @@ public class RAIDZeroDriveSetup implements IODriveSetup {
 		
 		if (this.errors.get()>0 || this.notAvailable.get()>0) {
 			startuplogger.error("The process can not be completed due to errors");
-			startuplogger.error("-------------------");
+			startuplogger.error(ServerConstant.SEPARATOR);
 			return false;
 		}
 		
@@ -208,13 +208,14 @@ public class RAIDZeroDriveSetup implements IODriveSetup {
 			startuplogger.info("Cleanup will be executed again automatically in the future to release unused storage");
 		}
 		
+		startuplogger.info(ServerConstant.SEPARATOR);
 		startuplogger.info("Drive setup completed successfully.");
 		
 		startuplogger.debug("Threads: " + String.valueOf(maxProcessingThread));
 		
-		startuplogger.info("Total scanned: " + String.valueOf(this.counter.get()));
-		startuplogger.info("Total moved: " + String.valueOf(this.moved.get()));
-		startuplogger.info("Total storage moved: " + String.format("%14.4f", Double.valueOf(totalBytesMoved.get()).doubleValue() / SharedConstant.d_gigabyte).trim() + " GB");
+		startuplogger.info("Total files processed: " + String.valueOf(this.counter.get()));
+		startuplogger.info("Total files required move to another disk: " + String.valueOf(this.moved.get()));
+		startuplogger.info("Total storage moved: " + String.format("%16.6f", Double.valueOf(totalBytesMoved.get()).doubleValue() / SharedConstant.d_gigabyte).trim() + " GB");
 		
 		if (this.errors.get()>0)
 			startuplogger.info("Errors: " + String.valueOf(this.errors.get()));
@@ -226,7 +227,7 @@ public class RAIDZeroDriveSetup implements IODriveSetup {
 		startuplogger.debug("Duration clean up: " 	+ String.valueOf(Double.valueOf(System.currentTimeMillis() - start_cleanup) / Double.valueOf(1000)) + " secs");
 		
 		startuplogger.info("Duration Total: " + String.valueOf(Double.valueOf(System.currentTimeMillis() - start_ms) / Double.valueOf(1000)) + " secs");
-		startuplogger.info("---------");
+		startuplogger.info(ServerConstant.SEPARATOR);
 		
 		return true;
 	}
