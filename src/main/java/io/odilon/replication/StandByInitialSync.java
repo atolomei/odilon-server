@@ -314,11 +314,15 @@ public class StandByInitialSync implements Runnable {
 				if (completed) {
 					info.setStandBySyncedDate(OffsetDateTime.now());
 					this.vfs.setOdilonServerInfo(info);
+					
+					logger.info(ServerConstant.SEPARATOR);
 					logger.info("Intial Sync completed");
 					intialSynclogger.info("Intial Sync completed");
 					startuplogger.info("Intial Sync completed");
 				}
 				else {
+					
+					logger.info(ServerConstant.SEPARATOR);
 					logger.error("The intial Sync process can not be completed. Please correct the issues and restart the Odilon Server in order for the Sync process to execute again");
 					intialSynclogger.error("Intial Sync can not be completed");
 					startuplogger.error("Intial Sync can not be completed");
@@ -332,8 +336,15 @@ public class StandByInitialSync implements Runnable {
 			logResults(intialSynclogger);
 		}
 	}
+
 	
+	/**
+	 * 
+	 * @param logger
+	 */
 	private void logResults(Logger logger) {
+		
+		logger.info(ServerConstant.SEPARATOR);
 		logger.debug("Threads: " + String.valueOf(maxProcessingThread));
 		logger.info("Total files scanned: " + String.valueOf(this.counter.get()));
 		logger.info("Total files synced: " + String.valueOf(this.copied.get()));
@@ -343,7 +354,7 @@ public class StandByInitialSync implements Runnable {
 		if (this.notAvailable.get()>0)
 			logger.info("Not Available files: " + String.valueOf(this.notAvailable.get()));
 		logger.info("Duration: " + String.valueOf(Double.valueOf(System.currentTimeMillis() - start_ms) / Double.valueOf(1000)) + " secs");
-		logger.info("---------");
+		logger.info(ServerConstant.SEPARATOR);
 
 	}
 
