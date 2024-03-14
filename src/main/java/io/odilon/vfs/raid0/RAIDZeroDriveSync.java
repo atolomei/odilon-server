@@ -246,7 +246,6 @@ public class RAIDZeroDriveSync implements IODriveSetup {
 				info.setStatus(DriveStatus.ENABLED);
 				info.setOrder(drive.getConfigOrder());
 				drive.setDriveInfo(info);
-				//getDriver().getVFS().getMapDrivesEnabled().put(drive.getName(), drive);
 				getDriver().getVFS().updateDriveStatus(drive);
 				startuplogger.info("drive added -> " + drive.getRootDirPath());
 			}
