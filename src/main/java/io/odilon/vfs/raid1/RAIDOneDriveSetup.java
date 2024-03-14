@@ -39,11 +39,19 @@ import io.odilon.vfs.model.DriveStatus;
 import io.odilon.vfs.model.IODriveSetup;
 import io.odilon.vfs.model.VFSBucket;
 import io.odilon.vfs.model.VirtualFileSystemService;
+import io.odilon.vfs.raid6.RAIDSixDriveSync;
+
 
 /***
  * <p>Set up new drives is <b>Async</b> for RAID 1.<br/> 
  * This object will create and start a new {@link RAIDOneDriveSync} 
  * to duplicate objects into the newly added drive/s in background</p>
+ * 
+ * <p>For RAID 1 this object starts an Async process {@link RAIDOneDriveSync} that runs in background</p>
+ * 
+ * @see {@link RaidOneDriveSync}
+ *   
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @Component
 @Scope("prototype")
@@ -153,9 +161,9 @@ public class RAIDOneDriveSetup implements IODriveSetup, ApplicationContextAware 
 		@SuppressWarnings("unused")
 		RAIDOneDriveSync checker = getApplicationContext().getBean(RAIDOneDriveSync.class, getDriver());
 		
-		/** sleeps 20 secs and return */
+		/** sleeps 2 secs and return */
 		try {
-			Thread.sleep(1000 * 20);
+			Thread.sleep(1000 * 2);
 		} catch (InterruptedException e) {
 		}
 							

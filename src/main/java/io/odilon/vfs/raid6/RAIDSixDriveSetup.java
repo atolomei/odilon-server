@@ -45,7 +45,9 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
  * <p>Set up a new <b>Drive</b> added to the odilon.properties file</p>
- * <p>For RAID 6 this process is Async when the server starts up (runs in background)</p>
+ * <p>For RAID 6 this object starts an Async process {@link RAIDSixDriveSync} that runs in background</p>
+ * 
+ * @see {@link RaidSixDriveSync} 
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */

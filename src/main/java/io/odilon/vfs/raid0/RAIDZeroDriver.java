@@ -451,11 +451,11 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 
 	/**
 	 * <p>Set up a new drive</p>
-	 * @see {@link RAIDZeroDriveSync}
+	 * @see {@link RAIDZeroDriveSetupSync}
 	 */
 	@Override
 	public boolean setUpDrives() {
-		return getApplicationContext().getBean(RAIDZeroDriveSync.class, this).setup();
+		return getApplicationContext().getBean(RAIDZeroDriveSetupSync.class, this).setup();
 	}
 
 	/**

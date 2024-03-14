@@ -59,7 +59,9 @@ import io.odilon.vfs.model.VirtualFileSystemService;
  * <p>Async process that replicates into the new Drive/s, 
  * all Objects created before the drive/s is/are connected.</p>
  * 
- * @see {@link RAIDOneDriveSync}
+ * <p>It is created and started by @see {@link RaidOneDriveSetup}</p>
+ * 
+ * @see {@link RAIDOneDriveSetup}
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
@@ -137,7 +139,7 @@ public class RAIDOneDriveSync implements Runnable {
 	@Override
 	public void run() {
 		
-		logger.info("Starting -> " + getClass().getSimpleName());
+		logger.info("Starting -> " + this.getClass().getSimpleName());
 		
 		long start = System.currentTimeMillis();
 		
@@ -147,7 +149,7 @@ public class RAIDOneDriveSync implements Runnable {
 		}
 		
 		while (getDriver().getVFS().getStatus()!=ServiceStatus.RUNNING) {
-			logger.info("waiting for Virtual File System to startup (" + String.valueOf(Double.valueOf(System.currentTimeMillis() - start) / Double.valueOf(1000.0)) + " secs");
+			startuplogger.info("waiting for "+ VirtualFileSystemService.class.getSimpleName() + " to startup (" + String.valueOf(Double.valueOf(System.currentTimeMillis() - start) / Double.valueOf(1000.0)) + " secs)");
 			try {
 				Thread.sleep(1000 * 2);											
 			} catch (InterruptedException e) {
@@ -324,7 +326,9 @@ public class RAIDOneDriveSync implements Runnable {
 			
 		} finally {
 			
-			startuplogger.info("Process completed");
+			
+			startuplogger.info(ServerConstant.SEPARATOR);
+			startuplogger.info(this.getClass().getSimpleName() + " Process completed");
 			startuplogger.debug("Threads: " + String.valueOf(maxProcessingThread));
 			startuplogger.info("Total scanned: " + String.valueOf(this.counter.get()));
 			startuplogger.info("Total copied: " + String.valueOf(this.copied.get()));
@@ -338,7 +342,7 @@ public class RAIDOneDriveSync implements Runnable {
 				startuplogger.info("Not Available: " + String.valueOf(this.notAvailable.get()));
 			
 			startuplogger.info("Duration: " + String.valueOf(Double.valueOf(System.currentTimeMillis() - start_ms) / Double.valueOf(1000)) + " secs");
-			startuplogger.info("---------");
+			startuplogger.info(ServerConstant.SEPARATOR);
 		}
 	}
 

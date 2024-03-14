@@ -17,7 +17,6 @@
 
 package io.odilon.vfs.raid6;
 
-
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -41,7 +40,6 @@ import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ServerConstant;
 import io.odilon.model.ServiceStatus;
-import io.odilon.model.SharedConstant;
 import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
 import io.odilon.vfs.DriveInfo;
@@ -49,20 +47,23 @@ import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.DriveStatus;
 import io.odilon.vfs.model.LockService;
 import io.odilon.vfs.model.VFSBucket;
-import io.odilon.vfs.raid1.RAIDOneDriveSync;
+import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**					
- * <p>Al iniciar el {@link VirtualFileSystemService} se detecta si hay uno o mas Drives nuevos.
- * Si hay al menos un Drive nuevo se corre este proceso de incorporacion 
- * del nuevo Drive. 
- * 
- * . Para los Object creados a partir del inicio del {@link VirtualFileSystemService} se utilizan los discos enabled y los not sync
- * . Para los Object anteriores al inicio del VFS se lleva a cabo la sincronizacion en el o los discos nuevos
- *   - grabar ObjectMetadata head y versiones anteriores
- *   - grabar el/los Block/s RS del data file que correspondan en cada disco nuevo   
- * 
- * Al terminar el proceso de integracion del nuevo disco, los discos pasan a status enabled.
- * </p>
+* <p>When starting the {@link VirtualFileSystemService} it is detected if there are one or more new Drives.
+  * If there is at least one new Drive, this incorporation process is run
+  * from the new Drive.
+  *
+  *. For the Objects created from the start of the {@link VirtualFileSystemService} the enabled and not sync disks are used
+  *. For Objects prior to the start of the VFS, synchronization is carried out on the new disk(s)
+  * - save ObjectMetadata head and earlier versions
+  * - record the corresponding RS Block/s of the data file on each new disk
+  *
+  * When the new disk integration process is completed, the disks go to enabled status.
+  * </p>
+  * 
+  * @see {@link RaidSixDriveSetup} 
+  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @Component
@@ -134,7 +135,7 @@ public class RAIDSixDriveSync implements Runnable {
 	@Override
 	public void run() {
 		
-		logger.info("Starting -> " + getClass().getSimpleName());
+		logger.info("Starting -> " + this.getClass().getSimpleName());
 		
 		// wait until the VFS is operational
 		
@@ -147,7 +148,8 @@ public class RAIDSixDriveSync implements Runnable {
 		}
 		
 		while (getDriver().getVFS().getStatus()!=ServiceStatus.RUNNING) {
-			logger.info("waiting for Virtual File System to startup (" + String.valueOf(Double.valueOf(System.currentTimeMillis() - start) / Double.valueOf(1000)) + " secs");
+			startuplogger.info("waiting for "+ VirtualFileSystemService.class.getSimpleName() + " to startup (" + String.valueOf(Double.valueOf(System.currentTimeMillis() - start) / Double.valueOf(1000.0)) + " secs)");
+
 			try {
 				Thread.sleep(1000 * 2);											
 			} catch (InterruptedException e) {
@@ -159,6 +161,7 @@ public class RAIDSixDriveSync implements Runnable {
 		
 		if (this.errors.get()>0 || this.notAvailable.get()>0) {
 			startuplogger.error("The process can not be completed due to errors");
+			startuplogger.error(ServerConstant.SEPARATOR);
 			return;
 		}
 	
@@ -292,7 +295,8 @@ public class RAIDSixDriveSync implements Runnable {
 			
 		} finally {
 			
-			startuplogger.info("Process completed");
+			startuplogger.info(ServerConstant.SEPARATOR);
+			startuplogger.info(this.getClass().getSimpleName() + " Process completed");
 			startuplogger.debug("Threads: " + String.valueOf(maxProcessingThread));
 			startuplogger.info("Total scanned: " + String.valueOf(this.counter.get()));
 			startuplogger.info("Total encoded: " + String.valueOf(this.encoded.get()));
@@ -306,7 +310,8 @@ public class RAIDSixDriveSync implements Runnable {
 			
 			
 			startuplogger.info("Duration: " + String.valueOf(Double.valueOf(System.currentTimeMillis() - start_ms) / Double.valueOf(1000)) + " secs");
-			startuplogger.info("---------");
+			startuplogger.info(ServerConstant.SEPARATOR);
+			
 		}
 	}
 

@@ -62,9 +62,9 @@ import io.odilon.vfs.model.VirtualFileSystemService;
  */
 @Component
 @Scope("prototype")
-public class RAIDZeroDriveSync implements IODriveSetup {
+public class RAIDZeroDriveSetupSync implements IODriveSetup {
 	
-	static private Logger logger = Logger.getLogger(RAIDZeroDriveSync.class.getName());
+	static private Logger logger = Logger.getLogger(RAIDZeroDriveSetupSync.class.getName());
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 	
 	@JsonIgnore
@@ -115,7 +115,7 @@ public class RAIDZeroDriveSync implements IODriveSetup {
 	/**
 	 * @param driver
 	 */
-	public RAIDZeroDriveSync(RAIDZeroDriver driver) {
+	public RAIDZeroDriveSetupSync(RAIDZeroDriver driver) {
 		this.driver=driver;
 		this.maxProcessingThread = Double.valueOf(Double.valueOf(Runtime.getRuntime().availableProcessors()-1) / 2.0 ).intValue() + 1;
 	}
@@ -209,6 +209,7 @@ public class RAIDZeroDriveSync implements IODriveSetup {
 		}
 		
 		startuplogger.info(ServerConstant.SEPARATOR);
+		startuplogger.info(this.getClass().getSimpleName() + " Process completed");
 		startuplogger.info("Drive setup completed successfully.");
 		
 		startuplogger.debug("Threads: " + String.valueOf(maxProcessingThread));
