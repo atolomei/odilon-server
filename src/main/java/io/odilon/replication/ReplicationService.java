@@ -520,7 +520,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 				throw new InternalCriticalException("method not implemented");
 				
 			} catch (ODClientException e) {
-				throw new InternalCriticalException(e,  opx.toString());
+				throw new InternalCriticalException(e, opx.toString());
 			}			
 			finally {
 				getLockService().getBucketLock(opx.getBucketName()).readLock().unlock();

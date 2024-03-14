@@ -29,7 +29,6 @@ import javax.annotation.concurrent.ThreadSafe;
 import org.apache.commons.io.FileUtils;
 
 import io.odilon.OdilonVersion;
-import io.odilon.error.OdilonObjectNotFoundException;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
@@ -84,6 +83,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 		
 		VFSOperation op = null;
 		boolean done = false;
+		boolean isMainException = false;
 		
 		
 		getLockService().getObjectLock( bucketName, objectName).writeLock().lock();
@@ -106,14 +106,10 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 					getVFS().getObjectCacheService().remove(bucketName, objectName);
 					
 					done = op.commit();
-			
-				} catch (OdilonObjectNotFoundException e1) {
-					done=false;
-					logger.error(e1);
-					throw e1;
-			
+							
 				} catch (Exception e) {
 						done=false;
+						isMainException=true;
 						throw new InternalCriticalException(e, "b:" + bucketName + " o:"+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null"));
 				} finally {
 						try {
@@ -121,7 +117,10 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 									try {
 										rollbackJournal(op, false);
 									} catch (Exception e) {
-										throw new InternalCriticalException(e, "b:" + bucketName + " o:"+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null"));
+										if (!isMainException)
+											throw new InternalCriticalException(e, "b:" + bucketName + " o:"+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null"));
+										else
+											logger.error(e, " finally | b:" + bucketName +	" o:" 	+ objectName + ", f:" 	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null") +  ServerConstant.NOT_THROWN);
 									}
 								}
 						}
@@ -154,7 +153,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 		Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucketName);
 		
 		boolean done = false;
-				
+		
 		try {
 			if (getVFS().getServerSettings().isStandByEnabled())
 				getVFS().getReplicationService().cancel(op);
@@ -162,7 +161,6 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 			for (Drive drive: getDriver().getDrivesAll()) {
 				drive.deleteObjectMetadata(bucketName, objectName);
 				FileUtils.deleteQuietly(new File (drive.getRootDirPath(), bucketName + File.separator + objectName));
-				// ((SimpleDrive) drive).deleteObject(bucketName , objectName);
 			}
 			done=true;
 			
@@ -202,11 +200,10 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 
 		BufferedOutputStream out[] = new BufferedOutputStream[total_drives];
 		
-		InputStream sourceStream = null;
 		boolean isMainException = false;
 		
-		try {
-				sourceStream = isEncrypt() ? (getVFS().getEncryptionService().encryptStream(stream)) : stream;
+		try (InputStream sourceStream = isEncrypt() ? (getVFS().getEncryptionService().encryptStream(stream)) : stream) {
+				;
 				
 				int n_d=0;
 				for (Drive drive: getDriver().getDrivesAll()) { 
@@ -224,7 +221,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 				
 			} catch (Exception e) {
 				isMainException = true;
-				throw new InternalCriticalException(e);		
+				throw new InternalCriticalException(e, "b:" + bucketName + " o:"+ objectName);		
 	
 			} finally {
 				IOException secEx = null;
@@ -241,14 +238,6 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 						}
 				}
 				
-				try {
-					if (sourceStream!=null) 
-						sourceStream.close();
-				} catch (IOException e) {
-					String msg = "b:" + bucketName + " o:"+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null");
-					logger.error(e, msg + (isMainException ? ServerConstant.NOT_THROWN :""));
-					secEx=e;
-				}
 				if (!isMainException && (secEx!=null)) 
 				 		throw new InternalCriticalException(secEx);
 			}

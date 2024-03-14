@@ -62,7 +62,6 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 	protected RAIDOneUpdateObjectHandler(RAIDOneDriver driver) {
 		super(driver);
 	}
-
 	
 	/**
 	 * @param bucket
@@ -79,77 +78,77 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 		
 		int beforeHeadVersion = -1;
 		int afterHeadVersion = -1;
+		boolean isMainException = false;
 		
-		try {
+		getLockService().getObjectLock( bucket.getName(), objectName).writeLock().lock();
 
-			getLockService().getObjectLock( bucket.getName(), objectName).writeLock().lock();
+		try  {
+			
 			getLockService().getBucketLock(bucket.getName()).readLock().lock();
-
-			boolean exists = getDriver().getReadDrive(bucket.getName(), objectName).existsObjectMetadata(bucket.getName(), objectName);
 			
-			if (!exists)
-				throw new OdilonObjectNotFoundException("object does not exist -> b:" + bucket.getName()+ " o:"+(Optional.ofNullable(objectName).isPresent() ? (objectName) :"null"));
-			
-			ObjectMetadata meta = getDriver().getObjectMetadataInternal(bucket.getName(), objectName, true);
-			beforeHeadVersion = meta.version;							
-			
-			op = getJournalService().updateObject(bucket.getName(), objectName, beforeHeadVersion);
-			
-			/** backup current head version */
-			saveVersionObjectDataFile(bucket, objectName,  meta.version);
-			saveVersionObjectMetadata(bucket, objectName,  meta.version);
-			
-			/** copy new version as head version */
-			afterHeadVersion = meta.version+1;
-			saveObjectDataFile(bucket, objectName, stream, srcFileName, meta.version+1);
-			saveObjectMetadata(bucket, objectName, srcFileName, contentType, meta.version+1);
-			
-			getVFS().getObjectCacheService().remove(bucket.getName(), objectName);
-			done = op.commit();
-
-		} catch (OdilonObjectNotFoundException e1) {
-			done=false;
-			logger.error(e1);
-			throw e1;
-			
-		} catch (Exception e) {
-			done=false;
-			String msg = "b:" + bucket.getName() + " o:"+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null");
-			throw new InternalCriticalException(e, msg);
-			
-		} finally {
-			
-			try {
 				try {
-					if (stream!=null) 
-						stream.close();
-				} catch (IOException e) {
-					logger.error(e, ServerConstant.NOT_THROWN);
-				}
-				
-				boolean requiresRollback = (!done) && (op!=null);
-				
-				if (requiresRollback) {
+							
+					if (!getDriver().getReadDrive(bucket.getName(), objectName).existsObjectMetadata(bucket.getName(), objectName))
+						throw new IllegalArgumentException("object does not exist -> b:" + bucket.getName()+ " o:"+(Optional.ofNullable(objectName).isPresent() ? (objectName) :"null"));
+					
+					ObjectMetadata meta = getDriver().getObjectMetadataInternal(bucket.getName(), objectName, true);
+					beforeHeadVersion = meta.version;							
+					
+					op = getJournalService().updateObject(bucket.getName(), objectName, beforeHeadVersion);
+					
+					/** backup current head version */
+					saveVersionObjectDataFile(bucket, objectName,  meta.version);
+					saveVersionObjectMetadata(bucket, objectName,  meta.version);
+					
+					/** copy new version as head version */
+					afterHeadVersion = meta.version+1;
+					saveObjectDataFile(bucket, objectName, stream, srcFileName, meta.version+1);
+					saveObjectMetadata(bucket, objectName, srcFileName, contentType, meta.version+1);
+					
+					getVFS().getObjectCacheService().remove(bucket.getName(), objectName);
+					done = op.commit();
+					
+				} catch (Exception e) {
+					done=false;
+					isMainException = true;
+					throw new InternalCriticalException(e, "b:" + bucket.getName() + " o:"+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null"));
+					
+				} finally {
+					
 					try {
-						
-						rollbackJournal(op, false);
-						
-					} catch (Exception e) {
-						String msg = "b:" + bucket.getName() + " o:"+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null");
-						throw new InternalCriticalException(e, msg);
+						try {
+							if (stream!=null) 
+								stream.close();
+						} catch (IOException e) {
+							logger.error(e, ServerConstant.NOT_THROWN);
+						}
+
+						if ((!done) && (op!=null)) {
+							try {
+								rollbackJournal(op, false);
+								
+							} catch (Exception e) {
+								String msg = "b:" + bucket.getName() + " o:"+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null");
+								if (!isMainException)
+									throw new InternalCriticalException(e, msg);
+								else
+									logger.error(e,msg + ServerConstant.NOT_THROWN);
+							}
+						}
+						else {
+							/**
+							 TODO AT -> Sync by the moment. see how to make it Async
+							 */
+							if (op!=null)
+								cleanUpUpdate(bucket, objectName, beforeHeadVersion, afterHeadVersion);
+						}
+					} finally {
+						getLockService().getBucketLock(bucket.getName()).readLock().unlock();
+					
 					}
 				}
-				else {
-					/**
-					 TODO AT -> Sync by the moment. see how to make it Async
-					 */
-					if (op!=null)
-						cleanUpUpdate(bucket, objectName, beforeHeadVersion, afterHeadVersion);
-				}
-			} finally {
-				getLockService().getBucketLock(bucket.getName()).readLock().unlock();
-				getLockService().getObjectLock(bucket.getName(), objectName).writeLock().unlock();
-			}
+		} finally {
+			getLockService().getObjectLock(bucket.getName(), objectName).writeLock().unlock();
 		}
 	}
 
@@ -161,98 +160,101 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 	
 		VFSOperation op = null;
 		boolean done = false;
+		boolean isMainException = false;
 		
 		int beforeHeadVersion = -1;
 		
-		try {
-
-			getLockService().getObjectLock(bucket.getName(), objectName).writeLock().lock();
-			getLockService().getBucketLock(bucket.getName()).readLock().lock();
+		getLockService().getObjectLock(bucket.getName(), objectName).writeLock().lock();
 		
-			ObjectMetadata meta = getDriver().getObjectMetadataInternal(bucket.getName(), objectName, true);
-
-			if (meta.version==0)
-				throw new IllegalArgumentException(	"Object does not have any previous version | " + "b:" + 
-													(Optional.ofNullable(bucket).isPresent() ? (bucket.getName())  :"null") +
-						 							", o:"	+ (Optional.ofNullable(objectName).isPresent() ? (objectName)       :"null"));
+		try {
 			
+				getLockService().getBucketLock(bucket.getName()).readLock().lock();
 			
-			beforeHeadVersion = meta.version;
-			List<ObjectMetadata> metaVersions = new ArrayList<ObjectMetadata>();
-			
-			for (int version=0; version<beforeHeadVersion; version++) {
-			
-				ObjectMetadata mv = getDriver().getReadDrive(bucket.getName(), objectName).getObjectMetadataVersion(bucket.getName(), objectName, version);
-				
-				if (mv!=null)
-					metaVersions.add(mv);
-			}
-
-			if (metaVersions.isEmpty()) 
-				throw new OdilonObjectNotFoundException(Optional.of(meta.systemTags).orElse("previous versions deleted"));
-			
-			op = getJournalService().restoreObjectPreviousVersion(bucket.getName(), objectName, beforeHeadVersion);
-			
-			/** save current head version MetadataFile .vN  and data File vN - no need to additional backup */
-			saveVersionObjectDataFile(bucket, objectName,  meta.version);
-			saveVersionObjectMetadata(bucket, objectName,  meta.version);
-
-			/** save previous version as head */
-			ObjectMetadata metaToRestore = metaVersions.get(metaVersions.size()-1);
-			
-			if (!restoreVersionObjectDataFile(metaToRestore.bucketName, metaToRestore.objectName, metaToRestore.version))
-				throw new OdilonObjectNotFoundException(Optional.of(meta.systemTags).orElse("previous versions deleted"));
-			
-			if (!restoreVersionObjectMetadata(metaToRestore.bucketName, metaToRestore.objectName, metaToRestore.version))
-				throw new OdilonObjectNotFoundException(Optional.of(meta.systemTags).orElse("previous versions deleted"));
-			
-			getVFS().getObjectCacheService().remove(bucket.getName(), objectName);
-			done = op.commit();
-			
-			return null;
-			
-		} catch (OdilonObjectNotFoundException e1) {
-			done=false;
-			logger.error(e1);
-			 e1.setErrorMessage( e1.getErrorMessage() + " | " +  "b:" + bucket.getName() + " o:"+ objectName );
-
-			
-			throw e1;
-			
-		} catch (Exception e) {
-			done=false;
-			String msg = "b:" + bucket.getName() + " o:"+ objectName ;  
-			throw new InternalCriticalException(e, msg);
-			
-		} finally {
-			
-			try {
-				
-				boolean requiresRollback = (!done) && (op!=null);
-				
-				if (requiresRollback) {
-					try {
-
-						rollbackJournal(op, false);
+				try {
+					
+					ObjectMetadata meta = getDriver().getObjectMetadataInternal(bucket.getName(), objectName, true);
+		
+					if (meta.version==0)
+						throw new IllegalArgumentException(	"Object does not have any previous version | " + "b:" + 
+															(Optional.ofNullable(bucket).isPresent() ? (bucket.getName())  :"null") +
+								 							", o:"	+ (Optional.ofNullable(objectName).isPresent() ? (objectName)       :"null"));
+					
+					
+					beforeHeadVersion = meta.version;
+					List<ObjectMetadata> metaVersions = new ArrayList<ObjectMetadata>();
+					
+					for (int version=0; version<beforeHeadVersion; version++) {
+					
+						ObjectMetadata mv = getDriver().getReadDrive(bucket.getName(), objectName).getObjectMetadataVersion(bucket.getName(), objectName, version);
 						
-					} catch (Exception e) {
-						String msg = "b:" + bucket.getName() + " o:"+ objectName ;						
-						throw new InternalCriticalException(e, msg);
+						if (mv!=null)
+							metaVersions.add(mv);
+					}
+		
+					if (metaVersions.isEmpty()) 
+						throw new OdilonObjectNotFoundException(Optional.of(meta.systemTags).orElse("previous versions deleted"));
+					
+					op = getJournalService().restoreObjectPreviousVersion(bucket.getName(), objectName, beforeHeadVersion);
+					
+					/** save current head version MetadataFile .vN  and data File vN - no need to additional backup */
+					saveVersionObjectDataFile(bucket, objectName,  meta.version);
+					saveVersionObjectMetadata(bucket, objectName,  meta.version);
+		
+					/** save previous version as head */
+					ObjectMetadata metaToRestore = metaVersions.get(metaVersions.size()-1);
+					
+					if (!restoreVersionObjectDataFile(metaToRestore.bucketName, metaToRestore.objectName, metaToRestore.version))
+						throw new OdilonObjectNotFoundException(Optional.of(meta.systemTags).orElse("previous versions deleted"));
+					
+					if (!restoreVersionObjectMetadata(metaToRestore.bucketName, metaToRestore.objectName, metaToRestore.version))
+						throw new OdilonObjectNotFoundException(Optional.of(meta.systemTags).orElse("previous versions deleted"));
+					
+					getVFS().getObjectCacheService().remove(bucket.getName(), objectName);
+					done = op.commit();
+					
+					return null;
+					
+				} catch (OdilonObjectNotFoundException e1) {
+					done=false;
+					isMainException=true;
+					 e1.setErrorMessage( e1.getErrorMessage() + " | " +  "b:" + bucket.getName() + " o:"+ objectName );
+					throw e1;
+					
+				} catch (Exception e) {
+					done=false;
+					isMainException=true;
+					throw new InternalCriticalException(e, "b:" + bucket.getName() + " o:"+ objectName);
+					
+				} finally {
+					
+					try {
+						if ((!done) && (op!=null)) {
+							try {
+								rollbackJournal(op, false);
+								
+							} catch (Exception e) {
+								String msg = "b:" + bucket.getName() + " o:"+ objectName;						
+								if (!isMainException)
+									throw new InternalCriticalException(e, msg);
+								else
+									logger.error(e, msg, ServerConstant.NOT_THROWN);
+							}
+						}
+						else {
+							/** -------------------------
+							 TODO AT ->
+							 Sync by the moment
+							 see how to make it Async
+							------------------------ */
+							if(op!=null)
+								cleanUpRestoreVersion(bucket, objectName, beforeHeadVersion);
+						}
+					} finally {
+						getLockService().getBucketLock(bucket.getName()).readLock().unlock();
 					}
 				}
-				else {
-					/** -------------------------
-					 TODO AT ->
-					 Sync by the moment
-					 see how to make it Async
-					------------------------ */
-					if(op!=null)
-						cleanUpRestoreVersion(bucket, objectName, beforeHeadVersion);
-				}
-			} finally {
-				getLockService().getBucketLock(bucket.getName()).readLock().unlock();
-				getLockService().getObjectLock(bucket.getName(), objectName).writeLock().unlock();
-			}
+		} finally {
+			getLockService().getObjectLock(bucket.getName(), objectName).writeLock().unlock();
 		}
 	}
 		
@@ -272,52 +274,60 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 		Check.requireNonNullArgument(meta, "meta is null");
 		VFSOperation op = null;
 		boolean done = false;
+		boolean isMainException = false;
+		
+		getLockService().getObjectLock( meta.bucketName, meta.objectName).writeLock().lock();
 		
 		try {
-			getLockService().getObjectLock( meta.bucketName, meta.objectName).writeLock().lock();
+			
 			getLockService().getBucketLock( meta.bucketName).readLock().lock();
-
-			op = getJournalService().updateObjectMetadata(meta.bucketName, meta.objectName, meta.version);
-			
-			backupMetadata(meta);
-			saveObjectMetadata(meta);
-			
-			getVFS().getObjectCacheService().remove(meta.bucketName,meta.objectName);
-			done = op.commit();
-			
-		} catch (Exception e) {
-			done=false;
-			String msg = "b:" + meta.bucketName + " o:"+ meta.objectName ;
-			throw new InternalCriticalException(e,  msg); 
-			
-		} finally {
 			
 			try {
-
-				boolean requiresRollback = (!done) && (op!=null);
+			
+				op = getJournalService().updateObjectMetadata(meta.bucketName, meta.objectName, meta.version);
 				
-				if (requiresRollback) {
-						try {
-
-							rollbackJournal(op, false);
-							
-						} catch (Exception e) {
-							throw new InternalCriticalException(e,   "b:" + meta.bucketName + " o:"+ meta.objectName ); 
-						}
-				}
-				else {
-					/** -------------------------
-					 TODO AT ->
-					 Sync by the moment
-					 see how to make it Async
-					------------------------ */
-					cleanUpBackupMetadataDir(meta.bucketName, meta.objectName);
-				}
+				backupMetadata(meta);
+				saveObjectMetadata(meta);
+				
+				getVFS().getObjectCacheService().remove(meta.bucketName,meta.objectName);
+				done = op.commit();
+				
+			} catch (Exception e) {
+				done=false;
+				String msg = "b:" + meta.bucketName + " o:"+ meta.objectName ;
+				isMainException = true;
+				throw new InternalCriticalException(e,  msg); 
 				
 			} finally {
-				getLockService().getBucketLock(meta.bucketName).readLock().unlock();
-				getLockService().getObjectLock(meta.bucketName, meta.objectName).writeLock().unlock();
-			}
+				
+				try {
+					if ((!done) && (op!=null)) {
+							try {
+								rollbackJournal(op, false);
+							} catch (Exception e) {
+								if (!isMainException)
+									throw new InternalCriticalException(e,   "b:" + meta.bucketName + " o:"+ meta.objectName );
+								else
+									logger.error(e, "b:" + meta.bucketName + " o:"+ meta.objectName, ServerConstant.NOT_THROWN);
+							}
+					}
+					else {
+						/** -------------------------
+						 TODO AT ->
+						 Sync by the moment
+						 see how to make it Async
+						------------------------ */
+						cleanUpBackupMetadataDir(meta.bucketName, meta.objectName);
+					}
+					
+				} finally {
+					getLockService().getBucketLock(meta.bucketName).readLock().unlock();
+				
+				}
+			} 
+		} 
+		finally {
+			getLockService().getObjectLock(meta.bucketName, meta.objectName).writeLock().unlock();
 		}
 
 	}
@@ -371,6 +381,8 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 		} catch (Exception e) {
 			if (!recoveryMode)
 				throw new InternalCriticalException(e, "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null"));
+			else
+				logger.error(e, "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null"), ServerConstant.NOT_THROWN);
 		}
 		finally {
 			if (done || recoveryMode) {
@@ -431,7 +443,6 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 				((SimpleDrive) drive).putObjectDataVersionFile(bucket.getName(), objectName, version, file);
 			}
 		} catch (Exception e) {
-				logger.error(e);
 				throw new InternalCriticalException(e);
 		}
 	}
@@ -590,8 +601,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 			}
 			return success;
 		} catch (Exception e) {
-				String msg = "b:" + bucketName + " o:"+ objectName;
-				throw new InternalCriticalException(e, msg);
+				throw new InternalCriticalException(e, "b:" + bucketName + " o:"+ objectName);
 		}
 	}
 
@@ -610,7 +620,6 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 			}
 			return success;
 		} catch (Exception e) {
-				logger.error(e);
 				throw new InternalCriticalException(e);
 		}
 	}
@@ -640,11 +649,13 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 	
 	
 	/**
+	 * copy metadata directory
+	 * 
 	 * @param bucket
 	 * @param objectName
 	 */
 	private void backupMetadata(ObjectMetadata meta) {
-		/* copy metadata directory */
+		Check.requireNonNullArgument(meta, "meta is null");
 		try {
 			for (Drive drive: getDriver().getDrivesAll()) {
 				String objectMetadataDirPath = drive.getObjectMetadataDirPath(meta.bucketName, meta.objectName);
@@ -655,13 +666,17 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 			}
 			
 		} catch (IOException e) {
-			throw new InternalCriticalException(e);
+			throw new InternalCriticalException(e, meta.toString());
 		}
 	}
 
 	
 	private void cleanUpUpdate(VFSBucket bucket, String objectName, int previousVersion, int currentVersion) {
+		
 		try {
+		
+			Check.requireNonNullArgument(bucket, "meta is null");
+			
 			if (!getVFS().getServerSettings().isVersionControl()) {
 				for (Drive drive: getDriver().getDrivesAll()) {
 					FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(bucket.getName(), objectName, previousVersion));
@@ -675,13 +690,14 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 	
 	
 	private void cleanUpBackupMetadataDir(String bucketName, String objectName) {
+		
 		try {
 			/** delete backup Metadata */
 			for (Drive drive: getDriver().getDrivesAll()) {
 				FileUtils.deleteQuietly(new File(drive.getBucketWorkDirPath(bucketName) + File.separator + objectName));
 			}
 		} catch (Exception e) {
-			logger.error(e, ServerConstant.NOT_THROWN);
+			logger.error(e, bucketName +" o: " +objectName, ServerConstant.NOT_THROWN);
 		}
 	}
 	
