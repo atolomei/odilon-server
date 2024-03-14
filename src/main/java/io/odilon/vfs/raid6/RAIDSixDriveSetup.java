@@ -181,15 +181,9 @@ public class RAIDSixDriveSetup implements IODriveSetup, ApplicationContextAware 
 		startuplogger.info("4. Starting Async process -> " + RAIDSixDriveSync.class.getSimpleName());
 						
 		/** The rest of the process is async */
-		//@SuppressWarnings("unused")
-		//RAIDSixDriveSync checker = getApplicationContext().getBean(RAIDSixDriveSync.class, getDriver());
+		@SuppressWarnings("unused")
+		RAIDSixDriveSync checker = getApplicationContext().getBean(RAIDSixDriveSync.class, getDriver());
 		
-		/** sleeps 20 secs and return */
-		try {
-			Thread.sleep(1000 * 20);
-		} catch (InterruptedException e) {
-		}
-							
 		startuplogger.info("done");
 		
 		return true;

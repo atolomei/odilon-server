@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.util.Map;
 import java.util.Optional;
 
 import io.odilon.errors.InternalCriticalException;
@@ -34,8 +35,14 @@ import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ServerConstant;
 import io.odilon.util.Check;
+import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
+/**
+ * 
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public class RAIDSixDecoder {
 
 	static private Logger logger = Logger.getLogger(RAIDSixEncoder.class.getName());
@@ -56,14 +63,11 @@ public class RAIDSixDecoder {
 		if (!driver.isConfigurationValid(data_shards, parity_shards))
 			throw new InternalCriticalException("Incorrect configuration for " + driver.getRedundancyLevel().getName()+" -> data: " + String.valueOf(data_shards) + " | parity:" + String.valueOf(parity_shards));
 	}
- 	
+	
 	 /**
 	  * <p>ObjectMetadata must be the one of the version to decode</p>
-	  * 
       * @param is
       */
-	// Optional<Integer> version
-	
 	public File decodeHead(ObjectMetadata meta) {
 		return decode(meta, true);
 	}
@@ -72,7 +76,19 @@ public class RAIDSixDecoder {
 		return decode(meta, false);
 	}
 	
+	public RAIDSixDriver getDriver() {
+		return this.driver;
+	}
 	
+	public VirtualFileSystemService getVFS() {
+		return this.driver.getVFS();
+	}
+	
+    private final Map<Integer, Drive> getMapDrivesRSDecode() {
+    	return getDriver().getVFS().getMapDrivesRSDecode();
+    }
+
+    
     private File decode(ObjectMetadata meta, boolean isHead) {
     	
     	String bucketName = meta.bucketName;
@@ -114,7 +130,7 @@ public class RAIDSixDecoder {
 	    		getVFS().getFileCacheService().getLockService().getFileCacheLock(bucketName, objectName, ver).writeLock().unlock();
 	    	}
     }
-
+    
     /**
      * @param bucketName
      * @param objectName
@@ -122,7 +138,7 @@ public class RAIDSixDecoder {
      * @param out
      * @return
      */
-    protected boolean decodeChunk(ObjectMetadata meta, int chunk, OutputStream out, boolean isHead) {
+    private boolean decodeChunk(ObjectMetadata meta, int chunk, OutputStream out, boolean isHead) {
     	
     	// Read in any of the shards that are present.
         // (There should be checking here to make sure the input
@@ -140,15 +156,18 @@ public class RAIDSixDecoder {
         	 *  we must decode only with ->  DrivesEnabled */
         	
         	File shardFile = null;
+    		Drive drive= this.getMapDrivesRSDecode().get(Integer.valueOf(disk));
+    		
+    		if (drive!=null) {
+	        	if (isHead) {
+	        			shardFile = new File(drive.getBucketObjectDataDirPath(meta.bucketName), meta.objectName+ "." + String.valueOf(chunk) +"." + String.valueOf(disk));	
+	        	}
+	        	else {
+	        		shardFile = new File(drive.getBucketObjectDataDirPath(meta.bucketName)+ File.separator + VirtualFileSystemService.VERSION_DIR, meta.objectName+ "." + String.valueOf(chunk) +"." + String.valueOf(disk)+ ".v" + String.valueOf(meta.version));
+	        	}
+    		}
         	
-        	if (isHead) {
-        		shardFile = new File(getDriver().getDrivesEnabled().get(disk).getBucketObjectDataDirPath(meta.bucketName), meta.objectName+ "." + String.valueOf(chunk) +"." + String.valueOf(disk));	
-        	}
-        	else {
-        		shardFile = new File(getDriver().getDrivesEnabled().get(disk).getBucketObjectDataDirPath(meta.bucketName)+ File.separator + VirtualFileSystemService.VERSION_DIR, meta.objectName+ "." + String.valueOf(chunk) +"." + String.valueOf(disk)+ ".v" + String.valueOf(meta.version));
-        	}
-        	
-            if (shardFile.exists()) {
+            if ((shardFile!=null) && (shardFile.exists())) {
                 shardSize = (int) shardFile.length();
                 shards[disk] = new byte [shardSize];             	// BUFFER 4
                 shardPresent[disk] = true;
@@ -156,12 +175,14 @@ public class RAIDSixDecoder {
     			try (InputStream in = new BufferedInputStream(new FileInputStream(shardFile))) {
 					in.read(shards[disk], 0, shardSize);
 				} catch (FileNotFoundException e) {
-					logger.error(e.getClass().getName() + " | b:" + meta.bucketName +  " | o:" + meta.objectName + " | f:" + shardFile.getName() + (isHead?"":(" v:" + String.valueOf(meta.version))));
+					logger.error(e.getClass().getName() + " | b:" + meta.bucketName + " | o:" + meta.objectName + " | f:" + shardFile.getName() + (isHead?"":(" v:" + String.valueOf(meta.version))));
 					shardPresent[disk] = false;
 				} catch (IOException e) {
-					logger.error(e.getClass().getName() + " | b:" + meta.bucketName +  " | o:" + meta.objectName + " | f:" + shardFile.getName()  + (isHead?"":(" v:" + String.valueOf(meta.version))));
+					logger.error(e.getClass().getName() + " | b:" + meta.bucketName + " | o:" + meta.objectName + " | f:" + shardFile.getName()  + (isHead?"":(" v:" + String.valueOf(meta.version))));
 					shardPresent[disk] = false;
 				}
+            } else {										
+            	//logger.debug("Drive " + String.valueOf(disk) + " not enabled for  -> "  + " | b:" + meta.bucketName + " | o:" + meta.objectName);
             }
         }
 
@@ -194,17 +215,11 @@ public class RAIDSixDecoder {
         try {
 			out.write(allBytes, ServerConstant.BYTES_IN_INT, fileSize);
 		} catch (IOException e) {
-            throw  new InternalCriticalException(e,  "b:" + meta.bucketName +  " | o:" + meta.objectName);
+            throw  new InternalCriticalException(e, "decodeChunk | b:" + meta.bucketName +  " | o:" + meta.objectName);
 		}
         return true;
     }
-    
-	
-	public RAIDSixDriver getDriver() {
-		return this.driver;
-	}
-	
-	public VirtualFileSystemService getVFS() {
-		return this.driver.getVFS();
-	}
+
+
+
 }

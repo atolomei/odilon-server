@@ -695,7 +695,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 				iterator = getVFS().getBucketIteratorService().get(serverAgentId.get());
 
 			if (iterator == null) {
-				iterator = new RAIDZeroBucketIterator(this, bucket.getName(), offset, prefix);
+				iterator = new RAIDZeroIterator(this, bucket.getName(), offset, prefix);
 				getVFS().getBucketIteratorService().register(iterator);
 			}
 

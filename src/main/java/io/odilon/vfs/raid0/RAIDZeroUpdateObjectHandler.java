@@ -49,8 +49,9 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
  * <p>RAID 0. Update Handler</p>
+ * <p>All {@link RAIDHandler} are used internally by the corresponding RAID Driver</p>
  * 
- * @author atolomei@novamens.com (Alejandro Tolomei)  
+ *  @author atolomei@novamens.com (Alejandro Tolomei)  
  */
 @ThreadSafe
 public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RAIDUpdateObjectHandler {
@@ -58,7 +59,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 	private static Logger logger = Logger.getLogger(RAIDZeroUpdateObjectHandler.class.getName());
 	
 	/**
-	 * <p>All RAIDHandler are used internally by the 
+	 * <p>All {@link RAIDHandler} are used internally by the 
 	 * corresponding RAID Driver. in this case by {@code RAIDZeroDriver}</p>
 	 */
 	protected RAIDZeroUpdateObjectHandler(RAIDZeroDriver driver) {
@@ -130,9 +131,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 					
 					if ((!done) && (op!=null)) {
 						try {
-				
 							rollbackJournal(op, false);
-							
 						} catch (Exception e) {
 							if (!isMaixException)
 								throw new InternalCriticalException("b:" + bucketName + ", o:"	+ objectName + ", f:"	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName): "null"));
@@ -157,32 +156,26 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 		} finally {
 			getLockService().getObjectLock(bucket.getName(), objectName).writeLock().unlock();
 		}
-		
-		
-		
-		
 	}
-
 	
 	
 	/**
 	 * <p>
 	 * . The Object does not have a previous version (ie. version=0)
 	 * . The Object previous versions were deleted by a {@code deleteObjectAllPreviousVersions}
-	 * 
 	 * </p>
 	 */
 	public ObjectMetadata restorePreviousVersion(VFSBucket bucket, String objectName) {
 
 		VFSOperation op = null;
 		boolean done = false;
+		boolean isMainException = false;
 		
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucket.getName());
 		
 		String bucketName = bucket.getName();	
 
-		
 		int beforeHeadVersion = -1;
 		
 		getLockService().getObjectLock(bucketName, objectName).writeLock().lock();
@@ -232,11 +225,13 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 				
 			} catch (OdilonObjectNotFoundException e1) {
 				done=false;
-				 e1.setErrorMessage( e1.getErrorMessage() + " | " + "b:" + bucketName + ", o:"	+ objectName);
+				isMainException = true;
+				e1.setErrorMessage( e1.getErrorMessage() + " | " + "b:" + bucketName + ", o:"	+ objectName);
 				throw e1;
 				
 			} catch (Exception e) {
 				done=false;
+				isMainException = true;
 				throw new InternalCriticalException(e, "b:" + bucketName + ", o:"	+ objectName);
 				
 			} finally {
@@ -248,7 +243,10 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 						try {
 							rollbackJournal(op, false);
 						} catch (Exception e) {
-							throw new InternalCriticalException(e, "b:" + bucketName + ", o:"	+ objectName);
+							if (!isMainException)
+								throw new InternalCriticalException(e, "b:" + bucketName + ", o:"	+ objectName);
+							else
+								logger.error(e, " finally | b:" + bucketName +	" o:" 	+ objectName +  ServerConstant.NOT_THROWN);
 						}
 					}
 					else {
@@ -266,7 +264,6 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 			}
 		}
 		finally {
-			
 			getLockService().getObjectLock(bucketName, objectName).writeLock().unlock();
 		}
 	}
@@ -285,54 +282,57 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 		Check.requireNonNullArgument(meta, "meta is null");
 		VFSOperation op = null;
 		boolean done = false;
+		boolean isMainException = false;
 		
-		
+		getLockService().getObjectLock( meta.bucketName, meta.objectName).writeLock().lock();
 		
 		try {
-			
-			getLockService().getObjectLock( meta.bucketName, meta.objectName).writeLock().lock();
+
 			getLockService().getBucketLock( meta.bucketName).readLock().lock();
 
-			op = getJournalService().updateObjectMetadata(meta.bucketName, meta.objectName, meta.version);
-			
-			backupMetadata(meta);
-			saveObjectMetadata(meta);
-			
-			getVFS().getObjectCacheService().remove(meta.bucketName, meta.objectName);
-			done = op.commit();
-			
-		} catch (Exception e) {
-			done=false;
-			throw new InternalCriticalException(e, "b:"  + meta.bucketName + ", o:" + meta.objectName); 
-			
-		} finally {
-			
 			try {
+	
+				op = getJournalService().updateObjectMetadata(meta.bucketName, meta.objectName, meta.version);
+				backupMetadata(meta);
+				saveObjectMetadata(meta);
+				getVFS().getObjectCacheService().remove(meta.bucketName, meta.objectName);
+				done = op.commit();
 				
-				if ((!done) && (op!=null)) {
-					
-						try {
-							rollbackJournal(op, false);
-							
-						} catch (Exception e) {
-							logger.error(e);
-							throw new InternalCriticalException(e, "b:"  + meta.bucketName + ", o:" + meta.objectName); 
-						}
-				}
-				else {
-					/** -------------------------
-					 TODO AT ->
-					 Sync by the moment
-					 see how to make it Async
-					------------------------ */
-					cleanUpBackupMetadataDir(meta.bucketName, meta.objectName);
-				}
+			} catch (Exception e) {
+				isMainException = true;
+				done=false;
+				throw new InternalCriticalException(e, "b:"  + meta.bucketName + ", o:" + meta.objectName); 
+				
 			} finally {
-				getLockService().getBucketLock(meta.bucketName).readLock().unlock();
+				
+				try {
+					if ((!done) && (op!=null)) {
+							try {
+								rollbackJournal(op, false);
+							} catch (Exception e) {
+								
+								if (!isMainException)
+									throw new InternalCriticalException(e, "b:"  + meta.bucketName + ", o:" + meta.objectName);
+								else
+									logger.error(e, " finally | b:" + meta.bucketName +	" o:" 	+ meta.objectName +  ServerConstant.NOT_THROWN);
+							}
+					}
+					else {
+						/** -------------------------
+						 TODO AT ->
+						 Sync by the moment
+						 see how to make it Async
+						------------------------ */
+						cleanUpBackupMetadataDir(meta.bucketName, meta.objectName);
+					}
+				} finally {
+					getLockService().getBucketLock(meta.bucketName).readLock().unlock();
+				}
+			}
+			} finally {
 				getLockService().getObjectLock(meta.bucketName, meta.objectName).writeLock().unlock();
 			}
 		}
-	}
 
 	/**
 	 * </p>There is nothing to do here by the moment</p>
@@ -438,16 +438,17 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 			done = true;
 		
 		} catch (InternalCriticalException e) {
-			String msg = "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null");
-			logger.error(msg);
 			if (!recoveryMode)
 				throw(e);
+			else
+				logger.error(e, "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null"));
 			
 		} catch (Exception e) {
 			String msg = "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null");
-			logger.error(msg);
 			if (!recoveryMode)
 				throw new InternalCriticalException(e, msg);
+			else
+				logger.error(e, msg);
 		}
 		finally {
 			if (done || recoveryMode) {
@@ -540,7 +541,6 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 				drive.saveObjectMetadata(meta);
 			
 		} catch (Exception e) {
-				logger.error(e);
 				throw new InternalCriticalException(e);
 		}
 	}
@@ -616,7 +616,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 			}
 			return false;
 		} catch (Exception e) {
-				throw new InternalCriticalException(e);
+				throw new InternalCriticalException(e,  " restoreVersionObjectDataFile | b:" + bucketName +	" o:" 	+ objectName);
 		}
 	}
 
@@ -633,7 +633,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 				FileUtils.copyDirectory(src, new File(objectMetadataBackupDirPath));
 			
 		} catch (IOException e) {
-			throw new InternalCriticalException(e);
+			throw new InternalCriticalException(e, "backupMetadata | b:" +  meta.bucketName +	" o:" 	+ meta.objectName);
 		}
 	}
 

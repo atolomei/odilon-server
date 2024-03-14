@@ -107,6 +107,10 @@ public interface VirtualFileSystemService extends SystemService {
 	 */
 	public Map<String, Drive> getMapDrivesAll();
 	public Map<String, Drive> getMapDrivesEnabled();
+	public Map<Integer, Drive> getMapDrivesRSDecode();
+
+	/** used to add a new disk enabled after a Drive sync process */
+	public void updateDriveStatus(Drive drive);
 	
 	public List<VFSBucket> listAllBuckets();
 	
@@ -227,6 +231,8 @@ public interface VirtualFileSystemService extends SystemService {
 	**/
 	public byte[] HMAC(byte[] data, byte[] key) throws NoSuchAlgorithmException, InvalidKeyException;
 
+
+	
 
 	
 

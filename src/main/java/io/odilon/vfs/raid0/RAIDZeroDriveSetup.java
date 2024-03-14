@@ -54,7 +54,9 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 /**
  * <p>Set up a new <b>Drive</b> added to the <b>odilon.properties</b> config file.
  * For RAID 0 this process is <b>Sync</b> when the server starts up  (for RAID 1 
- * and RAID 6 the process is Async and runs in background)</p>
+ * and RAID 6 the process is Async and runs in background).<br/>
+ * Unlike {@link RAIDSixDriver}, this setup does not need the {@link VirtualFileSystemService} to be in state 
+ * {@link ServiceStatus.RUNNING}</p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
@@ -118,6 +120,9 @@ public class RAIDZeroDriveSetup implements IODriveSetup {
 		this.maxProcessingThread = Double.valueOf(Double.valueOf(Runtime.getRuntime().availableProcessors()-1) / 2.0 ).intValue() + 1;
 	}
 
+	/**
+	 * this setup does not need the VFS to be in state Running
+	 */
 	@Override
 	public boolean setup() {
 		
@@ -240,7 +245,8 @@ public class RAIDZeroDriveSetup implements IODriveSetup {
 				info.setStatus(DriveStatus.ENABLED);
 				info.setOrder(drive.getConfigOrder());
 				drive.setDriveInfo(info);
-				getDriver().getVFS().getMapDrivesEnabled().put(drive.getName(), drive);
+				//getDriver().getVFS().getMapDrivesEnabled().put(drive.getName(), drive);
+				getDriver().getVFS().updateDriveStatus(drive);
 				startuplogger.info("drive added -> " + drive.getRootDirPath());
 			}
 		}

@@ -149,13 +149,15 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	@Autowired
 	private final FileCacheService fileCacheService;
 	
-	
 	@JsonIgnore
 	private Map<String, Drive> drivesAll = new ConcurrentHashMap<String, Drive>();
 	
 	@JsonIgnore						
 	private Map<String, Drive> drivesEnabled = new ConcurrentHashMap<String, Drive>();
 
+	@JsonIgnore
+	private final Map<Integer, Drive> drivesRSDecode = new ConcurrentHashMap<Integer, Drive>();
+	
 	@JsonIgnore
 	private ApplicationContext applicationContext;
 	
@@ -545,6 +547,29 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 		return this.drivesAll;
 	}
 
+	
+	
+	/**
+	 * 
+	 */
+	@Override
+	public Map<Integer, Drive> getMapDrivesRSDecode() {
+		return this.drivesRSDecode;
+	}
+	
+	public synchronized void updateDriveStatus(Drive drive) {
+		
+		if (drive.getDriveInfo().getStatus()==DriveStatus.ENABLED) {
+			getMapDrivesEnabled().put(drive.getName(), drive);
+			getMapDrivesRSDecode().put(Integer.valueOf(drive.getDriveInfo().getOrder()), drive);
+		}
+		else {
+			getMapDrivesEnabled().remove(drive.getName(), drive);
+			getMapDrivesRSDecode().remove(Integer.valueOf(drive.getDriveInfo().getOrder()), drive);
+		}
+	}
+	
+	
 	/**
 	 * 
 	 */
@@ -904,33 +929,36 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 			
 		List<Drive> baselist = new ArrayList<Drive>();
 		
+		
+		
 		/** load enabled drives and new drives */
 		{	
 			int configOrder=0;
 			
-			drivesAll.clear();
-			drivesEnabled.clear();
-			
+			this.drivesAll.clear();
+			this.drivesEnabled.clear();
+			this.drivesRSDecode.clear();
+
 			for (String dir: getServerSettings().getRootDirs()) {
 
 				Drive drive = null;
 				
 				if (getServerSettings().getRedundancyLevel()==RedundancyLevel.RAID_6) {
 					drive=new ChunkedDrive(String.valueOf(configOrder), dir, configOrder);
-					logger.debug(drive.toString());
 					configOrder++;
 				}
 				else {
 					drive=new ODSimpleDrive(String.valueOf(configOrder), dir, configOrder);
 					configOrder++;
 				}
-
+				
 				baselist.add(drive);
 				
 				drivesAll.put(drive.getName(), drive);
-				if (drive.getDriveInfo().getStatus()==DriveStatus.ENABLED) {
+				
+				if (drive.getDriveInfo().getStatus()==DriveStatus.ENABLED)
 					drivesEnabled.put(drive.getName(), drive);
-				}
+				
 			}
 		}	
 		
@@ -946,7 +974,6 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 			}
 			if (noneSync) {
 				drivesEnabled.clear();
-				int order=0;
 				for (Drive drive: baselist) {
 					DriveInfo info = drive.getDriveInfo();
 					info.setOrder(drive.getConfigOrder());
@@ -955,13 +982,10 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 					drivesEnabled.put(drive.getName(), drive);
 				}
 			}
-			else {
-				
-				
-				
-				
-			}
 		}
+		
+		/** set up drives for RS Decoding */
+		drivesEnabled.values().forEach( drive -> this.drivesRSDecode.put(Integer.valueOf(drive.getDriveInfo().getOrder()), drive));
 	}
 	
 	/**

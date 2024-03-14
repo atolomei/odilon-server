@@ -101,10 +101,6 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 				
 				done = op.commit();
 		
-			} catch (OdilonObjectNotFoundException e1) {
-					done=false;
-					isMainException=true;
-					throw e1;
 			} catch (InternalCriticalException e) {
 					done=false;
 					isMainException=true;

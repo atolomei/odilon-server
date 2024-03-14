@@ -567,7 +567,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 				bucketIterator = walkerService.get(serverAgentId.get());
 			
 			if (bucketIterator==null) {
-				bucketIterator = new RAIDOneBucketIterator(this, bucket.getName(), offset, prefix);
+				bucketIterator = new RAIDOneIterator(this, bucket.getName(), offset, prefix);
 				walkerService.register(bucketIterator);
 			}
 			

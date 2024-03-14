@@ -837,7 +837,7 @@ public class ODDrive extends ODModelObject implements Drive {
 	 * 
 	 */
 	@PostConstruct
-	protected synchronized void onInitialize() {
+	protected void onInitialize() {
 
 		try {
 
@@ -879,15 +879,13 @@ public class ODDrive extends ODModelObject implements Drive {
 			if (!work.exists() || !work.isDirectory())
 				createWorkDirectory();
 			
-			/** work */
+			/** file cache */
 			File cache = new File(getCacheDirPath());
 			if (!cache.exists() || !cache.isDirectory())
 				createCacheDirectory();
 			
-			
 			/** version directory for data */ 
 			checkWorkBucketDirs();
-			
 
 			/** scheduler */
 			File scheduler = new File(getSchedulerDirPath());
@@ -897,8 +895,7 @@ public class ODDrive extends ODModelObject implements Drive {
 			DriveInfo info = readDriveMetadata();
 			
 			if (readDriveMetadata()==null) {
-				info = new DriveInfo(getName(), randomString(12), OffsetDateTime.now(), DriveStatus.NOTSYNC);
-				info.setOrder(getConfigOrder());
+				info = new DriveInfo(getName(), randomString(12), OffsetDateTime.now(), DriveStatus.NOTSYNC, getConfigOrder());
 				saveDriveMetadata(info);
 			}
 			

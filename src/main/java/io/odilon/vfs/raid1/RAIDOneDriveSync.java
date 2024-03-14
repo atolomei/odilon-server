@@ -42,6 +42,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ServerConstant;
+import io.odilon.model.ServiceStatus;
 import io.odilon.model.SharedConstant;
 import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
@@ -58,15 +59,15 @@ import io.odilon.vfs.model.VirtualFileSystemService;
  * <p>Async process that replicates into the new Drive/s, 
  * all Objects created before the drive/s is/are connected.</p>
  * 
- * @see {@link RAIDOneDriveImporter}
+ * @see {@link RAIDOneDriveSync}
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @Component
 @Scope("prototype")
-public class RAIDOneDriveImporter implements Runnable {
+public class RAIDOneDriveSync implements Runnable {
 			
-	static private Logger logger = Logger.getLogger(RAIDOneDriveImporter.class.getName());
+	static private Logger logger = Logger.getLogger(RAIDOneDriveSync.class.getName());
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 
 	@JsonIgnore
@@ -105,7 +106,7 @@ public class RAIDOneDriveImporter implements Runnable {
 	@JsonIgnore
 	private LockService vfsLockService;
 	
-	public RAIDOneDriveImporter(RAIDOneDriver driver) {
+	public RAIDOneDriveSync(RAIDOneDriver driver) {
 		this.driver=driver;
 		this.vfsLockService = this.driver.getLockService();
 	}
@@ -137,6 +138,21 @@ public class RAIDOneDriveImporter implements Runnable {
 	public void run() {
 		
 		logger.info("Starting -> " + getClass().getSimpleName());
+		
+		long start = System.currentTimeMillis();
+		
+		try {
+			Thread.sleep(1000 * 2);											
+		} catch (InterruptedException e) {
+		}
+		
+		while (getDriver().getVFS().getStatus()!=ServiceStatus.RUNNING) {
+			logger.info("waiting for Virtual File System to startup (" + String.valueOf(Double.valueOf(System.currentTimeMillis() - start) / Double.valueOf(1000.0)) + " secs");
+			try {
+				Thread.sleep(1000 * 2);											
+			} catch (InterruptedException e) {
+			}
+		}
 		
 		copy();
 		
@@ -341,7 +357,8 @@ public class RAIDOneDriveImporter implements Runnable {
 				info.setStatus(DriveStatus.ENABLED);
 				info.setOrder(drive.getConfigOrder());
 				drive.setDriveInfo(info);
-				getDriver().getVFS().getMapDrivesEnabled().put(drive.getName(), drive);
+				//getDriver().getVFS().getMapDrivesEnabled().put(drive.getName(), drive);
+				getDriver().getVFS().updateDriveStatus(drive);
 				startuplogger.debug("drive synced -> " + drive.getRootDirPath());
 			}
 		}

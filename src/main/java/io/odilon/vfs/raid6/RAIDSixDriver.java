@@ -837,7 +837,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 				walker = walkerService.get(serverAgentId.get());
 			
 			if (walker==null) {
-				walker = new RAIDSixBucketIterator(this, bucket.getName(), offset, prefix);
+				walker = new RAIDSixIterator(this, bucket.getName(), offset, prefix);
 				walkerService.register(walker);
 			}
 			

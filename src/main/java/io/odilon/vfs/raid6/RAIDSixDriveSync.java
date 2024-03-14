@@ -40,6 +40,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ServerConstant;
+import io.odilon.model.ServiceStatus;
 import io.odilon.model.SharedConstant;
 import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
@@ -48,7 +49,7 @@ import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.DriveStatus;
 import io.odilon.vfs.model.LockService;
 import io.odilon.vfs.model.VFSBucket;
-import io.odilon.vfs.raid1.RAIDOneDriveImporter;
+import io.odilon.vfs.raid1.RAIDOneDriveSync;
 
 /**					
  * <p>Al iniciar el {@link VirtualFileSystemService} se detecta si hay uno o mas Drives nuevos.
@@ -68,7 +69,7 @@ import io.odilon.vfs.raid1.RAIDOneDriveImporter;
 @Scope("prototype")
 public class RAIDSixDriveSync implements Runnable {
 
-	static private Logger logger = Logger.getLogger(RAIDOneDriveImporter.class.getName());
+	static private Logger logger = Logger.getLogger(RAIDSixDriveSync.class.getName());
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 
 	@JsonIgnore
@@ -135,6 +136,25 @@ public class RAIDSixDriveSync implements Runnable {
 		
 		logger.info("Starting -> " + getClass().getSimpleName());
 		
+		// wait until the VFS is operational
+		
+		
+		long start = System.currentTimeMillis();
+		
+		try {
+			Thread.sleep(1000 * 2);											
+		} catch (InterruptedException e) {
+		}
+		
+		while (getDriver().getVFS().getStatus()!=ServiceStatus.RUNNING) {
+			logger.info("waiting for Virtual File System to startup (" + String.valueOf(Double.valueOf(System.currentTimeMillis() - start) / Double.valueOf(1000)) + " secs");
+			try {
+				Thread.sleep(1000 * 2);											
+			} catch (InterruptedException e) {
+			}
+			
+		}
+		
 		encode();
 		
 		if (this.errors.get()>0 || this.notAvailable.get()>0) {
@@ -164,7 +184,10 @@ public class RAIDSixDriveSync implements Runnable {
 	 */
 	private void encode() {
 		
+		logger.debug("Starting Drive sync");
+		
 		long start_ms = System.currentTimeMillis();
+		
 		
 		final int maxProcessingThread = Double.valueOf(Double.valueOf(Runtime.getRuntime().availableProcessors()-1) / 2.0 ).intValue() + 1;
 		
@@ -234,6 +257,7 @@ public class RAIDSixDriveSync implements Runnable {
 								if (item.isOk()) {
 									if ( requireSync(item) ) {
 										getDriver().syncObject(item.getObject());
+										this.encoded.incrementAndGet();
 									}
 								}
 								else {
@@ -272,13 +296,14 @@ public class RAIDSixDriveSync implements Runnable {
 			startuplogger.debug("Threads: " + String.valueOf(maxProcessingThread));
 			startuplogger.info("Total scanned: " + String.valueOf(this.counter.get()));
 			startuplogger.info("Total encoded: " + String.valueOf(this.encoded.get()));
-			startuplogger.info("Total size: " + String.format("%14.4f", Double.valueOf(totalBytes.get()).doubleValue() / SharedConstant.d_gigabyte).trim() + " GB");
+			//startuplogger.info("Total size: " + String.format("%14.4f", Double.valueOf(totalBytes.get()).doubleValue() / SharedConstant.d_gigabyte).trim() + " GB");
 
 			if (this.errors.get()>0)
 				startuplogger.info("Errors: " + String.valueOf(this.errors.get()));
 			
 			if (this.notAvailable.get()>0)
 				startuplogger.info("Not Available: " + String.valueOf(this.notAvailable.get()));
+			
 			
 			startuplogger.info("Duration: " + String.valueOf(Double.valueOf(System.currentTimeMillis() - start_ms) / Double.valueOf(1000)) + " secs");
 			startuplogger.info("---------");
@@ -304,8 +329,8 @@ public class RAIDSixDriveSync implements Runnable {
 				info.setStatus(DriveStatus.ENABLED);
 				info.setOrder(drive.getConfigOrder());
 				drive.setDriveInfo(info);
-				getDriver().getVFS().getMapDrivesEnabled().put(drive.getName(), drive);
-				startuplogger.debug("drive notsynced -> " + drive.toString());
+				getDriver().getVFS().updateDriveStatus(drive);
+				startuplogger.debug("drive synced -> " + drive.toString());
 			}
 		}
 	}

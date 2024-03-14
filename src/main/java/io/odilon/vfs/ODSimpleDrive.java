@@ -10,7 +10,6 @@ import java.nio.file.Files;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.apache.commons.io.FileUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
@@ -21,9 +20,7 @@ import io.odilon.util.Check;
 import io.odilon.vfs.model.SimpleDrive;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
-
 /**
- * 
  * <p>For RAID 0 and RAID 1</p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
@@ -54,7 +51,7 @@ public class ODSimpleDrive extends ODDrive implements SimpleDrive {
 	 * @param rootDir
 	 */
 	protected ODSimpleDrive(String name, String rootDir, int configOrder) {
-		super(rootDir, name, configOrder);
+		super(name, rootDir, configOrder);
 	}
 	
 	/**
@@ -81,7 +78,7 @@ public class ODSimpleDrive extends ODDrive implements SimpleDrive {
 	 */
 	@Override
 	public InputStream getObjectInputStream(String bucketName, String objectName) {
-		
+
 		Check.requireNonNullArgument(bucketName, "bucketName is null");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null -> b:" + bucketName);
 		
@@ -106,7 +103,6 @@ public class ODSimpleDrive extends ODDrive implements SimpleDrive {
 
 		Check.requireNonNullArgument(bucketName, "bucketName is null");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null -> b:" + bucketName);
-		
 		if (!super.existBucketMetadataDir(bucketName))
 			  throw new IllegalStateException("Bucket Metadata Directory must exist -> d:" + getName() + " | b:" + bucketName);
 		
@@ -140,12 +136,6 @@ public class ODSimpleDrive extends ODDrive implements SimpleDrive {
 		}
 	}
 
-	
-	//public void deleteObject(String bucketName, String objectName) {
-	//	deleteObject(bucketName, objectName, false); 
-	//}
-	
-	
 	@Override
 	public File getObjectDataFile(String bucketName, String objectName) {
 		return new File(this.getRootDirPath(), bucketName + File.separator + objectName);
@@ -167,27 +157,9 @@ public class ODSimpleDrive extends ODDrive implements SimpleDrive {
 			return new File(dataFilePath);
 		}
 		 catch (IOException e) {
-				logger.error(e.getClass().getName() + " getObjectDataVersionFile -> " + "b:" +  bucketName + ", o:" + objectName +", d:" + getName());			throw (e);
+				logger.error(e.getClass().getName() + " getObjectDataVersionFile -> " + "b:" +  bucketName + ", o:" + objectName +", d:" + getName());			
+				throw (e);
 		}
 	}
-	
-	/**
-	 * 
-	 * 
-	 
-	protected void deleteObject(String bucketName, String objectName, boolean onlyMetadata) {
-	
-		Check.requireNonNullStringArgument(bucketName, "bucketName is null");
-		Check.requireNonNullStringArgument(objectName, "objectName can not be null -> b:" + bucketName);
-		
-		super.deleteObjectMetadata(bucketName, objectName);
-		
-		if (onlyMetadata)
-			return;
-		File data = new File (this.getRootDirPath(), bucketName + File.separator + objectName);
-		FileUtils.deleteQuietly(data);
-		
-	}
-*/
 	
 }

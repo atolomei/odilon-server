@@ -46,8 +46,9 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
  * 
- *<p>VFSop.CREATE_OBJECT</p>
- * 
+ * <p>RAID 1 Handler <br/>  
+ * Creates new Objects ({@link VFSop.CREATE_OBJECT})</p>
+
  * @author atolomei@novamens.com (Alejandro Tolomei)
  * 
  */

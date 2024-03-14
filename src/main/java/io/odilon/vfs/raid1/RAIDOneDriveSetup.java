@@ -42,7 +42,7 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 /***
  * <p>Set up new drives is <b>Async</b> for RAID 1.<br/> 
- * This object will create and start a new {@link RAIDOneDriveImporter} 
+ * This object will create and start a new {@link RAIDOneDriveSync} 
  * to duplicate objects into the newly added drive/s in background</p>
  */
 @Component
@@ -147,11 +147,11 @@ public class RAIDOneDriveSetup implements IODriveSetup, ApplicationContextAware 
 			return false;
 		}
 		
-		startuplogger.info("4. Starting Async process -> " + RAIDOneDriveImporter.class.getName());
+		startuplogger.info("4. Starting Async process -> " + RAIDOneDriveSync.class.getName());
 						
 		/** The rest of the process is async */
 		@SuppressWarnings("unused")
-		RAIDOneDriveImporter checker = getApplicationContext().getBean(RAIDOneDriveImporter.class, getDriver());
+		RAIDOneDriveSync checker = getApplicationContext().getBean(RAIDOneDriveSync.class, getDriver());
 		
 		/** sleeps 20 secs and return */
 		try {

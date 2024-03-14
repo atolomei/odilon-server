@@ -30,7 +30,6 @@ import org.apache.commons.io.FileUtils;
 import org.checkerframework.checker.nullness.qual.NonNull;
 
 import io.odilon.OdilonVersion;
-import io.odilon.error.OdilonObjectNotFoundException;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
@@ -58,14 +57,14 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler implements RAID
 	private static Logger logger = Logger.getLogger(RAIDZeroCreateObjectHandler.class.getName());
 		
 	/** 
-	 * <p>Created by and used only from {@link RAIDZeroDriver}</p>
+	 * <p>Created and used only from {@link RAIDZeroDriver}</p>
 	 */
 	protected RAIDZeroCreateObjectHandler(RAIDZeroDriver driver) {
 		super(driver);
 	}
 
 	/**
-	 * <p>The procedure is the same whether there version control is enabled or not</p>
+	 * <p>The procedure is the same whether version control is enabled</p>
 	 * 
 	 * @param bucket
 	 * @param objectName
@@ -75,38 +74,46 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler implements RAID
 	 */
 	public void create(@NonNull VFSBucket bucket, @NonNull String objectName, @NonNull InputStream stream, String srcFileName, String contentType) {
 	
+		Check.requireNonNullArgument(bucket, "bucket is null");
+		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
+		
+		String bucketName = bucket.getName();
+		
 		VFSOperation op = null;
 		boolean done = false;
-		
+		boolean isMainException = false;
+				
 		try {
 			
-			getLockService().getObjectLock(bucket.getName(), objectName).writeLock().lock();
+			getLockService().getObjectLock(bucketName, objectName).writeLock().lock();
 			
 				try (stream) {
 					
-						getLockService().getBucketLock(bucket.getName()).readLock().lock();
+						getLockService().getBucketLock(bucketName).readLock().lock();
 
-						if (getDriver().getWriteDrive(bucket.getName(), objectName).existsObjectMetadata(bucket.getName(), objectName))											
-							throw new OdilonObjectNotFoundException("object already exist -> b:" + bucket.getName()+ " o:"+(Optional.ofNullable(objectName).isPresent() ? (objectName) :"null"));
+						if (getDriver().getWriteDrive(bucketName, objectName).existsObjectMetadata(bucketName, objectName))											
+							throw new IllegalArgumentException("object already exist -> b:" + bucketName+ " o:"+(Optional.ofNullable(objectName).isPresent() ? (objectName) :"null"));
 						
 						int version = 0;
 						
-						op = getJournalService().createObject(bucket.getName(), objectName);
+						op = getJournalService().createObject(bucketName, objectName);
 						
 						saveObjectDataFile(bucket,objectName, stream, srcFileName);
 						saveObjectMetadata(bucket,objectName, srcFileName, contentType, version);
 						
-						getVFS().getObjectCacheService().remove(bucket.getName(), objectName);
+						getVFS().getObjectCacheService().remove(bucketName, objectName);
 						
 						done = op.commit();
 					
-				} catch (OdilonObjectNotFoundException e1) {
+				} catch (InternalCriticalException e1) {
 					done=false;
+					isMainException=true;
 					throw e1;
 					
 				} catch (Exception e) {
 							done=false;
-							throw new InternalCriticalException(e, "b:" + bucket.getName() + " o:" 	+ objectName + ", f:" 	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null"));
+							isMainException=true;
+							throw new InternalCriticalException(e, "b:" + bucketName + " o:" 	+ objectName + ", f:" 	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null"));
 				} finally {
 							try {
 									if ((!done) && (op!=null)) {
@@ -115,14 +122,20 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler implements RAID
 											rollbackJournal(op, false);
 											
 										} catch (InternalCriticalException e) {
-											throw e;
+											if (!isMainException) 
+												throw e;
+											else
+												logger.error(e, " finally | b:" + bucketName +	" o:" 	+ objectName + ", f:" 	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null") +  ServerConstant.NOT_THROWN);
 										} catch (Exception e) {
-											throw new InternalCriticalException(e, " finally | b:" + bucket.getName() +	" o:" 	+ objectName + ", f:" 	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null"));
+											if (!isMainException) 
+												throw new InternalCriticalException(e, " finally | b:" + bucketName +	" o:" 	+ objectName + ", f:" 	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null"));
+											else
+												logger.error(e, " finally | b:" + bucketName +	" o:" 	+ objectName + ", f:" 	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null") +  ServerConstant.NOT_THROWN);
 										}
 									}
 							}
 							finally {
-								getLockService().getBucketLock(bucket.getName()).readLock().unlock();
+								getLockService().getBucketLock(bucketName).readLock().unlock();
 							}
 				}
 		}
@@ -156,15 +169,16 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler implements RAID
 			done=true;
 			
 		} catch (InternalCriticalException e) {
-			logger.error("Rollback | " + op.toString());
 			if (!recoveryMode)
 				throw(e);
+			else
+				logger.error(e, "Rollback: " + op.toString() + ServerConstant.NOT_THROWN);
 			
 		} catch (Exception e) {
-			String msg = "Rollback | " + op.toString();
-			logger.error(msg);
 			if (!recoveryMode)
-				throw new InternalCriticalException(e, msg);
+				throw new InternalCriticalException(e, "Rollback | " + op.toString());
+			else
+				logger.error(e, "Rollback: " + op.toString() + ServerConstant.NOT_THROWN);
 		}
 		finally {
 			if (done || recoveryMode) 
@@ -226,10 +240,12 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler implements RAID
 		OffsetDateTime now=OffsetDateTime.now();
 		Drive drive=getWriteDrive(bucket.getName(), objectName);
 		File file=((SimpleDrive)drive).getObjectDataFile(bucket.getName(), objectName);
+
+		String bucketName = bucket.getName();
 		
 		try {
 				String sha256 = ODFileUtils.calculateSHA256String(file);
-				ObjectMetadata meta = new ObjectMetadata(bucket.getName(), objectName);
+				ObjectMetadata meta = new ObjectMetadata(bucketName, objectName);
 				meta.fileName=srcFileName;
 				meta.appVersion=OdilonVersion.VERSION;
 				meta.contentType=contentType;
@@ -248,8 +264,8 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler implements RAID
 				
 				drive.saveObjectMetadata(meta);
 			
-		} catch (Exception e) {
-				throw new InternalCriticalException(e, "b:"  + bucket.getName() + ", o:" + objectName + ", f:" + srcFileName);
+		} catch (Exception e) {										
+				throw new InternalCriticalException(e, "b:"  + bucketName + ", o:" + objectName + ", f:" + srcFileName);
 		}
 	}
 }

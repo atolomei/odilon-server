@@ -16,11 +16,8 @@
  */
 package io.odilon.service;
 
+
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.FileStore;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -32,7 +29,6 @@ import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 
-import org.checkerframework.checker.index.qual.NonNegative;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
@@ -50,7 +46,6 @@ import io.odilon.model.RedundancyLevel;
 import io.odilon.model.ServerConstant;
 import io.odilon.service.util.ByteToString;
 import io.odilon.util.RandomIDGenerator;
-import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 @Configuration
@@ -449,7 +444,7 @@ public class ServerSettings implements APIObject {
 			startuplogger.error(		"No rootDirs are defined. \n"
 										+ 	"for RAID 0. at least 1 dataDir must be defined in file -> odilon.properties \n"
 										+ 	"for RAID 1. at least 1 dataDir must be defined in file -> odilon.properties \n"
-										+ 	"for RAID 6.  6 dataDir must be defined in file	-> odilon.properties \n"
+										+ 	"for RAID 6.  3 or 6 or 12 dataDirs must be defined in file	-> odilon.properties \n"
 										+   "using default values ");
 			
 			getDefaultRootDirs().forEach( o -> startuplogger.error(o));
@@ -521,7 +516,6 @@ public class ServerSettings implements APIObject {
 		//	throw new IllegalStateException(RedundancyLevel.RAID_6.getName() +  " is not supported in this version of Odilon");
 		//}
 		
-		
 		List<String> dirs=new ArrayList<String>();
 		
 		if (isWindows())
@@ -558,8 +552,8 @@ public class ServerSettings implements APIObject {
 		}
 		else if (this.redundancyLevel==RedundancyLevel.RAID_6) {
 		
-			if (!((this.rootDirs.size()==3) || (this.rootDirs.size()==6)))
-				throw new IllegalArgumentException( "DataStorage must have 3 or 6 entries for -> " +	redundancyLevel.getName());
+			if (!((this.rootDirs.size()==3) || (this.rootDirs.size()==6) || (this.rootDirs.size()==12)))
+				throw new IllegalArgumentException( "DataStorage must have 3 or 6 or 12 entries for -> " +	redundancyLevel.getName());
 			
 				if (this.rootDirs.size()==3) {
 					if (this.raid6DataDrives==-1)
@@ -573,12 +567,18 @@ public class ServerSettings implements APIObject {
 					if (this.raid6ParityDrives==-1)
 						this.raid6ParityDrives=2;
 				}
+				else if (this.rootDirs.size()==12) {
+					if (this.raid6DataDrives==-1)
+						this.raid6DataDrives=8;
+					if (this.raid6ParityDrives==-1)
+						this.raid6ParityDrives=4;
+				}
 
 				if ( !(( (this.rootDirs.size()==3) && (this.raid6DataDrives==2) && (this.raid6ParityDrives==1)) || 
-					   ( (this.rootDirs.size()==6) && (this.raid6DataDrives==4) && (this.raid6ParityDrives==2))
+					   ( (this.rootDirs.size()==6) && (this.raid6DataDrives==4) && (this.raid6ParityDrives==2)) || 
+					   ( (this.rootDirs.size()==12)&& (this.raid6DataDrives==8) && (this.raid6ParityDrives==4)) 
 					  )) { 
-					throw new IllegalArgumentException( RedundancyLevel.RAID_6.getName() +							
-							": the configurations supported are -> 6 dirs in DataStorage and raid6.dataDrives=4 and raid6.parityDrives=2 | 3 dirs in DataStorage and raid6.dataDrives=2 and raid6.parityDrives=1");
+					throw new IllegalArgumentException( RedundancyLevel.RAID_6.getName() +" configurations supported are -> 6 dirs in DataStorage and raid6.dataDrives=4 and raid6.parityDrives=2 | 3 dirs in DataStorage and raid6.dataDrives=2 and raid6.parityDrives=1 | 12 dirs in DataStorage and raid6.dataDrives=8 and raid6.parityDrives=4 ");
 					}
 				}
 		try {
@@ -707,13 +707,11 @@ public class ServerSettings implements APIObject {
 			
 			if (getRedundancyLevel()==RedundancyLevel.RAID_1 || getRedundancyLevel()==RedundancyLevel.RAID_0)
 				return list;
-				
+
+			// for RAID 6 default is 3,1
 			list.add("c:"+File.separator+"odilon-data"+File.separator+"drive0");
 			list.add("c:"+File.separator+"odilon-data"+File.separator+"drive1");
 			list.add("c:"+File.separator+"odilon-data"+File.separator+"drive2");
-			list.add("c:"+File.separator+"odilon-data"+File.separator+"drive3");
-			list.add("c:"+File.separator+"odilon-data"+File.separator+"drive4");
-			list.add("c:"+File.separator+"odilon-data"+File.separator+"drive5");
 			return list;
 		}
 		
@@ -729,10 +727,6 @@ public class ServerSettings implements APIObject {
 			list.add(File.separator + "opt" + File.separator +  File.separator + "odilon-data" + File.separator + "drive0");
 			list.add(File.separator + "opt" + File.separator +  File.separator + "odilon-data" + File.separator + "drive1");
 			list.add(File.separator + "opt" + File.separator +  File.separator + "odilon-data" + File.separator + "drive2");
-			list.add(File.separator + "opt" + File.separator +  File.separator + "odilon-data" + File.separator + "drive3");
-			list.add(File.separator + "opt" + File.separator +  File.separator + "odilon-data" + File.separator + "drive4");
-			list.add(File.separator + "opt" + File.separator +  File.separator + "odilon-data" + File.separator + "drive5");
-			
 			return list;
 		}
 	}
@@ -938,7 +932,6 @@ public class ServerSettings implements APIObject {
 			return true;
 		return false;
 	}
-	
 
 	public int getObjectCacheCapacity() {
 		return objectCacheCapacity;
@@ -954,18 +947,12 @@ public class ServerSettings implements APIObject {
 
 	
 	public boolean isRAID6ConfigurationValid(int dataShards, int parityShards) {
-		return  (dataShards==4 && parityShards==2) ||
+		return  (dataShards==8 && parityShards==4) ||
+			    (dataShards==4 && parityShards==2) ||
 			    (dataShards==2 && parityShards==1);
 	}
-
-	
 	
 	protected String randomString(final int size) {
 		return idGenerator.randomString(size);
 	}
-
-	
-	
-
-	
 }

@@ -17,9 +17,14 @@ import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ServerConstant;
 import io.odilon.util.Check;
 import io.odilon.vfs.model.Drive;
-import io.odilon.vfs.model.DriveStatus;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
+/**
+ * 
+ * <p>Encodes InputStream into multiple block files in File System using {@link https://en.wikipedia.org/wiki/Erasure_code}.</p>
+ *  
+ * @author atolomei@novamens.com (Alejandro Tolomei)  
+ */
 public class RAIDSixEncoder {
 
 	@SuppressWarnings("unused")
@@ -40,15 +45,25 @@ public class RAIDSixEncoder {
     private List<Drive> zDrives;
     
 
+    /**
+     * <p>Used by {@link RAIDSixDrive}, can not be created directly.</p> 
+     * */
     
     protected RAIDSixEncoder(RAIDSixDriver driver) {
     	this(driver, null);
     }
     
+    /**
+     * <p>We use drivesAll to encode, assuming that drives that are in state {@link DriveStatys.NOT_SYNC}
+     * are in the process of becoming enabled (via an async process in {@link RAIDSixDriveSync}.
+     * </p>
+     * 
+     * <p>Used by {@link RAIDSixDrive}, can not be created directly.</p> 
+     * */
 	protected RAIDSixEncoder(RAIDSixDriver driver, List<Drive> udrives) {
 		
-		this.driver=driver;
-		this.zDrives = (udrives!=null) ? udrives : driver.getDrivesEnabled();
+		this.driver = driver;
+		this.zDrives = (udrives!=null) ? udrives : driver.getDrivesAll();
 		
 		this.data_shards = getVFS().getServerSettings().getRAID6DataDrives();
 		this.partiy_shards = getVFS().getServerSettings().getRAID6ParityDrives();
@@ -59,23 +74,26 @@ public class RAIDSixEncoder {
 	
 	
 	/**
-	 * 
-	 * <p> We can not use the {@link ObjectMetadata} here because it may 
-	 * not exist yet. The steps to upload objects are: <br/>
-	 * - upload binary data <br/>
-	 * - create ObjectMetadata <br/>
+	 * <p> We can not use the {@link ObjectMetadata} here because <b>it may not exist yet</b>. 
+	 *  The steps to upload objects are: <br/>
+	 *  <ul>
+	 * <li>upload binary data</li>
+	 * <li>create ObjectMetadata </li>
+	 * </ul>
 	 * </p>
+	 * 
 	 * <p> 
-	 * <b>Head version</b>
-	 * <i>objectName.[block].[disk]</i>
+	 * <b>Block naming convention Head version</b><br/>
+	 * objectName.[block].[disk]<br/>
+	 * <br/>
+	 * <b>Previous version</b><br/>
+	 * objectName.[block].[disk].v[version]<br/>
+	 *</p>
 	 * 
-	 * <b>Previous version</b>
-	 * <i>objectName.[block].[disk].v[version]</i>
-	 * 
-	 *</p> 
 	 * @param is
 	 * @param bucketName
 	 * @param objectName
+	 * 
 	 * @return the size of the source file in bytes (note that the disk used by the shards 
 	 * is more (16 bytes for the file size plus the padding to make every shard multiple of 4)
 	 */

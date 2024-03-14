@@ -25,10 +25,11 @@ import io.odilon.model.ObjectMetadata;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.DriveStatus;
 
-/**
+/**<p>Encoder for Drive Sync process</p>
+ * 
  * <p>The difference between {@code RSDriveInitializationEncoder} and the standard {@link RAIDSixEncoder} 
  * is that this one only saves the RS Blocks that go to the newly added disks (ie. blocks on enabled 
- * Drives are not touched).
+ * Drives are <b>not</b> touched).
  * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
@@ -68,6 +69,9 @@ public class RAIDSixSDriveSyncEncoder extends RAIDSixEncoder {
 		return super.encodeVersion(is, bucketName, objectName, version);
 	}
 	
+	/**
+	 * <p>only write on Drives in status {@link DriveStatus.NOTSYNC}</p>
+	 */
 	protected boolean isWrite(int disk) {
 		return (getDrives().get(disk).getDriveInfo().getStatus()==DriveStatus.NOTSYNC);
 	}

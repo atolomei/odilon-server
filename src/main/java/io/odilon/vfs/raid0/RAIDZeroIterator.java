@@ -49,10 +49,10 @@ import io.odilon.vfs.model.BucketIterator;
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
-public class RAIDZeroBucketIterator extends BucketIterator implements Closeable {
+public class RAIDZeroIterator extends BucketIterator implements Closeable {
 			
 	@SuppressWarnings("unused")
-	private static final Logger logger = Logger.getLogger(RAIDZeroBucketIterator.class.getName());
+	private static final Logger logger = Logger.getLogger(RAIDZeroIterator.class.getName());
 	
 	@JsonProperty("prefix")
 	private String prefix = null;
@@ -83,12 +83,12 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
 	private boolean initiated = false;
 
 
-	public RAIDZeroBucketIterator(RAIDZeroDriver driver, String bucketName, Optional<Long> opOffset,  Optional<String> opPrefix) {
+	public RAIDZeroIterator(RAIDZeroDriver driver, String bucketName, Optional<Long> opOffset,  Optional<String> opPrefix) {
 			this(driver, bucketName, opOffset, opPrefix, Optional.empty());
 	}
 
 	
-	public RAIDZeroBucketIterator(RAIDZeroDriver driver, String bucketName, Optional<Long> opOffset,  Optional<String> opPrefix, Optional<String> serverAgentId) {
+	public RAIDZeroIterator(RAIDZeroDriver driver, String bucketName, Optional<Long> opOffset,  Optional<String> opPrefix, Optional<String> serverAgentId) {
 			super(bucketName);
 
 		opOffset.ifPresent( x -> setOffset(x));

@@ -82,8 +82,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 	private static Logger logger = Logger.getLogger(BaseIODriver.class.getName());
 	static private Logger std_logger = Logger.getLogger("StartupLogger");
 	
-	
-	
 	@JsonIgnore
 	static final public int MAX_CACHE_SIZE = 4000000;
 	

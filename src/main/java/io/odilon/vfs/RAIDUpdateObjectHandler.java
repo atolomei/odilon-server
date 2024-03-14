@@ -6,7 +6,7 @@ import io.odilon.model.ObjectMetadata;
 import io.odilon.vfs.model.VFSBucket;
 import io.odilon.vfs.model.VFSOperation;
 
-public interface RAIDUpdateObjectHandler {
+public interface RAIDUpdateObjectHandler extends  RAIDHandler {
 	
 	public void update(VFSBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType);
 	public ObjectMetadata restorePreviousVersion(VFSBucket bucket, String objectName);

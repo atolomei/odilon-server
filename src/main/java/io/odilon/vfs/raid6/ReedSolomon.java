@@ -34,6 +34,8 @@ package io.odilon.vfs.raid6;
 
 /**
  * Reed-Solomon Coding over 8-bit values.
+ * 
+ * Copyright (c) 2015 Backblaze
  */
 public class ReedSolomon {
 

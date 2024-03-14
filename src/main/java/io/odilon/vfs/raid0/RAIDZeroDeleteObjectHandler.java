@@ -109,7 +109,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 			
 			} catch (Exception e) {
 				done=false;
-				throw new InternalCriticalException(e);
+				throw new InternalCriticalException(e, "b:" + bucketName + ", o:" + objectName);
 			}
 			finally {
 
@@ -161,14 +161,13 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 		boolean done = false;
 		VFSOperation op = null;
 
-		try {
-			
-				getLockService().getObjectLock(meta.bucketName, meta.objectName).writeLock().lock();
+		getLockService().getObjectLock(meta.bucketName, meta.objectName).writeLock().lock();
 		
+		try {
+				getLockService().getBucketLock(meta.bucketName).readLock().lock();
+			
 				try {
 						
-					getLockService().getBucketLock(meta.bucketName).readLock().lock();
-					
 					if (!getDriver().getReadDrive(meta.bucketName, meta.objectName).existsObjectMetadata(meta.bucketName, meta.objectName))													
 						throw new OdilonObjectNotFoundException("object does not exist -> b:" + meta.bucketName+ " o:" + meta.objectName);
 					
@@ -277,7 +276,12 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 			if (getVFS().getServerSettings().isStandByEnabled())
 				getVFS().getReplicationService().cancel(op);
 			
-			/** rollback is the same for both operations */
+			/** Rollback is the same for both operations ->
+			 *  
+			 * DELETE_OBJECT and  
+			 * DELETE_OBJECT_PREVIOUS_VERSIONS
+			 * 
+			 * */
 			if (op.getOp()==VFSop.DELETE_OBJECT)
 				restoreMetadata(bucketName,objectName);
 			
@@ -342,9 +346,11 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 	 */
 
 	
+	/** do nothing by the moment */
 	public void postObjectPreviousVersionDeleteAll(ObjectMetadata meta, int headVersion) 	{}
+	
+	/** do nothing by the moment */
 	public void postObjectDelete(ObjectMetadata meta, int headVersion) 						{}
-
 
 
 	/**
@@ -373,11 +379,8 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 		} catch (Exception e) {
 			logger.error(e, ServerConstant.NOT_THROWN);
 		}
-		
-		
 	}
 
-		
 	/**
 	 * Sync with the Operation
 	 * 
@@ -483,7 +486,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 			FileUtils.copyDirectory(new File(objectMetadataDirPath), new File(objectMetadataBackupDirPath));
 			
 		} catch (IOException e) {
-			throw new InternalCriticalException(e, "b:"   + bucketName + ", o:" +  objectName);
+			throw new InternalCriticalException(e, "backupMetadata 	| b:" + bucketName + ", o:" +  objectName);
 		}
 	}
 
@@ -503,7 +506,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 			throw e;
 		
 		} catch (IOException e) {
-			throw new InternalCriticalException(e, "b:"   + bucketName + ", o:" +  objectName);
+			throw new InternalCriticalException(e, "restoreMetadata | b:" + bucketName + ", o:" + objectName);
 		}
 	}
 
@@ -522,7 +525,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 				getVFS().getSchedulerService().enqueue(getVFS().getApplicationContext().getBean(AfterDeleteObjectServiceRequest.class, op.getOp(), meta, headVersion));
 			
 		} catch (Exception e) {
-			logger.error(e, op.toString() + " | " + ServerConstant.NOT_THROWN);
+			logger.error(e, " onAfterCommit | " + op.toString() + " | " + ServerConstant.NOT_THROWN);
 		}
 	}
 

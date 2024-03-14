@@ -77,9 +77,7 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 		
 		initCronJobs();
 		
-		boolean iLicense = initLicense();
-		if (iLicense)	
-			startupLogger.info(ServerConstant.SEPARATOR);
+		
 
 		boolean iGeneral = initGeneral();
 		if(iGeneral)
@@ -150,16 +148,6 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 		}
 	}
 	
-	/**
-	 *
-	 * 
-	 */
-	private boolean initLicense() {
-		startupLogger.info("This software is licensed under the Apache License, Version 2.0");
-		startupLogger.info("http://www.apache.org/licenses/LICENSE-2.0");
-		return true;
-		
-	}
 	
 		
 	/**
@@ -260,8 +248,9 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 		if (settingsService.getAccessKey().equals("odilon") && settingsService.getSecretKey().equals("odilon")) {
 			startupLogger.info("Odilon is running with default vaules for AccessKey and SecretKey (ie. odilon/odilon)");
 			startupLogger.info("It is recommended to change their values in file -> ."+File.separator + "config"+ File.separator +"odilon.properties");
+			return true;
 		}	
-		return true;
+		return false;
 	}
 	
 

@@ -46,11 +46,12 @@ public class DriveInfo extends ODModelObject implements Serializable {
 	public DriveInfo() {
 	}
 	
-	public DriveInfo(String name, String driveId, OffsetDateTime dateConnected, DriveStatus status) {
+	public DriveInfo(String name, String driveId, OffsetDateTime dateConnected, DriveStatus status, int configOrder) {
 		this.name=name;
 		this.driveId=driveId;
 		this.dateConnected=dateConnected;
 		this.driveStatus=status;
+		this.order=configOrder;
 	}
 
 	public DriveStatus getStatus() {
