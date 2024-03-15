@@ -144,8 +144,9 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler implements RAIDDe
 			getLockService().getObjectLock(bucketName, objectName).writeLock().unlock();
 		}
 		
-		if(done)
+		if(done) {
 			onAfterCommit(op, meta, headVersion);
+		}
 	
 	}
 	
@@ -164,7 +165,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler implements RAIDDe
 	 * 
 	 */
 	@Override
-	public void deleteObjectAllPreviousVersions(ObjectMetadata meta) {
+	public void deleteObjectAllPreviousVersions(ObjectMetadata headMeta) {
 	
 		VFSOperation op = null;  
 		boolean done = false;
@@ -172,8 +173,8 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler implements RAIDDe
 		
 		int headVersion = -1;
 		
-		String bucketName = meta.bucketName;
-		String objectName = meta.objectName;
+		String bucketName = headMeta.bucketName;
+		String objectName = headMeta.objectName;
 		
 		getLockService().getObjectLock(bucketName, objectName).writeLock().lock();
 		
@@ -185,31 +186,36 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler implements RAIDDe
 					if (!getDriver().getObjectMetadataReadDrive(bucketName, objectName).existsObjectMetadata(bucketName, objectName))
 						throw new OdilonObjectNotFoundException("object does not exist -> b:" + bucketName+ " o:"+(Optional.ofNullable(objectName).isPresent() ? (objectName) :"null"));
 					
-					meta = getDriver().getObjectMetadataReadDrive(bucketName, objectName).getObjectMetadata(bucketName, objectName);
-					headVersion = meta.version;
+					//meta = getDriver().getObjectMetadataReadDrive(bucketName, objectName).getObjectMetadata(bucketName, objectName);
+					headVersion = headMeta.version;
 					
-					/** It does not delete the head version, 
-					 * only previous versions */
-					if (meta.version==0)
+					/** It does not delete the head version, only previous versions */
+					if (headVersion==0)
 						return;
 					
 					op = getJournalService().deleteObjectPreviousVersions(bucketName, objectName, headVersion);
 					
-					backupMetadata(meta);
+					backupMetadata(headMeta);
 		
 					/** remove all "objectmetadata.json.vn" Files, but keep -> "objectmetadata.json" **/  
-					for (int version=0; version < headVersion; version++)
-						FileUtils.deleteQuietly(getDriver().getObjectMetadataReadDrive(bucketName, objectName).getObjectMetadataVersionFile(bucketName, objectName, version));
-		
-					meta.addSystemTag("delete versions");
-					meta.lastModified = OffsetDateTime.now();
-											
-					for (Drive drive: getDriver().getDrivesAll())
-						drive.saveObjectMetadata(meta);
+					for (int version=0; version < headVersion; version++) { 
+						for (Drive drive: getDriver().getDrivesAll()) {
+							FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(bucketName, objectName, version));
+						}
+					}
+
+					/** update head metadata with the tag */
+					headMeta.addSystemTag("delete versions");
+					headMeta.lastModified = OffsetDateTime.now();
+					for (Drive drive: getDriver().getDrivesAll()) {
+						ObjectMetadata metaDrive = drive.getObjectMetadata(bucketName, objectName);
+						headMeta.drive=drive.getName();	
+						drive.saveObjectMetadata(metaDrive);							
+					}
 					
-					getVFS().getObjectCacheService().remove(bucketName, meta.objectName);
+					getVFS().getObjectCacheService().remove(bucketName, headMeta.objectName);
+					
 					done=op.commit();
-					
 				
 				} catch (OdilonObjectNotFoundException e1) {
 					done=false;
@@ -237,7 +243,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler implements RAIDDe
 							}
 						}
 						else if (done) {
-							postObjectPreviousVersionDeleteAllCommit(meta, headVersion);
+							postObjectPreviousVersionDeleteAllCommit(headMeta, headVersion);
 						}
 					}
 					finally {
@@ -248,8 +254,9 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler implements RAIDDe
 			getLockService().getObjectLock(bucketName, objectName).writeLock().unlock();
 		}
 
-		if (done)
-			onAfterCommit(op, meta, headVersion);
+		if (done) {
+			onAfterCommit(op, headMeta, headVersion);
+		}
 		
 	}
 
@@ -271,9 +278,10 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler implements RAIDDe
 		try {
 			/** delete data versions(0..headVersion-1). keep headVersion **/
 			for (int n=0; n<headVersion; n++) {
-				ObjectMetadata metaVersion = getDriver().getObjectMetadata(bucketName, objectName);
-				if (metaVersion!=null)
-					getDriver().getObjectDataFiles(meta, Optional.of(n)).forEach(item->FileUtils.deleteQuietly(item));
+					getDriver().getObjectDataFiles(meta, Optional.of(n)).forEach(item->
+					{
+						FileUtils.deleteQuietly(item);
+					});
 			}
 
 			/** delete backup Metadata */
@@ -400,9 +408,14 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler implements RAIDDe
 	 * @param headVersion
 	 */
 	private void onAfterCommit(VFSOperation op, ObjectMetadata meta, int headVersion) {
+		
+		//Check.requireNonNullArgument(op, "op is null");
+		//Check.requireNonNullArgument(meta, "meta is null");
+		
 		try {
-			if (op.getOp()==VFSop.DELETE_OBJECT || op.getOp()==VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS)
+			if (op.getOp()==VFSop.DELETE_OBJECT || op.getOp()==VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS) {
 				getVFS().getSchedulerService().enqueue(getVFS().getApplicationContext().getBean(AfterDeleteObjectServiceRequest.class, op.getOp(), meta, headVersion));
+			}
 		} catch (Exception e) {
 			logger.error(e, ServerConstant.NOT_THROWN);
 		}

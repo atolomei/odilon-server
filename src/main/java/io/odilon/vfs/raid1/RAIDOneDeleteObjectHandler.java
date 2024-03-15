@@ -141,8 +141,9 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 			getLockService().getObjectLock(bucketName, objectName).writeLock().unlock();
 		}
 			
-			if(done)
+			if(done) 
 				onAfterCommit(op, meta, headVersion);
+			
 		}
 
 	
@@ -192,6 +193,8 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 
 		VFSOperation op = null;  
 		boolean done = false;
+		boolean isMainException = false;
+
 		
 		int headVersion = -1;
 
@@ -209,10 +212,8 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 
 			try {
 				
-					boolean exists = getDriver().getReadDrive(bucketName, objectName).existsObjectMetadata(bucketName, objectName);
-					
-					if (!exists)
-						throw new OdilonObjectNotFoundException("object does not exist -> b:" + bucketName+ " o:" + objectName);
+					if (!getDriver().getReadDrive(bucketName, objectName).existsObjectMetadata(bucketName, objectName))
+						throw new IllegalArgumentException("object does not exist -> b:" + bucketName+ " o:" + objectName);
 		
 					headVersion = meta.version;
 					
@@ -225,27 +226,27 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 					backupMetadata(meta);
 		
 					/** remove all "objectmetadata.json.vn" Files, but keep -> "objectmetadata.json" **/  
-					for (int version=0; version < headVersion; version++) {
-						File metadataVersionFile = getDriver().getReadDrive(bucketName, objectName).getObjectMetadataVersionFile(bucketName, objectName, version);
-						FileUtils.deleteQuietly(metadataVersionFile);
+					for (int version=0; version < headVersion; version++) { 
+						for (Drive drive: getDriver().getDrivesAll()) {
+							FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(bucketName, objectName, version));
+						}
 					}
 		
+					/** update head metadata with the tag */
 					meta.addSystemTag("delete versions");
 					meta.lastModified = OffsetDateTime.now();
-											
-					for (Drive drive: getDriver().getDrivesAll())
-						drive.saveObjectMetadata(meta);
+					for (Drive drive: getDriver().getDrivesAll()) {
+						ObjectMetadata metaDrive = drive.getObjectMetadata(bucketName, objectName);
+						meta.drive=drive.getName();	
+						drive.saveObjectMetadata(metaDrive);							
+					}
 					
 					getVFS().getObjectCacheService().remove(bucketName, objectName);
 					done=op.commit();
 					
-				
-				} catch (OdilonObjectNotFoundException e1) {
-					done=false;
-					throw (e1);
-				
 				} catch (Exception e) {
 					done=false;
+					isMainException=true;
 					throw new InternalCriticalException(e);
 				}
 				finally {
@@ -254,7 +255,10 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 							try {
 								rollbackJournal(op, false);
 							} catch (Exception e) {
-								throw new InternalCriticalException(e, "b:" + meta.bucketName + ", o:" + meta.objectName);
+								if (!isMainException)
+									throw new InternalCriticalException(e, "b:" + meta.bucketName + ", o:" + meta.objectName);
+								else
+									logger.error(e, "b:" + meta.bucketName + ", o:" + meta.objectName, ServerConstant.NOT_THROWN);
 							}
 						}
 						else if (done) {
@@ -335,8 +339,10 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 	
 	
 	private void postObjectPreviousVersionDeleteAllCommit(ObjectMetadata meta, int headVersion) {
+		
 		String bucketName = meta.bucketName;
 		String objectName = meta.objectName;
+		
 		Check.requireNonNullArgument(bucketName, "bucket is null");
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketName);
 		try {
@@ -345,6 +351,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 				for (Drive drive: getDriver().getDrivesAll()) 
 					FileUtils.deleteQuietly(((SimpleDrive) drive).getObjectDataVersionFile(bucketName, objectName, n));
 			}
+			
 			/** delete backup Metadata */
 			for (Drive drive: getDriver().getDrivesAll()) {
 				FileUtils.deleteQuietly(new File(drive.getBucketWorkDirPath(bucketName) + File.separator + objectName));
@@ -453,14 +460,14 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 	 */
 	private void onAfterCommit(VFSOperation op, ObjectMetadata meta, int headVersion) {
 		
-		if ((op==null) || (meta==null))
-			return;
+		//Check.requireNonNullArgument(op, "op is null");
+		//Check.requireNonNullArgument(meta, "meta is null");
 		
 		try {
 			if (op.getOp()==VFSop.DELETE_OBJECT || op.getOp()==VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS)
 				getVFS().getSchedulerService().enqueue(getVFS().getApplicationContext().getBean(AfterDeleteObjectServiceRequest.class, op.getOp(), meta, headVersion));
 		} catch (Exception e) {
-			logger.error(e, op.toString() + " | " + ServerConstant.NOT_THROWN);
+			logger.error(e, " | " + ServerConstant.NOT_THROWN);
 		}
 	}
 

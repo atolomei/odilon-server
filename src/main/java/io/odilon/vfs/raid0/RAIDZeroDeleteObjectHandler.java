@@ -73,18 +73,19 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 		
 		VFSOperation op = null;  
 		boolean done = false;
+		boolean isMainException = false;
 		
 		Drive drive = getDriver().getDrive(bucket.getName(), objectName);
 		int headVersion = -1;
 		ObjectMetadata meta = null;
 		
+		getLockService().getObjectLock(bucket.getName(), objectName).writeLock().lock();
+		
 		try {
 			
-			getLockService().getObjectLock(bucket.getName(), objectName).writeLock().lock();
+			getLockService().getBucketLock(bucket.getName()).readLock().lock();
 			
 			try {
-				
-				getLockService().getBucketLock(bucket.getName()).readLock().lock();
 	
 				if (!getDriver().exists(bucket, objectName))
 					throw new OdilonObjectNotFoundException("object does not exist -> b:" + bucket.getName()+ " o:"+(Optional.ofNullable(objectName).isPresent() ? (objectName) :"null"));
@@ -105,10 +106,12 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 				
 			} catch (OdilonObjectNotFoundException e1) {
 				done=false;
+				isMainException = true;
 				throw e1;
 			
 			} catch (Exception e) {
 				done=false;
+				isMainException = true;
 				throw new InternalCriticalException(e, "b:" + bucketName + ", o:" + objectName);
 			}
 			finally {
@@ -118,14 +121,17 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 						try {
 							rollbackJournal(op, false);
 						} catch (Exception e) {
-							throw new InternalCriticalException(e, "b:" + bucketName + ", o:" + objectName);
+							if (!isMainException)
+								throw new InternalCriticalException(e, "b:" + bucketName + ", o:" + objectName);
+							else
+								logger.error(e, "b:" + bucketName + ", o:" + objectName, ServerConstant.NOT_THROWN);
 						}
 					}
 					else if (done) { 
 						try {
 							postObjectDeleteCommit(meta, headVersion);
 						} catch (Exception e) {
-							logger.error(e, ServerConstant.NOT_THROWN);
+							logger.error(e, "b:" + bucketName + ", o:" + objectName, ServerConstant.NOT_THROWN);
 						} 
 					}
 				}
@@ -229,9 +235,11 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 						}
 						else if (done) {
 							try {
+								
 								postObjectPreviousVersionDeleteAllCommit(meta, headVersion);
+								
 							} catch (Exception e) {
-								logger.error(e, "b:" + meta.bucketName + " o:" 	+ meta.objectName+" | " + ServerConstant.NOT_THROWN );
+								logger.error(e, "b:" + meta.bucketName + " o:" 	+ meta.objectName+" | " + ServerConstant.NOT_THROWN);
 							}
 						}
 					}
@@ -248,10 +256,8 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 			onAfterCommit(op, meta, headVersion);
 	}
 	
-	
-	
-
 	/**
+	 * 
 	 * 
 	 * 
 	 */
@@ -382,7 +388,9 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 	}
 
 	/**
-	 * Sync with the Operation
+	 * <p>This method is executed by the delete thread.
+	 * It does not need to control concurrent access because the caller method does it.
+	 * It should also be fast since it is part of the main transactiion</p> 
 	 * 
 	 * @param meta
 	 * @param headVersion
@@ -395,9 +403,8 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 		String objectName = meta.objectName;
 		
 		/** delete data versions(1..n-1) **/
-		for (int n=0; n<=headVersion; n++)	{
+		for (int n=0; n<=headVersion; n++)	
 			FileUtils.deleteQuietly(((SimpleDrive) getWriteDrive(bucketName, objectName)).getObjectDataVersionFile(bucketName, objectName, n));	
-		}
 		
 		/** delete metadata (head) */
 		/** not required because it was done before commit */
@@ -410,67 +417,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 	}
 	
 	
-	
-	/**
-	 * <p>This method is executed <b>Async</b> 
-	 * by one of the worker threads of the {@link StandardSchedulerWorker}</p> 
-	 * 
-	 * @param bucketName
-	 * @param objectName
-	 * @param headVersion
-	
-	@Override
-	public void postObjectDelete(ObjectMetadata meta, int headVersion) {
-		
-		Check.requireNonNullArgument(meta, "meta is null");
-		
-		String bucketName = meta.bucketName;
-		String objectName = meta.objectName;
-				
-		Check.requireNonNullArgument(bucketName, "bucketName is null");
-		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketName);
-		
-		try {
-			
-			getLockService().getObjectLock(meta.bucketName, meta.objectName).writeLock().lock();	
-			getLockService().getBucketLock(meta.bucketName).readLock().lock();
-
-			VFSBucket bucket = getVFS().getBucket(bucketName);
-			Drive drive = getDriver().getDrive(bucket.getName(), objectName);
-			
-			// if exists is true, means that the object was created in the short time span
-			// since the object was deleted and the async scheduler called this method
-			//
-			boolean exists = drive.existsObjectMetadata(bucket.getName(), objectName);
-			
-			if (!exists) {
-				
-				/// delete data versions(1..n-1) 
-				for (int n=0; n<=headVersion; n++)	{
-					File version_n= ((SimpleDrive) getWriteDrive(bucketName, objectName)).getObjectDataVersionFile(bucketName, objectName, n);
-					if (version_n.exists())
-						FileUtils.deleteQuietly(version_n);	
-				}
-				
-				/// delete data (head) 
-				File head=((SimpleDrive) getWriteDrive(bucketName, objectName)).getObjectDataFile(bucketName, objectName);
-				if (head.exists())
-					FileUtils.deleteQuietly(head);
-				
-				// delete backup Metadata/
-				String objectMetadataBackupDirPath = getDriver().getWriteDrive(bucketName, objectName).getBucketWorkDirPath(bucketName) + File.separator + objectName;
-				FileUtils.deleteQuietly(new File(objectMetadataBackupDirPath));
-			}
-				
-		} catch (Exception e) {
-			logger.error(e, ServerConstant.NOT_THROWN);
-		}
-		finally {
-			getLockService().getObjectLock(meta.bucketName, meta.objectName).writeLock().unlock();	
-			getLockService().getBucketLock(meta.bucketName).readLock().unlock();
-		}
-	}
-	 */
+	 
 	 
 	/**
 	 * copy metadata directory
@@ -517,8 +464,10 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 	 */
 	private void onAfterCommit(VFSOperation op, ObjectMetadata meta, int headVersion) {
 		
-		if ((op==null) || (meta==null))
+		if ((op==null) || (meta==null)) {
+			logger.error("op or meta is null, should not happen", ServerConstant.NOT_THROWN);
 			return;
+		}
 		
 		try {
 			if (op.getOp()==VFSop.DELETE_OBJECT || op.getOp()==VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS)

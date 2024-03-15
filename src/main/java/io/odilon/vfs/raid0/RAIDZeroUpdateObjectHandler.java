@@ -104,8 +104,8 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 				op = getJournalService().updateObject(bucketName, objectName, meta.version);
 				
 				/** backup current head version */
-				saveVersionObjectDataFile(bucket, objectName,  meta.version);
-				saveVersionObjectMetadata(bucket, objectName,  meta.version);
+				saveVersionObjectDataFile(bucketName, objectName,  meta.version);
+				saveVersionObjectMetadata(bucketName, objectName,  meta.version);
 				
 				/** copy new version  head version */
 				afterHeadVersion = meta.version+1;
@@ -206,8 +206,8 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 				op = getJournalService().restoreObjectPreviousVersion(bucketName, objectName, beforeHeadVersion);
 				
 				/** save current head version MetadataFile .vN  and data File vN - no need to additional backup */
-				saveVersionObjectDataFile(bucket, objectName,  meta.version);
-				saveVersionObjectMetadata(bucket, objectName,  meta.version);
+				saveVersionObjectDataFile(bucketName, objectName,  meta.version);
+				saveVersionObjectMetadata(bucketName, objectName,  meta.version);
 	
 				/** save previous version as head */
 				ObjectMetadata metaToRestore = metaVersions.get(metaVersions.size()-1);
@@ -550,31 +550,28 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 	 * 
 	 * 
 	 */
-	private void saveVersionObjectMetadata(VFSBucket bucket, String objectName,	int version) {
+	private void saveVersionObjectMetadata(String bucketName , String objectName,	int version) {
 		try {
-			Drive drive=getWriteDrive(bucket.getName(), objectName);
-			File file=drive.getObjectMetadataFile(bucket.getName(), objectName);
-			drive.putObjectMetadataVersionFile(bucket.getName(), objectName, version, file);
+			Drive drive=getWriteDrive(bucketName, objectName);
+			File file=drive.getObjectMetadataFile(bucketName, objectName);
+			drive.putObjectMetadataVersionFile(bucketName, objectName, version, file);
 			
 		} catch (Exception e) {
-				logger.error(e);
-				throw new InternalCriticalException(e);
+				throw new InternalCriticalException(e, "b:" + bucketName +	" o:"+ objectName);
 		}
 		
 	}
 
 	/**
 	 * 
-	 */
-	private void saveVersionObjectDataFile(VFSBucket bucket, String objectName, int version) {
+	 */									
+	private void saveVersionObjectDataFile(String bucketName, String objectName, int version) {
 		try {
-			Drive drive=getWriteDrive(bucket.getName(), objectName);
-			File file=((SimpleDrive) drive).getObjectDataFile(bucket.getName(), objectName);
-			((SimpleDrive) drive).putObjectDataVersionFile(bucket.getName(), objectName, version, file);
-			
+			Drive drive=getWriteDrive(bucketName, objectName);
+			File file=((SimpleDrive) drive).getObjectDataFile(bucketName, objectName);
+			((SimpleDrive) drive).putObjectDataVersionFile(bucketName, objectName, version, file);
 		} catch (Exception e) {
-				logger.error(e);
-				throw new InternalCriticalException(e);
+				throw new InternalCriticalException(e, "b:" + bucketName +	" o:"+ objectName);
 		}
 	}
 		
@@ -596,7 +593,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 			}
 			return false;
 		} catch (Exception e) {
-				throw new InternalCriticalException(e);
+				throw new InternalCriticalException(e, "b:" + bucketName +	" o:"+ objectName);
 		}
 	}
 
@@ -657,8 +654,10 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 	}
 	
 	/**
-	 * <p>This clean up is sync by the moment<br/>
-	 * <b>TODO AT</b> -> <i>This method should be Async. We have to analyze how</i><br/>
+	 * <p>This clean up is executed after the commit by the transaction thread, and therefore
+	 * all locks are still applied. Also it is required to be fast<br/>
+	 * 
+	 * <b>TODO AT</b> -> <i>This method should be Async</i><br/>
 	 * 
 	 * <h3>Version Control</h3>
 	 * <ul> 

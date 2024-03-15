@@ -1036,7 +1036,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		
 		for (int chunk=0; chunk<chunks; chunk++) {
 			for (int disk=0; disk<getDrivesAll().size(); disk++) {
-				String suffix = "."+String.valueOf(chunk)+"."+String.valueOf(disk) + (version.isEmpty() ? "" : (".v"+String.valueOf(version)));						
+				String suffix = "."+String.valueOf(chunk)+"."+String.valueOf(disk) + (version.isEmpty() ? "" : (".v"+String.valueOf(version.get())));						
 				Drive drive = getDrivesAll().get(disk);
 				if (version.isEmpty())
 					files.add(new File(drive.getBucketObjectDataDirPath(meta.bucketName), meta.objectName+suffix));

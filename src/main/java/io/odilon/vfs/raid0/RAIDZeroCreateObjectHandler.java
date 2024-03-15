@@ -145,8 +145,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler implements RAID
 	}
 
 	/**
-	 * <p>Concurrecy Control</p>
-	 * This method is <b>not</b> ThreadSafe, callers must ensure proper concurrency control
+	 * <p>This method is <b>not</b> ThreadSafe, callers must ensure proper concurrency control
 	 */
 	@Override
 	public void rollbackJournal(VFSOperation op, boolean recoveryMode) {
@@ -165,7 +164,6 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler implements RAID
 			
 			getWriteDrive(bucketName, objectName).deleteObjectMetadata(bucketName, objectName);
 			FileUtils.deleteQuietly(new File (getWriteDrive(bucketName, objectName).getRootDirPath(), bucketName + File.separator + objectName));
-			// ((SimpleDrive) getWriteDrive(bucketName, objectName)).deleteObject(bucketName , objectName);
 			done=true;
 			
 		} catch (InternalCriticalException e) {
@@ -188,6 +186,9 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler implements RAID
 	
 	
 	/**
+	 * 
+	 * <p>This method is <b>not</b> ThreadSafe, callers must ensure proper concurrency control
+	 * 
 	 * @param bucket
 	 * @param objectName
 	 * @param stream
@@ -224,12 +225,14 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler implements RAID
 							logger.error(e, "b:"  + bucket.getName() + ", o:" + objectName + ", f:" + srcFileName + (isMainException ? ServerConstant.NOT_THROWN :""));
 						secEx=e;
 					}
-				if (!isMainException && (secEx!=null)) 
+				if ((!isMainException) && (secEx!=null)) 
 				 		throw new InternalCriticalException(secEx);
 			}
 	}
 
 	/**
+	 * <p>This method is <b>not</b> ThreadSafe, callers must ensure proper concurrency control
+	 * 
 	 * @param bucket
 	 * @param objectName
 	 * @param stream

@@ -125,10 +125,26 @@ public class AfterDeleteObjectServiceRequest extends AbstractServiceRequest impl
 		 isSuccess=true;
 	}
 
+	
+	/**
+	 * <p>There is nothing to do if the VFSOp or ObjectMetadata are null at this point. They should never have reached here</p> 
+	 * 
+	 */
 	private void clean() {
 			
 		VirtualFileSystemService vfs = getApplicationContext().getBean(VirtualFileSystemService.class);
 			
+		if (this.vfsop==null) {
+			logger.error("Invalid " + VFSop.class.getName() + " is null ", ServerConstant.NOT_THROWN);
+			return;
+		}
+		
+		
+		if (this.meta==null) {
+			logger.error("Invalid " + ObjectMetadata.class.getName() + " is null ", ServerConstant.NOT_THROWN);
+			return;
+		}
+		
 		if (this.vfsop==VFSop.DELETE_OBJECT)
 				vfs.createVFSIODriver().postObjectDeleteTransaction(meta, headVersion);
 			

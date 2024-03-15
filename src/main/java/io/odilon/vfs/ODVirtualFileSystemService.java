@@ -912,9 +912,18 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 				checkServerInfo();
 				cleanUpWorkDir();
 				
-				startuplogger.debug("Started -> " + VirtualFileSystemService.class.getSimpleName());
+				if (getSchedulerService().getStandardQueueSize()>0) {
+					try {
+						Thread.sleep(1000 * 3);
+					} catch (Exception e) {
+					}
+				}
+
+				startuplogger.info("Started -> " + VirtualFileSystemService.class.getSimpleName());
 				setStatus(ServiceStatus.RUNNING);
 					
+
+				
 				} catch (Exception e) {
 					setStatus(ServiceStatus.STOPPED);
 					throw e;

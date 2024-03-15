@@ -93,7 +93,7 @@ public class DeleteBucketObjectPreviousVersionServiceRequest extends AbstractSer
 
 	@Override
 	public boolean isObjectOperation() {
-		return false;
+		return true;
 	}
 
 	public String getBucketName() {
@@ -128,13 +128,14 @@ public class DeleteBucketObjectPreviousVersionServiceRequest extends AbstractSer
 								
 					try {
 						this.counter.getAndIncrement();
-						if (item.isOk())
+						if (item.isOk()) {
 							process(item);
+						}
 						else
 							this.notAvailable.getAndIncrement();
 					
 					} catch (Exception e) {
-						logger.error(e);
+						logger.error(e, ServerConstant.NOT_THROWN);
 					}
 					return null;
 				 });
@@ -167,7 +168,7 @@ public class DeleteBucketObjectPreviousVersionServiceRequest extends AbstractSer
 			
 			instanceRunning.set(true);
 			
-			logger.info("Starting -> " + getClass().getSimpleName());
+			logger.info("Starting -> " + getClass().getSimpleName() + "b: " + (this.bucketName!=null? this.bucketName:"null"));
 	
 			this.start_ms = System.currentTimeMillis();
 			this.counter = new AtomicLong(0);
