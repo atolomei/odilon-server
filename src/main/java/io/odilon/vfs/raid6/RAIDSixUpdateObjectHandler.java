@@ -85,6 +85,8 @@ private static Logger logger = Logger.getLogger(RAIDSixCreateObjectHandler.class
 		String bucketName = bucket.getName();
 		VFSOperation op = null;
 		boolean done = false;
+		boolean isMainException = false;
+		
 		
 		int beforeHeadVersion = -1;
 		int afterHeadVersion = -1;
@@ -93,73 +95,62 @@ private static Logger logger = Logger.getLogger(RAIDSixCreateObjectHandler.class
 		getLockService().getObjectLock(bucketName, objectName).writeLock().lock();
 		
 		try {
-			
-			getLockService().getBucketLock(bucketName).readLock().lock();
-
-			if (!getDriver().getObjectMetadataReadDrive(bucketName, objectName).existsObjectMetadata(bucketName, objectName))
-				throw new OdilonObjectNotFoundException("b:" + bucketName + " o:"+ objectName);
-			
-			meta = getDriver().getObjectMetadataInternal(bucketName, objectName, true);
-			beforeHeadVersion = meta.version;							
-														
-			op = getJournalService().updateObject(bucketName, objectName, beforeHeadVersion);
-			
-			getVFS().getObjectCacheService().remove(bucketName, objectName);
-			
-			/** backup current head version */
-			backupVersionObjectDataFile(meta, meta.version);
-			backupVersionObjectMetadata(bucket, objectName,  meta.version);
-			
-			/** copy new version as head version */
-			afterHeadVersion = meta.version+1;
-			RAIDSixBlocks ei = saveObjectDataFile(bucket,objectName, stream);
-			saveObjectMetadata(bucket, objectName, ei, srcFileName, contentType, afterHeadVersion);
-			
-			done = op.commit();
 		
-
-		} catch (OdilonObjectNotFoundException e1) {
-			done=false;
-			logger.error(e1);
-			throw e1;
-			
-		} catch (Exception e) {
-			done=false;
-			throw new InternalCriticalException(e, "b:"+ bucket.getName() + " o:"  + objectName +	 ", f:"	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName) :"null"));
-			
-		} finally {
-			
-			try {
-				try {
+					try (stream) {
 					
-					if (stream!=null) 
-						stream.close();
+					getLockService().getBucketLock(bucketName).readLock().lock();
+		
+					if (!getDriver().getObjectMetadataReadDrive(bucketName, objectName).existsObjectMetadata(bucketName, objectName))
+						throw new IllegalArgumentException(" object not found -> b:" + bucketName + " o:"+ objectName);
 					
-				} catch (IOException e) {
-					logger.error(e, ServerConstant.NOT_THROWN);
-				}
+					meta = getDriver().getObjectMetadataInternal(bucketName, objectName, true);
+					beforeHeadVersion = meta.version;							
+																
+					op = getJournalService().updateObject(bucketName, objectName, beforeHeadVersion);
+					
+					getVFS().getObjectCacheService().remove(bucketName, objectName);
+					
+					/** backup current head version */
+					backupVersionObjectDataFile(meta, meta.version);
+					backupVersionObjectMetadata(bucket, objectName,  meta.version);
+					
+					/** copy new version as head version */
+					afterHeadVersion = meta.version+1;
+					RAIDSixBlocks ei = saveObjectDataFile(bucket,objectName, stream);
+					saveObjectMetadata(bucket, objectName, ei, srcFileName, contentType, afterHeadVersion);
+					
+					done = op.commit();
 				
-				boolean requiresRollback = (!done) && (op!=null);
-				
-				if (requiresRollback) {
+				} catch (Exception e) {
+					done=false;
+					isMainException = true;
+					throw new InternalCriticalException(e, "b:"+ bucket.getName() + " o:"  + objectName +	 ", f:"	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName) :"null"));
+					
+				} finally {
+					
 					try {
-						rollbackJournal(op, false);
-						
-					} catch (Exception e) {
-						throw new InternalCriticalException(e, "b:"+ bucketName + " o:"  + objectName +	 ", f:"	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName) :"null"));
+						if ((!done) && (op!=null)) {
+							try {
+								rollbackJournal(op, false);
+							} catch (Exception e) {
+								if (isMainException)
+									throw new InternalCriticalException(e, "b:"+ bucketName + " o:"  + objectName +	 ", f:"	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName) :"null"));
+								else
+									logger.error("b:"+ bucketName + " o:"  + objectName +	 ", f:"	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName) :"null"), ServerConstant.NOT_THROWN);
+							}
+						}
+						else {
+							/** TODO AT -> Sync by the moment. see how to make it Async */
+							if ((op!=null) && (meta!=null))
+								cleanUpUpdate(meta, beforeHeadVersion, afterHeadVersion);
+						}
+					} finally {
+						getLockService().getBucketLock(bucket.getName()).readLock().unlock();
 					}
 				}
-				else {
-					/**
-					 TODO AT -> Sync by the moment. see how to make it Async
-					 */
-					if ((op!=null) && (meta!=null))
-						cleanUpUpdate(meta, beforeHeadVersion, afterHeadVersion);
-				}
-			} finally {
-				getLockService().getBucketLock(bucket.getName()).readLock().unlock();
-				getLockService().getObjectLock(bucket.getName(), objectName).writeLock().unlock();
-			}
+		
+		} finally {
+			getLockService().getObjectLock(bucket.getName(), objectName).writeLock().unlock();
 		}
 	}
 
@@ -185,8 +176,10 @@ private static Logger logger = Logger.getLogger(RAIDSixCreateObjectHandler.class
 			
 		try {
 				getLockService().getBucketLock( meta.bucketName).readLock().lock();
+				
 				try {
-						op = getJournalService().updateObjectMetadata(meta.bucketName, meta.objectName, meta.version);
+						
+					op = getJournalService().updateObjectMetadata(meta.bucketName, meta.objectName, meta.version);
 						getVFS().getObjectCacheService().remove(meta.bucketName,meta.objectName);
 			
 						backupMetadata(meta);
@@ -234,129 +227,118 @@ private static Logger logger = Logger.getLogger(RAIDSixCreateObjectHandler.class
 		
 		int beforeHeadVersion = -1;
 		ObjectMetadata meta = null;
+		boolean isMainException = false;
+		
+		String bucketName = meta.bucketName;
+				
+		Check.requireNonNullArgument(bucketName, "bucketName is null");
+		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketName);
+		
 		
 		getLockService().getObjectLock(bucket.getName(), objectName).writeLock().lock();
 
-		try {
-			
-			getLockService().getBucketLock(bucket.getName()).readLock().lock();
-			
-			getVFS().getObjectCacheService().remove(bucket.getName(), objectName);
 		
-			meta = getDriver().getObjectMetadataInternal(bucket.getName(), objectName, true);
-
-			if (meta.version==0)
-				throw new IllegalArgumentException(	"Object does not have any previous version | " + "b:" + 
-													(Optional.ofNullable(bucket).isPresent() ? (bucket.getName())  :"null") +
-						 							", o:"	+ (Optional.ofNullable(objectName).isPresent() ? (objectName)       :"null"));
-			
-			
-			beforeHeadVersion = meta.version;
-			
-			List<ObjectMetadata> metaVersions = new ArrayList<ObjectMetadata>();
-			
-			for (int version=0; version<beforeHeadVersion; version++) {
-			
-				ObjectMetadata mv = getDriver().getObjectMetadataReadDrive(bucket.getName(), objectName).getObjectMetadataVersion(bucket.getName(), objectName, version);
-				
-				if (mv!=null)
-					metaVersions.add(mv);
-			}
-
-			if (metaVersions.isEmpty()) 
-				throw new OdilonObjectNotFoundException(Optional.of(meta.systemTags).orElse("previous versions deleted"));
-			
-			op = getJournalService().restoreObjectPreviousVersion(bucket.getName(), objectName, beforeHeadVersion);
-			
-			/** save current head version MetadataFile .vN  and data File vN - no need to additional backup */
-			backupVersionObjectDataFile( meta,  meta.version);
-			backupVersionObjectMetadata(bucket, objectName,  meta.version);
-
-			/** save previous version as head */
-			ObjectMetadata metaToRestore = metaVersions.get(metaVersions.size()-1);
-			
-			if (!restoreVersionObjectDataFile(metaToRestore, metaToRestore.version))
-				throw new OdilonObjectNotFoundException(Optional.of(meta.systemTags).orElse("previous versions deleted"));
-			
-			if (!restoreVersionObjectMetadata(metaToRestore.bucketName, metaToRestore.objectName, metaToRestore.version))
-				throw new OdilonObjectNotFoundException(Optional.of(meta.systemTags).orElse("previous versions deleted"));
-			
-			getVFS().getObjectCacheService().remove(bucket.getName(), objectName);
-			done = op.commit();
-			
-			return null;
-			
-		} catch (OdilonObjectNotFoundException e1) {
-			done=false;
-			logger.error(e1);
-			 e1.setErrorMessage( e1.getErrorMessage() + " | " + 
-				"b:" 		+ (Optional.ofNullable(bucket).isPresent() ? (bucket.getName())  			:"null") +
-				", o:"		+ (Optional.ofNullable(objectName).isPresent() ? (objectName)       		:"null"));
-
-			
-			throw e1;
-			
-		} catch (Exception e) {
-			done=false;
-			String msg = "b:"  	+ (Optional.ofNullable(bucket).isPresent()    ? (bucket.getName())  :"null") + 
-						 ", o:"	+ (Optional.ofNullable(objectName).isPresent() ? (objectName)       :"null");  
-			logger.error(msg);
-			throw new InternalCriticalException(e, msg);
-			
-		} finally {
-			
 			try {
 				
-				boolean requiresRollback = (!done) && (op!=null);
+				getLockService().getBucketLock(bucket.getName()).readLock().lock();
+			
+				try {
+					
+					getVFS().getObjectCacheService().remove(bucket.getName(), objectName);
 				
-				if (requiresRollback) {
+					meta = getDriver().getObjectMetadataInternal(bucket.getName(), objectName, true);
+		
+					if (meta.version==0)
+						throw new IllegalArgumentException(	"Object does not have any previous version | " + "b:" +	 bucketName + " o:" + objectName);
+					
+					beforeHeadVersion = meta.version;
+					
+					List<ObjectMetadata> metaVersions = new ArrayList<ObjectMetadata>();
+					
+					for (int version=0; version<beforeHeadVersion; version++) {
+						ObjectMetadata mv = getDriver().getObjectMetadataReadDrive(bucket.getName(), objectName).getObjectMetadataVersion(bucket.getName(), objectName, version);
+						if (mv!=null)
+							metaVersions.add(mv);
+					}
+		
+					if (metaVersions.isEmpty()) 
+						throw new OdilonObjectNotFoundException(Optional.of(meta.systemTags).orElse("previous versions deleted"));
+					
+					op = getJournalService().restoreObjectPreviousVersion(bucket.getName(), objectName, beforeHeadVersion);
+					
+					/** save current head version MetadataFile .vN  and data File vN - no need to additional backup */
+					backupVersionObjectDataFile( meta,  meta.version);
+					backupVersionObjectMetadata(bucket, objectName,  meta.version);
+		
+					/** save previous version as head */
+					ObjectMetadata metaToRestore = metaVersions.get(metaVersions.size()-1);
+					
+					if (!restoreVersionObjectDataFile(metaToRestore, metaToRestore.version))
+						throw new OdilonObjectNotFoundException(Optional.of(meta.systemTags).orElse("previous versions deleted"));
+					
+					if (!restoreVersionObjectMetadata(metaToRestore.bucketName, metaToRestore.objectName, metaToRestore.version))
+						throw new OdilonObjectNotFoundException(Optional.of(meta.systemTags).orElse("previous versions deleted"));
+					
+					getVFS().getObjectCacheService().remove(bucket.getName(), objectName);
+					done = op.commit();
+					
+					return null;
+					
+				} catch (Exception e) {
+					done=false;
+					isMainException = true;
+					throw new InternalCriticalException(e, "b:"  	+ bucketName + ", o:"	+ objectName);
+					
+				} finally {
+					
 					try {
-
-						rollbackJournal(op, false);
 						
-					} catch (Exception e) {
-						String msg =  	"b:"   + (Optional.ofNullable(bucket).isPresent()    	? (bucket.getName()) 	:"null") + 
-										", o:" + (Optional.ofNullable(objectName).isPresent() 	? (objectName)       	:"null");   
-						
-						logger.error(e, msg);
-						throw new InternalCriticalException(e);
+						if ((!done) && (op!=null)) {
+							try {
+								rollbackJournal(op, false);
+							} catch (InternalCriticalException e) {
+								if (isMainException)
+									throw new InternalCriticalException(e);
+								else
+									logger.error(e, "b:" + bucketName + " o:" + objectName, ServerConstant.NOT_THROWN);
+								
+							} catch (Exception e) {
+								if (isMainException)
+									throw new InternalCriticalException(e, "b:"   +  bucketName +  " o:" + objectName);
+								else
+									logger.error(e, "b:" + bucketName + " o:" + objectName, ServerConstant.NOT_THROWN);	
+							}
+						}
+						else {
+							/** -------------------------
+							 TODO AT ->
+							 Sync by the moment
+							 see how to make it Async
+							------------------------ */
+							if((op!=null) && (meta!=null))
+								cleanUpRestoreVersion(meta, beforeHeadVersion);
+						}
+					} finally {
+						getLockService().getBucketLock(bucket.getName()).readLock().unlock();
 					}
 				}
-				else {
-					/** -------------------------
-					 TODO AT ->
-					 Sync by the moment
-					 see how to make it Async
-					------------------------ */
-					if((op!=null) && (meta!=null))
-						cleanUpRestoreVersion(meta, beforeHeadVersion);
-				}
 			} finally {
-				getLockService().getBucketLock(bucket.getName()).readLock().unlock();
 				getLockService().getObjectLock(bucket.getName(), objectName).writeLock().unlock();
 			}
-		}
-		
 	}
 
 
 	private void cleanUpRestoreVersion(ObjectMetadata meta, int versionDiscarded) {
 		
 		try {
-				if (versionDiscarded<0)
+				if (versionDiscarded < 0)
 					return;
 	
-				for (Drive drive: getDriver().getDrivesEnabled()) {
-					File metadata = drive.getObjectMetadataVersionFile(meta.bucketName, meta.objectName,  versionDiscarded);
-					FileUtils.deleteQuietly(metadata);
-				}
+				for (Drive drive: getDriver().getDrivesEnabled())
+					FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(meta.bucketName, meta.objectName,  versionDiscarded));
 				
 				List<File> files = getDriver().getObjectDataFiles(meta, Optional.of(versionDiscarded));
-				files.forEach( file -> {
-					if (file.exists())
-						FileUtils.deleteQuietly(file);
-				}
-				);
+				files.forEach( file -> FileUtils.deleteQuietly(file));
 				
 		} catch (Exception e) {
 			logger.error(e, ServerConstant.NOT_THROWN);
@@ -367,17 +349,21 @@ private static Logger logger = Logger.getLogger(RAIDSixCreateObjectHandler.class
 	
 	
 	private void backupVersionObjectMetadata(VFSBucket bucket, String objectName,	int version) {
+		
+		String bucketName = bucket.getName();
+		
 		try {
 			for (Drive drive: getDriver().getDrivesEnabled()) {
 				File file=drive.getObjectMetadataFile(bucket.getName(), objectName);
 				if (file.exists())
 					drive.putObjectMetadataVersionFile(bucket.getName(), objectName, version, file);
 			}
-			
-		} catch (Exception e) {
-				throw new InternalCriticalException(e, "backupVersionObjectMetadata");
-		}
 		
+		} catch (InternalCriticalException e) {
+			throw e;
+		} catch (Exception e) {
+				throw new InternalCriticalException(e, "backupVersionObjectMetadata | b:" + bucketName + " o:" + objectName);
+		}
 	}
 
 	
@@ -391,9 +377,10 @@ private static Logger logger = Logger.getLogger(RAIDSixCreateObjectHandler.class
 	/** backup current head version */
 	
 	private void backupVersionObjectDataFile(ObjectMetadata meta, int version) {
-			Map<Drive, List<String>> map = getDriver().getObjectDataFilesNames(meta, Optional.empty());
 			
-			map.forEach((drive,fileNames) -> {
+		Map<Drive, List<String>> map = getDriver().getObjectDataFilesNames(meta, Optional.empty());
+			
+		map.forEach((drive,fileNames) -> {
 				fileNames.forEach(fileName -> {
 					File current = new File(drive.getBucketObjectDataDirPath(meta.bucketName), fileName);
 					String suffix = ".v"+ String.valueOf(version);
@@ -404,7 +391,8 @@ private static Logger logger = Logger.getLogger(RAIDSixCreateObjectHandler.class
 						throw new InternalCriticalException(e, "src: " + current.getName() + " | back:" + backupFile.getName() );
 					}
 				});
-			});
+		});
+		
 	}
 	
 	
@@ -474,7 +462,6 @@ private static Logger logger = Logger.getLogger(RAIDSixCreateObjectHandler.class
 			
 			} catch (Exception e) {
 				isMainException = true;
-				logger.error(e);
 				throw new InternalCriticalException(e);		
 	
 			} finally {
@@ -486,8 +473,7 @@ private static Logger logger = Logger.getLogger(RAIDSixCreateObjectHandler.class
 						sourceStream.close();
 					
 				} catch (IOException e) {
-					String msg ="b:" + (Optional.ofNullable(bucket).isPresent()    ? (bucket.getName()) : "null") + 
-								", o:" + (Optional.ofNullable(objectName).isPresent() ? (objectName)    : "null");   
+					String msg ="b:" + bucket.getName() + ", o:" + objectName;   
 					logger.error(e, msg + (isMainException ? ServerConstant.NOT_THROWN :""));
 					secEx=e;
 				}
@@ -553,16 +539,17 @@ private static Logger logger = Logger.getLogger(RAIDSixCreateObjectHandler.class
 		
 		} catch (InternalCriticalException e) {
 			String msg = "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null");
-			logger.error(msg);
 			if (!recoveryMode)
 				throw(e);
+			else
+				logger.error(msg);
 			
 		} catch (Exception e) {
 			String msg = "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null");
-			logger.error(msg);
-			
 			if (!recoveryMode)
 				throw new InternalCriticalException(e, msg);
+			else
+				logger.error(msg);
 		}
 		finally {
 			if (done || recoveryMode) {
@@ -603,8 +590,7 @@ private static Logger logger = Logger.getLogger(RAIDSixCreateObjectHandler.class
 		
 		try {
 				for (Drive drive: getDriver().getDrivesEnabled()) {
-				String objectMetadataBackupDirPath = drive.getBucketWorkDirPath(bucketName) + File.separator + objectName;
-				FileUtils.deleteQuietly(new File(objectMetadataBackupDirPath));
+				FileUtils.deleteQuietly(new File(drive.getBucketWorkDirPath(bucketName) + File.separator + objectName));
 			}
 		} catch (Exception e) {
 			logger.error(e, ServerConstant.NOT_THROWN);
@@ -666,10 +652,13 @@ private static Logger logger = Logger.getLogger(RAIDSixCreateObjectHandler.class
 				else
 					success=false;
 			}
+			
 			return success;
+			
+		} catch (InternalCriticalException e) {
+			throw e;
 		} catch (Exception e) {
-				logger.error(e);
-				throw new InternalCriticalException(e);
+			throw new InternalCriticalException(e, "b:"+ bucketName +" o:" + objectName);
 		}
 	}
 
@@ -694,21 +683,20 @@ private static Logger logger = Logger.getLogger(RAIDSixCreateObjectHandler.class
 												(new File(drive.getBucketObjectDataDirPath(meta.bucketName), headFileName)).toPath(), 
 												StandardCopyOption.REPLACE_EXISTING);
 								} catch (IOException e) {
-									logger.error(e);
-									throw new InternalCriticalException(e);
+									throw new InternalCriticalException(e, "b:"+ meta.bucketName +" o:" + meta.objectName);
 								}
 					});
 			});
 			
 			
 			return success;
+		} catch (InternalCriticalException e) {
+			throw e;
 		} catch (Exception e) {
-				logger.error(e);
-				throw new InternalCriticalException(e);
+				throw new InternalCriticalException(e, "b:"+ meta.bucketName +" o:" + meta.objectName);
 		}
 	}
 	
-
 	/**
 	 * 
 	 * 
@@ -731,15 +719,17 @@ private static Logger logger = Logger.getLogger(RAIDSixCreateObjectHandler.class
 			
 		} catch (InternalCriticalException e) {
 			String msg = "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null");
-			logger.error(msg);
 			if (!recoveryMode)
 				throw(e);
+			else
+				logger.error(msg);
 			
 		} catch (Exception e) {
 			String msg = "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null");
-			logger.error(msg);
 			if (!recoveryMode)
 				throw new InternalCriticalException(e, msg);
+			else
+				logger.error(msg);	
 		}
 		finally {
 			if (done || recoveryMode) {

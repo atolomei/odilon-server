@@ -42,6 +42,11 @@ import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VFSop;
 
+/**
+ * 
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 @ThreadSafe
 public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 		

@@ -70,12 +70,13 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler implements RAIDDe
 		 Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 		
 		if (!getDriver().exists(bucket, objectName))
-			throw new OdilonObjectNotFoundException("object does not exist -> b:" + bucket.getName()+ " o:"+(Optional.ofNullable(objectName).isPresent() ? (objectName) :"null"));
+			throw new IllegalArgumentException("object does not exist -> b:" + bucket.getName()+ " o:"+(Optional.ofNullable(objectName).isPresent() ? (objectName) :"null"));
 		
 		String bucketName = bucket.getName();
 		
 		VFSOperation op = null;
 		boolean done = false;
+		boolean isMainException = false;
 		int headVersion = -1;
 		ObjectMetadata meta = null;
 		
@@ -102,13 +103,9 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler implements RAIDDe
 				
 				done = op.commit();
 				
-			} catch (OdilonObjectNotFoundException e1) {
-				done=false;
-				logger.error(e1);
-				throw e1;
-				
 			} catch (Exception e) {
 				done=false;
+				isMainException = true;
 				throw new InternalCriticalException(e, "op:" + op.getOp().getName() +	", b:"  + bucketName + ", o:" 	+ objectName);
 			}
 			finally {
@@ -119,10 +116,14 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler implements RAIDDe
 						try {
 							rollbackJournal(op, false);
 						} catch (Exception e) {
-							throw new InternalCriticalException(e, "op:" + op.getOp().getName() +	", b:"  + bucketName + ", o:" 	+ objectName);
+							if (!isMainException)
+								throw new InternalCriticalException(e, "op:" + op.getOp().getName() +	", b:"  + bucketName + ", o:" 	+ objectName);
+							else
+								logger.error(e, "op:" + op.getOp().getName() +	", b:"  + bucketName + ", o:" 	+ objectName, ServerConstant.NOT_THROWN);
 						}
 					}
 					else if (done) {
+						/** inside the thread */
 						postObjectDeleteCommit(meta, headVersion);
 					}
 	
@@ -167,6 +168,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler implements RAIDDe
 	
 		VFSOperation op = null;  
 		boolean done = false;
+		boolean isMainException = false;
 		
 		int headVersion = -1;
 		
@@ -211,10 +213,12 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler implements RAIDDe
 				
 				} catch (OdilonObjectNotFoundException e1) {
 					done=false;
+					isMainException = true;
 					throw (e1);
 				
 				} catch (Exception e) {
 					done=false;
+					isMainException = true;
 					throw new InternalCriticalException(e, "b:"  + bucketName +", o:" 	+ objectName);
 				}
 				
@@ -226,7 +230,10 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler implements RAIDDe
 							try {
 								rollbackJournal(op, false);
 							} catch (Exception e) {
-								throw new InternalCriticalException(e, "b:" + bucketName + ", o:" + objectName);
+								if (!isMainException)
+									throw new InternalCriticalException(e, "b:" + bucketName + ", o:" + objectName);
+								else
+									logger.error(e, "b:" + bucketName + ", o:" + objectName, ServerConstant.NOT_THROWN);
 							}
 						}
 						else if (done) {
@@ -313,14 +320,17 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler implements RAIDDe
 			
 		} catch (InternalCriticalException e) {
 			String msg = "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null");
-			logger.error(msg);
 			if (!recoveryMode)
 				throw(e);
+			else
+				logger.error(msg, ServerConstant.NOT_THROWN);
 			
 		} catch (Exception e) {
 			String msg = "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null");
 			if (!recoveryMode)
 				throw new InternalCriticalException(e, msg);
+			else
+				logger.error(msg, ServerConstant.NOT_THROWN);
 		}
 		finally {
 			if (done || recoveryMode) 
@@ -364,9 +374,6 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler implements RAIDDe
 		
 	}
 		
-
-	
-	
 	/**
 	 * copy metadata directory
 	 * 
