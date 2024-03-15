@@ -165,18 +165,17 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 			done=true;
 			
 		} catch (InternalCriticalException e) {
-			String msg = "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null");
 			if (!recoveryMode)
 				throw(e);
 			else
-				logger.error(msg + ServerConstant.NOT_THROWN);
+				logger.error(e, "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null"), ServerConstant.NOT_THROWN);
 			
 		} catch (Exception e) {
 			String msg = "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null");
 			if (!recoveryMode)
 				throw new InternalCriticalException(e, msg);
 			else
-				logger.error(msg + ServerConstant.NOT_THROWN);
+				logger.error(e, msg + ServerConstant.NOT_THROWN);
 		}
 		finally {
 			if (done || recoveryMode) 

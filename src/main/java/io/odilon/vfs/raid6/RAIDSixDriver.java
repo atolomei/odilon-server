@@ -987,7 +987,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		
 		Map<Drive, List<String>> map = new HashMap<Drive, List<String>>();
 								
-		for(Drive drive: getDrivesEnabled())
+		for(Drive drive: getDrivesAll())
 			map.put(drive, new ArrayList<String>());
 		 		
 		int totalBlocks = meta.getSha256Blocks().size();
@@ -999,9 +999,9 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		Check.checkTrue(chunks>0, "chunks must be greater than zero");
 		
 		for (int chunk=0; chunk<chunks; chunk++) {
-					for (int block=0; block<getDrivesEnabled().size(); block++) {
-						String suffix = "."+String.valueOf(chunk)+"."+String.valueOf(block) + (version.isEmpty() ? "" : (".v"+String.valueOf(version)));						
-						Drive drive = getDrivesEnabled().get(block);
+					for (int disk=0; disk<getDrivesAll().size(); disk++) {
+						String suffix = "."+String.valueOf(chunk)+"."+String.valueOf(disk) + (version.isEmpty() ? "" : (".v"+String.valueOf(version)));						
+						Drive drive = getDrivesAll().get(disk);
 						map.get(drive).add(meta.objectName+suffix);
 					}
 		}
@@ -1035,9 +1035,9 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		Check.checkTrue(chunks>0, "chunks must be greater than zero");
 		
 		for (int chunk=0; chunk<chunks; chunk++) {
-			for (int block=0; block<getDrivesEnabled().size(); block++) {
-				String suffix = "."+String.valueOf(block)+"."+String.valueOf(chunk) + (version.isEmpty() ? "" : (".v"+String.valueOf(version)));						
-				Drive drive = getDrivesEnabled().get(block);
+			for (int disk=0; disk<getDrivesAll().size(); disk++) {
+				String suffix = "."+String.valueOf(chunk)+"."+String.valueOf(disk) + (version.isEmpty() ? "" : (".v"+String.valueOf(version)));						
+				Drive drive = getDrivesAll().get(disk);
 				if (version.isEmpty())
 					files.add(new File(drive.getBucketObjectDataDirPath(meta.bucketName), meta.objectName+suffix));
 				else

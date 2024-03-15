@@ -194,15 +194,15 @@ public class RAIDSixEncoder {
          * zDrives is DrivesEnabled normally, or DrivesAll when it 
          * is called from an RaidSixDriveImporter (in the process to become "enabled")
          */
-        for (int block = 0; block < total_shards; block++) {
+        for (int disk = 0; disk < total_shards; disk++) {
 
-        	if (isWrite(block)) {
-	        	String dirPath = getDrives().get(block).getBucketObjectDataDirPath(bucketName)      + ((o_version.isEmpty()) ? "" : (File.separator + VirtualFileSystemService.VERSION_DIR));
-	        	String name = objectName+ "." + String.valueOf(chunk) +"." + String.valueOf(block)  + (o_version.isEmpty()   ? "" : "v." +  String.valueOf(o_version.get().intValue()));
+        	if (isWrite(disk)) {
+	        	String dirPath = getDrives().get(disk).getBucketObjectDataDirPath(bucketName)      + ((o_version.isEmpty()) ? "" : (File.separator + VirtualFileSystemService.VERSION_DIR));
+	        	String name = objectName+ "." + String.valueOf(chunk) +"." + String.valueOf(disk)  + (o_version.isEmpty()   ? "" : "v." +  String.valueOf(o_version.get().intValue()));
 	        	
 	        	File outputFile = new File(dirPath, name);
 				try  (OutputStream out = new BufferedOutputStream(new FileOutputStream(outputFile))) {
-					out.write(shards[block]);
+					out.write(shards[disk]);
 		        } catch (FileNotFoundException e) {
 					throw new InternalCriticalException(e, "b:" +bucketName + ", o:" + objectName +" f: " + name);
 				} catch (IOException e) {

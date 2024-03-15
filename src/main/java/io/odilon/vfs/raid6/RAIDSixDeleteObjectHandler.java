@@ -98,7 +98,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler implements RAIDDe
 				
 				getVFS().getObjectCacheService().remove(bucketName, meta.objectName);
 				
-				for (Drive drive: getDriver().getDrivesEnabled()) 
+				for (Drive drive: getDriver().getDrivesAll()) 
 					drive.deleteObjectMetadata(bucket.getName(), objectName);
 				
 				done = op.commit();
@@ -204,7 +204,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler implements RAIDDe
 					meta.addSystemTag("delete versions");
 					meta.lastModified = OffsetDateTime.now();
 											
-					for (Drive drive: getDriver().getDrivesEnabled())
+					for (Drive drive: getDriver().getDrivesAll())
 						drive.saveObjectMetadata(meta);
 					
 					getVFS().getObjectCacheService().remove(bucketName, meta.objectName);
@@ -277,7 +277,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler implements RAIDDe
 			}
 
 			/** delete backup Metadata */
-			for (Drive drive:getDriver().getDrivesEnabled())
+			for (Drive drive:getDriver().getDrivesAll())
 				FileUtils.deleteQuietly(new File(drive.getBucketWorkDirPath(bucketName), objectName));
 			
 		} catch (Exception e) {
@@ -383,7 +383,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler implements RAIDDe
 	private void backupMetadata(ObjectMetadata meta) {
 	
 		try {
-			for (Drive drive: getDriver().getDrivesEnabled()) {
+			for (Drive drive: getDriver().getDrivesAll()) {
 				String objectMetadataDirPath = drive.getObjectMetadataDirPath(meta.bucketName, meta.objectName);
 				String objectMetadataBackupDirPath = drive.getBucketWorkDirPath(meta.bucketName) + File.separator + meta.objectName;
 				File src = new File(objectMetadataDirPath);
@@ -412,11 +412,12 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler implements RAIDDe
 	 *  restore metadata directory 
 	 * */
 	private void restoreMetadata(String bucketName, String objectName) {
-		for (Drive drive: getDriver().getDrivesEnabled()) {
+		for (Drive drive: getDriver().getDrivesAll()) {
 			String objectMetadataBackupDirPath = drive.getBucketWorkDirPath(bucketName) + File.separator + objectName;
 			String objectMetadataDirPath = drive.getObjectMetadataDirPath(bucketName, objectName);
 			try {
-				FileUtils.copyDirectory(new File(objectMetadataBackupDirPath), new File(objectMetadataDirPath));
+				if ((new File(objectMetadataBackupDirPath)).exists())
+					FileUtils.copyDirectory(new File(objectMetadataBackupDirPath), new File(objectMetadataDirPath));
 			} catch (IOException e) {
 				throw new InternalCriticalException(e, "b:" + bucketName + ", o:" + objectName);
 			}

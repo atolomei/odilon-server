@@ -187,10 +187,10 @@ public class RAIDSixDriveSync implements Runnable {
 	 */
 	private void encode() {
 		
-		logger.debug("Starting Drive sync");
+		logger.debug("Starting Drive init");
+		getDriver().getDrivesAll().stream().filter( d -> d.getDriveInfo().getStatus()==DriveStatus.NOTSYNC).forEach(v -> logger.debug(v.getName()));
 		
 		long start_ms = System.currentTimeMillis();
-		
 		
 		final int maxProcessingThread = Double.valueOf(Double.valueOf(Runtime.getRuntime().availableProcessors()-1) / 2.0 ).intValue() + 1;
 		
@@ -298,7 +298,7 @@ public class RAIDSixDriveSync implements Runnable {
 			startuplogger.info(ServerConstant.SEPARATOR);
 			startuplogger.info(this.getClass().getSimpleName() + " Process completed");
 			startuplogger.debug("Threads: " + String.valueOf(maxProcessingThread));
-			startuplogger.info("Total scanned: " + String.valueOf(this.counter.get()));
+			startuplogger.info("Total read: " + String.valueOf(this.counter.get()));
 			startuplogger.info("Total encoded: " + String.valueOf(this.encoded.get()));
 			//startuplogger.info("Total size: " + String.format("%14.4f", Double.valueOf(totalBytes.get()).doubleValue() / SharedConstant.d_gigabyte).trim() + " GB");
 

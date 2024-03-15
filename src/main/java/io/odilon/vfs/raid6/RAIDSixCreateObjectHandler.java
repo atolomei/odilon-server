@@ -157,11 +157,10 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 				getVFS().getReplicationService().cancel(op);
 			
 			ObjectMetadata meta = null;
-			
-			for (Drive drive: getDriver().getDrivesEnabled()) {
-				
+
+			/** remove metadata dir on all drives */
+			for (Drive drive: getDriver().getDrivesAll()) {
 				File f_meta = drive.getObjectMetadataFile(bucketName, objectName);
-				
 				if ((meta==null) && (f_meta!=null)) {
 					try {
 						meta=drive.getObjectMetadata(bucketName, objectName);
@@ -169,12 +168,17 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 						logger.warn("can not load meta -> d: " + drive.getName() + ServerConstant.NOT_THROWN);
 					}
 				}
-				FileUtils.deleteQuietly(f_meta);
+				FileUtils.deleteQuietly( new File(drive.getObjectMetadataDirPath(bucketName, objectName)));
 			}
 			
-			if (meta!=null)
-				getDriver().getObjectDataFiles(meta, Optional.empty()).forEach(file -> FileUtils.deleteQuietly(file));
-			
+			/** remove data dir on all drives */			
+			if (meta!=null) {
+				getDriver().getObjectDataFiles(meta, Optional.empty()).forEach(
+							file -> { 
+								FileUtils.deleteQuietly(file);
+							}
+						);
+			}
 			done=true;
 			
 		} catch (InternalCriticalException e) {
@@ -224,8 +228,6 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 	 */
 	private void saveObjectMetadata(String bucketName, String objectName, RAIDSixBlocks ei, String srcFileName, String contentType, int version) {
 		
-		//long start = System.currentTimeMillis();
-		
 		List<String> shaBlocks = new ArrayList<String>();
 		StringBuilder etag_b = new StringBuilder();
 		
@@ -247,7 +249,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
    			throw new InternalCriticalException(e, "b:"+ bucketName + " o:" + objectName+ ", f:" + "| etag");
 		} 
 
-		for (Drive drive: getDriver().getDrivesEnabled()) {
+		for (Drive drive: getDriver().getDrivesAll()) {
 
 			try {
 				ObjectMetadata meta = new ObjectMetadata(bucketName, objectName);
@@ -272,7 +274,6 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 				throw new InternalCriticalException(e, "b:"+ bucketName + " o:" + objectName+", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null"));
 			}
 		}
-		//logger.debug( String.valueOf(System.currentTimeMillis() - start) + " ms");
 	}
 
 }
