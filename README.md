@@ -1,7 +1,7 @@
 ![spring-gaede65182_1280](https://github.com/atolomei/odilon-server/assets/29349757/f1c6f491-9d1f-4e4d-af87-f7e57713542a)
 <h1>Odilon Object Storage</h2>
 
-<h2>Lightweight and Scalable</h2>
+<h2>Lightweight and scalable</h2>
 <p>Odilon is a scalable and lightweight <b>Open Source</b> <b>Object Storage</b> that runs on standard hardware (<a href="https://odilon.io" target="_blank">Odilon project website</a>).</p>
 <p>It is an infrastructure software designed to be used by applications that need to store terabytes of medium to large size objects (like photos, pdfs, audio, video) securely and safely through encryption, replication and redundancy. A typical installation would by 100M pdfs 20KB-30MB each.</p>
 <p>It has a simple single-level folder structure similar to the <b>Bucket</b> / <b>Object</b> model of <a href="https://aws.amazon.com/s3 /" target="_blank">Amazon S3</a>. It is small and easy to integrate, offers <b>encryption</b>, data protection and fault tolerance (<b>software RAID </b> and <b>Erasure Codes</b>) and detection of <b>silent data degradation</b>. Odilon also supports <b>version control</b> and <b>master - standby replication over the Internet</b> for ransomware recovery.</p>
@@ -11,8 +11,9 @@
 				<p>
 				<ul>
 				<li> Scalable Object Storage on commodity disks</li>
-				<li> Developed in Java 11 (uses Spring Boot, OkHttp, Jackson, Metrics, among others) </li>
+				<li> Developed in Java 11 (uses Spring Boot, OkHttp, Jackson, Caffeine, Metrics, among others) </li>
 				<li> Runs on Linux and Windows</li>				
+				<li>Single dependency-free binary, does not neet Database or other external service</li>
 				<li> SDK Java 11 for client applications</li >
 				<li> HTTP/S for client server communication</li>
 				<li>License <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank">Open Source Apache 2</a>. It can be used for Open Source and commercial projects </li>
@@ -44,8 +45,7 @@ It is not a configuration with data replication, its function is to provide grea
 <li><b>RAID 1.</b>For each object, 1 or more exact copies (or mirrors) are created on two or more disks. This provides redundancy in case of disk failure. At least 2 disks are required, Odilon also supports 3 or more for greater redundancy.<br/><br/>
 </li>
 <li><b>RAID 6 / Erasure Coding.</b>
-It is a method of encoding data into blocks that can be distributed across multiple disks or nodes and then reconstructed from a subset of those blocks. It has great flexibility since you can adjust the number and size of the blocks and the minimum required for recovery. It uses less disk space than RAID 1 and can withstand multiple full disk failures. Odilon implements this architecture using <a href="https://en.wikipedia.org/wiki/Reed%E2%80%93Solomon_error_correction" target="_blank">Reed Solomon</a> error-correction codes. (v2.0 Jun 2024)
-</li>
+It is a method of encoding data into blocks that can be distributed across multiple disks or nodes and then reconstructed from a subset of those blocks. It has great flexibility since you can adjust the number and size of the blocks and the minimum required for recovery. It uses less disk space than RAID 1 and can withstand multiple full disk failures. Odilon implements this architecture using Reed Solomon error-correction codes. The configurations are (v1.2+ April 2024): 3 disks (2 data 1 parity, supports 1 disk failure), 6 disks (4 data 2 parity, supports up to 2 disks failure) and 12 disks (8 data 4 parity, supports up to 4 disk failure)</li>
 </ul>
 </p>
 
@@ -74,7 +74,7 @@ Odilon API is way simpler than S3. The only thing it has in common with AWS S3 i
 <br/>
 <br/>
 </li>
-<li><b>Odilon is not a Distributed Storage like Cassandra, Hadoop etc.</b><br/>
+<li class="list-item"><b>Odilon is not a Distributed Storage like Cassandra, Hadoop etc.</b><br/>
 Odilon supports master-standby architecture for archival, backup and data protection, 
 but it is not a Distributed Storage and it does not support active-active replication.
 <br/>
