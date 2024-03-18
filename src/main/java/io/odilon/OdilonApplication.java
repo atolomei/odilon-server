@@ -28,7 +28,7 @@ import io.odilon.log.Logger;
 import io.odilon.model.ServerConstant;
 
 /**
- *
+ * 
  * <p><a href="https://odilon.io">Odilon </a> is a scalable and lightweight Open Source Object Storage that runs on standard hardware.</p>
  * <p>It is an infrastructure software designed to be used by applications that need to store terabytes 
  * of medium to large size objects (photos, pdfs, audio, video...) securely and safely through 
@@ -112,11 +112,8 @@ public class OdilonApplication {
 	
 	/**
 	 *
-	 * 
+	 *
 	 */
-	
-
-	
 	private void initShutdownMessage() {
 	    Runtime.getRuntime().addShutdownHook(new Thread() {
             public void run() {
@@ -127,6 +124,5 @@ public class OdilonApplication {
             }
         });
 	}
-	
 }
 

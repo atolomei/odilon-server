@@ -95,7 +95,8 @@ public class FileCacheService extends BaseService {
     /**
      * @param bucketName
      * @param objectName
-     * @return
+     * @return File from cache, null if it is not present
+     * 
      */
     public File get(String bucketName, String objectName, Optional<Integer> version) {
     	Check.requireNonNullArgument(bucketName, "bucket is null");
@@ -113,7 +114,6 @@ public class FileCacheService extends BaseService {
      * @param bucketName
      * @param objectName
      * @param file
-     * @return
      */
     public void put(String bucketName, String objectName, Optional<Integer> version, File file, boolean lockRequired) {
     	Check.requireNonNullArgument(bucketName, "bucket is null");
@@ -152,7 +152,7 @@ public class FileCacheService extends BaseService {
     /**
      * @param bucketName
      * @param objectName
-     * @return
+     * @return String with the absolute path where to save the File cache
      */
 	public String getFileCachePath(String bucketName, String objectName, Optional<Integer> version) {
 		String path = getKey(bucketName, objectName, version);
