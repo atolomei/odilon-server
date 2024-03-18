@@ -25,11 +25,13 @@ import io.odilon.service.util.ByteToString;
 
 /**
  * 
- * 
+ *
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @Service
 public class MasterKeyService extends BaseService implements KeyEncryptor {
 
+	@SuppressWarnings("unused")
 	private static final Logger logger = Logger.getLogger(OdilonKeyEncryptorService.class.getName());
 
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");

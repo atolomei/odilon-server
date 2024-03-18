@@ -40,6 +40,7 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
  * 
+ * <p>Reed Solomon erasure coding decoder for {@link RAIDSixDriver}</p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
@@ -49,8 +50,8 @@ public class RAIDSixDecoder {
 
 	private RAIDSixDriver driver;
 
-    private final int data_shards;
-    private final int parity_shards;
+    private final int data_shards; 
+    private final int parity_shards; 
     private final int total_shards;
 
     

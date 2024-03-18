@@ -34,6 +34,10 @@ import io.odilon.traffic.TrafficControlService;
 import io.odilon.traffic.TrafficPass;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 @RestController
 public class InfoController extends BaseApiController {
 			

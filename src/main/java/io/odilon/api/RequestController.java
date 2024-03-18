@@ -37,7 +37,10 @@ import io.odilon.traffic.TrafficControlService;
 import io.odilon.traffic.TrafficPass;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
-
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 @RestController
 @RequestMapping(value = "/servicerequest")
 public class RequestController extends BaseApiController {
@@ -86,13 +89,11 @@ static private Logger logger = Logger.getLogger(RequestController.class.getName(
 		} catch (OdilonServerAPIException e) {
 			throw e;
 		} catch (Exception e) {
-			logger.error(e);
 			throw new OdilonInternalErrorException(getMessage(e));
 		}
 		finally { 
 			if (pass!=null)
 				getTrafficControlService().release(pass);
-			
 			mark();
 		}
 	}

@@ -20,6 +20,9 @@ import java.io.InputStream;
 
 import io.odilon.service.SystemService;
 
+/**
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public interface EncryptionService extends SystemService {
 	
 	public InputStream encryptStream(InputStream inputStream);

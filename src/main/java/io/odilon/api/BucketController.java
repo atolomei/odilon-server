@@ -59,7 +59,8 @@ import io.odilon.vfs.model.VirtualFileSystemService;
  *  /bucket/delete/{name}
  *  
  *  /bucket/forcedelete/{name}
- * 
+ *
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @RestController
 @RequestMapping(value = "/bucket")

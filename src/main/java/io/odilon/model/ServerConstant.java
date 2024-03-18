@@ -16,6 +16,10 @@
  */
 package io.odilon.model;
 
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public class ServerConstant {
 
 	static public final String SEPARATOR = "---------------------------------";

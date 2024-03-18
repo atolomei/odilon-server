@@ -19,6 +19,11 @@ package io.odilon.query;
 import io.odilon.service.SystemService;
 import io.odilon.vfs.model.BucketIterator;
 
+
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public interface BucketIteratorService extends SystemService {
 	
 	public boolean exists(String agentId);

@@ -74,6 +74,7 @@ import io.odilon.vfs.model.VirtualFileSystemService;
  *   <p>
  *   Content-Disposition: attachment; filename="fname.ext"
  *   </p>
+ *   @author atolomei@novamens.com (Alejandro Tolomei)
  *   
  */
 @RestController

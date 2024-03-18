@@ -34,12 +34,14 @@ import io.odilon.cache.ObjectCacheService;
 import io.odilon.log.Logger;
 import io.odilon.model.BaseService;
 import io.odilon.model.MetricsValues;
+import io.odilon.model.RedundancyLevel;
 import io.odilon.model.ServiceStatus;
 import io.odilon.service.ServerSettings;
 import io.odilon.service.SystemService;
 
 /**
  *
+ *@author atolomei@novamens.com (Alejandro Tolomei)
  */
 @Service
 public class SystemMonitorService extends BaseService implements SystemService {
@@ -293,10 +295,14 @@ public class SystemMonitorService extends BaseService implements SystemService {
 		map.put("cacheObjectHitCounter", String.valueOf(this.cacheObjectHitCounter.getCount()));
 		map.put("cacheObjectMissCounter", String.valueOf(this.cacheObjectMissCounter.getCount()));
 		map.put("cacheObjectSize", String.valueOf(this.objectCacheService.size()));
-						
-		map.put("cacheFileHitCounter", String.valueOf(this.cacheFileHitCounter.getCount()));
-		map.put("cacheFileMissCounter", String.valueOf(this.cacheFileMissCounter.getCount()));
-		map.put("cacheFileSize", String.valueOf(this.fileCacheService.size()));
+		
+		
+		if (serverSettings.getRedundancyLevel()==RedundancyLevel.RAID_6) {
+			map.put("cacheFileHitCounter", String.valueOf(this.cacheFileHitCounter.getCount()));
+			map.put("cacheFileMissCounter", String.valueOf(this.cacheFileMissCounter.getCount()));
+			map.put("cacheFileSize", String.valueOf(this.fileCacheService.size()));
+		}
+		
 		map.put("fileCacheHardDiskUsage", String.valueOf(this.fileCacheService.hardDiskUsage()));
 		
 		map.put("objectCreateCounter", String.valueOf(this.createObjectCounter.getCount()));

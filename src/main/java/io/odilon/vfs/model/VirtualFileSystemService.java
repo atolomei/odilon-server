@@ -47,7 +47,7 @@ import io.odilon.service.ServerSettings;
 import io.odilon.service.SystemService;
 
 /**
- * <p>It has only 1 level deep</p>
+ *  
  * 
  * 
  *  <p>Implementations of this interface are expected to be thread-safe, and can be safely accessed
@@ -90,10 +90,11 @@ public interface VirtualFileSystemService extends SystemService {
 	static final  public int BITS_PER_BYTE = 8;
 	
 
+	/** 
+	 * Create RAID driver
+	 */
 	public IODriver createVFSIODriver();
 
-	
-	public ApplicationContext getApplicationContext();
 
 	/**
 	 * Odilon Server info
@@ -155,15 +156,10 @@ public interface VirtualFileSystemService extends SystemService {
 	public boolean hasVersions(String bucketName, String objectName);
 	public List<ObjectMetadata> getObjectMetadataAllVersions(String bucketName, String objectName);
 	public ObjectMetadata getObjectMetadataVersion(String bucketName, String objectName, int version);
-	
 	public ObjectMetadata getObjectMetadataPreviousVersion(String bucketName, String objectName);
-	
 	public InputStream getObjectVersion(String bucketName, String ObjectName, int version);
-
 	public ObjectMetadata restorePreviousVersion(String bucketName, String objectName);
-
 	public void deleteObjectAllPreviousVersions(ObjectMetadata meta);
-	
 	public void deleteBucketAllPreviousVersions(String bucketName);
 	public void wipeAllPreviousVersions();
 
@@ -210,9 +206,6 @@ public interface VirtualFileSystemService extends SystemService {
 
 	/**
 	 * Query
-	 * 
-	 * @param bucketName
-	 * @return
 	 */
 
 	public ReplicationService getReplicationService();
@@ -221,27 +214,15 @@ public interface VirtualFileSystemService extends SystemService {
 	public SystemMonitorService getSystemMonitorService();
 	public LockService getLockService();
 
-
-	MasterKeyService getMasterKeyEncryptorService();
-
-
 	
 	/**
-	 * 
+	 * Security 
 	**/
+	public MasterKeyService getMasterKeyEncryptorService();
 	public byte[] HMAC(byte[] data, byte[] key) throws NoSuchAlgorithmException, InvalidKeyException;
 
-
 	
-
+	public ApplicationContext getApplicationContext();
 	
-
-
-
-
-	
-	/**
-	 * <p>if the object does not exist or is in state DELETE -> not found</p>
-	 */
 
 }

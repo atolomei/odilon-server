@@ -24,16 +24,19 @@ import org.springframework.http.ResponseEntity;
 import io.odilon.error.OdilonServerAPIException;
 import io.odilon.errors.OdilonErrorProxy;
 import io.odilon.log.Logger;
- 
+
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 @ControllerAdvice
 public class OdilonExceptionAdvice {
 			
+	@SuppressWarnings("unused")
 	static private Logger logger = Logger.getLogger(OdilonExceptionAdvice.class.getName());
 	
 	@ExceptionHandler(OdilonServerAPIException.class)
 	public ResponseEntity<OdilonErrorProxy> odilonExceptionHandler(OdilonServerAPIException ex) {
-		
-		logger.debug(ex.toString());
 		
 		ResponseEntity<OdilonErrorProxy> response = new ResponseEntity<OdilonErrorProxy>( 
 				new OdilonErrorProxy(ex.getHttpsStatus(),

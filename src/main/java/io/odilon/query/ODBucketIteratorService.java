@@ -42,6 +42,11 @@ import io.odilon.util.Check;
 import io.odilon.vfs.model.BucketIterator;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
+
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 @Service
 public class ODBucketIteratorService extends BaseService implements BucketIteratorService {
 		
@@ -118,13 +123,11 @@ public class ODBucketIteratorService extends BaseService implements BucketIterat
 	
 	public VirtualFileSystemService getVFS() {
 		if (this.virtualFileSystemService==null) {
-			logger.error(	"The member of " + VirtualFileSystemService.class.getName() + 
-							" here must be asigned during the @PostConstruct method of the " +
-							VirtualFileSystemService.class.getName() + 
-							" instance. It can not be injected via AutoWired beacause of " +
-							"circular dependencies.");
-			
-			throw new IllegalStateException(VirtualFileSystemService.class.getName()+ " is null. it must be setted during the @PostConstruct method of the " + VirtualFileSystemService.class.getName() + " instance");
+			throw new IllegalStateException("The member of " + VirtualFileSystemService.class.getName() + 
+					" here must be asigned during the @PostConstruct method of the " +
+					VirtualFileSystemService.class.getName() + 
+					" instance. It can not be injected via AutoWired beacause of " +
+					"circular dependencies.");
 		}
 		return this.virtualFileSystemService;
 	}
@@ -167,7 +170,7 @@ public class ODBucketIteratorService extends BaseService implements BucketIterat
 			 						try {
 										walker.close();
 									} catch (IOException e) {
-										logger.error(e);
+										logger.error(e, ServerConstant.NOT_THROWN);
 									}
 			 						logger.debug( "closing -> " + 
 			 										walkers.get(item).toString() + 

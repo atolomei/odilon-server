@@ -16,6 +16,9 @@
  */
 package io.odilon.model;
 
+/**
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public interface APIObject {
 
 	public String toJSON();

@@ -20,6 +20,10 @@ package io.odilon.encryption;
 
 import java.io.InputStream;
 
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public interface StreamEncryptor {
 
 	public EncryptedInputStream encrypt(InputStream inputStream, String key);

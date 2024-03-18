@@ -22,6 +22,10 @@ import java.util.Locale;
 
 import io.odilon.util.Check;
 
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public enum ServiceStatus {
 
 	STOPPED 	("stopped", 0),

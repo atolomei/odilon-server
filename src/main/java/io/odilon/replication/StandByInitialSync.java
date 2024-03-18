@@ -47,6 +47,11 @@ import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VFSop;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
+
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 @Component
 @Scope("prototype")
 public class StandByInitialSync implements Runnable {
@@ -254,10 +259,8 @@ public class StandByInitialSync implements Runnable {
 												}
 												
 											} catch (Exception e) {
-												logger.error("can not sync -> " + item.getObject().bucketName+"-"+item.getObject().objectName);
-												intialSynclogger.error("can not sync -> " + item.getObject().bucketName+"-"+item.getObject().objectName);
-												logger.error(e);
-												intialSynclogger.error(e);
+												logger.error(e, "can not sync -> " + item.getObject().bucketName+"-"+item.getObject().objectName);
+												intialSynclogger.error(e, "can not sync -> " + item.getObject().bucketName+"-"+item.getObject().objectName);
 												this.errors.getAndIncrement();
 											}
 											finally {

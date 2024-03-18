@@ -374,8 +374,7 @@ public class ODDrive extends ODModelObject implements Drive {
 			return list;
 
 		} catch (Exception e) {
-			logger.error(e);
-			throw new InternalCriticalException(e);
+			throw new InternalCriticalException(e, "getBuckets");
 		}
 		finally {
 			this.drive_lock.readLock().unlock();
@@ -872,7 +871,6 @@ public class ODDrive extends ODModelObject implements Drive {
 			setStatus(ServiceStatus.RUNNING);
 			
 		} catch (Exception e) {
-			logger.error(e);
 			setStatus(ServiceStatus.STOPPED);
 			throw new InternalCriticalException(e, "Drive Startup | d:" + getName());
 		}
@@ -982,7 +980,6 @@ public class ODDrive extends ODModelObject implements Drive {
 			}
 			
 		} catch (IOException e) {
-			logger.error(e);										
 			throw new InternalCriticalException(e, "Can not create Bucket Data Directory -> d:" + getName() + " b:" + (Optional.ofNullable(bucketName).orElse("null")));
 		}
 		finally {

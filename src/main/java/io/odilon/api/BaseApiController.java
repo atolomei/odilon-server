@@ -35,6 +35,10 @@ import io.odilon.service.ObjectStorageService;
 import io.odilon.traffic.TrafficControlService;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public abstract class BaseApiController implements ApplicationContextAware, APIObject  {
 
 	static private ObjectMapper mapper = new ObjectMapper();

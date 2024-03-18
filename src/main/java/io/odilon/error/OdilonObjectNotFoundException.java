@@ -20,6 +20,9 @@ import io.odilon.errors.OdilonErrorProxy;
 import io.odilon.net.ErrorCode;
 import io.odilon.net.ODHttpStatus;
 
+/**
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public class OdilonObjectNotFoundException extends OdilonServerAPIException {
 
 	private static final long serialVersionUID = 1L;

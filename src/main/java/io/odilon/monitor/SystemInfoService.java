@@ -53,6 +53,7 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
  * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @Service
 public class SystemInfoService extends BaseService implements SystemService {

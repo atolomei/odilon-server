@@ -33,9 +33,34 @@ import io.odilon.traffic.TrafficControlService;
 import io.odilon.traffic.TrafficPass;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
+
+/**
+ * 
+ * <p>Ping checks the status of the system</p>
+ * <p>It can be called by client applications through the SDK ({@link OdilonClient},
+ * on the web at /ping. If the server is not accesible on the web, from the local console it is 
+ * posible to ping the server with:
+ * </p>
+ *
+ * <pre>{@code # the following command should display the info page in the Linux console
+ * 
+ * # odilon default server (localhost) port (9234) and 
+ * # credentials (accessKey: odilon, secretKey:odilon)
+ * # these parameters can be edited in /config/odilon.properties
+ *  
+ *  sudo curl -u odilon:odilon localhost:9234/info
+ * }
+ * </pre>
+ * 
+ * <p>It is also called regularly by {@PingCronJobRequest}</p>
+ * 
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 @RestController
 public class PingController extends BaseApiController {
 																
+	@SuppressWarnings("unused")
 	static private Logger logger = Logger.getLogger(PingController.class.getName());
 	
 	@SuppressWarnings("unused")
@@ -61,24 +86,15 @@ public class PingController extends BaseApiController {
 		TrafficPass pass = null;
 		
 		try {
-			
 			pass = getTrafficControlService().getPass();
-			
 			StringBuilder str = new StringBuilder();
-			
 			String ping = getObjectStorageService().ping();
 			str.append(ping);
-			
 			return new ResponseEntity<String>(str.toString(), HttpStatus.OK);
-		
-		} catch (Exception e) {
-			logger.error(e);
-			throw e;
-		} finally {
 			
+		} finally {
 			if (pass!=null)
 				getTrafficControlService().release(pass);
-			
 			mark();
 		}
 	}

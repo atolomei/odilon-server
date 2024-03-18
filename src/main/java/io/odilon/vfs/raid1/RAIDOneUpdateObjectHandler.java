@@ -47,6 +47,11 @@ import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VFSop;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
+/**
+ * 
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 @ThreadSafe
 public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDUpdateObjectHandler {
 			

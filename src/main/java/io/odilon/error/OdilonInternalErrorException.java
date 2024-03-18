@@ -19,6 +19,10 @@ package io.odilon.error;
 import io.odilon.net.ErrorCode;
 import io.odilon.net.ODHttpStatus;
 
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public class OdilonInternalErrorException extends OdilonServerAPIException {
 			
 	/**

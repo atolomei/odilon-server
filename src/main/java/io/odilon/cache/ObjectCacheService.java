@@ -20,7 +20,11 @@ import io.odilon.service.ServerSettings;
 import io.odilon.service.SystemService;
 
 /**
+ * <p>{@link ObjectMetadata} cache.</p> 
+ * It Uses {@link Caffeine} to keep references to entries in memory.
+ * </p>
  * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @Service
 public class ObjectCacheService extends BaseService implements SystemService {

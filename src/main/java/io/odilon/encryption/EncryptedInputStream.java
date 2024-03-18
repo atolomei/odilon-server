@@ -19,6 +19,10 @@ package io.odilon.encryption;
 import java.io.FilterInputStream;
 import java.io.InputStream;
 
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public class EncryptedInputStream extends FilterInputStream {
 
     private StreamEncryptorInfo streamEncryptorInfo;

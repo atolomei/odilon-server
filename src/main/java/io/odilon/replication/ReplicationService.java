@@ -56,6 +56,9 @@ import io.odilon.vfs.model.VirtualFileSystemService;
  * <p>Enqueue operations
  * executes operations
  * </p>
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ * 
  */
 @Service
 public class ReplicationService extends BaseService implements ApplicationContextAware {
@@ -146,8 +149,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 			standByBuckets.forEach(item -> standByNames.add(item.getName()));
 			
 		} catch (ODClientException e) {
-			logger.error(e);
-			throw new InternalCriticalException(e);
+			throw new InternalCriticalException(e, "checkStructure");
 		}
 		
 		List<VFSBucket> localBuckets = getVFS().listAllBuckets();
@@ -182,7 +184,6 @@ public class ReplicationService extends BaseService implements ApplicationContex
 				logger.debug("creating standby bucket -> " + item);
 				getClient().createBucket(item);
 			} catch (Exception e) {
-				logger.error(e, "creating standby bucket -> " + item);
 				throw new InternalCriticalException(e, "creating standby bucket -> " + item);
 			}
 		});
@@ -238,7 +239,6 @@ public class ReplicationService extends BaseService implements ApplicationContex
 				
 			} catch (Exception e) {
 				setStatus(ServiceStatus.STOPPED);
-				logger.error(e);
 				throw e;
 			}
 		}
@@ -366,10 +366,9 @@ public class ReplicationService extends BaseService implements ApplicationContex
 
 		try {
 			
+			getLockService().getObjectLock(opx.getBucketName(), opx.getObjectName()).readLock().lock();
+			
 			try {
-				getLockService().getObjectLock(opx.getBucketName(), opx.getObjectName()).readLock().lock();
-				
-				try {
 					
 					if (getVFS().existsObject(opx.getBucketName(), opx.getObjectName())) {
 						ObjectMetadata meta=getVFS().getObjectMetadata(opx.getBucketName(), opx.getObjectName());
@@ -385,10 +384,9 @@ public class ReplicationService extends BaseService implements ApplicationContex
 				} catch (ODClientException e) {
 					throw new InternalCriticalException(e, opx.toString());
 				}			
-			}
-			finally {
-				getLockService().getObjectLock(opx.getBucketName(), opx.getObjectName()).readLock().unlock();
-			}
+				finally {
+					getLockService().getObjectLock(opx.getBucketName(), opx.getObjectName()).readLock().unlock();
+				}
 		} finally {
 			getLockService().getBucketLock(opx.getBucketName()).readLock().unlock();
 		}
@@ -402,9 +400,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 
 		try {
 		
-			try {
-			
-				getLockService().getObjectLock(opx.getBucketName(), opx.getObjectName()).readLock().lock();
+			getLockService().getObjectLock(opx.getBucketName(), opx.getObjectName()).readLock().lock();
 				
 				try {
 					if (getVFS().existsObject(opx.getBucketName(), opx.getObjectName())) {
@@ -420,10 +416,9 @@ public class ReplicationService extends BaseService implements ApplicationContex
 				} catch (ODClientException e) {
 					throw new InternalCriticalException(e);
 				}			
-			}
-			finally {
-				getLockService().getObjectLock(opx.getBucketName(), opx.getObjectName()).readLock().unlock();
-			}
+				finally {
+					getLockService().getObjectLock(opx.getBucketName(), opx.getObjectName()).readLock().unlock();
+				}
 		} finally {
 			getLockService().getBucketLock(opx.getBucketName()).readLock().unlock();	
 		}

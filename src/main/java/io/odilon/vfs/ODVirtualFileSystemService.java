@@ -89,10 +89,13 @@ import io.odilon.vfs.raid6.RAIDSixDriver;
 				
 /**
  * <p>
- * Virtual Folders are maintained in a RAM cache by the {@link VirtualFileSystemService}
- * All drives managed by the VFS must have the same Folders (ie. each VFolder has a real folder on each Drive) 
+ * Virtual File System manages the underlying layer that may be RAID 0, RAID 1, RAID 6/Erasure Coding</p> 
+ * <p>Buckets are maintained in a RAM cache by the {@link VirtualFileSystemService}
+ * All drives managed by the  must have the same Folders (ie. each VFolder has a real folder on each Drive) 
  * </p>
  * <p>Stopped ->  Starting -> Running -> Stopping</p>
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @ThreadSafe
 @Service
@@ -103,7 +106,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 					
 	@JsonIgnore
 	@Autowired
-	private SchedulerService schedulerService;
+	private final SchedulerService schedulerService;
 	
 	@JsonIgnore
 	@Autowired
@@ -145,16 +148,22 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	@Autowired							
 	private final OdilonKeyEncryptorService odilonKeyEncryptorService;
 	
+	
+	/** Cache of decoded Files in File System, used only in RAID 6 */
 	@JsonIgnore
 	@Autowired
 	private final FileCacheService fileCacheService;
 	
+	
+	/** All Drives, either {@link DriveStatus.ENABLED} or {@link DriveStatus.NOT_SYNC}(ie. in the sync process to become {@link DriveStatus.ENABLED}*/
 	@JsonIgnore
 	private Map<String, Drive> drivesAll = new ConcurrentHashMap<String, Drive>();
 	
+	/** Drives in status {@link DriveStatus.ENABLED} */
 	@JsonIgnore						
 	private Map<String, Drive> drivesEnabled = new ConcurrentHashMap<String, Drive>();
 
+	/** Drives available to be used to decode by {@RAIDSixDecoder} in RAID 6*/
 	@JsonIgnore
 	private final Map<Integer, Drive> drivesRSDecode = new ConcurrentHashMap<Integer, Drive>();
 	
@@ -919,7 +928,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 					}
 				}
 
-				startuplogger.info("Started -> " + VirtualFileSystemService.class.getSimpleName());
+				logger.debug("Started -> " + VirtualFileSystemService.class.getSimpleName());
 				setStatus(ServiceStatus.RUNNING);
 					
 
@@ -1014,9 +1023,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 		}
 	}
 	
-	
 	/**
-	 * 
 	 * 
 	 */
 	private void loadBuckets() {
@@ -1060,7 +1067,6 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 					}
 				}
 			}
-			// map.forEach((k,v) -> logger.debug(k +" -> " + v));
 			
 			int size = getMapDrivesEnabled().size();
 			List<String> errors = new ArrayList<String>();

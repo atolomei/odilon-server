@@ -7,6 +7,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 
 import javax.annotation.PostConstruct;
@@ -36,8 +37,9 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 
 /**
- * <p>Uses {@link Caffeine} to keep references to entries in memory.
- * On eviction we have to remove the File from the File System.</p>
+ * <p>{@link File} cache used by {@link RAIDSixDriver} (the other RAID configurations do not need it).</p> 
+ * It Uses {@link Caffeine} to keep references to entries in memory.
+ * On eviction it has to remove the {@link File} from the File System ({@link FileCacheService#onRemoval}).</p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
@@ -51,7 +53,7 @@ public class FileCacheService extends BaseService {
 	static final int MAX_SIZE = 25000;
 	static final int TIMEOUT_DAYS = 7;
 
-	private long cacheSizeBytes = 0;
+	private AtomicLong cacheSizeBytes = new AtomicLong(0);
 	
 	@JsonIgnore
 	@Autowired
@@ -121,7 +123,7 @@ public class FileCacheService extends BaseService {
 			getLockService().getFileCacheLock(bucketName, objectName, version).writeLock().lock();
 		try {
 			this.cache.put(getKey(bucketName, objectName, version), file);
-			cacheSizeBytes += file.length();
+			cacheSizeBytes.getAndAdd(file.length());
     	} finally {
     		if (lockRequired)
     			getLockService().getFileCacheLock(bucketName, objectName, version).writeLock().unlock();
@@ -140,7 +142,7 @@ public class FileCacheService extends BaseService {
     		this.cache.invalidate(getKey(bucketName, objectName, version));
     		if (file!=null) {
     			FileUtils.deleteQuietly(file);
-    			cacheSizeBytes -= file.length();
+    			cacheSizeBytes.getAndAdd(-file.length());
     		}
     	} finally {
     		getLockService().getFileCacheLock(bucketName, objectName, version).writeLock().unlock();
@@ -162,7 +164,7 @@ public class FileCacheService extends BaseService {
     }
     
     public long hardDiskUsage() {
-   		return this.cacheSizeBytes;
+   		return this.cacheSizeBytes.get();
     }
 
     
@@ -207,6 +209,9 @@ public class FileCacheService extends BaseService {
 
 	
 	/**
+	 * 
+	 * <p>Deletes the cached File from the File System</p>
+	 * 
 	 * @param key
 	 * @param value
 	 * @param cause
@@ -225,7 +230,7 @@ public class FileCacheService extends BaseService {
 				getLockService().getFileCacheLock(bucketName, objectName, version).writeLock().lock();
 				try {
 		    			FileUtils.deleteQuietly((File) value);
-		    			cacheSizeBytes -= ((File)value).length();
+		    			cacheSizeBytes.getAndAdd(-((File)value).length());
 				} finally {
 					getLockService().getFileCacheLock(bucketName, objectName, version).writeLock().unlock();
 				}
