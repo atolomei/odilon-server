@@ -104,7 +104,6 @@ public class OdilonApplication {
 			std_logger.info(s);
 		
 		std_logger.info(ServerConstant.SEPARATOR);
-		std_logger.info("");
 		std_logger.info("This software is licensed under the Apache License, Version 2.0");
 		std_logger.info("http://www.apache.org/licenses/LICENSE-2.0");
 
