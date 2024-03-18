@@ -11,6 +11,7 @@
 				<p>
 				<ul>
 				<li> Scalable Object Storage on commodity disks</li>
+				<li>Single binary, does not neet Database or other external service</li>
 				<li> Developed in Java 11 (uses Spring Boot, OkHttp, Jackson, Caffeine, Metrics, among others) </li>
 				<li> Runs on Linux and Windows</li>				
 				<li>Single dependency-free binary, does not neet Database or other external service</li>
