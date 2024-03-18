@@ -46,7 +46,7 @@ It is not a configuration with data replication, its function is to provide grea
 <li><b>RAID 1.</b>For each object, 1 or more exact copies (or mirrors) are created on two or more disks. This provides redundancy in case of disk failure. At least 2 disks are required, Odilon also supports 3 or more for greater redundancy.<br/><br/>
 </li>
 <li><b>RAID 6 / Erasure Coding.</b>
-It is a method of encoding data into blocks that can be distributed across multiple disks or nodes and then reconstructed from a subset of those blocks. It has great flexibility since you can adjust the number and size of the blocks and the minimum required for recovery. It uses less disk space than RAID 1 and can withstand multiple full disk failures. Odilon implements this architecture using Reed Solomon error-correction codes. The configurations are (v1.2+ April 2024): 3 disks (2 data 1 parity, supports 1 disk failure), 6 disks (4 data 2 parity, supports up to 2 disks failure) and 12 disks (8 data 4 parity, supports up to 4 disk failure)</li>
+It is a method of encoding data into blocks that can be distributed across multiple disks or nodes and then reconstructed from a subset of those blocks. It has great flexibility since you can adjust the number and size of the blocks and the minimum required for recovery. It uses less disk space than RAID 1 and can withstand multiple full disk failures. Odilon implements this architecture using Reed Solomon error-correction codes. The configurations are: <b>3 disks</b> (2 data 1 parity, supports 1 disk failure), <b>6 disks</b> (4 data 2 parity, supports up to 2 disks failure) and <b>12</b> disks (8 data 4 parity, supports up to 4 disks failure).</li>
 </ul>
 </p>
 
