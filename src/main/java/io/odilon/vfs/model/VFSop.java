@@ -1,3 +1,19 @@
+/*
+ * Odilon Object Storage
+ * (C) Novamens 
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.odilon.vfs.model;
 
 import java.util.ArrayList;
@@ -5,29 +21,33 @@ import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
 
+/**
+ * <p> Transtactional operations that managed by the {@link JournalService}</p>
+ *  
+ *  @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public enum VFSop {
 	
-	CREATE_BUCKET 	("create_bucket", 0, "b"),
-	UPDATE_BUCKET 	("update_bucket", 1, "b"), 
-	DELETE_BUCKET 	("delete_bucket", 2, "b"),
+	CREATE_BUCKET 						("create_bucket", 0, "b"), // 1
+	UPDATE_BUCKET 						("update_bucket", 1, "b"), // 2 
+	DELETE_BUCKET 						("delete_bucket", 2, "b"), // 3
 	
-	CREATE_OBJECT 						("create_object", 10, "o"),
-	UPDATE_OBJECT 						("update_object", 21, "o"),
-	UPDATE_OBJECT_METADATA 				("update_object_metadata", 22, "o"),
-	DELETE_OBJECT 						("delete_object", 23, "o"),
-	DELETE_OBJECT_PREVIOUS_VERSIONS 	("delete_object_previous_versions", 24, "o"),
-	RESTORE_OBJECT_PREVIOUS_VERSION 	("restore_object_previous_versions", 25, "o"),
+	CREATE_OBJECT 						("create_object", 10, "o"), // 4
+	UPDATE_OBJECT 						("update_object", 21, "o"), // 5
+	UPDATE_OBJECT_METADATA 				("update_object_metadata", 22, "o"), 			// 6
+	DELETE_OBJECT 						("delete_object", 23, "o"), 					// 7
+	DELETE_OBJECT_PREVIOUS_VERSIONS 	("delete_object_previous_versions", 24, "o"),   // 8
+	RESTORE_OBJECT_PREVIOUS_VERSION 	("restore_object_previous_versions", 25, "o"),  // 9
+	SYNC_OBJECT_NEW_DRIVE 				("sync_object", 26, "o"), 						// 10
 	
+	CREATE_SERVER_METADATA 				("create_server_metadata", 70, "s"), 	// 11
+	UPDATE_SERVER_METADATA 				("update_server_metadata", 88, "s"), 	// 12
 	
-	CREATE_SERVER_METADATA 			("create_server_metadata", 70, "s"),
-	UPDATE_SERVER_METADATA 			("update_server_metadata", 88, "s"),
-	
-	CREATE_SERVER_MASTERKEY		 	("create_server_key", 90, "s");
+	CREATE_SERVER_MASTERKEY		 		("create_server_key", 90, "s"); 		// 12
 	
 	private String name;
 	private int code;
 	private String enttiyGroupCode;
-	
 	
 	static List<VFSop> ops;
 	
@@ -61,10 +81,20 @@ public enum VFSop {
 
 		ops.add( CREATE_OBJECT );
 		ops.add( UPDATE_OBJECT ); 
+		ops.add( UPDATE_OBJECT_METADATA );
+		
 		ops.add( DELETE_OBJECT );
+		ops.add( SYNC_OBJECT_NEW_DRIVE );
+		
+		ops.add( DELETE_OBJECT_PREVIOUS_VERSIONS);
+		ops.add( RESTORE_OBJECT_PREVIOUS_VERSION);
+		
 		
 		ops.add( CREATE_SERVER_METADATA );
+		ops.add( UPDATE_SERVER_METADATA );
+		
 		ops.add( CREATE_SERVER_MASTERKEY );
+		
 		
 		return ops;
 	}
@@ -87,14 +117,11 @@ public enum VFSop {
 		if (normalized.equals(CREATE_OBJECT.getName())) return CREATE_OBJECT;
 		if (normalized.equals(UPDATE_OBJECT.getName())) return UPDATE_OBJECT;
 		if (normalized.equals(DELETE_OBJECT.getName())) return DELETE_OBJECT;
-		
+		if (normalized.equals(SYNC_OBJECT_NEW_DRIVE.getName())) return SYNC_OBJECT_NEW_DRIVE;
 		if (normalized.equals(UPDATE_OBJECT_METADATA.getName())) return UPDATE_OBJECT_METADATA;
 
 		if (normalized.equals(DELETE_OBJECT_PREVIOUS_VERSIONS.getName())) return DELETE_OBJECT_PREVIOUS_VERSIONS;
 		if (normalized.equals(RESTORE_OBJECT_PREVIOUS_VERSION.getName())) return RESTORE_OBJECT_PREVIOUS_VERSION;
-		
-		if (normalized.equals(CREATE_SERVER_METADATA.getName())) return CREATE_SERVER_METADATA;
-		if (normalized.equals(UPDATE_SERVER_METADATA.getName())) return UPDATE_SERVER_METADATA;
 		
 		if (normalized.equals(CREATE_SERVER_METADATA.getName())) return CREATE_SERVER_METADATA;
 		if (normalized.equals(UPDATE_SERVER_METADATA.getName())) return UPDATE_SERVER_METADATA;
@@ -117,8 +144,8 @@ public enum VFSop {
 		if (code==UPDATE_OBJECT_METADATA.getCode()) return UPDATE_OBJECT_METADATA;
 		if (code==DELETE_OBJECT_PREVIOUS_VERSIONS.getCode()) return DELETE_OBJECT_PREVIOUS_VERSIONS;
 		if (code==RESTORE_OBJECT_PREVIOUS_VERSION.getCode()) return RESTORE_OBJECT_PREVIOUS_VERSION;
-		if (code==CREATE_SERVER_METADATA.getCode()) return CREATE_SERVER_METADATA;
-		if (code==UPDATE_SERVER_METADATA.getCode()) return UPDATE_SERVER_METADATA;
+		if (code==SYNC_OBJECT_NEW_DRIVE.getCode()) return SYNC_OBJECT_NEW_DRIVE;
+		
 		if (code==CREATE_SERVER_METADATA.getCode()) return CREATE_SERVER_METADATA;
 		if (code==UPDATE_SERVER_METADATA.getCode()) return UPDATE_SERVER_METADATA;
 		if (code==CREATE_SERVER_MASTERKEY.getCode()) return CREATE_SERVER_MASTERKEY;
@@ -160,23 +187,22 @@ public enum VFSop {
 		return code;
 	}
 	
-	private VFSop(String name, int code, String groupCode) {
-		this.name = name;
-		this.code = code;
-		this.enttiyGroupCode=groupCode;
-	}
-
 	public boolean isObjectOperation() {
-		if (CREATE_OBJECT.equals(this)) return true;
-		if (UPDATE_OBJECT.equals(this)) return true;
-		if (DELETE_OBJECT.equals(this)) return true;
-		if (UPDATE_OBJECT_METADATA.equals(this)) return true;
-		return false;
+		return	(CREATE_OBJECT.equals(this) ||
+				 UPDATE_OBJECT.equals(this) ||
+				 DELETE_OBJECT.equals(this) || 
+				 SYNC_OBJECT_NEW_DRIVE.equals(this) ||
+				 UPDATE_OBJECT_METADATA.equals(this)); 	
 	}
 	
 	public String getEntityGroupCode() {
 		return enttiyGroupCode;
-		
+	}
+
+	private VFSop(String name, int code, String groupCode) {
+		this.name = name;
+		this.code = code;
+		this.enttiyGroupCode=groupCode;
 	}
 
 

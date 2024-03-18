@@ -38,6 +38,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.odilon.encryption.EncryptionService;
 import io.odilon.error.OdilonInternalErrorException;
+import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.BaseService;
 import io.odilon.model.ObjectMetadata;
@@ -167,9 +168,10 @@ public class ODObjectStorageService extends BaseService implements ObjectStorage
 	}
 	
 	@Override
-	public void deleteObjectAllPreviousVersions(String bucketName, String objectName) {
+	public void deleteObjectAllPreviousVersions(ObjectMetadata meta) {
 		Check.requireTrue(isVFSEnabled(), "VFS invalid state -> " + getVFS().getStatus().toString());
-		getVFS().deleteObjectAllPreviousVersions(bucketName, objectName);
+		
+		getVFS().deleteObjectAllPreviousVersions(meta);
 	}
 
 	@Override
@@ -245,7 +247,6 @@ public class ODObjectStorageService extends BaseService implements ObjectStorage
 				 contentType = Files.probeContentType(filePath);
 				 fis = new FileInputStream(file);
 			 } catch (IOException e) {
-					logger.error(e);
 					throw new OdilonInternalErrorException(e);
 			 }
 
@@ -292,7 +293,6 @@ public class ODObjectStorageService extends BaseService implements ObjectStorage
 			
 		} 
 		catch (Exception e) {
-			logger.error(e);
 			throw new OdilonInternalErrorException(e);
 		} 
 	}
@@ -317,7 +317,7 @@ public class ODObjectStorageService extends BaseService implements ObjectStorage
 						logger.error(e, "This exception is not thrown");
 					}
 				}
-				throw new RuntimeException(e1);
+				throw new InternalCriticalException(e1);
 		}
 	}
 	
@@ -387,7 +387,6 @@ public class ODObjectStorageService extends BaseService implements ObjectStorage
 			return getVFS().createBucket(bucketName);
 			
 		} catch (Exception e) {
-			logger.error(e);
 			throw( new OdilonInternalErrorException(e));
 		}
 	}
@@ -498,7 +497,6 @@ public class ODObjectStorageService extends BaseService implements ObjectStorage
 					}
 					catch (Exception e) {
 						setStatus(ServiceStatus.STOPPED);
-						logger.error(e);
 						throw(e);
 					}
 				}	

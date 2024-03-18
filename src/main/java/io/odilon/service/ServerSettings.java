@@ -16,6 +16,7 @@
  */
 package io.odilon.service;
 
+
 import java.io.File;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -54,19 +55,13 @@ public class ServerSettings implements APIObject {
 	static private Logger logger = Logger.getLogger(ServerSettings.class.getName());
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 
-	static private RandomIDGenerator idGenerator = new RandomIDGenerator();
+	static private final RandomIDGenerator idGenerator = new RandomIDGenerator();
+	
+	private static final OffsetDateTime systemStarted = OffsetDateTime.now(); 
+
 	
 	protected String version = "";
 
-	// 		timezone.default=America/Argentina/Buenos_Aires
-	//		email.ping.enabled=localhost
-	// 		email.server=localhost
-	//		email.port=8025
-	//		email.username=
-	//		email.password=
-	//		email.auth=false
-	// 		email.ping.address=
-	//		ping.enabled 
 	
 	// PING ------------------------
 
@@ -161,10 +156,10 @@ public class ServerSettings implements APIObject {
 	@NonNull
 	private List<String> rootDirs;
 
-	@Value("${raid6.dataDrives:4}")
+	@Value("${raid6.dataDrives:-1}")
 	protected int raid6DataDrives;
 	
-	@Value("${raid6.parityDrives:2}")
+	@Value("${raid6.parityDrives:-1}")
 	protected int raid6ParityDrives;
 	
 	// ----------------------------------
@@ -267,16 +262,25 @@ public class ServerSettings implements APIObject {
 	
 	@Value("${useObjectCache:true}")
 	protected boolean useObjectCache;
+
+
+	@Value("${objectCacheCapacity:500000}")
+	protected int objectCacheCapacity;
+
+			
+	@Value("${fileCacheCapacity:40000}")
+	protected long fileCacheCapacity;
+
+	@Value("${fileCacheDurationDays:7}")
+	protected int fileCacheDurationDays;
 	
-	
-	private static final OffsetDateTime systemStarted = OffsetDateTime.now(); 
-	
-	public OffsetDateTime getSystemStartTime() {
-		return systemStarted;
-	}
 	
 	@Autowired
 	public ServerSettings() {
+	}
+
+	public OffsetDateTime getSystemStartTime() {
+		return systemStarted;
 	}
 	
 	public String getAccessKey() {
@@ -356,16 +360,19 @@ public class ServerSettings implements APIObject {
 		
 		str.append(", \"trafficTokens\":" +String.valueOf(tokens) + "");
 		str.append(", \"versionControl\":\"" + (this.versioncontrol ? "true" : "false")+"\"");
+						
+		str.append("\"fileCacheCapacity\":\"" + String.valueOf(fileCacheCapacity) + "\"");
+		str.append("\"fileCacheDurationDays\":\"" + String.valueOf(fileCacheDurationDays) + "\"");
 		
 		return str.toString();
 	}
 
 	public int getRAID6ParityDrives() {
-		return raid6DataDrives;
+		return raid6ParityDrives;
 	}
 
 	public int getRAID6DataDrives() {
-		return raid6ParityDrives;
+		return raid6DataDrives;
 	}
 
 	public Map<String, Object> toMap() {
@@ -437,13 +444,15 @@ public class ServerSettings implements APIObject {
 			startuplogger.error(		"No rootDirs are defined. \n"
 										+ 	"for RAID 0. at least 1 dataDir must be defined in file -> odilon.properties \n"
 										+ 	"for RAID 1. at least 1 dataDir must be defined in file -> odilon.properties \n"
-										+ 	"for RAID 6. at least 3 dataDir must be defined in file -> odilon.properties \n"
+										+ 	"for RAID 6.  3 or 6 or 12 dataDirs must be defined in file	-> odilon.properties \n"
 										+   "using default values ");
 			
 			getDefaultRootDirs().forEach( o -> startuplogger.error(o));
 			this.rootDirs = getDefaultRootDirs();
 		}
 
+		
+		
 		if (encryptionKey!=null)  {
 			encryptionKey=encryptionKey.trim();
 			if (encryptionKey.length()!= (2*VirtualFileSystemService.AES_KEY_SIZE_BITS/8))
@@ -477,7 +486,7 @@ public class ServerSettings implements APIObject {
 			tokens = numberofpasses;
 		
 		if (tokens<1)
-			tokens = ServerConstant.DEFAULT_TRAFFIC_TOKENS;
+			tokens = ServerConstant.TRAFFIC_TOKENS_DEFAULT;
 		try {
 			dataStorage=(dataStorageMode==null) ? DataStorage.READ_WRITE : DataStorage.fromString(dataStorageMode);
 		} catch (Exception e) {
@@ -503,15 +512,9 @@ public class ServerSettings implements APIObject {
 		
 		this.redundancyLevel = RedundancyLevel.get(redundancyLevelStr);
 		
-		if (this.redundancyLevel == RedundancyLevel.RAID_6) {
-			throw new IllegalStateException(RedundancyLevel.RAID_6.getName() +  " is not supported in this version of Odilon");
-		}
-		
-		if (this.redundancyLevel==RedundancyLevel.RAID_6) {
-			if (this.raid6DataDrives!=4 || this.raid6ParityDrives !=2) {
-				throw new IllegalArgumentException("the only "+ RedundancyLevel.RAID_6.getName() +" supported is dataDrives=4 parityDrives=2");
-			}
-		}
+		//if (this.redundancyLevel == RedundancyLevel.RAID_6) {
+		//	throw new IllegalStateException(RedundancyLevel.RAID_6.getName() +  " is not supported in this version of Odilon");
+		//}
 		
 		List<String> dirs=new ArrayList<String>();
 		
@@ -543,11 +546,41 @@ public class ServerSettings implements APIObject {
 	
 		
 		if (this.redundancyLevel==RedundancyLevel.RAID_1) {
-			if (this.rootDirs.size()<1)
+			if (this.rootDirs.size()<=1)
 				throw new IllegalArgumentException( "DataStorage must have at least 2 entries for -> " + 
 													redundancyLevel.getName() + " | dataStorage=" + rootDirs.toString() + " | you must use " + RedundancyLevel.RAID_0.getName() + "for only one mount directory");	
 		}
+		else if (this.redundancyLevel==RedundancyLevel.RAID_6) {
 		
+			if (!((this.rootDirs.size()==3) || (this.rootDirs.size()==6) || (this.rootDirs.size()==12)))
+				throw new IllegalArgumentException( "DataStorage must have 3 or 6 or 12 entries for -> " +	redundancyLevel.getName());
+			
+				if (this.rootDirs.size()==3) {
+					if (this.raid6DataDrives==-1)
+						this.raid6DataDrives=2;
+					if (this.raid6ParityDrives==-1)
+						this.raid6ParityDrives=1;
+				}
+				else if (this.rootDirs.size()==6) {
+					if (this.raid6DataDrives==-1)
+						this.raid6DataDrives=4;
+					if (this.raid6ParityDrives==-1)
+						this.raid6ParityDrives=2;
+				}
+				else if (this.rootDirs.size()==12) {
+					if (this.raid6DataDrives==-1)
+						this.raid6DataDrives=8;
+					if (this.raid6ParityDrives==-1)
+						this.raid6ParityDrives=4;
+				}
+
+				if ( !(( (this.rootDirs.size()==3) && (this.raid6DataDrives==2) && (this.raid6ParityDrives==1)) || 
+					   ( (this.rootDirs.size()==6) && (this.raid6DataDrives==4) && (this.raid6ParityDrives==2)) || 
+					   ( (this.rootDirs.size()==12)&& (this.raid6DataDrives==8) && (this.raid6ParityDrives==4)) 
+					  )) { 
+					throw new IllegalArgumentException( RedundancyLevel.RAID_6.getName() +" configurations supported are -> 6 dirs in DataStorage and raid6.dataDrives=4 and raid6.parityDrives=2 | 3 dirs in DataStorage and raid6.dataDrives=2 and raid6.parityDrives=1 | 12 dirs in DataStorage and raid6.dataDrives=8 and raid6.parityDrives=4 ");
+					}
+				}
 		try {
 
 			this.lockRateMillisecs = Double.valueOf(this.s_lockRateMillisecs).doubleValue();
@@ -583,6 +616,34 @@ public class ServerSettings implements APIObject {
 		
 		if(this.standbyUrl==null)
 			this.isStandByEnabled=false;
+		
+		
+		if (fileCacheCapacity==-1) {
+			
+		}
+		
+		/**
+		if (fileCacheCapacity==-1) {
+			long totalSpace = 0;
+			for (String rootDir: this.rootDirs ) {
+			    try {
+			    	Path path = (new File(rootDir)).toPath();
+			    	FileStore store = Files.getFileStore(path);
+			    	totalSpace  += store.getUsableSpace();
+			    } catch (IOException e) {
+			        logger.error(e);
+			    }
+			}
+			long cacheMax=Double.valueOf(Math.floor(Double.valueOf(totalSpace).doubleValue() * 0.1 / 1000000.0)).longValue();
+			if (cacheMax>100 && cacheMax<1000000)
+				fileCacheCapacity=cacheMax;
+			else
+				fileCacheCapacity=10000;
+		}
+		**/
+		
+		if (fileCacheDurationDays<1)
+			fileCacheDurationDays=7;
 		
 		startuplogger.debug("Started -> " + ServerSettings.class.getSimpleName());
 		
@@ -646,12 +707,11 @@ public class ServerSettings implements APIObject {
 			
 			if (getRedundancyLevel()==RedundancyLevel.RAID_1 || getRedundancyLevel()==RedundancyLevel.RAID_0)
 				return list;
-				
+
+			// for RAID 6 default is 3,1
+			list.add("c:"+File.separator+"odilon-data"+File.separator+"drive0");
 			list.add("c:"+File.separator+"odilon-data"+File.separator+"drive1");
 			list.add("c:"+File.separator+"odilon-data"+File.separator+"drive2");
-			list.add("c:"+File.separator+"odilon-data"+File.separator+"drive3");
-			list.add("c:"+File.separator+"odilon-data"+File.separator+"drive4");
-			list.add("c:"+File.separator+"odilon-data"+File.separator+"drive5");
 			return list;
 		}
 		
@@ -664,12 +724,9 @@ public class ServerSettings implements APIObject {
 			if (getRedundancyLevel()==RedundancyLevel.RAID_1 || getRedundancyLevel()==RedundancyLevel.RAID_0)
 				return list;
 				
-			list.add(File.separator + "var" + File.separator + "lib" + File.separator + "odilon-data" + File.separator + "drive1");
-			list.add(File.separator + "var" + File.separator + "lib" + File.separator + "odilon-data" + File.separator + "drive2");
-			list.add(File.separator + "var" + File.separator + "lib" + File.separator + "odilon-data" + File.separator + "drive3");
-			list.add(File.separator + "var" + File.separator + "lib" + File.separator + "odilon-data" + File.separator + "drive4");
-			list.add(File.separator + "var" + File.separator + "lib" + File.separator + "odilon-data" + File.separator + "drive5");
-			
+			list.add(File.separator + "opt" + File.separator +  File.separator + "odilon-data" + File.separator + "drive0");
+			list.add(File.separator + "opt" + File.separator +  File.separator + "odilon-data" + File.separator + "drive1");
+			list.add(File.separator + "opt" + File.separator +  File.separator + "odilon-data" + File.separator + "drive2");
 			return list;
 		}
 	}
@@ -875,10 +932,27 @@ public class ServerSettings implements APIObject {
 			return true;
 		return false;
 	}
+
+	public int getObjectCacheCapacity() {
+		return objectCacheCapacity;
+	}
+	
+	public long getFileCacheCapacity() {
+		return fileCacheCapacity;
+	}
+	
+	public long getFileCacheDurationDays() {
+		return fileCacheDurationDays;
+	}
+
+	
+	public boolean isRAID6ConfigurationValid(int dataShards, int parityShards) {
+		return  (dataShards==8 && parityShards==4) ||
+			    (dataShards==4 && parityShards==2) ||
+			    (dataShards==2 && parityShards==1);
+	}
 	
 	protected String randomString(final int size) {
 		return idGenerator.randomString(size);
 	}
-
-
 }

@@ -16,21 +16,19 @@
  */
 package io.odilon.vfs.model;
 
-import java.util.Optional;
+
+
 
 import io.odilon.service.SystemService;
 
 /**
- * <p>Service for ensuring Data Integrity. 
+ * <p>Service for ensuring Data Integrity<br/>
  * Changes to data files must be written only after those changes have been logged, that is, <br/> 
  * after log records describing the changes have been flushed to permanent storage. <br/>  
- * This is roll-forward recovery, also known as REDO.
- * </p>
+ * This is roll-forward recovery, also known as REDO.</p>
  * 
  * 
- * 
- * 
- * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public interface JournalService extends SystemService {
 	
@@ -63,12 +61,17 @@ public interface JournalService extends SystemService {
 	public VFSOperation updateObject(String bucketName, String objectName, int version);
 	
 	public VFSOperation updateObjectMetadata(String bucketName, String objectName, int version);
-	
-	
-	public VFSOperation restoreObjectPreviousVersion(String bucketName, String objectName, int versionToRestore);
 
+	/** Version control */
+	public VFSOperation restoreObjectPreviousVersion(String bucketName, String objectName, int versionToRestore);
 	public VFSOperation deleteObject(String bucketName, String objectName, int currentHeadVersion);
 	public VFSOperation deleteObjectPreviousVersions(String bucketName, String objectName, int currentHeadVersion);
+	
+
+	/** sync new drive */
+	public VFSOperation syncObject(String bucketName, String objectName);
+	
+	
 	
 	/** ----------------- */
 	
@@ -77,9 +80,6 @@ public interface JournalService extends SystemService {
 	
 	
 	public String newOperationId();
-	
-	
-	
 	
 	
 	

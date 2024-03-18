@@ -22,6 +22,7 @@ import java.time.ZonedDateTime;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import io.odilon.log.Logger;
+import io.odilon.model.ServerConstant;
 import io.odilon.util.Check;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
@@ -77,7 +78,7 @@ public class CronJobSchedulerWorker extends SchedulerWorker {
 								dispatch(job);
 							
 					} catch (Exception e) {
-						logger.error(e);
+						logger.error(e, ServerConstant.NOT_THROWN);
 						done = true;
 					}
 		    }

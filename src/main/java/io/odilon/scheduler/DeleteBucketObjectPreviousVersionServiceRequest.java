@@ -18,16 +18,18 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
-import io.odilon.model.ServiceStatus;
+import io.odilon.model.ServerConstant;
 import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
 import io.odilon.service.ServerSettings;
-import io.odilon.service.SystemService;
-import io.odilon.util.Check;
 import io.odilon.vfs.model.VFSBucket;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
-
+/**
+ * 
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 @Component
 @Scope("prototype")
 @JsonTypeName("deleteBucketObjectPreviousVersion")
@@ -36,24 +38,40 @@ public class DeleteBucketObjectPreviousVersionServiceRequest extends AbstractSer
 	static private Logger logger =	Logger.getLogger(DeleteBucketObjectPreviousVersionServiceRequest.class.getName());
 	
 	private static final long serialVersionUID = 1L;
-	
-	private String bucketName;
 
 	static AtomicBoolean instanceRunning = new AtomicBoolean(false);
 	
-	static final double KB = 1024.0;
-	static final double MB = 1024.0 * KB;
-	static final double GB = 1024.0 * MB;
+	static final int PAGESIZE = 1000;
 	
+	private String bucketName;
 	
 	@JsonIgnore
-	long start_ms = 0;
+	private long start_ms = 0;
 	
 	@JsonIgnore
 	private boolean isSuccess = false;
 	
 	@JsonIgnore
+	private AtomicLong checkOk = new AtomicLong(0);
+	
+	@JsonIgnore
+	private AtomicLong counter = new AtomicLong(0);
+	
+	@JsonIgnore
+	private AtomicLong totalBytes = new AtomicLong(0);
+	
+	@JsonIgnore
+	private AtomicLong errors = new AtomicLong(0);
+	
+	@JsonIgnore
+	private AtomicLong notAvailable = new AtomicLong(0);
+
+	@JsonIgnore
 	private int maxProcessingThread  = 1;
+
+	
+	@JsonIgnore
+	private volatile ExecutorService executor;
 	
 	
 	public DeleteBucketObjectPreviousVersionServiceRequest() {
@@ -75,37 +93,12 @@ public class DeleteBucketObjectPreviousVersionServiceRequest extends AbstractSer
 
 	@Override
 	public boolean isObjectOperation() {
-		return false;
+		return true;
 	}
 
 	public String getBucketName() {
 		return this.bucketName;
 	}
-	
-	
-	
-	@JsonIgnore
-	private AtomicLong checkOk = new AtomicLong(0);
-	
-	@JsonIgnore
-	private AtomicLong counter = new AtomicLong(0);
-	
-
-	@JsonIgnore
-	private AtomicLong totalBytes = new AtomicLong(0);
-	
-	@JsonIgnore
-	private AtomicLong errors = new AtomicLong(0);
-	
-	@JsonIgnore
-	private AtomicLong notAvailable = new AtomicLong(0);
-	
-	
-	@JsonIgnore
-	private volatile ExecutorService executor;
-	
-	
-	static final int PAGESIZE = 1000;
 	
 	
 	
@@ -135,13 +128,14 @@ public class DeleteBucketObjectPreviousVersionServiceRequest extends AbstractSer
 								
 					try {
 						this.counter.getAndIncrement();
-						if (item.isOk())
+						if (item.isOk()) {
 							process(item);
+						}
 						else
 							this.notAvailable.getAndIncrement();
 					
 					} catch (Exception e) {
-						logger.error(e);
+						logger.error(e, ServerConstant.NOT_THROWN);
 					}
 					return null;
 				 });
@@ -150,15 +144,17 @@ public class DeleteBucketObjectPreviousVersionServiceRequest extends AbstractSer
 			try {
 				executor.invokeAll(tasks, 20, TimeUnit.MINUTES);						
 			} catch (InterruptedException e) {
-				logger.error(e);
+				logger.error(e, ServerConstant.NOT_THROWN);
 			}
 			offset += Long.valueOf(Integer.valueOf(data.getList().size()).longValue());
 			done = data.isEOD();
 		}
 	}
 	
-	
-	
+	/**
+	 *
+	 * 
+	 */
 	@Override
 	public void execute() {
 
@@ -172,7 +168,7 @@ public class DeleteBucketObjectPreviousVersionServiceRequest extends AbstractSer
 			
 			instanceRunning.set(true);
 			
-			logger.info("Starting -> " + getClass().getSimpleName());
+			logger.info("Starting -> " + getClass().getSimpleName() + "b: " + (this.bucketName!=null? this.bucketName:"null"));
 	
 			this.start_ms = System.currentTimeMillis();
 			this.counter = new AtomicLong(0);
@@ -181,7 +177,7 @@ public class DeleteBucketObjectPreviousVersionServiceRequest extends AbstractSer
 			this.checkOk = new AtomicLong(0);
 			this.maxProcessingThread  = getServerSettings().getIntegrityCheckThreads();
 
-			executor = Executors.newFixedThreadPool(this.maxProcessingThread);
+			this.executor = Executors.newFixedThreadPool(this.maxProcessingThread);
 
 			if (getBucketName()!=null)
 				processBucket(getBucketName());
@@ -191,55 +187,23 @@ public class DeleteBucketObjectPreviousVersionServiceRequest extends AbstractSer
 			}
 			
 			try {
-				executor.shutdown();
-				executor.awaitTermination(15, TimeUnit.MINUTES);
+				this.executor.shutdown();
+				this.executor.awaitTermination(15, TimeUnit.MINUTES);
 				
 			} catch (InterruptedException e) {
 			}
 			
-			isSuccess = true;
+			this.isSuccess = true;
 			setStatus(ServiceRequestStatus.COMPLETED);
 			
 		} catch (Exception e) {
-			 isSuccess=false;
-			 logger.error(e);
+			this.isSuccess=false;
+			 logger.error(e, ServerConstant.NOT_THROWN);
 	
 		} finally {
-			
 			instanceRunning.set(false);
-			
 			logResults(logger);
 		}
-	}
-
-		
-	private void process(Item<ObjectMetadata> item) {
-		try {
-			
-			
-			ObjectMetadata meta = item.getObject();
-
-			getVirtualFileSystemService().deleteObjectAllPreviousVersions(meta.bucketName, meta.objectName);
-			
-			//this.totalBytes.addAndGet(item.getObject().length);
-			this.checkOk.incrementAndGet();
-			
-		} catch (Exception e) {
-			this.errors.getAndIncrement();
-			logger.error(e);
-			logger.error("Could not process -> " + item.getObject().bucketName + " - "+item.getObject().objectName);
-			
-		}
-	}
-
-	
-	
-	private ServerSettings getServerSettings() {
-		return getApplicationContext().getBean(ServerSettings.class);
-	}
-
-	private VirtualFileSystemService getVirtualFileSystemService() {
-		return getApplicationContext().getBean(VirtualFileSystemService.class);
 	}
 
 	@Override
@@ -250,15 +214,30 @@ public class DeleteBucketObjectPreviousVersionServiceRequest extends AbstractSer
 	private void logResults(Logger lg) {
 		lg.info("Threads: " + String.valueOf(this.maxProcessingThread));
 		lg.info("Total: " + String.valueOf(this.counter.get()));
-		
-		//lg.info("Total Size: " + String.format("%14.4f", Double.valueOf(totalBytes.get()).doubleValue() / GB).trim() + " GB");
-		
 		lg.info("Checked OK: " + String.valueOf(this.checkOk.get()));
 		lg.info("Errors: " + String.valueOf(this.errors.get()));
 		lg.info("Not Available: " + String.valueOf(this.notAvailable.get())); 
 		lg.info("Duration: " + String.valueOf(Double.valueOf(System.currentTimeMillis() - start_ms) / Double.valueOf(1000)) + " secs");
 		lg.info("---------");
-		
+	}
+	
+	private ServerSettings getServerSettings() {
+		return getApplicationContext().getBean(ServerSettings.class);
+	}
+
+	private VirtualFileSystemService getVirtualFileSystemService() {
+		return getApplicationContext().getBean(VirtualFileSystemService.class);
+	}
+
+	private void process(Item<ObjectMetadata> item) {
+		try {
+			getVirtualFileSystemService().deleteObjectAllPreviousVersions(item.getObject());
+			this.checkOk.incrementAndGet();
+		} catch (Exception e) {
+			this.errors.getAndIncrement();
+			logger.error(e, "Could not process -> " + item.getObject().bucketName + " - "+item.getObject().objectName + " " + ServerConstant.NOT_THROWN);
+			
+		}
 	}
 
 }

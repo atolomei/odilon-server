@@ -41,7 +41,9 @@ import io.odilon.service.ObjectStorageService;
 import io.odilon.traffic.TrafficControlService;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
-
+/**
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 @RestController
 @RequestMapping(value = "/dev")
 public class SimpleFileUploadController extends BaseApiController {

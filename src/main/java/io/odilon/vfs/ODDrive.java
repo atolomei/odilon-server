@@ -75,18 +75,21 @@ import org.springframework.context.annotation.Scope;
  * A drive can only see regular files and only one level of folders, 
  * called {@link buckets}
  * </p>
- * 
  * <p>
- * Drives do not apply concurrency control mechanism. 
- * It is up to the driver that uses it {@link IODriver} to ensure concurrency control.
+ * Drives are <b>NOT Thread safe</b>, they do not apply concurrency control mechanisms. 
+ * It is up to the {@link IODriver} to ensure concurrency control.
  * </p>
- * 
- * 
  * Path -> String, the File may not exist
- * 
+
  * Dir -> File
  * File -> File
- * 
+ 
+ *             [0-n][0.6] 
+ *  objectName.chunk.block.v[Version]
+ *  objectName (there is one chunk and one block)
+ *  objectName
+ *
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @Component
 @Scope("prototype")
@@ -112,9 +115,13 @@ public class ODDrive extends ODModelObject implements Drive {
 	
 	@JsonProperty("rootDir")
 	private String rootDir;
-	
+
+	@JsonProperty("configOrder")
+	private int configOrder;
+
 	@JsonProperty("driveInfo")
 	DriveInfo driveInfo;
+	
 	
 	@Autowired
 	protected ODDrive(String rootDir) {
@@ -129,135 +136,59 @@ public class ODDrive extends ODModelObject implements Drive {
 	 * @param name
 	 * @param rootDir
 	 */
-	protected ODDrive(String name, String rootDir) {
+	protected ODDrive(String name, String rootDir, int configOrder) {
 		this.name=name;
 		this.rootDir=rootDir;
+		this.configOrder=configOrder;
 		onInitialize();
 	}
 	
+	@JsonIgnore
+	@Override
 	public String getBucketMetadataDirPath(String bucketName) {
 		Check.requireNonNullStringArgument(bucketName, "bucketName is null");
 		return this.getBucketsDirPath() + File.separator + bucketName;
 	}
 
+	@JsonIgnore
+	@Override
 	public String getObjectMetadataDirPath(String bucketName, String objectName) {
 		Check.requireNonNullStringArgument(bucketName, "bucketName is null");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucketName);
 		return this.getBucketsDirPath() + File.separator + bucketName + File.separator + objectName;
 	}
 
-	
-	public synchronized void cleanUpWorkDir(String bucketName) {
-		Check.requireNonNullStringArgument(bucketName, "bucketName is null");
-		try {
-					int n=0;
-					File bucketDir = new File (getBucketWorkDirPath(bucketName));
-					if (bucketDir.exists()) {
-						File files[] = bucketDir.listFiles();
-						for (File fi:files) {
-							logger.debug("Remove fi: " + fi.getName() + " d: " + getName() + " dir:"+ getBucketWorkDirPath(bucketName));
-							FileUtils.deleteQuietly(fi);
-							if (n++>5000)
-								break;
-						}
-					}
-					if (n>0)
-						logger.info("Removed temp files from d: " + getName() + " dir:"+ getBucketWorkDirPath(bucketName) + " | b:" + bucketName+ " total:" + String.valueOf(n));
-		} catch (Exception e) {
-			logger.error(e);
-		}
-	}
-
+	@JsonIgnore
 	@Override
 	public DriveInfo getDriveInfo() {
 		return this.driveInfo;
 	}
 
-	
 	@Override
 	public synchronized void setDriveInfo(DriveInfo info) {
 		this.driveInfo = info;
 		saveDriveMetadata(info);
 	}
-	
-	@Override
-	public long getAvailableSpace() {
-		 File file=new File(getRootDirPath());
-		 return file.getUsableSpace();
-	}
-	
-	@Override
-	public long getTotalSpace() {
-		 File file=new File(getRootDirPath());
-		 return file.getTotalSpace();
-	}
 
-
+	@JsonIgnore
 	@Override
 	public String getBucketWorkDirPath(String bucketName) {
 		Check.requireNonNullStringArgument(bucketName, "bucketName is null");
 		return this.getWorkDirPath() + File.separator + bucketName;
 	}
 
-	
-	
-	/**
-	 * <b>DATA</b>
-	 * 
-	 * <p>IMPORTANT: Stream is not closed by this method</p>
-	 */
+	@JsonIgnore
 	@Override
-	public InputStream getObjectInputStream(String bucketName, String objectName) {
-		Check.requireNonNullArgument(bucketName, "bucketName is null");
-		Check.requireNonNullStringArgument(objectName, "objectName can not be null -> b:" + bucketName);
-		try {
-    		return Files.newInputStream(getObjectDataFile(bucketName, objectName).toPath()); 
-		} catch (Exception e) {
-			String msg = 	"b:"   + (Optional.ofNullable(bucketName).isPresent() ? (bucketName) : "null") + 
-							", o:" + (Optional.ofNullable(objectName).isPresent() ? (objectName) : "null") +
-							", d:" + (Optional.ofNullable(getName()).isPresent()  ? (getName())  : "null");
-			throw new InternalCriticalException(e, msg);
-		}
+	public String getBucketCacheDirPath(String bucketName) {
+		Check.requireNonNullStringArgument(bucketName, "bucketName is null");
+		return this.getCacheDirPath() + File.separator + bucketName;
 	}
 	
-	/**
-	 * <b>bDATA</b> 
-	 * 
-	 * Dir -> directory
-	 * Path -> to File
-	 * File -> File
-	 * 
-	 * <p>IMPORTANT: Stream is not closed by this method</p>
-	 */							
+	@JsonIgnore
 	@Override
-	public File putObjectStream(String bucketName, String objectName, InputStream stream) throws IOException {
-
-		Check.requireNonNullArgument(bucketName, "bucketName is null");
-		Check.requireNonNullStringArgument(objectName, "objectName can not be null -> b:" + bucketName);
-		
-		if (!existBucketMetadataDir(bucketName))
-			  throw new IllegalStateException("Bucket Metadata Directory must exist -> d:" + getName() + " | b:" + bucketName);
-		
-		/** data Bucket created on demand */
-		createDataBucketDirIfNotExists(bucketName);
-		
-		try {
-
-			String dataFilePath = this.getObjectDataFilePath(bucketName, objectName); 
-			transferTo(stream, dataFilePath);
-			
-			return new File(dataFilePath);
-		}
-		 catch (IOException e) {
-				String msg = 	"b:"   + (Optional.ofNullable(bucketName).isPresent()? (bucketName):"null") + 
-								", o:" + (Optional.ofNullable(objectName).isPresent()? (objectName):"null") +
-								", d:" + (Optional.ofNullable(getName()).isPresent() ? (getName()) :"null");
-			logger.error(e, msg);
-			throw (e);
-		}
+	public String getBucketObjectDataDirPath(String bucketName) {
+		return this.getRootDirPath() + File.separator + bucketName;
 	}
-
-	
 	
 	@Override
 	public void putObjectMetadataVersionFile(String bucketName, String objectName, int version, File metaFile) throws IOException {
@@ -273,21 +204,6 @@ public class ODDrive extends ODModelObject implements Drive {
 		}
 	}
 	
-	@Override
-	public void putObjectDataFile(String bucketName, String objectName, File objectFile) throws IOException {
-		try (InputStream is = new FileInputStream(objectFile)) {
-			putObjectStream(bucketName, objectName, is);
-		}
-	}
-	
-	@Override				
-	public void putObjectDataVersionFile(String bucketName, String objectName, int version, File objectFile) throws IOException {
-		try (InputStream is = new FileInputStream(objectFile)) {
-			putObjectDataVersionStream(bucketName, objectName, version, is);
-		}
-	}
-	
-	
 	/**
 	 * @param bucketName
 	 * @return
@@ -301,11 +217,11 @@ public class ODDrive extends ODModelObject implements Drive {
 																	
 		File metadata_dir 			= new File (this.getBucketsDirPath() + File.separator + bucketName);
 		File data_dir 				= new File (this.getRootDirPath() 	 + File.separator + bucketName);
+		File cache_dir 				= new File (this.getCacheDirPath() 	 + File.separator + bucketName);
 		File data_version_dir 		= new File (this.getRootDirPath() 	 + File.separator + bucketName + File.separator + VirtualFileSystemService.VERSION_DIR);
-
 		File work_dir 				= new File (this.getWorkDirPath() 	 + File.separator + bucketName);
-		//File data_work_dir 			= new File (this.getWorkDirPath() 	 + File.separator + bucketName + File.separator + VirtualFileSystemService.DATA);
-		//File metadata_work_dir		= new File (this.getWorkDirPath() 	 + File.separator + bucketName + File.separator + VirtualFileSystemService.METADATA);
+		
+		
 		
 		try {
 			
@@ -325,20 +241,16 @@ public class ODDrive extends ODModelObject implements Drive {
 			if ((!work_dir.exists()) || (!work_dir.isDirectory())) 
 				FileUtils.forceMkdir(work_dir);
 			
-			//if ((!data_work_dir.exists()) || (data_work_dir.isDirectory())) 
-			//	FileUtils.forceMkdir(data_work_dir);
-			
-			//if ((!metadata_work_dir.exists()) || (metadata_work_dir.isDirectory())) 
-			//	FileUtils.forceMkdir(metadata_work_dir);
+					
+			if ((!cache_dir.exists()) || (!cache_dir.isDirectory())) 
+				FileUtils.forceMkdir(cache_dir);
 			
 			saveBucketMetadata(meta);
 			
 			return data_dir;
 			
-		} catch (Exception e) {
-			String msg = 	"b:"   + (Optional.ofNullable(bucketName).isPresent()	? (bucketName) 	: "null") + 
-							", d:" + (Optional.ofNullable(getName()).isPresent() 	? (getName()) 	: "null");
-			throw new InternalCriticalException(e, msg);
+		} catch (Exception e) {	
+			throw new InternalCriticalException(e, "b:" + bucketName + ", d:" + getName());
 		}
 		
 		finally {
@@ -376,14 +288,13 @@ public class ODDrive extends ODModelObject implements Drive {
 	 * is in state DELETED</p>
 	 * */
 	@Override
-	public boolean existsObject(String bucketName, String objectName) {
+	public boolean existsObjectMetadata(String bucketName, String objectName) {
 		Check.requireNonNullStringArgument(bucketName, "bucketName is null");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null -> b:" + bucketName);
 		File objectMetadataDir = new File(this.getObjectMetadataDirPath(bucketName, objectName));
 		if (!objectMetadataDir.exists())
 			return false;
-		ObjectMetadata meta = getObjectMetadata(bucketName, objectName);
-		return (meta.status!=ObjectStatus.DELETED);
+		return (getObjectMetadata(bucketName, objectName).status != ObjectStatus.DELETED);
 	 }
 
 	
@@ -433,22 +344,10 @@ public class ODDrive extends ODModelObject implements Drive {
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null -> b:" + bucketName);
 		ObjectMetadata meta = getObjectMetadata(bucketName, objectName);
 		meta.status = ObjectStatus.DELETED;
-		saveObjectMetadata(meta);
+		saveObjectMetadata(meta, true);
 	}
 	
 
-	@Override
-	public void deleteObject(String bucketName, String objectName) {
-		deleteObject(bucketName, objectName, false); 
-	}
-	
-	@Override
-	public void deleteObjectMetadata(String bucketName, String objectName) {
-		deleteObject(bucketName, objectName, true);
-	}
-	
-	
-	
 	public void setName(String name) {
 		this.name = name;
 	}
@@ -457,6 +356,7 @@ public class ODDrive extends ODModelObject implements Drive {
 		this.rootDir = rootDir;
 	}
 	
+	@JsonIgnore
 	public List<DriveBucket> getBuckets() {
 		try {
 			this.drive_lock.readLock().lock();
@@ -474,88 +374,62 @@ public class ODDrive extends ODModelObject implements Drive {
 			return list;
 
 		} catch (Exception e) {
-			logger.error(e);
-			throw new InternalCriticalException(e);
+			throw new InternalCriticalException(e, "getBuckets");
 		}
 		finally {
 			this.drive_lock.readLock().unlock();
 		}
 	}
 
+	@JsonIgnore
 	@Override
 	public String getName() {
 		return name;
 	}
 	
 	/**
-	 * 
 	 */
-	@Override
-	public String toString() {
-		StringBuilder str = new StringBuilder();
-		str.append(this.getClass().getSimpleName() +"{");
-		str.append("\"name\": \"" + name + "\" ");
-		str.append(", \"directory\": \"" + rootDir + "\"");
-		if (driveInfo!=null)
-			str.append("\"status\": \"" + driveInfo.getStatus() + "\" ");
-		return str.toString();
-	}
-	
-	/**
-	 * 
-	 */
+	@JsonIgnore
 	@Override
 	public String getRootDirPath() 			{return rootDir;}
 	
+	@JsonIgnore
 	@Override
 	public String getSysDirPath() 			{return getRootDirPath() + File.separator + VirtualFileSystemService.SYS; }
 	
+	@JsonIgnore
 	@Override					
 	public String getWorkDirPath() 			{return getRootDirPath() + File.separator + VirtualFileSystemService.SYS + File.separator + VirtualFileSystemService.WORK; }
 
+	@JsonIgnore
+	@Override								
+	public String getCacheDirPath() 		{return getRootDirPath() + File.separator + VirtualFileSystemService.SYS + File.separator + VirtualFileSystemService.CACHE; }
+	
+	@JsonIgnore
 	@Override							
 	public String getSchedulerDirPath() 	{return getRootDirPath() + File.separator + VirtualFileSystemService.SYS + File.separator + VirtualFileSystemService.SCHEDULER; }
+
 	
+	@JsonIgnore
 	@Override
 	public String getJournalDirPath() 		{return getRootDirPath() + File.separator + VirtualFileSystemService.SYS + File.separator + VirtualFileSystemService.JOURNAL;}
 	
+	@JsonIgnore
 	@Override
 	public String getBucketsDirPath()		{return getRootDirPath() + File.separator + VirtualFileSystemService.SYS + File.separator + VirtualFileSystemService.BUCKETS;}
 	
+	@JsonIgnore
 	@Override
 	public String getTempDirPath() 			{return getRootDirPath() + File.separator + VirtualFileSystemService.SYS + File.separator + VirtualFileSystemService.TEMP;}
 
-	@Override
-	public File getObjectDataFile(String bucketName, String objectName) {
-		return new File(this.getRootDirPath() + File.separator + bucketName + File.separator + objectName);
-	}
-
-	@Override
-	public File getObjectDataVersionFile(String bucketName, String objectName, int version) {
-		return new File(getObjectDataVersionFilePath(bucketName, objectName, version));
-	}
-	
-	@Override
-	public String getObjectDataFilePath(String bucketName, String objectName) {
-		return this.getRootDirPath() + File.separator + bucketName + File.separator + objectName;
-	}
-	
-	@Override
-	public String getObjectDataVersionFilePath(String bucketName, String objectName, int version) {
-		return this.getRootDirPath() + File.separator + bucketName + File.separator + VirtualFileSystemService.VERSION_DIR + File.separator + objectName + VirtualFileSystemService.VERSION_EXTENSION + String.valueOf(version);
-	}
-	
 	
 	/**
-	 * ObjectMetadata
+	 * <p>ObjectMetadata</p>
 	 */
 	@Override
 	public ObjectMetadata getObjectMetadata(String bucketName, String objectName) {
 		try {
-			File file = getObjectMetadataFile(bucketName,objectName);
-			ObjectMetadata meta = getObjectMapper().readValue(file, ObjectMetadata.class);
-			return meta;
-			
+			return getObjectMapper().readValue(getObjectMetadataFile(bucketName,objectName), ObjectMetadata.class);
 		} catch (Exception e) {
 			throw new InternalCriticalException(e);
 		}
@@ -571,42 +445,68 @@ public class ODDrive extends ODModelObject implements Drive {
 	@Override
 	public ObjectMetadata getObjectMetadataVersion(String bucketName, String objectName, int version) {
 		try {
+
+			Check.requireNonNullStringArgument(bucketName, "bucketName is null");
+			Check.requireNonNullStringArgument(objectName, "objectName is null");
+
 			File file = getObjectMetadataVersionFile(bucketName,objectName, version);
 
 			if (!file.exists())
 				return null;
 			
-			ObjectMetadata meta = getObjectMapper().readValue(file, ObjectMetadata.class);
-			return meta;
+			return getObjectMapper().readValue(file, ObjectMetadata.class);
 			
 		} catch (Exception e) {
-			throw new InternalCriticalException(e);
+			throw new InternalCriticalException(e, "b:" + bucketName + " o:" + objectName);
 		}
 	}
 	
 	
-	
-	@Override
+	/**
+	 * Head Version	
+	 */
 	public void saveObjectMetadata(ObjectMetadata meta) {
+		saveObjectMetadata(meta, true);
+	}
+	
+	public void saveObjectMetadataVersion(ObjectMetadata meta) {
+		saveObjectMetadata(meta, false);
+	}
+	
+	protected void saveObjectMetadata(ObjectMetadata meta, boolean isHead) {
+			
+		Check.requireNonNullArgument(meta, "meta");
+		Check.requireNonNullStringArgument(meta.bucketName, "bucketName is null");
+		Check.requireNonNullStringArgument(meta.objectName, "objectName is null");
+
+		Optional<Integer> version = isHead ? Optional.empty() : Optional.of(meta.version);
+		
 		try {
 			File dir = new File (getObjectMetadataDirPath(meta.bucketName, meta.objectName));
+			
 			if (!dir.exists())
 				FileUtils.forceMkdir(dir);
-			String fileName = meta.objectName + ServerConstant.JSON;
+			
 			meta.lastModified=OffsetDateTime.now();
 			String jsonString = getObjectMapper().writeValueAsString(meta);
-			Files.writeString(Paths.get(getObjectMetadataDirPath(meta.bucketName, meta.objectName) + File.separator + fileName), jsonString);
 			
+			if (isHead)
+				Files.writeString(Paths.get(getObjectMetadataDirPath(meta.bucketName, meta.objectName) + File.separator + meta.objectName + ServerConstant.JSON), jsonString);
+			else
+				Files.writeString(Paths.get(getObjectMetadataVersionFilePath(meta.bucketName, meta.objectName, version.get().intValue())), jsonString);
+
 		} catch (Exception e) {
-			throw new InternalCriticalException(e);
+			throw new InternalCriticalException(e, "b:" + meta.bucketName + "o: + " + meta.objectName + " v: " + (version.isPresent()? String.valueOf(version.get()):"head"));
 		}
 	}
 	
 	@Override
 	public void removeScheduler(ServiceRequest serviceRequest, String queueId) {
+		
+		Check.requireNonNullStringArgument(queueId, "queueId is null");
+		
 		try {
-
-			String name = getSchedulerDirPath() + File.separator + queueId + File.separator + serviceRequest.getId() +".json";
+			String name = getSchedulerDirPath() + File.separator + queueId + File.separator + serviceRequest.getId() + ServerConstant.JSON;
 			File file = new File(name);
 			if (file.exists())
 				Files.delete(Paths.get(name));
@@ -614,13 +514,16 @@ public class ODDrive extends ODModelObject implements Drive {
 				logger.debug("Remove file not found -> d: " + getName() +" | f:" + (file!=null?file.getName():"null"));
 			
 		} catch (Exception e) {
-			String msg = "op: " + (Optional.ofNullable(serviceRequest).isPresent() ? (serviceRequest.toString()):"null");
-			throw new InternalCriticalException(e, msg);
+			throw new InternalCriticalException(e, "op: " + (Optional.ofNullable(serviceRequest).isPresent() ? (serviceRequest.toString()):"null"));
 		}
 	}
 
 	@Override
 	public void saveScheduler(ServiceRequest serviceRequest, String queueId) {
+		
+		Check.requireNonNullStringArgument(queueId, "queueId is null");
+		Check.requireNonNullArgument( serviceRequest, "serviceRequest is null");
+		
 		try {
 			
 			String jsonString = getObjectMapper().writeValueAsString(serviceRequest);
@@ -628,25 +531,23 @@ public class ODDrive extends ODModelObject implements Drive {
 			File dir = new File(getSchedulerDirPath() + File.separator +  queueId);
 			if (!dir.exists() || !dir.isDirectory()) {
 				try {
-					logger.debug("Creating Directory -> " + dir.getName());
 					io.odilon.util.ODFileUtils.forceMkdir(dir);
-					
 				} catch (IOException e) {
 					throw new InternalCriticalException(e, "Can not create dir -> d: " + getName() + " dir:" + dir.getName());
 				}
 			}
-			
-			String name = getSchedulerDirPath() + File.separator + queueId + File.separator + serviceRequest.getId() +".json";
+			String name = getSchedulerDirPath() + File.separator + queueId + File.separator + serviceRequest.getId() + ServerConstant.JSON;
 			Files.writeString(Paths.get(name), jsonString);
 			
 		} catch (Exception e) {
-			String msg = "op: " + (Optional.ofNullable(serviceRequest).isPresent() ? (serviceRequest.toString()):"null");
-			throw new InternalCriticalException(e, msg);
+			throw new InternalCriticalException(e, "op: " + (Optional.ofNullable(serviceRequest).isPresent() ? (serviceRequest.toString()):"null"));
 		}
 	}
 	
 	@Override
-	public synchronized List<File> getSchedulerRequests( String queueId ) {
+	public synchronized List<File> getSchedulerRequests(String queueId ) {
+
+		Check.requireNonNullStringArgument(queueId, "queueId is null");
 		try {
 			List<File> ret = new ArrayList<File>();
 			File schedulerDir = new File (getSchedulerDirPath() + File.separator + queueId);
@@ -660,16 +561,17 @@ public class ODDrive extends ODModelObject implements Drive {
 		return ret;
 			
 		} catch (Exception e) {
-			logger.error(e);
-			throw new InternalCriticalException(e);
+			throw new InternalCriticalException(e, "getSchedulerRequests " + queueId);
 		}
 	}
 	
 	@Override
 	public void saveJournal(VFSOperation op) {
+		
+		Check.requireNonNullArgument(op, "op is null");
 		try {
 			String jsonString = getObjectMapper().writeValueAsString(op);
-			Files.writeString(Paths.get(getJournalDirPath() + File.separator + op.getId() +".json"), jsonString);
+			Files.writeString(Paths.get(getJournalDirPath() + File.separator + op.getId() +ServerConstant.JSON), jsonString);
 		} catch (Exception e) {
 			throw new InternalCriticalException(e, "op: " + (Optional.ofNullable(op).isPresent() ? (op.toString()) : "null"));
 		}
@@ -677,8 +579,9 @@ public class ODDrive extends ODModelObject implements Drive {
 	
 	@Override
 	public void removeJournal(String id) {
+		Check.requireNonNullArgument(id, "id is null");
 		try {
-			Files.delete(Paths.get(getJournalDirPath() + File.separator + id + ".json"));
+			Files.delete(Paths.get(getJournalDirPath() + File.separator + id + ServerConstant.JSON));
 		} catch (Exception e) {
 			throw new InternalCriticalException(e, "id: " + (Optional.ofNullable(id).isPresent() ? id : "null"));
 		}
@@ -695,9 +598,7 @@ public class ODDrive extends ODModelObject implements Drive {
 		return new File(getObjectMetadataVersionFilePath(bucketName, objectName, version));
 	}
 
-	
 	/**
-	 * 
 	 * @param bucketName
 	 * @param objectName
 	 * @param version
@@ -709,20 +610,13 @@ public class ODDrive extends ODModelObject implements Drive {
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucketName);
 		Check.requireNonNullArgument(stream, "stream is null");
 		
-		
 		try {
 			transferTo(stream, this.getObjectMetadataVersionFilePath(bucketName,  objectName, version));
 		}
 		 catch (Exception e) {
-			 String msg = 	"b:"  + (Optional.ofNullable(bucketName).isPresent()  ? (bucketName) 		:"null") + 
-					 		", o:" + (Optional.ofNullable(objectName).isPresent() ? (objectName)     	:"null") +
-					 		", version:" + String.valueOf(version) +
-					 		", d:" + (Optional.ofNullable(getName()).isPresent()  ? (getName())  		:"null");
-			throw new InternalCriticalException(e,msg);
+			throw new InternalCriticalException(e,"b:"  + bucketName+ ", o:" + objectName+", version:" + String.valueOf(version) +", d:" + getName());
 		}
 	}
-	
-	
 	
 	/**
 	 * 
@@ -733,8 +627,7 @@ public class ODDrive extends ODModelObject implements Drive {
 		 try {
 			 Files.delete(Paths.get(this.getRootDirPath() + File.separator +  VirtualFileSystemService.SYS +File.separator +  fileName));
 		} catch (Exception e) {
-				 String msg = 	"f:"  + (Optional.ofNullable(fileName).isPresent()    ? (fileName) 		: "null"); 
-					throw new InternalCriticalException(e, msg);
+				throw new InternalCriticalException(e, "f:"  + fileName + " d:" + getName());
 		}
 	}
 
@@ -742,7 +635,6 @@ public class ODDrive extends ODModelObject implements Drive {
 	 * 
 	 * 
 	 */
-
 	@Override 
 	public void putSysFile(String fileName, String content) {
 			Check.requireNonNullStringArgument(fileName, "fileName is null");
@@ -750,9 +642,7 @@ public class ODDrive extends ODModelObject implements Drive {
 		 try {
 			Files.writeString(Paths.get(this.getRootDirPath() + File.separator +  VirtualFileSystemService.SYS +File.separator +  fileName), content);
 		 } catch (Exception e) {
-			 String msg = 	"f:"  + (Optional.ofNullable(fileName).isPresent()    ? (fileName) 		:"null") + 
-					 		", d:" + (Optional.ofNullable(getName()).isPresent() ? (getName())  	:"null");
-				throw new InternalCriticalException(e, msg);
+				throw new InternalCriticalException(e, "f:"  + fileName + " d:" + getName());
 		 }
 	 }
 	 
@@ -777,8 +667,7 @@ public class ODDrive extends ODModelObject implements Drive {
 	        	return !entries.filter(pa -> pa.toFile().isDirectory()).findFirst().isPresent();
 	        	
 	        } catch (IOException e) {
-	        	String msg = "b:"  + (Optional.ofNullable(bucketName).isPresent() ? (bucketName) :"null");
-				throw new InternalCriticalException(e, msg);
+				throw new InternalCriticalException(e, "b:"  + bucketName);
 			}
 		}
 		return true;
@@ -790,6 +679,7 @@ public class ODDrive extends ODModelObject implements Drive {
 		this.status=status;
 	}
 	
+	@JsonIgnore
 	public ServiceStatus getStatus() {
 		return this.status;
 	}
@@ -830,36 +720,89 @@ public class ODDrive extends ODModelObject implements Drive {
 			while ((bytesRead = stream.read(buf, 0, buf.length)) >= 0)
 				  out.write(buf, 0, bytesRead);
 		} catch (IOException e) {
-			logger.error(e);
 			throw (e);		
 
 		} finally {
 		
-			if (stream!=null) { 
-				try {
-					stream.close();
-				} catch (IOException e) {
-					logger.error(e);
-					throw (e);
-				}	
-			}
+			if (stream!=null) 
+				stream.close();
 			
-			if (out!=null) { 
-				try {
-					out.close();
-				} catch (IOException e) {
-					logger.error(e);
-					throw (e);
-				}	
-			}
+			if (out!=null)  
+				out.close();
 		}
 	}
 
+	@JsonIgnore
+	@Override
+	public long getAvailableSpace() {
+		 File file = new File(getRootDirPath());
+		 return file.getUsableSpace();
+	}
+	
+	
+	@JsonIgnore
+	@Override
+	public long getTotalSpace() {
+		 File file=new File(getRootDirPath());
+		 return file.getTotalSpace();
+	}
+
+	public void setConfigOrder(int order) {
+		this.configOrder=order;
+	}
+	
+	@JsonIgnore
+	@Override
+	public int getConfigOrder() {
+		return this.configOrder;
+	}
+	
+	public synchronized void cleanUpCacheDir(String bucketName) {
+		Check.requireNonNullStringArgument(bucketName, "bucketName is null");
+		try {
+					int n=0;
+					File bucketDir = new File (getBucketCacheDirPath(bucketName));
+					if (bucketDir.exists()) {
+						File files[] = bucketDir.listFiles();
+						for (File fi:files) {
+							FileUtils.deleteQuietly(fi);
+							if (n++>50000)
+								break;
+						}
+					}
+					if (n>0)
+						logger.debug("Removed temp files from d: " + getName() + " dir:"+ getBucketCacheDirPath(bucketName) + " | b:" + bucketName+ " total:" + String.valueOf(n));
+		} catch (Exception e) {
+			logger.error(e, ServerConstant.NOT_THROWN);
+		}
+	}
+	
+	public synchronized void cleanUpWorkDir(String bucketName) {
+		Check.requireNonNullStringArgument(bucketName, "bucketName is null");
+		try {
+					int n=0;
+					File bucketDir = new File (getBucketWorkDirPath(bucketName));
+					if (bucketDir.exists()) {
+						File files[] = bucketDir.listFiles();
+						for (File fi:files) {
+							FileUtils.deleteQuietly(fi);
+							if (n++>50000)
+								break;
+						}
+					}
+					if (n>0)
+						logger.debug("Removed temp files from d: " + getName() + " dir:"+ getBucketWorkDirPath(bucketName) + " | b:" + bucketName+ " total:" + String.valueOf(n));
+		} catch (Exception e) {
+			logger.error(e, ServerConstant.NOT_THROWN);
+		}
+	}
+
+	
 	/**
 	 * 
 	 */
 	@PostConstruct
-	protected synchronized void onInitialize() {
+	protected void onInitialize() {
 
 		try {
 
@@ -901,9 +844,13 @@ public class ODDrive extends ODModelObject implements Drive {
 			if (!work.exists() || !work.isDirectory())
 				createWorkDirectory();
 			
+			/** file cache */
+			File cache = new File(getCacheDirPath());
+			if (!cache.exists() || !cache.isDirectory())
+				createCacheDirectory();
+			
 			/** version directory for data */ 
 			checkWorkBucketDirs();
-			
 
 			/** scheduler */
 			File scheduler = new File(getSchedulerDirPath());
@@ -913,7 +860,7 @@ public class ODDrive extends ODModelObject implements Drive {
 			DriveInfo info = readDriveMetadata();
 			
 			if (readDriveMetadata()==null) {
-				info = new DriveInfo(getName(), randomString(12), OffsetDateTime.now(), DriveStatus.NOTSYNC);
+				info = new DriveInfo(getName(), randomString(12), OffsetDateTime.now(), DriveStatus.NOTSYNC, getConfigOrder());
 				saveDriveMetadata(info);
 			}
 			
@@ -924,7 +871,6 @@ public class ODDrive extends ODModelObject implements Drive {
 			setStatus(ServiceStatus.RUNNING);
 			
 		} catch (Exception e) {
-			logger.error(e);
 			setStatus(ServiceStatus.STOPPED);
 			throw new InternalCriticalException(e, "Drive Startup | d:" + getName());
 		}
@@ -938,7 +884,7 @@ public class ODDrive extends ODModelObject implements Drive {
 	/**
 	 * 
 	 */
-	private void deleteBucketInternal(String bucketName) {
+	protected void deleteBucketInternal(String bucketName) {
 		
 		Check.requireNonNullStringArgument(bucketName, "bucketName is null");
 		Check.requireTrue( isEmpty(bucketName), "bucket is not empty -> b: " + bucketName );
@@ -990,29 +936,25 @@ public class ODDrive extends ODModelObject implements Drive {
 	}
 	
 
-	private BucketMetadata getBucketMetadata(String bucketName) {
+	protected BucketMetadata getBucketMetadata(String bucketName) {
+		Check.requireNonNullStringArgument(bucketName, "bucketName is null");
 		try {
-				return getObjectMapper().readValue(Paths.get(this.getBucketsDirPath() + File.separator + bucketName + File.separator + bucketName+".json").toFile(), BucketMetadata.class);
+				return getObjectMapper().readValue(Paths.get(this.getBucketsDirPath() + File.separator + bucketName + File.separator + bucketName+ServerConstant.JSON).toFile(), BucketMetadata.class);
 		} catch (IOException e) {
-			logger.error(e);
-			String msg = 	"b:"   + (Optional.ofNullable(bucketName).isPresent()    ? (bucketName) 		:"null") + 
-							", d:" + (Optional.ofNullable(getName()).isPresent() ? (getName())  	:"null");
-			throw new InternalCriticalException(e, msg);
+			throw new InternalCriticalException(e, "b:" + bucketName + ", d:" + getName());
 		}
 	}
 	
 	
-	private void saveBucketMetadata(BucketMetadata meta) {
+	protected void saveBucketMetadata(BucketMetadata meta) {
 		Check.requireNonNullArgument(meta, "meta is null");
 		try {
 			String jsonString = getObjectMapper().writeValueAsString(meta);
-			Files.writeString(Paths.get(this.getBucketsDirPath() + File.separator + meta.bucketName + File.separator + meta.bucketName+".json"), jsonString);
+			Files.writeString(Paths.get(this.getBucketsDirPath() + File.separator + meta.bucketName + File.separator + meta.bucketName+ServerConstant.JSON), jsonString);
 			this.driveBuckets.put(meta.bucketName, new DriveBucket(this, meta));
 		
 		} catch (Exception e) {
-			String msg = 	"b:"   + (Optional.ofNullable(meta.bucketName).isPresent()    ? (meta.bucketName) 		:"null") + 
-							", d:" + (Optional.ofNullable(getName()).isPresent() ? (getName())  	:"null");
-			throw new InternalCriticalException(e, msg);
+			throw new InternalCriticalException(e, "b:" + meta.bucketName + ", d:" + getName());
 		}
 	}
 	
@@ -1021,7 +963,7 @@ public class ODDrive extends ODModelObject implements Drive {
 	/**
 	 * @param bucketName
 	 */
-	private void createDataBucketDirIfNotExists(String bucketName) {
+	protected void createDataBucketDirIfNotExists(String bucketName) {
 		try {
 
 			this.drive_lock.writeLock().lock();
@@ -1038,7 +980,6 @@ public class ODDrive extends ODModelObject implements Drive {
 			}
 			
 		} catch (IOException e) {
-			logger.error(e);										
 			throw new InternalCriticalException(e, "Can not create Bucket Data Directory -> d:" + getName() + " b:" + (Optional.ofNullable(bucketName).orElse("null")));
 		}
 		finally {
@@ -1046,7 +987,11 @@ public class ODDrive extends ODModelObject implements Drive {
 		}
 	}
 
-	private void createRootDirectory() {
+	protected boolean existBucketMetadataDir(String bucketName) {
+		return Files.exists(Paths.get(this.getBucketMetadataDirPath(bucketName)));
+	}
+	
+	protected void createRootDirectory() {
 		try {
 			logger.debug("Creating Data Directory -> " + getRootDirPath());
 			io.odilon.util.ODFileUtils.forceMkdir(new File(getRootDirPath()));
@@ -1056,14 +1001,13 @@ public class ODDrive extends ODModelObject implements Drive {
 		}
 	}
 
-	private void createSysDirectory() {
+	protected void createSysDirectory() {
 		try {
 			logger.debug("Creating Directory -> " + getSysDirPath());
 			io.odilon.util.ODFileUtils.forceMkdir(new File(getSysDirPath()));
 			
 		} catch (IOException e) {
 			String msg = "Can not create sys Directory ->  dir:" +getSysDirPath()  + "  d:" + name;	
-			logger.error(e, msg);
 			throw new InternalCriticalException(e, msg);
 		}
 	}
@@ -1077,11 +1021,24 @@ public class ODDrive extends ODModelObject implements Drive {
 			
 		} catch (IOException e) {											
 			String msg = "Can not create work Directory ->  dir:" +getWorkDirPath()  + "  d:" + name;	
-			logger.error(e, msg);
 			throw new InternalCriticalException(e, msg);
 	}
 	}
 
+	private void createCacheDirectory() {
+		try {
+			
+			logger.debug("Creating Directory -> " + getCacheDirPath());
+			io.odilon.util.ODFileUtils.forceMkdir(new File(getCacheDirPath()));
+			
+		} catch (IOException e) {											
+			String msg = "Can not create cache Directory ->  dir:" +getCacheDirPath()  + "  d:" + name;	
+			throw new InternalCriticalException(e, msg);
+		}
+	}
+
+	
+	
 	private void createSchedulerDirectory() {
 		try {		
 			logger.debug("Creating Directory -> " + getSchedulerDirPath());
@@ -1089,7 +1046,6 @@ public class ODDrive extends ODModelObject implements Drive {
 			
 		} catch (IOException e) {
 			String msg = "Can not create scheduler Directory ->  dir:" +getSchedulerDirPath()  + "  d:" + name;	
-			logger.error(e, msg);
 			throw new InternalCriticalException(e, msg);
 		}
 	}
@@ -1102,7 +1058,6 @@ public class ODDrive extends ODModelObject implements Drive {
 			
 		} catch (IOException e) {
 			String msg = "Can not create Buckets Metadata Directory ->  dir:" +getBucketsDirPath()  + "  d:" + name;	
-			logger.error(e, msg);
 			throw new InternalCriticalException(e, msg);
 		}
 	}
@@ -1115,7 +1070,6 @@ public class ODDrive extends ODModelObject implements Drive {
 			
 		} catch (IOException e) {
 			String msg = "Can not create Journal Directory ->  dir:" +getJournalDirPath()  + "  d:" + name;	
-			logger.error(e, msg);
 			throw new InternalCriticalException(e, msg);
 
 		}
@@ -1128,29 +1082,23 @@ public class ODDrive extends ODModelObject implements Drive {
 			
 		} catch (IOException e) {
 			String msg = "Can not create temp Directory ->  dir:" +getTempDirPath()  + "  d:" + name;	
-			logger.error(e, msg);
 			throw new InternalCriticalException(e, msg);
 		}
 	}
 
-	private boolean existBucketMetadataDir(String bucketName) {
-		return Files.exists(Paths.get(this.getBucketMetadataDirPath(bucketName)));
-	}
+	
 
 
 	
 	private void checkWorkBucketDirs() {
-
 		Path start = new File(this.getBucketsDirPath()).toPath();
 		Stream<Path> stream = null;
-		
 		try {
 			stream = Files.walk(start, 1).
 					skip(1).
 					filter(file -> Files.isDirectory(file));
 		} catch (IOException e) {
-			logger.error(e);
-			throw new InternalCriticalException(e);
+			throw new InternalCriticalException(e, "checkWorkBucketDirs");
 		}
 		
 		try {
@@ -1162,6 +1110,7 @@ public class ODDrive extends ODModelObject implements Drive {
 				Path bucket=it.next();
 				
 				String bucketName = bucket.toFile().getName();
+				
 				File workDir = new File (getBucketWorkDirPath(bucketName));
 				if (!workDir.exists()) {
 					logger.debug("Creating Directory -> " + workDir.getName());
@@ -1172,28 +1121,16 @@ public class ODDrive extends ODModelObject implements Drive {
 					}
 				}
 				
-				/**
-				File data= new File (getBucketWorkDataDirPath(bucketName));
-				File metadata = new File (getBucketWorkMetadataDirPath(bucketName));
 				
-				if (!data.exists()) {
-					logger.debug("Creating Directory -> " + data.getName());
+				File cacheDir = new File (getBucketCacheDirPath(bucketName));
+				if (!cacheDir.exists()) {
+					logger.debug("Creating Directory -> " + cacheDir.getName());
 					try {
-						io.odilon.util.ODFileUtils.forceMkdir(data);
+						io.odilon.util.ODFileUtils.forceMkdir(cacheDir);
 					} catch (IOException e) {
-						throw new InternalCriticalException(e, "Can not create -> " + data.getName());
+						throw new InternalCriticalException(e, "Can not create -> " + cacheDir.getName());
 					}
 				}
-				
-				if (!metadata.exists()) {
-					logger.debug("Creating Directory -> " + metadata.getName());
-					try {
-						io.odilon.util.ODFileUtils.forceMkdir(metadata);
-					} catch (IOException e) {
-						throw new InternalCriticalException(e, "Can not create -> " + metadata.getName());
-					}
-				}
-				**/
 			}
 		} finally {
 			if (stream!=null)
@@ -1212,8 +1149,7 @@ public class ODDrive extends ODModelObject implements Drive {
 					filter(file -> Files.isDirectory(file)).
 					filter(file -> (!file.getFileName().toString().equals(VirtualFileSystemService.SYS)));
 		} catch (IOException e) {
-			logger.error(e);
-			throw new InternalCriticalException(e);
+			throw new InternalCriticalException(e, "checkBucketDataVersionDirs");
 		}
 	
 		try {
@@ -1262,14 +1198,12 @@ public class ODDrive extends ODModelObject implements Drive {
 						try {
 							driveBuckets.put(item.toFile().getName(), new DriveBucket(ODDrive.this,  getBucketMetadata(item.toFile().getName())));
 						} catch (IOException e) {
-							logger.error(e);
-							throw new InternalCriticalException(e);
+							throw new InternalCriticalException(e, "loadbuckets");
 						}
 					}
 				);
 			} catch (IOException e) {
-				logger.error(e);
-				throw new InternalCriticalException(e);
+				throw new InternalCriticalException(e, "loadbuckets");
 			}
 		}
 		finally {
@@ -1279,6 +1213,7 @@ public class ODDrive extends ODModelObject implements Drive {
 	 
 	 
 	private synchronized void saveDriveMetadata(DriveInfo info) {
+		Check.requireNonNullArgument(info, "info is null");
 		String jsonString = null;	
 		try {
 				
@@ -1286,13 +1221,12 @@ public class ODDrive extends ODModelObject implements Drive {
 			Files.writeString(Paths.get(getSysDirPath() + File.separator + VirtualFileSystemService.DRIVE_INFO), jsonString);
 				
 			} catch (Exception e) {
-				String msg = "json:"  + (Optional.ofNullable(jsonString).isPresent()? jsonString : "null");
-				logger.error(e, msg);
-				throw new InternalCriticalException(e);
+				throw new InternalCriticalException(e, "json:"  + (Optional.ofNullable(jsonString).isPresent()? jsonString : "null"));
 			}
 		}
 		
 	private synchronized DriveInfo readDriveMetadata() {
+		
 		File file = null;	
 		try {
 				file = new File(getSysDirPath() + File.separator + VirtualFileSystemService.DRIVE_INFO);
@@ -1303,64 +1237,16 @@ public class ODDrive extends ODModelObject implements Drive {
 				return getObjectMapper().readValue(file, DriveInfo.class);
 				
 			} catch (Exception e) {
-				String msg = "f:"  + (Optional.ofNullable(file).isPresent()? file.getName():"null");
-				logger.error(e, msg);
-			throw new InternalCriticalException(e);
+				throw new InternalCriticalException(e, "f:"  + (Optional.ofNullable(file).isPresent()? file.getName():"null"));
 			}
 		}
-
- 
 	
-	private File putObjectDataVersionStream(String bucketName, String objectName, int version, InputStream stream) throws IOException {
 
-		Check.requireNonNullArgument(bucketName, "bucketName is null");
-		Check.requireNonNullStringArgument(objectName, "objectName can not be null -> b:" + bucketName);
-		
-		try {
-
-			String dataFilePath = this.getObjectDataVersionFilePath(bucketName, objectName, version); 
-			transferTo(stream, dataFilePath);
-			return new File(dataFilePath);
-		}
-		 catch (IOException e) {
-				String msg = 	"b:"   + (Optional.ofNullable(bucketName).isPresent()? (bucketName):"null") + 
-								", o:" + (Optional.ofNullable(objectName).isPresent()? (objectName):"null") +
-								", d:" + (Optional.ofNullable(getName()).isPresent() ? (getName()) :"null");
-			logger.error(e, msg);
-			throw (e);
-		}
-	}
 	
-	/**
-	 * 
-	 */
-	
-	private void deleteObject(String bucketName, String objectName, boolean onlyMetadata) {
-
-		Check.requireNonNullStringArgument(bucketName, "bucketName is null");
-		Check.requireNonNullStringArgument(objectName, "objectName can not be null -> b:" + bucketName);
-		
-		
-		/** Delete Metadata directory */
-		File metaDir = new File (this.getObjectMetadataDirPath(bucketName, objectName));
-
-		if (metaDir.exists())
-			FileUtils.deleteQuietly(metaDir);
-		
-		if (onlyMetadata)
-			return;
-		
-		/** Deletes data object */
-		File data = new File (this.getRootDirPath() + File.separator + bucketName + File.separator + objectName);
-		if (data.exists()) 
-			FileUtils.deleteQuietly(data);
-	}
-
 	private String getObjectMetadataFilePath(String bucketName, String objectName) {
 		return getObjectMetadataDirPath(bucketName, objectName) + File.separator + objectName +  ServerConstant.JSON; 
 	}
 
-	
 	
 	private String getObjectMetadataVersionFilePath(String bucketName, String objectName, int version) {
 		return getObjectMetadataDirPath(bucketName, objectName) + File.separator + objectName + VirtualFileSystemService.VERSION_EXTENSION + String.valueOf(version) + ServerConstant.JSON;
@@ -1380,16 +1266,24 @@ public class ODDrive extends ODModelObject implements Drive {
 		Check.requireNonNullArgument(stream, "stream is null");
 		
 		if (!existBucketMetadataDir(bucketName))
-			  throw new IllegalArgumentException("Bucket Metadata Directory must exist -> d:" + getName() + " | dir:" + bucketName);
-		
+			  throw new IllegalArgumentException("Bucket Metadata Directory must exist -> d:" + getName() + " | b:" + bucketName);
 		try {
 			transferTo(stream, this.getBucketMetadataDirPath(bucketName) + File.separator + objectName + File.separator + objectName + ServerConstant.JSON);
 		}
 		 catch (Exception e) {
-			 String msg = 	"b:"  + (Optional.ofNullable(bucketName).isPresent()    ? (bucketName) 		:"null") + 
-					 		", o:" + (Optional.ofNullable(objectName).isPresent() ? (objectName)     	:"null") +
-					 		", d:" + (Optional.ofNullable(getName()).isPresent() ? (getName())  		:"null");
-			throw new InternalCriticalException(e,msg);
+			throw new InternalCriticalException(e,"b:" + bucketName + ", o:" +objectName + getName());
 		}
 	}
+
+	/** Delete Metadata directory */
+	@Override
+	public void deleteObjectMetadata(String bucketName, String objectName) {
+		Check.requireNonNullStringArgument(bucketName, "bucketName is null");
+		Check.requireNonNullStringArgument(objectName, "objectName can not be null -> b:" + bucketName);
+		FileUtils.deleteQuietly(new File (this.getObjectMetadataDirPath(bucketName, objectName)));
+	}
+
+
+
+	
 }

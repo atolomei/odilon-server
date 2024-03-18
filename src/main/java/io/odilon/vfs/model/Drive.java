@@ -19,8 +19,8 @@ package io.odilon.vfs.model;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.List;
+import java.util.Optional;
 
 import io.odilon.model.BucketMetadata;
 import io.odilon.model.ObjectMetadata;
@@ -28,76 +28,25 @@ import io.odilon.scheduler.ServiceRequest;
 import io.odilon.vfs.DriveInfo;
 
 /**
- * A Drive or Volume is File System directory that acts as a storage unit
+ * <p>A Drive or Volume is File System directory that acts 
+ * as a storage unit</p>
  * 
- * Data
- * Control
- * Sys
- * Work
+ * <p>a Drive is <b>not</b> ThreadSafe, 
+ * concurrency control is the responsibility of whoever uses its methods.</p> 
  * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public interface Drive {
 
 	/** -----------------
-	* DRIVE INFO  
+	* Drive Info  
 	------------------*/
 	public DriveInfo getDriveInfo();
 	public void setDriveInfo(DriveInfo info);
-	
-	/** -----------------
-	 * Bucket
-	 ------------------*/
-	public File createBucket(String bucketName, BucketMetadata meta) throws IOException; 	
-	public boolean existsBucket(String bucketName);
-	public void deleteBucket(String bucketName); 											
-	public List<DriveBucket> getBuckets();
-	public void markAsDeletedBucket(String bucketName);
-	public void markAsEnabledBucket(String bucketName);
-	public boolean isEmpty(String bucketName); 												
-	public String getBucketMetadataDirPath(String bucketName);
-	 
-	/** -----------------
-  	*  Object
- 	------------------*/
-	public boolean existsObject(String bucketName, String objectName);
-	public void deleteObject(String bucketName, String objectName);
-	public void markAsDeletedObject(String name, String objectName);
-	public String getObjectMetadataDirPath(String bucketName, String objectName);
-	
-	/** -----------------
-  	*  Object. Data File
- 	------------------*/
-     public String getObjectDataFilePath(String bucketName, String objectName);
-     public InputStream getObjectInputStream(String bucketName, String objectName);
-     public File putObjectStream(String bucketName, String objectName, InputStream stream) throws IOException;
-     public void putObjectDataFile(String bucketName, String objectName, File objectFile) throws IOException;
-	 public File getObjectDataFile(String bucketName, String objectName);
-     
-	 /** Object. Data File Version */
-	 public String getObjectDataVersionFilePath(String bucketName, String objectName, int version);
-	 public File getObjectDataVersionFile(String bucketName, String objectName, int version);
-     public void putObjectDataVersionFile(String bucketName, String objectName, int version, File objectFile) throws IOException;
 
-     
-	 /** -----------------
-	  *  ObjectMetadata 
-	 	------------------*/
-	 public ObjectMetadata getObjectMetadata(String bucketName, String objectName);
-	 public void saveObjectMetadata(ObjectMetadata meta);
-	 public void deleteObjectMetadata(String bucketName, String objectName);
-	 public File getObjectMetadataFile(String bucketName, String objectName);
-	 public void putObjectMetadataFile(String bucketName, String objectName, File metaFile) throws IOException;;
-	 
-	 /** ObjectMetadata. Version ---*/
-	
-	 public ObjectMetadata getObjectMetadataVersion(String bucketName, String objectName, int version);
-	 public File getObjectMetadataVersionFile(String bucketName, String objectName, int version);
-	 public void putObjectMetadataVersionFile(String bucketName, String objectName, int version, File metaFile) throws IOException;;
-	
-	 /** ---------------*/
-
-	 public String getBucketWorkDirPath(String bucketName);
 	 public void cleanUpWorkDir(String name);
+	 public void cleanUpCacheDir(String name);
+	 
 
 	/** -----------------
 	 *  Journal 
@@ -118,8 +67,12 @@ public interface Drive {
 	public String getRootDirPath();
 	public String getSysDirPath();
 	public String getBucketsDirPath();
-
+	public String getCacheDirPath();
+	public String getBucketCacheDirPath(String bucketName);
+	
 	public String getWorkDirPath();
+	public String getBucketWorkDirPath(String bucketName);
+	
 	String getJournalDirPath();
 	String getTempDirPath();
 	public String getSchedulerDirPath();
@@ -129,13 +82,52 @@ public interface Drive {
 	public long getAvailableSpace();
 	public String getName();
 	
+	/** order in the rootDirs variable in odilon.properties */
+	public int getConfigOrder();
+	
 	/** -----------------
 	  *  Scheduler
-    ------------------*/
+   ------------------*/
 	public void saveScheduler(ServiceRequest serviceRequest, String queueId);
 	public void removeScheduler(ServiceRequest serviceRequest, String queueId);
 	public List<File> getSchedulerRequests(String queueId);
+
 	
+	/** -----------------
+	 * Bucket
+	 ------------------*/
+	public File 				createBucket(String bucketName, BucketMetadata meta) throws IOException; 	
+	public boolean 				existsBucket(String bucketName);
+	public void 				deleteBucket(String bucketName); 											
+	public List<DriveBucket> 	getBuckets();
+	public void 				markAsDeletedBucket(String bucketName);
+	public void 				markAsEnabledBucket(String bucketName);
+	public boolean 				isEmpty(String bucketName); 												
+	public String 				getBucketMetadataDirPath(String bucketName);
+	public String 				getBucketObjectDataDirPath(String bucketName);
+	
+
+	/** ----------------------
+	 *  ObjectMetadata (head)
+		----------------------*/
+    public boolean existsObjectMetadata		(String bucketName, String objectName);
+    public void markAsDeletedObject			(String name, String objectName);
+    public String getObjectMetadataDirPath	(String bucketName, String objectName); 
+    public ObjectMetadata getObjectMetadata	(String bucketName, String objectName);
+	
+	public void deleteObjectMetadata		(String bucketName, String objectName);
+	
+	public void saveObjectMetadata			(ObjectMetadata meta);
+	public File getObjectMetadataFile		(String bucketName, String objectName);
+	public void putObjectMetadataFile		(String bucketName, String objectName, File metaFile) throws IOException;;
+	 
+	 /** ObjectMetadata. Version ---*/
+	public void saveObjectMetadataVersion			(ObjectMetadata meta);
+	public ObjectMetadata getObjectMetadataVersion	(String bucketName, String objectName, int version);
+	 public File getObjectMetadataVersionFile		(String bucketName, String objectName, int version);
+	 public void putObjectMetadataVersionFile		(String bucketName, String objectName, int version, File metaFile) throws IOException;
+	 
+	 
 	
 	
 }	

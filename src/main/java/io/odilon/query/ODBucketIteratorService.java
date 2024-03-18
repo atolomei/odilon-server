@@ -37,15 +37,20 @@ import io.odilon.log.Logger;
 import io.odilon.model.BaseService;
 import io.odilon.model.ServerConstant;
 import io.odilon.model.ServiceStatus;
-import io.odilon.service.Cleaner;
+import io.odilon.service.Scavenger;
 import io.odilon.util.Check;
-import io.odilon.vfs.model.VFSWalker;
+import io.odilon.vfs.model.BucketIterator;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
+
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 @Service
-public class ODWalkerService extends BaseService implements WalkerService {
+public class ODBucketIteratorService extends BaseService implements BucketIteratorService {
 		
-	static private Logger logger = Logger.getLogger(ODWalkerService.class.getName());	
+	static private Logger logger = Logger.getLogger(ODBucketIteratorService.class.getName());	
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 	
 	@JsonIgnore
@@ -55,15 +60,15 @@ public class ODWalkerService extends BaseService implements WalkerService {
 	private double ratePerMillisec = 1; 
 
 	@JsonIgnore
-	private Cleaner cleaner;
+	private Scavenger cleaner;
 	
 	@JsonIgnore																	
-	private ConcurrentMap<String, VFSWalker> walkers = new ConcurrentHashMap<>();
+	private ConcurrentMap<String, BucketIterator> walkers = new ConcurrentHashMap<>();
 	
 	@JsonIgnore																	
 	private ConcurrentMap<String, OffsetDateTime> lastAccess = new ConcurrentHashMap<>();
 	
-	public ODWalkerService() {
+	public ODBucketIteratorService() {
 	}
 	
 	public String toString() {
@@ -77,7 +82,7 @@ public class ODWalkerService extends BaseService implements WalkerService {
 	}
 	
 	@Override
-	public synchronized VFSWalker get(String agentId) {
+	public synchronized BucketIterator get(String agentId) {
 		Check.requireNonNullArgument(agentId, "agentId can not be null");
 			if (this.walkers.keySet().contains(agentId)) {
 				this.lastAccess.put(agentId, OffsetDateTime.now());
@@ -87,7 +92,7 @@ public class ODWalkerService extends BaseService implements WalkerService {
 	}
 			
 	@Override
-	public synchronized String register(VFSWalker walker) {
+	public synchronized String register(BucketIterator walker) {
 		 Check.requireNonNullArgument(walker, "walker can not be null");
 		 String agentId = newAgentId();
 		 walker.setAgentId(agentId);
@@ -98,7 +103,7 @@ public class ODWalkerService extends BaseService implements WalkerService {
 	
 	@Override
 	public synchronized void remove(String agentId) {
-		VFSWalker walker = null;
+		BucketIterator walker = null;
 		try {
 			this.lastAccess.remove(agentId);
 			walker=this.walkers.get(agentId);
@@ -118,13 +123,11 @@ public class ODWalkerService extends BaseService implements WalkerService {
 	
 	public VirtualFileSystemService getVFS() {
 		if (this.virtualFileSystemService==null) {
-			logger.error(	"The member of " + VirtualFileSystemService.class.getName() + 
-							" here must be asigned during the @PostConstruct method of the " +
-							VirtualFileSystemService.class.getName() + 
-							" instance. It can not be injected via AutoWired beacause of " +
-							"circular dependencies.");
-			
-			throw new IllegalStateException(VirtualFileSystemService.class.getName()+ " is null. it must be setted during the @PostConstruct method of the " + VirtualFileSystemService.class.getName() + " instance");
+			throw new IllegalStateException("The member of " + VirtualFileSystemService.class.getName() + 
+					" here must be asigned during the @PostConstruct method of the " +
+					VirtualFileSystemService.class.getName() + 
+					" instance. It can not be injected via AutoWired beacause of " +
+					"circular dependencies.");
 		}
 		return this.virtualFileSystemService;
 	}
@@ -140,7 +143,7 @@ public class ODWalkerService extends BaseService implements WalkerService {
 			try {
 				setStatus(ServiceStatus.STARTING);
 
-				this.cleaner = new Cleaner() {
+				this.cleaner = new Scavenger() {
 					
 			 		@Override
 			 		public void cleanUp() {
@@ -152,7 +155,7 @@ public class ODWalkerService extends BaseService implements WalkerService {
 			 			long start = System.currentTimeMillis();
 						List<String> list = new  ArrayList<String>();
 						try {
-			 				for (Entry<String, VFSWalker> entry: walkers.entrySet()) {
+			 				for (Entry<String, BucketIterator> entry: walkers.entrySet()) {
 			 					if (lastAccess.containsKey(entry.getValue().getAgentId())) {
 			 						if (lastAccess.get(entry.getValue().getAgentId()).
 			 								plusSeconds(ServerConstant.MAX_CONNECTION_IDLE_TIME_SECS).
@@ -163,11 +166,11 @@ public class ODWalkerService extends BaseService implements WalkerService {
 			 				}
 			 				
 			 				list.forEach( item -> {
-			 						VFSWalker walker = walkers.get(item);
+			 						BucketIterator walker = walkers.get(item);
 			 						try {
 										walker.close();
 									} catch (IOException e) {
-										logger.error(e);
+										logger.error(e, ServerConstant.NOT_THROWN);
 									}
 			 						logger.debug( "closing -> " + 
 			 										walkers.get(item).toString() + 
@@ -193,9 +196,9 @@ public class ODWalkerService extends BaseService implements WalkerService {
 				
 				Thread thread = new Thread(cleaner);
 		 		thread.setDaemon(true);
-		 		thread.setName(WalkerService.class.getSimpleName() + "Cleaner-" + Double.valueOf(Math.abs(Math.random()*1000000)).intValue());
+		 		thread.setName(BucketIteratorService.class.getSimpleName() + "Cleaner-" + Double.valueOf(Math.abs(Math.random()*1000000)).intValue());
 		 		thread.start();
-		 		startuplogger.debug("Started -> " + WalkerService.class.getSimpleName());
+		 		startuplogger.debug("Started -> " + BucketIteratorService.class.getSimpleName());
 				setStatus(ServiceStatus.RUNNING);
 			} catch (Exception e) {
 				setStatus(ServiceStatus.STOPPED);

@@ -24,31 +24,31 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import io.odilon.log.Logger;
+import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ServerConstant;
 import io.odilon.vfs.model.VFSop;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
+ * <p>ServiceRequest executed Async after a 
+ * {@code VFSop.DELETE_OBJECT} or {@code VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS}</p>  
  * 
- * 
- * <p>ServiceRequest executed Async after a {@code VFSop.DELETE_OBJECT} or {@code VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS}</p>  
- * 
- * 
- * <h3>VFSop.DELETE_OBJECT</h3>
+ * <b>VFSop.DELETE_OBJECT</b>
  * <p>Cleans up all previous versions of an {@link VFSObject} (ObjectMetadata and Data).<br/>
  * Delete backup directory. <br/>
  * This request is executed Async after the delete transaction commited.</p>
  *	 
- * <h3>VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS</h3>
+ * <b>VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS</b>
  * <p>Cleans up all previous versions of an {@link VFSObject} (ObjectMetadata and Data), but keeps the head version.<br/>
  * Delete backup directory. <br/>
  * This request is executed Async after the delete transaction commited.</p>
  *
- * <h3>RETRIES</h3>
+ * <b>RETRIES</b>
  * <p>if the request can not complete due to serious system issue, the request is discarded after 5 attemps. 
  * The clean up process will be executed after next system startup</p>
  * 
  * @see {@link RAIDZeroDeleteObjectHandler}, {@link RAIDOneDeleteObjectHandler} 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
   */
 @Component
 @Scope("prototype")
@@ -58,12 +58,9 @@ public class AfterDeleteObjectServiceRequest extends AbstractServiceRequest impl
 	static private Logger logger = Logger.getLogger(AfterDeleteObjectServiceRequest.class.getName());
 	
 	private static final long serialVersionUID = 1L;
-
-	@JsonProperty("bucketName")
-	String bucketName;
-	
-	@JsonProperty("objectName")
-	String objectName;
+ 
+	@JsonProperty("meta")
+	ObjectMetadata meta;
 	
 	@JsonProperty("headVersion")
 	int headVersion=0;
@@ -80,11 +77,10 @@ public class AfterDeleteObjectServiceRequest extends AbstractServiceRequest impl
 	protected AfterDeleteObjectServiceRequest() {
 	}
 	
-	public AfterDeleteObjectServiceRequest(VFSop vfsop, String bucketName, String objectName, int headVersion) {
+	public AfterDeleteObjectServiceRequest(VFSop vfsop, ObjectMetadata meta, int headVersion) {
 		
 		this.vfsop=vfsop;
-		this.bucketName=bucketName;
-		this.objectName=objectName;
+		this.meta=meta;
 		this.headVersion=headVersion;
 	}
 	
@@ -99,7 +95,6 @@ public class AfterDeleteObjectServiceRequest extends AbstractServiceRequest impl
 	@Override
 	public void execute() {
 		try {
-
 			setStatus(ServiceRequestStatus.RUNNING);
 			clean();
 			isSuccess=true;
@@ -114,8 +109,10 @@ public class AfterDeleteObjectServiceRequest extends AbstractServiceRequest impl
 
 	@Override
 	public String getUUID() {
-		return  ((bucketName!=null) ? bucketName :"null" ) + ":" + 
-				((objectName!=null) ? objectName :"null" );
+		if (meta==null)
+			return "null";
+		return  ((meta.bucketName!=null) ? meta.bucketName :"null" ) + ":" + 
+				((meta.objectName!=null) ? meta.objectName :"null" );
 	}
 	
 	@Override
@@ -128,18 +125,33 @@ public class AfterDeleteObjectServiceRequest extends AbstractServiceRequest impl
 		 isSuccess=true;
 	}
 
+	
+	/**
+	 * <p>There is nothing to do if the VFSOp or ObjectMetadata are null at this point. They should never have reached here</p> 
+	 * 
+	 */
 	private void clean() {
 			
 		VirtualFileSystemService vfs = getApplicationContext().getBean(VirtualFileSystemService.class);
 			
+		if (this.vfsop==null) {
+			logger.error("Invalid " + VFSop.class.getName() + " is null ", ServerConstant.NOT_THROWN);
+			return;
+		}
+		
+		
+		if (this.meta==null) {
+			logger.error("Invalid " + ObjectMetadata.class.getName() + " is null ", ServerConstant.NOT_THROWN);
+			return;
+		}
+		
 		if (this.vfsop==VFSop.DELETE_OBJECT)
-				vfs.createVFSIODriver().postObjectDeleteTransaction(bucketName, objectName, headVersion);
+				vfs.createVFSIODriver().postObjectDeleteTransaction(meta, headVersion);
 			
 		else if (this.vfsop==VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS) 
-				vfs.createVFSIODriver().postObjectPreviousVersionDeleteAllTransaction(bucketName, objectName, headVersion);
-			
+				vfs.createVFSIODriver().postObjectPreviousVersionDeleteAllTransaction(meta, headVersion);
 		else
-			logger.error("Invalid Class -> " + this.vfsop.getName());
+			logger.error("Invalid " + VFSop.class.getName() + " -> " + this.vfsop.getName(), ServerConstant.NOT_THROWN);
 	}
 
 }

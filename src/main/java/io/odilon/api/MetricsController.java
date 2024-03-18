@@ -37,23 +37,31 @@ import io.odilon.service.ObjectStorageService;
 import io.odilon.traffic.TrafficPass;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
+/**
+ * 
+ * <p>API endpoint for System monitoring metrics 
+ * see {@Link SystemMonitoringService}</p>
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 @RestController
 public class MetricsController extends BaseApiController {
 				
+	@SuppressWarnings("unused")
 	static private Logger logger = Logger.getLogger(MetricsController.class.getName());
 	
     
-    
-	private ServerSettings settings;
+	@Autowired
+	private final ServerSettings serverSettings;
 	
 	@Autowired
 	public MetricsController(		ObjectStorageService objectStorageService, 
 									VirtualFileSystemService virtualFileSystemService,
 									SystemMonitorService monitoringService,
-									ServerSettings settings) {
+									ServerSettings settings ) {
 		
 		super(objectStorageService, virtualFileSystemService, monitoringService);
-		this.settings = settings;
+		this.serverSettings = settings;
 	}
 	
 	
@@ -67,7 +75,7 @@ public class MetricsController extends BaseApiController {
 		
 		try {
 			pass = getTrafficControlService().getPass();	
-			return settings.toMap();
+			return serverSettings.toMap();
 		} finally {
 			if (pass!=null)
 				getTrafficControlService().release(pass);
@@ -88,7 +96,6 @@ public class MetricsController extends BaseApiController {
 		try {
 			
 			pass = getTrafficControlService().getPass();
-			
 			
 			SystemInfo info = objectStorageService.getSystemInfo();
 
@@ -128,7 +135,7 @@ public class MetricsController extends BaseApiController {
 			str.append("\n");
 			str.append("\n");
 			
-			for (String s : this.settings.getAppCharacterName())
+			for (String s : this.serverSettings.getAppCharacterName())
 				str.append("    " + s+"\n");
 
 			
@@ -145,9 +152,6 @@ public class MetricsController extends BaseApiController {
 			
 			return new ResponseEntity<String>(str.toString(), HttpStatus.OK);
 		
-		} catch (Exception e) {
-			logger.error(e);
-			throw e;
 		} finally {
 			getTrafficControlService().release(pass);
 			mark();
@@ -173,12 +177,7 @@ public class MetricsController extends BaseApiController {
 			return ResponseEntity.ok()
 				      .contentType(MediaType.APPLICATION_JSON)
 				      .body(info);
-			
-			// return new ResponseEntity<MetricsValues>(getSystemMonitorService().getMetricsValues(), HttpStatus.OK);
 		
-		} catch (Exception e) {
-			logger.error(e);
-			throw e;
 		} finally {
 			getTrafficControlService().release(pass);
 			mark();

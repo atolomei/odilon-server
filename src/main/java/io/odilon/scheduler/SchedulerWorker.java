@@ -30,6 +30,7 @@ import org.springframework.context.ApplicationContext;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import io.odilon.log.Logger;
+import io.odilon.model.ServerConstant;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 public abstract class SchedulerWorker implements Runnable {
@@ -38,8 +39,8 @@ public abstract class SchedulerWorker implements Runnable {
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 	
 	static public final long ONE_SECOND = 1000;
-	static  public final long _SIESTA_SECS = 40;
-	
+	static public final long _SIESTA_SECS = 40;
+	static public final long _STARTUP_SIESTA_MILSECS = 15*1000;
 	
 	private String id;
 
@@ -97,8 +98,9 @@ public abstract class SchedulerWorker implements Runnable {
 		this.virtualFileSystemService = virtualFileSystemService;
 	}
 
-	public final static long _STARTUP_SIESTA_MILSECS = 15*1000;
-							
+	/**
+	 * 						
+	 */
 	public void start() {
 		
 		this.poolSize = getPoolSize(); 
@@ -222,7 +224,7 @@ public abstract class SchedulerWorker implements Runnable {
 	}
 	
 	protected void processError(Throwable e) {
-		logger.error(e);
+		logger.error(e, ServerConstant.NOT_THROWN);
 	}
 	
 	private void setSleeping(boolean value) {

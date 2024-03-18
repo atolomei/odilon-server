@@ -31,6 +31,8 @@ import io.odilon.net.ODHttpStatus;
 
 /**
  * <p>Odilon Server Exception</p>
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public class OdilonServerAPIException extends RuntimeException {
 				

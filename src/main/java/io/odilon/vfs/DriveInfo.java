@@ -40,14 +40,18 @@ public class DriveInfo extends ODModelObject implements Serializable {
 	@JsonProperty("status")
 	private DriveStatus driveStatus;
 	
+	@JsonProperty("order")
+	private int order;
+	
 	public DriveInfo() {
 	}
 	
-	public DriveInfo(String name, String driveId, OffsetDateTime dateConnected, DriveStatus status) {
+	public DriveInfo(String name, String driveId, OffsetDateTime dateConnected, DriveStatus status, int configOrder) {
 		this.name=name;
 		this.driveId=driveId;
 		this.dateConnected=dateConnected;
 		this.driveStatus=status;
+		this.order=configOrder;
 	}
 
 	public DriveStatus getStatus() {
@@ -66,6 +70,15 @@ public class DriveInfo extends ODModelObject implements Serializable {
 		this.name = name;
 	}
 
+	public int getOrder() {
+		return order;
+	}
+
+	public void setOrder(int order) {
+		this.order = order;
+	}
+
+	
 	public String getDriveId() {
 		return driveId;
 	}

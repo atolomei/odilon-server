@@ -25,7 +25,11 @@ import java.util.ResourceBundle;
 import io.odilon.log.Logger;
 import io.odilon.util.Check;
 
-
+/**
+ * <p>Data Storage modes</p>
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public enum DataStorage {
 	
 	READ_WRITE	("rw", 0),
@@ -33,6 +37,7 @@ public enum DataStorage {
 	WORM		("worm", 2);
 		
 	
+	@SuppressWarnings("unused")
 	private static Logger logger = Logger.getLogger(DataStorage.class.getName());
 
 	private static List<DataStorage> ds;
@@ -118,7 +123,6 @@ public enum DataStorage {
 				return fromCode(value);
 					
 		} catch (IllegalArgumentException e) {
-			logger.error(e);
 			throw (e);
 		}	
 		catch (Exception e) {
@@ -127,7 +131,6 @@ public enum DataStorage {
 	}
 		
 	/**
-	 * 
 	 * @param name
 	 * @return
 	 */
@@ -147,7 +150,7 @@ public enum DataStorage {
 	public static DataStorage fromCode(int code) {
 		
 		if (code==READ_WRITE.getCode()) return READ_WRITE;
-		if (code== READONLY.getCode()) 	return  READONLY;
+		if (code== READONLY.getCode()) 	return READONLY;
 		if (code==WORM.getCode()) 		return WORM;
 		
 		throw new IllegalArgumentException ("unsuported code -> " + String.valueOf(code));

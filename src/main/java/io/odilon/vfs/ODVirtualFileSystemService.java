@@ -37,7 +37,6 @@ import javax.crypto.spec.SecretKeySpec;
 
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.SpringApplication;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -47,6 +46,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.odilon.OdilonApplication;
+import io.odilon.cache.FileCacheService;
 import io.odilon.cache.ObjectCacheService;
 import io.odilon.encryption.EncryptionService;
 import io.odilon.encryption.MasterKeyService;
@@ -65,7 +65,7 @@ import io.odilon.model.SharedConstant;
 import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
 import io.odilon.monitor.SystemMonitorService;
-import io.odilon.query.WalkerService;
+import io.odilon.query.BucketIteratorService;
 import io.odilon.replication.ReplicationService;
 import io.odilon.scheduler.SchedulerService;
 import io.odilon.scheduler.ServiceRequest;
@@ -85,13 +85,17 @@ import io.odilon.vfs.model.LockService;
 import io.odilon.vfs.model.VirtualFileSystemService;
 import io.odilon.vfs.raid0.RAIDZeroDriver;
 import io.odilon.vfs.raid1.RAIDOneDriver;
+import io.odilon.vfs.raid6.RAIDSixDriver;
 				
 /**
  * <p>
- * Virtual Folders are maintained in a RAM cache by the {@link VirtualFileSystemService}
- * All drives managed by the VFS must have the same Folders (ie. each VFolder has a real folder on each Drive) 
+ * Virtual File System manages the underlying layer that may be RAID 0, RAID 1, RAID 6/Erasure Coding</p> 
+ * <p>Buckets are maintained in a RAM cache by the {@link VirtualFileSystemService}
+ * All drives managed by the  must have the same Folders (ie. each VFolder has a real folder on each Drive) 
  * </p>
  * <p>Stopped ->  Starting -> Running -> Stopping</p>
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @ThreadSafe
 @Service
@@ -102,7 +106,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 					
 	@JsonIgnore
 	@Autowired
-	private SchedulerService schedulerService;
+	private final SchedulerService schedulerService;
 	
 	@JsonIgnore
 	@Autowired
@@ -130,7 +134,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 
 	@JsonIgnore
 	@Autowired
-	private final WalkerService walkerService;
+	private final BucketIteratorService walkerService;
 	
 	@JsonIgnore
 	@Autowired
@@ -144,12 +148,25 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	@Autowired							
 	private final OdilonKeyEncryptorService odilonKeyEncryptorService;
 	
+	
+	/** Cache of decoded Files in File System, used only in RAID 6 */
+	@JsonIgnore
+	@Autowired
+	private final FileCacheService fileCacheService;
+	
+	
+	/** All Drives, either {@link DriveStatus.ENABLED} or {@link DriveStatus.NOT_SYNC}(ie. in the sync process to become {@link DriveStatus.ENABLED}*/
 	@JsonIgnore
 	private Map<String, Drive> drivesAll = new ConcurrentHashMap<String, Drive>();
 	
+	/** Drives in status {@link DriveStatus.ENABLED} */
 	@JsonIgnore						
 	private Map<String, Drive> drivesEnabled = new ConcurrentHashMap<String, Drive>();
 
+	/** Drives available to be used to decode by {@RAIDSixDecoder} in RAID 6*/
+	@JsonIgnore
+	private final Map<Integer, Drive> drivesRSDecode = new ConcurrentHashMap<Integer, Drive>();
+	
 	@JsonIgnore
 	private ApplicationContext applicationContext;
 	
@@ -186,15 +203,15 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 										LockService  vfsLockService,
 										JournalService journalService,
 										SchedulerService schedulerService,
-										WalkerService walkerService,
+										BucketIteratorService walkerService,
 										ReplicationService replicationService,
 										ObjectCacheService objectCacheService,
 										MasterKeyService masterKeyEncryptorService,
-										OdilonKeyEncryptorService odilonKeyEncryptorService
-										
+										OdilonKeyEncryptorService odilonKeyEncryptorService,
+										FileCacheService fileCacheService
 								) {
 		
-		
+		this.fileCacheService=fileCacheService;
 		this.objectCacheService=objectCacheService;
 		this.vfsLockService=vfsLockService;
 		this.serverSettings=serverSettings;
@@ -212,7 +229,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	
 	@Override
 	public byte [] HMAC(byte [] data, byte [] key)  throws NoSuchAlgorithmException, InvalidKeyException {
-		String algorithm = "HmacSHA256";
+		final String algorithm = "HmacSHA256";
 		SecretKeySpec secretKeySpec = new SecretKeySpec(key, algorithm);
 			    Mac mac = Mac.getInstance(algorithm);
 			    mac.init(secretKeySpec);
@@ -260,10 +277,9 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	}
 				
 	@Override
-	public void deleteObjectAllPreviousVersions(String bucketName, String objectName) {
-		Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
-		Check.requireNonNullStringArgument(objectName, "objectName can not be null or empty | b:" + bucketName);
-		createVFSIODriver().deleteObjectAllPreviousVersions(bucketName, objectName);
+	public void deleteObjectAllPreviousVersions(ObjectMetadata meta) {
+		Check.requireNonNullArgument(meta, "meta can not be null or empty");
+		createVFSIODriver().deleteObjectAllPreviousVersions(meta);
 	}
 	
 	@Override
@@ -283,18 +299,13 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null or empty | b:" + bucketName);
 		return createVFSIODriver().restorePreviousVersion(bucketName, objectName);
 	}
-	
 
 	/**
-	 * <p>
-	 * Creates the bucket folder in every Drive
+	 * <p>Creates the bucket folder in every Drive
 	 * if the bucket does not exist
 	 * creates the bucket
-	 * rollback -> delete the bucket
-	 * 
-	 * if the bucket exists
-	 * mark as deleted
-	 * </p>
+	 * rollback -> delete the bucket</p>
+	 * <p>if the bucket exists mark as deleted</p>
 	 */
 	@Override
 	public VFSBucket createBucket(String bucketName) throws IOException {
@@ -349,6 +360,9 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 		return isEmpty(buckets.get(bucketName));
 	}
 	/**
+	 * 
+	 * 
+	 * 
 	 */
 	@Override
 	public boolean isEmpty(VFSBucket bucket) {
@@ -357,6 +371,9 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 		return createVFSIODriver().isEmpty(bucket);
 	}
 	/**
+	 * 
+	 * 
+	 * 
 	 */
 	@Override
 	public void putObject(VFSBucket bucket, String objectName, File file) {
@@ -366,6 +383,9 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	}
 
 	/**
+	 * 
+	 * 
+	 * 
 	 */
 	@Override
 	public void putObject(String bucketName, String objectName, InputStream is, String fileName, String contentType) {
@@ -454,7 +474,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	}
 	
 	/**
-	 * <p>if the object does not exist or is in state DELETE -> not found</p>
+	 * <p>if the object does not exist or is in state DELETED -> not found</p>
 	 */
 	@Override
 	public ObjectMetadata getObjectMetadata(String bucketName, String objectName) {
@@ -462,10 +482,10 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null or empty | b:" + bucketName);
 		Check.requireTrue(this.buckets.containsKey(bucketName), "bucket does not exist | b: " + bucketName);
 		return createVFSIODriver().getObjectMetadata(bucketName, objectName);
-		
 	}
 	
 	/**
+	 * 
 	 * 
 	 */
 	@Override					
@@ -521,16 +541,44 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	}
 	
 	/**
+	 * 
 	 */
 	@Override
-	public Map<String, Drive> getDrivesEnabled() {
+	public Map<String, Drive> getMapDrivesEnabled() {
 		return this.drivesEnabled;
 	}
 	
-	public Map<String, Drive> getDrivesAll() {
+	/**
+	 * 
+	 */
+	@Override
+	public Map<String, Drive> getMapDrivesAll() {
 		return this.drivesAll;
 	}
 
+	
+	
+	/**
+	 * 
+	 */
+	@Override
+	public Map<Integer, Drive> getMapDrivesRSDecode() {
+		return this.drivesRSDecode;
+	}
+	
+	public synchronized void updateDriveStatus(Drive drive) {
+		
+		if (drive.getDriveInfo().getStatus()==DriveStatus.ENABLED) {
+			getMapDrivesEnabled().put(drive.getName(), drive);
+			getMapDrivesRSDecode().put(Integer.valueOf(drive.getDriveInfo().getOrder()), drive);
+		}
+		else {
+			getMapDrivesEnabled().remove(drive.getName(), drive);
+			getMapDrivesRSDecode().remove(Integer.valueOf(drive.getDriveInfo().getOrder()), drive);
+		}
+	}
+	
+	
 	/**
 	 * 
 	 */
@@ -558,6 +606,12 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	}
 
 	@Override
+	public FileCacheService getFileCacheService() {
+		return  this.fileCacheService;
+	}
+	
+	
+	@Override
 	public ObjectCacheService getObjectCacheService() {
 		return this.objectCacheService;
 	}
@@ -577,7 +631,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 												
 		if (this.raid==RedundancyLevel.RAID_0) return getApplicationContext().getBean(RAIDZeroDriver.class,  this, vfsLockService);
 		if (this.raid==RedundancyLevel.RAID_1) return getApplicationContext().getBean(RAIDOneDriver.class, this, vfsLockService);
-		//if (this.raid==RedundancyLevel.RAID_6) return getApplicationContext().getBean(RAIDSixDriver.class, this, vfsLockService);
+		if (this.raid==RedundancyLevel.RAID_6) return getApplicationContext().getBean(RAIDSixDriver.class, this, vfsLockService);
 
 		throw new IllegalStateException("RAID not supported -> " + this.raid.toString());
 	}
@@ -624,7 +678,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	public List<VFSBucket> listAllBuckets() {
 			List<VFSBucket> list = new ArrayList<VFSBucket>();
 			Map<String, VFSBucket> map = new HashMap<String, VFSBucket>();
-			for (Entry<String, Drive> entry: getDrivesEnabled().entrySet()) {
+			for (Entry<String, Drive> entry: getMapDrivesEnabled().entrySet()) {
 				List<DriveBucket> db = entry.getValue().getBuckets();
 				db.forEach( item -> map.put(item.getName(), new ODVFSBucket(item)));
 			}
@@ -638,7 +692,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	}
 	
 	@Override
-	public WalkerService getWalkerService() {
+	public BucketIteratorService getBucketIteratorService() {
 		return walkerService;
 	}
 
@@ -681,7 +735,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 			str.append("\"redundancy\":" + (Optional.ofNullable(raid).isPresent() ? ("\""+raid.getName()+"\"") :"null"));
 			str.append(", \"drive\":[");
 			int n=0;
-			for (Entry<String, Drive> entry : getDrivesEnabled().entrySet()) {
+			for (Entry<String, Drive> entry : getMapDrivesEnabled().entrySet()) {
 					str.append( (n>0?", ":"") + "{\"name\":\"" + entry.getKey() + "\", \"mount\": \"" + entry.getValue().getRootDirPath() + "\"}");
 					n++;
 			}
@@ -819,8 +873,13 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 		}
 		
 		/** if encryption but it was not initialized yet, exit */
-		byte[] key = driver.getServerMasterKey();
-		this.odilonKeyEncryptorService.setMasterKey(key);
+		try {
+			byte[] key = driver.getServerMasterKey();
+			this.odilonKeyEncryptorService.setMasterKey(key);
+		} catch (Exception e) {
+			logger.error(e.getClass().getName() + " | " + e.getMessage());
+			throw new InternalCriticalException(e, "error with encryption key");
+		}
 
 	}
 	
@@ -862,12 +921,20 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 				checkServerInfo();
 				cleanUpWorkDir();
 				
-				startuplogger.debug("Started -> " + VirtualFileSystemService.class.getSimpleName());
+				if (getSchedulerService().getStandardQueueSize()>0) {
+					try {
+						Thread.sleep(1000 * 3);
+					} catch (Exception e) {
+					}
+				}
+
+				logger.debug("Started -> " + VirtualFileSystemService.class.getSimpleName());
 				setStatus(ServiceStatus.RUNNING);
 					
+
+				
 				} catch (Exception e) {
 					setStatus(ServiceStatus.STOPPED);
-					logger.error(e);
 					throw e;
 				}
 		}
@@ -878,19 +945,38 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	 */
 	private void loadDrives() {
 			
+		List<Drive> baselist = new ArrayList<Drive>();
+		
+		
+		
 		/** load enabled drives and new drives */
 		{	
-			int n=0;
+			int configOrder=0;
 			
-			drivesAll.clear();
-			drivesEnabled.clear();
-			
+			this.drivesAll.clear();
+			this.drivesEnabled.clear();
+			this.drivesRSDecode.clear();
+
 			for (String dir: getServerSettings().getRootDirs()) {
-				Drive drive=new ODDrive(String.valueOf(n++), dir);
-				drivesAll.put(drive.getName(), drive);
-				if (drive.getDriveInfo().getStatus()==DriveStatus.ENABLED) {
-					drivesEnabled.put(drive.getName(), drive);
+
+				Drive drive = null;
+				
+				if (getServerSettings().getRedundancyLevel()==RedundancyLevel.RAID_6) {
+					drive=new ChunkedDrive(String.valueOf(configOrder), dir, configOrder);
+					configOrder++;
 				}
+				else {
+					drive=new ODSimpleDrive(String.valueOf(configOrder), dir, configOrder);
+					configOrder++;
+				}
+				
+				baselist.add(drive);
+				
+				drivesAll.put(drive.getName(), drive);
+				
+				if (drive.getDriveInfo().getStatus()==DriveStatus.ENABLED)
+					drivesEnabled.put(drive.getName(), drive);
+				
 			}
 		}	
 		
@@ -906,15 +992,18 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 			}
 			if (noneSync) {
 				drivesEnabled.clear();
-				for (Entry<String,Drive> entry: drivesAll.entrySet()) {
-					Drive drive=entry.getValue();
-					DriveInfo info=drive.getDriveInfo();
+				for (Drive drive: baselist) {
+					DriveInfo info = drive.getDriveInfo();
+					info.setOrder(drive.getConfigOrder());
 					info.setStatus(DriveStatus.ENABLED);
 					drive.setDriveInfo(info);
 					drivesEnabled.put(drive.getName(), drive);
 				}
 			}
 		}
+		
+		/** set up drives for RS Decoding */
+		drivesEnabled.values().forEach( drive -> this.drivesRSDecode.put(Integer.valueOf(drive.getDriveInfo().getOrder()), drive));
 	}
 	
 	/**
@@ -922,7 +1011,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	 * 
 	 */
 	private void deleteGhostsBuckets() {
-		for (Entry<String,Drive> entry: getDrivesAll().entrySet()) {
+		for (Entry<String,Drive> entry: getMapDrivesAll().entrySet()) {
 			Drive drive=entry.getValue();
 			List<DriveBucket> buckets = drive.getBuckets();
 			for (DriveBucket driveBucket: buckets) {
@@ -934,9 +1023,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 		}
 	}
 	
-	
 	/**
-	 * 
 	 * 
 	 */
 	private void loadBuckets() {
@@ -964,7 +1051,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	private void checkDriveBuckets() {
 		try {
 			Map<String, Integer> map = new HashMap<String, Integer>();
-			for (Entry<String,Drive> entry: getDrivesEnabled().entrySet()) {
+			for (Entry<String,Drive> entry: getMapDrivesEnabled().entrySet()) {
 				Drive drive=entry.getValue();
 				List<DriveBucket> folders = drive.getBuckets();
 				for (DriveBucket driveBucket: folders) {
@@ -980,9 +1067,8 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 					}
 				}
 			}
-			// map.forEach((k,v) -> logger.debug(k +" -> " + v));
 			
-			int size = getDrivesEnabled().size();
+			int size = getMapDrivesEnabled().size();
 			List<String> errors = new ArrayList<String>();
 			
 			int buckets = map.size();
@@ -1043,7 +1129,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 			
 			op = getJournalService().deleteBucket(bucket.getName());
 			
-			listDrives = new ArrayList<Drive>(getDrivesAll().values());
+			listDrives = new ArrayList<Drive>(getMapDrivesAll().values());
 			
 			for (Drive drive: listDrives) {
 				try {
@@ -1094,13 +1180,14 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	
 	/**
 	 * 
+	 * 
 	 */
 	private void setUpNewDrives() {
 		
 		boolean requireSetupDrives = false;
 		List<String> newRoots = new ArrayList<String>();
 		
-		for (Entry<String,Drive> entry: getDrivesAll().entrySet()) {
+		for (Entry<String,Drive> entry: getMapDrivesAll().entrySet()) {
 			Drive drive=entry.getValue();
 			if (drive.getDriveInfo().getStatus()==DriveStatus.NOTSYNC) {
 				newRoots.add(drive.getRootDirPath());
@@ -1111,22 +1198,25 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 		if (!requireSetupDrives)
 			return;
 		
-		
 		startuplogger.info("Setting up new drives:");
 		newRoots.forEach(item -> startuplogger.info(item));
 		startuplogger.info("---------------");
 		
 		createVFSIODriver().setUpDrives();
-		
-		
-		
 	}
 	
-	 
+	/**
+	 * 
+	 * 
+	 */
 	private void lazyInjection() {
 
+		
+		/** FileCacheService -> lazy injection */
+		getFileCacheService().setVFS(this);
+		
 		/** WalkerService -> lazy injection */
-		((io.odilon.query.ODWalkerService) getWalkerService()).setVFS(this);
+		((io.odilon.query.ODBucketIteratorService) getBucketIteratorService()).setVFS(this);
 
 		/** JournalService -> lazy injection */ 
 		((ODJournalService) getJournalService()).setVFS(this);
@@ -1157,6 +1247,8 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	}
 
 	/**
+	 * 
+	 * 
 	 * 
 	 */
 	private void checkServerInfo() {
@@ -1258,9 +1350,12 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	 */
 	private synchronized void cleanUpWorkDir() {
 		try {
-			getDrivesAll().values().forEach( item ->  {
-						for ( VFSBucket bucket:listAllBuckets()) 
-								item.cleanUpWorkDir(bucket.getName());				
+			getMapDrivesAll().values().forEach( item ->  {
+						for ( VFSBucket bucket:listAllBuckets()) { 
+								item.cleanUpWorkDir(bucket.getName());
+								item.cleanUpCacheDir(bucket.getName());
+						}
+								
 			});
 		} catch (Exception e) {
 			logger.error(e);

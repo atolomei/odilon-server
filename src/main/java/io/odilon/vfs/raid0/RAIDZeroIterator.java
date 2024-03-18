@@ -38,17 +38,21 @@ import io.odilon.model.ServerConstant;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ObjectStatus;
 import io.odilon.vfs.model.Drive;
-import io.odilon.vfs.model.VFSWalker;
+import io.odilon.vfs.model.BucketIterator;
 
 
 /**
+ * <p>RAID 0. Bucket Iterator <br/>
+ *  All Drives are enabled in RAID 0 because the Drive sync process is blocking 
+ *  when the {@link VirtualFileSystemService} starts
+ *  </p>
  * 
- * 
- * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
-public class RAIDZeroWalker extends VFSWalker implements Closeable {
+public class RAIDZeroIterator extends BucketIterator implements Closeable {
 			
-	private static final Logger logger = Logger.getLogger(RAIDZeroWalker.class.getName());
+	@SuppressWarnings("unused")
+	private static final Logger logger = Logger.getLogger(RAIDZeroIterator.class.getName());
 	
 	@JsonProperty("prefix")
 	private String prefix = null;
@@ -78,26 +82,22 @@ public class RAIDZeroWalker extends VFSWalker implements Closeable {
 	@JsonIgnore
 	private boolean initiated = false;
 
-	/**
-	 * 
-	 */
-	public RAIDZeroWalker(RAIDZeroDriver driver, String bucketName, Optional<Long> opOffset,  Optional<String> opPrefix) {
-			this(driver, bucketName, opOffset,  opPrefix, Optional.empty());
+
+	public RAIDZeroIterator(RAIDZeroDriver driver, String bucketName, Optional<Long> opOffset,  Optional<String> opPrefix) {
+			this(driver, bucketName, opOffset, opPrefix, Optional.empty());
 	}
 
-	/**
-	 * @param driver
-	 * @param bucketName
-	 */
-	public RAIDZeroWalker(RAIDZeroDriver driver, String bucketName, Optional<Long> opOffset,  Optional<String> opPrefix, Optional<String> serverAgentId) {
+	
+	public RAIDZeroIterator(RAIDZeroDriver driver, String bucketName, Optional<Long> opOffset,  Optional<String> opPrefix, Optional<String> serverAgentId) {
 			super(bucketName);
 
 		opOffset.ifPresent( x -> setOffset(x));
 		serverAgentId.ifPresent( x -> setAgentId(x));
 		opPrefix.ifPresent( x -> this.prefix=x);
-
 		this.driver = driver;
 		
+		/** after the VirtualFileService starts up
+		 * all drives are in state {@link DriveStatus.ENABLED} in RAID 0 */
 		this.drives = new ArrayList<Drive>();
 		this.drives.addAll(driver.getDrivesEnabled());
 		
@@ -105,9 +105,6 @@ public class RAIDZeroWalker extends VFSWalker implements Closeable {
 		this.itMap = new HashMap<Drive, Iterator<Path>>();
 	}
 	
-	/**
-	 * 
-	 */
 	@Override
 	public synchronized boolean hasNext() {
 		
@@ -115,7 +112,6 @@ public class RAIDZeroWalker extends VFSWalker implements Closeable {
 			init();
 			return fetch();
 		}
-		
 		/** if the buffer still has items */
 		if (this.relativeIndex < this.buffer.size())
 			return true;
@@ -140,7 +136,7 @@ public class RAIDZeroWalker extends VFSWalker implements Closeable {
 		boolean hasItems = fetch();
 		
 		if (!hasItems)
-			throw new IndexOutOfBoundsException("No more items available (returned so far -> " + String.valueOf(cumulativeIndex)+")");
+			throw new IndexOutOfBoundsException("No more items available [returned so far -> " + String.valueOf(cumulativeIndex)+"]");
 		
 		Path object = this.buffer.get(this.relativeIndex);
 
@@ -157,9 +153,23 @@ public class RAIDZeroWalker extends VFSWalker implements Closeable {
 		this.streamMap.forEach((k,v) -> v.close());
 	}
 	
+	/**
+	 * <p>There are no Drives in mode {@link DriveStatus#NOTSYNC} in RAID 0. <br/> 
+	 * All new drives are synced before the VirtualFileSystemService 
+	 * completes its initialization. </p>
+	 *  
+	 * @return
+	 */
+	protected List<Drive> getDrives() {
+		return this.drives;
+	}
+
 	
+	/**
+	 * 
+	 */
 	private void init() {
-		for (Drive drive: this.drives) {
+		for (Drive drive: getDrives()) {
 			Path start = new File(drive.getBucketMetadataDirPath(getBucketName())).toPath();
 			Stream<Path> stream = null;
 			try {
@@ -168,12 +178,9 @@ public class RAIDZeroWalker extends VFSWalker implements Closeable {
 						filter(file -> Files.isDirectory(file)).
 						filter(file -> prefix==null || file.getFileName().toString().toLowerCase().startsWith(prefix));
 						//filter(file -> isObjectStateEnabled(file));
-				
 				this.streamMap.put(drive, stream);		
-				
 			} catch (IOException e) {
-				logger.error(e);
-				throw new InternalCriticalException(e);
+				throw new InternalCriticalException(e, "Files.walk ...");
 			}
 			Iterator<Path> it = stream.iterator();
 			this.itMap.put(drive, it);
@@ -200,7 +207,7 @@ public class RAIDZeroWalker extends VFSWalker implements Closeable {
 
 			boolean isItems = false;
 			{
-				for (Drive drive: this.drives) {
+				for (Drive drive: this.getDrives()) {
 					if (this.itMap.get(drive).hasNext()) {
 						isItems = true;
 						break;
@@ -212,8 +219,8 @@ public class RAIDZeroWalker extends VFSWalker implements Closeable {
 			
 			while (isItems && skipped<getOffset()) {
 				int d_index = 0;
-				int d_poll = d_index++ % this.drives.size();
-				Drive drive = this.drives.get(d_poll);
+				int d_poll = d_index++ % this.getDrives().size();
+				Drive drive = this.getDrives().get(d_poll);
 				Iterator<Path> iterator = itMap.get(drive);
 				if (iterator.hasNext()) {
 					iterator.next();
@@ -223,8 +230,8 @@ public class RAIDZeroWalker extends VFSWalker implements Closeable {
 					// drive has no more items
 					this.streamMap.get(drive).close();
 					this.itMap.remove(drive);
-					this.drives.remove(d_poll);
-					isItems = !this.drives.isEmpty();
+					this.getDrives().remove(d_poll);
+					isItems = !this.getDrives().isEmpty();
 				}
 			}
 	}
@@ -239,11 +246,11 @@ public class RAIDZeroWalker extends VFSWalker implements Closeable {
 		
 		boolean isItems = false;
 
-		if (this.drives.isEmpty())
+		if (this.getDrives().isEmpty())
 			return false;
 		
 		{
-			for (Drive drive: this.drives) {
+			for (Drive drive: this.getDrives()) {
 				if (this.itMap.get(drive).hasNext()) {
 					isItems = true;
 					break;
@@ -252,10 +259,9 @@ public class RAIDZeroWalker extends VFSWalker implements Closeable {
 		}
 		{
 			int dIndex = 0;
-		
-			while (isItems && this.buffer.size() < ServerConstant.WALKER_DEFAULT_BUFFER_SIZE) {
-				int dPoll = dIndex++ % this.drives.size();
-				Drive drive = this.drives.get(dPoll);
+			while (isItems && this.buffer.size() < ServerConstant.BUCKET_ITERATOR_DEFAULT_BUFFER_SIZE) {
+				int dPoll = dIndex++ % this.getDrives().size();
+				Drive drive = this.getDrives().get(dPoll);
 				Iterator<Path> iterator = this.itMap.get(drive);
 				if (iterator.hasNext()) {
 					this.buffer.add(iterator.next());		
@@ -264,11 +270,12 @@ public class RAIDZeroWalker extends VFSWalker implements Closeable {
 					/** drive has no more items */
 					this.streamMap.get(drive).close();
 					this.itMap.remove(drive);
-					this.drives.remove(dPoll);
-					isItems = !this.drives.isEmpty();
+					this.getDrives().remove(dPoll);
+					isItems = !this.getDrives().isEmpty();
 				}
 			}
 		}
 		return !this.buffer.isEmpty();
 	}
+	
 }

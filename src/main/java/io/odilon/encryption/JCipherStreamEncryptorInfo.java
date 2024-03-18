@@ -16,6 +16,10 @@
  */
 package io.odilon.encryption;
 
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public class JCipherStreamEncryptorInfo implements StreamEncryptorInfo {
     private String encryptionAlgorithm;
     private String encryptedKey;

@@ -59,7 +59,8 @@ import io.odilon.vfs.model.VirtualFileSystemService;
  *  /bucket/delete/{name}
  *  
  *  /bucket/forcedelete/{name}
- * 
+ *
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @RestController
 @RequestMapping(value = "/bucket")
@@ -226,12 +227,15 @@ public class BucketController extends BaseApiController  {
 		}
 	}
 
+	
 	/**
+	 * <p></p>
 	 * @param name
 	 * @return
 	 */
 	@RequestMapping(value = "/create/{name}", produces = "application/json", method = RequestMethod.POST)
 	public void create(@PathVariable("name") String name) {
+
 		TrafficPass pass = null;
 		
 		try {

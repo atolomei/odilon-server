@@ -16,8 +16,8 @@
  */
 package io.odilon.api;
 
+
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,6 +31,10 @@ import io.odilon.service.ObjectStorageService;
 import io.odilon.traffic.TrafficControlService;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 @RestController
 public class ShutdownController extends BaseApiController {
 	
@@ -49,10 +53,9 @@ static private Logger logger = Logger.getLogger(ShutdownController.class.getName
 		try {
 			logger.error("Shutdown command received");
 			try {
-				Thread.sleep(1000);
+				Thread.sleep(2000);
 			} catch (InterruptedException e) {
 			}
-			//SpringApplication.exit(this.getVFS().getApplicationContext(), () -> 1);
 			((ConfigurableApplicationContext) this.getApplicationContext()).close();
 			System.exit(1);
 			

@@ -42,6 +42,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ServerConstant;
+import io.odilon.model.ServiceStatus;
 import io.odilon.model.SharedConstant;
 import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
@@ -49,14 +50,26 @@ import io.odilon.vfs.DriveInfo;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.DriveStatus;
 import io.odilon.vfs.model.LockService;
+import io.odilon.vfs.model.SimpleDrive;
 import io.odilon.vfs.model.VFSBucket;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
+
+/**
+ * <p>Async process that replicates into the new Drive/s, 
+ * all Objects created before the drive/s is/are connected.</p>
+ * 
+ * <p>It is created and started by @see {@link RaidOneDriveSetup}</p>
+ * 
+ * @see {@link RAIDOneDriveSetup}
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 @Component
 @Scope("prototype")
-public class RaidOneDriveImporter implements Runnable {
+public class RAIDOneDriveSync implements Runnable {
 			
-	static private Logger logger = Logger.getLogger(RaidOneDriveImporter.class.getName());
+	static private Logger logger = Logger.getLogger(RAIDOneDriveSync.class.getName());
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 
 	@JsonIgnore
@@ -95,7 +108,7 @@ public class RaidOneDriveImporter implements Runnable {
 	@JsonIgnore
 	private LockService vfsLockService;
 	
-	public RaidOneDriveImporter(RAIDOneDriver driver) {
+	public RAIDOneDriveSync(RAIDOneDriver driver) {
 		this.driver=driver;
 		this.vfsLockService = this.driver.getLockService();
 	}
@@ -126,7 +139,22 @@ public class RaidOneDriveImporter implements Runnable {
 	@Override
 	public void run() {
 		
-		logger.info("Starting -> " + getClass().getSimpleName());
+		logger.info("Starting -> " + this.getClass().getSimpleName());
+		
+		long start = System.currentTimeMillis();
+		
+		try {
+			Thread.sleep(1000 * 2);											
+		} catch (InterruptedException e) {
+		}
+		
+		while (getDriver().getVFS().getStatus()!=ServiceStatus.RUNNING) {
+			startuplogger.info("waiting for "+ VirtualFileSystemService.class.getSimpleName() + " to startup (" + String.valueOf(Double.valueOf(System.currentTimeMillis() - start) / Double.valueOf(1000.0)) + " secs)");
+			try {
+				Thread.sleep(1000 * 2);											
+			} catch (InterruptedException e) {
+			}
+		}
 		
 		copy();
 		
@@ -157,7 +185,7 @@ public class RaidOneDriveImporter implements Runnable {
 			
 			executor = Executors.newFixedThreadPool(maxProcessingThread);
 			
-			for (VFSBucket bucket: this.driver.getVFS().listAllBuckets()) {
+			for (VFSBucket bucket: this.getDriver().getVFS().listAllBuckets()) {
 				
 				Integer pageSize = Integer.valueOf(ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE);
 				Long offset = Long.valueOf(0);
@@ -190,6 +218,7 @@ public class RaidOneDriveImporter implements Runnable {
 								if (( (this.counter.get()+1) % 50) == 0)
 									logger.debug("scanned (copy) so far -> " + String.valueOf(this.counter.get()));
 								
+								
 								if (item.isOk()) {
 									for (Drive drive: getDriver().getDrivesAll()) {
 										
@@ -197,45 +226,70 @@ public class RaidOneDriveImporter implements Runnable {
 										
 											try {
 												getLockService().getObjectLock(item.getObject().bucketName, item.getObject().objectName).writeLock().lock();
-												getLockService().getBucketLock(item.getObject().bucketName).readLock().lock();
 												
-												File newmeta = drive.getObjectMetadataFile(item.getObject().bucketName, item.getObject().objectName);
-												
-												if (!newmeta.exists()) {
-														InputStream is = null;
-														BufferedOutputStream out = null;
-														// data ----
-														try {
-															File dataFile = enabledDrive.getObjectDataFile(item.getObject().bucketName, item.getObject().objectName);
-															is = new BufferedInputStream( new FileInputStream(dataFile));
-															byte[] buf = new byte[ VirtualFileSystemService.BUFFER_SIZE ];
-															String sPath = drive.getObjectDataFilePath(bucket.getName(), item.getObject().objectName);
-															out = new BufferedOutputStream(new FileOutputStream(sPath), VirtualFileSystemService.BUFFER_SIZE);
-															int bytesRead;
-															while ((bytesRead = is.read(buf, 0, buf.length)) >= 0) {
-																out.write(buf, 0, bytesRead);
+												try {
+													
+													getLockService().getBucketLock(item.getObject().bucketName).readLock().lock();
+													
+													/** PREVIOUS VERSIONS --------------------------------------------------------- */
+													
+													if (getDriver().getVFS().getServerSettings().isVersionControl()) {
+
+														
+														for (int version=0; version<item.getObject().version; version++) {
+															// duplicate Meta Version
+															File meta_version_n=enabledDrive.getObjectMetadataVersionFile(item.getObject().bucketName, item.getObject().objectName, version);
+															if (meta_version_n.exists()) {
+																drive.putObjectMetadataVersionFile(item.getObject().bucketName, item.getObject().objectName, version, meta_version_n);
 															}
-															this.totalBytes.addAndGet(dataFile.length());
-														} finally {
-															if (is!=null)
-																is.close();
-															if (out!=null)
-																out.close();
+															// duplicate Data Version
+															File version_n = ((SimpleDrive) enabledDrive).getObjectDataVersionFile(item.getObject().bucketName, item.getObject().objectName, version);
+															if (version_n.exists()) {
+																((SimpleDrive) drive).putObjectDataVersionFile(item.getObject().bucketName, item.getObject().objectName, version, version_n);
+															}
 														}
-														// metadata ----
-														ObjectMetadata meta = item.getObject();
-														meta.drive=drive.getName();
-														drive.saveObjectMetadata(meta);
-														this.copied.getAndIncrement();
+													}
+													
+													/** HEAD VERSION --------------------------------------------------------- */
+													
+													File newmeta = drive.getObjectMetadataFile(item.getObject().bucketName, item.getObject().objectName);
+													
+													// If ObjectMetadata exists -> the file was already synced, skip
+													
+													if (!newmeta.exists()) {
+														
+															// duplicate data ----
+															File dataFile = ((SimpleDrive) enabledDrive).getObjectDataFile(item.getObject().bucketName, item.getObject().objectName);
+
+															try (InputStream is = new BufferedInputStream( new FileInputStream(dataFile))) {
+															
+																byte[] buf = new byte[ VirtualFileSystemService.BUFFER_SIZE ];
+																String sPath = ((SimpleDrive) drive).getObjectDataFilePath(bucket.getName(), item.getObject().objectName);
+															
+																try (BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(sPath), VirtualFileSystemService.BUFFER_SIZE)) {
+																	int bytesRead;
+																	while ((bytesRead = is.read(buf, 0, buf.length)) >= 0) {
+																		out.write(buf, 0, bytesRead);
+																	}
+																	this.totalBytes.addAndGet(dataFile.length());
+																} 
+															}
+															// metadata ----
+															ObjectMetadata meta = item.getObject();
+															meta.drive=drive.getName();
+															drive.saveObjectMetadata(meta);
+															this.copied.getAndIncrement();
+													}
+													
+												} catch (Exception e) {
+													logger.error(e);
+													this.errors.getAndIncrement();
 												}
-												
-											} catch (Exception e) {
-												logger.error(e);
-												this.errors.getAndIncrement();
-											}
-											finally {
-												getLockService().getBucketLock(item.getObject().bucketName).readLock().unlock();
-												getLockService().getObjectLock(item.getObject().bucketName, item.getObject().objectName).writeLock().unlock();
+												finally {
+													getLockService().getBucketLock(item.getObject().bucketName).readLock().unlock();
+												}
+											} finally {
+												getLockService().getObjectLock(item.getObject().bucketName, item.getObject().objectName).writeLock().unlock();	
 											}
 										}
 									}
@@ -244,7 +298,7 @@ public class RaidOneDriveImporter implements Runnable {
 									this.notAvailable.getAndIncrement();
 								}
 							} catch (Exception e) {
-								logger.error(e);
+								logger.error(e, ServerConstant.NOT_THROWN);
 								this.errors.getAndIncrement();
 							}
 							return null;
@@ -255,7 +309,7 @@ public class RaidOneDriveImporter implements Runnable {
 						executor.invokeAll(tasks, 10, TimeUnit.MINUTES);
 						
 					} catch (InterruptedException e) {
-						logger.error(e);
+						logger.error(e, ServerConstant.NOT_THROWN);
 					}
 					
 					offset += Long.valueOf(Integer.valueOf(data.getList().size()).longValue());
@@ -272,7 +326,9 @@ public class RaidOneDriveImporter implements Runnable {
 			
 		} finally {
 			
-			startuplogger.info("Process completed");
+			
+			startuplogger.info(ServerConstant.SEPARATOR);
+			startuplogger.info(this.getClass().getSimpleName() + " Process completed");
 			startuplogger.debug("Threads: " + String.valueOf(maxProcessingThread));
 			startuplogger.info("Total scanned: " + String.valueOf(this.counter.get()));
 			startuplogger.info("Total copied: " + String.valueOf(this.copied.get()));
@@ -286,8 +342,7 @@ public class RaidOneDriveImporter implements Runnable {
 				startuplogger.info("Not Available: " + String.valueOf(this.notAvailable.get()));
 			
 			startuplogger.info("Duration: " + String.valueOf(Double.valueOf(System.currentTimeMillis() - start_ms) / Double.valueOf(1000)) + " secs");
-			startuplogger.info("---------");
-			
+			startuplogger.info(ServerConstant.SEPARATOR);
 		}
 	}
 
@@ -304,8 +359,10 @@ public class RaidOneDriveImporter implements Runnable {
 			if (drive.getDriveInfo().getStatus()==DriveStatus.NOTSYNC) {
 				DriveInfo info=drive.getDriveInfo();
 				info.setStatus(DriveStatus.ENABLED);
+				info.setOrder(drive.getConfigOrder());
 				drive.setDriveInfo(info);
-				getDriver().getVFS().getDrivesEnabled().put(drive.getName(), drive);
+				//getDriver().getVFS().getMapDrivesEnabled().put(drive.getName(), drive);
+				getDriver().getVFS().updateDriveStatus(drive);
 				startuplogger.debug("drive synced -> " + drive.getRootDirPath());
 			}
 		}

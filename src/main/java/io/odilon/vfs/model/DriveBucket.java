@@ -55,17 +55,6 @@ public class DriveBucket {
 		this.meta = vfs_meta.clone(); 
 	}
 	
-	
-	//@JsonIgnore
-	//public Path getBucketWorkDir() {
-	//	return Paths.get(getDrive().getBucketWorkDirPath(meta.bucketName));
-	//}
-	
-	//@JsonIgnore
-	//public Path getBucketDataDir() {
-	//	return Paths.get(getDrive().getBucketDataDirPath(meta.bucketName));
-	//}
-	
 	@JsonIgnore
 	public Path getBucketControlDir() {
 		return Paths.get(getDrive().getBucketMetadataDirPath(meta.bucketName));

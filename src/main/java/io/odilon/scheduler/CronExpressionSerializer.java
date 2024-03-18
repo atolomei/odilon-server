@@ -22,6 +22,10 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public class CronExpressionSerializer extends StdSerializer<CronExpressionJ8> {
 
 	private static final long serialVersionUID = 1L;

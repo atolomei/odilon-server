@@ -29,6 +29,7 @@ import java.util.Optional;
 
 import org.springframework.context.ApplicationContext;
 
+import io.odilon.cache.FileCacheService;
 import io.odilon.cache.ObjectCacheService;
 import io.odilon.encryption.EncryptionService;
 import io.odilon.encryption.MasterKeyService;
@@ -38,7 +39,7 @@ import io.odilon.model.RedundancyLevel;
 import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
 import io.odilon.monitor.SystemMonitorService;
-import io.odilon.query.WalkerService;
+import io.odilon.query.BucketIteratorService;
 import io.odilon.replication.ReplicationService;
 import io.odilon.scheduler.SchedulerService;
 import io.odilon.scheduler.ServiceRequest;
@@ -46,10 +47,14 @@ import io.odilon.service.ServerSettings;
 import io.odilon.service.SystemService;
 
 /**
- * <p>It has only 1 level deep</p>
+ *  
  * 
- *  VFile
- *  VDirectory
+ * 
+ *  <p>Implementations of this interface are expected to be thread-safe, and can be safely accessed
+ * by multiple concurrent threads.</p>
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ * 
  */
 public interface VirtualFileSystemService extends SystemService {
 					
@@ -70,6 +75,9 @@ public interface VirtualFileSystemService extends SystemService {
 	public static final String SYS 					= ".odilon.sys";
 	public static final String BUCKETS 				= "buckets";
 	public static final String WORK 				= "work";
+						
+	public static final String CACHE	 			= "cache";
+	
 	public static final String SCHEDULER 			= "scheduler";
 	public static final String JOURNAL 				= "journal";
 	public static final String TEMP 				= "tmp";
@@ -82,10 +90,11 @@ public interface VirtualFileSystemService extends SystemService {
 	static final  public int BITS_PER_BYTE = 8;
 	
 
+	/** 
+	 * Create RAID driver
+	 */
 	public IODriver createVFSIODriver();
 
-	
-	public ApplicationContext getApplicationContext();
 
 	/**
 	 * Odilon Server info
@@ -97,8 +106,13 @@ public interface VirtualFileSystemService extends SystemService {
 	/**
 	 * Drives and VFS Buckets
 	 */
-	public Map<String, Drive> getDrivesAll();
-	public Map<String, Drive> getDrivesEnabled();
+	public Map<String, Drive> getMapDrivesAll();
+	public Map<String, Drive> getMapDrivesEnabled();
+	public Map<Integer, Drive> getMapDrivesRSDecode();
+
+	/** used to add a new disk enabled after a Drive sync process */
+	public void updateDriveStatus(Drive drive);
+	
 	public List<VFSBucket> listAllBuckets();
 	
 
@@ -142,14 +156,10 @@ public interface VirtualFileSystemService extends SystemService {
 	public boolean hasVersions(String bucketName, String objectName);
 	public List<ObjectMetadata> getObjectMetadataAllVersions(String bucketName, String objectName);
 	public ObjectMetadata getObjectMetadataVersion(String bucketName, String objectName, int version);
-	
 	public ObjectMetadata getObjectMetadataPreviousVersion(String bucketName, String objectName);
-	
 	public InputStream getObjectVersion(String bucketName, String ObjectName, int version);
-
 	public ObjectMetadata restorePreviousVersion(String bucketName, String objectName);
-	
-	public void deleteObjectAllPreviousVersions(String bucketName, String objectName);
+	public void deleteObjectAllPreviousVersions(ObjectMetadata meta);
 	public void deleteBucketAllPreviousVersions(String bucketName);
 	public void wipeAllPreviousVersions();
 
@@ -189,36 +199,30 @@ public interface VirtualFileSystemService extends SystemService {
 	public RedundancyLevel getRedundancyLevel();
 	public boolean isEmptyBucket(String bucketName);
 	
-	public WalkerService getWalkerService();
+	public BucketIteratorService getBucketIteratorService();
 	public Map<String, VFSBucket> getBucketsCache();
 
 	public boolean checkIntegrity(String bucketName, String objectName, boolean forceCheck);
 
 	/**
 	 * Query
-	 * 
-	 * @param bucketName
-	 * @return
 	 */
 
 	public ReplicationService getReplicationService();
 	public ObjectCacheService getObjectCacheService();
+	public FileCacheService getFileCacheService();
 	public SystemMonitorService getSystemMonitorService();
 	public LockService getLockService();
 
-
-	MasterKeyService getMasterKeyEncryptorService();
-
-
 	
 	/**
-	 * 
+	 * Security 
 	**/
+	public MasterKeyService getMasterKeyEncryptorService();
 	public byte[] HMAC(byte[] data, byte[] key) throws NoSuchAlgorithmException, InvalidKeyException;
 
 	
-	/**
-	 * <p>if the object does not exist or is in state DELETE -> not found</p>
-	 */
+	public ApplicationContext getApplicationContext();
+	
 
 }

@@ -41,6 +41,7 @@ import java.security.NoSuchAlgorithmException;
  * 
  * <p>Encrypts key for each file using the Master Key</p>
  * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @Service
 public class OdilonKeyEncryptorService extends BaseService implements KeyEncryptor {

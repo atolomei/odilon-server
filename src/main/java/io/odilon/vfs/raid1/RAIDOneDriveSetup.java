@@ -32,8 +32,8 @@ import com.google.common.io.Files;
 
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
-import io.odilon.model.BucketMetadata;
 import io.odilon.model.OdilonServerInfo;
+import io.odilon.model.ServerConstant;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.DriveStatus;
 import io.odilon.vfs.model.IODriveSetup;
@@ -41,15 +41,21 @@ import io.odilon.vfs.model.VFSBucket;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /***
- * <p>Set up new drives is Async for RAID 1. This object will create and start 
- * a new {@link RaidOneDriveImporter} to duplicate objects into the newly added 
- * drive/s in background</p>
+ * <p>Set up new drives is <b>Async</b> for RAID 1.<br/> 
+ * This object will create and start a new {@link RAIDOneDriveSync} 
+ * to duplicate objects into the newly added drive/s in background</p>
+ * 
+ * <p>For RAID 1 this object starts an Async process {@link RAIDOneDriveSync} that runs in background</p>
+ * 
+ * @see {@link RaidOneDriveSync}
+ *   
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @Component
 @Scope("prototype")
-public class RaidOneDriveSetup implements IODriveSetup, ApplicationContextAware  {
+public class RAIDOneDriveSetup implements IODriveSetup, ApplicationContextAware  {
 			
-	static private Logger logger = Logger.getLogger(RaidOneDriveSetup.class.getName());
+	static private Logger logger = Logger.getLogger(RAIDOneDriveSetup.class.getName());
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 					
 	@JsonIgnore
@@ -79,7 +85,7 @@ public class RaidOneDriveSetup implements IODriveSetup, ApplicationContextAware 
 	@JsonIgnore
 	private ApplicationContext applicationContext;
 	
-	public RaidOneDriveSetup(RAIDOneDriver driver) {
+	public RAIDOneDriveSetup(RAIDOneDriver driver) {
 		this.driver=driver;
 	}
 
@@ -102,7 +108,6 @@ public class RaidOneDriveSetup implements IODriveSetup, ApplicationContextAware 
 		}
 	
 		try {
-				
 				startuplogger.info("1. Copying -> " + VirtualFileSystemService.SERVER_METADATA_FILE);
 				getDriver().getDrivesAll().forEach( item ->
 				{
@@ -113,23 +118,27 @@ public class RaidOneDriveSetup implements IODriveSetup, ApplicationContextAware 
 						} catch (Exception e) {
 							startuplogger.error(e, "Drive -> " + item.getName());
 							throw new InternalCriticalException(e, "Drive -> " + item.getName());
-								
 						}
 					}
 				});
 				
-				startuplogger.info("2. Copying -> " + VirtualFileSystemService.ENCRYPTION_KEY_FILE);
-				getDriver().getDrivesAll().forEach( item ->
-				{
-					File file = item.getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE);
-					if ( (item.getDriveInfo().getStatus()==DriveStatus.NOTSYNC) && ((file==null) || (!file.exists()))) {
-						try {
-							Files.copy(keyFile, file);
-						} catch (Exception e) {
-							throw new InternalCriticalException(e, "Drive -> " + item.getName());
+				if ( (keyFile!=null) && keyFile.exists()) {
+					startuplogger.info("2. Copying -> " + VirtualFileSystemService.ENCRYPTION_KEY_FILE);
+					getDriver().getDrivesAll().forEach( item ->
+					{
+						File file = item.getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE);
+						if ( (item.getDriveInfo().getStatus()==DriveStatus.NOTSYNC) && ((file==null) || (!file.exists()))) {
+							try {
+								Files.copy(keyFile, file);
+							} catch (Exception e) {
+								throw new InternalCriticalException(e, "Drive -> " + item.getName());
+							}
 						}
-					}
-				});
+					});
+				}
+				else {
+					startuplogger.info("2. Copying -> " + VirtualFileSystemService.ENCRYPTION_KEY_FILE + " | file not exist. skipping");
+				}
 		
 		} catch (Exception e) {
 			startuplogger.error(e);
@@ -144,15 +153,15 @@ public class RaidOneDriveSetup implements IODriveSetup, ApplicationContextAware 
 			return false;
 		}
 		
-		startuplogger.info("4. Starting Async process -> " + RaidOneDriveImporter.class.getName());
+		startuplogger.info("4. Starting Async process -> " + RAIDOneDriveSync.class.getName());
 						
 		/** The rest of the process is async */
 		@SuppressWarnings("unused")
-		RaidOneDriveImporter checker = getApplicationContext().getBean(RaidOneDriveImporter.class, getDriver());
+		RAIDOneDriveSync checker = getApplicationContext().getBean(RAIDOneDriveSync.class, getDriver());
 		
-		/** sleeps 20 secs and return */
+		/** sleeps 2 secs and return */
 		try {
-			Thread.sleep(1000 * 20);
+			Thread.sleep(1000 * 2);
 		} catch (InterruptedException e) {
 		}
 							
@@ -189,12 +198,11 @@ public class RaidOneDriveSetup implements IODriveSetup, ApplicationContextAware 
 					if (drive.getDriveInfo().getStatus()==DriveStatus.NOTSYNC) {
 						try {
 							if (!drive.existsBucket(bucket.getName())) {
-								BucketMetadata meta = bucket.getBucketMetadata();
-								drive.createBucket(bucket.getName(), meta);
+								drive.createBucket(bucket.getName(), bucket.getBucketMetadata());
 							}
 						} catch (Exception e) {
 							this.errors.getAndIncrement();
-							logger.error(e);
+							logger.error(e, ServerConstant.NOT_THROWN);
 							return;
 						}
 					}

@@ -23,7 +23,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.odilon.model.ODModelObject;
 
-
+/**
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public class LocalEncryptionKey extends ODModelObject implements Serializable  {
 			
 	private static final long serialVersionUID = 1L;

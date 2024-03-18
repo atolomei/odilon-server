@@ -30,44 +30,43 @@ import io.odilon.scheduler.ServiceRequest;
 
 /**
  * 
+ * <p>Implementations of this interface are expected to be thread-safe, 
+ * and can be safely accessed by multiple concurrent threads.</p>
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public interface IODriver {
 
 	/**
 	 * Bucket
 	 */
-	public VFSBucket createBucket(String bucketName);
-	public void deleteBucket(VFSBucket bucket);
-	public boolean isEmpty(VFSBucket bucket);
-	
+	public VFSBucket 	createBucket(String bucketName);
+	public void 		deleteBucket(VFSBucket bucket);
+	public boolean 		isEmpty(VFSBucket bucket);
 	
 	/**
-	 * Object
+	 * Object get/ put / delete
 	 */
+	public ObjectMetadata 	getObjectMetadata(String bucketName, String objectName);
+	public void 			putObjectMetadata(ObjectMetadata meta);
+	public void 			putObject(VFSBucket bucket, String objectName, InputStream stream, String fileName, String contentType);
+	public void 			putObject(VFSBucket bucket, String objectName, File file);
+	public VFSObject 		getObject(String bucketName, String objectName);
+	public VFSObject 		getObject(VFSBucket bucket, String objectName);
+	public boolean 			exists(VFSBucket bucket, String objectName);
+	public InputStream 		getInputStream(VFSBucket bucket, String objectName) throws IOException;
+	public void 			delete(VFSBucket bucket, String objectName);
 	
-	public ObjectMetadata getObjectMetadata(String bucketName, String objectName);
-	
-	
-	public void putObjectMetadata(ObjectMetadata meta);
-	
-	public void putObject(VFSBucket bucket, String objectName, InputStream stream, String fileName, String contentType);
-	public void putObject(VFSBucket bucket, String objectName, File file);
-	
-	public boolean exists(VFSBucket bucket, String objectName);
-	public void delete(VFSBucket bucket, String objectName);
-	public VFSObject getObject(String bucketName, String objectName);
-	public VFSObject getObject(VFSBucket bucket, String objectName);
-
-	public InputStream getInputStream(VFSBucket bucket, String objectName) throws IOException;
-	
+	/**
+	 * Object List
+	 */
 	public DataList<Item<ObjectMetadata>> listObjects(String bucketName, Optional<Long> offset, Optional<Integer> pageSize,	Optional<String> prefix, Optional<String> serverAgentId);
 
-
 	/** 
-	 * Post Transaction Async
+	 * Post Transaction (Async)
 	 */
-	public void postObjectDeleteTransaction(String bucketName, String objectName, int headVersion);
-	public void postObjectPreviousVersionDeleteAllTransaction(String bucketName, String objectName, int headVersion);
+	public void postObjectDeleteTransaction(ObjectMetadata meta, int headVersion);
+	public void postObjectPreviousVersionDeleteAllTransaction(ObjectMetadata meta, int headVersion);
 	
 	
 	/** 
@@ -82,14 +81,12 @@ public interface IODriver {
 	/** 
 	 * Scheduler
 	 */
-	
 	public void saveScheduler(ServiceRequest request, String queueId);
 	public void removeScheduler(ServiceRequest request,  String queueId);
 	
+
 	/**
-	 * @param bucket
-	 * @param objectName
-	 * @return
+	 * 
 	 */
 	boolean checkIntegrity(String bucketName, String objectName, boolean forceCheck);
 	public boolean setUpDrives();
@@ -124,7 +121,9 @@ public interface IODriver {
 	
 	public List<ObjectMetadata> getObjectMetadataVersionAll(String bucketName, String objectName);
 	public InputStream getObjectVersionInputStream(String bucketName, String objectName, int version);
-	public void deleteObjectAllPreviousVersions(String bucketName, String objectName);
+	
+	public void deleteObjectAllPreviousVersions(ObjectMetadata meta);
+
 	public void deleteBucketAllPreviousVersions(String bucketName);
 	
 	public void wipeAllPreviousVersions();
@@ -134,6 +133,13 @@ public interface IODriver {
 	 * 
 	 * 
 	 */
+	
+	
+	/**
+	 * 
+	 */
+	public void syncObject(ObjectMetadata meta);
+	
 
 	
 	

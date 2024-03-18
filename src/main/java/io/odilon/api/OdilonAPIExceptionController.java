@@ -22,6 +22,10 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.http.HttpStatus;
 
 
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public class OdilonAPIExceptionController {
 
 	@ResponseBody

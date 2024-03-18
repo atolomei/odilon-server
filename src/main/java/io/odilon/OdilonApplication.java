@@ -25,28 +25,45 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
 
 import io.odilon.log.Logger;
+import io.odilon.model.ServerConstant;
 
 /**
+ * 
+ * <p><a href="https://odilon.io">Odilon </a> is a scalable and lightweight Open Source Object Storage that runs on standard hardware.</p>
+ * <p>It is an infrastructure software designed to be used by applications that need to store terabytes 
+ * of medium to large size objects (photos, pdfs, audio, video...) securely and safely through 
+ * encryption, replication and redundancy.</p>
+ * 
+ * <p>It has a simple single-level folder structure similar to the Bucket / Object model of <a href="https://aws.amazon.com/en/s3/"> Amazon S3</a>. 
+ * It is small and easy to integrate, offers encryption, data protection and fault tolerance 
+ * (software RAID and Erasure Codes) and detection of silent data degradation. Odilon also supports 
+ * version control and master - standby replication over the Internet for disaster recovery and 
+ * ransomware protection.</p>
+ * 
+ * <b>Architecture</b><br/>
+ * 
  * <p>Odilon has 3 layers 
  * 
  * <ul>
  *   <li>
  *   <b>API</b><br/>
  *   	RESTFul API implemented with Spring Boot<br/>
- *   	API Controllers: ...
- *   <br/>
+ *   	API Controllers:  Bucket CRUD, Object CRUD, System info,<br/>
+ *   	API controllers interact with the {@link ObjectStorageService}, they do not	see the lower layers.  
  *   <br/>
  *   </li>
  *   <li>
  *   <b>Object Storage Service</b><br/>
  *   Buckets and Objects<br/>
  *   It uses a Virtual File System that supports redundancy, bit rot detection and error correction 
- *   <br/>
+ *   <br/>   
  *   <br/>
  *   </li>
  *   <li>
  *   <b>Virtual File System</b><br/>
- *   Sees Virtual Folders and Virtual Files 
+ *   RAID 0
+ *   RAID 1
+ *   RAID 6 
  *   Supports at rest encryption 
  *   redundancy, error detection and error correction (RAID) 
  *   it uses RAID drivers for I/O on the underlying {@code Drive} 
@@ -55,14 +72,8 @@ import io.odilon.log.Logger;
  *   <br/>
  *   </li>
  * </ul>
- *
- *   
- *   		//try {
-		//	KeyStore.getInstance("PKCS12","BC");
-		//} catch (KeyStoreException | NoSuchProviderException e) {
-		//	logger.error(e);
-
-		//}
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @SpringBootApplication
 @ComponentScan({"io.odilon"})
@@ -91,9 +102,18 @@ public class OdilonApplication {
 		std_logger.info("");
 		for (String s : OdilonVersion.getAppCharacterName())
 			std_logger.info(s);
-		std_logger.info("");
+		
+		std_logger.info(ServerConstant.SEPARATOR);
+		std_logger.info("This software is licensed under the Apache License, Version 2.0");
+		std_logger.info("http://www.apache.org/licenses/LICENSE-2.0");
+
 		initShutdownMessage();
 	}
+	
+	/**
+	 *
+	 *
+	 */
 	private void initShutdownMessage() {
 	    Runtime.getRuntime().addShutdownHook(new Thread() {
             public void run() {
@@ -104,6 +124,5 @@ public class OdilonApplication {
             }
         });
 	}
-	
 }
 

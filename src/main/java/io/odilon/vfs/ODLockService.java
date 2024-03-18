@@ -20,6 +20,7 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -38,7 +39,7 @@ import io.odilon.log.Logger;
 import io.odilon.model.BaseService;
 import io.odilon.model.ServerConstant;
 import io.odilon.model.ServiceStatus;
-import io.odilon.service.Cleaner;
+import io.odilon.service.Scavenger;
 import io.odilon.service.ServerSettings;
 import io.odilon.vfs.model.LockService;
 
@@ -66,10 +67,13 @@ public class ODLockService extends BaseService implements LockService {
 	private ConcurrentMap<String, ReentrantReadWriteLock> objectLocks = new ConcurrentHashMap<>(1000);
 	
 	@JsonIgnore
+	private ConcurrentMap<String, ReentrantReadWriteLock> fileCacheLocks = new ConcurrentHashMap<>(1000);
+	
+	@JsonIgnore
 	private ConcurrentMap<String, ReentrantReadWriteLock> bucketLocks = new ConcurrentHashMap<>(1000);
 	
 	@JsonIgnore
-	private Cleaner cleaner;
+	private Scavenger cleaner;
 	
 	@JsonIgnore
 	@Autowired
@@ -90,6 +94,11 @@ public class ODLockService extends BaseService implements LockService {
 		return objectLocks.computeIfAbsent(getKey( bucketName, objectName), key -> new ReentrantReadWriteLock());
 	}
 
+	@Override
+	public ReadWriteLock getFileCacheLock(String bucketName, String objectName, Optional<Integer> version) {
+		return fileCacheLocks.computeIfAbsent(getFileKey(bucketName, objectName, version), key -> new ReentrantReadWriteLock());
+	}
+	
 	@Override
 	public ReadWriteLock getBucketLock(String bucketName) {
 		return bucketLocks.computeIfAbsent(bucketName, key -> new ReentrantReadWriteLock());
@@ -120,7 +129,7 @@ public class ODLockService extends BaseService implements LockService {
 			setStatus(ServiceStatus.STARTING);
 			this.ratePerMillisec = this.serverSettings.getLockRateMillisecs();
 			
-			this.cleaner = new Cleaner() {
+			this.cleaner = new Scavenger() {
 
 				@Override
 		 		public long getSleepTimeMillis() {
@@ -130,44 +139,101 @@ public class ODLockService extends BaseService implements LockService {
 		 		@Override
 		 		public void cleanUp() {
 		 			
-		 			int startingSize = objectLocks.size();
-		 			
-		 			if (startingSize==0 || exit())
+		 			if (exit())
 		 				return;
 		 			
-		 			long start = System.currentTimeMillis();
-					long maxToPurge = Math.round(ratePerMillisec * maxTimeToSleepMillisec) + (long) (ratePerMillisec * 1000.0);
-					List<String> list = new  ArrayList<String>();
-					
-					try {
-		 				int counter = 0;
-		 				for (Entry<String, ReentrantReadWriteLock> entry: objectLocks.entrySet()) {
-		 								if (entry.getValue().writeLock().tryLock()) {
-		 									list.add(entry.getKey());
-		 									counter++;
-		 									if (counter >= maxToPurge) { 										
-		 										break;
-		 									}
-		 								}
-		 			 			}
-
-		 				list.forEach( item -> {
-		 						ReentrantReadWriteLock lock = objectLocks.get(item);
-		 						objectLocks.remove(item);	
-		 						lock.writeLock().unlock();
-		 				});
-		 				list.forEach(item -> objectLocks.remove(item));
 		 			
-		 			} finally {
-		 				if (logger.isDebugEnabled() && (startingSize-objectLocks.size() >0)) {
-		 				logger.debug(
-				 						"Clean up " +
-				 						" | initial size -> " 	+ String.format("%,6d", startingSize).trim() +  
-				 						" | new size ->  " 		+ String.format("%,6d",objectLocks.size()).trim() + 
-				 						" | removed  -> " 		+ String.format("%,6d",startingSize-objectLocks.size()).trim() +
-				 						" | duration -> " 		+ String.format("%,12d",(System.currentTimeMillis() - start)).trim() +  " ms" 
-		 							);
+		 			{
+		 			if (objectLocks.size() > 0) {
+			 		
+		 				int startingSize = objectLocks.size();
+		 				
+		 				long start = System.currentTimeMillis();
+						long maxToPurge = Math.round(ratePerMillisec * maxTimeToSleepMillisec) + (long) (ratePerMillisec * 1000.0);
+						List<String> list = new  ArrayList<String>();
+						
+						try {
+			 				int counter = 0;
+			 				for (Entry<String, ReentrantReadWriteLock> entry: objectLocks.entrySet()) {
+			 								if (entry.getValue().writeLock().tryLock()) {
+			 									list.add(entry.getKey());
+			 									counter++;
+			 									if (counter >= maxToPurge) { 										
+			 										break;
+			 									}
+			 								}
+			 			 			}
+	
+			 				list.forEach( item -> {
+			 						ReentrantReadWriteLock lock = objectLocks.get(item);
+			 						objectLocks.remove(item);	
+			 						lock.writeLock().unlock();
+			 				});
+			 				list.forEach(item -> objectLocks.remove(item));
+			 			
+			 			} finally {
+			 				if (logger.isDebugEnabled() && (startingSize-objectLocks.size() >0)) {
+			 					logger.debug(
+					 						"ObjectLocks Clean up " +
+					 						" | initial size -> " 	+ String.format("%,6d", startingSize).trim() +  
+					 						" | new size ->  " 		+ String.format("%,6d",objectLocks.size()).trim() + 
+					 						" | removed  -> " 		+ String.format("%,6d",startingSize-objectLocks.size()).trim() +
+					 						" | duration -> " 		+ String.format("%,12d",(System.currentTimeMillis() - start)).trim() +  " ms" 
+			 							);
+			 					}
+			 				}
+					
 		 				}
+		 			}
+		 			
+		 			
+		 			{
+		 			
+	 				if (fileCacheLocks.size() > 0) {
+	 					
+		 				int startingSize = fileCacheLocks.size();
+		 				
+		 				long start = System.currentTimeMillis();
+		 				
+						try {
+							
+							long maxToPurge = Math.round(ratePerMillisec * maxTimeToSleepMillisec) + (long) (ratePerMillisec * 1000.0);
+							List<String> list = new  ArrayList<String>();
+							
+							
+							int counter = 0;
+			 				for (Entry<String, ReentrantReadWriteLock> entry: fileCacheLocks.entrySet()) {
+			 								if (entry.getValue().writeLock().tryLock()) {
+			 									list.add(entry.getKey());
+			 									counter++;
+			 									if (counter >= maxToPurge) { 										
+			 										break;
+			 									}
+			 								}
+			 			 			}
+	
+			 				list.forEach( item -> {
+			 						ReentrantReadWriteLock lock = fileCacheLocks.get(item);
+			 						fileCacheLocks.remove(item);	
+			 						lock.writeLock().unlock();
+			 				});
+			 				list.forEach(item -> fileCacheLocks.remove(item));
+			 			
+				 			} finally {
+				 				if (logger.isDebugEnabled() && (startingSize-fileCacheLocks.size() >0)) {
+				 				logger.debug(
+						 						"FileLocks Clean up " +
+						 						" | initial size -> " 	+ String.format("%,6d", startingSize).trim() +  
+						 						" | new size ->  " 		+ String.format("%,6d",fileCacheLocks.size()).trim() + 
+						 						" | removed  -> " 		+ String.format("%,6d",startingSize-fileCacheLocks.size()).trim() +
+						 						" | duration -> " 		+ String.format("%,12d",(System.currentTimeMillis() - start)).trim() +  " ms" 
+				 							);
+				 				}
+				 			}
+						
+			 			} // (fileCacheLocks.size() > 0)
+	 				
+	 				
 		 			}
 		 		}
 		 	};
@@ -184,6 +250,11 @@ public class ODLockService extends BaseService implements LockService {
 	private String getKey(String bucketName, String objectName) {
 		return (bucketName +  ServerConstant.BO_SEPARATOR + objectName);
 	}
+	
+	private String getFileKey(String bucketName, String objectName, Optional<Integer> version) {
+		return (bucketName +  ServerConstant.BO_SEPARATOR + objectName +(version.isEmpty()?"":(ServerConstant.BO_SEPARATOR+String.valueOf(version.get().intValue()))));
+	}
+	
 	
 	@PreDestroy
 	private void preDestroy() {

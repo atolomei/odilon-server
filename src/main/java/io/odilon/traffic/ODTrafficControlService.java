@@ -51,7 +51,7 @@ public class ODTrafficControlService extends BaseService implements TrafficContr
 	private long waittimeout = 10000L; 
 
 	@JsonProperty("tokens")
-	private int tokens = ServerConstant.DEFAULT_TRAFFIC_TOKENS;
+	private int tokens = ServerConstant.TRAFFIC_TOKENS_DEFAULT;
 		
 	
 	public ODTrafficControlService(ServerSettings serverSettings) {

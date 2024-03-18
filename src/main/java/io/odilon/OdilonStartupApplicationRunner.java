@@ -31,6 +31,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import io.odilon.log.Logger;
 import io.odilon.model.OdilonServerInfo;
+import io.odilon.model.RedundancyLevel;
 import io.odilon.model.ServerConstant;
 import io.odilon.replication.ReplicationService;
 import io.odilon.scheduler.CronJobDataIntegrityCheckRequest;
@@ -42,7 +43,10 @@ import io.odilon.service.ServerSettings;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
- * <p>The method run is executed after application startup but before it starts accepting traffic.</p>
+ * <p>This method is executed after {@link OdilonApplication} startup but <b>before</b> 
+ * it starts accepting traffic.</p>
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @Component
 public class OdilonStartupApplicationRunner implements ApplicationRunner {
@@ -76,6 +80,8 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 		
 		initCronJobs();
 		
+		
+
 		boolean iGeneral = initGeneral();
 		if(iGeneral)
 			startupLogger.info(ServerConstant.SEPARATOR);
@@ -91,6 +97,8 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 		boolean iStandby = initStandby();
 		if(iStandby)
 			startupLogger.info(ServerConstant.SEPARATOR);
+		
+		
 		
 		startupLogger.info	("Startup at -> " + OffsetDateTime.now().toString());
 	}
@@ -143,6 +151,8 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 		}
 	}
 	
+	
+		
 	/**
 	 *
 	 * 
@@ -157,8 +167,15 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 		startupLogger.info("Encryption enabled -> " + String.valueOf(settingsService.isEncryptionEnabled()));
 		startupLogger.info("Version Control -> " + String.valueOf(settingsService.isVersionControl()));
 		startupLogger.info("Data Storage mode -> " + settingsService.getDataStorage().getName());
-		startupLogger.info("Data Storage redundancy level -> " + settingsService.getRedundancyLevel().getName());
-		getAppContext().getBean(VirtualFileSystemService.class).getDrivesEnabled().forEach((k,v) -> startupLogger.info("Drive: " + k +" | rootDir: " + v.getRootDirPath()));
+		
+		if (settingsService.getRedundancyLevel()==RedundancyLevel.RAID_6) {
+			startupLogger.info("Data Storage redundancy level -> " + settingsService.getRedundancyLevel().getName()+
+					" [data:"+ String.valueOf(settingsService.getRAID6DataDrives())+
+					", parity:" + String.valueOf(settingsService.getRAID6ParityDrives())+"]");
+		}
+		else
+			startupLogger.info("Data Storage redundancy level -> " + settingsService.getRedundancyLevel().getName());
+		getAppContext().getBean(VirtualFileSystemService.class).getMapDrivesEnabled().forEach((k,v) -> startupLogger.info("Drive: " + k +" | rootDir: " + v.getRootDirPath()));
 		return true;
 	}
 	
@@ -234,8 +251,9 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 		if (settingsService.getAccessKey().equals("odilon") && settingsService.getSecretKey().equals("odilon")) {
 			startupLogger.info("Odilon is running with default vaules for AccessKey and SecretKey (ie. odilon/odilon)");
 			startupLogger.info("It is recommended to change their values in file -> ."+File.separator + "config"+ File.separator +"odilon.properties");
+			return true;
 		}	
-		return true;
+		return false;
 	}
 	
 
@@ -264,7 +282,6 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 					startupLogger.error("Current value for standby.enabled -> " + settingsService.isStandByEnabled());	
 					startupLogger.error("Exiting");
 					startupLogger.error(ServerConstant.SEPARATOR);
-					
 					try {
 						Thread.sleep(2500);
 					} catch (InterruptedException e) {
@@ -279,23 +296,5 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 	}
 }
 
-
-/**
-boolean isRecoveryMode=false;
-for (String s:args.getSourceArgs()) {
-	if(s.toLowerCase().trim().startsWith("-drecoverymode")) {
-		String arr[]=s.split("=");
-		if (arr.length>1) {
-		 	isRecoveryMode=arr[1].trim().toLowerCase().equals("true") || arr[1].trim().toLowerCase().equals("yes");
-			break;
-		}
-	}
-}
-if (isRecoveryMode) {
-	ServerSettings settingsService = getAppContext().getBean(ServerSettings.class);
-	settingsService.setRecoveryMode(isRecoveryMode);
-	startupLogger.info("Server is started in recovery mode");
-}
-**/
 
 

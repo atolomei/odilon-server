@@ -32,13 +32,16 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import io.odilon.log.Logger;
+import io.odilon.model.ServerConstant;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.VFSBucket;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 
 /**
- * removes work files older than 3 hours.
+ * <p>removes work files older than {@link CronJobWorkDirCleanUpRequest#LAPSE_HOURS LAPSE_HOURS}.</p>
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @Component
 @Scope("prototype")
@@ -48,7 +51,7 @@ public class CronJobWorkDirCleanUpRequest extends CronJobRequest {
 	static private Logger logger = io.odilon.log.Logger.getLogger(CronJobWorkDirCleanUpRequest.class.getName());
 
 	private static final long serialVersionUID = 1L;
-	private static final int HOURS = 3;
+	private static final int LAPSE_HOURS = 3;
 	
 	@JsonIgnore
 	private boolean isSuccess = false;
@@ -78,7 +81,7 @@ public class CronJobWorkDirCleanUpRequest extends CronJobRequest {
 			
 			List<File> list = new ArrayList<File>();
 			
-			for (Drive drive: vfs.getDrivesAll().values()) {
+			for (Drive drive: vfs.getMapDrivesAll().values()) {
 				for (VFSBucket bucket: vfs.listAllBuckets()) {
 					File bucketDir = new File (drive.getBucketWorkDirPath(bucket.getName()));
 					if (bucketDir.exists()) {
@@ -91,7 +94,7 @@ public class CronJobWorkDirCleanUpRequest extends CronJobRequest {
 							
 							Instant instant = Instant.ofEpochMilli(fi.lastModified());
 							OffsetDateTime modified = OffsetDateTime.ofInstant(instant, ZoneId.systemDefault());
-							if(modified.plusHours(HOURS).isBefore(now)) {
+							if(modified.plusHours(LAPSE_HOURS).isBefore(now)) {
 								list.add(fi);									
 							}
 						}
@@ -110,7 +113,7 @@ public class CronJobWorkDirCleanUpRequest extends CronJobRequest {
 			isSuccess = true;
 
 		} catch (Exception e) {
-			logger.error(e);
+			logger.error(e, ServerConstant.NOT_THROWN);
 		} finally {
 			setStatus(ServiceRequestStatus.COMPLETED);
 		}

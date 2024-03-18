@@ -36,13 +36,12 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 
 /**
- * <p>The Semantics of the Replica si strict order. 
- * If a Request can not be completed the queue will block until it can be completed.
+ * <p>The Semantics of the replica queue is <b>strict order</b>. 
+ * If a ServiceRequest can not be completed the queue will block until it can be completed.
  * </p>
  * 
- * <p>Some 
- * </p>
- *
+ * @see {@link StandardSchedulerWorker}
+ *  
  */
 public class StandByReplicaSchedulerWorker extends SchedulerWorker {
 		

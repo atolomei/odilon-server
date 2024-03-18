@@ -29,16 +29,19 @@ import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import io.odilon.cache.FileCacheService;
 import io.odilon.cache.ObjectCacheService;
 import io.odilon.log.Logger;
 import io.odilon.model.BaseService;
 import io.odilon.model.MetricsValues;
+import io.odilon.model.RedundancyLevel;
 import io.odilon.model.ServiceStatus;
 import io.odilon.service.ServerSettings;
 import io.odilon.service.SystemService;
 
 /**
  *
+ *@author atolomei@novamens.com (Alejandro Tolomei)
  */
 @Service
 public class SystemMonitorService extends BaseService implements SystemService {
@@ -56,12 +59,6 @@ public class SystemMonitorService extends BaseService implements SystemService {
 	
 	@JsonIgnore
 	private Meter allAPICallMeter;
-
-	//@JsonIgnore
-	//private Meter putAPIMeter;
-	
-	//@JsonIgnore
-	//private Meter getAPIMeter;
 	
 	
 	// ----------------------------
@@ -81,20 +78,7 @@ public class SystemMonitorService extends BaseService implements SystemService {
 	
 	
 	// ----------------------------
-	// OBJECT CRUD
-
-	@JsonIgnore
-	private Counter cacheObjectHitCounter;
-	
-	@JsonIgnore
-	private Counter cacheObjectMissCounter;
-	
-
-		
-	
-	// ----------------------------
 	// ENCRYPTION
-	
 
 	@JsonIgnore
 	private Meter encrpytFileMeter;
@@ -132,44 +116,52 @@ public class SystemMonitorService extends BaseService implements SystemService {
 	@JsonIgnore
 	private Meter getObjectMeter;
 	
-	
-	
 	// ----------------------------
+	// OBJECT CACHE
 	
-	//@JsonIgnore
-	//private Meter VFSPutFileMeter;
+	@JsonIgnore
+	private Counter cacheObjectHitCounter;
 	
-	//@JsonIgnore
-	//private Meter VFSGetFileMeter;
+	@JsonIgnore
+	private Counter cacheObjectMissCounter;
+	
 
-	
 	// ----------------------------
-	//@JsonIgnore
-	//private Meter metric_requests;     
- 	
-	//@JsonIgnore
-	// private Meter metric_throughput; 
+	// FILE CACHE
+
+	@JsonIgnore
+	private Counter cacheFileHitCounter;
 	
-	
+	@JsonIgnore
+	private Counter cacheFileMissCounter;
 	
 	
 	
 	
 	@JsonIgnore
 	@Autowired
-	private ServerSettings serverSettings;
+	private final ServerSettings serverSettings;
 	
 	@JsonIgnore
 	@Autowired
-	private ObjectCacheService cacheService;
+	private final ObjectCacheService objectCacheService;
+
+	@JsonIgnore
+	@Autowired
+	private final FileCacheService fileCacheService;
 	
-	public SystemMonitorService(ServerSettings serverSettings, ObjectCacheService cacheService) {
-		this.cacheService=cacheService;
-		this.serverSettings=serverSettings;
+	public FileCacheService getFileCacheService() {
+		return fileCacheService;
 	}
 
-	public int getObjectCacheSize() {
-		return this.cacheService.size();
+	public SystemMonitorService(ServerSettings serverSettings, ObjectCacheService cacheService, FileCacheService fileCacheService) {
+		this.objectCacheService=cacheService;
+		this.serverSettings=serverSettings;
+		this.fileCacheService=fileCacheService;
+	}
+
+	public long getObjectCacheSize() {
+		return this.objectCacheService.size();
 	}
 	public Counter getReplicationObjectCreateCounter() {
 		return this.replicaCreateObject;
@@ -201,22 +193,6 @@ public class SystemMonitorService extends BaseService implements SystemService {
 		return this.allAPICallMeter;
 	}
 
-	//public Meter getAPIPutMeter() {
-	//	return this.putAPIMeter;
-	//}
-	
-	//public Meter getAPIGetMeter() {
-	//	return this.getAPIMeter;
-	//}
-	
-	//public Meter getVFSPutobjectMeter() {
-	//	return this.VFSPutFileMeter;
-	//}
-	
-	//public Meter getGetFileMeter() {
-	//	return this.VFSGetFileMeter;
-	//}
-	
 	public Meter getPutObjectMeter() {
 		return this.putObjectMeter;
 	}
@@ -260,43 +236,45 @@ public class SystemMonitorService extends BaseService implements SystemService {
 	public void setDeleteObjectVersionCounter(Counter deleteObjectVersionCounter) {
 		this.deleteObjectVersionCounter = deleteObjectVersionCounter;
 	}
-
 	
 	public Counter getDeleteObjectVersionCounter() {
 		return 	this.deleteObjectVersionCounter;
 	}
 
+	public long getFileCacheSize() {
+		return this.fileCacheService.size();
+	}
+
+	public long getFileCacheHadrDiskUsage() {
+		 return this.fileCacheService.hardDiskUsage();
+	}
+	
 	
 	public MetricsValues getMetricsValues() {
 
 		MetricsValues me = new MetricsValues();
 		
-		
-		
-		//set(me.getAPIMeter, 	this.getAPIMeter);
-		//set(me.putAPIMeter,		this.putAPIMeter);
-		
 		set(me.getObjectMeter, 	this.getObjectMeter); 
 		set(me.putObjectMeter, 	this.putObjectMeter);
 		
-		me.createObjectCounter = this.createObjectCounter.getCount();
-		me.updateObjectCounter = this.updateObjectCounter.getCount();
-		me.deleteObjectCounter = this.deleteObjectCounter.getCount();
-		me.deleteObjectVersionCounter = this.deleteObjectVersionCounter.getCount();
+		me.createObjectCounter 			= this.createObjectCounter.getCount();
+		me.updateObjectCounter 			= this.updateObjectCounter.getCount();
+		me.deleteObjectCounter 			= this.deleteObjectCounter.getCount();
+		me.deleteObjectVersionCounter 	= this.deleteObjectVersionCounter.getCount();
 
-		
-		me.replicaObjectCreate = this.replicaCreateObject.getCount();
-		me.replicaObjectUpdate = this.replicaUpdateObject.getCount();
-		me.replicaObjectDelete = this.replicaDeleteObject.getCount();
+		me.replicaObjectCreate 			= this.replicaCreateObject.getCount();
+		me.replicaObjectUpdate 			= this.replicaUpdateObject.getCount();
+		me.replicaObjectDelete 			= this.replicaDeleteObject.getCount();
 
-	
-		me.cacheObjectHitCounter = this.cacheObjectHitCounter.getCount();
-		me.cacheObjectMissCounter = this.cacheObjectMissCounter.getCount();
-		me.cacheSize = this.cacheService.size();
+		me.cacheObjectHitCounter 		= this.cacheObjectHitCounter.getCount();
+		me.cacheObjectMissCounter 		= this.cacheObjectMissCounter.getCount();
+		me.cacheObjectSize 				= this.objectCacheService.size();
 		
-		//set(me.VFSPutFileMeter, 	this.VFSPutFileMeter); 
-		//set(me.VFSGetFileMeter, 	this.VFSGetFileMeter);
-		
+		me.cacheFileHitCounter 			= this.cacheFileHitCounter.getCount();
+		me.cacheFileMissCounter 		= this.cacheFileMissCounter.getCount();
+		me.cacheFileSize 				= this.fileCacheService.size();
+		me.cacheFileHardDiskUsage 		= this.fileCacheService.hardDiskUsage();
+
 		set(me.encrpytFileMeter, 	this.encrpytFileMeter);
 		set(me.decryptFileMeter, 	this.decryptFileMeter);
 		set(me.encryptVaultMeter,	this.encryptVaultMeter);
@@ -312,16 +290,20 @@ public class SystemMonitorService extends BaseService implements SystemService {
 		
 		Map<String, Object> map = new HashMap<String, Object>();
 
-		//map.put("apiGetMeter", getString(this.putAPIMeter));
-		//map.put("apiPutMeter", getString(this.getAPIMeter));
 		map.put("apiAllMeter", getString(this.allAPICallMeter));
-		
 
 		map.put("cacheObjectHitCounter", String.valueOf(this.cacheObjectHitCounter.getCount()));
 		map.put("cacheObjectMissCounter", String.valueOf(this.cacheObjectMissCounter.getCount()));
-		map.put("cacheObjectSize", String.valueOf(this.cacheService.size()));
+		map.put("cacheObjectSize", String.valueOf(this.objectCacheService.size()));
 		
 		
+		if (serverSettings.getRedundancyLevel()==RedundancyLevel.RAID_6) {
+			map.put("cacheFileHitCounter", String.valueOf(this.cacheFileHitCounter.getCount()));
+			map.put("cacheFileMissCounter", String.valueOf(this.cacheFileMissCounter.getCount()));
+			map.put("cacheFileSize", String.valueOf(this.fileCacheService.size()));
+		}
+		
+		map.put("fileCacheHardDiskUsage", String.valueOf(this.fileCacheService.hardDiskUsage()));
 		
 		map.put("objectCreateCounter", String.valueOf(this.createObjectCounter.getCount()));
 		map.put("objectUpdateCounter", String.valueOf(this.updateObjectCounter.getCount()));
@@ -351,6 +333,13 @@ public class SystemMonitorService extends BaseService implements SystemService {
 		return cacheObjectMissCounter;
 	}
 
+	public Counter getCacheFileHitCounter() {
+		return this.cacheFileHitCounter;
+	}
+
+	public Counter getCacheFileMissCounter() {
+		return this.cacheFileMissCounter;
+	}
 	
 	public String getMetrics() {
 		return toJSON();
@@ -369,33 +358,26 @@ public class SystemMonitorService extends BaseService implements SystemService {
 			this.deleteObjectCounter = metrics.counter("deleteObjectCounter");
 			this.deleteObjectVersionCounter = metrics.counter("deleteObjectVersionCounter");
 			
-			
+
+			// cache
 			this.cacheObjectHitCounter = metrics.counter("cacheObjectHitCounter");
 			this.cacheObjectMissCounter = metrics.counter("cacheObjectMissCounter");
 			
-						
+			this.cacheFileHitCounter = metrics.counter("cacheFileHitCounter");
+			this.cacheFileMissCounter = metrics.counter("cacheFileMissCounter");
+			
+			
 			// replica CRUD objects
 			this.replicaCreateObject = metrics.counter("replicaObjectCreate");
 			this.replicaUpdateObject = metrics.counter("replicaObjectUpdate");
 			this.replicaDeleteObject = metrics.counter("replicaObjectDelete");
 			
-			//this.metric_requests = metrics.meter("requestsInMeter");
-			//this.metric_throughput = metrics.meter("requestsThroughputMeter");
-			
 			// api put object and get object
 			this.allAPICallMeter = metrics.meter("allAPICallMeter");
 			
-			// api put object and get object
-			//this.putAPIMeter = metrics.meter("putAPIMeter");
-			//this.getAPIMeter = metrics.meter("getAPIMeter");
-	
 			// put object and get object
 			this.putObjectMeter = metrics.meter("putObjectMeter");
 			this.getObjectMeter = metrics.meter("getObjectMeter");
-			
-			// vfs put object and get object
-			//this.VFSPutFileMeter  	= metrics.meter("VFSPutFileMeter");
-			//this.VFSGetFileMeter 	= metrics.meter("VFSGetFileMeter");
 			
 			// encrypt object and get object
 			this.encrpytFileMeter = metrics.meter("encrpytFileMeter");
@@ -424,6 +406,8 @@ public class SystemMonitorService extends BaseService implements SystemService {
 		v[1]=m.getFiveMinuteRate();
 		v[2]=m.getFifteenMinuteRate();
 	}
+
+	
 
 	
 

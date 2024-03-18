@@ -22,8 +22,8 @@ import io.odilon.service.SystemService;
 
 
 /**
- * <p>the goal of this parameters is to prevent overload of the server capacity
- * default vaule is 10. constant -> {@link ServerConstant.DEFAULT_TRAFFIC_TOKENS} ,
+ * <p>the goal of this parameters is to prevent server capacity overload
+ * default value is {@link ServerConstant.TRAFFIC_TOKENS_DEFAULT},
  * </p>
  */
 public interface TrafficControlService extends SystemService {

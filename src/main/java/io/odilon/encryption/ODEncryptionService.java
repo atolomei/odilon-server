@@ -55,11 +55,13 @@ import io.odilon.service.ServerSettings;
  * Data
  * </p>
  * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @Service
 public class ODEncryptionService extends BaseService implements EncryptionService  {
 		
-	   static private Logger logger = Logger.getLogger(ODEncryptionService.class.getName());
+	   @SuppressWarnings("unused")
+	static private Logger logger = Logger.getLogger(ODEncryptionService.class.getName());
 	   static private Logger startuplogger = Logger.getLogger("StartupLogger");
 	   
 	    @JsonIgnore
@@ -82,12 +84,6 @@ public class ODEncryptionService extends BaseService implements EncryptionServic
 
 	    @JsonIgnore
 	    private String dataEncryptionKey = "YU3t6v9y$B&E)H@M";
-	    
-	    //@JsonIgnore
-	    //private String keyEncryptionKey;
-		
-	    //@JsonIgnore
-	    //private String keyEncryptionSalt;
 	    
 	    /**
 		 * 
@@ -134,8 +130,7 @@ public class ODEncryptionService extends BaseService implements EncryptionServic
 	            return new SequenceInputStream(jsonStreamEncryptionInfoStream, odilonEncryptedInputStream);
 	            
 	        } catch (Exception e) {
-	        	logger.error(e);
-	            throw new InternalCriticalException(e);
+	            throw new InternalCriticalException(e, "encryptStream");
 	        }
 	    }
 	   
@@ -163,8 +158,7 @@ public class ODEncryptionService extends BaseService implements EncryptionServic
 	            return streamEncryption.decrypt(encryptedStream, key);
 	            
 	        } catch (IOException  e) {
-	        	logger.error(e);
-	        	throw new InternalCriticalException(e);
+	        	throw new InternalCriticalException(e, "decryptStream");
 	        }
 	    }
 	   

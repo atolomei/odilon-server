@@ -49,6 +49,7 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 /**
  * 
  *
+ *@author atolomei@novamens.com (Alejandro Tolomei)
  */
 @RestController
 @RequestMapping(value = "/presigned/object")

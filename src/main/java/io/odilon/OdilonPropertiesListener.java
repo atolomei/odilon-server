@@ -27,15 +27,20 @@ import org.springframework.core.env.PropertiesPropertySource;
 
 import io.odilon.log.Logger;
 
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public class OdilonPropertiesListener implements ApplicationListener<ApplicationEnvironmentPreparedEvent> {
 			
+	@SuppressWarnings("unused")
 	static private Logger logger = Logger.getLogger(OdilonPropertiesListener.class.getName());
 	
 	@Override
 	public void onApplicationEvent(ApplicationEnvironmentPreparedEvent event) {
 		    ConfigurableEnvironment environment = event.getEnvironment();
 		    Properties props = new Properties();
-		    props.put("app.name", "Odilon");
+		    props.put("app.name", "Paleta");
 		    props.put("spring.servlet.multipart.max-file-size", "100GB");
 		    props.put("spring.servlet.multipart.max-request-size", "100GB");
 		    props.put("spring.main.banner-mode", "off");
@@ -44,8 +49,6 @@ public class OdilonPropertiesListener implements ApplicationListener<Application
 		    props.put("spring.main.lazy-initialization", "false");
 		    props.put("spring.output.ansi.enabled", "DETECT");
 		    environment.getPropertySources().addFirst(new PropertiesPropertySource("odilonProps", props));
-		    logger.debug("done");
-		    
 	}
 	 
 }

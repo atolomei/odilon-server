@@ -34,6 +34,9 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Base64;
 
+/**
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public class JCipherStreamEncryptor implements StreamEncryptor {
 
 	private static Logger logger = Logger.getLogger(JCipherStreamEncryptor.class.getName());

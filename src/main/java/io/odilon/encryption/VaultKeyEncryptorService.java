@@ -33,6 +33,11 @@ import io.odilon.model.ServiceStatus;
 import io.odilon.security.VaultService;
 import io.odilon.service.ServerSettings;
 
+
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 @Service
 public class VaultKeyEncryptorService extends BaseService implements KeyEncryptor {
 

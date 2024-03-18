@@ -1,75 +1,100 @@
 package io.odilon.cache;
 
+import java.io.File;
+import java.util.concurrent.TimeUnit;
+
+import javax.annotation.PostConstruct;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+
+import io.odilon.log.Logger;
 import io.odilon.model.BaseService;
 import io.odilon.model.ObjectMetadata;
+import io.odilon.model.ServiceStatus;
+import io.odilon.service.ServerSettings;
 import io.odilon.service.SystemService;
 
-
 /**
+ * <p>{@link ObjectMetadata} cache.</p> 
+ * It Uses {@link Caffeine} to keep references to entries in memory.
+ * </p>
  * 
- * 
- * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @Service
 public class ObjectCacheService extends BaseService implements SystemService {
-							
-	static private final long defaultMaxLifeTimeMillis = 1000 * 60 * 60 * 24 * 1; // 1d
-						
-	SelfExpiringHashMap<String, ObjectMetadata> map = new SelfExpiringHashMap<String, ObjectMetadata>(defaultMaxLifeTimeMillis);
+				
+	static private Logger startuplogger = Logger.getLogger("StartupLogger");
+
+	static final int INITIAL_CAPACITY = 10000;
+	static final int MAX_SIZE = 500000;
+	static final int TIMEOUT_DAYS = 7;
+
 	
+	@JsonIgnore
+	@Autowired
+	private final ServerSettings serverSettings;
 	
-	public ObjectCacheService() {
+	@JsonIgnore
+	private Cache<String, ObjectMetadata> cache;
+	
+
+	public ObjectCacheService(ServerSettings serverSettings) {
+		this.serverSettings=serverSettings;
 	}
 	
-	/**
-     * {@inheritDoc}
-     */
-    public int size() {
-        return map.size(); 	
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    
-    public boolean isEmpty() {
-    	return map.isEmpty();
+    public long size() {
+        return this.cache.estimatedSize(); 	
     }
     
-    /**
-     * {@inheritDoc}
-     */
     public boolean containsKey(String bucketName, String objectName) {
-    	return map.containsKey(getKey(bucketName, objectName));
-    }
-
-    public boolean containsValue(ObjectMetadata value) {
-    	return map.containsValue(value);
+    	return (this.cache.getIfPresent(getKey(bucketName, objectName))!=null);
     }
 
     public ObjectMetadata get(String bucketName, String objectName) {
-    	return map.get(getKey(bucketName, objectName));
+    	return this.cache.getIfPresent(getKey(bucketName, objectName));
     }
 
-    public ObjectMetadata put(String bucketName, String objectName, ObjectMetadata value) {
-    	return map.put(getKey(bucketName, objectName), value);
+    public void put(String bucketName, String objectName, ObjectMetadata value) {
+    	this.cache.put(getKey(bucketName, objectName), value);
     }
 
-    public ObjectMetadata put(String bucketName, String objectName, ObjectMetadata value, long lifeTimeMillis) {
-       	return map.put(getKey(bucketName, objectName), value, lifeTimeMillis);
-    }
-
-    public ObjectMetadata remove(String bucketName, String objectName) {
-    	return map.remove(getKey(bucketName, objectName));
+    public void remove(String bucketName, String objectName) {
+    	this.cache.invalidate(getKey(bucketName, objectName));
     }
     
-    public boolean renewKey(String bucketName, String objectName) {
-    	return map.renewKey(getKey(bucketName, objectName));
-    }
-    
+    @PostConstruct
+	protected void onInitialize() {
+		try {
+			setStatus(ServiceStatus.STARTING);
+			this.cache = Caffeine.newBuilder()
+						.initialCapacity(INITIAL_CAPACITY)    
+						.maximumSize(MAX_SIZE)
+						.expireAfterWrite(TIMEOUT_DAYS, TimeUnit.DAYS)
+						.build();
+			
+		} finally {
+			setStatus(ServiceStatus.RUNNING);
+	 		startuplogger.debug("Started -> " + ObjectCacheService.class.getSimpleName());
+		}
+	}
+	
+    /**
+     * File.separator is not a valid bucket or object name
+     * 
+     * @param bucketName
+     * @param objectName
+     * @return
+     */
     private String getKey( String bucketName, String objectName) {
-    	return bucketName+">"+objectName;
+    	return bucketName+File.separator+objectName;
     }
+    
 }
+
+

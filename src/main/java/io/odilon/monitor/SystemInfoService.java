@@ -53,6 +53,7 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
  * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @Service
 public class SystemInfoService extends BaseService implements SystemService {
@@ -75,7 +76,6 @@ public class SystemInfoService extends BaseService implements SystemService {
 	
 	private String serverMode;
 	private String serverDataStorageMode;
-	//private String serverDataStorage;
 	
 	private String isEncryptEnabled;
 	private String isEncryptionInitialized;
@@ -153,6 +153,11 @@ public class SystemInfoService extends BaseService implements SystemService {
 		info.freeMemory=Runtime.getRuntime().freeMemory();
 		info.redundancyLevel=serverSettings.getRedundancyLevel();
 		
+		if (serverSettings.getRedundancyLevel()==RedundancyLevel.RAID_6) {
+			info.redundancyLevelDetail = "[data:" + String.valueOf(serverSettings.getRAID6DataDrives()) + 
+										 ", parity:" + String.valueOf(serverSettings.getRAID6ParityDrives())+"] "; 
+		}
+		
 		OperatingSystemMXBean os = ManagementFactory.getOperatingSystemMXBean();
 		
 		if (os.getSystemLoadAverage()>0)
@@ -165,7 +170,7 @@ public class SystemInfoService extends BaseService implements SystemService {
 			/** 
 			 * for RAID 0 the total storage is the smallest disk  by the number of disks 
 			 * */
-			this.virtualFileSystemService.getDrivesEnabled().values().forEach(item -> available.add(Long.valueOf(item.getAvailableSpace())));
+			this.virtualFileSystemService.getMapDrivesEnabled().values().forEach(item -> available.add(Long.valueOf(item.getAvailableSpace())));
 			Long min = available.stream().map(d -> d).reduce((available.size()>0? available.get(0):0), (a, b) -> (a<b?a:b));
 			total =  min * available.size();
 			info.availableDisk = total;
@@ -174,7 +179,7 @@ public class SystemInfoService extends BaseService implements SystemService {
 			/** 
 			 * for RAID 1 the total storage is the smallest disk 
 			 * */
-			this.virtualFileSystemService.getDrivesEnabled().values().forEach(item -> available.add(Long.valueOf(item.getAvailableSpace())));
+			this.virtualFileSystemService.getMapDrivesEnabled().values().forEach(item -> available.add(Long.valueOf(item.getAvailableSpace())));
 			Long min = available.stream().map(d -> d).reduce((available.size()>0? available.get(0):0), (a, b) -> (a<b?a:b));
 			info.availableDisk = min;
 		}
@@ -184,7 +189,7 @@ public class SystemInfoService extends BaseService implements SystemService {
 			 * TBA
 			 * 
 			 * */
-			total = Long.valueOf(-1); //Long.valueOf(available.stream().map(d -> d).reduce(Long.valueOf(0), (a, b) -> (a<b?a:b)) * available.size() * 2/3 );
+			total = Long.valueOf(0); //Long.valueOf(available.stream().map(d -> d).reduce(Long.valueOf(0), (a, b) -> (a<b?a:b)) * available.size() * 2/3 );
 			info.availableDisk = total;
 		}
 		
@@ -211,7 +216,7 @@ public class SystemInfoService extends BaseService implements SystemService {
 		Map<String, Long> driveTotalStorage = new HashMap<String, Long>();
 		Map<String, Long> driveAvailableStorage = new HashMap<String, Long>();
 	
-		for (Drive drive: this.virtualFileSystemService.getDrivesEnabled().values() ) {
+		for (Drive drive: this.virtualFileSystemService.getMapDrivesEnabled().values() ) {
 		    try {
 		    	Path path = (new File(drive.getRootDirPath())).toPath();
 		    	FileStore store = Files.getFileStore(path);
@@ -250,6 +255,8 @@ public class SystemInfoService extends BaseService implements SystemService {
 				this.serverHost=getServerHost();
 				
 				this.serverMode=serverSettings.getServerMode();
+				
+				
 				this.serverDataStorageMode=serverSettings.getDataStorage().getName();
 	
 				this.isVersionControl = serverSettings.isVersionControl() ? "true" : "false";

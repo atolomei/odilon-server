@@ -25,6 +25,10 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import io.odilon.monitor.PingService;
 
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 @Component
 @Scope("prototype")
 @JsonTypeName("ping")
@@ -45,14 +49,8 @@ public class PingCronJobRequest extends CronJobRequest {
 	public void execute() {
 		try {
 			setStatus(ServiceRequestStatus.RUNNING);
-			
 			String ping = getApplicationContext().getBean(PingService.class).pingString();
-			
-			if (ping!=null && ping.equals("ok"))
-				logger.debug("ping -> " + ping);
-			else
-				logger.error("ping -> " + ping);
-			
+			logger.debug("ping -> " + ping);
 			setStatus(ServiceRequestStatus.COMPLETED);
 			
 		} catch (Throwable e) {

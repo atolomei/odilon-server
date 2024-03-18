@@ -48,10 +48,15 @@ include = As.PROPERTY, property = "type") @JsonSubTypes({
 @JsonSubTypes.Type(value = AfterUpdateObjectServiceRequest.class, name = "afterUpdateObject"),
 @JsonSubTypes.Type(value = AfterDeleteObjectServiceRequest.class, name = "afterDeleteObject"),
 @JsonSubTypes.Type(value = AfterDeleteObjectServiceRequest.class, name = "deleteBucketObjectPreviousVersion"),
-
 @JsonSubTypes.Type(value = TestServiceRequest.class, name = "test")
 })
 
+/**
+ * <p>Base class of {@link ServiceRequest} executed async by the {@link SchedulerService}.
+ * The Scheduler has a persistent Queue in disk, for this reason all subclasses must be {@link Serializable}</p>
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public abstract class AbstractServiceRequest implements ServiceRequest {
 					
 	static private Logger logger =	Logger.getLogger(AbstractServiceRequest.class.getName());
@@ -178,7 +183,6 @@ public abstract class AbstractServiceRequest implements ServiceRequest {
 	@Override
 	public void setDescription(String des) {
 			description=des;
-
 	}
 
 	@Override

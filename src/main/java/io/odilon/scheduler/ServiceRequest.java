@@ -22,6 +22,9 @@ import java.util.Map;
 
 import org.springframework.context.ApplicationContextAware;
 
+/**
+ * <p>Jobs executed Async by the {@link SchedulerService}</p>
+ */
 public interface ServiceRequest extends Serializable, ApplicationContextAware {
 
 	/** Unique id */
@@ -32,7 +35,8 @@ public interface ServiceRequest extends Serializable, ApplicationContextAware {
 	
 	public String getUUID();
 	
-	/** 0.0 - 1.0 not all Requests implement it */
+	/** [0.0 - 1.0] 
+	 * NOTE: not all Requests implement it */
 	public double getProgress();  
 	
 	public boolean isCronJob();

@@ -25,7 +25,7 @@ import io.odilon.util.Check;
 
 public enum DriveStatus {
 
-	NOTSYNC 	("notsync", 1),
+	NOTSYNC 	("notsync", 1), 
 	ENABLED 	("enabled", 2),
 	ARCHIVED 	("archived", 3),
 	DELETED 	("deleted", 4);

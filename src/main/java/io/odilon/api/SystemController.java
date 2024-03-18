@@ -16,6 +16,10 @@ import io.odilon.traffic.TrafficPass;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public class SystemController extends BaseApiController {
 
 	static private Logger logger = Logger.getLogger(SystemController.class.getName());

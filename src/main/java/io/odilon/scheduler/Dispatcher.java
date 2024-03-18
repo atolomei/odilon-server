@@ -204,7 +204,7 @@ public class Dispatcher extends ODModelObject {
 		this.threadPool = new PooledExecutor(new LinkedQueue(), maxPoolSize);
 		this.threadPool.setThreadFactory(threadFactory);
 		this.threadPool.setMinimumPoolSize(minPoolSize);
-		this.threadPool.createThreads(initialSize); // Threads are created at start time.
+		this.threadPool.createThreads(initialSize); // Threads are created at startup.
 		this.threadPool.setKeepAliveTime(keeepAliveMS);
 		this.threadPool.setMaximumPoolSize(maxPoolSize);
 		this.threadPool.waitWhenBlocked(); // Wait for a free thread when blocked.
