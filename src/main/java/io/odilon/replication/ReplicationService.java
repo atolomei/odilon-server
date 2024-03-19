@@ -174,7 +174,6 @@ public class ReplicationService extends BaseService implements ApplicationContex
 				logger.debug("removing standby bucket -> " + item);	
 				getClient().deleteBucket(item);
 			} catch (Exception e) {
-				logger.error(e, "removing standby bucket -> " + item);
 				throw new InternalCriticalException(e, "removing standby bucket -> " + item);
 			}
 		});
@@ -249,8 +248,13 @@ public class ReplicationService extends BaseService implements ApplicationContex
 	}
 	
 	public String pingStandBy() {
-		if (getServerSettings().isStandByEnabled())
+		if (getServerSettings().isStandByEnabled()) {
+			try {
 			return getClient().ping();
+			} catch (Exception e) {
+				return e.getClass().getName() + " | " + e.getMessage();
+			}
+		}
 		return "";
 	}
 

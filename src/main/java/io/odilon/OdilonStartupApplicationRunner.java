@@ -289,7 +289,23 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 					((ConfigurableApplicationContext) getAppContext().getBean(VirtualFileSystemService.class).getApplicationContext()).close();
 					System.exit(1);
 				}
-				replicationService.checkStructure();
+				try {
+					replicationService.checkStructure();
+				} catch (Exception e) {
+					logger.error(e.getClass().getName() + " | " + e.getMessage());
+					
+					try {
+						Thread.sleep(3000);
+					} catch (InterruptedException e1) {
+					
+					}
+					
+					logger.error("You will have to check the standby server to enable replication");
+					logger.error("Meanwhile we recommend to startup the server without it "
+							   + " in ./config/odilon.properties -> standby.enabled=false ");
+					System.exit(1);
+				}
+				
 			}
 		}
 		return false;

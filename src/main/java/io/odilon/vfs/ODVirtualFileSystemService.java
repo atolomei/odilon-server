@@ -928,7 +928,6 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 					}
 				}
 
-				logger.debug("Started -> " + VirtualFileSystemService.class.getSimpleName());
 				setStatus(ServiceStatus.RUNNING);
 					
 
