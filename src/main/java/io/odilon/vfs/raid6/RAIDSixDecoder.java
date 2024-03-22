@@ -65,14 +65,15 @@ public class RAIDSixDecoder {
 			throw new InternalCriticalException("Incorrect configuration for " + driver.getRedundancyLevel().getName()+" -> data: " + String.valueOf(data_shards) + " | parity:" + String.valueOf(parity_shards));
 	}
 	
-	 /**
-	  * <p>ObjectMetadata must be the one of the version to decode</p>
-      * @param is
-      */
 	public File decodeHead(ObjectMetadata meta) {
 		return decode(meta, true);
 	}
 	
+	/**
+	  * <p>{@link ObjectMetadata} must be the one 
+	  * of the version to decode</p>
+	  * 
+      */
 	public File decodeVersion(ObjectMetadata meta) {
 		return decode(meta, false);
 	}
@@ -85,10 +86,6 @@ public class RAIDSixDecoder {
 		return this.driver.getVFS();
 	}
 	
-    private final Map<Integer, Drive> getMapDrivesRSDecode() {
-    	return getDriver().getVFS().getMapDrivesRSDecode();
-    }
-
     
     private File decode(ObjectMetadata meta, boolean isHead) {
     	
@@ -153,7 +150,7 @@ public class RAIDSixDecoder {
         
         for (int disk = 0; disk < this.total_shards; disk++) {
         	
-        	/** We must encode using 	->  DrivesAll, 
+        	/** We must encode using 	 ->  DrivesAll, 
         	 *  we must decode only with ->  DrivesEnabled */
         	
         	File shardFile = null;
@@ -182,8 +179,6 @@ public class RAIDSixDecoder {
 					logger.error(e.getClass().getName() + " | b:" + meta.bucketName + " | o:" + meta.objectName + " | f:" + shardFile.getName()  + (isHead?"":(" v:" + String.valueOf(meta.version))));
 					shardPresent[disk] = false;
 				}
-            } else {										
-            	//logger.debug("Drive " + String.valueOf(disk) + " not enabled for  -> "  + " | b:" + meta.bucketName + " | o:" + meta.objectName);
             }
         }
 
@@ -203,14 +198,14 @@ public class RAIDSixDecoder {
         ReedSolomon reedSolomon = new ReedSolomon(this.data_shards, this.parity_shards);
         reedSolomon.decodeMissing(shards, shardPresent, 0, shardSize);
 
-        // Combine the data shards into one buffer for convenience.
-        // (This is not efficient, but it is convenient.)
+        /** Combine the data shards into one buffer for convenience.
+         	we have to change this to improve performance */
         
         byte [] allBytes = new byte [shardSize * this.data_shards];     	// BUFFER 6
         for (int i = 0; i < this.data_shards; i++) 
             System.arraycopy(shards[i], 0, allBytes, shardSize * i, shardSize);
 
-        // Extract the file length
+        /** Extract the file length  */
         int fileSize = ByteBuffer.wrap(allBytes).getInt();
 
         try {
@@ -220,6 +215,12 @@ public class RAIDSixDecoder {
 		}
         return true;
     }
+    
+    private final Map<Integer, Drive> getMapDrivesRSDecode() {
+    	return getDriver().getVFS().getMapDrivesRSDecode();
+    }
+
+
 
 
 

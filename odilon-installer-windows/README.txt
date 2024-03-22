@@ -10,10 +10,8 @@ and detection of silent data degradation.
 
 https://odilon.io
 
-
 How to Use
 ----------
-
 To get started run
 
 Windows
@@ -23,13 +21,12 @@ start.bat
 
 Linux
 -----
-cd .\bin
-start.sh
+cd ./bin
+.\start.sh
 
 
 For a more in-depth introduction, please check out 
 https://odilon.io
-
 
 
 Support
@@ -47,9 +44,9 @@ bin/
    Scripts to startup, manage and interact with Odilon instances. 
 
    Windows: 
-   start.bat to start the server
-   stop.bat to stop the server
-   check.bat check if the server is running
+   start.bat -> to start the server
+   stop.bat -> to stop the server
+   check.bat -> check if the server is running
    
    Linux: 
    start.sh -> to start the server

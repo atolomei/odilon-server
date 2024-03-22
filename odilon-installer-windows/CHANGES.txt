@@ -14,11 +14,16 @@ This is the first release of Odilon Object Storage
 						
 ==================  0.9-beta ==================
 
-
 2023.11.02 bug fixes
 2024.01.02 Version Control for RAID 0 and RAID 1
 2024.01.18 Master key. Encryption not enabled by default
  
+
+==================  1.1-beta ==================
+
+2024.03.12 Reed Solomon encoding for RAID 6. 3 (2 data, 1 parity), 6 (4 data, 2 parity), 12 (8 data, 4 parity)
+2024.03.18 Self healing async process to recover on disk/s failures for RAID 6
+
 
 
 
