@@ -17,12 +17,13 @@
 package io.odilon.encryption;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 
 import jakarta.annotation.PostConstruct;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.util.Base64Utils;
+
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -73,14 +74,14 @@ public class VaultKeyEncryptorService extends BaseService implements KeyEncrypto
     
     @Override
     public byte[] encryptKey(byte[] key) {
-        String keyStr = Base64Utils.encodeToString(key);
+        String keyStr = Base64.getEncoder().encodeToString(key);
         return getVaultService().encrypt(this.getKeyID(), keyStr).getBytes(StandardCharsets.UTF_8);
     }
 
     @Override
     public byte[] decryptKey(byte[] key) {
         String keyStr = new String(key, StandardCharsets.UTF_8);
-        return Base64Utils.decodeFromString(getVaultService().decrypt(this.getKeyID(), keyStr));
+        return Base64.getDecoder().decode(getVaultService().decrypt(this.getKeyID(), keyStr));
     }
 
     public String getKeyID() {

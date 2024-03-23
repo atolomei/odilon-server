@@ -25,7 +25,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 
-import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
@@ -39,6 +38,7 @@ import io.odilon.log.Logger;
 import io.odilon.monitor.SystemMonitorService;
 import io.odilon.service.ObjectStorageService;
 import io.odilon.traffic.TrafficControlService;
+import io.odilon.util.RandomIDGenerator;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
@@ -106,6 +106,8 @@ public class SimpleFileUploadController extends BaseApiController {
 	        }
 	        
 	    }
+	 
+	 RandomIDGenerator idGenerator = new RandomIDGenerator();
 	 	
 	 private String saveFile(String fileName, MultipartFile multipartFile) throws IOException {
 		        
@@ -115,7 +117,7 @@ public class SimpleFileUploadController extends BaseApiController {
 		            Files.createDirectories(uploadPath);
 		        }
 		 
-		        String fileCode = RandomStringUtils.randomAlphanumeric(8);
+		        String fileCode = idGenerator.randomString(8);
 		         
 		        try (InputStream inputStream = multipartFile.getInputStream()) {
 		            Path filePath = uploadPath.resolve(fileCode + "-" + fileName);

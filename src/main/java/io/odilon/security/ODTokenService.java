@@ -16,6 +16,7 @@
  */
 package io.odilon.security;
 
+
 import java.io.UnsupportedEncodingException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -58,6 +59,8 @@ import io.odilon.vfs.model.VirtualFileSystemService;
  * <p>
  * This service is used to generate tokens for presigned urls 
  * </p>
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @Service
 public class ODTokenService extends BaseService implements TokenService, ApplicationContextAware {
