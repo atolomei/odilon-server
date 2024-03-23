@@ -6,6 +6,10 @@ import io.odilon.model.ObjectMetadata;
 import io.odilon.vfs.model.VFSBucket;
 import io.odilon.vfs.model.VFSOperation;
 
+/**
+*  
+* @author atolomei@novamens.com (Alejandro Tolomei)
+*/
 public interface RAIDUpdateObjectHandler extends  RAIDHandler {
 	
 	public void update(VFSBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType);

@@ -26,6 +26,10 @@ import io.odilon.model.BucketStatus;
 import io.odilon.vfs.model.DriveBucket;
 import io.odilon.vfs.model.VFSBucket;
 
+/**
+ *  
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public class ODVFSBucket implements VFSBucket {
 
 	@JsonProperty("bucketMetadata")

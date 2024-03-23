@@ -21,7 +21,7 @@ import io.odilon.vfs.model.SimpleDrive;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
- * <p>For RAID 0 and RAID 1</p>
+ * <p>Used by {@link RAIDZeroDriver} and {@link RAIDOneDriver}</p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
@@ -70,11 +70,7 @@ public class ODSimpleDrive extends ODDrive implements SimpleDrive {
 	/**
 	 * <b>Object Data</b>
 	 * 
-	 * 
-	 * <p>IMPORTANT: 
-	 * Stream is not closed by this method
-	 * This method is not ThreadSafe
-	 * </p>
+	 * <p>This method is not ThreadSafe</p>
 	 */
 	@Override
 	public InputStream getObjectInputStream(String bucketName, String objectName) {
@@ -96,13 +92,13 @@ public class ODSimpleDrive extends ODDrive implements SimpleDrive {
 	 * Path -> to File
 	 * File -> File
 	 * 
-	 * <p>IMPORTANT: Stream is not closed by this method</p>
 	 */							
 	@Override
 	public File putObjectStream(String bucketName, String objectName, InputStream stream) throws IOException {
 
 		Check.requireNonNullArgument(bucketName, "bucketName is null");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null -> b:" + bucketName);
+
 		if (!super.existBucketMetadataDir(bucketName))
 			  throw new IllegalStateException("Bucket Metadata Directory must exist -> d:" + getName() + " | b:" + bucketName);
 		

@@ -40,6 +40,10 @@ import io.odilon.vfs.model.VFSBucket;
 import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VFSop;
 
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 @ThreadSafe
 public class RAIDOneDeleteObjectHandler extends RAIDOneHandler implements  RAIDDeleteObjectHandler {
 

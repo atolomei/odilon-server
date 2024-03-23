@@ -23,7 +23,6 @@ import java.util.Optional;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -34,9 +33,11 @@ import io.odilon.vfs.model.JournalService;
 import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VFSop;
 
+
 /**
- *
- */
+*  
+* @author atolomei@novamens.com (Alejandro Tolomei)
+*/
 public class ODVFSOperation implements VFSOperation {
 				
 	static private Logger logger = Logger.getLogger(ODVFSOperation.class.getName());

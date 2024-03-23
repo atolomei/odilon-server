@@ -74,8 +74,8 @@ public class FileCacheService extends BaseService {
 	@JsonIgnore
 	private Cache<String, File> cache;
 	
+	
 	/**
-	 * 
 	 *<p>This File cache uses a {@link Caffeine} based cache of references in memory</p>
 	 *   
 	 */
@@ -90,7 +90,7 @@ public class FileCacheService extends BaseService {
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucketName);
 		getLockService().getFileCacheLock(bucketName, objectName, version).readLock().lock();
 		try {
-    		return (this.cache.getIfPresent(getKey(bucketName, objectName, version))!=null);
+    		return (getCache().getIfPresent(getKey(bucketName, objectName, version))!=null);
     	} finally {
     		getLockService().getFileCacheLock(bucketName, objectName, version).readLock().unlock();
     	}
@@ -107,7 +107,7 @@ public class FileCacheService extends BaseService {
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucketName);
 		getLockService().getFileCacheLock(bucketName, objectName, version).readLock().lock();
     	try {
-    		return this.cache.getIfPresent(getKey(bucketName, objectName, version));
+    		return getCache().getIfPresent(getKey(bucketName, objectName, version));
     	} finally {
     		getLockService().getFileCacheLock(bucketName, objectName, version).readLock().unlock();
     	}
@@ -126,7 +126,7 @@ public class FileCacheService extends BaseService {
 		if (lockRequired)
 			getLockService().getFileCacheLock(bucketName, objectName, version).writeLock().lock();
 		try {
-			this.cache.put(getKey(bucketName, objectName, version), file);
+			getCache().put(getKey(bucketName, objectName, version), file);
 			cacheSizeBytes.getAndAdd(file.length());
     	} finally {
     		if (lockRequired)
@@ -142,8 +142,8 @@ public class FileCacheService extends BaseService {
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucketName);
 		getLockService().getFileCacheLock(bucketName, objectName, version).writeLock().lock();
     	try {
-    		File file = this.cache.getIfPresent(getKey(bucketName, objectName, version));
-    		this.cache.invalidate(getKey(bucketName, objectName, version));
+    		File file = getCache().getIfPresent(getKey(bucketName, objectName, version));
+    		getCache().invalidate(getKey(bucketName, objectName, version));
     		if (file!=null) {
     			FileUtils.deleteQuietly(file);
     			cacheSizeBytes.getAndAdd(-file.length());
@@ -164,7 +164,7 @@ public class FileCacheService extends BaseService {
 	}
 	
     public long size() {
-   		return this.cache.estimatedSize();
+   		return getCache().estimatedSize();
     }
     
     public long hardDiskUsage() {
@@ -282,5 +282,8 @@ public class FileCacheService extends BaseService {
 		return this.listDrives;
 	}
 
-	
+
+	private Cache<String, File> getCache() {
+		return this.cache;
+	}
 }

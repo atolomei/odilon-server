@@ -1578,10 +1578,9 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 
 	@Override
 	public void syncObject(ObjectMetadata meta) {
-		// TODO Auto-generated method stub
-		
+		Check.requireNonNullArgument(meta, "meta is null");
+		logger.error("not done" , ServerConstant.NOT_THROWN);
 	}
-
 	
 
 

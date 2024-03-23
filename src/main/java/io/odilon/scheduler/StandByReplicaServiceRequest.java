@@ -33,6 +33,8 @@ import io.odilon.vfs.model.VFSOperation;
 /**
  * <p>tServiceRequest must be {@link Serializable}<br/> 
  * It is executed by a Thread ({@link ServiceRequestExecutor}) of the Scheduler thread pool</p>
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 
 @Component

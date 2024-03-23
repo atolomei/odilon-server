@@ -4,6 +4,10 @@ import io.odilon.model.ObjectMetadata;
 import io.odilon.vfs.model.VFSBucket;
 import io.odilon.vfs.model.VFSOperation;
 
+/**
+*  
+* @author atolomei@novamens.com (Alejandro Tolomei)
+*/
 public interface RAIDDeleteObjectHandler {
 
 	/** Delete Object */
@@ -17,12 +21,7 @@ public interface RAIDDeleteObjectHandler {
 	/** rollbackJournal */
 	public void rollbackJournal(VFSOperation op, boolean recoveryMode);
 	
-	/**  
-	 *  Post transaction
-	 *  <p>executed Async by a {@link ServiceRequest} from the {@link SchedulerService}</p>
-	 * */
-	//public void postObjectDelete(ObjectMetadata meta, int headVersion);
-	//public void postObjectPreviousVersionDeleteAll(ObjectMetadata meta, int headVersion);
+	
 
 	
 }

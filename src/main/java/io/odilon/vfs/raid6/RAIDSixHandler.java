@@ -18,6 +18,8 @@
 
 package io.odilon.vfs.raid6;
 
+import javax.annotation.concurrent.ThreadSafe;
+
 import io.odilon.model.RedundancyLevel;
 import io.odilon.vfs.RAIDHandler;
 import io.odilon.vfs.model.JournalService;
@@ -25,7 +27,12 @@ import io.odilon.vfs.model.LockService;
 import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 
+@ThreadSafe
 public abstract class RAIDSixHandler implements RAIDHandler {
 
 	private final RAIDSixDriver driver;

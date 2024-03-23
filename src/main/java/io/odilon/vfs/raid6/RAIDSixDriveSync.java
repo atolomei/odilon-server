@@ -51,21 +51,28 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**					
 * <p>When starting the {@link VirtualFileSystemService} it is detected if there are one or more new Drives.
-  * If there is at least one new Drive, this incorporation process is run
-  * from the new Drive.
+  * If there is at least one new Drive, this drive integration process is run
+  *for the new Drive/s.
+  *</p>
+  *<p>
+  * <ul>
+  *<li>For the Objects created after the start time of the {@link VirtualFileSystemService} all Drives are used (including the Drives undergoing the integration process)</li>
+  *<li>For Objects prior to the start time of the {@link VirtualFileSystemService}, a synchronization step is carried out on the new Drive/s:</li>
   *
-  *. For the Objects created from the start of the {@link VirtualFileSystemService} the enabled and not sync disks are used
-  *. For Objects prior to the start of the VFS, synchronization is carried out on the new disk(s)
-  * - save ObjectMetadata head and earlier versions
-  * - record the corresponding RS Block/s of the data file on each new disk
-  *
-  * When the new disk integration process is completed, the disks go to enabled status.
-  * </p>
+  *<ul>
+  * <li>- save ObjectMetadata head and earlier versions</li> 
+  * <li>- record the corresponding RS Block/s of the data file on each new disk</li>
+  *</ul>
+  *</ul>
+  * <p>When the Drive/s integration process is completed, the Drive/s are changed to status {@link DriveStatus#ENABLED}.</p>
+  * <br/>
+  * <br/>
+  * @see {@link RaidSixDriveSetup}
+  * @see {@link DriveStatus}
   * 
-  * @see {@link RaidSixDriveSetup} 
-  * 
- * @author atolomei@novamens.com (Alejandro Tolomei)
- */
+  * <br/>
+  * @author atolomei@novamens.com (Alejandro Tolomei)
+  */
 @Component
 @Scope("prototype")
 public class RAIDSixDriveSync implements Runnable {
@@ -137,11 +144,8 @@ public class RAIDSixDriveSync implements Runnable {
 		
 		logger.info("Starting -> " + this.getClass().getSimpleName());
 		
-		// wait until the VFS is operational
-		
-		
+		/** wait until the VFS is in state: ServiceStatus.RUNNING */
 		long start = System.currentTimeMillis();
-		
 		try {
 			Thread.sleep(1000 * 2);											
 		} catch (InterruptedException e) {
@@ -187,8 +191,8 @@ public class RAIDSixDriveSync implements Runnable {
 	 */
 	private void encode() {
 		
-		logger.debug("Starting Drive init");
-		getDriver().getDrivesAll().stream().filter( d -> d.getDriveInfo().getStatus()==DriveStatus.NOTSYNC).forEach(v -> logger.debug(v.getName()));
+		logger.debug("Starting Drive init: ");
+		getDriver().getDrivesAll().stream().filter(d -> d.getDriveInfo().getStatus()==DriveStatus.NOTSYNC).forEach(v -> logger.debug(v.getName()));
 		
 		long start_ms = System.currentTimeMillis();
 		
@@ -335,7 +339,7 @@ public class RAIDSixDriveSync implements Runnable {
 				info.setOrder(drive.getConfigOrder());
 				drive.setDriveInfo(info);
 				getDriver().getVFS().updateDriveStatus(drive);
-				startuplogger.debug("drive synced -> " + drive.toString());
+				startuplogger.debug("Drive synced -> " + drive.toString());
 			}
 		}
 	}

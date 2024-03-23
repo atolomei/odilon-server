@@ -17,6 +17,8 @@
 
 package io.odilon.vfs.raid0;
 
+import javax.annotation.concurrent.ThreadSafe;
+
 import io.odilon.model.RedundancyLevel;
 import io.odilon.vfs.RAIDHandler;
 import io.odilon.vfs.model.Drive;
@@ -30,6 +32,8 @@ import io.odilon.vfs.model.VirtualFileSystemService;
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
+
+@ThreadSafe
 public abstract class RAIDZeroHandler implements RAIDHandler {
 
 	private final RAIDZeroDriver driver;

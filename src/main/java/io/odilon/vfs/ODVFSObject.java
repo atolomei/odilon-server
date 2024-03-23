@@ -28,6 +28,10 @@ import io.odilon.vfs.model.VFSBucket;
 import io.odilon.vfs.model.VFSObject;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
+/**
+*  
+* @author atolomei@novamens.com (Alejandro Tolomei)
+*/
 public class ODVFSObject implements VFSObject {
 			
 	@SuppressWarnings("unused")
