@@ -177,7 +177,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 				try {
 					Files.delete(file.toPath());
 				} catch (IOException e1) {
-					logger.error(e);
+					logger.error(e, ServerConstant.NOT_THROWN);
 				}
 			}
 		}
@@ -189,7 +189,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 						try {
 							Files.delete(file.toPath());
 						} catch (Exception e1) {
-							logger.error(e1);
+							logger.error(e1, ServerConstant.NOT_THROWN);
 						}			
 					}
 			});
@@ -229,7 +229,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 						try {
 							Files.delete(file.toPath());
 						} catch (IOException e1) {
-							logger.error(e);
+							logger.error(e, ServerConstant.NOT_THROWN);
 						}
 					}				
 				}
@@ -722,9 +722,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 			});
 
 			return this.drivesAll;
-			
-			
-		
 	}
 
 	/**

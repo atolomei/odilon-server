@@ -90,9 +90,7 @@ public class InfoController extends BaseApiController {
 					
 			return new ResponseEntity<String>(str.toString(), HttpStatus.OK);
 		
-		} catch (Exception e) {
-			logger.error(e);
-			throw e;
+		
 		} finally {
 			if (pass!=null)
 				getTrafficControlService().release(pass);

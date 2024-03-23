@@ -138,7 +138,6 @@ public class ObjectControllerPresigned extends BaseApiController {
 		      .body(new InputStreamResource(in));
 	    
 		} catch (Exception e) {
-			logger.error(e);
 			throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));			
 		
 		} finally {

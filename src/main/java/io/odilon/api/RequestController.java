@@ -38,6 +38,8 @@ import io.odilon.traffic.TrafficPass;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
+ * <p>{@link SchedulerService} Requests
+ * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
@@ -45,6 +47,7 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 @RequestMapping(value = "/servicerequest")
 public class RequestController extends BaseApiController {
 			
+@SuppressWarnings("unused")
 static private Logger logger = Logger.getLogger(RequestController.class.getName());
 	
 	@Autowired

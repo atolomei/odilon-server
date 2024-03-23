@@ -51,7 +51,6 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 @Component
 public class OdilonStartupApplicationRunner implements ApplicationRunner {
 	
-	@SuppressWarnings("unused")
 	static private Logger logger = Logger.getLogger(OdilonApplication.class.getName());
 	static private Logger startupLogger = Logger.getLogger("StartupLogger");
 

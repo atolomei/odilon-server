@@ -94,7 +94,6 @@ public class BucketController extends BaseApiController  {
 			throw e;			
 		
 		} catch (Exception e) {
-			logger.error(e);
 			throw new OdilonInternalErrorException(getMessage(e));			
 		}
 		finally { 
@@ -129,7 +128,6 @@ public class BucketController extends BaseApiController  {
 			throw e;			
 		
 		} catch (Exception e) {
-			logger.error(e);
 			throw new OdilonInternalErrorException(getMessage(e));			
 		}
 		finally { 
@@ -161,7 +159,6 @@ public class BucketController extends BaseApiController  {
 		} catch (OdilonServerAPIException e) {
 			throw e;
 		} catch (Exception e) {
-			logger.error(e);
 			throw new OdilonInternalErrorException(getMessage(e));
 		}
 		finally { 
@@ -189,7 +186,6 @@ public class BucketController extends BaseApiController  {
 			throw e;
 			
 		} catch (Exception e) {
-			logger.error(e);
 			throw new OdilonInternalErrorException(getMessage(e));
 		}
 		finally {
@@ -250,7 +246,6 @@ public class BucketController extends BaseApiController  {
 		} catch (OdilonServerAPIException e) {
 			throw e;
 		} catch (Exception e) {
-			logger.error(e);
 			throw new OdilonInternalErrorException(getMessage(e));
 		}
 		finally { 
@@ -317,7 +312,6 @@ public class BucketController extends BaseApiController  {
 		} catch (OdilonServerAPIException e) {
 			throw e;
 		} catch (Exception e) {
-			logger.error(e);
 			throw new OdilonInternalErrorException(getMessage(e));
 		}
 		finally { 
@@ -347,7 +341,6 @@ public class BucketController extends BaseApiController  {
 		} catch (OdilonServerAPIException e) {
 			throw e;
 		} catch (Exception e) {
-			logger.error(e);
 			throw new OdilonInternalErrorException(getMessage(e));
 		}
 		finally { 
@@ -381,7 +374,6 @@ public class BucketController extends BaseApiController  {
 		} catch (OdilonServerAPIException e) {
 			throw e;
 		} catch (Exception e) {
-			logger.error(e);
 			throw new OdilonInternalErrorException(getMessage(e));
 		}
 		finally { 

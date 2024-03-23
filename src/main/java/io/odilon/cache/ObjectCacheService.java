@@ -21,8 +21,7 @@ import io.odilon.service.SystemService;
 
 /**
  * <p>{@link ObjectMetadata} cache.</p> 
- * It Uses {@link Caffeine} to keep references to entries in memory.
- * </p>
+ * <p>It Uses {@link Caffeine} to keep references to entries in memory.</p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
@@ -44,28 +43,30 @@ public class ObjectCacheService extends BaseService implements SystemService {
 	private Cache<String, ObjectMetadata> cache;
 	
 
+	
+	
 	public ObjectCacheService(ServerSettings serverSettings) {
 		this.serverSettings=serverSettings;
 	}
 	
     public long size() {
-        return this.cache.estimatedSize(); 	
+        return getCache().estimatedSize(); 	
     }
     
     public boolean containsKey(String bucketName, String objectName) {
-    	return (this.cache.getIfPresent(getKey(bucketName, objectName))!=null);
+    	return (getCache().getIfPresent(getKey(bucketName, objectName))!=null);
     }
 
     public ObjectMetadata get(String bucketName, String objectName) {
-    	return this.cache.getIfPresent(getKey(bucketName, objectName));
+    	return getCache().getIfPresent(getKey(bucketName, objectName));
     }
 
     public void put(String bucketName, String objectName, ObjectMetadata value) {
-    	this.cache.put(getKey(bucketName, objectName), value);
+    	getCache().put(getKey(bucketName, objectName), value);
     }
 
     public void remove(String bucketName, String objectName) {
-    	this.cache.invalidate(getKey(bucketName, objectName));
+    	getCache().invalidate(getKey(bucketName, objectName));
     }
     
     @PostConstruct
@@ -94,6 +95,10 @@ public class ObjectCacheService extends BaseService implements SystemService {
     private String getKey( String bucketName, String objectName) {
     	return bucketName+File.separator+objectName;
     }
+    
+    private Cache<String, ObjectMetadata> getCache() {
+		return this.cache;
+}
     
 }
 

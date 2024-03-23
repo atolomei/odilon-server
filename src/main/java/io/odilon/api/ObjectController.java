@@ -120,7 +120,6 @@ public class ObjectController extends BaseApiController  {
 			} catch (OdilonServerAPIException e) {
 				throw e;
 			} catch (Exception e) {
-				logger.error(e);
 				throw new OdilonInternalErrorException(getMessage(e));
 			}
 			finally { 
@@ -154,7 +153,6 @@ public class ObjectController extends BaseApiController  {
 			} catch (OdilonServerAPIException e) {
 				throw e;
 			} catch (Exception e) {
-				logger.error(e);
 				throw new OdilonInternalErrorException(getMessage(e));
 			}
 			finally { 
@@ -206,10 +204,8 @@ public class ObjectController extends BaseApiController  {
 			      .body(new InputStreamResource(in));
 		    
 			} catch (OdilonServerAPIException e1) {
-				logger.error(e1);
 				throw e1;
 			} catch (Exception e) {
-				logger.error(e);
 				throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));			
 			
 			} finally {
@@ -275,7 +271,6 @@ public class ObjectController extends BaseApiController  {
 				throw e;
 				
 			} catch (Exception e) {
-				logger.error(e);
 				throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));			
 			
 			} finally {
@@ -335,7 +330,6 @@ public class ObjectController extends BaseApiController  {
 				throw e1;
 				
 			} catch (Exception e) {
-				logger.error(e);
 				throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));			
 			
 			} finally {
@@ -381,7 +375,6 @@ public class ObjectController extends BaseApiController  {
 			} catch (OdilonServerAPIException e) {
 				throw e;
 			} catch (Exception e) {
-				logger.error(e);
 				throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));			
 			
 			} finally {
@@ -421,7 +414,6 @@ public class ObjectController extends BaseApiController  {
 			} catch (OdilonServerAPIException e) {
 				throw e;
 			} catch (Exception e) {
-				logger.error(e);
 				throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));			
 			
 			} finally {
@@ -466,7 +458,6 @@ public class ObjectController extends BaseApiController  {
 				throw e;
 				
 			} catch (Exception e) {
-				logger.error(e);
 				throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));			
 			
 			} finally {
@@ -544,7 +535,6 @@ public class ObjectController extends BaseApiController  {
 			} catch (OdilonServerAPIException e) {
 				throw e;
 			} catch (Exception e) {
-				logger.error(e);
 				throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));
 			} finally {
 				getTrafficControlService().release(pass);
@@ -577,7 +567,6 @@ public class ObjectController extends BaseApiController  {
 			} catch (OdilonServerAPIException e) {
 				throw e;
 			} catch (Exception e) {
-				logger.error(e);
 				throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));
 			} finally {
 				if (pass!=null)
@@ -625,7 +614,6 @@ public class ObjectController extends BaseApiController  {
 			} catch (OdilonServerAPIException e) {
 				throw e;
 			} catch (Exception e) {
-				logger.error(e);
 				throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));
 			} finally {
 				getTrafficControlService().release(pass);
@@ -678,7 +666,6 @@ public class ObjectController extends BaseApiController  {
 			} catch (OdilonServerAPIException e) {
 				throw e;
 			} catch (Exception e) {
-				logger.error(e);
 				throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));
 				
 			} finally {

@@ -74,8 +74,11 @@ public class FileCacheService extends BaseService {
 	@JsonIgnore
 	private Cache<String, File> cache;
 	
-
-	
+	/**
+	 * 
+	 *<p>This File cache uses a {@link Caffeine} based cache of references in memory</p>
+	 *   
+	 */
 	public FileCacheService(ServerSettings serverSettings, LockService vfsLockService) {
 		this.serverSettings=serverSettings;
 		this.vfsLockService=vfsLockService;
