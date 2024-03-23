@@ -49,8 +49,10 @@ import io.odilon.vfs.model.VFSBucket;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
- * 
+ * <p>Used by all RAID configuratiosn (RAID 0, RAID 1, RAID 6)
+ * Called by the  {@link  io.odilon.scheduler.CronJobDataIntegrityCheckRequest} </p>
  *
+ *@see {@link SchedulerService}
  */
 @Component
 @Scope("prototype")
@@ -161,8 +163,8 @@ public class DataIntegrityChecker implements Runnable, ApplicationContextAware  
 									this.notAvailable.getAndIncrement();
 							
 							} catch (Exception e) {
-								logger.error(e);
-								checkerLogger.error(e);
+								logger.error(e, ServerConstant.NOT_THROWN);
+								checkerLogger.error(e, ServerConstant.NOT_THROWN);
 							}
 							return null;
 						 });
@@ -171,8 +173,8 @@ public class DataIntegrityChecker implements Runnable, ApplicationContextAware  
 					try {
 						executor.invokeAll(tasks, 20, TimeUnit.MINUTES);						
 					} catch (InterruptedException e) {
-						logger.error(e);
-						checkerLogger.error(e);
+						logger.error(e, ServerConstant.NOT_THROWN);
+						checkerLogger.error(e, ServerConstant.NOT_THROWN);
 					}
 					offset += Long.valueOf(Integer.valueOf(data.getList().size()).longValue());
 					done = data.isEOD();

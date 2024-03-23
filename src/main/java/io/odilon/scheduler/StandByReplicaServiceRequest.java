@@ -25,6 +25,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import io.odilon.log.Logger;
+import io.odilon.model.ServerConstant;
 import io.odilon.replication.ReplicationService;
 import io.odilon.vfs.ODVFSOperation;
 import io.odilon.vfs.model.VFSOperation;
@@ -77,7 +78,7 @@ public class StandByReplicaServiceRequest extends AbstractServiceRequest {
 			
 		} catch (Exception e) {
 			 isSuccess=false;
-			 logger.error(e);
+			 logger.error(e, ServerConstant.NOT_THROWN);
 		}
 	}
 

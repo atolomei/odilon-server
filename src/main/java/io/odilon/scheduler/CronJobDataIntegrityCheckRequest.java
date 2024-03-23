@@ -17,25 +17,28 @@
 package io.odilon.scheduler;
 
 
-/**
- * 
- * @author atolomei@novamens.com (Alejandro Tolomei)
- */
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
+import io.odilon.log.Logger;
+import io.odilon.model.ServerConstant;
 import io.odilon.vfs.DataIntegrityChecker;
 
+
+
+/**
+ * <p>{@link CronJobRequest} that checks data integrity to prevent data corruption.</p>
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 @Component
 @Scope("prototype")
 @JsonTypeName("dataIntegrity")
 public class CronJobDataIntegrityCheckRequest extends CronJobRequest {
 			
-	static private Logger logger = LogManager.getLogger(CronJobDataIntegrityCheckRequest.class.getName());
+	static private Logger logger = Logger.getLogger(CronJobDataIntegrityCheckRequest.class.getName());
 
 	private static final long serialVersionUID = 1L;
 	
@@ -65,7 +68,7 @@ public class CronJobDataIntegrityCheckRequest extends CronJobRequest {
 				logger.debug("Started -> " + checker.toString());
 			
 			} catch (Exception e) {
-				logger.error(e);
+				logger.error(e, ServerConstant.NOT_THROWN);
 		
 			} finally {
 				setStatus(ServiceRequestStatus.COMPLETED);
