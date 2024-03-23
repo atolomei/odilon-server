@@ -25,7 +25,7 @@ import io.odilon.model.ServerConstant;
 import io.odilon.model.ServiceStatus;
 import io.odilon.service.ServerSettings;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 import javax.crypto.*;
 import javax.crypto.spec.SecretKeySpec;
 

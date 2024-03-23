@@ -24,7 +24,7 @@ import java.security.spec.KeySpec;
 import java.util.Base64;
 import java.util.Optional;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;

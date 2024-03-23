@@ -10,8 +10,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.concurrent.ThreadSafe;
+
+import jakarta.annotation.PostConstruct;
 
 import org.apache.commons.io.FileUtils;
 import org.checkerframework.checker.nullness.qual.NonNull;

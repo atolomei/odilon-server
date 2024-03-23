@@ -45,7 +45,7 @@ import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.DriveStatus;
 import io.odilon.vfs.model.VFSBucket;
 import io.odilon.vfs.model.VFSOperation;
-import io.odilon.vfs.model.VFSop;
+
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**

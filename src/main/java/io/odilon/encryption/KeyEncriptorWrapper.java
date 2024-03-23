@@ -18,7 +18,7 @@ package io.odilon.encryption;
 
 import java.util.Optional;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;

@@ -19,7 +19,10 @@ package io.odilon.security;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -32,7 +35,13 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import io.odilon.service.ServerSettings;
 
+/**
+ * 
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 @Configuration
+@EnableWebSecurity
 public class BasicAuthWebSecurityConfiguration {
 
 	@JsonIgnore
@@ -44,10 +53,7 @@ public class BasicAuthWebSecurityConfiguration {
 	private ServerSettings serverSettings;
 	
 	@Autowired
-	public BasicAuthWebSecurityConfiguration (
-			ServerSettings serverSettings,
-			BasicAuthenticationEntryPoint authenticationEntryPoint
-			) {
+	public BasicAuthWebSecurityConfiguration (ServerSettings serverSettings, BasicAuthenticationEntryPoint authenticationEntryPoint) {
 		
 		this.serverSettings=serverSettings;
 		this.authenticationEntryPoint=authenticationEntryPoint;
@@ -55,33 +61,28 @@ public class BasicAuthWebSecurityConfiguration {
 	
 	@Bean
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-	    
-		http.authorizeRequests()
-	        
-	    .antMatchers("/presigned/").permitAll()
-	    .antMatchers("/presigned/object").permitAll()
-	    .antMatchers("/public/").permitAll()
-	    .anyRequest().authenticated()
-	    .and()
-	    .httpBasic()
-	    .authenticationEntryPoint(authenticationEntryPoint);
-	    http.csrf().disable();
-	    return http.build();
-	  }
+		
+		 http
+				  .authorizeHttpRequests((authorize) -> authorize.requestMatchers("/presigned/", "/presigned/object", "/public/").permitAll())
+				  .authorizeHttpRequests(authorizeRequests -> authorizeRequests.anyRequest().authenticated())
+			      .httpBasic(Customizer.withDefaults())
+			      .formLogin(Customizer.withDefaults())  
+			      .csrf(AbstractHttpConfigurer::disable);
+			    return http.build();
+	}
 
 	@Bean
 	public InMemoryUserDetailsManager userDetailsService() {
+		
 		UserDetails user = User.withUsername(serverSettings.getAccessKey())
-	      .password(passwordEncoder().encode(serverSettings.getSecretKey()))
-	      .roles("USER_ROLE")
-	      .build();
-		  
-	    return new InMemoryUserDetailsManager(user);
+	    .password(passwordEncoder().encode(serverSettings.getSecretKey()))
+	    .roles("USER")
+	    .build();
+		return new InMemoryUserDetailsManager(user);
 	  }
-
+	 
 	  @Bean
 	  public PasswordEncoder passwordEncoder() {
-	    return new BCryptPasswordEncoder(8);
+	    return new BCryptPasswordEncoder();
 	  }
-	
 }

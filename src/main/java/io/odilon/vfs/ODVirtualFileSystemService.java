@@ -30,7 +30,7 @@ import java.util.Optional;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 import javax.annotation.concurrent.ThreadSafe;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;

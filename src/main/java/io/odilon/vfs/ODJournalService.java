@@ -20,7 +20,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 import javax.annotation.concurrent.ThreadSafe;
 
 import org.springframework.beans.factory.annotation.Autowired;

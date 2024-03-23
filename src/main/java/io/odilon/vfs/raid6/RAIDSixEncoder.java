@@ -21,7 +21,8 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
  * 
- * <p>Encodes InputStream into multiple block files in File System using {@link https://en.wikipedia.org/wiki/Erasure_code}.</p>
+ * <p>Encodes {@link InputStream} into multiple block files in 
+ * the File System using {@link https://en.wikipedia.org/wiki/Erasure_code}.</p>
  *  
  * @author atolomei@novamens.com (Alejandro Tolomei)  
  */
@@ -68,10 +69,7 @@ public class RAIDSixEncoder {
 		this.data_shards = getVFS().getServerSettings().getRAID6DataDrives();
 		this.partiy_shards = getVFS().getServerSettings().getRAID6ParityDrives();
 		this.total_shards = data_shards + partiy_shards;  
-		
-		
 	}
-	
 	
 	/**
 	 * <p> We can not use the {@link ObjectMetadata} here because <b>it may not exist yet</b>. 
@@ -145,8 +143,6 @@ public class RAIDSixEncoder {
      */
     public boolean encodeChunk(InputStream is, String bucketName, String objectName, int chunk, Optional<Integer> o_version) {
 
-    	// boolean isHead = o_version.isEmpty();
-    	
     	// BUFFER 1
     	final byte [] allBytes = new byte[ ServerConstant.MAX_CHUNK_SIZE ];
     	int totalBytesRead=0;

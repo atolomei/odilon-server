@@ -18,7 +18,7 @@ package io.odilon.scheduler;
 
 import java.io.Serializable;
 import java.time.OffsetDateTime;
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;

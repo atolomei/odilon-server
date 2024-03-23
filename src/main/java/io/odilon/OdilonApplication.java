@@ -17,7 +17,7 @@
 
 package io.odilon;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 
 import org.springframework.boot.Banner;
 import org.springframework.boot.SpringApplication;

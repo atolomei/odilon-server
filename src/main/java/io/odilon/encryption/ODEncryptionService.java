@@ -24,7 +24,7 @@ import java.io.InputStream;
 import java.io.SequenceInputStream;
 import java.util.Optional;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

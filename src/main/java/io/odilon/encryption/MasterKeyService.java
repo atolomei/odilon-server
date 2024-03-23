@@ -3,7 +3,7 @@ package io.odilon.encryption;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
