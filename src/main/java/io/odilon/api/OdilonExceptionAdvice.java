@@ -24,6 +24,7 @@ import org.springframework.http.ResponseEntity;
 import io.odilon.error.OdilonServerAPIException;
 import io.odilon.errors.OdilonErrorProxy;
 import io.odilon.log.Logger;
+import io.odilon.net.ErrorCode;
 
 /**
  * 
@@ -32,7 +33,6 @@ import io.odilon.log.Logger;
 @ControllerAdvice
 public class OdilonExceptionAdvice {
 			
-	@SuppressWarnings("unused")
 	static private Logger logger = Logger.getLogger(OdilonExceptionAdvice.class.getName());
 	
 	@ExceptionHandler(OdilonServerAPIException.class)
@@ -46,6 +46,45 @@ public class OdilonExceptionAdvice {
 		);
 		return response;
 	}
+	
+	
+	@ExceptionHandler(Exception.class)
+    public ResponseEntity<OdilonErrorProxy> handle(Exception ex) {
+        
+		logger.error("Server error -> " + ex.getClass().getName() + " | msg: " + ex.getMessage() + " | cause: " + ex.getCause());
+		
+		if (ex instanceof NullPointerException) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+        
+		//return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        
+		OdilonErrorProxy p;
+		
+		if (ex instanceof org.springframework.web.multipart.MultipartException) {
+			p = new OdilonErrorProxy(
+					HttpStatus.INTERNAL_SERVER_ERROR.value(),
+					ErrorCode.INTERNAL_MULTIPART_ERROR.value(),
+					ex.getClass().getName() + " | msg: " + ex.getMessage() + " | cause: " + ex.getCause());
+			
+		
+		}
+		else {
+		 p = new OdilonErrorProxy(
+				HttpStatus.INTERNAL_SERVER_ERROR.value(),
+				ErrorCode.INTERNAL_ERROR.value(),
+				ex.getClass().getName() + " | " + ex.getMessage());
+		 	
+		
+		}
+		
+		 ResponseEntity<OdilonErrorProxy> response = new ResponseEntity<OdilonErrorProxy>(p, HttpStatus.INTERNAL_SERVER_ERROR);
+		 return response;
+				
+        
+        
+        
+    }
 	
 }
 

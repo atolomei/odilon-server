@@ -62,7 +62,7 @@ private static Logger logger = Logger.getLogger(RAIDSixCreateObjectHandler.class
 
 	/**
 	* <p>Instances of this class are used
-	* internally by {@link RAIDSixDriver}<p>
+	* internally by {@link RAIDSixDriver}</p>
 	* 
 	* @param driver
 	*/
