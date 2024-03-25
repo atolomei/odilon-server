@@ -75,13 +75,11 @@
 				  <groupId>org.springframework.boot</groupId>
 				  <artifactId>spring-boot-starter-web</artifactId>
 				  <exclusions>
-				    <!--exclusion>
-				    
-				    	Odilon 1.5+ uses Tomcat due to a problem with multipart upload with Jetty included in Spring 3.x
-				    
+				    <exclusion>
+				    	<!-- Odilon 1.5+ uses Tomcat due to a problem with multipart upload with Jetty included in Spring 3.x -->
 				      <groupId>org.springframework.boot</groupId>
 				      <artifactId>spring-boot-starter-tomcat</artifactId>
-				    </exclusion -->
+				    </exclusion>
 				   	<exclusion>
 						<artifactId>commons-logging</artifactId>
 						<groupId>commons-logging</groupId>
@@ -89,12 +87,12 @@
 				  </exclusions>
 		</dependency>
 
-	   	<!--dependency>
+	   	<dependency>
 			  <groupId>org.springframework.boot</groupId>
 			  <artifactId>spring-boot-starter-jetty</artifactId>
-		</ dependency-->
+		</dependency>
 		
-		 <!-- https://mvnrepository.com/artifact/org.eclipse.jetty.http2/http2-server -->
+		<!-- https://mvnrepository.com/artifact/org.eclipse.jetty.http2/http2-server -->
 		<!-- dependency>
 		    <groupId>org.eclipse.jetty.http2</groupId>
 		    <artifactId>http2-server</artifactId>
