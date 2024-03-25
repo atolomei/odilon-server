@@ -168,6 +168,7 @@ More info in Odilon's website <br/>
 <li><a href="https://odilon.io/configuration-windows.html" target="_blank">Installation, Configuration and Operation on Windows</a></li>		
 <li><a href="https://odilon.io/development.html" target="_blank">Java Application Development with Odilon</a></li>	
 <li><a href="https://odilon.io/javadoc/index.html" target="_blank">Odilon SDK Javadoc</a></li>	
+<li><a href="https://youtu.be/irR_Eeq3I-I?si=74nZnUh4mxNW3F7R" target="_blank">Odilon Installer for Windows - YouTube video (2 min)<a></li>	
 <li><a href="https://youtu.be/kI6jG9vZAjI?si=3KSOpbvN-6ThJf1m" target="_blank">Odilon demo - YouTube video (4 min)<a></li>	
 <li><a href="https://twitter.com/odilonSoftware" target="_blank">Twitter</a></li>
 </ul>
