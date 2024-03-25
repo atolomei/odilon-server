@@ -44,7 +44,7 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 
 /**
- * 
+ * <p>Keeps a HashMap of all open Iterators</p> 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @Service

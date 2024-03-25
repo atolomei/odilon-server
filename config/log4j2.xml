@@ -115,13 +115,17 @@
 			<AppenderRef ref="Console"/>
 		</Asynclogger>´
  
-		<!-- Asynclogger name="org.springframework.security" level="debug" additivity="false">
+		<Asynclogger name="org.springframework.security" level="error" additivity="false">
 			<appender-ref ref="odilon"/>
 			<AppenderRef ref="Console"/>
-		</Asynclogger -->
+		</Asynclogger>
 
  
-		
+ 		<Asynclogger name="org.eclipse.jetty.ee10.servlet" level="debug" additivity="false">
+			<appender-ref ref="odilon"/>
+			<AppenderRef ref="Console"/>
+		</Asynclogger>
+ 		
 	</loggers>
 			
 	
