@@ -21,8 +21,20 @@ This is the first release of Odilon Object Storage
 
 ==================  1.1-beta ==================
 
-2024.03.12 Reed Solomon encoding for RAID 6. 3 (2 data, 1 parity), 6 (4 data, 2 parity), 12 (8 data, 4 parity)
+2024.03.12 Reed Solomon encoding for RAID 6. 
+		    3 disks (2 data, 1 parity),
+		    6 disks (4 data, 2 parity), 
+		   12 disks (8 data, 4 parity)
+		   
 2024.03.18 Self healing async process to recover on disk/s failures for RAID 6
+
+
+==================  1.5-beta ==================
+
+2024.03.21 Log MultipartException and other Exception 
+2024.03.22 upgrade from Java 11 to Java 17 since version 1.5-M0
+2024.03.24 switches to Tomcat instead of Jetty
+
 
 
 
