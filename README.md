@@ -12,10 +12,10 @@
 				<ul>
 				<li> Scalable Object Storage on commodity disks</li>
 				<li>Single binary, does not neet Database or other external service</li>
-				<li> Developed in Java 11 (uses Spring Boot, OkHttp, Jackson, Caffeine, Metrics, among others) </li>
+				<li> Developed in Java (uses Spring Boot, OkHttp, Jackson, Caffeine, Metrics, among others) </li>
 				<li> Runs on Linux and Windows</li>				
 				<li>Single dependency-free binary, does not neet Database or other external service</li>
-				<li> SDK Java 11 for client applications</li >
+				<li> SDK Java 11+ for client applications</li >
 				<li> HTTP/S for client server communication</li>
 				<li>License <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank">Open Source Apache 2</a>. It can be used for Open Source and commercial projects </li>
 				<li>Encryption <i>at rest</i> (<a href="https://es.wikipedia.org/wiki/Advanced_Encryption_Standard" target="_blank">AES 256</a>) </li>
@@ -46,7 +46,10 @@ It is not a configuration with data replication, its function is to provide grea
 <li><b>RAID 1.</b>For each object, 1 or more exact copies (or mirrors) are created on two or more disks. This provides redundancy in case of disk failure. At least 2 disks are required, Odilon also supports 3 or more for greater redundancy.<br/><br/>
 </li>
 <li><b>RAID 6 / Erasure Coding.</b>
-It is a method of encoding data into blocks that can be distributed across multiple disks or nodes and then reconstructed from a subset of those blocks. It has great flexibility since you can adjust the number and size of the blocks and the minimum required for recovery. It uses less disk space than RAID 1 and can withstand multiple full disk failures. Odilon implements this architecture using Reed Solomon error-correction codes. The configurations are: <b>3 disks</b> (2 data 1 parity, supports 1 disk failure), <b>6 disks</b> (4 data 2 parity, supports up to 2 disks failure) and <b>12</b> disks (8 data 4 parity, supports up to 4 disks failure).</li>
+It is a method of encoding data into blocks that can be distributed across multiple disks or nodes and then reconstructed from a subset of those blocks. It has great flexibility since you can adjust the number and size of the blocks and the minimum required for recovery. It uses less disk space than RAID 1 and can withstand multiple full disk failures. Odilon implements this architecture using Reed Solomon error-correction codes. The configurations are: <br/> <br/> 
+	<b>3 disks</b> (2 data 1 parity, supports 1 full disk failure), <br/>  
+	<b>6 disks</b> (4 data 2 parity, supports up to 2 full disks failures) <br/>
+	<b>12 disks</b> (8 data 4 parity, supports up to 4 full disks failures)</li> <br/>
 </ul>
 </p>
 
@@ -165,6 +168,8 @@ More info in Odilon's website <br/>
 <li><a href="https://odilon.io/configuration-windows.html" target="_blank">Installation, Configuration and Operation on Windows</a></li>		
 <li><a href="https://odilon.io/development.html" target="_blank">Java Application Development with Odilon</a></li>	
 <li><a href="https://odilon.io/javadoc/index.html" target="_blank">Odilon SDK Javadoc</a></li>	
+<li><a href="https://youtu.be/irR_Eeq3I-I?si=74nZnUh4mxNW3F7R" target="_blank">Odilon Installer for Windows - YouTube video (2 min)<a></li>	
+<li><a href="https://youtu.be/s2ZZibpOAg0" target="_blank">Odilon how to enable encryption - YouTube video (1 min)<a></li>	
 <li><a href="https://youtu.be/kI6jG9vZAjI?si=3KSOpbvN-6ThJf1m" target="_blank">Odilon demo - YouTube video (4 min)<a></li>	
 <li><a href="https://twitter.com/odilonSoftware" target="_blank">Twitter</a></li>
 </ul>
