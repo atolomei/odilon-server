@@ -21,11 +21,14 @@ package io.odilon;
 import java.util.Properties;
 
 import org.springframework.boot.context.event.ApplicationEnvironmentPreparedEvent;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.ApplicationListener;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.PropertiesPropertySource;
+import org.springframework.web.filter.CharacterEncodingFilter;
 
 import io.odilon.log.Logger;
+import jakarta.servlet.Filter;
 
 /**
  * 
@@ -54,6 +57,13 @@ public class OdilonPropertiesListener implements ApplicationListener<Application
 		    //props.put("spring.resources.cache.cachecontrol.must-revalidate", "true");
 		    
 		    environment.getPropertySources().addFirst(new PropertiesPropertySource("odilonProps", props));
+		    
+		    
+		    
+		    
+		    
+		    
+		    
 	}
 	 
 }

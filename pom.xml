@@ -75,11 +75,14 @@
 				  <groupId>org.springframework.boot</groupId>
 				  <artifactId>spring-boot-starter-web</artifactId>
 				  <exclusions>
-				    <exclusion>
-				    	<!-- Odilon 1.5+ uses Tomcat due to a problem with multipart upload with Jetty included in Spring 3.x -->
+				    
+				    <!-- Odilon 1.5+ uses Tomcat due to a problem with multipart upload with Jetty included in Spring 3.x -->
+				    
+				    <!--exclusion>
 				      <groupId>org.springframework.boot</groupId>
 				      <artifactId>spring-boot-starter-tomcat</artifactId>
-				    </exclusion>
+				    </! exclusion-->
+				   	
 				   	<exclusion>
 						<artifactId>commons-logging</artifactId>
 						<groupId>commons-logging</groupId>
