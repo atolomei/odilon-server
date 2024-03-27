@@ -52,6 +52,10 @@ public class ServerConstant {
 
 	public static final String ENABLE_ENCRYPTION_SCRIPT_LINUX 	= "enable-encryption.sh";
 	public static final String ENABLE_ENCRYPTION_SCRIPT_WINDOWS = "enable-encryption.bat";
+								
+	public static final String REKEY_ENCRYPTION_SCRIPT_LINUX 	= "rekey-encryption.sh";
+	public static final String REKEY_ENCRYPTION_SCRIPT_WINDOWS  = "rekey-encryption.bat";
+
 	
 	public static final double KB = 1024.0;
 	public static final double MB = 1024.0 * KB;

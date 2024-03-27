@@ -98,6 +98,7 @@ public class OdilonApplication {
 	}
 	
 	
+	/**
 	 @Bean
 	 public FilterRegistrationBean<Filter> filterRegistrationBean() {
 	        CharacterEncodingFilter filter = new CharacterEncodingFilter();
@@ -109,7 +110,7 @@ public class OdilonApplication {
 	        registrationBean.addUrlPatterns("/*");
 	        return registrationBean;
 	    }
-	 
+	 **/
 	 
 	public OdilonApplication() {
 	}

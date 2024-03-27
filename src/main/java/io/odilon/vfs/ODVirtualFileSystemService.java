@@ -800,6 +800,13 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 		return true;
 	}
 	
+	
+	private Optional<String> providedMasterKey = Optional.empty();
+	
+	
+	protected Optional<String> getProvidedMasterKey() {
+		return this.providedMasterKey;
+	}
 	/**
 	 * 
 	 * 
@@ -813,15 +820,21 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 			String ns=s.toLowerCase().trim().replace(" ", "");
 			if ( ns.equals("-dinitializeencryption=true") || ns.equals("--initializeencryption=true")) {
 				isInitializeEnc = true;
-				break;
+			}
+			if ( ns.startsWith("-dmasterkey=") || ns.equals("--masterkey=")) {
+				String k=s.trim();
+				String separator = s.trim().startsWith("-DmasterKey=") ? "-DmasterKey=" : "--masterKey=";
+				String arr[]=k.split(separator);
+				if (arr.length>1)
+					this.providedMasterKey = Optional.of(arr[1]); 
 			}
 		}
 		
 		
 		/** if the flag initialize is true, 
-		 * try to initialize Encryption and exit */
+		 * try to initialize or Rekey Encryption and exit */
 		if (isInitializeEnc) {
-			EncryptionInitializer init = new EncryptionInitializer(this);
+			EncryptionInitializer init = new EncryptionInitializer(this, getProvidedMasterKey());
 			init.execute();
 			return;
 		}
@@ -867,12 +880,12 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 
 		/** if encryption but it was not initialized yet, exit */
 		if (!info.isEncryptionIntialized()) {
-			EncryptionInitializer init = new EncryptionInitializer(this);
+			EncryptionInitializer init = new EncryptionInitializer(this, getProvidedMasterKey());
 			init.notInitializedError();
 			return;
 		}
 		
-		/** if encryption but it was not initialized yet, exit */
+		
 		try {
 			byte[] key = driver.getServerMasterKey();
 			this.odilonKeyEncryptorService.setMasterKey(key);

@@ -21,14 +21,11 @@ package io.odilon;
 import java.util.Properties;
 
 import org.springframework.boot.context.event.ApplicationEnvironmentPreparedEvent;
-import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.ApplicationListener;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.PropertiesPropertySource;
-import org.springframework.web.filter.CharacterEncodingFilter;
 
 import io.odilon.log.Logger;
-import jakarta.servlet.Filter;
 
 /**
  * 
@@ -46,23 +43,17 @@ public class OdilonPropertiesListener implements ApplicationListener<Application
 		    props.put("app.name", "Odilon");
 		    props.put("spring.servlet.multipart.max-file-size", "100GB");
 		    props.put("spring.servlet.multipart.max-request-size", "100GB");
-		    //props.put("spring.servlet.multipart.file-size-threshold", "12KB");
+		    // props.put("spring.servlet.multipart.file-size-threshold", "12KB");
 		    props.put("spring.main.banner-mode", "off");
 		    props.put("spring.main.log-startup-info", "false");
 		    props.put("server.error.whitelabel.enabled", "false");
 		    props.put("spring.main.lazy-initialization", "false");
 		    props.put("spring.output.ansi.enabled", "DETECT");
 
-		    //props.put("spring.resources.cache.cachecontrol.max-age", "120");
-		    //props.put("spring.resources.cache.cachecontrol.must-revalidate", "true");
+		    // props.put("spring.resources.cache.cachecontrol.max-age", "120");
+		    // props.put("spring.resources.cache.cachecontrol.must-revalidate", "true");
 		    
 		    environment.getPropertySources().addFirst(new PropertiesPropertySource("odilonProps", props));
-		    
-		    
-		    
-		    
-		    
-		    
 		    
 	}
 	 
