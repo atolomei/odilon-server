@@ -92,9 +92,8 @@ public class RAIDOneDriveSetup implements IODriveSetup, ApplicationContextAware 
 	@Override
 	public boolean setup() {
 		
-		startuplogger.info("This process is async for RAID 1");
-		startuplogger.info("It will start a background process to setup the new drives.");
-		startuplogger.info("The background process will duplicate all objects into the newly added drives");
+		startuplogger.info("This process is non blocking for RAID 1");
+		startuplogger.info("It will start a background process that will replicate all objects in the new drive/s.");
 		
 		final OdilonServerInfo serverInfo = getDriver().getServerInfo();
 		final File keyFile = getDriver().getDrivesEnabled().get(0).getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE); 

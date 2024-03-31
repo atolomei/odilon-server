@@ -231,18 +231,53 @@ public class RAIDOneDriveSync implements Runnable {
 													
 													getLockService().getBucketLock(item.getObject().bucketName).readLock().lock();
 													
+													
+													{
+														/** HEAD VERSION --------------------------------------------------------- */
+														
+															File newmeta = drive.getObjectMetadataFile(item.getObject().bucketName, item.getObject().objectName);
+															
+															// If ObjectMetadata exists -> the file was already synced, skip
+															
+															if (!newmeta.exists()) {
+																
+																	// copy data ----
+																	File dataFile = ((SimpleDrive) enabledDrive).getObjectDataFile(item.getObject().bucketName, item.getObject().objectName);
+		
+																	try (InputStream is = new BufferedInputStream( new FileInputStream(dataFile))) {
+																	
+																		byte[] buf = new byte[ VirtualFileSystemService.BUFFER_SIZE ];
+																		String sPath = ((SimpleDrive) drive).getObjectDataFilePath(bucket.getName(), item.getObject().objectName);
+																	
+																		try (BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(sPath), VirtualFileSystemService.BUFFER_SIZE)) {
+																			int bytesRead;
+																			while ((bytesRead = is.read(buf, 0, buf.length)) >= 0) {
+																				out.write(buf, 0, bytesRead);
+																			}
+																			this.totalBytes.addAndGet(dataFile.length());
+																		} 
+																	}
+																	// copy metadata ----
+																	ObjectMetadata meta = item.getObject();
+																	meta.drive=drive.getName();
+																	drive.saveObjectMetadata(meta);
+																	this.copied.getAndIncrement();
+															}
+													}
+		
+													
 													/** PREVIOUS VERSIONS --------------------------------------------------------- */
 													
 													if (getDriver().getVFS().getServerSettings().isVersionControl()) {
 
 														
 														for (int version=0; version<item.getObject().version; version++) {
-															// duplicate Meta Version
+															// copy Meta Version
 															File meta_version_n=enabledDrive.getObjectMetadataVersionFile(item.getObject().bucketName, item.getObject().objectName, version);
 															if (meta_version_n.exists()) {
 																drive.putObjectMetadataVersionFile(item.getObject().bucketName, item.getObject().objectName, version, meta_version_n);
 															}
-															// duplicate Data Version
+															// copy Data Version
 															File version_n = ((SimpleDrive) enabledDrive).getObjectDataVersionFile(item.getObject().bucketName, item.getObject().objectName, version);
 															if (version_n.exists()) {
 																((SimpleDrive) drive).putObjectDataVersionFile(item.getObject().bucketName, item.getObject().objectName, version, version_n);
@@ -250,37 +285,7 @@ public class RAIDOneDriveSync implements Runnable {
 														}
 													}
 													
-													/** HEAD VERSION --------------------------------------------------------- */
-													
-													File newmeta = drive.getObjectMetadataFile(item.getObject().bucketName, item.getObject().objectName);
-													
-													// If ObjectMetadata exists -> the file was already synced, skip
-													
-													if (!newmeta.exists()) {
-														
-															// duplicate data ----
-															File dataFile = ((SimpleDrive) enabledDrive).getObjectDataFile(item.getObject().bucketName, item.getObject().objectName);
-
-															try (InputStream is = new BufferedInputStream( new FileInputStream(dataFile))) {
-															
-																byte[] buf = new byte[ VirtualFileSystemService.BUFFER_SIZE ];
-																String sPath = ((SimpleDrive) drive).getObjectDataFilePath(bucket.getName(), item.getObject().objectName);
-															
-																try (BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(sPath), VirtualFileSystemService.BUFFER_SIZE)) {
-																	int bytesRead;
-																	while ((bytesRead = is.read(buf, 0, buf.length)) >= 0) {
-																		out.write(buf, 0, bytesRead);
-																	}
-																	this.totalBytes.addAndGet(dataFile.length());
-																} 
-															}
-															// metadata ----
-															ObjectMetadata meta = item.getObject();
-															meta.drive=drive.getName();
-															drive.saveObjectMetadata(meta);
-															this.copied.getAndIncrement();
-													}
-													
+																								
 												} catch (Exception e) {
 													logger.error(e);
 													this.errors.getAndIncrement();
@@ -321,6 +326,9 @@ public class RAIDOneDriveSync implements Runnable {
 				executor.shutdown();
 				executor.awaitTermination(10, TimeUnit.MINUTES);
 				
+				logger.debug("scanned (copy) so far -> " + String.valueOf(this.counter.get()));
+				
+				
 			} catch (InterruptedException e) {
 			}
 			
@@ -330,8 +338,8 @@ public class RAIDOneDriveSync implements Runnable {
 			startuplogger.info(ServerConstant.SEPARATOR);
 			startuplogger.info(this.getClass().getSimpleName() + " Process completed");
 			startuplogger.debug("Threads: " + String.valueOf(maxProcessingThread));
-			startuplogger.info("Total scanned: " + String.valueOf(this.counter.get()));
-			startuplogger.info("Total copied: " + String.valueOf(this.copied.get()));
+			startuplogger.info("Total objects scanned: " + String.valueOf(this.counter.get()));
+			startuplogger.info("Total objects  copied: " + String.valueOf(this.copied.get()));
 			double val = Double.valueOf(totalBytes.get()).doubleValue() / SharedConstant.d_gigabyte;
 			startuplogger.info("Total size: " + String.format("%14.4f", val).trim() + " GB");
 			
@@ -339,7 +347,7 @@ public class RAIDOneDriveSync implements Runnable {
 				startuplogger.info("Errors: " + String.valueOf(this.errors.get()));
 			
 			if (this.notAvailable.get()>0)
-				startuplogger.info("Not Available: " + String.valueOf(this.notAvailable.get()));
+				startuplogger.info("Not available: " + String.valueOf(this.notAvailable.get()));
 			
 			startuplogger.info("Duration: " + String.valueOf(Double.valueOf(System.currentTimeMillis() - start_ms) / Double.valueOf(1000)) + " secs");
 			startuplogger.info(ServerConstant.SEPARATOR);

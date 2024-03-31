@@ -88,9 +88,36 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 				op = getJournalService().syncObject(bucketName, objectName);
 				
 				
+				/** HEAD VERSION --------------------------------------------------------- */
+
+				{
+					/** Data (head) */
+					RAIDSixDecoder decoder = new RAIDSixDecoder(getDriver());
+					File file = decoder.decodeHead(meta);
+					
+					RAIDSixSDriveSyncEncoder driveInitEncoder = new RAIDSixSDriveSyncEncoder(getDriver(), getDrives());
+					
+					try (InputStream in = new BufferedInputStream(new FileInputStream(file.getAbsolutePath()))) {
+						driveInitEncoder.encodeHead(in, bucketName, objectName);
+					} catch (FileNotFoundException e) {
+			    		throw new InternalCriticalException(e, "b:" + meta.bucketName +  " | o:" + meta.objectName );
+					} catch (IOException e) {
+						throw new InternalCriticalException(e, "b:" + meta.bucketName +  " | o:" + meta.objectName );
+					}
+	
+					/** MetaData (head) */
+					meta.dateSynced=OffsetDateTime.now();
+					
+					for (Drive drive:getDrives()) {
+						drive.saveObjectMetadata(meta);
+					}
+				}
+				
+				
 				/** PREVIOUS VERSIONS ---------------------------------------------------- */ 
 				
 				if (getDriver().getVFS().getServerSettings().isVersionControl()) {
+					
 					for (int version=0; version < meta.version; version++) {
 						
 						ObjectMetadata versionMeta = getDriver().getObjectMetadataReadDrive(bucketName, objectName).getObjectMetadataVersion(bucketName, objectName, version);
@@ -121,32 +148,7 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 					}
 				}
 				 
-				/** HEAD VERSION --------------------------------------------------------- */
-
-				/** Data (head) */
-				RAIDSixDecoder decoder = new RAIDSixDecoder(getDriver());
-				File file = decoder.decodeHead(meta);
-				
-				RAIDSixSDriveSyncEncoder driveInitEncoder = new RAIDSixSDriveSyncEncoder(getDriver(), getDrives());
-				
-				try (InputStream in = new BufferedInputStream(new FileInputStream(file.getAbsolutePath()))) {
-					driveInitEncoder.encodeHead(in, bucketName, objectName);
-				} catch (FileNotFoundException e) {
-		    		throw new InternalCriticalException(e, "b:" + meta.bucketName +  " | o:" + meta.objectName );
-				} catch (IOException e) {
-					throw new InternalCriticalException(e, "b:" + meta.bucketName +  " | o:" + meta.objectName );
-				}
-
-				/** MetaData (head) */
-				meta.dateSynced=OffsetDateTime.now();
-				
-				for (Drive drive:getDrives()) {
-					drive.saveObjectMetadata(meta);
-				}
-				
 				done = op.commit();
-				
-				//logger.debug("Sync -> " +  "b:" + meta.bucketName +  " | o:" + meta.objectName);
 				
 			} finally {
 				

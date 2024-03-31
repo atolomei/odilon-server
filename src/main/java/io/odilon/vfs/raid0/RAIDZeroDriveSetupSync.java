@@ -214,8 +214,8 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 		
 		startuplogger.debug("Threads: " + String.valueOf(maxProcessingThread));
 		
-		startuplogger.info("Total files processed: " + String.valueOf(this.counter.get()));
-		startuplogger.info("Total files required move to another disk: " + String.valueOf(this.moved.get()));
+		startuplogger.info("Total objects processed: " + String.valueOf(this.counter.get()));
+		startuplogger.info("Total objects required move to another disk: " + String.valueOf(this.moved.get()));
 		startuplogger.info("Total storage moved: " + String.format("%16.6f", Double.valueOf(totalBytesMoved.get()).doubleValue() / SharedConstant.d_gigabyte).trim() + " GB");
 		
 		if (this.errors.get()>0)
@@ -312,10 +312,24 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 									
 									if (!newDrive.equals(currentDrive)) {
 										try {
-											//((SimpleDrive) currentDrive).deleteObject(item.getObject().bucketName, item.getObject().objectName );
+
+											
+											/** HEAD VERSION --------------------------------------------------------- */
+											
 											currentDrive.deleteObjectMetadata(item.getObject().bucketName, item.getObject().objectName );
 											FileUtils.deleteQuietly(new File (currentDrive.getRootDirPath(), item.getObject().bucketName + File.separator + item.getObject().objectName));
 
+											/** PREVIOUS VERSIONS ----------------------------------------------------- */
+											if (getDriver().getVFS().getServerSettings().isVersionControl()) {
+												for (int n=0; n<item.getObject().version; n++) {
+													File m=currentDrive.getObjectMetadataVersionFile(item.getObject().bucketName, item.getObject().objectName, n);
+													if (m.exists()) 
+														FileUtils.deleteQuietly(m);
+													File d=((SimpleDrive) currentDrive).getObjectDataVersionFile(item.getObject().bucketName, item.getObject().objectName, n);
+													if (d.exists()) 
+														FileUtils.deleteQuietly(d);
+												}
+											}
 											this.cleaned.getAndIncrement();
 										
 										} catch (Exception e) {
@@ -356,6 +370,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 			}
 			
 		} finally {
+			logger.debug("scanned (clean up) so far -> " + String.valueOf(this.counter.get()));
 			startuplogger.info("cleanup completed -> " + String.valueOf(Double.valueOf(System.currentTimeMillis() - start_cleanup) / Double.valueOf(1000)) + " secs");
 		}
 	}
@@ -425,7 +440,26 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 											 * it means the file was already copied */
 											
 											if (!newMetadata.exists()) {
-																
+												
+												/** HEAD VERSION --------------------------------------------------------- */
+
+												/** Data */													
+												File data_head= ((SimpleDrive) currentDrive).getObjectDataFile(item.getObject().bucketName, item.getObject().objectName);
+												if (data_head.exists()) {
+														((SimpleDrive) newDrive).putObjectDataFile(item.getObject().bucketName, item.getObject().objectName,  data_head);
+														totalBytesMoved.getAndAdd(data_head.length());
+												}
+													
+												/** Metadata */													
+												ObjectMetadata meta = item.getObject();
+												meta.drive=newDrive.getName();
+												newDrive.saveObjectMetadata(meta);
+												this.moved.getAndIncrement();
+												File f=currentDrive.getObjectMetadataFile(meta.bucketName, meta.objectName);
+												if (f.exists())
+													totalBytesMoved.getAndAdd(f.length());
+
+												
 												/** PREVIOUS VERSIONS --------------------------------------------------------- */
 												
 												if (getDriver().getVFS().getServerSettings().isVersionControl()) {
@@ -434,27 +468,18 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 															File meta_version_n=currentDrive.getObjectMetadataVersionFile(item.getObject().bucketName, item.getObject().objectName, n);
 															if (meta_version_n.exists()) {
 																newDrive.putObjectMetadataVersionFile(item.getObject().bucketName, item.getObject().objectName, n, meta_version_n);
+																totalBytesMoved.getAndAdd(meta_version_n.length());
 															}
 															// move Data Version
 															File version_n= ((SimpleDrive) currentDrive).getObjectDataVersionFile(item.getObject().bucketName, item.getObject().objectName, n);
 															if (version_n.exists()) {
 																((SimpleDrive) newDrive).putObjectDataVersionFile(item.getObject().bucketName, item.getObject().objectName, n, version_n);
+																 totalBytesMoved.getAndAdd(version_n.length());
 															}
 														}
 												}
 												
-													/** HEAD VERSION --------------------------------------------------------- */
-
-													/** Data */													
-													File data_head= ((SimpleDrive) currentDrive).getObjectDataFile(item.getObject().bucketName, item.getObject().objectName);
-													if (data_head.exists())
-														((SimpleDrive) newDrive).putObjectDataFile(item.getObject().bucketName, item.getObject().objectName,  data_head);
-													
-													/** Metadata */													
-													ObjectMetadata meta = item.getObject();
-													meta.drive=newDrive.getName();
-													newDrive.saveObjectMetadata(meta);
-													this.moved.getAndIncrement();
+												
 											}
 										
 										} catch (Exception e) {

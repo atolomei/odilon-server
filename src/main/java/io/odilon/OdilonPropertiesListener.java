@@ -49,12 +49,10 @@ public class OdilonPropertiesListener implements ApplicationListener<Application
 		    props.put("server.error.whitelabel.enabled", "false");
 		    props.put("spring.main.lazy-initialization", "false");
 		    props.put("spring.output.ansi.enabled", "DETECT");
-
-		    // props.put("spring.resources.cache.cachecontrol.max-age", "120");
-		    // props.put("spring.resources.cache.cachecontrol.must-revalidate", "true");
-		    
+		    props.put("spring.resources.cache.cachecontrol.max-age", "120");
+		    props.put("spring.resources.cache.cachecontrol.must-revalidate", "true");
+		    		
 		    environment.getPropertySources().addFirst(new PropertiesPropertySource("odilonProps", props));
-		    
 	}
 	 
 }
