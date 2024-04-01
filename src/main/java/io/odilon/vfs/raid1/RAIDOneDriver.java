@@ -103,10 +103,12 @@ public class RAIDOneDriver extends BaseIODriver  {
 
 	@Override
 	public void deleteBucketAllPreviousVersions(String bucketName) {
+		
 		Check.requireNonNullArgument(bucketName, "bucket is null");
 		VFSBucket bucket = getVFS().getBucket(bucketName);
 		Check.requireNonNullArgument(bucket, "bucket does not exist -> b:" + bucketName);
 		Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie. " + BucketStatus.ARCHIVED.getName() +" or " + BucketStatus.ENABLED.getName() + ") | b:" + bucketName);
+		
 		RAIDOneDeleteObjectHandler agent = new RAIDOneDeleteObjectHandler(this);
 		agent.deleteBucketAllPreviousVersions(bucket);
 	}
@@ -115,6 +117,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 	 * 
 	 */
 	public ObjectMetadata restorePreviousVersion(String bucketName, String objectName) {
+		
 		Check.requireNonNullArgument(bucketName, "bucket is null");
 		VFSBucket bucket = getVFS().getBucket(bucketName);
 		
@@ -159,7 +162,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 				if ((meta==null) || (!meta.isAccesible()))
 					throw new OdilonObjectNotFoundException("object version does not exists for -> b:" +  bucket.getName() +" | o:" + objectName + " | v:" + String.valueOf(version));
 				
-				if (meta.encrypt)
+				if (meta.isEncrypt())
 					return getVFS().getEncryptionService().decryptStream(getInputStreamFromSelectedDrive(readDrive, bucket.getName(), objectName, version));
 				else
 					return getInputStreamFromSelectedDrive(readDrive, bucket.getName(), objectName, version);	
@@ -220,7 +223,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 		Check.requireNonNullStringArgument(fileName, "fileName is null | b: " + bucket.getName() + " o:" + objectName);
 		Check.requireNonNullArgument(stream, "InpuStream can not null -> b:" + bucket.getName() + " | o:"+objectName);
 		
-		// TODO AT -> lock must be before creating the agent
+		// TODO AT ->ideally lock must be before creating the agent
 		if (exists(bucket, objectName)) {
 			RAIDOneUpdateObjectHandler updateAgent = new RAIDOneUpdateObjectHandler(this);
 			updateAgent.update(bucket, objectName, stream, fileName, contentType);
@@ -238,8 +241,10 @@ public class RAIDOneDriver extends BaseIODriver  {
 	 */
 	@Override
 	public void delete(VFSBucket bucket, String objectName) {
+		
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
+		
 		RAIDOneDeleteObjectHandler agent = new RAIDOneDeleteObjectHandler(this);
 		agent.delete(bucket, objectName);
 	}
@@ -249,11 +254,13 @@ public class RAIDOneDriver extends BaseIODriver  {
 	 */
 	@Override
 	public void postObjectDeleteTransaction(ObjectMetadata meta, int headVersion) {
+		
 		Check.requireNonNullArgument(meta, "meta is null");
 		String bucketName = meta.bucketName;
 		String objectName = meta.objectName;
 		Check.requireNonNullArgument(bucketName, "bucket is null");
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketName);
+		
 		RAIDOneDeleteObjectHandler deleteAgent = new RAIDOneDeleteObjectHandler(this);
 		deleteAgent.postObjectDelete(meta, headVersion);
 	}
@@ -263,11 +270,13 @@ public class RAIDOneDriver extends BaseIODriver  {
 	 */
 	@Override
 	public void postObjectPreviousVersionDeleteAllTransaction(ObjectMetadata meta, int headVersion) {
+		
 		Check.requireNonNullArgument(meta, "meta is null");
 		String bucketName = meta.bucketName;
 		String objectName = meta.objectName;
 		Check.requireNonNullArgument(bucketName, "bucket is null");
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketName);
+		
 		RAIDOneDeleteObjectHandler deleteAgent = new RAIDOneDeleteObjectHandler(this);
 		deleteAgent.postObjectPreviousVersionDeleteAll(meta, headVersion);
 	}
@@ -277,7 +286,9 @@ public class RAIDOneDriver extends BaseIODriver  {
 	 */
 	@Override			
 	public void putObjectMetadata(ObjectMetadata meta) {
+		
 		Check.requireNonNullArgument(meta, "meta is null");
+		
 		RAIDOneUpdateObjectHandler updateAgent = new RAIDOneUpdateObjectHandler(this);
 		updateAgent.updateObjectMetadata(meta);
 		getVFS().getSystemMonitorService().getUpdateObjectCounter().inc();
@@ -288,7 +299,8 @@ public class RAIDOneDriver extends BaseIODriver  {
 	 */
 	@Override
 	public boolean setUpDrives() {
-		logger.debug("Starting async process to set up drives");
+		
+		logger.debug("Starting non blocking process to set up drives");
 		RAIDOneDriveSetup setup = getApplicationContext().getBean(RAIDOneDriveSetup.class, this);
 		return setup.setup();
 	}
@@ -462,9 +474,11 @@ public class RAIDOneDriver extends BaseIODriver  {
 	 * 
 	 */
 	public VFSObject getObject(String bucketName, String objectName) {
+		
 		Check.requireNonNullArgument(bucketName, "bucketName is null");
 		VFSBucket bucket = getVFS().getBucket(bucketName);
 		Check.requireNonNullArgument(bucket, "bucket does not exist -> " + bucketName);
+		
 		return getObject(bucket, objectName);
 	}
 	
@@ -562,9 +576,10 @@ public class RAIDOneDriver extends BaseIODriver  {
 	
 	/**
 	 * <p>Weak Consistency.<br/> 
-	 * If a file gives error while bulding the {@link DataList}, 
+	 * If a file gives error while building the {@link DataList}, 
 	 * the Item will contain an String with the error
-	 * {code isOK()} should be used before getObject()</p>
+	 * Method {code isOK()} should be checked before accessing the ObjectMetadata with {@code getObject()}  
+	 *  </p>
 	 */
 	@Override
 	public DataList<Item<ObjectMetadata>> listObjects(String bucketName, Optional<Long> offset, Optional<Integer> pageSize, Optional<String> prefix, Optional<String> serverAgentId) {
@@ -660,7 +675,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 				
 				InputStream stream = getInputStreamFromSelectedDrive(readDrive, bucket.getName(), objectName);
 	
-				if (meta.encrypt)
+				if (meta.isEncrypt())
 					return getVFS().getEncryptionService().decryptStream(stream);
 				else
 					return stream;
@@ -826,9 +841,6 @@ public class RAIDOneDriver extends BaseIODriver  {
 	public RedundancyLevel getRedundancyLevel() {
 		return RedundancyLevel.RAID_1; 
 	}
-
-	
-	
 
 	
 	

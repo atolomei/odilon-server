@@ -744,10 +744,12 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 	 */
 	@Override
 	public ObjectMetadata restorePreviousVersion(String bucketName, String objectName) {
+		
 		Check.requireNonNullArgument(bucketName, "bucket is null");
 		VFSBucket bucket = getVFS().getBucket(bucketName);
 		Check.requireNonNullArgument(bucket, "bucket does not exist -> b:" + bucketName);
 		Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie. " + BucketStatus.ARCHIVED.getName() +" or " + BucketStatus.ENABLED.getName() + ") | b:" + bucketName);
+
 		RAIDSixUpdateObjectHandler agent = new RAIDSixUpdateObjectHandler(this);
 		return agent.restorePreviousVersion(bucket, objectName);
 	}
@@ -1000,7 +1002,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		
 		for (int chunk=0; chunk<chunks; chunk++) {
 					for (int disk=0; disk<getDrivesAll().size(); disk++) {
-						String suffix = "."+String.valueOf(chunk)+"."+String.valueOf(disk) + (version.isEmpty() ? "" : (".v"+String.valueOf(version)));						
+						String suffix = "."+String.valueOf(chunk)+"."+String.valueOf(disk) + (version.isEmpty() ? "" : (".v"+String.valueOf(version.get())));						
 						Drive drive = getDrivesAll().get(disk);
 						map.get(drive).add(meta.objectName+suffix);
 					}

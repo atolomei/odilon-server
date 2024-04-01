@@ -101,8 +101,10 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 					saveObjectMetadata(bucketName, objectName, ei, srcFileName, contentType, version);
 					
 					getVFS().getObjectCacheService().remove(bucketName, objectName);
+					getVFS().getFileCacheService().remove(bucketName, objectName, Optional.of(version));
 					
 					done = op.commit();
+					
 			
 				} catch (InternalCriticalException e) {
 						done=false;
@@ -249,6 +251,8 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
    			throw new InternalCriticalException(e, "b:"+ bucketName + " o:" + objectName+ ", f:" + "| etag");
 		} 
 
+		OffsetDateTime creationDate=OffsetDateTime.now();
+		
 		for (Drive drive: getDriver().getDrivesAll()) {
 
 			try {
@@ -256,7 +260,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 				meta.fileName=srcFileName;
 				meta.appVersion=OdilonVersion.VERSION;
 				meta.contentType=contentType;
-				meta.creationDate = OffsetDateTime.now();
+				meta.creationDate = creationDate;
 				meta.version=version;
 				meta.versioncreationDate = meta.creationDate;
 				meta.length=ei.fileSize;

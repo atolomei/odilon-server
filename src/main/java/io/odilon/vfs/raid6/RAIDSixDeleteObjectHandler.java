@@ -409,9 +409,6 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler implements RAIDDe
 	 */
 	private void onAfterCommit(VFSOperation op, ObjectMetadata meta, int headVersion) {
 		
-		//Check.requireNonNullArgument(op, "op is null");
-		//Check.requireNonNullArgument(meta, "meta is null");
-		
 		try {
 			if (op.getOp()==VFSop.DELETE_OBJECT || op.getOp()==VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS) {
 				getVFS().getSchedulerService().enqueue(getVFS().getApplicationContext().getBean(AfterDeleteObjectServiceRequest.class, op.getOp(), meta, headVersion));

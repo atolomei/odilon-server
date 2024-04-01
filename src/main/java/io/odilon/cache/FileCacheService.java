@@ -138,12 +138,17 @@ public class FileCacheService extends BaseService {
      * @param objectName
      */
     public void remove(String bucketName, String objectName, Optional<Integer> version) {
+    	
     	Check.requireNonNullArgument(bucketName, "bucket is null");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucketName);
+		
 		getLockService().getFileCacheLock(bucketName, objectName, version).writeLock().lock();
+		
     	try {
+    	
     		File file = getCache().getIfPresent(getKey(bucketName, objectName, version));
     		getCache().invalidate(getKey(bucketName, objectName, version));
+    		
     		if (file!=null) {
     			FileUtils.deleteQuietly(file);
     			cacheSizeBytes.getAndAdd(-file.length());

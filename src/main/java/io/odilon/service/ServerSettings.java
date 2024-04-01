@@ -433,6 +433,7 @@ public class ServerSettings implements APIObject {
 	}
 	
 	
+	
 	/**
 	 * 
 	 * 
@@ -456,12 +457,12 @@ public class ServerSettings implements APIObject {
 		if (encryptionKey!=null)  {
 			encryptionKey=encryptionKey.trim();
 			if (encryptionKey.length()!= (2*VirtualFileSystemService.AES_KEY_SIZE_BITS/8))
-				throw new IllegalArgumentException("\n encryption key length must be -> " + String.valueOf((2*VirtualFileSystemService.AES_KEY_SIZE_BITS/8))+"\n");
+				exit("encryption key length must be -> " + String.valueOf((2*VirtualFileSystemService.AES_KEY_SIZE_BITS/8)));
 			try {
 				@SuppressWarnings("unused")
 				byte[] be = ByteToString.hexStringToByte(encryptionKey);
 			} catch (Exception e) {					
-				throw new IllegalArgumentException("\nencryption key is not a valid hex String -> " + encryptionKey+"\n");
+				exit("encryption key is not a valid hex String -> " + encryptionKey);
 			}
 		}
 		
@@ -472,12 +473,12 @@ public class ServerSettings implements APIObject {
 		if (masterKey!=null) {
 			masterKey=masterKey.trim();
 			if (masterKey.length()!= (2*VirtualFileSystemService.AES_KEY_SIZE_BITS/8))
-				throw new IllegalArgumentException("\nmasterKey key length must be -> " + String.valueOf((2*VirtualFileSystemService.AES_KEY_SIZE_BITS/8))+"\n");
+				exit("masterKey key length must be -> " + String.valueOf((2*VirtualFileSystemService.AES_KEY_SIZE_BITS/8)));
 			try {
 				@SuppressWarnings("unused")
 				byte[] be = ByteToString.hexStringToByte(masterKey);
 			} catch (Exception e) {					
-				throw new IllegalArgumentException("\nmasterKey key is not a valid hex String -> " + masterKey+"\n");
+				exit("masterKey key is not a valid hex String -> " + masterKey);
 			}
 		}
 		
@@ -490,7 +491,7 @@ public class ServerSettings implements APIObject {
 		try {
 			dataStorage=(dataStorageMode==null) ? DataStorage.READ_WRITE : DataStorage.fromString(dataStorageMode);
 		} catch (Exception e) {
-			throw new IllegalArgumentException("dataStorage must be one of {" + DataStorage.getNames().toString() + "} -> " + dataStorageMode);
+			exit("dataStorage must be one of {" + DataStorage.getNames().toString() + "} -> " + dataStorageMode);
 		}
 
 		if(timeZone==null || timeZone.equals("null") || timeZone.length()==0)
@@ -504,7 +505,7 @@ public class ServerSettings implements APIObject {
 		else {			
 			this.serverMode = this.serverMode.toLowerCase().trim();
 			if ( !(this.serverMode.equals(ServerConstant.MASTER_MODE) || serverMode.equals(ServerConstant.STANDBY_MODE)))
-					throw new IllegalArgumentException("server.mode must be '"+ServerConstant.MASTER_MODE+"' or '"+ServerConstant.STANDBY_MODE+"' -> " + serverMode);
+				exit("server.mode must be '"+ServerConstant.MASTER_MODE+"' or '"+ServerConstant.STANDBY_MODE+"' -> " + serverMode);
 		}
 		
 		if (this.redundancyLevelStr==null)
@@ -512,9 +513,6 @@ public class ServerSettings implements APIObject {
 		
 		this.redundancyLevel = RedundancyLevel.get(redundancyLevelStr);
 		
-		//if (this.redundancyLevel == RedundancyLevel.RAID_6) {
-		//	throw new IllegalStateException(RedundancyLevel.RAID_6.getName() +  " is not supported in this version of Odilon");
-		//}
 		
 		List<String> dirs=new ArrayList<String>();
 		
@@ -532,7 +530,7 @@ public class ServerSettings implements APIObject {
 		this.rootDirs = dirs.stream().distinct().collect(Collectors.toList());
 		
 		if (this.rootDirs.size()!=dirs.size()) 
-			throw new IllegalArgumentException("DataStorage can not have duplicate entries -> " + dirs.toString()); 
+			exit("DataStorage can not have duplicate entries -> " + dirs.toString()); 
 		
 		this.rootDirs=dirs;
 		
@@ -541,19 +539,20 @@ public class ServerSettings implements APIObject {
 		if (this.redundancyLevel==null) {
 			StringBuilder str = new StringBuilder ();
 			RedundancyLevel.getValues().forEach( item ->   str.append((str.length()>0?", ":"") + item.getName()));
-			throw new IllegalArgumentException("RedundancyLevel error -> " + redundancyLevelStr + " | Supported values are: " + str.toString());
+			exit("RedundancyLevel error -> " + redundancyLevelStr + " | Supported values are: " + str.toString());
 		}
 	
 		
 		if (this.redundancyLevel==RedundancyLevel.RAID_1) {
 			if (this.rootDirs.size()<=1)
-				throw new IllegalArgumentException( "DataStorage must have at least 2 entries for -> " + 
+				exit("DataStorage must have at least 2 entries for -> " + 
 													redundancyLevel.getName() + " | dataStorage=" + rootDirs.toString() + " | you must use " + RedundancyLevel.RAID_0.getName() + "for only one mount directory");	
 		}
 		else if (this.redundancyLevel==RedundancyLevel.RAID_6) {
 		
-			if (!((this.rootDirs.size()==3) || (this.rootDirs.size()==6) || (this.rootDirs.size()==12)))
-				throw new IllegalArgumentException( "DataStorage must have 3 or 6 or 12 entries for -> " +	redundancyLevel.getName());
+			if (!((this.rootDirs.size()==3) || (this.rootDirs.size()==6) || (this.rootDirs.size()==12))) {
+				exit("DataStorage must have 3 or 6 or 12 entries for -> " +	redundancyLevel.getName());
+			}
 			
 				if (this.rootDirs.size()==3) {
 					if (this.raid6DataDrives==-1)
@@ -578,7 +577,7 @@ public class ServerSettings implements APIObject {
 					   ( (this.rootDirs.size()==6) && (this.raid6DataDrives==4) && (this.raid6ParityDrives==2)) || 
 					   ( (this.rootDirs.size()==12)&& (this.raid6DataDrives==8) && (this.raid6ParityDrives==4)) 
 					  )) { 
-					throw new IllegalArgumentException( RedundancyLevel.RAID_6.getName() +" configurations supported are -> 6 dirs in DataStorage and raid6.dataDrives=4 and raid6.parityDrives=2 | 3 dirs in DataStorage and raid6.dataDrives=2 and raid6.parityDrives=1 | 12 dirs in DataStorage and raid6.dataDrives=8 and raid6.parityDrives=4 ");
+					exit(RedundancyLevel.RAID_6.getName() +" configurations supported are -> 6 dirs in DataStorage and raid6.dataDrives=4 and raid6.parityDrives=2 | 3 dirs in DataStorage and raid6.dataDrives=2 and raid6.parityDrives=1 | 12 dirs in DataStorage and raid6.dataDrives=8 and raid6.parityDrives=4 ");
 					}
 				}
 		try {
@@ -621,26 +620,6 @@ public class ServerSettings implements APIObject {
 		if (fileCacheCapacity==-1) {
 			
 		}
-		
-		/**
-		if (fileCacheCapacity==-1) {
-			long totalSpace = 0;
-			for (String rootDir: this.rootDirs ) {
-			    try {
-			    	Path path = (new File(rootDir)).toPath();
-			    	FileStore store = Files.getFileStore(path);
-			    	totalSpace  += store.getUsableSpace();
-			    } catch (IOException e) {
-			        logger.error(e);
-			    }
-			}
-			long cacheMax=Double.valueOf(Math.floor(Double.valueOf(totalSpace).doubleValue() * 0.1 / 1000000.0)).longValue();
-			if (cacheMax>100 && cacheMax<1000000)
-				fileCacheCapacity=cacheMax;
-			else
-				fileCacheCapacity=10000;
-		}
-		**/
 		
 		if (fileCacheDurationDays<1)
 			fileCacheDurationDays=7;
@@ -902,13 +881,6 @@ public class ServerSettings implements APIObject {
 		si.setName("Odilon");
 		si.setVersionControl(isVersionControl());
 		
-		// 
-		// List<String> encryptorKeys = new ArrayList<String>();
-		// encryptorKeys.add(this.getEncryptorKey());
-		// si.setEncryptorKeys(encryptorKeys);
-		// si.setEncryptorKeyDate(now);
-		//
-		
 		si.setEncryptionIntialized(false);
 			
 		if (isVersionControl())
@@ -954,5 +926,17 @@ public class ServerSettings implements APIObject {
 	
 	protected String randomString(final int size) {
 		return idGenerator.randomString(size);
+	}
+	
+	
+	private void exit( String msg) {
+		
+		logger.error(ServerConstant.SEPARATOR);
+		logger.error(msg);
+		logger.error("check file ."+File.separator+"config"+File.separator+"odilon.properties");
+		logger.error(ServerConstant.SEPARATOR);
+		System.exit(1);
+		
+		
 	}
 }
