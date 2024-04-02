@@ -42,7 +42,6 @@ import io.odilon.model.ServerConstant;
 import io.odilon.util.Check;
 import io.odilon.util.ODFileUtils;
 import io.odilon.vfs.model.Drive;
-import io.odilon.vfs.model.DriveStatus;
 import io.odilon.vfs.model.VFSBucket;
 import io.odilon.vfs.model.VFSOperation;
 
@@ -255,11 +254,12 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 					
 					
 					beforeHeadVersion = meta.version;
-					getVFS().getFileCacheService().remove(bucketName, objectName, Optional.of(beforeHeadVersion));
+					
 					
 					List<ObjectMetadata> metaVersions = new ArrayList<ObjectMetadata>();
 					
 					for (int version=0; version<beforeHeadVersion; version++) {
+						
 						ObjectMetadata mv = getDriver().getObjectMetadataReadDrive(bucketName, objectName).getObjectMetadataVersion(bucketName, objectName, version);
 						if (mv!=null)
 							metaVersions.add(mv);
@@ -283,7 +283,10 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 					if (!restoreVersionObjectMetadata(metaToRestore.bucketName, metaToRestore.objectName, metaToRestore.version))
 						throw new OdilonObjectNotFoundException(Optional.of(meta.systemTags).orElse("previous versions deleted"));
 					
+
 					getVFS().getObjectCacheService().remove(bucketName, objectName);
+					getVFS().getFileCacheService().remove(bucketName, objectName, Optional.empty());
+					getVFS().getFileCacheService().remove(bucketName, objectName, Optional.of(beforeHeadVersion));
 					
 					done = op.commit();
 					
@@ -395,31 +398,22 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 	private void backupVersionObjectDataFile(ObjectMetadata meta, int headVersion) {
 			
 		Map<Drive, List<String>> map = getDriver().getObjectDataFilesNames(meta, Optional.empty());
-			
-		map.forEach((drive,fileNames) -> {
-				fileNames.forEach(fileName -> {
-					File current = new File(drive.getBucketObjectDataDirPath(meta.bucketName), fileName);
-					String suffix = ".v"+ String.valueOf(headVersion);
-					File backupFile = new File(drive.getBucketObjectDataDirPath(meta.bucketName) + File.separator + VirtualFileSystemService.VERSION_DIR, fileName + suffix);
-					try {
-						if(current.exists()) {
-						
-							//logger.debug(current.getName());
-							//logger.debug(backupFile.getName());
-							
-							if (backupFile.exists())
-								FileUtils.deleteQuietly(backupFile);
-							
-							Files.copy(current.toPath(), backupFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-						}
-						
-						
-					} catch (IOException e) {
-						logger.error(e);
-						throw new InternalCriticalException(e, "src: " + current.getName() + " | back:" + backupFile.getName() );
+		
+		for (Drive drive: map.keySet()) {
+			for (String filename: map.get(drive)) {
+				File current = new File(drive.getBucketObjectDataDirPath(meta.bucketName), filename);
+				String suffix = ".v"+ String.valueOf(headVersion);
+				File backupFile = new File(drive.getBucketObjectDataDirPath(meta.bucketName) + File.separator + VirtualFileSystemService.VERSION_DIR, filename + suffix);
+				try {
+					if(current.exists()) {
+						Files.copy(current.toPath(), backupFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
 					}
-				});
-		});
+					
+				} catch (IOException e) {
+					throw new InternalCriticalException(e, "src: " + current.getName() + " | back:" + backupFile.getName() );
+				}
+			}
+		}
 	}
 	
 	
@@ -443,7 +437,6 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 			try {
 				shaBlocks.add(ODFileUtils.calculateSHA256String(item));
 			} catch (Exception e) {
-				logger.error(e);
 				throw new InternalCriticalException(e, "saveObjectMetadata" + "b:" + bucket.getName() + " o:" 	+ objectName + ", f:" + (Optional.ofNullable(item).isPresent() ? (item.getName()):"null"));
 			}
 		});
@@ -684,16 +677,11 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 
 		try {
 			boolean success = true;
+			
+			ObjectMetadata versionMeta = getDriver().getObjectMetadataVersion(bucketName, objectName, version);
+			
 			for (Drive drive: getDriver().getDrivesAll()) {
-				File file=drive.getObjectMetadataVersionFile(bucketName, objectName, version);
-				if (file.exists()) {
-					drive.putObjectMetadataFile(bucketName, objectName, file);
-					FileUtils.deleteQuietly(file);
-				}
-				else {
-					if (drive.getDriveInfo().getStatus()==DriveStatus.ENABLED)
-						success=false;
-				}
+				drive.saveObjectMetadata(versionMeta);
 			}
 			return success;
 			
@@ -716,31 +704,24 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 		try {
 	
 			Map<Drive, List<String>> versionToRestore = getDriver().getObjectDataFilesNames(meta, Optional.of(versiontoRestore));
+
+			for (Drive drive: versionToRestore.keySet()) {
+				for (String name: versionToRestore.get(drive)) {
+					String arr[] =name.split(".v");
+					String headFileName = arr[0];
+					try {
+						if (new File(drive.getBucketObjectDataDirPath(meta.bucketName)+File.separator+VirtualFileSystemService.VERSION_DIR, name).exists()) {
+							Files.copy( (new File(drive.getBucketObjectDataDirPath(meta.bucketName)+File.separator+VirtualFileSystemService.VERSION_DIR,  name)).toPath(), 
+									(new File(drive.getBucketObjectDataDirPath(meta.bucketName), headFileName)).toPath(), 
+									StandardCopyOption.REPLACE_EXISTING);
+						}
+					} catch (IOException e) {
+						logger.error(e);
+						throw new InternalCriticalException(e, "b:"+ meta.bucketName +" o:" + meta.objectName);
+					}
+				}
 			
-			versionToRestore.forEach( (drive, fileNames) -> {
-					fileNames.forEach( file -> {
-								String arr[] =file.split(".v");
-								String headFileName = arr[0];
-								try {
-									
-									
-									//logger.debug( drive.getBucketObjectDataDirPath(meta.bucketName)+File.separator+VirtualFileSystemService.VERSION_DIR + " | " + file);
-									//logger.debug( drive.getBucketObjectDataDirPath(meta.bucketName) + " | " + headFileName);
-									
-									if (new File(drive.getBucketObjectDataDirPath(meta.bucketName)+File.separator+VirtualFileSystemService.VERSION_DIR, file).exists()) { 
-										
-										Files.copy( (new File(drive.getBucketObjectDataDirPath(meta.bucketName)+File.separator+VirtualFileSystemService.VERSION_DIR,  file)).toPath(), 
-													(new File(drive.getBucketObjectDataDirPath(meta.bucketName), headFileName)).toPath(), 
-													StandardCopyOption.REPLACE_EXISTING);
-										
-									}
-								} catch (IOException e) {
-									logger.error(e);
-									throw new InternalCriticalException(e, "b:"+ meta.bucketName +" o:" + meta.objectName);
-								}
-					});
-			});
-			
+			}
 			return true;
 			
 		} catch (InternalCriticalException e) {

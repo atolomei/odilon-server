@@ -143,7 +143,7 @@ public class ODLockService extends BaseService implements LockService {
 		 				return;
 		 			
 		 			
-		 			{
+		 			
 		 			if (objectLocks.size() > 0) {
 			 		
 		 				int startingSize = objectLocks.size();
@@ -172,6 +172,8 @@ public class ODLockService extends BaseService implements LockService {
 			 				list.forEach(item -> objectLocks.remove(item));
 			 			
 			 			} finally {
+			 				
+			 				/**
 			 				if (logger.isDebugEnabled() && (startingSize-objectLocks.size() >0)) {
 			 					logger.debug(
 					 						"ObjectLocks Clean up " +
@@ -181,19 +183,21 @@ public class ODLockService extends BaseService implements LockService {
 					 						" | duration -> " 		+ String.format("%,12d",(System.currentTimeMillis() - start)).trim() +  " ms" 
 			 							);
 			 					}
-			 				}
+			 					**/
+
+			 			}
 					
-		 				}
 		 			}
+		 			
+		 			
 		 			
 		 			
 		 			{
 		 			
 	 				if (fileCacheLocks.size() > 0) {
 	 					
-		 				int startingSize = fileCacheLocks.size();
-		 				
-		 				long start = System.currentTimeMillis();
+		 				//int startingSize = fileCacheLocks.size();
+		 				//long start = System.currentTimeMillis();
 		 				
 						try {
 							
@@ -220,7 +224,8 @@ public class ODLockService extends BaseService implements LockService {
 			 				list.forEach(item -> fileCacheLocks.remove(item));
 			 			
 				 			} finally {
-				 				if (logger.isDebugEnabled() && (startingSize-fileCacheLocks.size() >0)) {
+				 				
+				 				/**if (logger.isDebugEnabled() && (startingSize-fileCacheLocks.size() >0)) {
 				 				logger.debug(
 						 						"FileLocks Clean up " +
 						 						" | initial size -> " 	+ String.format("%,6d", startingSize).trim() +  
@@ -229,6 +234,7 @@ public class ODLockService extends BaseService implements LockService {
 						 						" | duration -> " 		+ String.format("%,12d",(System.currentTimeMillis() - start)).trim() +  " ms" 
 				 							);
 				 				}
+				 				**/
 				 			}
 						
 			 			} // (fileCacheLocks.size() > 0)
