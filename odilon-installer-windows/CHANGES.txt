@@ -32,8 +32,10 @@ This is the first release of Odilon Object Storage
 ==================  1.5-beta ==================
 
 2024.03.21 Log MultipartException and other Exception 
-2024.03.22 upgrade from Java 11 to Java 17 since version 1.5-M0
-2024.03.24 switches to Tomcat instead of Jetty
+2024.03.22 upgrade from Java 11 to Java 17 
+2024.03.24 support to Jetty 10, must use UFT8 enconding in server
+2024.04.01 fix bug. restoreprevious version in RAID 6 (FileCacheService)
+
 
 
 
