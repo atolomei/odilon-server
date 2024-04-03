@@ -144,8 +144,7 @@ public abstract class CronJobRequest extends AbstractServiceRequest {
 			return clone;
 		}
 		catch (Exception e) {
-			logger.error(e);
-			throw new InternalCriticalException(e);
+			throw new InternalCriticalException(e, "clone()");
 		}
 	}
 	

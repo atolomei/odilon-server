@@ -31,6 +31,8 @@ import io.odilon.vfs.model.VFSObject;
 
 /**
  *
+ *
+ *  @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public interface ObjectStorageService extends SystemService {
 

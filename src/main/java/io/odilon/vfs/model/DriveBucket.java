@@ -31,6 +31,11 @@ import io.odilon.log.Logger;
 import io.odilon.model.BucketMetadata;
 import io.odilon.model.BucketStatus;
 
+
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public class DriveBucket {
 		
 	@SuppressWarnings("unused")

@@ -18,6 +18,13 @@ package io.odilon.service;
 
 import io.odilon.vfs.Block;
 
+
+/**
+ * 
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ * 
+ */
 public class DriveObjectService implements ObjectService {
 
 	private Block object;

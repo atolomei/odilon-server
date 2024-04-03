@@ -110,7 +110,6 @@ public class SystemInfoService extends BaseService implements SystemService {
 		
 		SystemInfo info = new SystemInfo();
 
-		
 		info.javaHome=System.getProperty("java.home");
 		info.javaVendor=System.getProperty("java.vendor");
 		info.userHome=System.getProperty("user.home");
@@ -256,7 +255,6 @@ public class SystemInfoService extends BaseService implements SystemService {
 				this.serverHost=getServerHost();
 				
 				this.serverMode=serverSettings.getServerMode();
-				
 				
 				this.serverDataStorageMode=serverSettings.getDataStorage().getName();
 	

@@ -16,6 +16,11 @@
  */
 package io.odilon.vfs.model;
 
+
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public class VFSControlFile extends VFSFile {
 
 }

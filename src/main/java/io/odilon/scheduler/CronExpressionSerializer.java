@@ -46,13 +46,3 @@ public class CronExpressionSerializer extends StdSerializer<CronExpressionJ8> {
 
 
 
-/**
-gen.writeNumberField("id", value.getId());
-gen.writeStringField("message", value.getMessage());
-gen.writeStringField("timestamp", dtf.format(value.getTimestamp()));
-if (value.getStatus() != null) {
-  gen.writeStringField("status", value.getStatus().getActive() ?
-      "active" : "inactive");
-}
-**/
-

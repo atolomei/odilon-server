@@ -22,6 +22,10 @@ import java.util.concurrent.locks.ReadWriteLock;
 import io.odilon.service.SystemService;
 
 
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public interface LockService extends SystemService {
 	
 	public ReadWriteLock getObjectLock(String bucketName, String objectName);

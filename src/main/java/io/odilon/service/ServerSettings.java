@@ -51,8 +51,8 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
  * 
- * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
+ * 
  */
 @Configuration
 @PropertySource("classpath:odilon.properties")
@@ -64,10 +64,8 @@ public class ServerSettings implements APIObject {
 	static private final RandomIDGenerator idGenerator = new RandomIDGenerator();
 	
 	private static final OffsetDateTime systemStarted = OffsetDateTime.now(); 
-
 	
 	protected String version = "";
-
 	
 	// PING ------------------------
 
@@ -292,10 +290,13 @@ public class ServerSettings implements APIObject {
 	@Value("${fileCacheIntialCapacity:1000}")
 	protected int fileCacheIntialCapacity;
 	
+
+	@Value("${retryFailedSeconds:20}")
+	protected long retryFailedSeconds;
+
 	
-	public @NonNegative int getFileCacheInitialCapacity() {
-		return 	fileCacheIntialCapacity;
-	}
+	
+	
 	
 	
 	
@@ -711,7 +712,11 @@ public class ServerSettings implements APIObject {
 	
 	private List<String> getDefaultRootDirs() {
 		
+		
 		if (isWindows()) {
+			
+			/** Windows */
+			
 			List<String> list = new ArrayList<String>();
 			list.add("c:"+File.separator+"odilon-data"+File.separator+"drive0");
 			
@@ -725,18 +730,22 @@ public class ServerSettings implements APIObject {
 			return list;
 		}
 		
+		
+		
 		{
-			// Linux
-			//
+
+			/** Linux */
+
 			List<String> list = new ArrayList<String>();
 			list.add(File.separator + "var" + File.separator + "lib" + File.separator + "odilon-data" + File.separator + "drive0");
 			
 			if (getRedundancyLevel()==RedundancyLevel.RAID_1 || getRedundancyLevel()==RedundancyLevel.RAID_0)
 				return list;
 				
-			list.add(File.separator + "opt" + File.separator +  File.separator + "odilon-data" + File.separator + "drive0");
-			list.add(File.separator + "opt" + File.separator +  File.separator + "odilon-data" + File.separator + "drive1");
-			list.add(File.separator + "opt" + File.separator +  File.separator + "odilon-data" + File.separator + "drive2");
+			list.add(File.separator + "opt" + File.separator +   "odilon-data" + File.separator + "drive0");
+			list.add(File.separator + "opt" + File.separator +   "odilon-data" + File.separator + "drive1");
+			list.add(File.separator + "opt" + File.separator +   "odilon-data" + File.separator + "drive2");
+			
 			return list;
 		}
 	}
@@ -899,6 +908,14 @@ public class ServerSettings implements APIObject {
 		return this.standbySyncThreads;
 	}
 	
+	public @NonNegative int getFileCacheInitialCapacity() {
+		return 	fileCacheIntialCapacity;
+	}
+	
+	public @NonNegative long getRetryFailedSeconds() {
+		return retryFailedSeconds;
+	}
+	
 	/**
 	 * 
 	 */
@@ -954,28 +971,21 @@ public class ServerSettings implements APIObject {
 			    (dataShards==4 && parityShards==2) ||
 			    (dataShards==2 && parityShards==1);
 	}
-	
 
 	public DataStorage getDataStorage() {
 		return dataStorage;
 	}
 	
-	
 	protected String randomString(final int size) {
 		return idGenerator.randomString(size);
 	}
 	
-	
 	private void exit( String msg) {
-		
 		logger.error(ServerConstant.SEPARATOR);
 		logger.error(msg);
 		logger.error("check file ."+File.separator+"config"+File.separator+"odilon.properties");
 		logger.error(ServerConstant.SEPARATOR);
 		System.exit(1);
-		
-		
 	}
-
 
 }

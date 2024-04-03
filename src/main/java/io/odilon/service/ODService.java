@@ -18,6 +18,12 @@ package io.odilon.service;
 
 import io.odilon.model.APIObject;
 
+
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ * 
+ */
 public interface ODService extends APIObject {
 	
 

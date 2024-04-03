@@ -48,7 +48,6 @@ import io.odilon.service.ServerSettings;
 import io.odilon.service.SystemService;
 
 /**
- *  
  * 
  * 
  *  <p>Implementations of this interface are expected to be thread-safe, and can be safely accessed

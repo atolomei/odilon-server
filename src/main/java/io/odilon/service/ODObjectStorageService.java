@@ -56,7 +56,8 @@ import io.odilon.vfs.model.VFSBucket;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
- * 
+ *
+ *  @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @Service		
 public class ODObjectStorageService extends BaseService implements ObjectStorageService, ApplicationContextAware {

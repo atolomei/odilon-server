@@ -20,6 +20,11 @@ import io.odilon.service.util.ByteToString;
 import io.odilon.vfs.model.IODriver;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
+
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public class EncryptionInitializer extends ODModelObject {
 		
 	static private Logger logger = Logger.getLogger(EncryptionInitializer.class.getName());
@@ -68,7 +73,7 @@ public class EncryptionInitializer extends ODModelObject {
 			startuplogger.info("The server will shutdown now.");
 			try {
 				
-				Thread.sleep(2500);
+				Thread.sleep(5000);
 				
 			} catch (InterruptedException e) {
 			}

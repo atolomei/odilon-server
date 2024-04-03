@@ -25,6 +25,7 @@ import io.odilon.vfs.model.VFSBucket;
  *  
  * Object -> converted into N blocks (including redundancy)
  * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  *
  */
 public class Block {

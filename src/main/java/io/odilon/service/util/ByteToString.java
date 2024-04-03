@@ -1,5 +1,10 @@
 package io.odilon.service.util;
 
+
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public class ByteToString {
 
 	

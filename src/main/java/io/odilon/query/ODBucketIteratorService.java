@@ -30,7 +30,6 @@ import jakarta.annotation.PreDestroy;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
@@ -45,6 +44,7 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
  * <p>Keeps a HashMap of all open Iterators</p> 
+ * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @Service
@@ -56,9 +56,6 @@ public class ODBucketIteratorService extends BaseService implements BucketIterat
 	@JsonIgnore
 	private VirtualFileSystemService virtualFileSystemService;
 
-	@JsonProperty("ratePerMillisec")
-	private double ratePerMillisec = 1; 
-
 	@JsonIgnore
 	private Scavenger cleaner;
 	
@@ -68,12 +65,10 @@ public class ODBucketIteratorService extends BaseService implements BucketIterat
 	@JsonIgnore																	
 	private ConcurrentMap<String, OffsetDateTime> lastAccess = new ConcurrentHashMap<>();
 	
+	
 	public ODBucketIteratorService() {
 	}
 	
-	public String toString() {
-		return(this.getClass().getSimpleName() +"{"+toJSON()+"}");
-	}
 	
 	@Override
 	public boolean exists(String agentId) {
@@ -103,6 +98,10 @@ public class ODBucketIteratorService extends BaseService implements BucketIterat
 	
 	@Override
 	public synchronized void remove(String agentId) {
+		
+		if (agentId==null)
+			return;
+		
 		BucketIterator walker = null;
 		try {
 			this.lastAccess.remove(agentId);
@@ -114,8 +113,7 @@ public class ODBucketIteratorService extends BaseService implements BucketIterat
 				try {
 					walker.close();
 				} catch (IOException e) {
-					logger.error(e);
-					throw new InternalCriticalException(e);
+					throw new InternalCriticalException(e, "remove -> " +  agentId );
 				}
 			}
 		}
@@ -123,11 +121,7 @@ public class ODBucketIteratorService extends BaseService implements BucketIterat
 	
 	public VirtualFileSystemService getVFS() {
 		if (this.virtualFileSystemService==null) {
-			throw new IllegalStateException("The member of " + VirtualFileSystemService.class.getName() + 
-					" here must be asigned during the @PostConstruct method of the " +
-					VirtualFileSystemService.class.getName() + 
-					" instance. It can not be injected via AutoWired beacause of " +
-					"circular dependencies.");
+			throw new IllegalStateException("The member of " + VirtualFileSystemService.class.getName() + " must be asigned during the @PostConstruct method of the " +	VirtualFileSystemService.class.getName() + " instance. It can not be injected via AutoWired beacause of circular dependencies.");
 		}
 		return this.virtualFileSystemService;
 	}
@@ -202,7 +196,7 @@ public class ODBucketIteratorService extends BaseService implements BucketIterat
 				setStatus(ServiceStatus.RUNNING);
 			} catch (Exception e) {
 				setStatus(ServiceStatus.STOPPED);
-				logger.error(e);
+				logger.error(e, ServerConstant.NOT_THROWN);
 				throw e;
 			}
 		}

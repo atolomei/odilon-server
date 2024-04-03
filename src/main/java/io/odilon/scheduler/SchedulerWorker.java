@@ -209,7 +209,6 @@ public abstract class SchedulerWorker implements Runnable {
 		} 
 		catch (InterruptedException e) {
 			//logger.debug("Again awake " + getId() + " via -> " + e.getClass().getName());	
-			//logger.debug(e.getMessage());
 			setSleeping(false);
 		}
 		catch (Throwable e) {

@@ -21,6 +21,11 @@ import java.io.InputStream;
 
 import io.odilon.model.ObjectMetadata;
 
+
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public interface VFSObject {
 	
 	public String getObjectName();

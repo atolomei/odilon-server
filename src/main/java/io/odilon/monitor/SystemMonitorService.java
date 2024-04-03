@@ -116,6 +116,7 @@ public class SystemMonitorService extends BaseService implements SystemService {
 	@JsonIgnore
 	private Meter getObjectMeter;
 	
+	
 	// ----------------------------
 	// OBJECT CACHE
 	
@@ -136,7 +137,7 @@ public class SystemMonitorService extends BaseService implements SystemService {
 	private Counter cacheFileMissCounter;
 	
 	
-	
+	// ----------------------------
 	
 	@JsonIgnore
 	@Autowired
@@ -150,10 +151,12 @@ public class SystemMonitorService extends BaseService implements SystemService {
 	@Autowired
 	private final FileCacheService fileCacheService;
 	
+	
 	public FileCacheService getFileCacheService() {
 		return fileCacheService;
 	}
 
+	
 	public SystemMonitorService(ServerSettings serverSettings, ObjectCacheService cacheService, FileCacheService fileCacheService) {
 		this.objectCacheService=cacheService;
 		this.serverSettings=serverSettings;
@@ -178,8 +181,6 @@ public class SystemMonitorService extends BaseService implements SystemService {
 	public Counter getCacheObjectHitCounter() {
 		return this.cacheObjectHitCounter;
 	}
-	
-	
 	
 	public Meter getMeterVaultEncrypt() {
 		return this.encryptVaultMeter;
@@ -319,7 +320,6 @@ public class SystemMonitorService extends BaseService implements SystemService {
 		map.put("vaultEncryptMeter", getString(this.encryptVaultMeter));
 		map.put("vaultDecryptMeter", getString(this.decryptVaultMeter));				
 		
-				
 		if (serverSettings.isStandByEnabled()) {
 			map.put("replicaObjectCreate", String.valueOf(this.replicaCreateObject.getCount()));
 			map.put("replicaObjectUpdate", String.valueOf(this.replicaUpdateObject.getCount()));
@@ -358,14 +358,12 @@ public class SystemMonitorService extends BaseService implements SystemService {
 			this.deleteObjectCounter = metrics.counter("deleteObjectCounter");
 			this.deleteObjectVersionCounter = metrics.counter("deleteObjectVersionCounter");
 			
-
 			// cache
 			this.cacheObjectHitCounter = metrics.counter("cacheObjectHitCounter");
 			this.cacheObjectMissCounter = metrics.counter("cacheObjectMissCounter");
 			
 			this.cacheFileHitCounter = metrics.counter("cacheFileHitCounter");
 			this.cacheFileMissCounter = metrics.counter("cacheFileMissCounter");
-			
 			
 			// replica CRUD objects
 			this.replicaCreateObject = metrics.counter("replicaObjectCreate");
@@ -406,10 +404,5 @@ public class SystemMonitorService extends BaseService implements SystemService {
 		v[1]=m.getFiveMinuteRate();
 		v[2]=m.getFifteenMinuteRate();
 	}
-
-	
-
-	
-
 
 }

@@ -52,9 +52,6 @@ public class StandByReplicaSchedulerWorker extends SchedulerWorker {
 
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 
-	
-	static final int RETRY_FAILED_SECONDS = 20;
-	
 	@JsonIgnore
 	private ServiceRequestQueue queue;
 
@@ -67,25 +64,17 @@ public class StandByReplicaSchedulerWorker extends SchedulerWorker {
 	@JsonIgnore
 	private OffsetDateTime lastFailedTry = OffsetDateTime.MIN;
 	
-	
+
+	/**
+	 * 
+	 * 
+	 * @param id
+	 * @param virtualFileSystemService
+	 */
 	public StandByReplicaSchedulerWorker(String id, VirtualFileSystemService virtualFileSystemService) {
 		super(id, virtualFileSystemService);
 	}
 
-	@Override
-	protected synchronized void onInitialize() {
-
-		this.queue = getApplicationContext().getBean(ServiceRequestQueue.class, getId());
-		this.queue.setVFS(getVFS());
-	    this.queue.loadFSQueue();
-	    
-	    if (this.queue.size()>0) 
-	    	startuplogger.info(this.getClass().getSimpleName()+" Queue size -> " + String.valueOf(this.queue.size()) );
-
-	    
-	    this.executing = new ConcurrentHashMap<Serializable, ServiceRequest>(16, 0.9f, 1);
-	    this.failed = new ConcurrentSkipListMap<Serializable, ServiceRequest>();
-	}
 	
 	@Override
 	public void add(ServiceRequest request) {
@@ -240,6 +229,20 @@ public class StandByReplicaSchedulerWorker extends SchedulerWorker {
 
 	
 	
+	@Override
+	protected synchronized void onInitialize() {
+
+		this.queue = getApplicationContext().getBean(ServiceRequestQueue.class, getId());
+		this.queue.setVFS(getVFS());
+	    this.queue.loadFSQueue();
+	    
+	    if (this.queue.size()>0) 
+	    	startuplogger.info(this.getClass().getSimpleName()+" Queue size -> " + String.valueOf(this.queue.size()) );
+	    
+	    this.executing = new ConcurrentHashMap<Serializable, ServiceRequest>(16, 0.9f, 1);
+	    this.failed = new ConcurrentSkipListMap<Serializable, ServiceRequest>();
+	}
+	
 	
 	@Override
 	protected void restFullCapacity() {
@@ -260,7 +263,7 @@ public class StandByReplicaSchedulerWorker extends SchedulerWorker {
 	protected boolean isWork() {
 		
 		if (!getFailed().isEmpty()) {
-			if (this.lastFailedTry.plusSeconds(RETRY_FAILED_SECONDS).isBefore(OffsetDateTime.now()))
+			if (this.lastFailedTry.plusSeconds(getVFS().getServerSettings().getRetryFailedSeconds()).isBefore(OffsetDateTime.now()))
 				return true;
 			else
 				return false;
@@ -284,6 +287,7 @@ public class StandByReplicaSchedulerWorker extends SchedulerWorker {
 		return failed;
 	}
 
+	
 	private boolean isCompatible(ServiceRequest request, Map<String, ServiceRequest> map) {
 		
 		if (!(request instanceof StandByReplicaServiceRequest)) {

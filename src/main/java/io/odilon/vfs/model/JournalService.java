@@ -27,7 +27,6 @@ import io.odilon.service.SystemService;
  * after log records describing the changes have been flushed to permanent storage. <br/>  
  * This is roll-forward recovery, also known as REDO.</p>
  * 
- * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public interface JournalService extends SystemService {

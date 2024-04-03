@@ -49,7 +49,9 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 
 /**
+ * <p>
  * 
+ * </p>
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @Component
@@ -149,10 +151,10 @@ public class StandByInitialSync implements Runnable {
 		return this.vfs;
 	}
 	
-	
+
 	private void sync() {
 		
-		start_ms = System.currentTimeMillis();
+		this.start_ms = System.currentTimeMillis();
 		
 		OdilonServerInfo info = getDriver().getVFS().getOdilonServerInfo();
 		
@@ -259,7 +261,7 @@ public class StandByInitialSync implements Runnable {
 												}
 												
 											} catch (Exception e) {
-												logger.error(e, "can not sync -> " + item.getObject().bucketName+"-"+item.getObject().objectName);
+												logger.error(e, "can not sync -> " + item.getObject().bucketName+"-"+item.getObject().objectName, ServerConstant.NOT_THROWN);
 												intialSynclogger.error(e, "can not sync -> " + item.getObject().bucketName+"-"+item.getObject().objectName);
 												this.errors.getAndIncrement();
 											}
@@ -276,10 +278,9 @@ public class StandByInitialSync implements Runnable {
 													getDriver().putObjectMetadata(meta);
 												
 												} catch (Exception e) {
-													logger.error("can not sync ObjectMetadata -> " + item.getObject().bucketName+"-"+item.getObject().objectName);
+													logger.error("can not sync ObjectMetadata -> " + item.getObject().bucketName+"-"+item.getObject().objectName, ServerConstant.NOT_THROWN);
 													intialSynclogger.error("can not sync ObjectMetadata -> " + item.getObject().bucketName+"-"+item.getObject().objectName);
-													logger.error(e);
-													intialSynclogger.error(e);
+													intialSynclogger.error(e, ServerConstant.NOT_THROWN);
 													this.errors.getAndIncrement();
 												}
 											}
@@ -289,8 +290,8 @@ public class StandByInitialSync implements Runnable {
 									this.notAvailable.getAndIncrement();
 								}
 							} catch (Exception e) {
-								logger.error(e);
-								intialSynclogger.error(e);
+								logger.error(e, ServerConstant.NOT_THROWN);
+								intialSynclogger.error(e, ServerConstant.NOT_THROWN);
 								this.errors.getAndIncrement();
 							}
 							return null;

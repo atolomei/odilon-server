@@ -22,6 +22,7 @@ import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import io.odilon.log.Logger;
+import io.odilon.model.ServerConstant;
 
 
 @Component
@@ -38,10 +39,9 @@ public class TestServiceRequest extends AbstractServiceRequest implements Standa
 	public TestServiceRequest() {
 	}
 	
-/**
- * {link ServiceRequestExecutor} closes the Request
- */
-	
+	/**
+	 * {link ServiceRequestExecutor} closes the Request
+	 */
 	@Override
 	public void execute() {
 		
@@ -49,7 +49,7 @@ public class TestServiceRequest extends AbstractServiceRequest implements Standa
 			logger.debug("Testing " + getName());
 		} catch (Exception e) {
 			isSuccess=false;
-			logger.error(e);
+			logger.error(e, ServerConstant.NOT_THROWN);
 		} finally {
 			isSuccess=true;
 			setStatus(ServiceRequestStatus.COMPLETED);

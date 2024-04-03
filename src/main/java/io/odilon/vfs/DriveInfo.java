@@ -24,6 +24,12 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.odilon.model.ODModelObject;
 import io.odilon.vfs.model.DriveStatus;
 
+
+/**
+ * 
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public class DriveInfo extends ODModelObject implements Serializable {
 	
 	private static final long serialVersionUID = 1L;

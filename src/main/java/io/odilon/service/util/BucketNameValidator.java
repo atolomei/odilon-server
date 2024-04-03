@@ -18,6 +18,12 @@ package io.odilon.service.util;
 
 import io.odilon.model.SharedConstant;
 
+
+/**
+ *
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ * 
+ */
 public class BucketNameValidator {
 	
 	private String name;

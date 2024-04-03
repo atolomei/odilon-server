@@ -195,10 +195,9 @@ public class ServiceRequestQueue extends BaseService implements Queue<ServiceReq
 		if (this.virtualFileSystemService!=null) 
 			return  virtualFileSystemService;	
 		
-		
 		String msg = "The " + VirtualFileSystemService.class.getName() + " must be setted during the @PostConstruct method of the " + 
 					 VirtualFileSystemService.class.getName() + " instance. It can not be injected via @AutoWired due to circular dependencies.";
-		logger.error(msg);
+		
 		throw new IllegalStateException(msg);
 		
 	}
@@ -217,7 +216,6 @@ public class ServiceRequestQueue extends BaseService implements Queue<ServiceReq
 			}
 			catch (Exception e) {
 				setStatus(ServiceStatus.STOPPED);
-				logger.error(e);
 				throw(e);
 			}
 		}

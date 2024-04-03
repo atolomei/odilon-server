@@ -16,6 +16,13 @@
  */
 package io.odilon.vfs.model;
 
+
+
+
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public interface IODriveSetup {
 	
 	public boolean setup();

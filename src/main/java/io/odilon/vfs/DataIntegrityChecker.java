@@ -53,6 +53,10 @@ import io.odilon.vfs.model.VirtualFileSystemService;
  * Called by the  {@link  io.odilon.scheduler.CronJobDataIntegrityCheckRequest} </p>
  *
  *@see {@link SchedulerService}
+ *
+ *@author atolomei@novamens.com (Alejandro Tolomei)
+ *
+ *
  */
 @Component
 @Scope("prototype")

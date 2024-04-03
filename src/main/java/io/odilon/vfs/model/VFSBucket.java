@@ -21,6 +21,11 @@ import java.time.OffsetDateTime;
 import io.odilon.model.BucketMetadata;
 import io.odilon.model.BucketStatus;
 
+
+/**
+ *
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public interface VFSBucket {
 	
 	public String getName();

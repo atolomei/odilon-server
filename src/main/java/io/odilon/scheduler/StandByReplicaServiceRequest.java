@@ -60,9 +60,9 @@ public class StandByReplicaServiceRequest extends AbstractServiceRequest {
 		this.operation = (ODVFSOperation) operation;
 	}
 	
-
 	/**
-	 *  <p>{@link ServiceRequestExecutor} will close/fail/cancel the request after this method</p>
+	 *  <p>{@link ServiceRequestExecutor} will close/fail/cancel 
+	 *  he request after this method</p>
 	 */
 	@Override
 	public void execute() {

@@ -21,7 +21,10 @@ import java.time.OffsetDateTime;
 
 import io.odilon.model.RedundancyLevel;
  
-
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public interface VFSOperation {
 
 	public VFSop getOp();

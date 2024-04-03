@@ -21,7 +21,10 @@ import java.io.IOException;
 import java.io.InputStream;
 
 
-
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public interface SimpleDrive extends Drive {
 	
 	public InputStream getObjectInputStream(String bucketName, String objectName);
@@ -36,14 +39,5 @@ public interface SimpleDrive extends Drive {
 	
 	public String getObjectDataFilePath			(String bucketName, String objectName);
 	public String getObjectDataVersionFilePath	(String bucketName, String objectName, int version);
-
-	
-
-	
-
-		
-	
 }
 
-
-//public void deleteObject(String bucketName, String objectName);

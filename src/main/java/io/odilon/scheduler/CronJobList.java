@@ -183,13 +183,3 @@ public class CronJobList implements SortedSet<CronJobRequest> {
 
 
 
-//String jsonString = mapper.writeValueAsString(cre);
-//{
-//Map<String, String> map = new HashMap<>();
-//map.put("class", cre.getClass().getName());
-//map.put("json", jsonString);
-//ObjectMapper mapper = new ObjectMapper();
-//String jsonResult = mapper.writeValueAsString(map);
-//Files.writeString(Paths.get(path), jsonResult);
-//}
-

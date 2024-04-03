@@ -51,13 +51,6 @@ static private Logger logger = Logger.getLogger(CleanUpWorkDirServiceRequest.cla
 
 		try {
 			setStatus(ServiceRequestStatus.RUNNING);
-			//VirtualFileSystemService  vfs = getApplicationContext().getBean(VirtualFileSystemService.class);
-			//
-			//
-			// vfs.createVFSIODriver().cleanUpWorkDir(getVFSOperation());
-			//
-			// NOT USED
-			//
 			isSuccess = true;
 			setStatus(ServiceRequestStatus.COMPLETED);
 			
@@ -65,9 +58,6 @@ static private Logger logger = Logger.getLogger(CleanUpWorkDirServiceRequest.cla
 			 isSuccess=false;
 			 logger.error(e, ServerConstant.NOT_THROWN);
 		}
-		//finally {
-		//		getApplicationContext().getBean(SchedulerService.class).close(this);
-		//}
 	}
 
 	@Override

@@ -39,6 +39,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.BaseService;
+import io.odilon.model.ServerConstant;
 import io.odilon.model.ServiceStatus;
 import io.odilon.monitor.SystemMonitorService;
 import io.odilon.service.ServerSettings;
@@ -95,7 +96,7 @@ public class VaultService extends BaseService implements SystemService {
 	        try {
 	        	getSystemMonitorService().getMeterVaultEncrypt().mark();
 	        } catch (Exception e) {
-	        	logger.error(e);
+	        	logger.error(e, ServerConstant.NOT_THROWN);
 	        }
         }
          return result;
@@ -116,7 +117,6 @@ public String decrypt(String keyID, String key) {
     } 
     catch (Exception e) {
     	vaultTemplate = null;
-    	logger.error(e);
     	throw e;
     }
     
@@ -172,36 +172,6 @@ public String getSecretId() {
 }
 
 
-private VaultTemplate getVaultTemplate() {
-    
-	// if (this.vaultTemplate == null || this.parametersChanged) {
-	if (this.vaultTemplate == null) {
-        try {
-        	if (!getUrl().isPresent())
-        		throw new InternalCriticalException("vaultUrl is null");
-        		
-        	String roleId =  getRoleId();
-        	String secretId =  getSecretId();
-
-        	VaultEndpoint endpoint = VaultEndpoint.from(new URI( getUrl().get() ));
-            RestOperations restOperations = VaultClients.createRestTemplate(endpoint, new SimpleClientHttpRequestFactory());
-            AppRoleAuthenticationOptions appRoleAuthenticationOptions = AppRoleAuthenticationOptions.builder()
-                    .path(AppRoleAuthenticationOptions.DEFAULT_APPROLE_AUTHENTICATION_PATH)
-                    .roleId(RoleId.provided(roleId))
-                    .secretId(SecretId.provided(secretId))
-                    .build();
-            AppRoleAuthentication app =  new AppRoleAuthentication(appRoleAuthenticationOptions, restOperations);
-            this.vaultTemplate = new VaultTemplate(endpoint, app);
-        } 
-        catch (URISyntaxException e) {
-        	logger.error(e);
-        	throw new InternalCriticalException(e, VaultTemplate.class.getName() + " cannot be initialized");
-        	
-        }
-    }
-    return this.vaultTemplate;
-}
-
 
 
 public String ping() {
@@ -237,5 +207,35 @@ protected void onInitialize() {
 		setStatus(ServiceStatus.RUNNING);
 	}
 }
+
+private VaultTemplate getVaultTemplate() {
+
+	if (this.vaultTemplate == null) {
+        try {
+        	if (!getUrl().isPresent())
+        		throw new InternalCriticalException("vaultUrl is null");
+        		
+        	String roleId =  getRoleId();
+        	String secretId =  getSecretId();
+
+        	VaultEndpoint endpoint = VaultEndpoint.from(new URI( getUrl().get() ));
+            RestOperations restOperations = VaultClients.createRestTemplate(endpoint, new SimpleClientHttpRequestFactory());
+            AppRoleAuthenticationOptions appRoleAuthenticationOptions = AppRoleAuthenticationOptions.builder()
+                    .path(AppRoleAuthenticationOptions.DEFAULT_APPROLE_AUTHENTICATION_PATH)
+                    .roleId(RoleId.provided(roleId))
+                    .secretId(SecretId.provided(secretId))
+                    .build();
+            AppRoleAuthentication app =  new AppRoleAuthentication(appRoleAuthenticationOptions, restOperations);
+            this.vaultTemplate = new VaultTemplate(endpoint, app);
+        } 
+        catch (URISyntaxException e) {
+        	throw new InternalCriticalException(e, VaultTemplate.class.getName() + " cannot be initialized");
+        	
+        }
+    }
+    return this.vaultTemplate;
+}
+
+
 	
 }

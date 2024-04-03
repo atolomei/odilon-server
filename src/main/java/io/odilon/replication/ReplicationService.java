@@ -116,16 +116,13 @@ public class ReplicationService extends BaseService implements ApplicationContex
 	public ReplicationService(	ServerSettings serverSettings, 
 								SystemMonitorService montoringService,
 								LockService vfsLockService,
-								SchedulerService schedulerService
-							 ) {
+								SchedulerService schedulerService ) {
+		
 		this.vfsLockService=vfsLockService;
 		this.serverSettings=serverSettings;
 		this.monitoringService=montoringService;
 		this.schedulerService=schedulerService;
 	}
-	
-	
-	
 			
 	/**
 	 * <p>checks that the structure is mirrored correctly</p>
@@ -294,9 +291,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 		Check.requireNonNullArgument(opx, "opx is null");
 		Check.requireTrue(this.client!=null, "There is no standby connection (" + url +":" + port+")");
 
-		logger.debug("Replicate -> " + opx.getOp().getName() + " " + 
-						( (opx.getBucketName()!=null) ? (" b:"+opx.getBucketName()):"" ) + 
-						( (opx.getObjectName()!=null) ? (" o:"+opx.getObjectName()):""));
+		logger.debug("Replicate -> " + opx.getOp().getName() + " " +( (opx.getBucketName()!=null) ? (" b:"+opx.getBucketName()):"" ) + ( (opx.getObjectName()!=null) ? (" o:"+opx.getObjectName()):""));
 		
 		switch (opx.getOp()) {
 		
@@ -361,7 +356,12 @@ public class ReplicationService extends BaseService implements ApplicationContex
 	protected SchedulerService getSchedulerService() {
 		return this.schedulerService;
 	}
+
 	
+	/**
+	 * 
+	 * @param opx
+	 */
 	private void replicateCreateObject(VFSOperation opx) {
 
 		Check.requireNonNullArgument(opx, "opx is null");
@@ -397,7 +397,14 @@ public class ReplicationService extends BaseService implements ApplicationContex
 		
 	}
 
+	
+	/**
+	 * 
+	 * 
+	 * @param opx
+	 */
 	private void replicateUpdateObject(VFSOperation opx) {
+		
 		Check.requireNonNullArgument(opx, "opx is null");
 		
 		getLockService().getBucketLock(opx.getBucketName()).readLock().lock();
@@ -406,7 +413,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 		
 			getLockService().getObjectLock(opx.getBucketName(), opx.getObjectName()).readLock().lock();
 				
-				try {
+			try {
 					if (getVFS().existsObject(opx.getBucketName(), opx.getObjectName())) {
 						ObjectMetadata meta=getVFS().getObjectMetadata(opx.getBucketName(), opx.getObjectName());
 						try {
@@ -417,18 +424,15 @@ public class ReplicationService extends BaseService implements ApplicationContex
 							throw new InternalCriticalException(e, opx.toString());
 						}
 					}
-				} catch (ODClientException e) {
-					throw new InternalCriticalException(e);
-				}			
-				finally {
+			} catch (ODClientException e) {
+				throw new InternalCriticalException(e, "replicateUpdateObject");
+			}			
+			finally {
 					getLockService().getObjectLock(opx.getBucketName(), opx.getObjectName()).readLock().unlock();
-				}
+			}
 		} finally {
 			getLockService().getBucketLock(opx.getBucketName()).readLock().unlock();	
 		}
-		
-
-		
 	}
 	
 	/**
@@ -467,10 +471,14 @@ public class ReplicationService extends BaseService implements ApplicationContex
 		}
 	}
 	
+	
+	/**
+	 * 
+	 * @param opx
+	 */
 	private void replicateCreateBucket(VFSOperation opx) {
 
 		Check.requireNonNullArgument(opx, "opx is null");
-		
 		getLockService().getBucketLock(opx.getBucketName()).readLock().lock();
 			
 			try {
@@ -484,8 +492,10 @@ public class ReplicationService extends BaseService implements ApplicationContex
 				getLockService().getBucketLock(opx.getBucketName()).readLock().unlock();
 			}
 	}
-						
+
+	
 	/**
+	 * 
 	 * @param opx
 	 */
 	private void replicateDeleteBucket(VFSOperation opx) {
@@ -505,7 +515,12 @@ public class ReplicationService extends BaseService implements ApplicationContex
 				getLockService().getBucketLock(opx.getBucketName()).readLock().unlock();
 			}
 	}
-						
+
+	
+	/**
+	 * 
+	 * @param opx
+	 */
 	private void replicateUpdateBucket(VFSOperation opx) {
 		
 			Check.requireNonNullArgument(opx, "opx is null");
@@ -526,6 +541,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 			}
 	}
 	
+	
 	/**
 	 * 
 	 */
@@ -542,16 +558,14 @@ public class ReplicationService extends BaseService implements ApplicationContex
 		if (info.getStandByStartDate()==null)
 			return; 
 			
-		
 		int reqlicaQueueSize = this.getSchedulerService().getReplicaQueueSize();
 		
-		 if((!getServerSettings().isStandbySyncForce()) 							&&
+		 if( (!getServerSettings().isStandbySyncForce()) 							&&
 			 (info.getStandBySyncedDate()!=null) 									&& 
 			 (!info.getStandBySyncedDate().isBefore(info.getStandByStartDate())) 	&&
-			 (reqlicaQueueSize == 0)
-				 ) {
+			 (reqlicaQueueSize == 0) ) {
 			 	startuplogger.info("Standby sync is up to date");
-			return;
+			 	return;
 		}
 		
 		 if (reqlicaQueueSize>0)
@@ -562,7 +576,6 @@ public class ReplicationService extends BaseService implements ApplicationContex
 		StandByInitialSync syncer = new StandByInitialSync(this.getVFS().createVFSIODriver());
 		syncer.start();
 	}
-
 
 	
 }

@@ -19,6 +19,11 @@ package io.odilon.vfs;
 import io.odilon.service.ObjectStorageService;
 import io.odilon.service.ObjectService;
 
+
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public class BlockService implements ObjectService {
 				
 	private Block object;

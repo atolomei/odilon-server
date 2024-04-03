@@ -48,8 +48,6 @@ public class BaseService implements APIObject {
 		return idGenerator.randomString(size);
 	}
 	
-	
-	
 	@JsonIgnore
 	private ServiceStatus status;
 	
@@ -68,9 +66,11 @@ public class BaseService implements APIObject {
 	@Override
 	public String toString() {
 		StringBuilder str = new StringBuilder();
+		str.append(this.getClass().getSimpleName());
 		str.append(toJSON());
 		return str.toString();
 	}
+
 	
 	@Override
 	public String toJSON() {

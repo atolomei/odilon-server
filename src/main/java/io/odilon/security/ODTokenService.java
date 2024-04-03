@@ -68,8 +68,7 @@ public class ODTokenService extends BaseService implements TokenService, Applica
 	    static private Logger startuplogger = Logger.getLogger("StartupLogger");
 	    static private Logger logger = Logger.getLogger(ODObjectStorageService.class.getName());
 
-	    //private static String salt = "tOBpeMSGyYZycHrKmgu8";
-	    private static String salt = randomString(20);
+	    static private String salt = randomString(20);
 	   
 	    @JsonIgnore
 		@Autowired
@@ -117,11 +116,10 @@ public class ODTokenService extends BaseService implements TokenService, Applica
 	    private String secretKey;
 	
 
-	public ODTokenService (
-				ServerSettings serverSettings, 
-				SystemMonitorService montoringService,
-				EncryptionService encrpytionService,
-				VirtualFileSystemService vfs) {
+	public ODTokenService ( ServerSettings serverSettings, 
+							SystemMonitorService montoringService,
+							EncryptionService encrpytionService,
+							VirtualFileSystemService vfs) {
 
 	    		this.serverSettings=serverSettings;
     			this.monitoringService=montoringService;
@@ -135,11 +133,11 @@ public class ODTokenService extends BaseService implements TokenService, Applica
 	public String encrypt(AuthToken token) {
 
 		try {
+			
 			return Base64.getEncoder().encodeToString(this.encCipher.doFinal(token.toJSON().getBytes("UTF-8")));
 			
 		} catch (IllegalBlockSizeException | BadPaddingException | UnsupportedEncodingException e) {
-			logger.error(e);
-			throw new InternalCriticalException(e);
+			throw new InternalCriticalException(e, "encrypt");
 		}
 
 	}
@@ -153,15 +151,13 @@ public class ODTokenService extends BaseService implements TokenService, Applica
 				str = new String(this.decCipher.doFinal(Base64.getDecoder().decode(enc)));
 				
 			} catch (IllegalBlockSizeException | BadPaddingException e1) {
-				logger.error(e1);
-				throw new InternalCriticalException(e1);
+				throw new InternalCriticalException(e1, "decrypt");
 			}
 			
 			try {
 				return getObjectMapper().readValue(str, AuthToken.class);
 			} catch (JsonProcessingException e) {
-				logger.error(e);
-				throw new InternalCriticalException(e);
+				throw new InternalCriticalException(e, "decrypt");
 			}
 	 }
 		
@@ -214,57 +210,25 @@ public class ODTokenService extends BaseService implements TokenService, Applica
 					decCipher.init(Cipher.DECRYPT_MODE, secretKeySpec, ivspec);
 					
 				} catch (NoSuchAlgorithmException | NoSuchPaddingException  | InvalidKeyException | InvalidAlgorithmParameterException e) {
-					logger.error(e);
-					throw new RuntimeException(e);
+					throw new InternalCriticalException(e, "onInitialize");
 				}
 		        
 				startuplogger.debug("Started -> " +  TokenService.class.getSimpleName());
 				setStatus(ServiceStatus.RUNNING);
-				
 				}
+			
+				catch (InternalCriticalException e) {
+					setStatus(ServiceStatus.STOPPED);
+					throw e;
+				}
+			
 				catch (Exception e) {
 					setStatus(ServiceStatus.STOPPED);
-					logger.error(e);
-					throw( new RuntimeException(e));
+					throw new InternalCriticalException(e, "onInitialize");
 				}
+			
 			}	
 	}
 	
 }
-
-
-
-
-
-
-
-
-/**
- * @param strToEncrypt
- * @param secret
- * @return
- **/
-// byte[] iv = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-// IvParameterSpec ivspec = new IvParameterSpec(iv);
-// SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
-// KeySpec spec = new PBEKeySpec(key.toCharArray(), salt.getBytes(), 65536, 256);
-// SecretKey tmp = factory.generateSecret(spec);
-// SecretKeySpec secretKeySpec = new SecretKeySpec(tmp.getEncoded(), "AES");
-// Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-// cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, ivspec);
-
-/**
- * 
- * @param strToDecrypt
- * @param key
- * @return
- */
-//byte[] iv = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-//IvParameterSpec ivspec = new IvParameterSpec(iv);
-//SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
-//KeySpec spec = new PBEKeySpec(key.toCharArray(), salt.getBytes(), 65536, 256);
-//SecretKey tmp = factory.generateSecret(spec);
-//SecretKeySpec secretKeySpec = new SecretKeySpec(tmp.getEncoded(), "AES");
-	//Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-	//cipher.init(Cipher.DECRYPT_MODE, secretKeySpec, ivspec);
 

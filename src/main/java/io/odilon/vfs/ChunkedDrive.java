@@ -9,6 +9,10 @@ import io.odilon.log.Logger;
 
 /**
 * <p>For RAID 6</p>
+* 
+* @author atolomei@novamens.com (Alejandro Tolomei)
+* 
+* 
 */
 @Component
 @Scope("prototype")

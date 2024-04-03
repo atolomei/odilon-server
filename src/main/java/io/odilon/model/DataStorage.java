@@ -66,9 +66,8 @@ public enum DataStorage {
 	@Override
 	public String toString() {
 		StringBuilder str = new StringBuilder();
-		str.append(this.getClass().getSimpleName() +"{");
+		str.append(this.getClass().getSimpleName());
 		str.append(toJSON());
-		str.append("}");
 		return str.toString();
 	}
 	
