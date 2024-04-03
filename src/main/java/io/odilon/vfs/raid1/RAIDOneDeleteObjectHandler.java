@@ -106,7 +106,6 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 				
 			} catch (OdilonObjectNotFoundException e1) {
 				done=false;
-				logger.error(e1);
 				throw e1;
 				
 			} catch (Exception e) {
@@ -434,9 +433,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 			}
 			
 		} catch (IOException e) {
-			String msg = 	"b:"   + (Optional.ofNullable(meta.bucketName).isPresent()    ? (meta.bucketName) :"null") + 
-							", o:" + (Optional.ofNullable(meta.objectName).isPresent() ? 	(meta.objectName) :"null");  
-			throw new InternalCriticalException(e, msg);
+			throw new InternalCriticalException(e, "b:"   + (Optional.ofNullable(meta.bucketName).isPresent()    ? (meta.bucketName) :"null") +", o:" + (Optional.ofNullable(meta.objectName).isPresent() ? 	(meta.objectName) :"null"));
 		}
 	}
 	
@@ -450,9 +447,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 			try {
 				FileUtils.copyDirectory(new File(objectMetadataBackupDirPath), new File(objectMetadataDirPath));
 			} catch (IOException e) {
-				String msg = 	"b:"   + (Optional.ofNullable(bucketName).isPresent()    ? (bucketName) :"null") + 
-								", o:" + (Optional.ofNullable(objectName).isPresent() ? (objectName)       :"null");  
-				throw new InternalCriticalException(e, msg);
+				throw new InternalCriticalException(e, "b:"   + (Optional.ofNullable(bucketName).isPresent()    ? (bucketName) :"null") + ", o:" + (Optional.ofNullable(objectName).isPresent() ? (objectName)       :"null"));
 			}
 		}
 	}
@@ -463,10 +458,6 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 	 * 
 	 */
 	private void onAfterCommit(VFSOperation op, ObjectMetadata meta, int headVersion) {
-		
-		//Check.requireNonNullArgument(op, "op is null");
-		//Check.requireNonNullArgument(meta, "meta is null");
-		
 		try {
 			if (op.getOp()==VFSop.DELETE_OBJECT || op.getOp()==VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS)
 				getVFS().getSchedulerService().enqueue(getVFS().getApplicationContext().getBean(AfterDeleteObjectServiceRequest.class, op.getOp(), meta, headVersion));

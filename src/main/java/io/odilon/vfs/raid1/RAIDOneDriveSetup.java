@@ -187,11 +187,8 @@ public class RAIDOneDriveSetup implements IODriveSetup, ApplicationContextAware 
 	
 	
 	private void createBuckets() {
-			
 		List<VFSBucket> list = getDriver().getVFS().listAllBuckets();
-																			
 		startuplogger.info("3. Creating " + String.valueOf(list.size()) +" Buckets");
-		
 		for (VFSBucket bucket:list) {
 				for (Drive drive: getDriver().getDrivesAll()) {
 					if (drive.getDriveInfo().getStatus()==DriveStatus.NOTSYNC) {

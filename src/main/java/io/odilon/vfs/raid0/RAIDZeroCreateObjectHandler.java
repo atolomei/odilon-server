@@ -100,7 +100,9 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler implements RAID
 						
 						saveObjectDataFile(bucket,objectName, stream, srcFileName);
 						saveObjectMetadata(bucket,objectName, srcFileName, contentType, version);
-						
+
+						/** cache 
+						 */
 						getVFS().getObjectCacheService().remove(bucketName, objectName);
 						
 						done = op.commit();
