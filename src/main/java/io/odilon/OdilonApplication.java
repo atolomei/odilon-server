@@ -17,16 +17,13 @@
 
 package io.odilon;
 
+
 import jakarta.annotation.PostConstruct;
-import jakarta.servlet.Filter;
 
 import org.springframework.boot.Banner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.web.servlet.FilterRegistrationBean;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
-import org.springframework.web.filter.CharacterEncodingFilter;
 
 import io.odilon.log.Logger;
 import io.odilon.model.ServerConstant;

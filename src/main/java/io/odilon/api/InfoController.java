@@ -41,6 +41,7 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 @RestController
 public class InfoController extends BaseApiController {
 			
+	@SuppressWarnings("unused")
 	static private Logger logger = Logger.getLogger(InfoController.class.getName());
 	
 	private ServerSettings settings;
