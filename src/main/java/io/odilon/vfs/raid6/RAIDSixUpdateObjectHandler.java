@@ -240,9 +240,12 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 		boolean done = false;
 		
 		int beforeHeadVersion = -1;
-		ObjectMetadata meta = null;
+		
 		boolean isMainException = false;
 		
+		
+		ObjectMetadata metaHeadToRemove = null;
+		ObjectMetadata metaToRestore = null;
 		
 		getLockService().getObjectLock(bucket.getName(), objectName).writeLock().lock();
 
@@ -252,13 +255,13 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 			
 				try {
 					
-					meta = getDriver().getObjectMetadataInternal(bucketName, objectName, false);
+					metaHeadToRemove = getDriver().getObjectMetadataInternal(bucketName, objectName, false);
 		
-					if (meta.getVersion()==0)
+					if (metaHeadToRemove.getVersion()==0)
 						throw new IllegalArgumentException(	"Object does not have any previous version | " + "b:" +	 bucketName + " o:" + objectName);
 					
 					
-					beforeHeadVersion = meta.version;
+					beforeHeadVersion = metaHeadToRemove.version;
 					
 					
 					List<ObjectMetadata> metaVersions = new ArrayList<ObjectMetadata>();
@@ -270,23 +273,22 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 					}
 		
 					if (metaVersions.isEmpty()) 
-						throw new OdilonObjectNotFoundException(Optional.of(meta.systemTags).orElse("previous versions deleted"));
+						throw new OdilonObjectNotFoundException(Optional.of(metaHeadToRemove.systemTags).orElse("previous versions deleted"));
 					
 					op = getJournalService().restoreObjectPreviousVersion(bucketName, objectName, beforeHeadVersion);
 					
 					/** save current head version MetadataFile .vN  and data File vN - no need to additional backup */
-					backupVersionObjectDataFile(meta,  meta.version);
-					backupVersionObjectMetadata(bucket, objectName,  meta.version);
+					backupVersionObjectDataFile(metaHeadToRemove,  metaHeadToRemove.version);
+					backupVersionObjectMetadata(bucket, objectName,  metaHeadToRemove.version);
 		
 					/** save previous version as head */
-					ObjectMetadata metaToRestore = metaVersions.get(metaVersions.size()-1);
-					
+					metaToRestore = metaVersions.get(metaVersions.size()-1);
 					
 					if (!restoreVersionObjectDataFile(metaToRestore, metaToRestore.version))
-						throw new OdilonObjectNotFoundException(Optional.of(meta.systemTags).orElse("previous versions deleted"));
+						throw new OdilonObjectNotFoundException(Optional.of(metaHeadToRemove.systemTags).orElse("previous versions deleted"));
 					
 					if (!restoreVersionObjectMetadata(metaToRestore.bucketName, metaToRestore.objectName, metaToRestore.version))
-						throw new OdilonObjectNotFoundException(Optional.of(meta.systemTags).orElse("previous versions deleted"));
+						throw new OdilonObjectNotFoundException(Optional.of(metaHeadToRemove.systemTags).orElse("previous versions deleted"));
 					
 					
 					// cache
@@ -331,8 +333,8 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 							 Sync by the moment
 							 see how to make it Async
 							------------------------ */
-							if((op!=null) && (meta!=null))
-								cleanUpRestoreVersion(meta, beforeHeadVersion);
+							if((op!=null) && (metaHeadToRemove!=null) && (metaToRestore!=null))
+								cleanUpRestoreVersion(metaHeadToRemove, beforeHeadVersion, metaToRestore);
 						}
 					} finally {
 						getLockService().getBucketLock(bucket.getName()).readLock().unlock();
@@ -350,17 +352,30 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 	 * @param meta
 	 * @param versionDiscarded
 	 */
-	private void cleanUpRestoreVersion(ObjectMetadata meta, int versionDiscarded) {
+	private void cleanUpRestoreVersion(ObjectMetadata metaHeadRemoved, int versionDiscarded, ObjectMetadata metaNewHeadRestored) {
 		
 		try {
 				if (versionDiscarded < 0)
 					return;
 	
-				for (Drive drive: getDriver().getDrivesAll())
-					FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(meta.bucketName, meta.objectName,  versionDiscarded));
+				String bucketName = metaHeadRemoved.bucketName;
+				String objectName = metaHeadRemoved.objectName;
 				
-				List<File> files = getDriver().getObjectDataFiles(meta, Optional.of(versionDiscarded));
-				files.forEach( file -> FileUtils.deleteQuietly(file));
+				// Metadata
+				for (Drive drive: getDriver().getDrivesAll()) {
+					FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(bucketName, objectName,  versionDiscarded));
+					FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(bucketName, objectName,  metaNewHeadRestored.version));
+				}
+				
+				{
+					List<File> files = getDriver().getObjectDataFiles(metaHeadRemoved, Optional.of(versionDiscarded));
+					files.forEach(file -> FileUtils.deleteQuietly(file));
+				}
+				
+				{
+					List<File> files = getDriver().getObjectDataFiles(metaHeadRemoved, Optional.of(metaNewHeadRestored.version));
+					files.forEach(file -> FileUtils.deleteQuietly(file));
+				}
 				
 		} catch (Exception e) {
 			logger.error(e, ServerConstant.NOT_THROWN);
@@ -685,6 +700,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 			ObjectMetadata versionMeta = getDriver().getObjectMetadataVersion(bucketName, objectName, version);
 			
 			for (Drive drive: getDriver().getDrivesAll()) {
+				versionMeta.drive=drive.getName();
 				drive.saveObjectMetadata(versionMeta);
 			}
 			return success;
@@ -713,7 +729,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 					String headFileName = arr[0];
 					try {
 						if (new File(drive.getBucketObjectDataDirPath(meta.bucketName)+File.separator+VirtualFileSystemService.VERSION_DIR, name).exists()) {
-							Files.copy( (new File(drive.getBucketObjectDataDirPath(meta.bucketName)+File.separator+VirtualFileSystemService.VERSION_DIR,  name)).toPath(), 
+							Files.copy((new File(drive.getBucketObjectDataDirPath(meta.bucketName)+File.separator+VirtualFileSystemService.VERSION_DIR,  name)).toPath(), 
 									(new File(drive.getBucketObjectDataDirPath(meta.bucketName), headFileName)).toPath(), 
 									StandardCopyOption.REPLACE_EXISTING);
 						}

@@ -110,12 +110,11 @@ public class DeleteBucketObjectPreviousVersionServiceRequest extends AbstractSer
 		boolean done = false;
 		while (!done) {
 			
-			DataList<Item<ObjectMetadata>> data = getVirtualFileSystemService().listObjects(
-					bname, 
-					Optional.of(offset),
-					Optional.ofNullable(pageSize),
-					Optional.empty(),
-					Optional.ofNullable(agentId)); 
+			DataList<Item<ObjectMetadata>> data = getVirtualFileSystemService().listObjects(bname,
+																							Optional.of(offset),
+																							Optional.ofNullable(pageSize),
+																							Optional.empty(),
+																							Optional.ofNullable(agentId)); 
 
 			if (agentId==null)
 				agentId = data.getAgentId();
