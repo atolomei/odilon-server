@@ -21,8 +21,8 @@ import io.odilon.service.SystemService;
 
 /**
  * <p>{@link ObjectMetadata} cache.</p> 
- * <p>It Uses {@link Caffeine} to keep references to entries in memory.</p>
- * 
+ * <p>It Uses {@link Caffeine} to keep references to entries in memory.</p> 
+ *  
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @Service

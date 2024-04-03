@@ -45,7 +45,6 @@ import io.odilon.vfs.model.VFSop;
 /**
  * <b>RAID 6</b> 
  * 
- * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 
@@ -100,7 +99,10 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 					RAIDSixBlocks ei = saveObjectDataFile(bucketName, objectName, stream);
 					saveObjectMetadata(bucketName, objectName, ei, srcFileName, contentType, version);
 					
+					// cache 
+					//
 					getVFS().getObjectCacheService().remove(bucketName, objectName);
+					getVFS().getFileCacheService().remove(bucketName, objectName, Optional.empty());
 					getVFS().getFileCacheService().remove(bucketName, objectName, Optional.of(version));
 					
 					done = op.commit();
@@ -170,17 +172,13 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 						logger.warn("can not load meta -> d: " + drive.getName() + ServerConstant.NOT_THROWN);
 					}
 				}
-				FileUtils.deleteQuietly( new File(drive.getObjectMetadataDirPath(bucketName, objectName)));
+				FileUtils.deleteQuietly(new File(drive.getObjectMetadataDirPath(bucketName, objectName)));
 			}
 			
 			/** remove data dir on all drives */			
-			if (meta!=null) {
-				getDriver().getObjectDataFiles(meta, Optional.empty()).forEach(
-							file -> { 
-								FileUtils.deleteQuietly(file);
-							}
-						);
-			}
+			if (meta!=null)
+				getDriver().getObjectDataFiles(meta, Optional.empty()).forEach(file -> {FileUtils.deleteQuietly(file);});
+			
 			done=true;
 			
 		} catch (InternalCriticalException e) {
@@ -211,8 +209,9 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 	private RAIDSixBlocks saveObjectDataFile(String bucketName, String objectName, InputStream stream) {
 		
 			try (InputStream sourceStream = isEncrypt() ? (getVFS().getEncryptionService().encryptStream(stream)) : stream) {
-				RAIDSixEncoder encoder = new RAIDSixEncoder(getDriver());
-				return encoder.encodeHead(sourceStream, bucketName, objectName);	
+				
+				return (new RAIDSixEncoder(getDriver())).encodeHead(sourceStream, bucketName, objectName);
+				
 			} catch (Exception e) {
 				throw new InternalCriticalException(e, "b:" + bucketName + " o:" + objectName);		
 			}

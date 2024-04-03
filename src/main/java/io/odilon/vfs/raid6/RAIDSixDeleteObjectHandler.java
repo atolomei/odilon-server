@@ -96,10 +96,11 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler implements RAIDDe
 				
 				backupMetadata(meta);
 				
-				getVFS().getObjectCacheService().remove(bucketName, meta.objectName);
-				
 				for (Drive drive: getDriver().getDrivesAll()) 
 					drive.deleteObjectMetadata(bucket.getName(), objectName);
+				
+				getVFS().getObjectCacheService().remove(bucketName, meta.objectName);
+				getVFS().getFileCacheService().remove(bucketName, objectName, Optional.empty());
 				
 				done = op.commit();
 				
@@ -151,13 +152,11 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler implements RAIDDe
 	}
 	
 	public void wipeAllPreviousVersions() {
-		getVFS().getSchedulerService().enqueue(getVFS().getApplicationContext().
-				getBean(DeleteBucketObjectPreviousVersionServiceRequest.class));
+		getVFS().getSchedulerService().enqueue(getVFS().getApplicationContext().getBean(DeleteBucketObjectPreviousVersionServiceRequest.class));
 	}
 
 	public void deleteBucketAllPreviousVersions(VFSBucket bucket) {
-		getVFS().getSchedulerService().enqueue(getVFS().getApplicationContext().
-				getBean(DeleteBucketObjectPreviousVersionServiceRequest.class, bucket.getName()));
+		getVFS().getSchedulerService().enqueue(getVFS().getApplicationContext().getBean(DeleteBucketObjectPreviousVersionServiceRequest.class, bucket.getName()));
 	}
 
 	/**
@@ -186,7 +185,6 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler implements RAIDDe
 					if (!getDriver().getObjectMetadataReadDrive(bucketName, objectName).existsObjectMetadata(bucketName, objectName))
 						throw new OdilonObjectNotFoundException("object does not exist -> b:" + bucketName+ " o:"+(Optional.ofNullable(objectName).isPresent() ? (objectName) :"null"));
 					
-					//meta = getDriver().getObjectMetadataReadDrive(bucketName, objectName).getObjectMetadata(bucketName, objectName);
 					headVersion = headMeta.version;
 					
 					/** It does not delete the head version, only previous versions */
@@ -213,9 +211,16 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler implements RAIDDe
 						drive.saveObjectMetadata(metaDrive);							
 					}
 					
+					// -------------
+					// cache
+					//
 					getVFS().getObjectCacheService().remove(bucketName, headMeta.objectName);
+					getVFS().getFileCacheService().remove(bucketName, objectName, Optional.empty());
+					for (int version=0; version < headVersion; version++) 
+						getVFS().getFileCacheService().remove(bucketName, objectName, Optional.of(version));
 					
 					done=op.commit();
+					
 				
 				} catch (OdilonObjectNotFoundException e1) {
 					done=false;
@@ -334,11 +339,10 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler implements RAIDDe
 				logger.error(msg, ServerConstant.NOT_THROWN);
 			
 		} catch (Exception e) {
-			String msg = "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null");
 			if (!recoveryMode)
-				throw new InternalCriticalException(e, msg);
+				throw new InternalCriticalException(e, "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null"));
 			else
-				logger.error(msg, ServerConstant.NOT_THROWN);
+				logger.error("Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null"), ServerConstant.NOT_THROWN);
 		}
 		finally {
 			if (done || recoveryMode) 
@@ -433,8 +437,6 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler implements RAIDDe
 			}
 		}
 	}
-
-
 
 
 }

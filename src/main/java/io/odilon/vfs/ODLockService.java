@@ -146,9 +146,6 @@ public class ODLockService extends BaseService implements LockService {
 		 			
 		 			if (objectLocks.size() > 0) {
 			 		
-		 				int startingSize = objectLocks.size();
-		 				
-		 				long start = System.currentTimeMillis();
 						long maxToPurge = Math.round(ratePerMillisec * maxTimeToSleepMillisec) + (long) (ratePerMillisec * 1000.0);
 						List<String> list = new  ArrayList<String>();
 						
@@ -172,19 +169,6 @@ public class ODLockService extends BaseService implements LockService {
 			 				list.forEach(item -> objectLocks.remove(item));
 			 			
 			 			} finally {
-			 				
-			 				/**
-			 				if (logger.isDebugEnabled() && (startingSize-objectLocks.size() >0)) {
-			 					logger.debug(
-					 						"ObjectLocks Clean up " +
-					 						" | initial size -> " 	+ String.format("%,6d", startingSize).trim() +  
-					 						" | new size ->  " 		+ String.format("%,6d",objectLocks.size()).trim() + 
-					 						" | removed  -> " 		+ String.format("%,6d",startingSize-objectLocks.size()).trim() +
-					 						" | duration -> " 		+ String.format("%,12d",(System.currentTimeMillis() - start)).trim() +  " ms" 
-			 							);
-			 					}
-			 					**/
-
 			 			}
 					
 		 			}
@@ -195,9 +179,6 @@ public class ODLockService extends BaseService implements LockService {
 		 			{
 		 			
 	 				if (fileCacheLocks.size() > 0) {
-	 					
-		 				//int startingSize = fileCacheLocks.size();
-		 				//long start = System.currentTimeMillis();
 		 				
 						try {
 							
@@ -224,17 +205,6 @@ public class ODLockService extends BaseService implements LockService {
 			 				list.forEach(item -> fileCacheLocks.remove(item));
 			 			
 				 			} finally {
-				 				
-				 				/**if (logger.isDebugEnabled() && (startingSize-fileCacheLocks.size() >0)) {
-				 				logger.debug(
-						 						"FileLocks Clean up " +
-						 						" | initial size -> " 	+ String.format("%,6d", startingSize).trim() +  
-						 						" | new size ->  " 		+ String.format("%,6d",fileCacheLocks.size()).trim() + 
-						 						" | removed  -> " 		+ String.format("%,6d",startingSize-fileCacheLocks.size()).trim() +
-						 						" | duration -> " 		+ String.format("%,12d",(System.currentTimeMillis() - start)).trim() +  " ms" 
-				 							);
-				 				}
-				 				**/
 				 			}
 						
 			 			} // (fileCacheLocks.size() > 0)
