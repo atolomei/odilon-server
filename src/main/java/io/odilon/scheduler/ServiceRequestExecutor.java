@@ -20,6 +20,12 @@ import java.time.OffsetDateTime;
 
 import io.odilon.log.Logger;
 
+
+/**
+ * 
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public class ServiceRequestExecutor implements Runnable {
 			
 	static private Logger logger = Logger.getLogger(ServiceRequestExecutor.class.getName());

@@ -28,6 +28,11 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.www.BasicAuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
 
+
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 @Component
 public class ODBasicAuthenticationEntryPoint extends BasicAuthenticationEntryPoint {
 

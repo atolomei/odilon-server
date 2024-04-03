@@ -27,6 +27,8 @@ import io.odilon.model.ODModelObject;
 
 /**
  * <p>AuthToken are used to generate timed pre-signed urls to access objects without authentication</p>
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public class AuthToken extends ODModelObject implements Serializable  {
 

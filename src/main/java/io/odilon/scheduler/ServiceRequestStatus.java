@@ -21,6 +21,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
 
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public enum ServiceRequestStatus {
 
 	STOPPED 	("stopped", 0),

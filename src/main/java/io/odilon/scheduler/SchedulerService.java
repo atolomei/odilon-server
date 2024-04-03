@@ -39,7 +39,27 @@ import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
- * 
+ * <p>Job Queue processor. It can manage multiple Job queues each with a specific executing policy (normally First in, first out)<br/> 
+ * and semantics on job failure (ie. retry n times and continue, block and retry until the job can complete successfully).<br/>
+ * Jobs are instances of {@link ServiceRequest}, and they must be {@Serializable} becauseThe SchedulerService serializes 
+ * them to store in disk.  
+ * </p>
+ * <p>{@link SchedulerWorker} is a Job Queue with their own Thread pool ({@link Dispatcher)) to process their queue:
+ * </p>
+ *  <ul>
+ *  <li>{@link StandardSchedulerWorker} <br/> Local server CRUD operations after the TRX is commit<br/> <br/> </li> 
+ *  <li>{@link CronJobSchedulerWorker} <br/> Cron jobs that execute regularly based on a CroExpression, non blocking <br/><br/></li>
+ *  <li>{@link StandByReplicaSchedulerWorker} <br/> This worker will not be started if there is no Standby server connected.<br/>  
+ *  	The Semantics of the replica queue is <b>strict order</b>. If a ServiceRequest can not be completed the queue will block 
+ *  	until it can be completed.
+ *  </li>
+ *	</ul>
+ *  
+ *  <p>A {@link SchedulerWorker} can process ServiceRequest in parallel using the Dispatcher Thread pool,
+ *  It creates a dependency graph with the ServiceRequest that are to be executed in each batch in order to
+ *  to warrant that the after the execution of the batch the end result will be equivalent to
+ *  a sequential execution.</p> 
+ *   
  *  
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
@@ -66,8 +86,7 @@ public class SchedulerService extends BaseService implements SystemService, Appl
 	@Autowired
 	private ApplicationContext applicationContext;
 
-	/** blocking semantics.
-	 * Standard local. CRUD operations after the TRX is commited  */
+	/** blocking semantics. Standard local. CRUD operations after the TRX is commited  */
 	@JsonIgnore
 	private StandardSchedulerWorker standardSchedulerWorker;
 

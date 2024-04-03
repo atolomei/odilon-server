@@ -30,6 +30,7 @@ import io.odilon.vfs.model.VirtualFileSystemService;
  * @see {@link CropnExpressionJ8}
  * 
  * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public class CronJobSchedulerWorker extends SchedulerWorker {
 				

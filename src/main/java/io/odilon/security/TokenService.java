@@ -20,6 +20,8 @@ import io.odilon.service.SystemService;
 
 /**
  * @see AuthToken
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public interface TokenService extends SystemService {
 

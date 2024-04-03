@@ -38,6 +38,9 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 /**
  * <p>The whole <{@link Queue} is stored in memory<br/>
  * The queue is also saved in disk via the {@link VirtualFileSystem} for fault recovery</p>
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ * 
  */
 @Component
 @Scope("prototype")

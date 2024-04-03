@@ -45,6 +45,11 @@ import io.odilon.service.ServerSettings;
 import io.odilon.service.SystemService;
 import io.odilon.util.Check;
 
+/**
+ * 
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 @Service
 public class VaultService extends BaseService implements SystemService {
 			

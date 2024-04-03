@@ -29,6 +29,11 @@ import io.odilon.log.Logger;
 import io.odilon.model.BaseService;
 import io.odilon.model.ServiceStatus;
 
+
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 @Service
 public class BeanFactoryService extends BaseService implements SystemService, ApplicationContextAware  {
 			

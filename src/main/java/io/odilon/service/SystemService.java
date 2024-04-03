@@ -18,10 +18,12 @@ package io.odilon.service;
 
 import io.odilon.model.ServiceStatus;
 
-/*
+/**
  * 
  * Odilon SystemService 
- * There is only one instance of each (socpe: XXXX)
+ * There is only one instance of each
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  * 
  */
 public interface SystemService extends ODService {

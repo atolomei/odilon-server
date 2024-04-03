@@ -24,6 +24,8 @@ import org.springframework.context.ApplicationContextAware;
 
 /**
  * <p>Jobs executed Async by the {@link SchedulerService}</p>
+ * 
+ *  @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public interface ServiceRequest extends Serializable, ApplicationContextAware {
 

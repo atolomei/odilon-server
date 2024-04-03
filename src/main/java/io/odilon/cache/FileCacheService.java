@@ -50,9 +50,10 @@ public class FileCacheService extends BaseService {
 			
 	static private Logger logger = Logger.getLogger(FileCacheService.class.getName());
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
-	static final int INITIAL_CAPACITY = 100;
-	static final int MAX_SIZE = 25000;
-	static final int TIMEOUT_DAYS = 7;
+	
+	
+	// static final int MAX_SIZE = 25000;
+	// static final int TIMEOUT_DAYS = 7;
 
 	private AtomicLong cacheSizeBytes = new AtomicLong(0);
 	
@@ -127,7 +128,7 @@ public class FileCacheService extends BaseService {
 			getLockService().getFileCacheLock(bucketName, objectName, version).writeLock().lock();
 		try {
 			getCache().put(getKey(bucketName, objectName, version), file);
-			cacheSizeBytes.getAndAdd(file.length());
+			this.cacheSizeBytes.getAndAdd(file.length());
     	} finally {
     		if (lockRequired)
     			getLockService().getFileCacheLock(bucketName, objectName, version).writeLock().unlock();
@@ -151,7 +152,7 @@ public class FileCacheService extends BaseService {
     		
     		if (file!=null) {
     			FileUtils.deleteQuietly(file);
-    			cacheSizeBytes.getAndAdd(-file.length());
+    			this.cacheSizeBytes.getAndAdd(-file.length());
     		}
     	} finally {
     		getLockService().getFileCacheLock(bucketName, objectName, version).writeLock().unlock();
@@ -204,7 +205,7 @@ public class FileCacheService extends BaseService {
 		setStatus(ServiceStatus.STARTING);
 		
 		this.cache = Caffeine.newBuilder()
-					.initialCapacity(INITIAL_CAPACITY)    
+					.initialCapacity(this.serverSettings.getFileCacheInitialCapacity())    
 					.maximumSize(this.serverSettings.getFileCacheCapacity())
 				    .expireAfterWrite(this.serverSettings.getFileCacheDurationDays(), TimeUnit.DAYS)
 				    .evictionListener((key, value, cause) -> {
@@ -239,7 +240,7 @@ public class FileCacheService extends BaseService {
 				getLockService().getFileCacheLock(bucketName, objectName, version).writeLock().lock();
 				try {
 		    			FileUtils.deleteQuietly((File) value);
-		    			cacheSizeBytes.getAndAdd(-((File)value).length());
+		    			this.cacheSizeBytes.getAndAdd(-((File)value).length());
 				} finally {
 					getLockService().getFileCacheLock(bucketName, objectName, version).writeLock().unlock();
 				}

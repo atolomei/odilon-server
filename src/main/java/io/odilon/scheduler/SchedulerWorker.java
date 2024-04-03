@@ -33,6 +33,11 @@ import io.odilon.log.Logger;
 import io.odilon.model.ServerConstant;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
+/**
+ * <p>Job Queue</p>
+ *  
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public abstract class SchedulerWorker implements Runnable {
 
 	static private Logger logger = Logger.getLogger(SchedulerWorker.class.getName());

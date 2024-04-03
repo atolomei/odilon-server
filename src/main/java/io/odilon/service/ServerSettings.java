@@ -29,6 +29,7 @@ import java.util.stream.Collectors;
 
 import jakarta.annotation.PostConstruct;
 
+import org.checkerframework.checker.index.qual.NonNegative;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
@@ -48,6 +49,11 @@ import io.odilon.service.util.ByteToString;
 import io.odilon.util.RandomIDGenerator;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
+/**
+ * 
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 @Configuration
 @PropertySource("classpath:odilon.properties")
 public class ServerSettings implements APIObject {
@@ -106,23 +112,19 @@ public class ServerSettings implements APIObject {
 	@Value("${server.mode:master}") /** server.mode = master | standby */
 	protected String serverMode;
 
-	@Value("${server.versioncontrol:false}") /** server.mode = master | standby */
+
+	/**  Version Control. by default not enabled **/
+	@Value("${server.versioncontrol:false}") 
 	protected boolean versioncontrol;
 
 	@Value("${recoveryMode:false}")
 	protected boolean isRecoverMode = false;
 
 	
-	// DATA STORAGE  ----------------------------
-	
-	@Value("${dataStorageMode:rw}")
-	@NonNull
-	protected String dataStorageMode; /** readwrite, readonly, WORM  */	
-	private DataStorage dataStorage;
-	public DataStorage getDataStorage() {return dataStorage;}
+
 	
 	
-	// ENCRYPTION ------------------------
+	// ENCRYPTION -----------------------------------------------
 	//
 	// by default encryption is not enabled
 	//
@@ -145,7 +147,7 @@ public class ServerSettings implements APIObject {
 	protected String keyAlgorithm;
 	
 	
-	// DATA STORAGE ----------------------
+	// DATA STORAGE -------------------------------------------
 	//
 	
 	@Value("${redundancyLevel:RAID 0}")
@@ -162,19 +164,28 @@ public class ServerSettings implements APIObject {
 	@Value("${raid6.parityDrives:-1}")
 	protected int raid6ParityDrives;
 	
-	// ----------------------------------
+	
+	@Value("${dataStorageMode:rw}")
+	@NonNull
+	protected String dataStorageMode; /** readwrite, readonly, WORM  */	
+	
+	private DataStorage dataStorage;
+	
+
+	
+	
+	// LOCK SERVICE ------------------------------------------
 	//	
 	@Value("${lockRateMillisecs:2}")
 	String s_lockRateMillisecs;
 	protected double lockRateMillisecs;
 	
-	// SCHEDULER ------------------------
+	
+	// SCHEDULER -------------------------------------------
 	//
 	@Value("${schedulerThreads:0}")
 	protected int schedulerThreads;
-	
-	// SCHEDULER ------------------------
-	//
+
 	@Value("${cronSchedulerThreads:0}")
 	protected int cronSchedulerThreads;
 		
@@ -187,7 +198,7 @@ public class ServerSettings implements APIObject {
 	
 
 	
-	// INTEGRITY CHECK ------------------------
+	// INTEGRITY CHECK -----------------------------------
 	
 	@Value("${integrityCheck:true}")
 	protected boolean integrityCheck;
@@ -201,7 +212,7 @@ public class ServerSettings implements APIObject {
 	@Value("${integrityCheckCronExpression:15 15 5 * * *}")
 	protected String integrityCheckCronExpression;
 	
-	// VAULT ------------------------
+	// VAULT -------------------------------------------
 	
 	@Value("${vault.enabled:false}")
 	protected boolean vaultEnabled;
@@ -224,7 +235,7 @@ public class ServerSettings implements APIObject {
 	private Optional<String> o_vaultUrl;
 	
 
-	// STAND BY -----------------------
+	// STAND BY ------------------------------------------
 
 	@Value("${standby.enabled:false}")
 	protected boolean isStandByEnabled = false;
@@ -249,7 +260,7 @@ public class ServerSettings implements APIObject {
 	protected String standbySecretKey;
 
 	
-	// TRAFFIC PASS -------------------
+	// TRAFFIC PASS --------------------------------------
 	
 	@JsonProperty("traffic.tokens:0")
 	private int tokens;
@@ -258,7 +269,7 @@ public class ServerSettings implements APIObject {
 	private int numberofpasses;
 	
 	
-	// OBJECT CACHES -------------------
+	// OBJECT CACHES --------------------------------------
 	
 	@Value("${useObjectCache:true}")
 	protected boolean useObjectCache;
@@ -267,7 +278,10 @@ public class ServerSettings implements APIObject {
 	@Value("${objectCacheCapacity:500000}")
 	protected int objectCacheCapacity;
 
-			
+		
+	
+	// FILE CACHE (USED BY RAID 6) -----------------------.
+	
 	@Value("${fileCacheCapacity:40000}")
 	protected long fileCacheCapacity;
 
@@ -275,6 +289,23 @@ public class ServerSettings implements APIObject {
 	protected int fileCacheDurationDays;
 	
 	
+	@Value("${fileCacheIntialCapacity:1000}")
+	protected int fileCacheIntialCapacity;
+	
+	
+	public @NonNegative int getFileCacheInitialCapacity() {
+		return 	fileCacheIntialCapacity;
+	}
+	
+	
+	
+	/**
+	 * 
+	 * 
+	 * 
+	 * 
+	 * 
+	 */
 	@Autowired
 	public ServerSettings() {
 	}
@@ -924,6 +955,12 @@ public class ServerSettings implements APIObject {
 			    (dataShards==2 && parityShards==1);
 	}
 	
+
+	public DataStorage getDataStorage() {
+		return dataStorage;
+	}
+	
+	
 	protected String randomString(final int size) {
 		return idGenerator.randomString(size);
 	}
@@ -939,4 +976,6 @@ public class ServerSettings implements APIObject {
 		
 		
 	}
+
+
 }
