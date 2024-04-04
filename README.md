@@ -12,7 +12,7 @@
 				<ul>
 				<li> Scalable Object Storage on commodity disks</li>
 				<li>Single binary, does not neet Database or other external service</li>
-				<li> Developed in Java (uses Spring Boot, OkHttp, Jackson, Caffeine, Metrics, among others) </li>
+				<li> Developed in Java (uses Spring Boot, OkHttp, Jackson, <a href="https://github.com/ben-manes/caffeine">Caffeine</a>, Metrics, among others) </li>
 				<li> Runs on Linux and Windows</li>				
 				<li>Single dependency-free binary, does not neet Database or other external service</li>
 				<li> SDK Java 11+ for client applications</li >
