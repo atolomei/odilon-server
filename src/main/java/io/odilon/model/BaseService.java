@@ -29,7 +29,7 @@ import io.odilon.util.RandomIDGenerator;
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
-public class BaseService implements APIObject {
+public abstract class BaseService implements APIObject {
 			
 	static private Logger logger = Logger.getLogger(BaseService.class.getName());
 	
