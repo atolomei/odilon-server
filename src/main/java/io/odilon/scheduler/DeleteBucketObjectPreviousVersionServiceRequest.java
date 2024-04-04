@@ -167,7 +167,7 @@ public class DeleteBucketObjectPreviousVersionServiceRequest extends AbstractSer
 			
 			instanceRunning.set(true);
 			
-			logger.info("Starting -> " + getClass().getSimpleName() + "b: " + (this.bucketName!=null? this.bucketName:"null"));
+			logger.info("Starting -> " + getClass().getSimpleName() + " | b: " + (this.bucketName!=null? this.bucketName:"null"));
 	
 			this.start_ms = System.currentTimeMillis();
 			this.counter = new AtomicLong(0);
