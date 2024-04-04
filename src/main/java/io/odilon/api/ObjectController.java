@@ -333,7 +333,6 @@ public class ObjectController extends BaseApiController  {
 				throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));			
 			
 			} finally {
-				
 				getTrafficControlService().release(pass);
 				mark();
 			}
@@ -485,8 +484,6 @@ public class ObjectController extends BaseApiController  {
 				
 				if (!this.getVirtualFileSystemService().getServerSettings().isVersionControl())
 					throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Version Control not enabled");
-				
-				
 				
 				ObjectMetadata meta = getObjectStorageService().getObjectMetadataPreviousVersion(bucketName, objectName);
 				

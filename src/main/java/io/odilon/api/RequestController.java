@@ -95,8 +95,7 @@ static private Logger logger = Logger.getLogger(RequestController.class.getName(
 			throw new OdilonInternalErrorException(getMessage(e));
 		}
 		finally { 
-			if (pass!=null)
-				getTrafficControlService().release(pass);
+			getTrafficControlService().release(pass);
 			mark();
 		}
 	}

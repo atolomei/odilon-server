@@ -34,6 +34,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import io.odilon.log.Logger;
 import io.odilon.monitor.SystemMonitorService;
 import io.odilon.service.ObjectStorageService;
@@ -50,6 +52,10 @@ public class SimpleFileUploadController extends BaseApiController {
 
 	@SuppressWarnings("unused")
 	static private Logger logger = Logger.getLogger(SimpleFileUploadController.class.getName());
+
+	
+	@JsonIgnore
+	RandomIDGenerator idGenerator = new RandomIDGenerator();
 	
 	public SimpleFileUploadController(		ObjectStorageService objectStorageService, 
 									VirtualFileSystemService virtualFileSystemService,
@@ -107,7 +113,7 @@ public class SimpleFileUploadController extends BaseApiController {
 	        
 	    }
 	 
-	 RandomIDGenerator idGenerator = new RandomIDGenerator();
+	 
 	 	
 	 private String saveFile(String fileName, MultipartFile multipartFile) throws IOException {
 		        

@@ -77,8 +77,7 @@ public class MetricsController extends BaseApiController {
 			pass = getTrafficControlService().getPass();	
 			return serverSettings.toMap();
 		} finally {
-			if (pass!=null)
-				getTrafficControlService().release(pass);
+			getTrafficControlService().release(pass);
 			mark();
 		}
 	}
@@ -126,8 +125,6 @@ public class MetricsController extends BaseApiController {
 			
 			pass = getTrafficControlService().getPass();
 			
-			
-			
 			StringBuilder str = new StringBuilder();
 			
 			MetricsValues info = getSystemMonitorService().getMetricsValues();
@@ -137,13 +134,11 @@ public class MetricsController extends BaseApiController {
 			
 			for (String s : this.serverSettings.getAppCharacterName())
 				str.append("    " + s+"\n");
-
 			
 			Map<String, String> map = info.getColloquial();
 
 			str.append("\n");
 			str.append("\n");
-
 			
 			map.forEach((k,v) -> str.append("    " + k + " -> " + v + "\n\n"));
 			

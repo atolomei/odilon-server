@@ -97,7 +97,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 				if (!getDriver().getWriteDrive(bucketName, objectName).existsObjectMetadata(bucketName, objectName))
 					throw new IllegalArgumentException("object does not exist -> b:" + bucketName + " o:"+ objectName);
 				
-				ObjectMetadata meta = getDriver().getObjectMetadataInternal(bucket.getName(), objectName, true);
+				ObjectMetadata meta = getDriver().getObjectMetadataInternal(bucket.getName(), objectName, false);
 										
 				beforeHeadVersion = meta.version;							
 				
@@ -186,7 +186,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 			
 			try {
 				
-				ObjectMetadata meta = getDriver().getObjectMetadataInternal(bucketName, objectName, true);
+				ObjectMetadata meta = getDriver().getObjectMetadataInternal(bucketName, objectName, false);
 				
 				if (meta.version==0)
 					throw new IllegalArgumentException(	"Object does not have any previous version | " + "b:" + bucketName + ", o:"	+ objectName);

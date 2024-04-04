@@ -141,8 +141,7 @@ public class ObjectControllerPresigned extends BaseApiController {
 			throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));			
 		
 		} finally {
-			if (pass!=null)
-				getTrafficControlService().release(pass);
+			getTrafficControlService().release(pass);
 			mark();
 		}
 	}

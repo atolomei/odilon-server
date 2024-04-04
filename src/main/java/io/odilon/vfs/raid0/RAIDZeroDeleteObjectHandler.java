@@ -90,7 +90,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 				if (!getDriver().exists(bucket, objectName))
 					throw new OdilonObjectNotFoundException("object does not exist -> b:" + bucket.getName()+ " o:"+(Optional.ofNullable(objectName).isPresent() ? (objectName) :"null"));
 	
-				meta = getDriver().getObjectMetadataInternal(bucket.getName(), objectName, true);
+				meta = getDriver().getObjectMetadataInternal(bucket.getName(), objectName, false);
 				
 				headVersion = meta.version;
 				

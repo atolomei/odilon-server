@@ -96,7 +96,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 					if (!getDriver().getReadDrive(bucket.getName(), objectName).existsObjectMetadata(bucket.getName(), objectName))
 						throw new IllegalArgumentException("object does not exist -> b:" + bucket.getName()+ " o:"+(Optional.ofNullable(objectName).isPresent() ? (objectName) :"null"));
 					
-					ObjectMetadata meta = getDriver().getObjectMetadataInternal(bucket.getName(), objectName, true);
+					ObjectMetadata meta = getDriver().getObjectMetadataInternal(bucket.getName(), objectName, false);
 					beforeHeadVersion = meta.version;							
 					
 					op = getJournalService().updateObject(bucket.getName(), objectName, beforeHeadVersion);
@@ -177,7 +177,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 			
 				try {
 					
-					ObjectMetadata meta = getDriver().getObjectMetadataInternal(bucket.getName(), objectName, true);
+					ObjectMetadata meta = getDriver().getObjectMetadataInternal(bucket.getName(), objectName, false);
 		
 					if (meta.version==0)
 						throw new IllegalArgumentException(	"Object does not have any previous version | " + "b:" + 

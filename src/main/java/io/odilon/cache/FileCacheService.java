@@ -51,10 +51,6 @@ public class FileCacheService extends BaseService {
 	static private Logger logger = Logger.getLogger(FileCacheService.class.getName());
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 	
-	
-	// static final int MAX_SIZE = 25000;
-	// static final int TIMEOUT_DAYS = 7;
-
 	private AtomicLong cacheSizeBytes = new AtomicLong(0);
 	
 	@JsonIgnore

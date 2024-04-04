@@ -22,6 +22,7 @@ import io.odilon.vfs.model.VirtualFileSystemService;
  */
 public class SystemController extends BaseApiController {
 
+	@SuppressWarnings("unused")
 	static private Logger logger = Logger.getLogger(SystemController.class.getName());
 	
 	@SuppressWarnings("unused")
@@ -45,7 +46,6 @@ public class SystemController extends BaseApiController {
 	public void wipeAllPreviousVersions() {
 		
 		TrafficPass pass = null;
-		
 		try {
 			pass = getTrafficControlService().getPass();
 			getObjectStorageService().wipeAllPreviousVersions();
@@ -53,11 +53,9 @@ public class SystemController extends BaseApiController {
 		} catch (OdilonServerAPIException e) {
 			throw e;
 		} catch (Exception e) {
-			logger.error(e);
 			throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));
 		} finally {
-			if (pass!=null)
-				getTrafficControlService().release(pass);
+			getTrafficControlService().release(pass);
 			mark();
 		}
 	}

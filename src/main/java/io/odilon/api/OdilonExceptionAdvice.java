@@ -57,8 +57,6 @@ public class OdilonExceptionAdvice {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
         
-		//return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        
 		OdilonErrorProxy p;
 		
 		if (ex instanceof org.springframework.web.multipart.MultipartException) {
@@ -66,23 +64,16 @@ public class OdilonExceptionAdvice {
 					HttpStatus.INTERNAL_SERVER_ERROR.value(),
 					ErrorCode.INTERNAL_MULTIPART_ERROR.value(),
 					ex.getClass().getName() + " | msg: " + ex.getMessage() + " | cause: " + ex.getCause());
-			
-		
 		}
 		else {
 		 p = new OdilonErrorProxy(
 				HttpStatus.INTERNAL_SERVER_ERROR.value(),
 				ErrorCode.INTERNAL_ERROR.value(),
 				ex.getClass().getName() + " | " + ex.getMessage());
-		 	
-		
 		}
 		
 		 ResponseEntity<OdilonErrorProxy> response = new ResponseEntity<OdilonErrorProxy>(p, HttpStatus.INTERNAL_SERVER_ERROR);
 		 return response;
-				
-        
-        
         
     }
 	

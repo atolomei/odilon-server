@@ -66,6 +66,7 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 @RequestMapping(value = "/bucket")
 public class BucketController extends BaseApiController  {
 				
+	@SuppressWarnings("unused")
 	static private Logger logger = Logger.getLogger(BucketController.class.getName());
 	
 	@Autowired
@@ -214,7 +215,6 @@ public class BucketController extends BaseApiController  {
 		} catch (OdilonServerAPIException e) {
 			throw e;
 		} catch (Exception e) {
-			logger.error(e);
 			throw new OdilonInternalErrorException(getMessage(e));
 		}
 		finally { 
@@ -257,7 +257,7 @@ public class BucketController extends BaseApiController  {
 	/**
 	 * 
 	 */
-	@RequestMapping(value = "/	deleteallpreviousversion/{name}", produces = "application/json" , method = RequestMethod.DELETE)
+	@RequestMapping(value = "/deleteallpreviousversion/{name}", produces = "application/json" , method = RequestMethod.DELETE)
 	public ResponseEntity<Boolean> deleteAllPreviousVersions(@PathVariable("name") String name) {
 	
 		TrafficPass pass = null;
@@ -280,7 +280,6 @@ public class BucketController extends BaseApiController  {
 		} catch (OdilonServerAPIException e) {
 			throw e;
 		} catch (Exception e) {
-			logger.error(e);
 			throw new OdilonInternalErrorException(getMessage(e));
 		}
 		finally { 
