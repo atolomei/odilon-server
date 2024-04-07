@@ -74,7 +74,7 @@ Odilon will propagate each operation to the standby server. It will also run a r
 <p>
 <ul class="group-list>
 <li class="list-item"><b>Odilon is not S3 compatible</b><br/>
-Odilon API is way simpler than S3. The only thing it has in common with AWS S3 it that uses the bucket/object methafor to organize the object space.
+Odilon API is simpler than S3. The only thing it has in common with AWS S3 it that uses the bucket/object methafor to organize the object space.
 <br/>
 <br/>
 </li>
