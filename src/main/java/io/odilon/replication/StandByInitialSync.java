@@ -50,7 +50,9 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
  * <p>
- * 
+ *	IMPORTANT. Initial Sync only syncs head version (v1.5)
+ *  It will not sync previous versions.
+ *   
  * </p>
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
@@ -101,6 +103,8 @@ public class StandByInitialSync implements Runnable {
 	@JsonIgnore
 	ReplicationService replicationService;
 	
+	
+	
 	@JsonIgnore
 	private Thread thread;
 	
@@ -131,7 +135,7 @@ public class StandByInitialSync implements Runnable {
 			sync();
 		} finally {
 			this.done = new AtomicBoolean(true);
-			this.replicationService.setInitialSync( new AtomicBoolean(false));
+			getReplicationService().setInitialSync( new AtomicBoolean(false));
 		}
 	}
 	
@@ -151,7 +155,10 @@ public class StandByInitialSync implements Runnable {
 		return this.vfs;
 	}
 	
-
+	protected ReplicationService getReplicationService() {
+		return this.replicationService;
+	}
+	
 	private void sync() {
 		
 		this.start_ms = System.currentTimeMillis();
@@ -167,7 +174,7 @@ public class StandByInitialSync implements Runnable {
 		if (info.getCreationDate()==null)
 			return;
 		
-		this.replicationService.setInitialSync(new AtomicBoolean(true));
+		getReplicationService().setInitialSync(new AtomicBoolean(true));
 		
 		this.maxProcessingThread = Double.valueOf(Double.valueOf(Runtime.getRuntime().availableProcessors()-1) / 2.0 ).intValue() + 1 - 2;
 		
@@ -237,27 +244,35 @@ public class StandByInitialSync implements Runnable {
 													
 													logger.debug(item.getObject().bucketName+"-"+item.getObject().objectName);
 													
+													//boolean headSynced = false;
 													
+													/**
 													if (getVirtualFileSystemService().getServerSettings().isVersionControl()) {
-														// ----
-														// TODO AT ( versiones anteriores )
-														// ----
+														if (getReplicationService().getClient().isVersionControl()) {
+															if (item.getObject().version>0) {
+																for (int version=0; version<item.getObject().version; version++) {
+																}
+															}
+															// sync head
+															headSynced = true;
+														}
 													}
-														
-													VFSOperation op = new ODVFSOperation(
-																			getDriver().getVFS().getJournalService().newOperationId(), 
-																			VFSop.CREATE_OBJECT,  
-																			Optional.of(item.getObject().bucketName),
-																			Optional.of(item.getObject().objectName),
-																			Optional.of(Integer.valueOf(item.getObject().version)),
-																			getDriver().getVFS().getRedundancyLevel(), 
-																			getDriver().getVFS().getJournalService()
-																		);
+													**/
 													
-														this.replicationService.replicate(op);
+														VFSOperation op = new ODVFSOperation(	getDriver().getVFS().getJournalService().newOperationId(), 
+																								VFSop.CREATE_OBJECT,  
+																								Optional.of(item.getObject().bucketName),
+																								Optional.of(item.getObject().objectName),
+																								Optional.of(Integer.valueOf(item.getObject().version)),
+																								getDriver().getVFS().getRedundancyLevel(), 
+																								getDriver().getVFS().getJournalService());
+														
+														getReplicationService().replicate(op);
 														objectSynced=true;
 														this.totalBytes.addAndGet(item.getObject().length());
-														this.copied.getAndIncrement();													
+														this.copied.getAndIncrement();
+													
+													
 												}
 												
 											} catch (Exception e) {
@@ -341,6 +356,11 @@ public class StandByInitialSync implements Runnable {
 		}
 	}
 
+	
+	
+	private void syncObject() {
+		
+	}
 	
 	/**
 	 * 

@@ -257,40 +257,6 @@ public class BucketController extends BaseApiController  {
 	/**
 	 * 
 	 */
-	@RequestMapping(value = "/deleteallpreviousversion/{name}", produces = "application/json" , method = RequestMethod.DELETE)
-	public ResponseEntity<Boolean> deleteAllPreviousVersions(@PathVariable("name") String name) {
-	
-		TrafficPass pass = null;
-		
-		try {
-
-			pass = getTrafficControlService().getPass();
-			
-			if (!this.getVirtualFileSystemService().getServerSettings().isVersionControl())
-				throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Version Control not enabled");
-				
-			if (!getObjectStorageService().existsBucket(name)) 
-				throw new OdilonObjectNotFoundException(ErrorCode.BUCKET_NOT_EXISTS, String.format("bucket does not exist -> %s", Optional.ofNullable(name).orElse("null")));	
-			
-				if (!getObjectStorageService().isEmptyBucket(name))
-					getObjectStorageService().deleteBucketAllPreviousVersions(name);
-			
-			return new ResponseEntity<Boolean>(Boolean.valueOf(true), HttpStatus.OK);
-			
-		} catch (OdilonServerAPIException e) {
-			throw e;
-		} catch (Exception e) {
-			throw new OdilonInternalErrorException(getMessage(e));
-		}
-		finally { 
-			getTrafficControlService().release(pass);
-			mark();
-		}
-	}
-
-	/**
-	 * 
-	 */
 	@RequestMapping(value = "/delete/{name}", produces = "application/json" , method = RequestMethod.DELETE)
 	public void delete(@PathVariable("name") String name) {
 		TrafficPass pass = null;
@@ -351,7 +317,7 @@ public class BucketController extends BaseApiController  {
 
 	/**
 	 * 
-	 */
+
 	@RequestMapping(value = "/deleteallpreviousversion/{name}", produces = "application/json", method = RequestMethod.DELETE)
 	public void deleteBucketAllPreviousVersions(@PathVariable("name") String name) {
 		
@@ -381,6 +347,63 @@ public class BucketController extends BaseApiController  {
 		}
 	}
 
+	 */
+	
+	/**
+	 *
+	 */
+	 
+	@RequestMapping(value = "/deleteallpreviousversion/{name}", produces = "application/json" , method = RequestMethod.DELETE)
+	public ResponseEntity<Boolean> deleteAllPreviousVersions(@PathVariable("name") String name) {
+	
+		TrafficPass pass = null;
+		
+		try {
+
+			pass = getTrafficControlService().getPass();
+			
+			if (!this.getVirtualFileSystemService().getServerSettings().isVersionControl())
+				throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Version Control not enabled");
+				
+			if (!getObjectStorageService().existsBucket(name)) 
+				throw new OdilonObjectNotFoundException(ErrorCode.BUCKET_NOT_EXISTS, String.format("bucket does not exist -> %s", Optional.ofNullable(name).orElse("null")));	
+			
+				if (!getObjectStorageService().isEmptyBucket(name))
+					getObjectStorageService().deleteBucketAllPreviousVersions(name);
+			
+			return new ResponseEntity<Boolean>(Boolean.valueOf(true), HttpStatus.OK);
+			
+		} catch (OdilonServerAPIException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new OdilonInternalErrorException(getMessage(e));
+		}
+		finally { 
+			getTrafficControlService().release(pass);
+			mark();
+		}
+	}
+
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	/**
 	 * 
 	 */

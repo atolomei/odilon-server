@@ -49,7 +49,6 @@ import io.odilon.vfs.model.VirtualFileSystemService;
  * Creates new Objects ({@link VFSop.CREATE_OBJECT})</p>
 
  * @author atolomei@novamens.com (Alejandro Tolomei)
- * 
  */
 @ThreadSafe
 public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
@@ -85,7 +84,6 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 		boolean done = false;
 		boolean isMainException = false;
 		
-		
 		getLockService().getObjectLock( bucketName, objectName).writeLock().lock();
 		
 		try  {
@@ -93,6 +91,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 			getLockService().getBucketLock(bucketName).readLock().lock();
 			
 			try (stream) {
+				
 					if (getDriver().getReadDrive(bucketName, objectName).existsObjectMetadata(bucketName, objectName))											
 						throw new IllegalArgumentException("object already exist -> b:" + bucketName + " o:"+objectName);
 					
@@ -134,7 +133,6 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 	}
 
 	/**
-	 * 
 	 * 
 	 * <p>The only operation that should be called here by {@link RAIDSixDriver} 
 	 * is {@link VFSop.CREATE_OBJECT}</p>
@@ -256,6 +254,9 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 		String sha=null;
 		String baseDrive=null;
 			
+		OffsetDateTime now = OffsetDateTime.now();
+		
+		
 		for (Drive drive: getDriver().getDrivesAll()) {
 			File file =((SimpleDrive) drive).getObjectDataFile(bucketName,  objectName);
 			try {
@@ -273,14 +274,14 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 				meta.fileName=srcFileName;
 				meta.appVersion=OdilonVersion.VERSION;
 				meta.contentType=contentType;
-				meta.creationDate = OffsetDateTime.now();
+				meta.creationDate =  now;
 				meta.version=version;
 				meta.versioncreationDate = meta.creationDate;
 				meta.length=file.length();
 				meta.etag=sha256;
 				meta.encrypt=getVFS().isEncrypt();
 				meta.sha256=sha256;
-				meta.integrityCheck=OffsetDateTime.now();
+				meta.integrityCheck= now;
 				meta.status=ObjectStatus.ENABLED;
 				meta.drive=drive.getName();
 				meta.raid=String.valueOf(getRedundancyLevel().getCode()).trim();

@@ -578,9 +578,8 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 		}
 	}
 	
-	
 	/**
-	 * 
+	 *  @return whether encryption is enabled
 	 */
 	@Override					
 	public boolean isEncrypt() {
@@ -588,7 +587,8 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	}
 	
 	/**
-	 * 
+	 * @return whether new files should be encrypted using Vault. 
+	 * If vault is not enabled this flag is not used
 	 */
 	@Override					
 	public boolean isUseVaultNewFiles() {
@@ -850,7 +850,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 			str.append("odilon.properties:\n");
 			str.append("encrypt=true but encryption.key is null\n");
 			str.append("The Encryption key is required to use encryption.\n");
-			str.append("It is generated and printed by the server when the encryption service is initialized.\n");
+			str.append("It is generated when the encryption service is initialized.\n");
 			str.append("If the encryption service has not been initialized please run the script -> " + getEnableEncryptionScriptName()+"\n");
 			str.append(ServerConstant.SEPARATOR+"\n\n");
 			throw new IllegalArgumentException(str.toString());
@@ -1101,7 +1101,6 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 					Thread.sleep(5000);
 				} catch (InterruptedException e) {
 				}
-				//SpringApplication.exit(this.getVFS().getApplicationContext(), () -> 1);
 				((ConfigurableApplicationContext) this.getApplicationContext()).close();
 				System.exit(1);
 				

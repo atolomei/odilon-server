@@ -168,6 +168,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 	public void wipeAllPreviousVersions() {
 		getVFS().getSchedulerService().enqueue(getVFS().getApplicationContext().getBean(DeleteBucketObjectPreviousVersionServiceRequest.class));
 	}
+
 	
 	/**
 	 * <p>Adds a {@link DeleteBucketObjectPreviousVersionServiceRequest} to the {@link SchedulerService} 
@@ -281,10 +282,6 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 			onAfterCommit(op, meta, headVersion);
 	}
 
-		
-
-	
-
 	
 	@Override
 	public  void rollbackJournal(VFSOperation op, boolean recoveryMode) {
@@ -337,8 +334,6 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 	public void postObjectDelete(ObjectMetadata meta, int headVersion) 						{}
 	public void postObjectPreviousVersionDeleteAll(ObjectMetadata meta, int headVersion) 	{}
 
-	
-	
 	
 	
 	private void postObjectPreviousVersionDeleteAllCommit(ObjectMetadata meta, int headVersion) {
@@ -412,8 +407,6 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 		} catch (Exception e) {
 			logger.error(e, ServerConstant.NOT_THROWN);
 		}
-		
-		
 	}
 
 	/**

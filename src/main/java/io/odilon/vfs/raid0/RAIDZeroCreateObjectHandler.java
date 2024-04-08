@@ -160,11 +160,13 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler implements RAID
 		boolean done = false;
 				
 		try {
+			
 			if (getVFS().getServerSettings().isStandByEnabled())
 				getVFS().getReplicationService().cancel(op);
 			
 			getWriteDrive(bucketName, objectName).deleteObjectMetadata(bucketName, objectName);
 			FileUtils.deleteQuietly(new File (getWriteDrive(bucketName, objectName).getRootDirPath(), bucketName + File.separator + objectName));
+			
 			done=true;
 			
 		} catch (InternalCriticalException e) {

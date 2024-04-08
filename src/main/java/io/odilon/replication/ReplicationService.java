@@ -161,7 +161,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 			}
 		);
 		
-		standByBuckets.forEach( item ->  {
+		standByBuckets.forEach( item -> {
 			if (!localNames.contains(item.getName()))
 				standByNotLocalNames.add(item.getName());
 		});
@@ -216,10 +216,10 @@ public class ReplicationService extends BaseService implements ApplicationContex
 				setStatus(ServiceStatus.STARTING);
 				startuplogger.debug("Started -> " + this.getClass().getSimpleName());
 				
-				accessKey = this.serverSettings.getStandbyAccessKey();
-				secretKey = this.serverSettings.getStandbySecretKey();
-				url = this.serverSettings.getStandbyUrl();
-				port = this.serverSettings.getStandbyPort();
+				this.accessKey = this.serverSettings.getStandbyAccessKey();
+				this.secretKey = this.serverSettings.getStandbySecretKey();
+				this.url = this.serverSettings.getStandbyUrl();
+				this.port = this.serverSettings.getStandbyPort();
 				
 				if (this.serverSettings.isStandByEnabled()) {
 						this.client = new ODClient(url, port, accessKey, secretKey);
@@ -241,7 +241,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 	}
 	
 	public String getStandByConnection() {
-		return url +":" + String.valueOf(port);
+		return this.url +":" + String.valueOf(port);
 	}
 	
 	public String pingStandBy() {
@@ -383,7 +383,27 @@ public class ReplicationService extends BaseService implements ApplicationContex
 						} catch (IOException e) {
 							throw new InternalCriticalException(e, opx.toString());
 						}
+						
+						
+						if (getServerSettings().isVersionControl()) {
+							if (getClient().isVersionControl()) {
+								// ----
+								// TODO AT ( versiones anteriores )
+								// ----
+								for (ObjectMetadata omVersion: getVFS().getObjectMetadataAllVersions(opx.getBucketName(), opx.getObjectName())) {
+									logger.debug(omVersion.toString());
+									
+									((ODClient) getClient()).putObjectStreamVersion(	opx.getBucketName(), 
+																						opx.getObjectName(), 
+																						getVFS().getObjectVersion(opx.getBucketName(), opx.getObjectName(), omVersion.version), 
+																						omVersion.fileName,
+																						omVersion.version);
+								}
+
+							}
+						}
 					}
+					
 					
 				} catch (ODClientException e) {
 					throw new InternalCriticalException(e, opx.toString());
@@ -399,8 +419,6 @@ public class ReplicationService extends BaseService implements ApplicationContex
 
 	
 	/**
-	 * 
-	 * 
 	 * @param opx
 	 */
 	private void replicateUpdateObject(VFSOperation opx) {
@@ -448,13 +466,15 @@ public class ReplicationService extends BaseService implements ApplicationContex
 		
 		try {
 			
-			getLockService().getObjectLock(opx.getBucketName(), opx.getObjectName()).readLock().lock();
+				getLockService().getObjectLock(opx.getBucketName(), opx.getObjectName()).readLock().lock();
 				
 				try {
 					
 					if (getClient().existsObject(opx.getBucketName(), opx.getObjectName())) {
 						getClient().deleteObject(opx.getBucketName(), opx.getObjectName());
-						getMonitoringService().getReplicationObjectDeleteCounter().inc();	
+						
+						getMonitoringService().getReplicationObjectDeleteCounter().inc();
+						
 					}
 					
 				} catch (IOException e) {

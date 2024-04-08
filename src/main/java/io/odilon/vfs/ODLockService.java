@@ -43,6 +43,9 @@ import io.odilon.service.Scavenger;
 import io.odilon.service.ServerSettings;
 import io.odilon.vfs.model.LockService;
 
+/**
+ * <p>Lock Service Bucket, Object, File from FileCacheService 
+ */
 @Service
 public class ODLockService extends BaseService implements LockService {
 	
@@ -117,10 +120,6 @@ public class ODLockService extends BaseService implements LockService {
 		return str.toString();
 	}
 
-	@Override
-	public String toString() {
-		return(this.getClass().getSimpleName()+ toJSON());
-	}
 
 	@PostConstruct
 	protected void onInitialize() {

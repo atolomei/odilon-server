@@ -636,7 +636,8 @@ public class ObjectController extends BaseApiController  {
 				@PathVariable("objectName") String objectName,
 				@RequestParam("file") MultipartFile file,
 				@RequestParam("fileName") Optional<String> oFileName,
-				@RequestParam("Content-Type") String contentType
+				@RequestParam("Content-Type") String contentType,
+				@RequestParam("version") Optional<Integer> version
 																												
 				) {
 
@@ -648,8 +649,19 @@ public class ObjectController extends BaseApiController  {
 				
 				String fileName = Optional.ofNullable(oFileName.get()).orElseGet(() -> objectName);
 				
-				getObjectStorageService().putObject(bucketName, objectName, file.getInputStream(), fileName, contentType);
-				ObjectMetadata meta = getObjectStorageService().getObjectMetadata(bucketName, objectName);
+				ObjectMetadata meta;
+				
+				if (version.isEmpty()) {
+					getObjectStorageService().putObject(bucketName, objectName, file.getInputStream(), fileName, contentType);
+					meta = getObjectStorageService().getObjectMetadata(bucketName, objectName);					
+				}
+				else {
+					meta = getObjectStorageService().getObjectMetadataPreviousVersion(bucketName, objectName, version.get().intValue());
+					
+					if (meta!=null) {
+						logger.debug("version not done");
+					}
+				}
 				
 				getSystemMonitorService().getPutObjectMeter().mark();
 				

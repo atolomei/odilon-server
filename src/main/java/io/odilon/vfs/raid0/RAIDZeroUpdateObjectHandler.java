@@ -484,7 +484,6 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 			
 		} catch (Exception e) {
 				isMainException = true;
-				logger.error(e);
 				throw new InternalCriticalException(e);		
 	
 		} finally {
@@ -709,8 +708,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 	 */
 	private void saveObjectMetadata(ObjectMetadata meta) {
 		Check.requireNonNullArgument(meta, "meta is null");
-		Drive drive=getWriteDrive(meta.bucketName, meta.objectName);
-		drive.saveObjectMetadata(meta);
+		getWriteDrive(meta.bucketName, meta.objectName).saveObjectMetadata(meta);
 	}
 
 	/**
