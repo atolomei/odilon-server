@@ -100,7 +100,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 				
 				drive.deleteObjectMetadata(bucketName, objectName);
 				
-				getVFS().getObjectCacheService().remove(meta.bucketName, meta.objectName);
+				// getVFS().getObjectCacheService().rem ove(meta.bucketName, meta.objectName);
 				
 				done=op.commit();
 				
@@ -198,7 +198,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 		
 					getDriver().getWriteDrive(meta.bucketName, meta.objectName).saveObjectMetadata(meta);
 					
-					getVFS().getObjectCacheService().remove(meta.bucketName, meta.objectName);
+					// getVFS().getObjectCacheService().rem ove(meta.bucketName, meta.objectName);
 					
 					done=op.commit();
 					

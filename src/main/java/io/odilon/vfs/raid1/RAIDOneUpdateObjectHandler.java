@@ -110,7 +110,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 					saveObjectDataFile(bucket, objectName, stream, srcFileName, meta.version+1);
 					saveObjectMetadata(bucket, objectName, srcFileName, contentType, meta.version+1);
 					
-					getVFS().getObjectCacheService().remove(bucket.getName(), objectName);
+					// getVFS().getObjectCacheService().rem ove(bucket.getName(), objectName);
 					done = op.commit();
 					
 				} catch (Exception e) {
@@ -214,7 +214,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 					if (!restoreVersionObjectMetadata(metaToRestore.bucketName, metaToRestore.objectName, metaToRestore.version))
 						throw new OdilonObjectNotFoundException(Optional.of(meta.systemTags).orElse("previous versions deleted"));
 					
-					getVFS().getObjectCacheService().remove(bucket.getName(), objectName);
+					// getVFS().getObjectCacheService().rem ove(bucket.getName(), objectName);
 					done = op.commit();
 					
 					return null;
@@ -294,7 +294,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 				backupMetadata(meta);
 				saveObjectMetadata(meta);
 				
-				getVFS().getObjectCacheService().remove(meta.bucketName,meta.objectName);
+				// getVFS().getObjectCacheService().rem ove(meta.bucketName,meta.objectName);
 				done = op.commit();
 				
 			} catch (Exception e) {

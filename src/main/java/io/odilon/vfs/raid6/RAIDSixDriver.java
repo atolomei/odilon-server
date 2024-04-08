@@ -40,6 +40,7 @@ import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import io.odilon.cache.CacheEvent;
 import io.odilon.error.OdilonObjectNotFoundException;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
@@ -299,7 +300,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 
 			//if (originalSha256 == null) {
 			//	metadata.integrityCheck = now;
-			//	getVFS().getObjectCacheService().remove(metadata.bucketName, metadata.objectName);
+			//	getVFS().getObjectCacheService().rem ove(metadata.bucketName, metadata.objectName);
 			//	readDrive.saveObjectMetadata(metadata);
 			//	return true;
 			//}

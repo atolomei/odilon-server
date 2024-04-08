@@ -24,14 +24,17 @@ import jakarta.annotation.PostConstruct;
 import javax.annotation.concurrent.ThreadSafe;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import io.odilon.cache.CacheEvent;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.BaseService;
 import io.odilon.model.RedundancyLevel;
+import io.odilon.model.ServerConstant;
 import io.odilon.model.ServiceStatus;
 import io.odilon.replication.ReplicationService;
 import io.odilon.scheduler.SchedulerService;
@@ -92,6 +95,10 @@ public class ODJournalService extends BaseService implements JournalService {
 	@Autowired
 	@JsonIgnore
 	private ServerSettings serverSettings;
+
+	@Autowired
+	@JsonIgnore
+    private ApplicationEventPublisher applicationEventPublisher;
 	
 	
 	public ODJournalService() {
@@ -212,16 +219,22 @@ public class ODJournalService extends BaseService implements JournalService {
 
 		synchronized (this) {
 			
+			CacheEvent event = new CacheEvent(opx);
+	        this.applicationEventPublisher.publishEvent(event);
+			
 			if (this.serverSettings.isStandByEnabled())
 				this.replicationService.enqueue(opx);
 			
 			try {
+				
 				getVFS().removeJournal(opx.getId());
 				this.ops.remove(opx.getId());
 				
 			} catch (Exception e) {
-				if (this.serverSettings.isStandByEnabled())
+				if (this.serverSettings.isStandByEnabled()) {
+					logger.debug("rollback replication -> " + opx.toString());
 					this.replicationService.cancel(opx);
+				}
 				throw e;
 			}
 		}
@@ -238,11 +251,13 @@ public class ODJournalService extends BaseService implements JournalService {
 			
 			try {
 				
+				CacheEvent event = new CacheEvent(opx);
+		        this.applicationEventPublisher.publishEvent(event);
+		        
 				getVFS().removeJournal(opx.getId());
 				
 			} catch (InternalCriticalException e) {
-				logger.warn(e, 	  "this is normally not a Critical Exception "
-								+ "(the op may have saved in some of the drives and not in others due to a crash)");
+				logger.error(e, "this is normally not a critical Exception (the op may have saved in some of the drives and not in others due to a crash)", ServerConstant.NOT_THROWN);
 			}
 			logger.debug("Cancel ->" + opx.toString());
 			this.ops.remove(opx.getId());

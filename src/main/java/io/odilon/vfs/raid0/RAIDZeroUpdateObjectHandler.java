@@ -112,7 +112,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 				saveObjectDataFile(bucket, objectName, stream, srcFileName, meta.version+1);
 				saveObjectMetadataHead(bucket, objectName, srcFileName, contentType, meta.version+1);
 				
-				getVFS().getObjectCacheService().remove(bucketName, meta.objectName);
+				//getVFS().getObjectCacheService().rem ove(bucketName, meta.objectName);
 				done = op.commit();
 			
 			} catch (OdilonObjectNotFoundException e1) {
@@ -218,7 +218,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 				if (!restoreVersionObjectMetadata(metaToRestore.bucketName, metaToRestore.objectName, metaToRestore.version))
 					throw new OdilonObjectNotFoundException(Optional.of(meta.systemTags).orElse("previous versions deleted"));
 				
-				getVFS().getObjectCacheService().remove(bucket.getName(), meta.objectName);
+				//getVFS().getObjectCacheService().rem ove(bucket.getName(), meta.objectName);
 				done = op.commit();
 				
 				return null;
@@ -295,7 +295,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 				op = getJournalService().updateObjectMetadata(meta.bucketName, meta.objectName, meta.version);
 				backupMetadata(meta);
 				saveObjectMetadata(meta);
-				getVFS().getObjectCacheService().remove(meta.bucketName, meta.objectName);
+				//getVFS().getObjectCacheService().rem ove(meta.bucketName, meta.objectName);
 				done = op.commit();
 				
 			} catch (Exception e) {

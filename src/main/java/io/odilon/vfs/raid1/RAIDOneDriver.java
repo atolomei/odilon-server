@@ -1006,6 +1006,8 @@ public class RAIDOneDriver extends BaseIODriver  {
 					
 					int total = iCheck.length;
 					
+					
+					
 					for (int p=0; p<total; p++) {
 						
 						if (!iCheck[p].booleanValue()) {
@@ -1020,22 +1022,29 @@ public class RAIDOneDriver extends BaseIODriver  {
 									logger.debug("Fixed -> d: " + destDrive.getName() + " | b:"+ bucketName + " | o:" + objectName);
 								}
 								
+								
 							} catch (IOException e) {
 									logger.error(e, ServerConstant.NOT_THROWN);
 									retValue = false;
 							}
 							finally {
+								
+								
 								if (in!=null)
 									in.close();
 							}
 						}
-					}			
+					}
+					
+					getVFS().getObjectCacheService().remove(bucketName, objectName);
+				
 				}
 				catch (Exception e) {
 					logger.error(e, ServerConstant.NOT_THROWN);
 					retValue = false;
 				}
 				finally {
+					
 					getLockService().getBucketLock(bucketName).readLock().unlock();
 				}
 		} finally {

@@ -101,9 +101,10 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 					
 					// cache 
 					//
-					getVFS().getObjectCacheService().remove(bucketName, objectName);
-					getVFS().getFileCacheService().remove(bucketName, objectName, Optional.empty());
-					getVFS().getFileCacheService().remove(bucketName, objectName, Optional.of(version));
+					// getVFS().getObjectCacheService().rem ove(bucketName, objectName);
+					
+					// getVFS().getFileCacheService().rem ove(bucketName, objectName, Optional.empty());
+					// getVFS().getFileCacheService().rem ove(bucketName, objectName, Optional.of(version));
 					
 					done = op.commit();
 					
@@ -155,7 +156,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 				
 		try {
 			
-			getVFS().getObjectCacheService().remove(bucketName, objectName);
+			//getVFS().getObjectCacheService().rem ove(bucketName, objectName);
 			
 			if (getVFS().getServerSettings().isStandByEnabled())
 				getVFS().getReplicationService().cancel(op);

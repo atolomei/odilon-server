@@ -119,9 +119,9 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 					
 					// cache
 					//
-					getVFS().getObjectCacheService().remove(bucketName, objectName);
-					getVFS().getFileCacheService().remove(bucketName, objectName, Optional.empty());
-					getVFS().getFileCacheService().remove(bucketName, objectName, Optional.of(beforeHeadVersion));
+					// getVFS().getObjectCacheService().rem ove(bucketName, objectName);
+					//getVFS().getFileCacheService().rem ove(bucketName, objectName, Optional.empty());
+					//getVFS().getFileCacheService().rem ove(bucketName, objectName, Optional.of(beforeHeadVersion));
 					
 					done = op.commit();
 				
@@ -192,7 +192,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 					
 					// cache
 					//
-					getVFS().getObjectCacheService().remove(meta.bucketName,meta.objectName);
+					//getVFS().getObjectCacheService().rem ove(meta.bucketName,meta.objectName);
 					done = op.commit();
 					
 						
@@ -293,9 +293,9 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 					
 					// cache
 					//
-					getVFS().getObjectCacheService().remove(bucketName, objectName);
-					getVFS().getFileCacheService().remove(bucketName, objectName, Optional.empty());
-					getVFS().getFileCacheService().remove(bucketName, objectName, Optional.of(beforeHeadVersion));
+					// getVFS().getObjectCacheService().rem ove(bucketName, objectName);
+					//getVFS().getFileCacheService().rem ove(bucketName, objectName, Optional.empty());
+					//getVFS().getFileCacheService().rem ove(bucketName, objectName, Optional.of(beforeHeadVersion));
 					
 					done = op.commit();
 					
@@ -469,7 +469,6 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 		try {
 			etag = ODFileUtils.calculateSHA256String(etag_b.toString());
 		} catch (NoSuchAlgorithmException | IOException e) {
-				logger.error(e);
 				throw new InternalCriticalException(e, "saveObjectMetadata etag" + "b:" + bucket.getName() + " o:" 	+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null"));
 		} 
 		
@@ -549,7 +548,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 		
 		Check.requireNonNullArgument(op, "op is null");
 		
-		getVFS().getObjectCacheService().remove(op.getBucketName(), op.getObjectName());
+		//getVFS().getObjectCacheService().rem ove(op.getBucketName(), op.getObjectName());
 		
 		switch (op.getOp()) {
 					case UPDATE_OBJECT: 
@@ -765,8 +764,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 			ObjectMetadata meta = getDriver().getObjectMetadataReadDrive(op.getBucketName(), op.getObjectName()).getObjectMetadata(op.getBucketName(), op.getObjectName());
 			
 			if (meta!=null) {
-				
-				getVFS().getObjectCacheService().remove(meta.bucketName, meta.objectName);
+				//getVFS().getObjectCacheService().remo ve(meta.bucketName, meta.objectName);
 				getVFS().getFileCacheService().remove(meta.bucketName, meta.objectName, Optional.empty());
 				
 				restoreVersionObjectDataFile(meta, op.getVersion());

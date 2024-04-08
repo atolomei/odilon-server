@@ -39,6 +39,7 @@ import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.stereotype.Service;
 
@@ -148,6 +149,12 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	@Autowired							
 	private final OdilonKeyEncryptorService odilonKeyEncryptorService;
 	
+	@Autowired
+	@JsonIgnore
+    private final ApplicationEventPublisher applicationEventPublisher;
+	
+	
+	
 	
 	/** Cache of decoded Files in File System, used only in RAID 6 */
 	@JsonIgnore
@@ -208,7 +215,9 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 										ObjectCacheService objectCacheService,
 										MasterKeyService masterKeyEncryptorService,
 										OdilonKeyEncryptorService odilonKeyEncryptorService,
-										FileCacheService fileCacheService
+										FileCacheService fileCacheService,
+										ApplicationEventPublisher applicationEventPublisher
+										
 								) {
 		
 		this.fileCacheService=fileCacheService;
@@ -224,6 +233,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 		this.replicationService=replicationService;
 		this.masterKeyEncryptorService = masterKeyEncryptorService;
 		this.odilonKeyEncryptorService=odilonKeyEncryptorService;
+		this.applicationEventPublisher = applicationEventPublisher;
 		
 	}
 	
@@ -793,109 +803,12 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	private String getEnableEncryptionScriptName() {
 		return isLinux() ? ServerConstant.ENABLE_ENCRYPTION_SCRIPT_LINUX : ServerConstant.ENABLE_ENCRYPTION_SCRIPT_WINDOWS;
 	}
-	
-	private boolean isLinux() {
-		if  (System.getenv("OS")!=null && System.getenv("OS").toLowerCase().contains("windows")) 
-			return false;
-		return true;
+
+	public ApplicationEventPublisher getApplicationEventPublisher() {
+		return this.applicationEventPublisher;
 	}
 	
-	
-	private Optional<String> providedMasterKey = Optional.empty();
-	
-	
-	protected Optional<String> getProvidedMasterKey() {
-		return this.providedMasterKey;
-	}
-	/**
-	 * 
-	 * 
-	 */
-	private void loadMasterKey() {
-
-		/** check if the flag "initializeEncryption" is true */
-		boolean isInitializeEnc = false;
 		
-		for ( String s:OdilonApplication.cmdArgs) {
-			String ns=s.toLowerCase().trim().replace(" ", "");
-			if ( ns.equals("-dinitializeencryption=true") || ns.equals("--initializeencryption=true")) {
-				isInitializeEnc = true;
-			}
-			if ( ns.startsWith("-dmasterkey=") || ns.equals("--masterkey=")) {
-				String k=s.trim();
-				String separator = s.trim().startsWith("-DmasterKey=") ? "-DmasterKey=" : "--masterKey=";
-				String arr[]=k.split(separator);
-				if (arr.length>1)
-					this.providedMasterKey = Optional.of(arr[1]); 
-			}
-		}
-		
-		
-		/** if the flag initialize is true, 
-		 * try to initialize or Rekey Encryption and exit */
-		if (isInitializeEnc) {
-			EncryptionInitializer init = new EncryptionInitializer(this, getProvidedMasterKey());
-			init.execute();
-			return;
-		}
-		
-		/** no encryption -> nothing to do */
-		if (!getServerSettings().isEncryptionEnabled())
-			return;
-			
-		
-		if (getServerSettings().getEncryptionKey()==null) {
-			StringBuilder str = new StringBuilder();
-			str.append("\n"+ServerConstant.SEPARATOR+"\n");
-			str.append("odilon.properties:\n");
-			str.append("encrypt=true but encryption.key is null\n");
-			str.append("The Encryption key is required to use encryption.\n");
-			str.append("It is generated when the encryption service is initialized.\n");
-			str.append("If the encryption service has not been initialized please run the script -> " + getEnableEncryptionScriptName()+"\n");
-			str.append(ServerConstant.SEPARATOR+"\n\n");
-			throw new IllegalArgumentException(str.toString());
-		}
-		
-		
-		/** if master key is supplied by odilon.properties */
-		
-		if (getServerSettings().getInternalMasterKeyEncryptor()!=null) {
-			startuplogger.info("MASTER KEY");
-			startuplogger.info("----------");
-			startuplogger.info("Master Key is overriden by variable 'encryption.masterKey' in 'odilon.properties'.");
-			startuplogger.info("Master Key from -> odilon.properties");
-			startuplogger.info(ServerConstant.SEPARATOR);
-			String keyHex=getServerSettings().getInternalMasterKeyEncryptor();
-			byte [] key  = ByteToString.hexStringToByte(keyHex);
-			this.odilonKeyEncryptorService.setMasterKey(key);
-			return;
-		}
-
-	
-		IODriver driver = createVFSIODriver();
-		OdilonServerInfo info = driver.getServerInfo();
-
-		if (info==null)
-			info=getServerSettings().getDefaultOdilonServerInfo();
-
-		/** if encryption but it was not initialized yet, exit */
-		if (!info.isEncryptionIntialized()) {
-			EncryptionInitializer init = new EncryptionInitializer(this, getProvidedMasterKey());
-			init.notInitializedError();
-			return;
-		}
-		
-		
-		try {
-			byte[] key = driver.getServerMasterKey();
-			this.odilonKeyEncryptorService.setMasterKey(key);
-		} catch (Exception e) {
-			logger.error(e.getClass().getName() + " | " + e.getMessage());
-			throw new InternalCriticalException(e, "error with encryption key");
-		}
-
-	}
-	
 	/**
 	 * 
 	 * 
@@ -1374,6 +1287,108 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	}
 
 	
+
+	private boolean isLinux() {
+		if  (System.getenv("OS")!=null && System.getenv("OS").toLowerCase().contains("windows")) 
+			return false;
+		return true;
+	}
+	
+	
+	private Optional<String> providedMasterKey = Optional.empty();
+	
+	
+	protected Optional<String> getProvidedMasterKey() {
+		return this.providedMasterKey;
+	}
+	/**
+	 * 
+	 * 
+	 */
+	private void loadMasterKey() {
+
+		/** check if the flag "initializeEncryption" is true */
+		boolean isInitializeEnc = false;
+		
+		for ( String s:OdilonApplication.cmdArgs) {
+			String ns=s.toLowerCase().trim().replace(" ", "");
+			if ( ns.equals("-dinitializeencryption=true") || ns.equals("--initializeencryption=true")) {
+				isInitializeEnc = true;
+			}
+			if ( ns.startsWith("-dmasterkey=") || ns.equals("--masterkey=")) {
+				String k=s.trim();
+				String separator = s.trim().startsWith("-DmasterKey=") ? "-DmasterKey=" : "--masterKey=";
+				String arr[]=k.split(separator);
+				if (arr.length>1)
+					this.providedMasterKey = Optional.of(arr[1]); 
+			}
+		}
+		
+		
+		/** if the flag initialize is true, 
+		 * try to initialize or Rekey Encryption and exit */
+		if (isInitializeEnc) {
+			EncryptionInitializer init = new EncryptionInitializer(this, getProvidedMasterKey());
+			init.execute();
+			return;
+		}
+		
+		/** no encryption -> nothing to do */
+		if (!getServerSettings().isEncryptionEnabled())
+			return;
+			
+		
+		if (getServerSettings().getEncryptionKey()==null) {
+			StringBuilder str = new StringBuilder();
+			str.append("\n"+ServerConstant.SEPARATOR+"\n");
+			str.append("odilon.properties:\n");
+			str.append("encrypt=true but encryption.key is null\n");
+			str.append("The Encryption key is required to use encryption.\n");
+			str.append("It is generated when the encryption service is initialized.\n");
+			str.append("If the encryption service has not been initialized please run the script -> " + getEnableEncryptionScriptName()+"\n");
+			str.append(ServerConstant.SEPARATOR+"\n\n");
+			throw new IllegalArgumentException(str.toString());
+		}
+		
+		
+		/** if master key is supplied by odilon.properties */
+		
+		if (getServerSettings().getInternalMasterKeyEncryptor()!=null) {
+			startuplogger.info("MASTER KEY");
+			startuplogger.info("----------");
+			startuplogger.info("Master Key is overriden by variable 'encryption.masterKey' in 'odilon.properties'.");
+			startuplogger.info("Master Key from -> odilon.properties");
+			startuplogger.info(ServerConstant.SEPARATOR);
+			String keyHex=getServerSettings().getInternalMasterKeyEncryptor();
+			byte [] key  = ByteToString.hexStringToByte(keyHex);
+			this.odilonKeyEncryptorService.setMasterKey(key);
+			return;
+		}
+
+	
+		IODriver driver = createVFSIODriver();
+		OdilonServerInfo info = driver.getServerInfo();
+
+		if (info==null)
+			info=getServerSettings().getDefaultOdilonServerInfo();
+
+		/** if encryption but it was not initialized yet, exit */
+		if (!info.isEncryptionIntialized()) {
+			EncryptionInitializer init = new EncryptionInitializer(this, getProvidedMasterKey());
+			init.notInitializedError();
+			return;
+		}
+		
+		
+		try {
+			byte[] key = driver.getServerMasterKey();
+			this.odilonKeyEncryptorService.setMasterKey(key);
+		} catch (Exception e) {
+			logger.error(e.getClass().getName() + " | " + e.getMessage());
+			throw new InternalCriticalException(e, "error with encryption key");
+		}
+
+	}
 
 }
 

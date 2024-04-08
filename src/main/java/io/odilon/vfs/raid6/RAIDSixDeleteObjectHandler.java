@@ -99,8 +99,8 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler implements RAIDDe
 				for (Drive drive: getDriver().getDrivesAll()) 
 					drive.deleteObjectMetadata(bucket.getName(), objectName);
 				
-				getVFS().getObjectCacheService().remove(bucketName, meta.objectName);
-				getVFS().getFileCacheService().remove(bucketName, objectName, Optional.empty());
+				// getVFS().getObjectCacheService().rem ove(bucketName, meta.objectName);
+				// getVFS().getFileCacheService().rem ove(bucketName, objectName, Optional.empty());
 				
 				done = op.commit();
 				
@@ -214,10 +214,10 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler implements RAIDDe
 					// -------------
 					// cache
 					//
-					getVFS().getObjectCacheService().remove(bucketName, headMeta.objectName);
-					getVFS().getFileCacheService().remove(bucketName, objectName, Optional.empty());
-					for (int version=0; version < headVersion; version++) 
-						getVFS().getFileCacheService().remove(bucketName, objectName, Optional.of(version));
+					// getVFS().getObjectCacheService().rem ove(bucketName, headMeta.objectName);
+					// getVFS().getFileCacheService().rem ove(bucketName, objectName, Optional.empty());
+					//for (int version=0; version < headVersion; version++) 
+					//	getVFS().getFileCacheService().remo ve(bucketName, objectName, Optional.of(version));
 					
 					done=op.commit();
 					
