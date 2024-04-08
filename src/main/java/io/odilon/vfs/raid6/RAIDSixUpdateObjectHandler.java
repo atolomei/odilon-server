@@ -117,11 +117,6 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 					saveObjectMetadata(bucket, objectName, ei, srcFileName, contentType, afterHeadVersion, meta.creationDate);
 
 					
-					// cache
-					//
-					// getVFS().getObjectCacheService().rem ove(bucketName, objectName);
-					//getVFS().getFileCacheService().rem ove(bucketName, objectName, Optional.empty());
-					//getVFS().getFileCacheService().rem ove(bucketName, objectName, Optional.of(beforeHeadVersion));
 					
 					done = op.commit();
 				
@@ -190,11 +185,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 					backupMetadata(meta);
 					saveObjectMetadata(meta, isHead);
 					
-					// cache
-					//
-					//getVFS().getObjectCacheService().rem ove(meta.bucketName,meta.objectName);
 					done = op.commit();
-					
 						
 				} catch (Exception e) {
 						done=false;
@@ -290,12 +281,6 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 					if (!restoreVersionObjectMetadata(metaToRestore.bucketName, metaToRestore.objectName, metaToRestore.version))
 						throw new OdilonObjectNotFoundException(Optional.of(metaHeadToRemove.systemTags).orElse("previous versions deleted"));
 					
-					
-					// cache
-					//
-					// getVFS().getObjectCacheService().rem ove(bucketName, objectName);
-					//getVFS().getFileCacheService().rem ove(bucketName, objectName, Optional.empty());
-					//getVFS().getFileCacheService().rem ove(bucketName, objectName, Optional.of(beforeHeadVersion));
 					
 					done = op.commit();
 					
@@ -548,8 +533,6 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 		
 		Check.requireNonNullArgument(op, "op is null");
 		
-		//getVFS().getObjectCacheService().rem ove(op.getBucketName(), op.getObjectName());
-		
 		switch (op.getOp()) {
 					case UPDATE_OBJECT: 
 					{	rollbackJournalUpdate(op, recoveryMode);
@@ -764,9 +747,6 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 			ObjectMetadata meta = getDriver().getObjectMetadataReadDrive(op.getBucketName(), op.getObjectName()).getObjectMetadata(op.getBucketName(), op.getObjectName());
 			
 			if (meta!=null) {
-				//getVFS().getObjectCacheService().remo ve(meta.bucketName, meta.objectName);
-				getVFS().getFileCacheService().remove(meta.bucketName, meta.objectName, Optional.empty());
-				
 				restoreVersionObjectDataFile(meta, op.getVersion());
 				restoreVersionObjectMetadata(op.getBucketName(), op.getObjectName(),  op.getVersion());
 			}

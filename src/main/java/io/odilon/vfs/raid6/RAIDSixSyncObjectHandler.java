@@ -178,8 +178,6 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 		Check.requireNonNullArgument(op, "op is null");
 		Check.requireTrue(op.getOp()==VFSop.SYNC_OBJECT_NEW_DRIVE,VFSOperation.class.getName() + "can not be  ->  op: " + op.getOp().getName());
 		
-		// getVFS().getObjectCacheService().rem ove(op.getBucketName(), op.getObjectName());
-		
 		switch (op.getOp()) {
 					case SYNC_OBJECT_NEW_DRIVE: 
 					{	

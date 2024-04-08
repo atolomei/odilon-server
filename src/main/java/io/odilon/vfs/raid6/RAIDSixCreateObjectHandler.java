@@ -99,13 +99,6 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 					RAIDSixBlocks ei = saveObjectDataFile(bucketName, objectName, stream);
 					saveObjectMetadata(bucketName, objectName, ei, srcFileName, contentType, version);
 					
-					// cache 
-					//
-					// getVFS().getObjectCacheService().rem ove(bucketName, objectName);
-					
-					// getVFS().getFileCacheService().rem ove(bucketName, objectName, Optional.empty());
-					// getVFS().getFileCacheService().rem ove(bucketName, objectName, Optional.of(version));
-					
 					done = op.commit();
 					
 			
@@ -155,8 +148,6 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 		boolean done = false;
 				
 		try {
-			
-			//getVFS().getObjectCacheService().rem ove(bucketName, objectName);
 			
 			if (getVFS().getServerSettings().isStandByEnabled())
 				getVFS().getReplicationService().cancel(op);

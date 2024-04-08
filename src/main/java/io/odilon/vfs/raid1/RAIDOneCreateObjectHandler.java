@@ -102,7 +102,6 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 					saveObjectDataFile(bucketName, objectName, stream, srcFileName);
 					saveObjectMetadata(bucketName, objectName, srcFileName, contentType, version);
 					
-					//getVFS().getObjectCacheService().rem ove(bucketName, objectName);
 					done = op.commit();
 							
 				} catch (Exception e) {

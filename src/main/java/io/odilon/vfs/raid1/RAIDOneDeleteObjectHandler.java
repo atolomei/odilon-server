@@ -100,7 +100,6 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 				for (Drive drive: getDriver().getDrivesAll()) 
 					((SimpleDrive)drive).deleteObjectMetadata(bucketName, objectName);
 				
-				// getVFS().getObjectCacheService().rem ove(bucketName, meta.objectName);
 				done = op.commit();
 				
 			} catch (OdilonObjectNotFoundException e1) {

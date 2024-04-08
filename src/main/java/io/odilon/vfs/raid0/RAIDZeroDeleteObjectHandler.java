@@ -100,8 +100,6 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 				
 				drive.deleteObjectMetadata(bucketName, objectName);
 				
-				// getVFS().getObjectCacheService().rem ove(meta.bucketName, meta.objectName);
-				
 				done=op.commit();
 				
 			} catch (OdilonObjectNotFoundException e1) {
@@ -197,8 +195,6 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 					meta.lastModified = OffsetDateTime.now();
 		
 					getDriver().getWriteDrive(meta.bucketName, meta.objectName).saveObjectMetadata(meta);
-					
-					// getVFS().getObjectCacheService().rem ove(meta.bucketName, meta.objectName);
 					
 					done=op.commit();
 					
