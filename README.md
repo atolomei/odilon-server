@@ -12,7 +12,7 @@
 				<ul>
 				<li> Scalable Object Storage on commodity disks</li>
 				<li>Single binary, does not neet Database or other external service</li>
-				<li> Developed in Java (uses Spring Boot, OkHttp, Jackson, Caffeine, Metrics, among others) </li>
+				<li> Developed in Java (uses <a href="https://spring.io/projects/spring-boot">Spring Boot</a>, <a href="https://square.github.io/okhttp/">OkHttp</a>, <a href="https://github.com/FasterXML/jackson">Jackson</a>, <a href="https://github.com/ben-manes/caffeine">Caffeine</a>, <a href="https://metrics.dropwizard.io/4.2.0/">Metrics</a>, among others) </li>
 				<li> Runs on Linux and Windows</li>				
 				<li>Single dependency-free binary, does not neet Database or other external service</li>
 				<li> SDK Java 11+ for client applications</li >
@@ -74,7 +74,7 @@ Odilon will propagate each operation to the standby server. It will also run a r
 <p>
 <ul class="group-list>
 <li class="list-item"><b>Odilon is not S3 compatible</b><br/>
-Odilon API is way simpler than S3. The only thing it has in common with AWS S3 it that uses the bucket/object methafor to organize the object space.
+Odilon API is simpler than S3. The only thing it has in common with AWS S3 it that uses the bucket/object methafor to organize the object space.
 <br/>
 <br/>
 </li>
