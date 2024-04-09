@@ -16,6 +16,10 @@
  */
 package io.odilon.traffic;
 
+/**
+ * 
+ *  @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public class ODTrafficPass implements TrafficPass {
 	
 	

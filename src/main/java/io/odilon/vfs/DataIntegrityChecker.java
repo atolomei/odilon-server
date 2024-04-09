@@ -49,13 +49,13 @@ import io.odilon.vfs.model.VFSBucket;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
+ * <p>Daemon Thread that walks through all Objects and uses N Threads to check Object integrity in parallel.</p>
  * <p>Used by all RAID configuratiosn (RAID 0, RAID 1, RAID 6)
  * Called by the  {@link  io.odilon.scheduler.CronJobDataIntegrityCheckRequest} </p>
  *
  *@see {@link SchedulerService}
  *
  *@author atolomei@novamens.com (Alejandro Tolomei)
- *
  *
  */
 @Component

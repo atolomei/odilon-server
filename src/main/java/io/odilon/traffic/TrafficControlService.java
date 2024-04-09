@@ -25,6 +25,8 @@ import io.odilon.service.SystemService;
  * <p>the goal of this parameters is to prevent server capacity overload
  * default value is {@link ServerConstant.TRAFFIC_TOKENS_DEFAULT},
  * </p>
+ * 
+ *  @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public interface TrafficControlService extends SystemService {
 	public TrafficPass getPass();

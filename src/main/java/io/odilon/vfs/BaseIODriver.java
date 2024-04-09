@@ -74,8 +74,9 @@ import io.odilon.vfs.model.VirtualFileSystemService;
  *
  *</p>
  *
- *@see {@link RAIDZeroDriver} {@link RAIDOneDriver}
+ * @see {@link RAIDZeroDriver} {@link RAIDOneDriver}
  *
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public abstract class BaseIODriver implements IODriver, ApplicationContextAware {
 				

@@ -34,6 +34,12 @@ import io.odilon.model.ServerConstant;
 import io.odilon.model.ServiceStatus;
 import io.odilon.service.ServerSettings;
 
+
+/**
+ * 
+ * 
+ *  @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 @Service
 public class ODTrafficControlService extends BaseService implements TrafficControlService {
 			
@@ -56,7 +62,6 @@ public class ODTrafficControlService extends BaseService implements TrafficContr
 	
 	public ODTrafficControlService(ServerSettings serverSettings) {
 		this.serverSettings=serverSettings;
-		
 	}
 	
 	
