@@ -243,7 +243,6 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 						drive.saveObjectMetadata(metaDrive);							
 					}
 					
-					// getVFS().getObjectCacheService().rem ove(bucketName, objectName);
 					done=op.commit();
 					
 				} catch (Exception e) {

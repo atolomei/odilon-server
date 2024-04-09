@@ -241,7 +241,6 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 					}
 					finally {
 						getLockService().getBucketLock(meta.bucketName).readLock().unlock();
-					
 					}
 				}
 		} finally {
@@ -413,8 +412,6 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 	}
 	
 	
-	 
-	 
 	/**
 	 * copy metadata directory
 	 * 

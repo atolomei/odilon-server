@@ -48,7 +48,7 @@ import io.odilon.vfs.model.VFSop;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
- * 
+ *	<p>RAID 1. Update Handler</p> 
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
@@ -127,7 +127,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 							logger.error(e, ServerConstant.NOT_THROWN);
 						}
 
-						if ((!done) && (op!=null)) {
+						if (!done) {
 							try {
 								rollbackJournal(op, false);
 								
@@ -140,11 +140,8 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 							}
 						}
 						else {
-							/**
-							 TODO AT -> Sync by the moment. see how to make it Async
-							 */
-							if (op!=null)
-								cleanUpUpdate(bucket, objectName, beforeHeadVersion, afterHeadVersion);
+							/** TODO AT -> this is after commit, Sync by the moment. see how to make it Async */
+							cleanUpUpdate(op, bucket, objectName, beforeHeadVersion, afterHeadVersion);
 						}
 					} finally {
 						getLockService().getBucketLock(bucket.getName()).readLock().unlock();
@@ -244,13 +241,8 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 							}
 						}
 						else {
-							/** -------------------------
-							 TODO AT ->
-							 Sync by the moment
-							 see how to make it Async
-							------------------------ */
-							if(op!=null)
-								cleanUpRestoreVersion(bucket, objectName, beforeHeadVersion);
+							/** this is after commit, Sync by the moment see how to make it Async */
+							cleanUpRestoreVersion(op, bucket, objectName, beforeHeadVersion);
 						}
 					} finally {
 						getLockService().getBucketLock(bucket.getName()).readLock().unlock();
@@ -261,11 +253,8 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 		}
 	}
 		
-
-	
 	
 	/**
-	 * 
 	 * <p>This update does not generate a new Version of the ObjectMetadata. It maintains the same ObjectMetadata version.<br/>
 	 * The only way to version Object is when the Object Data is updated</p>
 	 * 
@@ -315,9 +304,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 					}
 					else {
 						/** -------------------------
-						 TODO AT ->
-						 Sync by the moment
-						 see how to make it Async
+						 TODO AT -> Sync by the moment  see how to make it Async
 						------------------------ */
 						cleanUpBackupMetadataDir(meta.bucketName, meta.objectName);
 					}
@@ -627,21 +614,24 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 	}
 	
 	
-	private void cleanUpRestoreVersion(VFSBucket bucket, String objectName, int versionDiscarded) {
+	
+	/**
+	 * 
+	 * 
+	 * @param op					can be null
+	 * @param bucket				not null
+	 * @param objectName			not null
+	 * @param versionDiscarded		if<0 do nothing  
+	 */
+	private void cleanUpRestoreVersion(VFSOperation op, VFSBucket bucket, String objectName, int versionDiscarded) {
+		
+		if ((op==null) || (versionDiscarded<0))
+			return;
 		
 		try {
-				if (versionDiscarded<0)
-					return;
-	
 				for (Drive drive: getDriver().getDrivesAll()) {
-					
-					File metadata = drive.getObjectMetadataVersionFile(bucket.getName(), objectName,  versionDiscarded);
-					if (metadata.exists())
-						FileUtils.deleteQuietly(metadata);
-
-					File data= ((SimpleDrive) drive).getObjectDataVersionFile(bucket.getName(), objectName,  versionDiscarded);
-					if (data.exists())
-						FileUtils.deleteQuietly(data);
+					FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(bucket.getName(), objectName,  versionDiscarded));
+					FileUtils.deleteQuietly(((SimpleDrive) drive).getObjectDataVersionFile(bucket.getName(), objectName,  versionDiscarded));
 				}
 		} catch (Exception e) {
 			logger.error(e, ServerConstant.NOT_THROWN);
@@ -672,8 +662,18 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 		}
 	}
 
-	
-	private void cleanUpUpdate(VFSBucket bucket, String objectName, int previousVersion, int currentVersion) {
+	/**
+	 * 
+	 * @param op 				can be null (do nothing)
+	 * @param bucket			not null
+	 * @param objectName		not null
+	 * @param previousVersion	>=0
+	 * @param currentVersion	> 0
+	 */
+	private void cleanUpUpdate(VFSOperation op, VFSBucket bucket, String objectName, int previousVersion, int currentVersion) {
+		
+		if (op==null)
+			return;
 		
 		try {
 		

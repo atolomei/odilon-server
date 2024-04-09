@@ -174,7 +174,6 @@ public class RAIDSixDriveSync implements Runnable {
 		this.done = new AtomicBoolean(true);
 	}
 	
-	
 	/**
 	 * 
 	 */
@@ -236,17 +235,10 @@ public class RAIDSixDriveSync implements Runnable {
 				
 				boolean done = false;
 				
-				
-				 
-				 
 				while (!done) {
-															
-					DataList<Item<ObjectMetadata>> data = getDriver().getVFS().listObjects(	bucket.getName(), 
-																							Optional.of(offset),
-																							Optional.ofNullable(pageSize),
-																							Optional.empty(),
-																							Optional.ofNullable(agentId)
-																						  ); 
+					
+					DataList<Item<ObjectMetadata>> data = getDriver().getVFS().listObjects(	bucket.getName(),Optional.of(offset),Optional.ofNullable(pageSize),Optional.empty(),Optional.ofNullable(agentId)); 
+					
 					if (agentId==null)
 						agentId = data.getAgentId();
 
