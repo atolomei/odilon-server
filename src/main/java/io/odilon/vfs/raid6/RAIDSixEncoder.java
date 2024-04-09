@@ -20,7 +20,7 @@ import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
- * 
+ * <p>RAID 6 Reed Solomon encoder</p> 
  * <p>Encodes {@link InputStream} into multiple block files in 
  * the File System using {@link https://en.wikipedia.org/wiki/Erasure_code}.</p>
  *  
@@ -62,6 +62,8 @@ public class RAIDSixEncoder {
      * <p>Used by {@link RAIDSixDrive}, can not be created directly.</p> 
      * */
 	protected RAIDSixEncoder(RAIDSixDriver driver, List<Drive> udrives) {
+		
+		Check.requireNonNull(driver);
 		
 		this.driver = driver;
 		this.zDrives = (udrives!=null) ? udrives : driver.getDrivesAll();

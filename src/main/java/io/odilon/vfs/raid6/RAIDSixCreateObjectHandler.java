@@ -43,7 +43,7 @@ import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VFSop;
 
 /**
- * <b>RAID 6</b> 
+ * <b>RAID 6 Object creation</b> 
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */

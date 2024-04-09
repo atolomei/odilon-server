@@ -42,7 +42,7 @@ import io.odilon.vfs.model.VFSop;
 
 
 /**
- * 
+ * <p>RAID 6. Delete Object handler</p>
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @ThreadSafe

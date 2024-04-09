@@ -28,8 +28,13 @@ import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
- * 
+ * <p>Base class for all RAID 6 hadler </p>
  * @author atolomei@novamens.com (Alejandro Tolomei)
+ * 
+ * @see {@link RAIDSixCreateObjectHandler}
+ * @see {@link RAIDSixUpdateObjectHandler}
+ * @see {@link RAIDSixDeleteObjectHandler}
+ * 
  */
 
 @ThreadSafe

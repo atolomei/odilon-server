@@ -49,6 +49,7 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
  * 
+ * <p>RAID 6 Update Object handler</p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
@@ -62,7 +63,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 	* <p>Instances of this class are used
 	* internally by {@link RAIDSixDriver}</p>
 	* 
-	* @param driver
+	* @param driver can not be null
 	*/
 	protected RAIDSixUpdateObjectHandler(RAIDSixDriver driver) {
 	super(driver);
@@ -70,9 +71,9 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 	
 	/**
 	 * 
-	 * @param bucket
-	 * @param objectName
-	 * @param stream
+	 * @param bucket			can not be null
+	 * @param objectName		can not be null
+	 * @param stream			can not be null
 	 * @param srcFileName
 	 * @param contentType
 	 */
@@ -80,6 +81,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 	
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
+		Check.requireNonNullArgument(stream, "stream is null");
 
 		String bucketName = bucket.getName();
 		VFSOperation op = null;
@@ -94,9 +96,9 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 		
 		try {
 		
+				getLockService().getBucketLock(bucketName).readLock().lock();
+			
 				try (stream) {
-					
-					getLockService().getBucketLock(bucketName).readLock().lock();
 		
 					if (!getDriver().getObjectMetadataReadDrive(bucketName, objectName).existsObjectMetadata(bucketName, objectName))
 						throw new IllegalArgumentException(" object not found -> b:" + bucketName + " o:"+ objectName);
@@ -105,7 +107,6 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 					beforeHeadVersion = meta.version;							
 																
 					op = getJournalService().updateObject(bucketName, objectName, beforeHeadVersion);
-					
 					
 					/** backup current head version */
 					backupVersionObjectDataFile(meta, meta.version);
@@ -161,7 +162,8 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 	
 	/**
 	 * 
-	 * @param meta
+	 * @param meta can not be null
+	 * 
 	 */
 	 public void updateObjectMetadata(ObjectMetadata meta, boolean isHead) {
 
@@ -216,11 +218,15 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 	 
 	/**
 	 * 
-	 * @param bucket
-	 * @param objectName
-	 * @return
+	 * @param bucket 		can not be null
+	 * @param objectName	can not be null
+	 * 
+	 * @return 				ObjectMetadata of the restored object
+	 * 
 	 */
-	public ObjectMetadata restorePreviousVersion(VFSBucket bucket, String objectName) {
+	 
+	 
+	 protected ObjectMetadata restorePreviousVersion(VFSBucket bucket, String objectName) {
 		
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		String bucketName = bucket.getName();
@@ -284,7 +290,8 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 					
 					done = op.commit();
 					
-					return null;
+					return metaToRestore;
+					
 					
 				} catch (Exception e) {
 					done=false;

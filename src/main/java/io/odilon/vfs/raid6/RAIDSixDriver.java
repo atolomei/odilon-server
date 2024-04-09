@@ -66,6 +66,7 @@ import io.odilon.vfs.model.VFSop;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
+ * <p>RAID 6. Driver</p>
  * <p>The coding convention for RS blocks is:
  * <ul>
  * <li><b>objectName.[chunk#].[block#]</b></li>
@@ -743,6 +744,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 	}
 
 	/**
+	 * 
 	 * 
 	 */
 	@Override

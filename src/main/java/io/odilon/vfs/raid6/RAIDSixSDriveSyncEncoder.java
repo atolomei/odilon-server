@@ -39,6 +39,11 @@ public class RAIDSixSDriveSyncEncoder extends RAIDSixEncoder {
 	@SuppressWarnings("unused")	
 	static private Logger logger = Logger.getLogger(RAIDSixSDriveSyncEncoder.class.getName());
 
+	
+	/**
+	 * 
+	 * @param driver can not be null
+	 */
 	protected RAIDSixSDriveSyncEncoder(RAIDSixDriver driver) {
     	super(driver);
     }

@@ -44,6 +44,7 @@ import io.odilon.vfs.model.VFSBucket;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
+ * <p>RAID 6. Drive setup for new drives</p>
  * <p>Set up a new <b>Drive</b> added to the odilon.properties file</p>
  * <p>For RAID 6 this object starts an Async process {@link RAIDSixDriveSync} that runs in background</p>
  * 

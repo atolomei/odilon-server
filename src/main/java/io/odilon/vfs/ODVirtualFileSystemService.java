@@ -90,11 +90,11 @@ import io.odilon.vfs.raid6.RAIDSixDriver;
 				
 /**
  * <p>
- * Virtual File System manages the underlying layer that may be RAID 0, RAID 1, RAID 6/Erasure Coding</p> 
+ * Virtual File System (){@link VirtualFileSystemService}) manages the underlying layer that may be RAID 0, RAID 1, RAID 6 / Erasure Coding</p> 
  * <p>Buckets are maintained in a RAM cache by the {@link VirtualFileSystemService}
- * All drives managed by the  must have the same Folders (ie. each VFolder has a real folder on each Drive) 
- * </p>
- * <p>Stopped ->  Starting -> Running -> Stopping</p>
+ * All {@link Drive} must have all buckets</p>
+ * 
+ * <p>Status: Stopped ->  Starting -> Running -> Stopping</p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
@@ -218,7 +218,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 										FileCacheService fileCacheService,
 										ApplicationEventPublisher applicationEventPublisher
 										
-								) {
+									) {
 		
 		this.fileCacheService=fileCacheService;
 		this.objectCacheService=objectCacheService;
@@ -369,9 +369,8 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 		Check.requireTrue(this.buckets.containsKey(bucketName), "bucket does not exist or is not Accesible | b: " + bucketName);
 		return isEmpty(buckets.get(bucketName));
 	}
+	
 	/**
-	 * 
-	 * 
 	 * 
 	 */
 	@Override
@@ -382,8 +381,6 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	}
 	/**
 	 * 
-	 * 
-	 * 
 	 */
 	@Override
 	public void putObject(VFSBucket bucket, String objectName, File file) {
@@ -393,8 +390,6 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	}
 
 	/**
-	 * 
-	 * 
 	 * 
 	 */
 	@Override
@@ -467,11 +462,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	 */
 	@Override																		
 	public DataList<Item<ObjectMetadata>> listObjects(String bucketName) {
-	return 	listObjects(bucketName,
-			Optional.empty(),
-			Optional.empty(),
-			Optional.empty(),
-			Optional.empty());
+	return 	listObjects(bucketName,Optional.empty(),Optional.empty(),Optional.empty(),Optional.empty());
 	}
 	
 	/**

@@ -214,7 +214,8 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 				
 				done = op.commit();
 				
-				return null;
+				return metaToRestore;
+				
 				
 			} catch (OdilonObjectNotFoundException e1) {
 				done=false;
@@ -679,8 +680,6 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 		}
 	}
 
-	
-
 	/**
 	private void saveOddbjectMetadata(ObjectMetadata meta) {
 		Check.requireNonNullArgument(meta, "meta is null");
@@ -692,11 +691,9 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 	 * @param op can be null 
 	 * 
 
-	private void cleanUeepRestoreVersion(VFSOperation op, VFSBucket bucket, String objectName, int versionDiscarded) {
-		
+	private void cleanUpRestoreVersion(VFSOperation op, VFSBucket bucket, String objectName, int versionDiscarded) {
 		if (op==null)
 			return;
-		
 		try {
 				if (versionDiscarded<0)
 					return;

@@ -36,18 +36,22 @@ import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ObjectStatus;
 import io.odilon.model.ServerConstant;
+import io.odilon.util.Check;
 import io.odilon.vfs.model.BucketIterator;
 import io.odilon.vfs.model.Drive;
 
 
 /**
- * <p><b>RAID 6</b> <br/>
+ * <p><b>RAID 6 Bucket iterator</b> <br/>
  * Data is partitioned into blocks encoded using RS Erasure code and stored on all drives.<br/> 
  * The encoding convention for blocks in File System is detailed in {@link RAIDSixDriver}</p>
  *
  * <p>This {@link BucketIterator} uses a randomly selected {@link Drive} to iterate and 
  * return {@link ObjectMetata}instances. All Drives contain all {@link ObjectMetadata} in RAID 6.</p>
  * 
+ *
+
+ *
  * @author atolomei@novamens.com (Alejandro Tolomei)
  * 
  */
@@ -84,9 +88,18 @@ public class RAIDSixIterator extends BucketIterator implements Closeable {
 	@JsonIgnore
 	RAIDSixDriver driver;
 				
-	
+
+	/**
+	 * 
+	 * @param driver		can not be null
+	 * @param bucketName  	can not be null
+	 * @param opOffset
+	 * @param opPrefix
+	 */
 	public RAIDSixIterator(RAIDSixDriver driver, String bucketName, Optional<Long> opOffset,  Optional<String> opPrefix) {
 		super(bucketName);
+		
+		Check.requireNonNull(driver);
 		
 		opPrefix.ifPresent( x -> this.prefix=x.toLowerCase().trim());
 		opOffset.ifPresent( x -> setOffset(x));

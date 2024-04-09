@@ -212,7 +212,8 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 					
 					done = op.commit();
 					
-					return null;
+					return metaToRestore;
+					
 					
 				} catch (OdilonObjectNotFoundException e1) {
 					done=false;

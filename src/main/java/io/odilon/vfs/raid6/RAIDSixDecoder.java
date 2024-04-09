@@ -40,7 +40,9 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
  * 
- * <p>Reed Solomon erasure coding decoder for {@link RAIDSixDriver}</p>
+ * <p>Reed Solomon erasure coding decoder for {@link RAIDSixDriver}.<br/> 
+ * Files decoded are stored in {@link FileCacheService}. <br/>
+ * If the server uses encryption, files in cache are encrypted</p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */

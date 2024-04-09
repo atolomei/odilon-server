@@ -27,8 +27,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import io.odilon.log.Logger;
+import io.odilon.util.Check;
 
 /**
+*  <p>Bucket iterator</p>
 *  
 * @author atolomei@novamens.com (Alejandro Tolomei)
 */
@@ -53,10 +55,12 @@ public abstract class BucketIterator implements Iterator<Path>  {
 	private Long offset = Long.valueOf(0);
 	
 	/**
-	 * @param bucketName
+	 * @param bucketName can not be null
 	 */
 	public BucketIterator(String bucketName) {
+		Check.requireNonNullArgument(bucketName, "bucketName is null");
 		this.bucketName=bucketName;
+		
 	}
 	
 	public String getAgentId() {

@@ -43,6 +43,7 @@ import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VFSop;
 
 /**
+ * <p>RAID 6. Sync Object. This class regenerates the object's chunks when a new disk is added</p> 
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
@@ -54,13 +55,17 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 	@JsonIgnore
 	private List<Drive> drives;
 	
+	/**
+	 * 
+	 * @param driver can not be null
+	 */
 	protected RAIDSixSyncObjectHandler(RAIDSixDriver driver) {
 		super(driver);
 	}
 	
 	/**
 	 * 
-	 * @param meta
+	 * @param meta can not be null
 	 */
 	public void sync(ObjectMetadata meta) {
 							
@@ -274,6 +279,7 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 	private void backupMetadata(ObjectMetadata meta) {
 		try {
 			for (Drive drive: getDriver().getDrivesEnabled()) {
+				
 				File src	= new File(drive.getObjectMetadataDirPath(meta.bucketName, meta.objectName));
 				File dest	= new File(drive.getBucketWorkDirPath(meta.bucketName) + File.separator + meta.objectName);
 				
@@ -288,8 +294,10 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 	private void restoreMetadata(String bucketName, String objectName) {
 		try {
 			for (Drive drive: getDriver().getDrivesEnabled()) {
+				
 				File dest = new File(drive.getObjectMetadataDirPath(bucketName, objectName));
 				File src  = new File(drive.getBucketWorkDirPath(bucketName) + File.separator + objectName);
+				
 				if (src.exists())
 					FileUtils.copyDirectory(src, dest);
 				else
