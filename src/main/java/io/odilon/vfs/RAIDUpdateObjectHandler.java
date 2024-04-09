@@ -8,6 +8,7 @@ import io.odilon.vfs.model.VFSOperation;
 
 /**
 *  
+*  <p>RAID 6 handler</pZ
 * @author atolomei@novamens.com (Alejandro Tolomei)
 */
 public interface RAIDUpdateObjectHandler extends  RAIDHandler {

@@ -51,7 +51,6 @@ public interface ObjectStorageService extends SystemService {
 	/** Object version - delete (normally to free disk) */
 	public void deleteBucketAllPreviousVersions(String bucketName);
 	
-	
 	/** -------------------
 	* Object
 	* -------------------*/
@@ -84,8 +83,6 @@ public interface ObjectStorageService extends SystemService {
 	public boolean existsObject(String bucketName, String objectName);
 	public void deleteObject(String bucketName, String objectName);
 	
-	
-	
 	/** -------------------
 	* System
 	* -------------------*/
@@ -102,9 +99,5 @@ public interface ObjectStorageService extends SystemService {
 	public boolean isEncrypt();
 	public SystemInfo getSystemInfo();
 	public boolean hasVersions(String bucketName, String objectName);
-
-	
-	
-	
 	
 }
