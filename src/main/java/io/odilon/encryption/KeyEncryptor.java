@@ -19,6 +19,26 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 /**
+ * 
+ * <p>Service that encrypts/decrypts Object's encryption key (if encryption is enabled in odilon.properties)</p>
+
+ * <p>
+ * Every object is encrypted with its own key. The key in turn is encrypted by
+ * a KeyEncryptor. One of these two is used: 
+ * </p>
+ * 
+ * <br/>
+ * <ul>
+ * <li>{@link OdilonKeyEncryptor} is Odilon's key encryption service</li>
+ * 
+ * <br/>
+ * <li>{@link VaultKeyEncryptor} is the key encryption service based in Vault KMS, it is used if Vault is enabled in odilon.properties.</li>
+ * </ul>
+ * 
+ * @see {@link MasterKeyService}
+ * @see {@link EncryptionService}
+ * 
+ * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @JsonTypeInfo(use=JsonTypeInfo.Id.CLASS, include=JsonTypeInfo.As.PROPERTY, property="@class")

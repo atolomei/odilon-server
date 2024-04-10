@@ -1036,7 +1036,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 						}
 					}
 					
-					getVFS().getObjectCacheService().remove(bucketName, objectName);
+					getVFS().getObjectMetadataCacheService().remove(bucketName, objectName);
 				
 				}
 				catch (Exception e) {
@@ -1059,20 +1059,20 @@ public class RAIDOneDriver extends BaseIODriver  {
 	protected ObjectMetadata getObjectMetadataInternal(String bucketName, String objectName, boolean addToCacheIfmiss) {
 		
 		
-		if ((!getVFS().getServerSettings().isUseObjectCache()) || (getVFS().getObjectCacheService().size() >= MAX_CACHE_SIZE))  {
+		if ((!getVFS().getServerSettings().isUseObjectCache()) || (getVFS().getObjectMetadataCacheService().size() >= MAX_CACHE_SIZE))  {
 			return getReadDrive(bucketName, objectName).getObjectMetadata(bucketName, objectName);
 		}
 		
-		if (getVFS().getObjectCacheService().containsKey(bucketName, objectName)) {
+		if (getVFS().getObjectMetadataCacheService().containsKey(bucketName, objectName)) {
 			getVFS().getSystemMonitorService().getCacheObjectHitCounter().inc();
-			return getVFS().getObjectCacheService().get(bucketName, objectName);
+			return getVFS().getObjectMetadataCacheService().get(bucketName, objectName);
 		}
 		
 		ObjectMetadata meta = getReadDrive(bucketName, objectName).getObjectMetadata(bucketName, objectName);
 		getVFS().getSystemMonitorService().getCacheObjectMissCounter().inc();
 		
 		if (addToCacheIfmiss) {
-			getVFS().getObjectCacheService().put(bucketName, objectName, meta);
+			getVFS().getObjectMetadataCacheService().put(bucketName, objectName, meta);
 		}
 		
 		return meta;

@@ -48,7 +48,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.odilon.OdilonApplication;
 import io.odilon.cache.FileCacheService;
-import io.odilon.cache.ObjectCacheService;
+import io.odilon.cache.ObjectMetadataCacheService;
 import io.odilon.encryption.EncryptionService;
 import io.odilon.encryption.MasterKeyService;
 import io.odilon.encryption.OdilonKeyEncryptorService;
@@ -123,7 +123,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 
 	@JsonIgnore
 	@Autowired
-	private final ObjectCacheService objectCacheService;
+	private final ObjectMetadataCacheService objectCacheService;
 	
 	@JsonIgnore
 	@Autowired
@@ -212,7 +212,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 										SchedulerService schedulerService,
 										BucketIteratorService walkerService,
 										ReplicationService replicationService,
-										ObjectCacheService objectCacheService,
+										ObjectMetadataCacheService objectCacheService,
 										MasterKeyService masterKeyEncryptorService,
 										OdilonKeyEncryptorService odilonKeyEncryptorService,
 										FileCacheService fileCacheService,
@@ -613,7 +613,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	
 	
 	@Override
-	public ObjectCacheService getObjectCacheService() {
+	public ObjectMetadataCacheService getObjectMetadataCacheService() {
 		return this.objectCacheService;
 	}
 	

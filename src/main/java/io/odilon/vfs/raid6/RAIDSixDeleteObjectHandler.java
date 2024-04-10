@@ -208,16 +208,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler implements RAIDDe
 						drive.saveObjectMetadata(metaDrive);							
 					}
 					
-					// -------------
-					// cache
-					//
-					// getVFS().getObjectCacheService().rem ove(bucketName, headMeta.objectName);
-					// getVFS().getFileCacheService().rem ove(bucketName, objectName, Optional.empty());
-					//for (int version=0; version < headVersion; version++) 
-					//	getVFS().getFileCacheService().remo ve(bucketName, objectName, Optional.of(version));
-					
 					done=op.commit();
-					
 				
 				} catch (OdilonObjectNotFoundException e1) {
 					done=false;

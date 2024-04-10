@@ -830,19 +830,19 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 
 	protected ObjectMetadata getObjectMetadataInternal(String bucketName, String objectName, boolean addToCacheIfmiss) {
 
-		if ((!getVFS().getServerSettings().isUseObjectCache()) || (getVFS().getObjectCacheService().size() >= MAX_CACHE_SIZE)) 
+		if ((!getVFS().getServerSettings().isUseObjectCache()) || (getVFS().getObjectMetadataCacheService().size() >= MAX_CACHE_SIZE)) 
 			return getReadDrive(bucketName, objectName).getObjectMetadata(bucketName, objectName);
 
-		if (getVFS().getObjectCacheService().containsKey(bucketName, objectName)) {
+		if (getVFS().getObjectMetadataCacheService().containsKey(bucketName, objectName)) {
 			getVFS().getSystemMonitorService().getCacheObjectHitCounter().inc();
-			return getVFS().getObjectCacheService().get(bucketName, objectName);
+			return getVFS().getObjectMetadataCacheService().get(bucketName, objectName);
 		}
 
 		ObjectMetadata meta = getReadDrive(bucketName, objectName).getObjectMetadata(bucketName, objectName);
 		getVFS().getSystemMonitorService().getCacheObjectMissCounter().inc();
 
 		if (addToCacheIfmiss) {
-			getVFS().getObjectCacheService().put(bucketName, objectName, meta);
+			getVFS().getObjectMetadataCacheService().put(bucketName, objectName, meta);
 		}
 		return meta;
 	}
@@ -1300,7 +1300,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 
 			if (originalSha256 == null) {
 				metadata.integrityCheck = now;
-				getVFS().getObjectCacheService().remove(metadata.bucketName, metadata.objectName);
+				getVFS().getObjectMetadataCacheService().remove(metadata.bucketName, metadata.objectName);
 				readDrive.saveObjectMetadata(metadata);
 				return true;
 			}

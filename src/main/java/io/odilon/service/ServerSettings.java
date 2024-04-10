@@ -269,27 +269,30 @@ public class ServerSettings implements APIObject {
 	
 	// OBJECT CACHES --------------------------------------
 	
-	@Value("${useObjectCache:true}")
+	@Value("${objectMetadataCache.enabled:true}")
 	protected boolean useObjectCache;
 
-
-	@Value("${objectCacheCapacity:500000}")
+	@Value("${objectMetadataCache.capacity:2000000}")
 	protected int objectCacheCapacity;
 
+	@Value("${objectMetadataCache.expireDays:15}")
+	protected long objectExpireDays;
 		
+
 	
-	// FILE CACHE (USED BY RAID 6) -----------------------.
 	
-	@Value("${fileCacheCapacity:40000}")
+	// FILE CACHE (USED BY RAID 6) -----------------------
+	
+	@Value("${fileCache.capacity:100000}")
 	protected long fileCacheCapacity;
 
-	@Value("${fileCacheDurationDays:7}")
-	protected int fileCacheDurationDays;
+	@Value("${fileCache.durationDays:15}")
+	protected int fileCacheDurationDays;	
 	
-	
-	@Value("${fileCacheIntialCapacity:1000}")
+	@Value("${fileCache.initialCapacity:10000}")
 	protected int fileCacheIntialCapacity;
 	
+	// --------------------------------------------------
 
 	@Value("${retryFailedSeconds:20}")
 	protected long retryFailedSeconds;
@@ -392,9 +395,14 @@ public class ServerSettings implements APIObject {
 		
 		str.append(", \"trafficTokens\":" +String.valueOf(tokens) + "");
 		str.append(", \"versionControl\":\"" + (this.versioncontrol ? "true" : "false")+"\"");
-						
-		str.append("\"fileCacheCapacity\":\"" + String.valueOf(fileCacheCapacity) + "\"");
-		str.append("\"fileCacheDurationDays\":\"" + String.valueOf(fileCacheDurationDays) + "\"");
+
+		
+		str.append("\"objectMetadataCache.capacity\":\"" + String.valueOf(objectCacheCapacity) + "\"");
+		str.append("\"objectMetadataCache.durationDays\":\"" + String.valueOf(objectExpireDays) + "\"");
+
+		
+		str.append("\"fileCache.capacity\":\"" + String.valueOf(fileCacheCapacity) + "\"");
+		str.append("\"fileCache.durationDays\":\"" + String.valueOf(fileCacheDurationDays) + "\"");
 		
 		return str.toString();
 	}
@@ -956,6 +964,12 @@ public class ServerSettings implements APIObject {
 	public int getObjectCacheCapacity() {
 		return objectCacheCapacity;
 	}
+
+	
+	public @NonNegative long getObjectCacheExpireDays() {
+		return objectExpireDays;
+	}
+	
 	
 	public long getFileCacheCapacity() {
 		return fileCacheCapacity;
@@ -987,5 +1001,7 @@ public class ServerSettings implements APIObject {
 		logger.error(ServerConstant.SEPARATOR);
 		System.exit(1);
 	}
+
+	
 
 }

@@ -47,13 +47,37 @@ import io.odilon.service.ServerSettings;
 
 
 /**
+<p>The variable <b>encryption.key</b> in <b>odilon.properties</b> contain a AES key used to decrypt the
+ * Server Master Key on server's startup. </p>
  * 
- * 
- * <p>Master Key
- * 
- * Key -> Local, Vault
- * Data
- * </p>
+ * <p>The Master Key is unique for each server and can not be changed.</p>
+ *  
+ * <p>It used by the {@link EncryptionService} to encrypt/decrypt files. Strictly speaking the
+ * Master Key is used by the EncryptionService to encrypt/decrypt the key used to encrypt/decrypt every 
+ * Object. Each Object has its own unique encryption key</p>
+ *
+ *<p>The procedure is:</p>
+ *
+ * <b>SERVER STARTUP</b>
+ * <ul>
+ * <li>Odilon decrypts the MasterKEy using the key provided in variable encryption.key in odilon.properties</li>
+ * </ul>
+ * <br/>
+ * <b>PUT OBJECT</b>
+ * <ul>
+ * <li>Odilon generates a new key for every Object (objKey)</li>
+ * <li>The Object is encrypted using AES with key objKey</li>
+ * <li>The obkKey is encrypted by {@link OdilonKeyEncryptorService} using AES with the server Master Key or by the KMS if enabled, and saved in disk as a prefix of the Object</li>
+ * </ul>
+ * <br/>
+ * <b>GET OBJECT</b>
+ * </ul>
+ * <li>Odilon reads the stored Object and extracts the objKey</li>
+ * <li>objKey is decrypted using MasterKey or KMS if enabled</li>
+ * <li>Object is decrypted using objKey</li>
+ * </ul>
+ *<br/>
+ *<br/>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */

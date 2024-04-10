@@ -909,16 +909,16 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 			return getObjectMetadataReadDrive(bucketName, objectName).getObjectMetadata(bucketName, objectName);
 		}
 		
-		if (getVFS().getObjectCacheService().containsKey(bucketName, objectName)) {
+		if (getVFS().getObjectMetadataCacheService().containsKey(bucketName, objectName)) {
 			getVFS().getSystemMonitorService().getCacheObjectHitCounter().inc();
-			return getVFS().getObjectCacheService().get(bucketName, objectName);
+			return getVFS().getObjectMetadataCacheService().get(bucketName, objectName);
 		}
 		
 		getVFS().getSystemMonitorService().getCacheObjectMissCounter().inc();
 		ObjectMetadata meta = getObjectMetadataReadDrive(bucketName, objectName).getObjectMetadata(bucketName, objectName);
 		
 		if (addToCacheIfmiss) 
-			getVFS().getObjectCacheService().put(bucketName, objectName, meta);
+			getVFS().getObjectMetadataCacheService().put(bucketName, objectName, meta);
 		
 		return meta;
  	}

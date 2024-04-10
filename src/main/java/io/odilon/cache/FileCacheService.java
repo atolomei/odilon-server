@@ -343,8 +343,10 @@ public class FileCacheService extends BaseService implements ApplicationListener
 		
 		if (event.getVFSOperation().getOp()==VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS) {
 			remove(event.getVFSOperation().getBucketName(), event.getVFSOperation().getObjectName(), Optional.empty());
-			for (int version=0; version < event.getVFSOperation().getVersion(); version++) 
-				remove(event.getVFSOperation().getBucketName(), event.getVFSOperation().getObjectName(), Optional.of(version));
+			if (getVFS().getServerSettings().isVersionControl()) { 
+				for (int version=0; version < event.getVFSOperation().getVersion(); version++) 
+					remove(event.getVFSOperation().getBucketName(), event.getVFSOperation().getObjectName(), Optional.of(version));
+			}
 			return;
 		}
 		

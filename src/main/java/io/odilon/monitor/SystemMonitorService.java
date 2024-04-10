@@ -30,7 +30,7 @@ import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import io.odilon.cache.FileCacheService;
-import io.odilon.cache.ObjectCacheService;
+import io.odilon.cache.ObjectMetadataCacheService;
 import io.odilon.log.Logger;
 import io.odilon.model.BaseService;
 import io.odilon.model.MetricsValues;
@@ -145,7 +145,7 @@ public class SystemMonitorService extends BaseService implements SystemService {
 	
 	@JsonIgnore
 	@Autowired
-	private final ObjectCacheService objectCacheService;
+	private final ObjectMetadataCacheService objectCacheService;
 
 	@JsonIgnore
 	@Autowired
@@ -157,7 +157,7 @@ public class SystemMonitorService extends BaseService implements SystemService {
 	}
 
 	
-	public SystemMonitorService(ServerSettings serverSettings, ObjectCacheService cacheService, FileCacheService fileCacheService) {
+	public SystemMonitorService(ServerSettings serverSettings, ObjectMetadataCacheService cacheService, FileCacheService fileCacheService) {
 		this.objectCacheService=cacheService;
 		this.serverSettings=serverSettings;
 		this.fileCacheService=fileCacheService;

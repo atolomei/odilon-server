@@ -38,26 +38,25 @@ import io.odilon.service.ServerSettings;
 import io.odilon.vfs.model.VFSop;
 
 /**
- * <p>{@link ObjectMetadata} cache.</p> 
+ * <p>{@link ObjectMetadata} cache. It only stores ObjectMetadata head version</p> 
  * <p>It Uses {@link Caffeine} to keep references to entries in memory.</p> 
  *  
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @Service
-public class ObjectCacheService extends BaseService implements ApplicationListener<CacheEvent>  {
+public class ObjectMetadataCacheService extends BaseService implements ApplicationListener<CacheEvent>  {
 				
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
-	static private Logger logger = Logger.getLogger(ObjectCacheService.class.getName());
-
+	static private Logger logger = Logger.getLogger(ObjectMetadataCacheService.class.getName());
 
 	static final int INITIAL_CAPACITY = 10000;
-	static final int MAX_SIZE = 500000;
-	static final int TIMEOUT_DAYS = 7;
 
 	
 	@JsonIgnore
 	@Autowired
 	private final ServerSettings serverSettings;
+
+
 	
 	@JsonIgnore
 	private Cache<String, ObjectMetadata> cache;
@@ -65,7 +64,9 @@ public class ObjectCacheService extends BaseService implements ApplicationListen
 
 	
 	
-	public ObjectCacheService(ServerSettings serverSettings) {
+	
+	
+	public ObjectMetadataCacheService(ServerSettings serverSettings) {
 		this.serverSettings=serverSettings;
 	}
 	
@@ -89,6 +90,10 @@ public class ObjectCacheService extends BaseService implements ApplicationListen
     	getCache().invalidate(getKey(bucketName, objectName));
     }
     
+    
+    /**
+     * <p>fired by {@link JournalService} on commit or cance</p>
+     */
     @Override
 	public void onApplicationEvent(CacheEvent event) {
 		
@@ -136,15 +141,16 @@ public class ObjectCacheService extends BaseService implements ApplicationListen
 	protected void onInitialize() {
 		try {
 			setStatus(ServiceStatus.STARTING);
+			
 			this.cache = Caffeine.newBuilder()
 						.initialCapacity(INITIAL_CAPACITY)    
-						.maximumSize(MAX_SIZE)
-						.expireAfterWrite(TIMEOUT_DAYS, TimeUnit.DAYS)
+						.maximumSize(serverSettings.getObjectCacheCapacity())
+						.expireAfterWrite(serverSettings.getObjectCacheExpireDays(), TimeUnit.DAYS)
 						.build();
 			
 		} finally {
 			setStatus(ServiceStatus.RUNNING);
-	 		startuplogger.debug("Started -> " + ObjectCacheService.class.getSimpleName());
+	 		startuplogger.debug("Started -> " + ObjectMetadataCacheService.class.getSimpleName());
 		}
 	}
 	

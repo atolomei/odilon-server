@@ -31,7 +31,7 @@ import java.util.Optional;
 import org.springframework.context.ApplicationContext;
 
 import io.odilon.cache.FileCacheService;
-import io.odilon.cache.ObjectCacheService;
+import io.odilon.cache.ObjectMetadataCacheService;
 import io.odilon.encryption.EncryptionService;
 import io.odilon.encryption.MasterKeyService;
 import io.odilon.model.ObjectMetadata;
@@ -209,7 +209,7 @@ public interface VirtualFileSystemService extends SystemService {
 	 */
 
 	public ReplicationService getReplicationService();
-	public ObjectCacheService getObjectCacheService();
+	public ObjectMetadataCacheService getObjectMetadataCacheService();
 	public FileCacheService getFileCacheService();
 	public SystemMonitorService getSystemMonitorService();
 	public LockService getLockService();
