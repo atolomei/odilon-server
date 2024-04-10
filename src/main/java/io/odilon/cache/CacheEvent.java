@@ -30,9 +30,9 @@ import io.odilon.vfs.model.VFSOperation;
 
 
 /**
- * <p>These events are fired by the {@link JournalService} on commit or cancel
+ * <p>Events fired by the {@link JournalService} on {@code commit} or {@code cancel}
  * and listened by the {@link FileCacheService} or {@link ObjectMetadataCacheService}
- * to invalidate caches.</p> 
+ * to invalidate ObjectMetadata cache (RAID 0,1,6) and File cache (RAID 6).</p> 
  * 
  */
 public class CacheEvent extends ApplicationEvent {

@@ -47,7 +47,8 @@ import io.odilon.service.ServerSettings;
 
 
 /**
-<p>The variable <b>encryption.key</b> in <b>odilon.properties</b> contain a AES key used to decrypt the
+ * <p>Object Encryption Service</p>
+ * <p>The variable <b>encryption.key</b> in <b>odilon.properties</b> contain a AES key used to decrypt the
  * Server Master Key on server's startup. </p>
  * 
  * <p>The Master Key is unique for each server and can not be changed.</p>

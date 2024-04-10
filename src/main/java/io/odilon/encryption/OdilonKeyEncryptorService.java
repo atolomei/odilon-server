@@ -106,8 +106,7 @@ public class OdilonKeyEncryptorService extends BaseService implements KeyEncrypt
         try {
             return processBytes(key, Cipher.ENCRYPT_MODE, masterKey);
         } catch (Exception e){
-        	logger.error(e);
-            throw new InternalCriticalException(e);
+        	throw new InternalCriticalException(e, "encryptKey");
         }
     }
 
@@ -119,8 +118,7 @@ public class OdilonKeyEncryptorService extends BaseService implements KeyEncrypt
         try {
             return processBytes(key,Cipher.DECRYPT_MODE, masterKey);
         } catch (Exception e){
-        	logger.error(e);
-        	throw new InternalCriticalException(e);
+        	throw new InternalCriticalException(e, "decryptKey");
         }
     }
     
@@ -135,25 +133,11 @@ public class OdilonKeyEncryptorService extends BaseService implements KeyEncrypt
 				try {
 
 					setStatus(ServiceStatus.STARTING);
-					
-					//this.encryptorKey = this.serverSettings.getEncryptorKey().getBytes();
-					
-					/**
-					SecretKeySpec secretKeySpec = new SecretKeySpec(encryptorKey, keyAlgorithm);
-					
-					this.enc = Cipher.getInstance(keyEncryptionAlgorithm);
-					this.enc.init(Cipher.ENCRYPT_MODE, secretKeySpec);
-				
-					this.dec = Cipher.getInstance(keyEncryptionAlgorithm);
-					this.dec.init(Cipher.DECRYPT_MODE, secretKeySpec);
-					**/
-
-				
 				} catch (Exception e) {
-					startuplogger.error(e);
-					logger.error(e);
+					startuplogger.error(e.getClass().getName() + " | " + e.getMessage());
+					logger.error(e.getClass().getName() + " | " + e.getMessage());
 					setStatus(ServiceStatus.STOPPED);
-					throw new InternalCriticalException(e);
+					throw new InternalCriticalException(e, "onInitialize");
 				}
 		}
 	}

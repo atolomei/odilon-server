@@ -39,6 +39,7 @@ import java.util.Base64;
  */
 public class JCipherStreamEncryptor implements StreamEncryptor {
 
+	@SuppressWarnings("unused")
 	private static Logger logger = Logger.getLogger(JCipherStreamEncryptor.class.getName());
 
     /** Creating a SecureRandom object */
@@ -77,8 +78,7 @@ public class JCipherStreamEncryptor implements StreamEncryptor {
             return Base64.getEncoder().encodeToString(key.getEncoded());
             
         }catch (NoSuchAlgorithmException e){
-        	logger.error(e);
-        	throw new InternalCriticalException(e);
+           	throw new InternalCriticalException(e, "genNewKey");
         }
     }
 
@@ -98,8 +98,7 @@ public class JCipherStreamEncryptor implements StreamEncryptor {
             return new EncryptedInputStream(encryptedStream, streamEncryptionInfo);
             
         } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException e) {
-        	logger.error(e);
-            throw new RuntimeException(e);
+        	throw new InternalCriticalException(e, "encrypt");
         }
     }
 
@@ -110,8 +109,7 @@ public class JCipherStreamEncryptor implements StreamEncryptor {
             byte[] key = this.keyEncryptor.decryptKey(decodedEncryptedkey);
             return processStream(inputStream, Cipher.DECRYPT_MODE, key);
         } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException e) {
-        	logger.error(e);
-        	throw new RuntimeException(e);
+        	throw new InternalCriticalException(e, " decrypt");
         }
     }
 

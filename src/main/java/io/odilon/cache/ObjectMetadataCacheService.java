@@ -51,20 +51,13 @@ public class ObjectMetadataCacheService extends BaseService implements Applicati
 
 	static final int INITIAL_CAPACITY = 10000;
 
-	
 	@JsonIgnore
 	@Autowired
 	private final ServerSettings serverSettings;
 
-
-	
 	@JsonIgnore
 	private Cache<String, ObjectMetadata> cache;
-	
 
-	
-	
-	
 	
 	public ObjectMetadataCacheService(ServerSettings serverSettings) {
 		this.serverSettings=serverSettings;
@@ -133,7 +126,6 @@ public class ObjectMetadataCacheService extends BaseService implements Applicati
 			remove(event.getVFSOperation().getBucketName(), event.getVFSOperation().getObjectName());
 			return;
 		}
-		
     }
 
 		
@@ -168,8 +160,6 @@ public class ObjectMetadataCacheService extends BaseService implements Applicati
     private Cache<String, ObjectMetadata> getCache() {
 		return this.cache;
     }
-    
-    
     
 }
 
