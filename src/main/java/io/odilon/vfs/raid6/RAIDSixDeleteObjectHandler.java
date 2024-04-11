@@ -16,6 +16,7 @@
  */
 package io.odilon.vfs.raid6;
 
+
 import java.io.File;
 import java.io.IOException;
 import java.time.OffsetDateTime;
@@ -34,7 +35,6 @@ import io.odilon.model.ServerConstant;
 import io.odilon.scheduler.AfterDeleteObjectServiceRequest;
 import io.odilon.scheduler.DeleteBucketObjectPreviousVersionServiceRequest;
 import io.odilon.util.Check;
-import io.odilon.vfs.RAIDDeleteObjectHandler;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.VFSBucket;
 import io.odilon.vfs.model.VFSOperation;
@@ -43,10 +43,12 @@ import io.odilon.vfs.model.VFSop;
 
 /**
  * <p>RAID 6. Delete Object handler</p>
+ * <p>Auxiliary class used by {@link RaidSixHandler}</p>
+ * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @ThreadSafe
-public class RAIDSixDeleteObjectHandler extends RAIDSixHandler implements RAIDDeleteObjectHandler {
+public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 
 	private static Logger logger = Logger.getLogger(RAIDSixDeleteObjectHandler.class.getName());
 	
@@ -64,7 +66,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler implements RAIDDe
 	 * @param bucket
 	 * @param objectName
 	 */
-	public void delete(@NonNull VFSBucket bucket, @NonNull String objectName) {
+	protected void delete(@NonNull VFSBucket bucket, @NonNull String objectName) {
 		
 		 Check.requireNonNullArgument(bucket, "bucket is null");
 		 Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
@@ -148,11 +150,11 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler implements RAIDDe
 	
 	}
 	
-	public void wipeAllPreviousVersions() {
+	protected void wipeAllPreviousVersions() {
 		getVFS().getSchedulerService().enqueue(getVFS().getApplicationContext().getBean(DeleteBucketObjectPreviousVersionServiceRequest.class));
 	}
 
-	public void deleteBucketAllPreviousVersions(VFSBucket bucket) {
+	protected void deleteBucketAllPreviousVersions(VFSBucket bucket) {
 		getVFS().getSchedulerService().enqueue(getVFS().getApplicationContext().getBean(DeleteBucketObjectPreviousVersionServiceRequest.class, bucket.getName()));
 	}
 
@@ -160,8 +162,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler implements RAIDDe
 	 *
 	 * 
 	 */
-	@Override
-	public void deleteObjectAllPreviousVersions(ObjectMetadata headMeta) {
+	protected void deleteObjectAllPreviousVersions(ObjectMetadata headMeta) {
 	
 		VFSOperation op = null;  
 		boolean done = false;
@@ -290,7 +291,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler implements RAIDDe
 	 * 
 	 */
 	@Override
-	public void rollbackJournal(@NonNull VFSOperation op, boolean recoveryMode) {
+	protected void rollbackJournal(@NonNull VFSOperation op, boolean recoveryMode) {
 		
 		Check.requireNonNullArgument(op, "op is null");
 		

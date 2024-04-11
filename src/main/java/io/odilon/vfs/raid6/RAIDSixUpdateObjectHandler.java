@@ -50,6 +50,7 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 /**
  * 
  * <p>RAID 6 Update Object handler</p>
+ * <p>Auxiliary class used by {@link RaidSixHandler}</p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
@@ -77,7 +78,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 	 * @param srcFileName
 	 * @param contentType
 	 */
-	public void update(VFSBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType) {
+	protected void update(VFSBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType) {
 	
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
@@ -155,7 +156,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 	}
 
 	
-	public void updateObjectMetadataHeadVersion(ObjectMetadata meta) {
+	protected void updateObjectMetadataHeadVersion(ObjectMetadata meta) {
 		updateObjectMetadata(meta, true); 
 	}
 	
@@ -165,7 +166,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 	 * @param meta can not be null
 	 * 
 	 */
-	 public void updateObjectMetadata(ObjectMetadata meta, boolean isHead) {
+	protected void updateObjectMetadata(ObjectMetadata meta, boolean isHead) {
 
 		Check.requireNonNullArgument(meta, "meta is null");
 		Check.requireNonNullArgument(meta.bucketName, "bucketName is null");
@@ -338,6 +339,34 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 	}
 
 
+	/**
+	 * 
+	 */
+	@Override
+	protected void rollbackJournal(VFSOperation op, boolean recoveryMode) {
+			
+		Check.requireNonNullArgument(op, "op is null");
+		
+		switch (op.getOp()) {
+					case UPDATE_OBJECT: 
+					{	rollbackJournalUpdate(op, recoveryMode);
+						break;
+					}
+					case  UPDATE_OBJECT_METADATA: 
+					{	rollbackJournalUpdateMetadata(op, recoveryMode);
+						break;
+					}
+					case RESTORE_OBJECT_PREVIOUS_VERSION: 
+					{
+						rollbackJournalUpdate(op, recoveryMode);
+						break;
+					}
+						default: {
+						throw new IllegalArgumentException(VFSOperation.class.getSimpleName() + " can not be  ->  op: " + op.getOp().getName());
+					}
+		}
+	}
+		
 	/**
 	 * 
 	 * 
@@ -530,34 +559,6 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 				if (!isMainException && (secEx!=null)) 
 					throw new InternalCriticalException(secEx);
 			}
-	}
-
-	/**
-	 * 
-	 */
-	@Override
-	public void rollbackJournal(VFSOperation op, boolean recoveryMode) {
-		
-		Check.requireNonNullArgument(op, "op is null");
-		
-		switch (op.getOp()) {
-					case UPDATE_OBJECT: 
-					{	rollbackJournalUpdate(op, recoveryMode);
-						break;
-					}
-					case  UPDATE_OBJECT_METADATA: 
-					{	rollbackJournalUpdateMetadata(op, recoveryMode);
-						break;
-					}
-					case RESTORE_OBJECT_PREVIOUS_VERSION: 
-					{
-						rollbackJournalUpdate(op, recoveryMode);
-						break;
-					}
-					default: {
-						throw new IllegalArgumentException(VFSOperation.class.getSimpleName() + " can not be  ->  op: " + op.getOp().getName());
-					}
-		}
 	}
 
 	

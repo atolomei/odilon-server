@@ -34,7 +34,6 @@ import com.google.common.io.Files;
 
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
-import io.odilon.model.BucketMetadata;
 import io.odilon.model.OdilonServerInfo;
 import io.odilon.model.ServerConstant;
 import io.odilon.vfs.model.Drive;
@@ -214,12 +213,11 @@ public class RAIDSixDriveSetup implements IODriveSetup, ApplicationContextAware 
 					if (drive.getDriveInfo().getStatus()==DriveStatus.NOTSYNC) {
 						try {
 							if (!drive.existsBucket(bucket.getName())) {
-								BucketMetadata meta = bucket.getBucketMetadata();
-								drive.createBucket(bucket.getName(), meta);
+								drive.createBucket(bucket.getName(), bucket.getBucketMetadata());
 							}
 						} catch (Exception e) {
 							this.errors.getAndIncrement();
-							logger.error(e);
+							logger.error(e, ServerConstant.NOT_THROWN);
 							return;
 						}
 					}

@@ -44,6 +44,8 @@ import io.odilon.vfs.model.VFSop;
 
 /**
  * <b>RAID 6 Object creation</b> 
+ * <p>Auxiliary class used by {@link RaidSixHandler}</p>
+ * 
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
@@ -70,7 +72,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 	 * @param srcFileName
 	 * @param contentType
 	 */
-	public void create(VFSBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType) {
+	protected void create(VFSBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType) {
 	
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
@@ -137,7 +139,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 	 * 
 	 */
 	@Override
-	public void rollbackJournal(VFSOperation op, boolean recoveryMode) {
+	protected void rollbackJournal(VFSOperation op, boolean recoveryMode) {
 		
 		Check.requireNonNullArgument(op, "op is null");
 		Check.checkTrue(op.getOp()==VFSop.CREATE_OBJECT, "Invalid op ->  " + op.getOp().getName());
