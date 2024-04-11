@@ -34,7 +34,7 @@ public enum DataStorage {
 	
 	READ_WRITE	("rw", 0),
 	READONLY 	("ro", 1),
-	WORM		("worm", 2);
+	WORM		("worm", 2); /** Write Once Read Many */
 		
 	
 	@SuppressWarnings("unused")

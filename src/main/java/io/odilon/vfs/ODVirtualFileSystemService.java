@@ -55,8 +55,6 @@ import io.odilon.encryption.OdilonKeyEncryptorService;
 import io.odilon.error.OdilonServerAPIException;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
-import io.odilon.model.BaseService;
-
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.OdilonServerInfo;
 import io.odilon.model.RedundancyLevel;
@@ -70,6 +68,7 @@ import io.odilon.query.BucketIteratorService;
 import io.odilon.replication.ReplicationService;
 import io.odilon.scheduler.SchedulerService;
 import io.odilon.scheduler.ServiceRequest;
+import io.odilon.service.BaseService;
 import io.odilon.service.ServerSettings;
 import io.odilon.service.util.ByteToString;
 import io.odilon.util.Check;

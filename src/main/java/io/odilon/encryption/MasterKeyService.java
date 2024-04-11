@@ -17,9 +17,9 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
-import io.odilon.model.BaseService;
 import io.odilon.model.ServerConstant;
 import io.odilon.model.ServiceStatus;
+import io.odilon.service.BaseService;
 import io.odilon.service.ServerSettings;
 import io.odilon.service.util.ByteToString;
 
@@ -145,6 +145,7 @@ public class MasterKeyService extends BaseService implements KeyEncryptor {
     
     
     /**
+     *
      * 
      */
 	@PostConstruct

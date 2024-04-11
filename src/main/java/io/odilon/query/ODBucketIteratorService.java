@@ -33,9 +33,9 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
-import io.odilon.model.BaseService;
 import io.odilon.model.ServerConstant;
 import io.odilon.model.ServiceStatus;
+import io.odilon.service.BaseService;
 import io.odilon.service.Scavenger;
 import io.odilon.util.Check;
 import io.odilon.vfs.model.BucketIterator;

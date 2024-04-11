@@ -42,11 +42,11 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import io.odilon.OdilonVersion;
 import io.odilon.log.Logger;
-import io.odilon.model.BaseService;
 import io.odilon.model.RedundancyLevel;
 import io.odilon.model.ServerConstant;
 import io.odilon.model.ServiceStatus;
 import io.odilon.model.SystemInfo;
+import io.odilon.service.BaseService;
 import io.odilon.service.ServerSettings;
 import io.odilon.service.SystemService;
 import io.odilon.vfs.model.Drive;

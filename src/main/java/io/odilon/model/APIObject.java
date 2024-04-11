@@ -17,6 +17,8 @@
 package io.odilon.model;
 
 /**
+ * <p>All classes that made up the API</p>
+ * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public interface APIObject {

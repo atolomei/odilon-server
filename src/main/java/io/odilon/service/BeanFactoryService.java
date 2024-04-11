@@ -26,7 +26,6 @@ import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import io.odilon.log.Logger;
-import io.odilon.model.BaseService;
 import io.odilon.model.ServiceStatus;
 
 

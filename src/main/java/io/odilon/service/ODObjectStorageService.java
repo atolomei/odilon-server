@@ -40,7 +40,6 @@ import io.odilon.encryption.EncryptionService;
 import io.odilon.error.OdilonInternalErrorException;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
-import io.odilon.model.BaseService;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.OdilonServerInfo;
 import io.odilon.model.ServiceStatus;

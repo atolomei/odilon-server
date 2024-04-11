@@ -30,14 +30,13 @@ import io.odilon.vfs.model.VFSOperation;
 
 
 /**
- * <p>Events fired by the {@link JournalService} on {@code commit} or {@code cancel}
- * and listened by the {@link FileCacheService} or {@link ObjectMetadataCacheService}
- * to invalidate ObjectMetadata cache (RAID 0,1,6) and File cache (RAID 6).</p> 
+ * <p>Spring events fired by the {@link JournalService} on <b>{@code commit}</b> or <b>{@code cancel}</b>
+ * and listened by the {@link FileCacheService} to invalidate File cache (RAID 6) 
+ * and {@link ObjectMetadataCacheService} to invalidate ObjectMetadata cache (RAID 0, RAID 1, RAID 6).</p> 
  * 
  */
 public class CacheEvent extends ApplicationEvent {
 
-	
 	private static final long serialVersionUID = 1L;
 	
 	@JsonIgnore 
@@ -54,10 +53,9 @@ public class CacheEvent extends ApplicationEvent {
 		mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 	}
 	
-	
 	private final VFSOperation opx;
 	
-	
+
 	public CacheEvent(VFSOperation opx) {
 		super(opx);
 		this.opx=opx;

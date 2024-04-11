@@ -44,9 +44,9 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.RemovalCause;
 
 import io.odilon.log.Logger;
-import io.odilon.model.BaseService;
 import io.odilon.model.ServerConstant;
 import io.odilon.model.ServiceStatus;
+import io.odilon.service.BaseService;
 import io.odilon.service.ServerSettings;
 import io.odilon.util.Check;
 import io.odilon.vfs.model.Drive;

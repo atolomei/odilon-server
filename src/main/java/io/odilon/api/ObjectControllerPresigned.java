@@ -48,8 +48,17 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
  * 
- *
- *@author atolomei@novamens.com (Alejandro Tolomei)
+ * <p>Object's presigned url</p>
+ * 
+ * <p>A presigned URL is a way to grant temporary access to an Object, for example in an HTML webpage.
+   It remains valid for a limited period of time which is specified when the URL is generated.</p>
+ *  
+ *   <ul>
+ * 	 <li>/presigned/object</li>
+ *   </ul>
+ *  
+ *  @author atolomei@novamens.com (Alejandro Tolomei)
+ *  
  */
 @RestController
 @RequestMapping(value = "/presigned/object")
@@ -113,11 +122,7 @@ public class ObjectControllerPresigned extends BaseApiController {
 			VFSObject object = getObjectStorageService().getObject(bucketName, objectName);
 			
 			if (object==null)
-				throw new OdilonObjectNotFoundException(
-						String.format("not found -> b: %s | o:%s", 
-						Optional.ofNullable(bucketName).orElse("null"), 
-						Optional.ofNullable(objectName).orElse("null")
-			));
+				throw new OdilonObjectNotFoundException(String.format("not found -> b: %s | o:%s",Optional.ofNullable(bucketName).orElse("null"),Optional.ofNullable(objectName).orElse("null")));
 			
 			HttpHeaders responseHeaders = new HttpHeaders();
 			

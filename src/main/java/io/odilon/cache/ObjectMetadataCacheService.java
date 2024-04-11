@@ -31,9 +31,9 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 
 import io.odilon.log.Logger;
-import io.odilon.model.BaseService;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ServiceStatus;
+import io.odilon.service.BaseService;
 import io.odilon.service.ServerSettings;
 import io.odilon.vfs.model.VFSop;
 

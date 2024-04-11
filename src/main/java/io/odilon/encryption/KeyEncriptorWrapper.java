@@ -31,7 +31,7 @@ import io.odilon.log.Logger;
 import io.odilon.service.ServerSettings;
 
 /**
- * <p>This object is Serialized with the binary object stored in disk</p>
+ * <p>Wrapper object that is Serialized with the binary object stored in disk</p>
  *    
  */
 @Component

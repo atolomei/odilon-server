@@ -70,10 +70,10 @@ public class BucketController extends BaseApiController  {
 	static private Logger logger = Logger.getLogger(BucketController.class.getName());
 	
 	@Autowired
-	public BucketController(		ObjectStorageService objectStorageService, 
-									VirtualFileSystemService virtualFileSystemService,
-									SystemMonitorService monitoringService,
-									TrafficControlService trafficControlService) {
+	public BucketController(ObjectStorageService objectStorageService, 
+							VirtualFileSystemService virtualFileSystemService,
+							SystemMonitorService monitoringService,
+							TrafficControlService trafficControlService) {
 		super(objectStorageService, virtualFileSystemService, monitoringService, trafficControlService);
 	}
 
@@ -152,8 +152,7 @@ public class BucketController extends BaseApiController  {
 			VFSBucket bucket = getObjectStorageService().findBucketName(name);
 			
 			if (bucket==null)															
-				throw new OdilonObjectNotFoundException( ErrorCode.BUCKET_NOT_EXISTS, 
-														 String.format("bucket does not exist -> %s", name));
+				throw new OdilonObjectNotFoundException( ErrorCode.BUCKET_NOT_EXISTS, String.format("bucket does not exist -> %s", name));
 			
 			return new ResponseEntity<Bucket>( new Bucket(bucket.getName(), bucket.getCreationDate(), bucket.getLastModifiedDate(), bucket.getStatus()), HttpStatus.OK);
 		
@@ -314,45 +313,10 @@ public class BucketController extends BaseApiController  {
 		}
 	}
 	
-
-	/**
-	 * 
-
-	@RequestMapping(value = "/deleteallpreviousversion/{name}", produces = "application/json", method = RequestMethod.DELETE)
-	public void deleteBucketAllPreviousVersions(@PathVariable("name") String name) {
-		
-		TrafficPass pass = null;
-		
-		try {
-			pass = getTrafficControlService().getPass();
-			
-			if (!this.getVirtualFileSystemService().getServerSettings().isVersionControl())
-				throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Version Control not enabled");
-
-			if (getObjectStorageService().existsBucket(name)) { 
-				getObjectStorageService().deleteBucketAllPreviousVersions(name);
-			}
-			else {
-				throw new OdilonObjectNotFoundException(ErrorCode.BUCKET_NOT_EXISTS, String.format("bucket does not exist -> %s", Optional.ofNullable(name).orElse("null")));
-			}
-	
-		} catch (OdilonServerAPIException e) {
-			throw e;
-		} catch (Exception e) {
-			throw new OdilonInternalErrorException(getMessage(e));
-		}
-		finally { 
-			getTrafficControlService().release(pass);
-			mark();
-		}
-	}
-
-	 */
-	
+ 	
 	/**
 	 *
 	 */
-	 
 	@RequestMapping(value = "/deleteallpreviousversion/{name}", produces = "application/json" , method = RequestMethod.DELETE)
 	public ResponseEntity<Boolean> deleteAllPreviousVersions(@PathVariable("name") String name) {
 	
@@ -384,11 +348,6 @@ public class BucketController extends BaseApiController  {
 		}
 	}
 
-
-	
-	
-	
-	
 	
 	
 	

@@ -39,10 +39,23 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
  * 
- * <p>API endpoint for System monitoring metrics 
- * see {@Link SystemMonitoringService}</p>
+ * <p>API endpoint for System monitoring metrics:</p>
+ * 
+ * 
+ * <ul>
+ * <li>/status</li>
+ * <li>/systeminfo</li>
+ * <li>/metricscolloquial</li>
+ * <li>/metricsinformal</li>  
+ * <li>/metrics</li>
+ * </ul>
+ *  
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
+ *  
+ * @see {@Link SystemMonitoringService}
+ *  
+ * 
  */
 @RestController
 public class MetricsController extends BaseApiController {
@@ -55,11 +68,11 @@ public class MetricsController extends BaseApiController {
 	private final ServerSettings serverSettings;
 	
 	@Autowired
-	public MetricsController(		ObjectStorageService objectStorageService, 
-									VirtualFileSystemService virtualFileSystemService,
-									SystemMonitorService monitoringService,
-									ServerSettings settings ) {
-		
+	public MetricsController	(ObjectStorageService objectStorageService, 
+								VirtualFileSystemService virtualFileSystemService,
+								SystemMonitorService monitoringService,
+								ServerSettings settings ) {
+
 		super(objectStorageService, virtualFileSystemService, monitoringService);
 		this.serverSettings = settings;
 	}
@@ -70,9 +83,7 @@ public class MetricsController extends BaseApiController {
 	 */
 	@RequestMapping(value = "/status", produces = "application/json", method = RequestMethod.GET)
 	public Map<String, Object> getStatus() {
-		
 		TrafficPass pass = null;
-		
 		try {
 			pass = getTrafficControlService().getPass();	
 			return serverSettings.toMap();
@@ -93,14 +104,10 @@ public class MetricsController extends BaseApiController {
 		TrafficPass pass = null;
 		
 		try {
-			
 			pass = getTrafficControlService().getPass();
-			
-			SystemInfo info = objectStorageService.getSystemInfo();
-
 			return ResponseEntity.ok()
 				      .contentType(MediaType.APPLICATION_JSON)
-				      .body(info);
+				      .body(objectStorageService.getSystemInfo());
 			
 		} finally {
 			getTrafficControlService().release(pass);
@@ -128,7 +135,7 @@ public class MetricsController extends BaseApiController {
 			StringBuilder str = new StringBuilder();
 			
 			MetricsValues info = getSystemMonitorService().getMetricsValues();
-			
+
 			str.append("\n");
 			str.append("\n");
 			
@@ -167,11 +174,9 @@ public class MetricsController extends BaseApiController {
 			
 			pass = getTrafficControlService().getPass();
 			
-			MetricsValues info = getSystemMonitorService().getMetricsValues();
-			
 			return ResponseEntity.ok()
-				      .contentType(MediaType.APPLICATION_JSON)
-				      .body(info);
+				      			 .contentType(MediaType.APPLICATION_JSON)
+				      			 .body(getSystemMonitorService().getMetricsValues());
 		
 		} finally {
 			getTrafficControlService().release(pass);

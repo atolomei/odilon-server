@@ -31,8 +31,8 @@ import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import io.odilon.log.Logger;
-import io.odilon.model.BaseService;
 import io.odilon.model.ServiceStatus;
+import io.odilon.service.BaseService;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
