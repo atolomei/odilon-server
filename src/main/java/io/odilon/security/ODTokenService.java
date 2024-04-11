@@ -66,7 +66,8 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 public class ODTokenService extends BaseService implements TokenService, ApplicationContextAware {
 			
 	    static private Logger startuplogger = Logger.getLogger("StartupLogger");
-	    static private Logger logger = Logger.getLogger(ODObjectStorageService.class.getName());
+	    @SuppressWarnings("unused")
+		static private Logger logger = Logger.getLogger(ODObjectStorageService.class.getName());
 
 	    static private String salt = randomString(20);
 	   

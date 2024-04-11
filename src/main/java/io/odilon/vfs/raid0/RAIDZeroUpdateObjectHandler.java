@@ -39,7 +39,6 @@ import io.odilon.model.ObjectStatus;
 import io.odilon.model.ServerConstant;
 import io.odilon.util.Check;
 import io.odilon.util.ODFileUtils;
-import io.odilon.vfs.RAIDUpdateObjectHandler;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.SimpleDrive;
 import io.odilon.vfs.model.VFSBucket;
@@ -54,7 +53,7 @@ import io.odilon.vfs.model.VirtualFileSystemService;
  *  @author atolomei@novamens.com (Alejandro Tolomei)  
  */
 @ThreadSafe
-public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RAIDUpdateObjectHandler {
+public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 			
 	private static Logger logger = Logger.getLogger(RAIDZeroUpdateObjectHandler.class.getName());
 	
@@ -70,8 +69,8 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 	 * 
 	 * 
 	 */
-	@Override
-	public void update(VFSBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType) {
+
+	protected void update(VFSBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType) {
 
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucket.getName());
@@ -159,7 +158,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 	 * . The Object previous versions were deleted by a {@code deleteObjectAllPreviousVersions}
 	 * </p>
 	 */
-	public ObjectMetadata restorePreviousVersion(VFSBucket bucket, String objectName) {
+	protected ObjectMetadata restorePreviousVersion(VFSBucket bucket, String objectName) {
 
 		VFSOperation op = null;
 		boolean done = false;
@@ -273,8 +272,8 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 	 * 
 	 * @param meta
 	 */
-	@Override
-	public void updateObjectMetadata(ObjectMetadata meta) {
+	
+	protected void updateObjectMetadata(ObjectMetadata meta) {
 		
 		Check.requireNonNullArgument(meta, "meta is null");
 		VFSOperation op = null;
@@ -334,8 +333,8 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 	/**
 	 * </p>There is nothing to do here by the moment</p>
 	 */
-	@Override
-	public void onAfterCommit(VFSBucket bucket, String objectName, int previousVersion, int currentVersion) {
+	
+	protected void onAfterCommit(VFSBucket bucket, String objectName, int previousVersion, int currentVersion) {
 	}
 
 
@@ -343,8 +342,8 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 	/**
 	 * <p>The procedure is the same for Version Control </p>
 	 */
-	@Override
-	public void rollbackJournal(VFSOperation op, boolean recoveryMode) {
+	
+	protected void rollbackJournal(VFSOperation op, boolean recoveryMode) {
 		
 		Check.requireNonNullArgument(op, "op is null");
 		Check.requireTrue( (op.getOp()==VFSop.UPDATE_OBJECT ||
@@ -679,39 +678,5 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler  implements  RA
 			logger.error(e, ServerConstant.NOT_THROWN);
 		}
 	}
-
-	/**
-	private void saveOddbjectMetadata(ObjectMetadata meta) {
-		Check.requireNonNullArgument(meta, "meta is null");
-		getWriteDrive(meta.bucketName, meta.objectName).saveObjectMetadata(meta);
-	}
-	**/
-	/**
-	 * 
-	 * @param op can be null 
-	 * 
-
-	private void cleanUpRestoreVersion(VFSOperation op, VFSBucket bucket, String objectName, int versionDiscarded) {
-		if (op==null)
-			return;
-		try {
-				if (versionDiscarded<0)
-					return;
-				FileUtils.deleteQuietly(getDriver().getWriteDrive(bucket.getName(), objectName).getObjectMetadataVersionFile(bucket.getName(), objectName,  versionDiscarded));
-				FileUtils.deleteQuietly(((SimpleDrive) getDriver().getWriteDrive(bucket.getName(), objectName)).getObjectDataVersionFile(bucket.getName(), objectName,  versionDiscarded));
-				
-		} catch (Exception e) {
-			logger.error(e, ServerConstant.NOT_THROWN);
-		}
-	}
-	 */
-	
-	/**
-	 *
-	 * 
-	 */
-
-
-	  
 	
 }

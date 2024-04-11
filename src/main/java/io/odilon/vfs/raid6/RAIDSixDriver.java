@@ -938,34 +938,39 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 
 		Drive readDrive = null;
 		
+		getLockService().getObjectLock(bucket.getName(), objectName).readLock().lock();
+		
 		try {
-
-			getLockService().getObjectLock(bucket.getName(), objectName).readLock().lock();
+			
 			getLockService().getBucketLock(bucket.getName()).readLock().lock();
 			
-			/** read is from only 1 drive */
-			readDrive = getObjectMetadataReadDrive(bucketName, objectName);
-			
-			if (!readDrive.existsBucket(bucket.getName()))												
-				  throw new IllegalArgumentException("b:" +  bucketName + " does not exist for -> d:" + readDrive.getName() +" | raid -> " + this.getClass().getSimpleName());
-
-			if (!exists(bucket, objectName))
-				  throw new IllegalArgumentException("b:" +  bucketName +" | o:" + objectName + " | class:" + this.getClass().getSimpleName());			
-
-			if (o_version.isPresent())
-				return readDrive.getObjectMetadataVersion(bucketName, objectName, o_version.get());
-			else
-		 		return getObjectMetadataInternal(bucketName, objectName, addToCacheifMiss);
-		}
-		catch (Exception e) {
-			throw new InternalCriticalException(e, "b:"  + bucketName+	", o:" + objectName + ", d:" + readDrive.getName() + (o_version.isPresent()? (", v:" + String.valueOf(o_version.get())) :""));
-		}
-		finally {
-			getLockService().getBucketLock(bucketName).readLock().unlock();
+			try {
+				
+				/** read is from only 1 drive */
+				readDrive = getObjectMetadataReadDrive(bucketName, objectName);
+				
+				if (!readDrive.existsBucket(bucket.getName()))												
+					  throw new IllegalArgumentException("b:" +  bucketName + " does not exist for -> d:" + readDrive.getName() +" | raid -> " + this.getClass().getSimpleName());
+	
+				if (!exists(bucket, objectName))
+					  throw new IllegalArgumentException("b:" +  bucketName +" | o:" + objectName + " | class:" + this.getClass().getSimpleName());			
+	
+				if (o_version.isPresent())
+					return readDrive.getObjectMetadataVersion(bucketName, objectName, o_version.get());
+				else
+			 		return getObjectMetadataInternal(bucketName, objectName, addToCacheifMiss);
+			}
+			catch (Exception e) {
+				throw new InternalCriticalException(e, "b:"  + bucketName+	", o:" + objectName + ", d:" + readDrive.getName() + (o_version.isPresent()? (", v:" + String.valueOf(o_version.get())) :""));
+			}
+			finally {
+				getLockService().getBucketLock(bucketName).readLock().unlock();
+				
+			}
+		} finally {
 			getLockService().getObjectLock(bucketName, objectName).readLock().unlock();
 		}
 	}
-
  
 	
 	/**

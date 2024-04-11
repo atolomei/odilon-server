@@ -72,7 +72,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 	 * @param srcFileName
 	 * @param contentType
 	 */
-	public void create(VFSBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType) {
+	protected void create(VFSBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType) {
 					
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		String bucketName = bucket.getName();
@@ -137,7 +137,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 	 * 
 	 */
 	@Override
-	public void rollbackJournal(VFSOperation op, boolean recoveryMode) {
+	protected void rollbackJournal(VFSOperation op, boolean recoveryMode) {
 		
 		Check.requireNonNullArgument(op, "op is null");
 		Check.checkTrue(op.getOp()==VFSop.CREATE_OBJECT, "Invalid op ->  " + op.getOp().getName());

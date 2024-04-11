@@ -16,6 +16,7 @@
  */
 package io.odilon.vfs.raid1;
 
+
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -39,7 +40,6 @@ import io.odilon.model.ObjectStatus;
 import io.odilon.model.ServerConstant;
 import io.odilon.util.Check;
 import io.odilon.util.ODFileUtils;
-import io.odilon.vfs.RAIDUpdateObjectHandler;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.SimpleDrive;
 import io.odilon.vfs.model.VFSBucket;
@@ -53,7 +53,7 @@ import io.odilon.vfs.model.VirtualFileSystemService;
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @ThreadSafe
-public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDUpdateObjectHandler {
+public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 			
 	private static Logger logger = Logger.getLogger(RAIDOneUpdateObjectHandler.class.getName());
 	
@@ -75,8 +75,8 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 	 * @param srcFileName
 	 * @param contentType
 	 */
-	@Override
-	public void update(VFSBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType) {
+	
+	protected void update(VFSBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType) {
 
 		VFSOperation op = null;
 		boolean done = false;
@@ -157,7 +157,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 	 * 
 	 * 
 	 */
-	public ObjectMetadata restorePreviousVersion(VFSBucket bucket, String objectName) {
+	protected ObjectMetadata restorePreviousVersion(VFSBucket bucket, String objectName) {
 	
 		VFSOperation op = null;
 		boolean done = false;
@@ -261,8 +261,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 	 * 
 	 * @param meta
 	 */
-	@Override
-	public void updateObjectMetadata(ObjectMetadata meta) {
+	protected void updateObjectMetadata(ObjectMetadata meta) {
 		
 		Check.requireNonNullArgument(meta, "meta is null");
 		VFSOperation op = null;
@@ -326,12 +325,13 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler implements  RAIDU
 	 *
 	 *
 	 */
-	@Override
-	public void onAfterCommit(VFSBucket bucket, String objectName, int previousVersion, int currentVersion) {
+	
+	protected void onAfterCommit(VFSBucket bucket, String objectName, int previousVersion, int currentVersion) {
 	}
 	
-	@Override
-	public void rollbackJournal(VFSOperation op, boolean recoveryMode) {
+	
+	
+	protected void rollbackJournal(VFSOperation op, boolean recoveryMode) {
 		Check.requireNonNullArgument(op, "op is null");
 		Check.requireTrue( (op.getOp()==VFSop.UPDATE_OBJECT || 	op.getOp()==VFSop.UPDATE_OBJECT_METADATA ||	op.getOp()==VFSop.RESTORE_OBJECT_PREVIOUS_VERSION ), VFSOperation.class.getSimpleName() + " can not be  ->  op: " + op.getOp().getName());
 

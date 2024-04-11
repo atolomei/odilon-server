@@ -16,6 +16,7 @@
  */
 package io.odilon.vfs.raid0;
 
+
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -37,7 +38,6 @@ import io.odilon.model.ObjectStatus;
 import io.odilon.model.ServerConstant;
 import io.odilon.util.Check;
 import io.odilon.util.ODFileUtils;
-import io.odilon.vfs.RAIDCreateObjectHandler;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.SimpleDrive;
 import io.odilon.vfs.model.VFSBucket;
@@ -52,7 +52,7 @@ import io.odilon.vfs.model.VirtualFileSystemService;
  * @author atolomei@novamens.com (Alejandro Tolomei)	 
  */
 @ThreadSafe
-public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler implements RAIDCreateObjectHandler {
+public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 		
 	private static Logger logger = Logger.getLogger(RAIDZeroCreateObjectHandler.class.getName());
 		
@@ -72,7 +72,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler implements RAID
 	 * @param srcFileName
 	 * @param contentType
 	 */
-	public void create(@NonNull VFSBucket bucket, @NonNull String objectName, @NonNull InputStream stream, String srcFileName, String contentType) {
+	protected void create(@NonNull VFSBucket bucket, @NonNull String objectName, @NonNull InputStream stream, String srcFileName, String contentType) {
 	
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
@@ -146,7 +146,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler implements RAID
 	 * <p>This method is <b>not</b> ThreadSafe, callers must ensure proper concurrency control
 	 */
 	@Override
-	public void rollbackJournal(VFSOperation op, boolean recoveryMode) {
+	protected void rollbackJournal(VFSOperation op, boolean recoveryMode) {
 		
 		Check.requireNonNullArgument(op, "op is null");
 		Check.checkTrue(op.getOp()==VFSop.CREATE_OBJECT, "Invalid op ->  " + op.getOp().getName());

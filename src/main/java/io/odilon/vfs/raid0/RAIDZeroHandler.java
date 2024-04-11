@@ -50,7 +50,7 @@ public abstract class RAIDZeroHandler implements RAIDHandler {
 		return this.driver.getVFS();
 	}
 	
-	public abstract void rollbackJournal(VFSOperation op, boolean recoveryMode);
+	protected abstract void rollbackJournal(VFSOperation op, boolean recoveryMode);
 
 	public JournalService getJournalService() {
 		return this.driver.getJournalService();
