@@ -127,28 +127,34 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 						
 						ObjectMetadata versionMeta = getDriver().getObjectMetadataReadDrive(bucketName, objectName).getObjectMetadataVersion(bucketName, objectName, version);
 						
-						/** Data (version) */
-						RAIDSixDecoder decoder = new RAIDSixDecoder(getDriver());
-						File file = decoder.decodeVersion(versionMeta);
-						
-						RAIDSixSDriveSyncEncoder driveEncoder = new RAIDSixSDriveSyncEncoder(getDriver(), getDrives());
-						
-						try (InputStream in = new BufferedInputStream(new FileInputStream(file.getAbsolutePath()))) {
+						if (versionMeta!=null) {
 							
-							/** encodes version without saving existing blocks, only the ones that go to the new drive/s */
-							driveEncoder.encodeVersion(in, bucketName, objectName, versionMeta.version);
+							/** Data (version) */
+							RAIDSixDecoder decoder = new RAIDSixDecoder(getDriver());
+							File file = decoder.decodeVersion(versionMeta);
 							
-						} catch (FileNotFoundException e) {
-				    		throw new InternalCriticalException(e, "b:" + meta.bucketName +  " | o:" + meta.objectName);
-						} catch (IOException e) {
-							throw new InternalCriticalException(e, "b:" + meta.bucketName +  " | o:" + meta.objectName);
+							RAIDSixSDriveSyncEncoder driveEncoder = new RAIDSixSDriveSyncEncoder(getDriver(), getDrives());
+							
+							try (InputStream in = new BufferedInputStream(new FileInputStream(file.getAbsolutePath()))) {
+								
+								/** encodes version without saving existing blocks, only the ones that go to the new drive/s */
+								driveEncoder.encodeVersion(in, bucketName, objectName, versionMeta.version);
+								
+							} catch (FileNotFoundException e) {
+					    		throw new InternalCriticalException(e, "b:" + meta.bucketName +  " | o:" + meta.objectName);
+							} catch (IOException e) {
+								throw new InternalCriticalException(e, "b:" + meta.bucketName +  " | o:" + meta.objectName);
+							}
+							
+							/** Metadata (version) */
+							/** changes the date of sync in order to prevent this object's sync if the process is re run */ 
+							versionMeta.dateSynced=OffsetDateTime.now();
+							for (Drive drive:getDrives()) {
+								drive.saveObjectMetadataVersion(versionMeta);
+							}
 						}
-						
-						/** Metadata (version) */
-						/** changes the date of sync in order to prevent this object's sync if the process is re run */ 
-						versionMeta.dateSynced=OffsetDateTime.now();
-						for (Drive drive:getDrives()) {
-							drive.saveObjectMetadataVersion(versionMeta);
+						else {
+							logger.warn("previous version was deleted for Object -> " + String.valueOf(version) + " |  head b:" + meta.bucketName + "  o:" + meta.objectName + "  head version:" + String.valueOf(meta.version));
 						}
 					}
 				}

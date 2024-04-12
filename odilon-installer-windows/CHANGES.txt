@@ -37,6 +37,14 @@ This is the first release of Odilon Object Storage
 2024.04.01 fix bug. restoreprevious version in RAID 6 (FileCacheService)
 
 
+==================  1.6-beta ==================
+
+2024.04.12 bug sync disk RAID 6 when previous versions had been deleted
+2024.04.10 code cleanup
+
+
+
+
 
 
 

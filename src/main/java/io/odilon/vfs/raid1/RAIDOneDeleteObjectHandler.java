@@ -33,7 +33,6 @@ import io.odilon.model.ServerConstant;
 import io.odilon.scheduler.AfterDeleteObjectServiceRequest;
 import io.odilon.scheduler.DeleteBucketObjectPreviousVersionServiceRequest;
 import io.odilon.util.Check;
-import io.odilon.vfs.RAIDDeleteObjectHandler;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.SimpleDrive;
 import io.odilon.vfs.model.VFSBucket;
@@ -41,11 +40,13 @@ import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VFSop;
 
 /**
+ * <p>RAID 1 Handler <br/>  
+ * Delete methods ({@link VFSop.DELETE_OBJECT})</p> * 
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @ThreadSafe
-public class RAIDOneDeleteObjectHandler extends RAIDOneHandler implements  RAIDDeleteObjectHandler {
+public class RAIDOneDeleteObjectHandler extends RAIDOneHandler  {
 
 private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class.getName());
 
@@ -66,8 +67,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 	 * @param srcFileName
 	 * @param contentType
 	 */
-	@Override
-	public void delete(VFSBucket bucket, String objectName) {
+	protected void delete(VFSBucket bucket, String objectName) {
 		
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		String bucketName = bucket.getName();
@@ -162,8 +162,8 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 	 * the {@link ServiceRequest} itself is not transactional, 
 	 * and it can not be rollback</p>
 	 */
-	@Override
-	public void wipeAllPreviousVersions() {
+	
+	protected void wipeAllPreviousVersions() {
 		getVFS().getSchedulerService().enqueue(getVFS().getApplicationContext().getBean(DeleteBucketObjectPreviousVersionServiceRequest.class));
 	}
 
@@ -180,8 +180,8 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 	 * <p>Although the removal of all versions for every Object is transactional, the ServiceRequest 
 	 * itself is not transactional, and it can not be rollback</p>
 	 */
-	@Override
-	public void deleteBucketAllPreviousVersions(VFSBucket bucket) {
+	
+	protected void deleteBucketAllPreviousVersions(VFSBucket bucket) {
 		getVFS().getSchedulerService().enqueue(getVFS().getApplicationContext().getBean(DeleteBucketObjectPreviousVersionServiceRequest.class, bucket.getName()));
 	}
 	
@@ -190,8 +190,8 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 	 * @param bucket
 	 * @param objectName
 	 */
-	@Override
-	public void deleteObjectAllPreviousVersions(ObjectMetadata meta) {
+	
+	protected void deleteObjectAllPreviousVersions(ObjectMetadata meta) {
 
 		VFSOperation op = null;  
 		boolean done = false;
@@ -280,8 +280,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 	}
 
 	
-	@Override
-	public  void rollbackJournal(VFSOperation op, boolean recoveryMode) {
+	protected void rollbackJournal(VFSOperation op, boolean recoveryMode) {
 		
 		/** checked by the calling driver */
 		Check.requireNonNullArgument(op, "op is null");
@@ -328,9 +327,11 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 		}
 	}
 
-	public void postObjectDelete(ObjectMetadata meta, int headVersion) 						{}
-	public void postObjectPreviousVersionDeleteAll(ObjectMetadata meta, int headVersion) 	{}
+	protected void postObjectDelete(ObjectMetadata meta, int headVersion) 						{}
+	protected void postObjectPreviousVersionDeleteAll(ObjectMetadata meta, int headVersion) 	{}
 
+	
+	
 	
 	
 	private void postObjectPreviousVersionDeleteAllCommit(ObjectMetadata meta, int headVersion) {

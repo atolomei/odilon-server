@@ -48,8 +48,14 @@ import io.odilon.vfs.model.VFSop;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
- *	<p>RAID 1. Update Handler</p> 
+ *	<p>RAID 1. Update Handler</p>
  * 
+ *	<ul>
+ *	<li>VFSop.UPDATE_OBJECT</li>
+ *	<li>VFSop.UPDATE_OBJECT_METADATA</li>
+ *	<li>VFSop.RESTORE_OBJECT_PREVIOUS_VERSION</li>
+ *	<ul>
+ *
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @ThreadSafe
@@ -89,7 +95,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 
 		try  {
 			
-			getLockService().getBucketLock(bucket.getName()).readLock().lock();
+				getLockService().getBucketLock(bucket.getName()).readLock().lock();
 			
 				try {
 							
@@ -311,7 +317,6 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 					
 				} finally {
 					getLockService().getBucketLock(meta.bucketName).readLock().unlock();
-				
 				}
 			} 
 		} 
@@ -326,9 +331,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 	 *
 	 */
 	
-	protected void onAfterCommit(VFSBucket bucket, String objectName, int previousVersion, int currentVersion) {
-	}
-	
+	protected void onAfterCommit(VFSBucket bucket, String objectName, int previousVersion, int currentVersion) {}
 	
 	
 	protected void rollbackJournal(VFSOperation op, boolean recoveryMode) {
@@ -466,7 +469,6 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 				
 			} catch (Exception e) {
 				isMainException = true;
-				logger.error(e);
 				throw new InternalCriticalException(e,  "b:"   + (Optional.ofNullable(bucket).isPresent()    ? (bucket.getName())  :"null") + 
 														", o:" + (Optional.ofNullable(objectName).isPresent() ? (objectName)       :"null") +  
 														", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)     :"null"));		
@@ -571,8 +573,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 			}
 			
 		} catch (Exception e) {
-				String msg = "b:" + bucket.getName() + " o:"+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null");	
-				throw new InternalCriticalException(e,msg);
+				throw new InternalCriticalException(e,"b:" + bucket.getName() + " o:"+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null"));
 		}
 	}
 	

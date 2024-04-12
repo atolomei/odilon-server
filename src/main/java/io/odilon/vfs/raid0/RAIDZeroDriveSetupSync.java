@@ -333,7 +333,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 											this.cleaned.getAndIncrement();
 										
 										} catch (Exception e) {
-											logger.error(e);
+											logger.error(e, ServerConstant.NOT_THROWN);
 											this.errors.getAndIncrement();
 										}
 									}
@@ -342,7 +342,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 									this.notAvailable.getAndIncrement();
 								}
 							} catch (Exception e) {
-								logger.error(e);
+								logger.error(e, ServerConstant.NOT_THROWN);
 								this.errors.getAndIncrement();
 							}
 							return null;
@@ -351,10 +351,10 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 					
 					try {
 						
-						executor.invokeAll(tasks, 10, TimeUnit.MINUTES);
+						executor.invokeAll(tasks, 15, TimeUnit.MINUTES);
 						
 					} catch (InterruptedException e) {
-						logger.error(e);
+						logger.error(e, ServerConstant.NOT_THROWN);
 					}
 					
 					offset += Long.valueOf(Integer.valueOf(bucketItems.getList().size()).longValue());
@@ -500,9 +500,9 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 					}
 					
 					try {
-						executor.invokeAll(tasks, 10, TimeUnit.MINUTES);
+						executor.invokeAll(tasks, 15, TimeUnit.MINUTES);
 					} catch (InterruptedException e) {
-						logger.error(e);
+						logger.error(e, ServerConstant.NOT_THROWN);
 					}
 					
 					offset += Long.valueOf(Integer.valueOf(data.getList().size()).longValue());
@@ -512,7 +512,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 			
 			try {
 				executor.shutdown();
-				executor.awaitTermination(10, TimeUnit.MINUTES);
+				executor.awaitTermination(15, TimeUnit.MINUTES);
 				
 			} catch (InterruptedException e) {
 			}
