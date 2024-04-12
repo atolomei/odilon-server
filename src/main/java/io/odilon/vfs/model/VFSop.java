@@ -43,7 +43,7 @@ public enum VFSop {
 	CREATE_SERVER_METADATA 				("create_server_metadata", 70, "s"), 	// 11
 	UPDATE_SERVER_METADATA 				("update_server_metadata", 88, "s"), 	// 12
 	
-	CREATE_SERVER_MASTERKEY		 		("create_server_key", 90, "s"); 		// 12
+	CREATE_SERVER_MASTERKEY		 		("create_server_key", 90, "s"); 		// 13
 	
 	private String name;
 	private int code;

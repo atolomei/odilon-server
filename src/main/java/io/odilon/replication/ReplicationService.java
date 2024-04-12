@@ -261,21 +261,34 @@ public class ReplicationService extends BaseService implements ApplicationContex
 	public void enqueue(VFSOperation opx) {
 		
 		switch (opx.getOp()) {
+		
 			case CREATE_BUCKET:
 			case UPDATE_BUCKET: 
 			case DELETE_BUCKET:
+				
 			case CREATE_OBJECT:
 			case UPDATE_OBJECT:
 			case DELETE_OBJECT:
+			
+			case RESTORE_OBJECT_PREVIOUS_VERSION:	
 				this.schedulerService.enqueue(getApplicationContext().getBean(StandByReplicaServiceRequest.class, opx)); 
 				break;
+				
 			/** operations that do not propagate */
-			case UPDATE_OBJECT_METADATA: 
+			case UPDATE_OBJECT_METADATA:
+				
 			case CREATE_SERVER_METADATA: 
 			case UPDATE_SERVER_METADATA:
 				break;
-			default:
-				logger.error(opx.getOp().toString() + " -> not recognized");
+								
+			default: {
+				try {
+					logger.error(opx.getOp().toString() + " -> not recognized | " + ServerConstant.NOT_THROWN);
+				
+				} catch (Exception e) {
+					logger.error(e, ServerConstant.NOT_THROWN);
+				}
+			}
 		}
 	}
 
@@ -302,6 +315,9 @@ public class ReplicationService extends BaseService implements ApplicationContex
 			case CREATE_OBJECT:	replicateCreateObject(opx);	break;
 			case UPDATE_OBJECT:	replicateUpdateObject(opx);	break;
 			case DELETE_OBJECT:	replicateDeleteObject(opx);	break;
+			
+			case RESTORE_OBJECT_PREVIOUS_VERSION:	this.replicateRestoreObjectPreviousVersion(opx); break;
+			
 			
 			case CREATE_SERVER_METADATA:  logger.debug("server metadata belongs to the particular server. It is not replicated -> " + opx.toString()); break;
 			case UPDATE_OBJECT_METADATA:  logger.debug("object metadata belongs to the particular server. It is not replicated -> " + opx.toString()); break;
@@ -417,6 +433,55 @@ public class ReplicationService extends BaseService implements ApplicationContex
 		
 	}
 
+	
+	
+	
+	
+	
+	/**
+	 * @param opx
+	 */					
+	private void replicateRestoreObjectPreviousVersion(VFSOperation opx) {
+		
+		Check.requireNonNullArgument(opx, "opx is null");
+		
+		getLockService().getBucketLock(opx.getBucketName()).readLock().lock();
+
+		try {
+		
+			getLockService().getObjectLock(opx.getBucketName(), opx.getObjectName()).readLock().lock();
+				
+			try {
+					if (getVFS().existsObject(opx.getBucketName(), opx.getObjectName())) {
+						
+						try {
+							
+							if (getClient().isVersionControl()) {
+								getClient().restoreObjectPreviousVersions(opx.getBucketName(), opx.getObjectName());
+							}
+							else {
+								ObjectMetadata meta=getVFS().getObjectMetadata(opx.getBucketName(), opx.getObjectName());
+								getClient().putObjectStream(opx.getBucketName(), opx.getObjectName(), getVFS().getObjectStream(opx.getBucketName(), opx.getObjectName()), meta.fileName);	
+							}
+							
+							getMonitoringService().getReplicationObjectUpdateCounter().inc();
+							
+						} catch (IOException e) {
+							throw new InternalCriticalException(e, opx.toString());
+						}
+					}
+			} catch (ODClientException e) {
+				throw new InternalCriticalException(e, "replicateRestoreObjectPreviousVersion");
+			}			
+			finally {
+					getLockService().getObjectLock(opx.getBucketName(), opx.getObjectName()).readLock().unlock();
+			}
+		} finally {
+			getLockService().getBucketLock(opx.getBucketName()).readLock().unlock();	
+		}
+	}
+	
+	
 	
 	/**
 	 * @param opx

@@ -264,6 +264,7 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 		ServerSettings settingsService = getAppContext().getBean(ServerSettings.class);
 		if (settingsService.getServerMode().equals(ServerConstant.STANDBY_MODE)) {
 			startupLogger.info("Server is running in mode -> " + settingsService.getServerMode());
+			startupLogger.error(ServerConstant.SEPARATOR);
 		}
 		else {
 			ReplicationService replicationService = getAppContext().getBean(ReplicationService.class);

@@ -231,9 +231,13 @@ public class ODJournalService extends BaseService implements JournalService {
 				this.ops.remove(opx.getId());
 				
 			} catch (Exception e) {
+				
 				if (this.serverSettings.isStandByEnabled()) {
+					
 					logger.debug("rollback replication -> " + opx.toString());
 					this.replicationService.cancel(opx);
+					
+					
 				}
 				throw e;
 			}
