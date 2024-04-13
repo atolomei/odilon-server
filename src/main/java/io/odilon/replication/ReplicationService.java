@@ -316,7 +316,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 			case UPDATE_OBJECT:	replicateUpdateObject(opx);	break;
 			case DELETE_OBJECT:	replicateDeleteObject(opx);	break;
 			
-			case RESTORE_OBJECT_PREVIOUS_VERSION:	this.replicateRestoreObjectPreviousVersion(opx); break;
+			case RESTORE_OBJECT_PREVIOUS_VERSION: this.replicateRestoreObjectPreviousVersion(opx); break;
 			
 			
 			case CREATE_SERVER_METADATA:  logger.debug("server metadata belongs to the particular server. It is not replicated -> " + opx.toString()); break;
@@ -453,22 +453,16 @@ public class ReplicationService extends BaseService implements ApplicationContex
 				
 			try {
 					if (getVFS().existsObject(opx.getBucketName(), opx.getObjectName())) {
-						
-						try {
 							
 							if (getClient().isVersionControl()) {
 								getClient().restoreObjectPreviousVersions(opx.getBucketName(), opx.getObjectName());
 							}
 							else {
-								ObjectMetadata meta=getVFS().getObjectMetadata(opx.getBucketName(), opx.getObjectName());
-								getClient().putObjectStream(opx.getBucketName(), opx.getObjectName(), getVFS().getObjectStream(opx.getBucketName(), opx.getObjectName()), meta.fileName);	
+								logger.error("Standby Server does not support version control, it is not possible to restore -> b: " + opx.getBucketName() +" o:" + opx.getObjectName() );
+								//ObjectMetadata meta=getVFS().getObjectMetadata(opx.getBucketName(), opx.getObjectName());
+								//getClient().putObjectStream(opx.getBucketName(), opx.getObjectName(), getVFS().getObjectStream(opx.getBucketName(), opx.getObjectName()), meta.fileName);	
 							}
-							
 							getMonitoringService().getReplicationObjectUpdateCounter().inc();
-							
-						} catch (IOException e) {
-							throw new InternalCriticalException(e, opx.toString());
-						}
 					}
 			} catch (ODClientException e) {
 				throw new InternalCriticalException(e, "replicateRestoreObjectPreviousVersion");
@@ -488,7 +482,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 	 */
 	private void replicateUpdateObject(VFSOperation opx) {
 		
-		Check.requireNonNullArgument(opx, "opx is null");
+		Check.requireNonNullArgument(opx,"opx is null");
 		
 		getLockService().getBucketLock(opx.getBucketName()).readLock().lock();
 

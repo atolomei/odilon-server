@@ -141,8 +141,6 @@ public class ODLockService extends BaseService implements LockService {
 		 			if (exit())
 		 				return;
 		 			
-		 			
-		 			
 		 			if (objectLocks.size() > 0) {
 			 		
 						long maxToPurge = Math.round(ratePerMillisec * maxTimeToSleepMillisec) + (long) (ratePerMillisec * 1000.0);
@@ -172,12 +170,9 @@ public class ODLockService extends BaseService implements LockService {
 					
 		 			}
 		 			
-		 			
-		 			
-		 			
 		 			{
 		 			
-	 				if (fileCacheLocks.size() > 0) {
+	 				if (fileCacheLocks.size() > 0) { // FC>0
 		 				
 						try {
 							
@@ -206,8 +201,7 @@ public class ODLockService extends BaseService implements LockService {
 				 			} finally {
 				 			}
 						
-			 			} // (fileCacheLocks.size() > 0)
-	 				
+			 			} // FC>0
 	 				
 		 			}
 		 		}

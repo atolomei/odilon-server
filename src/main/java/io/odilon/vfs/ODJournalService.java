@@ -87,7 +87,7 @@ public class ODJournalService extends BaseService implements JournalService {
 	@JsonIgnore
 	@Autowired
 	private ReplicationService replicationService;
-
+	
 	@JsonIgnore
 	@Autowired
 	private SchedulerService schedulerService;
@@ -99,12 +99,10 @@ public class ODJournalService extends BaseService implements JournalService {
 	@Autowired
 	@JsonIgnore
     private ApplicationEventPublisher applicationEventPublisher;
-	
-	
+
+
 	public ODJournalService() {
 	}
-	
-	
 	
 	@Override														
 	public VFSOperation saveServerKey() {
@@ -136,45 +134,44 @@ public class ODJournalService extends BaseService implements JournalService {
 	@Override								
 	public VFSOperation deleteObjectPreviousVersions(String bucketName, String objectName, int currentHeadVersion) {
 		return createNew(VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS, 
-				Optional.of(bucketName), 
-				Optional.ofNullable(objectName), 
-				Optional.of(Integer.valueOf(currentHeadVersion)));
+						 Optional.of(bucketName), 
+						 Optional.ofNullable(objectName), 
+						 Optional.of(Integer.valueOf(currentHeadVersion)));
 	}
 	
 	@Override							
 	public VFSOperation syncObject(String bucketName, String objectName) {
 		return createNew(VFSop.SYNC_OBJECT_NEW_DRIVE, 
-				Optional.of(bucketName), 
-				Optional.ofNullable(objectName), 
-				Optional.empty());
+						 Optional.of(bucketName), 
+						 Optional.ofNullable(objectName), 
+						 Optional.empty());
 	}
-	
 	
 	@Override			
 	public VFSOperation deleteObject(String bucketName, String objectName, int currentHeadVersion) {
 		return createNew(VFSop.DELETE_OBJECT, 
-				Optional.of(bucketName), 
-				Optional.ofNullable(objectName), 
-				Optional.of(Integer.valueOf(currentHeadVersion)));
+						 Optional.of(bucketName), 
+						 Optional.ofNullable(objectName), 
+						 Optional.of(Integer.valueOf(currentHeadVersion)));
 	}
 	
 	@Override
 	public VFSOperation restoreObjectPreviousVersion(String bucketName, String objectName, int currentHeadVersion) {
 		return createNew(VFSop.RESTORE_OBJECT_PREVIOUS_VERSION, 
-				Optional.of(bucketName), 
-				Optional.ofNullable(objectName), 
-				Optional.of(Integer.valueOf(currentHeadVersion)));
+						 Optional.of(bucketName), 
+						 Optional.ofNullable(objectName), 
+						 Optional.of(Integer.valueOf(currentHeadVersion)));
 	}
 	
 	/**
-  	 *
-	 */
+	 * 
+  	 */
 	@Override
 	public VFSOperation createObject(String bucketName, String objectName) {
-		return createNew(	VFSop.CREATE_OBJECT, 
-							Optional.of(bucketName), 
-							Optional.ofNullable(objectName), 
-							Optional.of(Integer.valueOf(0)));
+		return createNew(VFSop.CREATE_OBJECT, 
+						 Optional.of(bucketName), 
+						 Optional.ofNullable(objectName), 
+						 Optional.of(Integer.valueOf(0)));
 	}
 
 	/**
@@ -182,18 +179,21 @@ public class ODJournalService extends BaseService implements JournalService {
 	 */
 	@Override
 	public VFSOperation updateObject(String bucketName, String objectName, int version) {
-		return createNew(	VFSop.UPDATE_OBJECT, 
-							Optional.of(bucketName), 
-							Optional.ofNullable(objectName), 
-							Optional.of(Integer.valueOf(version)));
+		return createNew(VFSop.UPDATE_OBJECT, 
+						 Optional.of(bucketName), 
+						 Optional.ofNullable(objectName), 
+						 Optional.of(Integer.valueOf(version)));
 	}
 
+	/**
+	 * 
+	 */
 	@Override
 	public VFSOperation updateObjectMetadata(String bucketName, String objectName, int version) {
-		return createNew(	VFSop.UPDATE_OBJECT_METADATA, 
-							Optional.of(bucketName), 
-							Optional.ofNullable(objectName), 
-							Optional.of(Integer.valueOf(version)));
+		return createNew(VFSop.UPDATE_OBJECT_METADATA, 
+						 Optional.of(bucketName), 
+						 Optional.ofNullable(objectName), 
+						 Optional.of(Integer.valueOf(version)));
 	}
 	
 	
@@ -209,7 +209,6 @@ public class ODJournalService extends BaseService implements JournalService {
 	 * on recovery
 	 * rollback op -> 1. remove op from replica, remove op from local ops
 	 * 
-	 * 
 	 */
 	@Override
 	public boolean commit(VFSOperation opx) {
@@ -220,10 +219,10 @@ public class ODJournalService extends BaseService implements JournalService {
 		synchronized (this) {
 			
 			CacheEvent event = new CacheEvent(opx);
-	        this.applicationEventPublisher.publishEvent(event);
+			getApplicationEventPublisher().publishEvent(event);
 			
-			if (this.serverSettings.isStandByEnabled())
-				this.replicationService.enqueue(opx);
+			if (getServerSettings().isStandByEnabled())
+				getReplicationService().enqueue(opx);
 			
 			try {
 				
@@ -232,11 +231,10 @@ public class ODJournalService extends BaseService implements JournalService {
 				
 			} catch (Exception e) {
 				
-				if (this.serverSettings.isStandByEnabled()) {
+				if (getServerSettings().isStandByEnabled()) {
 					
 					logger.debug("rollback replication -> " + opx.toString());
-					this.replicationService.cancel(opx);
-					
+					getReplicationService().cancel(opx);
 					
 				}
 				throw e;
@@ -256,7 +254,7 @@ public class ODJournalService extends BaseService implements JournalService {
 			try {
 				
 				CacheEvent event = new CacheEvent(opx);
-		        this.applicationEventPublisher.publishEvent(event);
+		        getApplicationEventPublisher().publishEvent(event);
 		        
 				getVFS().removeJournal(opx.getId());
 				
@@ -270,17 +268,10 @@ public class ODJournalService extends BaseService implements JournalService {
 		return true;
 	}
 
-	@Override
-	public String toString() {
-		StringBuilder str = new StringBuilder();
-		str.append(this.getClass().getSimpleName());
-		str.append(toJSON());
-		return str.toString();
-	}
-
+	
 	public VirtualFileSystemService getVFS() {
 		if (this.virtualFileSystemService==null) {
-			logger.error("The " + VirtualFileSystemService.class.getName() + " must be setted during the @PostConstruct method of the " + JournalService.class.getName() + " instance. It can not be injected via AutoWired beacause of circular dependencies.");
+			logger.error("The " + VirtualFileSystemService.class.getName() + " must be set during the @PostConstruct method of the " + JournalService.class.getName() + " instance. It can not be injected via AutoWired beacause of circular dependencies.");
 			throw new IllegalStateException(VirtualFileSystemService.class.getName() + " is null. it must be setted during the @PostConstruct method of the " + JournalService.class.getName() + " instance");
 		}
 		return this.virtualFileSystemService;
@@ -288,6 +279,22 @@ public class ODJournalService extends BaseService implements JournalService {
 	
 	public synchronized void setVFS(VirtualFileSystemService virtualFileSystemService) {
 		this.virtualFileSystemService=virtualFileSystemService;
+	}
+
+	
+	public ServerSettings getServerSettings() {
+		return this.serverSettings;
+	}
+
+	
+	@Override
+	public synchronized String newOperationId() {
+		return String.valueOf(System.nanoTime());
+	}
+
+	
+	public ReplicationService getReplicationService() {
+		return this.replicationService;
 	}
 	
 	@PostConstruct
@@ -299,11 +306,6 @@ public class ODJournalService extends BaseService implements JournalService {
 		}
 	}
 
-	@Override
-	public synchronized String newOperationId() {
-		return String.valueOf(System.nanoTime());
-	}
-	
 	private RedundancyLevel getRedundancyLevel() {
 		return this.virtualFileSystemService.getRedundancyLevel();
 	}
@@ -313,6 +315,11 @@ public class ODJournalService extends BaseService implements JournalService {
 			getVFS().saveJournal(odop);
 			this.ops.put(odop.getId(), odop);
 			return odop;
+	}
+
+	
+	private ApplicationEventPublisher getApplicationEventPublisher() {
+		return this.applicationEventPublisher;
 	}
 
 }
