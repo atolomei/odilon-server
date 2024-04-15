@@ -65,7 +65,9 @@ public class ReplicationService extends BaseService implements ApplicationContex
 
 	static private Logger logger = Logger.getLogger(ReplicationService.class.getName());
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
-						
+	
+	
+	
 	@JsonIgnore 
 	private OdilonClient client;
 	
@@ -270,15 +272,20 @@ public class ReplicationService extends BaseService implements ApplicationContex
 			case UPDATE_OBJECT:
 			case DELETE_OBJECT:
 			
-			case RESTORE_OBJECT_PREVIOUS_VERSION:	
+			case DELETE_OBJECT_PREVIOUS_VERSIONS:				
+			case RESTORE_OBJECT_PREVIOUS_VERSION:
+				
 				this.schedulerService.enqueue(getApplicationContext().getBean(StandByReplicaServiceRequest.class, opx)); 
 				break;
-				
+
 			/** operations that do not propagate */
+
 			case UPDATE_OBJECT_METADATA:
-				
 			case CREATE_SERVER_METADATA: 
 			case UPDATE_SERVER_METADATA:
+			case SYNC_OBJECT_NEW_DRIVE:
+			case CREATE_SERVER_MASTERKEY:
+				
 				break;
 								
 			default: {
@@ -317,7 +324,8 @@ public class ReplicationService extends BaseService implements ApplicationContex
 			case DELETE_OBJECT:	replicateDeleteObject(opx);	break;
 			
 			case RESTORE_OBJECT_PREVIOUS_VERSION: this.replicateRestoreObjectPreviousVersion(opx); break;
-			
+			case DELETE_OBJECT_PREVIOUS_VERSIONS: this.replicateDeleteObjectPreviousVersion(opx); break;
+				
 			
 			case CREATE_SERVER_METADATA:  logger.debug("server metadata belongs to the particular server. It is not replicated -> " + opx.toString()); break;
 			case UPDATE_OBJECT_METADATA:  logger.debug("object metadata belongs to the particular server. It is not replicated -> " + opx.toString()); break;
@@ -365,6 +373,14 @@ public class ReplicationService extends BaseService implements ApplicationContex
 		return monitoringService;
 	}
 
+	public boolean isVersionControl() {
+		try {
+			return getClient().isVersionControl();
+		} catch (ODClientException e) {
+			throw new InternalCriticalException(e);
+		}
+	}
+	
 	protected OdilonClient getClient() {
 		return client;
 	}
@@ -400,15 +416,11 @@ public class ReplicationService extends BaseService implements ApplicationContex
 							throw new InternalCriticalException(e, opx.toString());
 						}
 						
-						
+						/**
 						if (getServerSettings().isVersionControl()) {
 							if (getClient().isVersionControl()) {
-								// ----
-								// TODO AT ( versiones anteriores )
-								// ----
 								for (ObjectMetadata omVersion: getVFS().getObjectMetadataAllVersions(opx.getBucketName(), opx.getObjectName())) {
 									logger.debug(omVersion.toString());
-									
 									((ODClient) getClient()).putObjectStreamVersion(	opx.getBucketName(), 
 																						opx.getObjectName(), 
 																						getVFS().getObjectVersion(opx.getBucketName(), opx.getObjectName(), omVersion.version), 
@@ -418,6 +430,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 
 							}
 						}
+						**/
 					}
 					
 					
@@ -435,6 +448,41 @@ public class ReplicationService extends BaseService implements ApplicationContex
 
 	
 	
+	/**
+	 * @param opx
+	 */								
+	private void replicateDeleteObjectPreviousVersion(VFSOperation opx) {
+		
+		Check.requireNonNullArgument(opx, "opx is null");
+		
+		getLockService().getBucketLock(opx.getBucketName()).readLock().lock();
+
+		try {
+		
+			getLockService().getObjectLock(opx.getBucketName(), opx.getObjectName()).readLock().lock();
+				
+			try {
+					if (getVFS().existsObject(opx.getBucketName(), opx.getObjectName())) {
+							
+							if (getClient().isVersionControl()) {
+								getClient().deleteObjectAllVersions(opx.getBucketName(), opx.getObjectName());
+							}
+							else {
+								logger.error("Standby Server does not support Version Control, it is not possible to delete previous versions -> b: " + opx.getBucketName() +" o:" + opx.getObjectName() );
+							}
+							getMonitoringService().getReplicationObjectUpdateCounter().inc();
+					}
+			} catch (ODClientException e) {
+				throw new InternalCriticalException(e, "replicateRestoreObjectPreviousVersion");
+			}			
+			finally {
+					getLockService().getObjectLock(opx.getBucketName(), opx.getObjectName()).readLock().unlock();
+			}
+		} finally {
+			getLockService().getBucketLock(opx.getBucketName()).readLock().unlock();	
+		}
+	}
+
 	
 	
 	

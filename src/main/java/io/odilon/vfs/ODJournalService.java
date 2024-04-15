@@ -81,9 +81,13 @@ public class ODJournalService extends BaseService implements JournalService {
 	@JsonIgnore
 	private VirtualFileSystemService virtualFileSystemService;
 
-	@JsonIgnore
+	@JsonIgnore									
 	private Map<String, VFSOperation> ops = new ConcurrentHashMap<String, VFSOperation>();
 	
+
+	@JsonIgnore
+	private Map<String, VFSOperation> commiteddReplicaOps = new ConcurrentHashMap<String, VFSOperation>();
+
 	@JsonIgnore
 	@Autowired
 	private ReplicationService replicationService;
@@ -209,6 +213,8 @@ public class ODJournalService extends BaseService implements JournalService {
 	 * on recovery
 	 * rollback op -> 1. remove op from replica, remove op from local ops
 	 * 
+	 * </p>
+	 * 
 	 */
 	@Override
 	public boolean commit(VFSOperation opx) {
@@ -218,8 +224,7 @@ public class ODJournalService extends BaseService implements JournalService {
 
 		synchronized (this) {
 			
-			CacheEvent event = new CacheEvent(opx);
-			getApplicationEventPublisher().publishEvent(event);
+			getApplicationEventPublisher().publishEvent(new CacheEvent(opx));
 			
 			if (getServerSettings().isStandByEnabled())
 				getReplicationService().enqueue(opx);
@@ -230,9 +235,7 @@ public class ODJournalService extends BaseService implements JournalService {
 				this.ops.remove(opx.getId());
 				
 			} catch (Exception e) {
-				
 				if (getServerSettings().isStandByEnabled()) {
-					
 					logger.debug("rollback replication -> " + opx.toString());
 					getReplicationService().cancel(opx);
 					
@@ -242,6 +245,14 @@ public class ODJournalService extends BaseService implements JournalService {
 		}
 		return true;
 	}
+	
+
+	//public boolean isCommited(String opid) {
+	//	return commiteddReplicaOps.containsKey(opid);
+	//}
+
+	
+	
 	
 	@Override
 	public  boolean cancel(VFSOperation opx) {
