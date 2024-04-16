@@ -137,6 +137,8 @@ public class ObjectControllerPresigned extends BaseApiController {
 			
 			InputStream in = object.getInputStream();
 		    
+			getSystemMonitorService().getGetObjectMeter().mark();
+			
 			return ResponseEntity.ok()
 			  .headers(responseHeaders)
 		      .contentType(contentType)

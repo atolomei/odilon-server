@@ -120,6 +120,8 @@ public interface VirtualFileSystemService extends SystemService {
 	 * Bucket
 	 */
 	public VFSBucket createBucket(String bucketName) throws IOException;
+	public VFSBucket renameBucketName(String name, String newBucketName);
+	
 	public VFSBucket getBucket(String bucketName);
 	public boolean existsBucket(String bucketName);
 	public boolean isEmpty(VFSBucket bucket);
@@ -223,6 +225,9 @@ public interface VirtualFileSystemService extends SystemService {
 
 	
 	public ApplicationContext getApplicationContext();
+
+
+
 	
 
 }

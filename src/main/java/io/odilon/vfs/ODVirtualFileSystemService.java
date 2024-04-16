@@ -153,9 +153,9 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
     private final ApplicationEventPublisher applicationEventPublisher;
 	
 	
-	
-	
-	/** Cache of decoded Files in File System, used only in RAID 6 */
+	/** 
+	 * Cache of decoded Files in File System, used only in RAID 6 
+	 * */
 	@JsonIgnore
 	@Autowired
 	private final FileCacheService fileCacheService;
@@ -328,6 +328,21 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 		return createVFSIODriver().createBucket(bucketName);
 	}
 	
+	
+	
+	@Override
+	public VFSBucket renameBucketName(String bucketName, String newBucketName) {
+		
+		Check.requireNonNullStringArgument(newBucketName, "newBucketName can not be null or empty");
+		Check.requireTrue(this.buckets.containsKey(bucketName), "bucket does not exist | b: " + bucketName);
+		
+		if (!newBucketName.matches(SharedConstant.bucket_valid_regex)) 
+			throw new IllegalArgumentException("bucketName contains invalid character | regular expression is -> " + SharedConstant.bucket_valid_regex +" |  b:" + newBucketName);
+		
+		throw new InternalCriticalException("method not implemented");
+		
+	}
+	
 	/**
 	 * <p>Deletes the bucket folder in every Drive
 	 * mark as deleted on all drives
@@ -340,27 +355,34 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	}
 
 	/**
+	 * 
 	 */
 	@Override
 	public void removeBucket(String bucketName) {
 		Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
 		removeBucket(buckets.get(bucketName), false);
 	}
+	
 	/**
+	 * 
 	 */
 	@Override
 	public void forceRemoveBucket(String bucketName) {
 		Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
 		removeBucket(buckets.get(bucketName), true);
 	}
+	
 	/**
+	 * 
 	 */
 	@Override
 	public boolean existsBucket(String bucketName) {
 		Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
 		return (this.buckets.containsKey(bucketName));
 	}
+	
 	/**
+	 * 
 	 */
 	@Override
 	public boolean isEmptyBucket(String bucketName) {
@@ -378,6 +400,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 		Check.requireTrue(this.buckets.containsKey(bucket.getName()), "bucket does not exist or is not Accesible | b: " + bucket.getName());
 		return createVFSIODriver().isEmpty(bucket);
 	}
+	
 	/**
 	 * 
 	 */
@@ -400,6 +423,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	}
 
 	/**
+	 * 
 	 */
 	@Override
 	public void putObject(VFSBucket bucket, String objectName, InputStream stream, String fileName, String contentType) {
@@ -410,6 +434,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	}
 
 	/**
+	 * 
 	 */
 	@Override
 	public VFSObject getObject(VFSBucket bucket, String objectName) {
@@ -419,6 +444,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	}
 
 	/**
+	 * 
 	 */
 	@Override
 	public VFSObject getObject(String bucketName, String objectName) {
@@ -443,7 +469,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 
 	/**
 	 * <p>
-	 * <pre>IMPORTANT</pre> 
+	 * <pre>IMPORTANT</pre>
 	 * caller must close the {@link InputStream} returned
 	 * </p>
 	 * @throws IOException
@@ -556,8 +582,6 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 		return this.drivesAll;
 	}
 
-	
-	
 	/**
 	 * 
 	 */
@@ -609,8 +633,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	public FileCacheService getFileCacheService() {
 		return  this.fileCacheService;
 	}
-	
-	
+
 	@Override
 	public ObjectMetadataCacheService getObjectMetadataCacheService() {
 		return this.objectCacheService;
@@ -629,7 +652,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	@Override
 	public IODriver createVFSIODriver() {
 												
-		if (this.raid==RedundancyLevel.RAID_0) return getApplicationContext().getBean(RAIDZeroDriver.class,  this, vfsLockService);
+		if (this.raid==RedundancyLevel.RAID_0) return getApplicationContext().getBean(RAIDZeroDriver.class, this, vfsLockService);
 		if (this.raid==RedundancyLevel.RAID_1) return getApplicationContext().getBean(RAIDOneDriver.class, this, vfsLockService);
 		if (this.raid==RedundancyLevel.RAID_6) return getApplicationContext().getBean(RAIDSixDriver.class, this, vfsLockService);
 
@@ -790,10 +813,6 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	}
 
 	
-	private String getEnableEncryptionScriptName() {
-		return isLinux() ? ServerConstant.ENABLE_ENCRYPTION_SCRIPT_LINUX : ServerConstant.ENABLE_ENCRYPTION_SCRIPT_WINDOWS;
-	}
-
 	public ApplicationEventPublisher getApplicationEventPublisher() {
 		return this.applicationEventPublisher;
 	}
@@ -1379,6 +1398,11 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 		}
 
 	}
+	
+	private String getEnableEncryptionScriptName() {
+		return isLinux() ? ServerConstant.ENABLE_ENCRYPTION_SCRIPT_LINUX : ServerConstant.ENABLE_ENCRYPTION_SCRIPT_WINDOWS;
+	}
+
 
 }
 

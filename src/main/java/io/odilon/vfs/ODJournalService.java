@@ -83,11 +83,10 @@ public class ODJournalService extends BaseService implements JournalService {
 
 	@JsonIgnore									
 	private Map<String, VFSOperation> ops = new ConcurrentHashMap<String, VFSOperation>();
-	
 
 	@JsonIgnore
-	private Map<String, VFSOperation> commiteddReplicaOps = new ConcurrentHashMap<String, VFSOperation>();
-
+	private Map<String, String> ops_aborted = new ConcurrentHashMap<String, String>();
+	
 	@JsonIgnore
 	@Autowired
 	private ReplicationService replicationService;
@@ -104,7 +103,9 @@ public class ODJournalService extends BaseService implements JournalService {
 	@JsonIgnore
     private ApplicationEventPublisher applicationEventPublisher;
 
-
+	@JsonIgnore
+	private boolean isStandBy;
+	
 	public ODJournalService() {
 	}
 	
@@ -223,35 +224,47 @@ public class ODJournalService extends BaseService implements JournalService {
 			return true;
 
 		synchronized (this) {
-			
+		
 			getApplicationEventPublisher().publishEvent(new CacheEvent(opx));
-			
-			if (getServerSettings().isStandByEnabled())
-				getReplicationService().enqueue(opx);
-			
+				
 			try {
 				
+				if (isStandBy())
+					getReplicationService().enqueue(opx);
+				
 				getVFS().removeJournal(opx.getId());
-				this.ops.remove(opx.getId());
+				getOps().remove(opx.getId());
 				
 			} catch (Exception e) {
-				if (getServerSettings().isStandByEnabled()) {
+				if (isStandBy()) {
+					getOpsAborted().put(opx.getId(), opx.getId());
 					logger.debug("rollback replication -> " + opx.toString());
 					getReplicationService().cancel(opx);
 					
 				}
 				throw e;
 			}
+			
+			return true;
 		}
-		return true;
+		
 	}
 	
 
-	//public boolean isCommited(String opid) {
-	//	return commiteddReplicaOps.containsKey(opid);
-	//}
-
 	
+	
+	public boolean isExecuting(String opid) {
+		return getOps().containsKey(opid);
+	}
+	
+
+	public boolean isAborted(String opid) {
+		return getOpsAborted().containsKey(opid);
+	}
+	
+	public void removeAborted(String opid) {
+		getOpsAborted().remove(opid);
+	}
 	
 	
 	@Override
@@ -273,7 +286,7 @@ public class ODJournalService extends BaseService implements JournalService {
 				logger.error(e, "this is normally not a critical Exception (the op may have saved in some of the drives and not in others due to a crash)", ServerConstant.NOT_THROWN);
 			}
 			logger.debug("Cancel ->" + opx.toString());
-			this.ops.remove(opx.getId());
+			getOps().remove(opx.getId());
 			
 		}
 		return true;
@@ -297,13 +310,11 @@ public class ODJournalService extends BaseService implements JournalService {
 		return this.serverSettings;
 	}
 
-	
 	@Override
 	public synchronized String newOperationId() {
 		return String.valueOf(System.nanoTime());
 	}
 
-	
 	public ReplicationService getReplicationService() {
 		return this.replicationService;
 	}
@@ -312,11 +323,16 @@ public class ODJournalService extends BaseService implements JournalService {
 	protected void onInitialize() {
 		synchronized (this) {
 			setStatus(ServiceStatus.STARTING);
+			this.isStandBy = getServerSettings().isStandByEnabled();
 			startuplogger.debug("Started -> " + JournalService.class.getSimpleName());
 			setStatus(ServiceStatus.RUNNING);
 		}
 	}
 
+	private boolean isStandBy() {
+		return this.isStandBy;
+	}
+	
 	private RedundancyLevel getRedundancyLevel() {
 		return this.virtualFileSystemService.getRedundancyLevel();
 	}
@@ -324,10 +340,18 @@ public class ODJournalService extends BaseService implements JournalService {
 	private synchronized VFSOperation createNew(VFSop op, Optional<String> bucketName, Optional<String> objectName, Optional<Integer> iVersion) {
 			final VFSOperation odop = new ODVFSOperation(newOperationId(), op, bucketName, objectName, iVersion, getRedundancyLevel() , this);
 			getVFS().saveJournal(odop);
-			this.ops.put(odop.getId(), odop);
+			getOps().put(odop.getId(), odop);
 			return odop;
 	}
 
+
+	private Map<String, VFSOperation> getOps() {
+		return this.ops;
+	}
+	
+	private Map<String, String> getOpsAborted() {
+		return this.ops_aborted;
+	}
 	
 	private ApplicationEventPublisher getApplicationEventPublisher() {
 		return this.applicationEventPublisher;

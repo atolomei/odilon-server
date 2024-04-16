@@ -25,7 +25,7 @@ import io.odilon.model.RedundancyLevel;
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
-public interface VFSOperation {
+public interface VFSOperation{
 
 	public VFSop getOp();
 	

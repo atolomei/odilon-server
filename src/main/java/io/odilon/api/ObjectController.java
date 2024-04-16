@@ -262,6 +262,7 @@ public class ObjectController extends BaseApiController  {
 				InputStream in = getObjectStorageService().getObjectPreviousVersionStream(bucketName, objectName, version.get().intValue());
 				
 				getSystemMonitorService().getGetObjectMeter().mark();
+				
 				 
 				 return ResponseEntity.ok()
 			      .contentType(contentType)
@@ -558,7 +559,7 @@ public class ObjectController extends BaseApiController  {
 				ObjectMetadata meta = getObjectStorageService().getObjectMetadata(bucketName, objectName); 
 				getObjectStorageService().deleteObjectAllPreviousVersions(meta);
 				
-				getSystemMonitorService().getDeleteObjectVersionCounter().inc();
+				getSystemMonitorService().getObjectDeleteAllVersionsCounter().inc();
 				
 				
 			} catch (OdilonServerAPIException e) {
@@ -605,7 +606,9 @@ public class ObjectController extends BaseApiController  {
 
 				getObjectStorageService().restorePreviousVersion(bucketName, objectName);
 
-				getSystemMonitorService().getPutObjectMeter().mark();
+				getSystemMonitorService().getObjectRestorePreviousVersionCounter().inc();
+				
+				
 				
 				
 			} catch (OdilonServerAPIException e) {

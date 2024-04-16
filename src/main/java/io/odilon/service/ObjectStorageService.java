@@ -44,6 +44,9 @@ public interface ObjectStorageService extends SystemService {
 	public List<VFSBucket> findAllBuckets();
 	
 	public VFSBucket createBucket(String bucketName);
+	public VFSBucket updateBucketName(VFSBucket bucket, String newBucketName);
+	
+	
 	public boolean existsBucket(String bucketName);
 	public void forceDeleteBucket(String bucketName);
 	public boolean isEmptyBucket(String bucketName);

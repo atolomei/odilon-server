@@ -106,12 +106,11 @@ public class ODObjectStorageService extends BaseService implements ObjectStorage
 	 * @param encrpytionService
 	 * @param vfs
 	 */
-	public ODObjectStorageService(	ServerSettings serverSettings, 
-									SystemMonitorService montoringService,
-									EncryptionService encrpytionService,
-									VirtualFileSystemService vfs,
-									SystemInfoService systemInfoService
-								) {
+	public ODObjectStorageService( 	ServerSettings serverSettings, 
+									SystemMonitorService montoringService,   
+									EncryptionService encrpytionService, 
+									VirtualFileSystemService vfs, 
+									SystemInfoService systemInfoService ) {
 		
 		this.systemInfoService = systemInfoService;
 		this.serverSettings=serverSettings;
@@ -180,11 +179,6 @@ public class ODObjectStorageService extends BaseService implements ObjectStorage
 		return getVFS().hasVersions(bucketName, objectName);
 	}
 	
-	/** 
-	 *  
-	 *  
-	 *  	 
-	 **/
 	@Override
 	public boolean existsObject(String bucketName, String objectName) {
 		Check.requireTrue(isVFSEnabled(), "VFS invalid state -> " + getVFS().getStatus().toString());
@@ -204,7 +198,8 @@ public class ODObjectStorageService extends BaseService implements ObjectStorage
 		if (getServerSettings().isReadOnly() || getServerSettings().isWORM())
 			throw new IllegalStateException("Illegal operation for data storage mode -> " + getServerSettings().getDataStorage().getName() + " | b: " + bucketName + " o: " + objectName);
 			
-			getVFS().deleteObject(bucketName, objectName);
+		getVFS().deleteObject(bucketName, objectName);
+		
 	}
 	
 	@Override
@@ -287,16 +282,17 @@ public class ODObjectStorageService extends BaseService implements ObjectStorage
 					objectName);
 		
 		try {
-				
 			getVFS().putObject(bucketName, objectName, is, fileName, contentType);
-			
-			
 		} 
 		catch (Exception e) {
 			throw new OdilonInternalErrorException(e);
 		} 
 	}
 
+	
+	/**
+	 * 
+	 */
 	@Override
 	public InputStream getObjectStream(String bucketName, String objectName) {
 		
@@ -331,6 +327,9 @@ public class ODObjectStorageService extends BaseService implements ObjectStorage
 		
 	}
 	
+	/**
+	 * 
+	 */
 	@Override
 	public ObjectMetadata getObjectMetadata(String bucketName, String objectName) {
 		Check.requireTrue(isVFSEnabled(), "VFS invalid state -> " + getVFS().getStatus().toString());	
@@ -338,6 +337,7 @@ public class ODObjectStorageService extends BaseService implements ObjectStorage
 	}
 
 	/**
+	 * 
 	 */
 	@Override
 	public boolean existsBucket(String bucketName) {
@@ -390,6 +390,46 @@ public class ODObjectStorageService extends BaseService implements ObjectStorage
 			throw( new OdilonInternalErrorException(e));
 		}
 	}
+
+	
+	/**
+	 * 
+	 * @param bucketName
+	 * @return
+	 */
+	@Override
+	public VFSBucket updateBucketName(VFSBucket bucket, String newBucketName) {
+		
+		Check.requireNonNullArgument(bucket, "bucket can not be null or empty");
+		Check.requireNonNullStringArgument(newBucketName, "newbucketName can not be null or empty");
+		Check.requireTrue(isVFSEnabled(), "VFS invalid state -> " + getVFS().getStatus().toString());
+		
+		if (getServerSettings().isReadOnly())
+			throw new IllegalStateException("Illegal operation for data storage mode -> " + getServerSettings().getDataStorage().getName() +" | b: " + bucket.getName());
+		
+		if (getServerSettings().isWORM()) {
+				throw new IllegalStateException("Illegal operation for data storage mode -> " + getServerSettings().getDataStorage().getName() +" | b: " + bucket.getName());
+		}
+
+		if (newBucketName.length()<1 || newBucketName.length()>SharedConstant.MAX_BUCKET_CHARS)
+			throw new IllegalArgumentException( "bucketName must be >0 and <" + String.valueOf(SharedConstant.MAX_BUCKET_CHARS) +
+					" and must contain just lowercase letters and numbers, java regex = '" +
+					SharedConstant.bucket_valid_regex + "' | b:" + newBucketName);
+		
+		if (!newBucketName.matches(SharedConstant.bucket_valid_regex)) 
+			throw new IllegalArgumentException( "bucketName must be >0 and <" + String.valueOf(SharedConstant.MAX_BUCKET_CHARS) +
+					" and must contain just lowercase letters and numbers, java regex = '" +
+					SharedConstant.bucket_valid_regex + "' | b:" + newBucketName);
+
+		try {
+
+			return getVFS().renameBucketName(bucket.getName(), newBucketName);
+			
+		} catch (Exception e) {
+			throw( new OdilonInternalErrorException(e));
+		}
+	}
+	
 	
 	/**
 	 * delete all DriveBuckets
@@ -408,6 +448,9 @@ public class ODObjectStorageService extends BaseService implements ObjectStorage
 		getVFS().removeBucket(bucketName);
 	}
 	
+	/**
+	 * 
+	 */
 	@Override
 	public void forceDeleteBucket(String bucketName) {
 		Check.requireTrue(isVFSEnabled(), "VFS invalid state -> " + getVFS().getStatus().toString());
@@ -469,21 +512,6 @@ public class ODObjectStorageService extends BaseService implements ObjectStorage
     	return virtualFileSystemService;
     }
 	
-	@Override
-	public String toJSON() {
-			StringBuilder str = new StringBuilder();
-			str.append(getServerSettings().toJSON());
-			return str.toString();
-	}
-
-	@Override
-	public String toString() {
-		StringBuilder str = new StringBuilder();
-		str.append(this.getClass().getSimpleName());
-		str.append(toJSON());
-		return str.toString();
-	}
-
 	@PostConstruct
 	protected void onInitialize() {
 			synchronized (this) {

@@ -182,7 +182,6 @@ public class StandByReplicaSchedulerWorker extends SchedulerWorker {
 			
 			while ((n++<numThreads) && it.hasNext() && (!done)) {
 				ServiceRequest request = it.next().getValue();
-				
 					if (isCompatible(request, map)) {
 						list.add(request);
 						map.put(((StandByReplicaServiceRequest) request).getVFSOperation().getUUID(), request);

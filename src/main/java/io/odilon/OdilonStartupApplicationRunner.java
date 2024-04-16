@@ -264,12 +264,12 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 		ServerSettings settingsService = getAppContext().getBean(ServerSettings.class);
 		if (settingsService.getServerMode().equals(ServerConstant.STANDBY_MODE)) {
 			startupLogger.info("Server is running in mode -> " + settingsService.getServerMode());
-			startupLogger.error(ServerConstant.SEPARATOR);
+			startupLogger.info(ServerConstant.SEPARATOR);
 		}
 		else {
 			ReplicationService replicationService = getAppContext().getBean(ReplicationService.class);
 			if (settingsService.isStandByEnabled()) {
-				startupLogger.info("Odilon is set up to replicate data to a Standby Server");
+				startupLogger.info("Standby Server -> enabled");
 				
 				startupLogger.info("Standby connection -> " + replicationService.getStandByConnection());
 				String ping = replicationService.pingStandBy();
@@ -282,6 +282,8 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 						startupLogger.error("- Disable Version Control in Master Server");
 						startupLogger.error("- Enable Version Control in Standby Server");
 						startupLogger.error("- Disable Standby replication");
+						
+						startupLogger.error("The server can not continue.");
 						
 						((ConfigurableApplicationContext) getAppContext().getBean(VirtualFileSystemService.class).getApplicationContext()).close();
 						System.exit(1);

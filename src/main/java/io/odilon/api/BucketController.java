@@ -167,6 +167,8 @@ public class BucketController extends BaseApiController  {
 		}
 	}
 
+	
+		
 	/**
 	 * 
 	 * 
@@ -253,6 +255,46 @@ public class BucketController extends BaseApiController  {
 		}
 	}
 
+	
+	/**
+	 * <p>Get a Bucket in JSON format</p>
+	 */
+	@RequestMapping(value = "/rename/{name}/{newname}", produces = "application/json", method = RequestMethod.POST)
+	public ResponseEntity<Bucket> rename(	@PathVariable("name") String name,
+											@PathVariable("newname") String newname) {
+		
+		TrafficPass pass = null;
+		
+		try {
+			
+			pass = getTrafficControlService().getPass();
+			
+			VFSBucket bucket = getObjectStorageService().findBucketName(name);
+			
+			if (bucket==null)															
+				throw new OdilonObjectNotFoundException( ErrorCode.BUCKET_NOT_EXISTS, String.format("bucket does not exist -> %s", name));
+			
+			if (getObjectStorageService().existsBucket(newname)) {
+				throw new OdilonServerAPIException(ODHttpStatus.CONFLICT,ErrorCode.OBJECT_ALREADY_EXIST,String.format("new bucket name already exist -> %s", Optional.ofNullable(newname).orElse("null")));
+			}
+			
+			bucket = getObjectStorageService().updateBucketName(bucket, newname);
+			
+			return new ResponseEntity<Bucket>( new Bucket(bucket.getName(), bucket.getCreationDate(), bucket.getLastModifiedDate(), bucket.getStatus()), HttpStatus.OK);
+		
+		} catch (OdilonServerAPIException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new OdilonInternalErrorException(getMessage(e));
+		}
+		finally { 
+			getTrafficControlService().release(pass);
+			mark();
+		}
+	}
+	
+
+	
 	/**
 	 * 
 	 */
@@ -299,8 +341,7 @@ public class BucketController extends BaseApiController  {
 				getObjectStorageService().deleteBucketByName(name);
 			}
 			else
-				throw new OdilonObjectNotFoundException(ErrorCode.BUCKET_NOT_EXISTS, 
-														String.format("bucket does not exist -> %s", Optional.ofNullable(name).orElse("null")));
+				throw new OdilonObjectNotFoundException(ErrorCode.BUCKET_NOT_EXISTS, String.format("bucket does not exist -> %s", Optional.ofNullable(name).orElse("null")));
 	
 		} catch (OdilonServerAPIException e) {
 			throw e;

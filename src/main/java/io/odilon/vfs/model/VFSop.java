@@ -45,11 +45,12 @@ public enum VFSop {
 	
 	CREATE_SERVER_MASTERKEY		 		("create_server_key", 90, "s"); 		// 13
 	
+	static List<VFSop> ops;
+	
 	private String name;
 	private int code;
 	private String enttiyGroupCode;
 	
-	static List<VFSop> ops;
 	
 	public static VFSop fromId(String id) {
 		
@@ -57,8 +58,7 @@ public enum VFSop {
 			throw new IllegalArgumentException("id is null");
 			
 		try {
-			int value = Integer.valueOf(id).intValue();
-			return get(value);
+			return get(Integer.valueOf(id).intValue());
 					
 		} catch (IllegalArgumentException e) {
 			throw (e);
@@ -94,7 +94,6 @@ public enum VFSop {
 		ops.add( UPDATE_SERVER_METADATA );
 		
 		ops.add( CREATE_SERVER_MASTERKEY );
-		
 		
 		return ops;
 	}
