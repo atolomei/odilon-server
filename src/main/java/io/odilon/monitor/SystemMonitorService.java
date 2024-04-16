@@ -124,36 +124,29 @@ public class SystemMonitorService extends BaseService implements SystemService {
 		return objectRestorePreviousVersionCounter;
 	}
 
-
 	public void setObjectRestorePreviousVersionCounter(Counter objectRestorePreviousVersionCounter) {
 		this.objectRestorePreviousVersionCounter = objectRestorePreviousVersionCounter;
 	}
-
 
 	public Counter getObjectDeleteAllVersionsCounter() {
 		return objectDeleteAllVersionsCounter;
 	}
 
-
 	public void setObjectDeleteAllVersionsCounter(Counter objectDeleteAllVersionsCounter) {
 		this.objectDeleteAllVersionsCounter = objectDeleteAllVersionsCounter;
 	}
-
 
 	public Counter getReplicaRestoreObjectPreviousVersionCounter() {
 		return replicaRestoreObjectPreviousVersionCounter;
 	}
 
-
 	public void setReplicaRestoreObjectPreviousVersionCounter(Counter replicaRestoreObjectPreviousVersionCounter) {
 		this.replicaRestoreObjectPreviousVersionCounter = replicaRestoreObjectPreviousVersionCounter;
 	}
 
-
 	public Counter getReplicaDeleteObjectAllVersionsCounter() {
 		return replicaDeleteObjectAllVersionsCounter;
 	}
-
 
 	public void setReplicaDeleteObjectAllVersionsCounter(Counter replicaDeleteObjectAllVersionsCounter) {
 		this.replicaDeleteObjectAllVersionsCounter = replicaDeleteObjectAllVersionsCounter;
@@ -162,11 +155,9 @@ public class SystemMonitorService extends BaseService implements SystemService {
 	@JsonIgnore
 	private Counter replicaDeleteObjectAllVersionsCounter;
 	
-		
-	
 	// ----------------------------
 	// PUT/GET OBJECT
-		
+	//
 	
 	@JsonIgnore
 	private Meter putObjectMeter;
@@ -316,19 +307,19 @@ public class SystemMonitorService extends BaseService implements SystemService {
 		set(me.getObjectMeter, 	this.getObjectMeter); 
 		set(me.putObjectMeter, 	this.putObjectMeter);
 		
-		me.createObjectCounter 			= this.createObjectCounter.getCount();
-		me.updateObjectCounter 			= this.updateObjectCounter.getCount();
-		me.deleteObjectCounter 			= this.deleteObjectCounter.getCount();
-		me.deleteObjectVersionCounter 	= this.deleteObjectVersionCounter.getCount();
+		me.createObjectCounter 					= this.createObjectCounter.getCount();
+		me.updateObjectCounter 					= this.updateObjectCounter.getCount();
+		me.deleteObjectCounter 					= this.deleteObjectCounter.getCount();
+		me.deleteObjectVersionCounter 			= this.deleteObjectVersionCounter.getCount();
 		me.objectRestorePreviousVersionCounter 	= this.objectRestorePreviousVersionCounter.getCount();
 		me.objectDeleteAllVersionsCounter		= this.objectDeleteAllVersionsCounter.getCount();
 		
 		
-		me.replicaObjectCreate 			= this.replicaCreateObject.getCount();
-		me.replicaObjectUpdate 			= this.replicaUpdateObject.getCount();
-		me.replicaObjectDelete 			= this.replicaDeleteObject.getCount();
-		me.replicaRestoreObjectPreviousVersionCounter=this.replicaRestoreObjectPreviousVersionCounter.getCount();
-		me.replicaDeleteObjectAllVersionsCounter = this.replicaDeleteObjectAllVersionsCounter.getCount();
+		me.replicaObjectCreate 							= this.replicaCreateObject.getCount();
+		me.replicaObjectUpdate 							= this.replicaUpdateObject.getCount();
+		me.replicaObjectDelete 							= this.replicaDeleteObject.getCount();
+		me.replicaRestoreObjectPreviousVersionCounter	= this.replicaRestoreObjectPreviousVersionCounter.getCount();
+		me.replicaDeleteObjectAllVersionsCounter 		= this.replicaDeleteObjectAllVersionsCounter.getCount();
 		
 		me.cacheObjectHitCounter 		= this.cacheObjectHitCounter.getCount();
 		me.cacheObjectMissCounter 		= this.cacheObjectMissCounter.getCount();
@@ -339,10 +330,6 @@ public class SystemMonitorService extends BaseService implements SystemService {
 		me.cacheFileSize 				= this.fileCacheService.size();
 		me.cacheFileHardDiskUsage 		= this.fileCacheService.hardDiskUsage();
 
-		
-		
-		
-		
 		set(me.encrpytFileMeter, 	this.encrpytFileMeter);
 		set(me.decryptFileMeter, 	this.decryptFileMeter);
 		set(me.encryptVaultMeter,	this.encryptVaultMeter);
@@ -364,7 +351,6 @@ public class SystemMonitorService extends BaseService implements SystemService {
 		map.put("cacheObjectMissCounter", String.valueOf(this.cacheObjectMissCounter.getCount()));
 		map.put("cacheObjectSize", String.valueOf(this.objectCacheService.size()));
 		
-		
 		if (serverSettings.getRedundancyLevel()==RedundancyLevel.RAID_6) {
 			map.put("cacheFileHitCounter", String.valueOf(this.cacheFileHitCounter.getCount()));
 			map.put("cacheFileMissCounter", String.valueOf(this.cacheFileMissCounter.getCount()));
@@ -378,10 +364,8 @@ public class SystemMonitorService extends BaseService implements SystemService {
 		map.put("objectDeleteCounter", String.valueOf(this.deleteObjectCounter.getCount()));
 		map.put("objectDeleteVersionCounter", String.valueOf(this.deleteObjectVersionCounter.getCount()));
 		
-		
 		map.put("objectRestorePreviousVersionCounter", String.valueOf(this.objectRestorePreviousVersionCounter.getCount()));
 		map.put("objectDeleteAllVersionsCounter", String.valueOf(this.objectDeleteAllVersionsCounter.getCount()));
-		
 		
 		map.put("objectGetMeter", getString(this.getObjectMeter));
 		map.put("objectPutMeter", getString(this.putObjectMeter));
@@ -455,8 +439,6 @@ public class SystemMonitorService extends BaseService implements SystemService {
 			this.replicaRestoreObjectPreviousVersionCounter  = metrics.counter("replicaRestoreObjectPreivousVersionCounter");
 			this.replicaDeleteObjectAllVersionsCounter		 = metrics.counter("replicaDeleteObjectAllVersionsCounter");
 
-			
-			
 			// api put object and get object
 			this.allAPICallMeter = metrics.meter("allAPICallMeter");
 			
@@ -491,5 +473,4 @@ public class SystemMonitorService extends BaseService implements SystemService {
 		v[1]=m.getFiveMinuteRate();
 		v[2]=m.getFifteenMinuteRate();
 	}
-
 }
