@@ -155,8 +155,8 @@ More info in Odilon's website <br/>
 <h2>Download</h2>
 <p>
 <ul>
-<li><a href="https://odilon.io#download" target="_blank">Odilon Server</a></li>	
-<li><a href="https://odilon.io#download" target="_blank">Odilon Java SDK</a></li>	
+<li><a href="https://odilon.io#download" target="_blank">Odilon Server</a> (requires Java 17+) </li>	
+<li><a href="https://odilon.io#download" target="_blank">Odilon Java SDK</a> (requires Java 11+)</li>	
 </ul>
 </p>
 
