@@ -65,7 +65,7 @@ public class DataIntegrityChecker implements Runnable, ApplicationContextAware  
 	static private Logger logger = Logger.getLogger(DataIntegrityChecker.class.getName());
 	static private Logger checkerLogger = Logger.getLogger("dataIntegrityCheck");
 
-	static final int PAGESIZE = 1000;
+	static final int PAGESIZE = ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE;
 
 	private boolean forceCheckAll = false;
 	private int maxProcessingThread  = 1;
@@ -102,6 +102,7 @@ public class DataIntegrityChecker implements Runnable, ApplicationContextAware  
 	@JsonIgnore
 	private AtomicLong notAvailable = new AtomicLong(0);
 	
+	
 	public DataIntegrityChecker() {
 	}
 
@@ -114,8 +115,10 @@ public class DataIntegrityChecker implements Runnable, ApplicationContextAware  
 		this.forceCheckAll=forceCheckAll;
 	}
 	
-	
-	
+	/**
+	 *
+	 * 
+	 */
 	@Override
 	public void run() {
 		
@@ -197,8 +200,10 @@ public class DataIntegrityChecker implements Runnable, ApplicationContextAware  
 			logResults(logger);
 		}
 	}
+
 	
 	/**
+	 * 
 	 * 
 	 */
 	@PostConstruct
@@ -209,20 +214,6 @@ public class DataIntegrityChecker implements Runnable, ApplicationContextAware  
 		this.thread.start();
 	}
 	
-	public String toJSON() {
-		StringBuilder str  = new StringBuilder();
-		str.append("\"name\":" +  (Optional.ofNullable(thread).isPresent() ? thread.getName() : "null"));
-		return str.toString();
-	}
-
-	
-	public VirtualFileSystemService getVirtualFileSystemService()  {
-		return this.vfs;
-	}
-	
-	public ApplicationContext getApplicationContext()  {
-		return this.applicationContext;
-	}
 	
 	@Override
 	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
@@ -237,6 +228,21 @@ public class DataIntegrityChecker implements Runnable, ApplicationContextAware  
 		str.append("}");
 		return str.toString();
 	}
+
+	public String toJSON() {
+		StringBuilder str  = new StringBuilder();
+		str.append("\"name\":" +  (Optional.ofNullable(thread).isPresent() ? thread.getName() : "null"));
+		return str.toString();
+	}
+
+	public VirtualFileSystemService getVirtualFileSystemService()  {
+		return this.vfs;
+	}
+	
+	public ApplicationContext getApplicationContext()  {
+		return this.applicationContext;
+	}
+
 	
 	private void check(Item<ObjectMetadata> item) {
 		try {
@@ -254,8 +260,8 @@ public class DataIntegrityChecker implements Runnable, ApplicationContextAware  
 				this.checkOk.getAndIncrement();
 			}
 		} catch (Exception e) {
-			checkerLogger.error(e);
-			logger.error(e);
+			checkerLogger.error(e, ServerConstant.NOT_THROWN);
+			logger.error(e, ServerConstant.NOT_THROWN);
 		}
 	}
 	

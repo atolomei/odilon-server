@@ -50,7 +50,7 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
  * <p>
- *	IMPORTANT. Initial Sync only syncs head version (v1.5)
+ *	IMPORTANT. Initial Sync only syncs head version (v1.7)
  *  It will not sync previous versions.
  *   
  * </p>
@@ -103,8 +103,6 @@ public class StandByInitialSync implements Runnable {
 	@JsonIgnore
 	ReplicationService replicationService;
 	
-	
-	
 	@JsonIgnore
 	private Thread thread;
 	
@@ -142,6 +140,8 @@ public class StandByInitialSync implements Runnable {
 	public AtomicBoolean isDone() {
 		return this.done;
 	}
+	
+	
 	
 	protected IODriver getDriver() {
 		return driver;
@@ -233,55 +233,47 @@ public class StandByInitialSync implements Runnable {
 											
 											boolean objectSynced = false;
 											
+											getLockService().getObjectLock(item.getObject().bucketName, item.getObject().objectName).readLock().lock();
+											
 											try {
-										
-												getLockService().getObjectLock(item.getObject().bucketName, item.getObject().objectName).readLock().lock();
+												
 												getLockService().getBucketLock(item.getObject().bucketName).readLock().lock();
 												
-												if (	(item.getObject().dateSynced==null) ||
-														(item.getObject().dateSynced.isBefore(info.getStandByStartDate()))
-													) {
-													
-													logger.debug(item.getObject().bucketName+"-"+item.getObject().objectName);
-													
-													//boolean headSynced = false;
-													
-													/**
-													if (getVirtualFileSystemService().getServerSettings().isVersionControl()) {
-														if (getReplicationService().getClient().isVersionControl()) {
-															if (item.getObject().version>0) {
-																for (int version=0; version<item.getObject().version; version++) {
-																}
-															}
-															// sync head
-															headSynced = true;
-														}
-													}
-													**/
-													
-														VFSOperation op = new ODVFSOperation(	getDriver().getVFS().getJournalService().newOperationId(), 
-																								VFSop.CREATE_OBJECT,  
-																								Optional.of(item.getObject().bucketName),
-																								Optional.of(item.getObject().objectName),
-																								Optional.of(Integer.valueOf(item.getObject().version)),
-																								getDriver().getVFS().getRedundancyLevel(), 
-																								getDriver().getVFS().getJournalService());
+												try {
+											
+													if (	(item.getObject().dateSynced==null) ||
+															(item.getObject().dateSynced.isBefore(info.getStandByStartDate()))
+														) {
 														
-														getReplicationService().replicate(op);
-														objectSynced=true;
-														this.totalBytes.addAndGet(item.getObject().length());
-														this.copied.getAndIncrement();
+														logger.debug(item.getObject().bucketName+"-"+item.getObject().objectName);
+														
+														VFSOperation op = new ODVFSOperation(	getDriver().getVFS().getJournalService().newOperationId(), 
+																									VFSop.CREATE_OBJECT,  
+																									Optional.of(item.getObject().bucketName),
+																									Optional.of(item.getObject().objectName),
+																									Optional.of(Integer.valueOf(item.getObject().version)),
+																									getDriver().getVFS().getRedundancyLevel(), 
+																									getDriver().getVFS().getJournalService()
+																								);
+															
+															getReplicationService().replicate(op);
+															objectSynced=true;
+															this.totalBytes.addAndGet(item.getObject().length());
+															this.copied.getAndIncrement();
+														
+														
+													}
 													
+												} catch (Exception e) {
+													logger.error(e, "can not sync -> " + item.getObject().bucketName+"-"+item.getObject().objectName, ServerConstant.NOT_THROWN);
+													intialSynclogger.error(e, "can not sync -> " + item.getObject().bucketName+"-"+item.getObject().objectName);
+													this.errors.getAndIncrement();
+												}
+												finally {
+													getLockService().getBucketLock(item.getObject().bucketName).readLock().unlock();
 													
 												}
-												
-											} catch (Exception e) {
-												logger.error(e, "can not sync -> " + item.getObject().bucketName+"-"+item.getObject().objectName, ServerConstant.NOT_THROWN);
-												intialSynclogger.error(e, "can not sync -> " + item.getObject().bucketName+"-"+item.getObject().objectName);
-												this.errors.getAndIncrement();
-											}
-											finally {
-												getLockService().getBucketLock(item.getObject().bucketName).readLock().unlock();
+											} finally {
 												getLockService().getObjectLock(item.getObject().bucketName, item.getObject().objectName).readLock().unlock();
 											}
 											
@@ -356,14 +348,26 @@ public class StandByInitialSync implements Runnable {
 		}
 	}
 
-	
-	
-	private void syncObject() {
-		
-	}
+	 
+	//boolean headSynced = false;
 	
 	/**
-	 * 
+	if (getVirtualFileSystemService().getServerSettings().isVersionControl()) {
+		if (getReplicationService().getClient().isVersionControl()) {
+			if (item.getObject().version>0) {
+				for (int version=0; version<item.getObject().version; version++) {
+				}
+			}
+			// sync head
+			headSynced = true;
+		}
+	}
+	**/
+	
+
+	
+	
+	/**
 	 * @param logger
 	 */
 	private void logResults(Logger logger) {
