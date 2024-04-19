@@ -688,6 +688,8 @@ public class ReplicationService extends BaseService implements ApplicationContex
 		
 			Check.requireNonNullArgument(opx, "opx is null");
 		
+			logger.debug("delete bucket -> " + opx.getBucketName());
+			
 			if (getVFS().existsBucket(opx.getBucketName())) {
 				return;
 			}
@@ -696,8 +698,9 @@ public class ReplicationService extends BaseService implements ApplicationContex
 			getLockService().getBucketLock(opx.getBucketName()).readLock().lock();
 			
 			try {
-				if (getClient().existsBucket(opx.getBucketName()))
+				if (getClient().existsBucket(opx.getBucketName())) {
 					getClient().deleteBucket(opx.getBucketName());
+				}
 				
 			} catch (ODClientException e) {
 				throw new InternalCriticalException(e, opx.toString());
