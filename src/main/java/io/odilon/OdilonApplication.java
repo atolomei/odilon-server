@@ -74,6 +74,9 @@ import io.odilon.model.ServerConstant;
  *   </li>
  * </ul>
  * 
+ * @see {@link OdilonVersion#VERSION} for the version of the server
+ * 
+ * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @SpringBootApplication
@@ -95,20 +98,7 @@ public class OdilonApplication {
 	}
 	
 	
-	/**
-	 @Bean
-	 public FilterRegistrationBean<Filter> filterRegistrationBean() {
-	        CharacterEncodingFilter filter = new CharacterEncodingFilter();
-	        filter.setEncoding("UTF-8");
-	        filter.setForceEncoding(true);
-
-	        FilterRegistrationBean<Filter> registrationBean = new FilterRegistrationBean<Filter>();
-	        registrationBean.setFilter(filter);
-	        registrationBean.addUrlPatterns("/*");
-	        return registrationBean;
-	    }
-	 **/
-	 
+		 
 	public OdilonApplication() {
 	}
 	
@@ -140,5 +130,21 @@ public class OdilonApplication {
             }
         });
 	}
+	
+	
+	/**
+	 @Bean
+	 public FilterRegistrationBean<Filter> filterRegistrationBean() {
+	        CharacterEncodingFilter filter = new CharacterEncodingFilter();
+	        filter.setEncoding("UTF-8");
+	        filter.setForceEncoding(true);
+
+	        FilterRegistrationBean<Filter> registrationBean = new FilterRegistrationBean<Filter>();
+	        registrationBean.setFilter(filter);
+	        registrationBean.addUrlPatterns("/*");
+	        return registrationBean;
+	    }
+	 **/
+
 }
 

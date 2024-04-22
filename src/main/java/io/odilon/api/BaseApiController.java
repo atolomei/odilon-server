@@ -36,7 +36,8 @@ import io.odilon.traffic.TrafficControlService;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
- * 
+ * <p>Base class for all API Controllers</p>
+ *  
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public abstract class BaseApiController implements ApplicationContextAware, APIObject  {
@@ -76,6 +77,7 @@ public abstract class BaseApiController implements ApplicationContextAware, APIO
 	public BaseApiController( 	ObjectStorageService objectStorageService, 
 								VirtualFileSystemService virtualFileSystemService, 
 								SystemMonitorService monitoringService ) {
+		
 			this(objectStorageService, virtualFileSystemService, monitoringService, null);
 	}
 		

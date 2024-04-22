@@ -43,7 +43,7 @@ import io.odilon.service.ServerSettings;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
- * <p>This method is executed after {@link OdilonApplication} startup but <b>before</b> 
+ * <p>This class is executed after {@link OdilonApplication} startup but <b>before</b> 
  * it starts accepting traffic.</p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
@@ -61,10 +61,17 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 	@Autowired
 	private SchedulerService schedulerService;
 
+	
+	/**
+	 * 
+	 * @param appContext 
+	 * @param schedulerService  
+	 */
 	public OdilonStartupApplicationRunner(ApplicationContext appContext, SchedulerService schedulerService) {
 		this.appContext = appContext;
 		this.schedulerService=schedulerService;
 	}
+	
 	
 	@Override
 	public void run(ApplicationArguments args) throws Exception {
@@ -79,8 +86,6 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 		
 		initCronJobs();
 		
-		
-
 		boolean iGeneral = initGeneral();
 		if(iGeneral)
 			startupLogger.info(ServerConstant.SEPARATOR);

@@ -50,10 +50,10 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
  * <p>
- *	IMPORTANT. Initial Sync only syncs head version (v1.7)
+ *	IMPORTANT. Initial Sync only syncs head version 
  *  It will not sync previous versions.
- *   
  * </p>
+ * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @Component

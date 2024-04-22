@@ -127,7 +127,6 @@ public class SystemInfoService extends BaseService implements SystemService {
 		info.userDir=System.getProperty("user.dir");
 		info.userProfile=System.getProperty("user.profile");
 		
-		
 		info.javaVersion = javaVersion;
 		info.appVersion = appVersion;
 		info.serverHost = serverHost;
@@ -275,7 +274,6 @@ public class SystemInfoService extends BaseService implements SystemService {
 				
 				if (this.virtualFileSystemService.getOdilonServerInfo()!=null)
 					this.isEncryptionInitialized = this.virtualFileSystemService.getOdilonServerInfo().isEncryptionIntialized()?"true":"false";
-				
 				
 			} catch (Exception e) {
 				logger.error(e);

@@ -17,6 +17,7 @@
 package io.odilon.model;
 
 /**
+ * <p>Global constants used by all classes</p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
@@ -36,19 +37,19 @@ public class ServerConstant {
 	
 	static final  public String JSON = ".json";
 
-	// default expiration for a presigned URL is 7 days in seconds
+	/** default expiration for a presigned URL is 7 days in seconds */
 	static final  public int DEFAULT_EXPIRY_TIME = SharedConstant.DEFAULT_EXPIRY_TIME;
 	static final  public int DEFAULT_COMMANDS_PAGE_SIZE = 1000;
 	static final  public int DEFAULT_PAGE_SIZE = SharedConstant.DEFAULT_PAGE_SIZE;
 
-	// 15 minutes
+	/** 15 minutes */
 	public static final long MAX_CONNECTION_IDLE_TIME_SECS = 15 * 60;
 	public static final int BUCKET_ITERATOR_DEFAULT_BUFFER_SIZE = 1000; 
 	public static final int TRAFFIC_TOKENS_DEFAULT = 12;	
 	public static final int DAYS_INTEGRITY_CHECKS = 180;
 	
-	public static final String DEFAULT_ENCRYPT_ALGORITHM = "AES/ECB/PKCS5Padding";
-	public static final String DEFAULT_KEY_ALGORITHM = "AES";
+	public static final String DEFAULT_ENCRYPT_ALGORITHM 	= "AES/ECB/PKCS5Padding";
+	public static final String DEFAULT_KEY_ALGORITHM 		= "AES";
 
 	public static final String ENABLE_ENCRYPTION_SCRIPT_LINUX 	= "enable-encryption.sh";
 	public static final String ENABLE_ENCRYPTION_SCRIPT_WINDOWS = "enable-encryption.bat";

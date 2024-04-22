@@ -40,7 +40,8 @@ import io.odilon.service.ServerSettings;
 import io.odilon.service.SystemService;
 
 /**
- *
+ * <p>System Metrics</p>
+ *   
  *@author atolomei@novamens.com (Alejandro Tolomei)
  */
 @Service
@@ -54,9 +55,10 @@ public class SystemMonitorService extends BaseService implements SystemService {
 	@JsonIgnore
 	private final MetricRegistry metrics = new MetricRegistry();
 
-	// ----------------------------
-	// API CALLS
-	
+	/** ----------------------------
+ 	* API CALLS
+	**/
+	 
 	@JsonIgnore
 	private Meter allAPICallMeter;
 	
@@ -87,8 +89,6 @@ public class SystemMonitorService extends BaseService implements SystemService {
 	private Counter objectDeleteAllVersionsCounter;
 	
 
-	
-	
 	// ----------------------------
 	// ENCRYPTION
 

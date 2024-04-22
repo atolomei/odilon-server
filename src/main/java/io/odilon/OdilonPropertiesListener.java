@@ -43,12 +43,13 @@ public class OdilonPropertiesListener implements ApplicationListener<Application
 		    props.put("app.name", "Odilon");
 		    props.put("spring.servlet.multipart.max-file-size", "200GB");
 		    props.put("spring.servlet.multipart.max-request-size", "200GB");
-		    // props.put("spring.servlet.multipart.file-size-threshold", "12KB");
 		    props.put("spring.main.banner-mode", "off");
 		    props.put("spring.main.log-startup-info", "false");
 		    props.put("server.error.whitelabel.enabled", "false");
 		    props.put("spring.main.lazy-initialization", "false");
 		    props.put("spring.output.ansi.enabled", "DETECT");
+
+		    //props.put("spring.servlet.multipart.file-size-threshold", "12KB");
 		    //props.put("spring.resources.cache.cachecontrol.max-age", "120");
 		    //props.put("spring.resources.cache.cachecontrol.must-revalidate", "true");
 		    		

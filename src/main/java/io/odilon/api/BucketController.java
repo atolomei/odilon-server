@@ -141,6 +141,9 @@ public class BucketController extends BaseApiController  {
 	
 	/**
 	 * <p>Get a Bucket in JSON format</p>
+	 * The server manages Buckets as instances of the class {@link VFSBucket}
+	 * but buckets are exported to the clients as {@link Bucket}
+	 * 
 	 */
 	@RequestMapping(value = "/get/{name}", produces = "application/json", method = RequestMethod.GET)
 	public ResponseEntity<Bucket> get(@PathVariable("name") String name) {
@@ -389,21 +392,6 @@ public class BucketController extends BaseApiController  {
 		}
 	}
 
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
 	/**
 	 * 
 	 */

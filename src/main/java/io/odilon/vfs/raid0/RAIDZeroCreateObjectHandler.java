@@ -16,7 +16,6 @@
  */
 package io.odilon.vfs.raid0;
 
-
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -64,7 +63,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 	}
 
 	/**
-	 * <p>The procedure is the same whether version control is enabled</p>
+	 * <p>The procedure is the same whether version control is enabled or not</p>
 	 * 
 	 * @param bucket
 	 * @param objectName
@@ -143,7 +142,8 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 	}
 
 	/**
-	 * <p>This method is <b>not</b> ThreadSafe, callers must ensure proper concurrency control
+	 * <p>This method is <b>not</b> ThreadSafe, callers must ensure proper concurrency control</p>
+	 * 
 	 */
 	@Override
 	protected void rollbackJournal(VFSOperation op, boolean recoveryMode) {
@@ -186,13 +186,14 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 	
 	
 	/**
-	 * 
 	 * <p>This method is <b>not</b> ThreadSafe, callers must ensure proper concurrency control
 	 * 
-	 * @param bucket
-	 * @param objectName
-	 * @param stream
-	 * @param srcFileName
+	 * @param bucket		can not be null
+	 * @param objectName	can not be null
+	 * @param stream 		can not be null
+	 * @param srcFileName	can not be null
+	 * 
+	 * 
 	 */
 	private void saveObjectDataFile(VFSBucket bucket, String objectName, InputStream stream, String srcFileName) {
 		
@@ -233,10 +234,10 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 	/**
 	 * <p>This method is <b>not</b> ThreadSafe, callers must ensure proper concurrency control
 	 * 
-	 * @param bucket
-	 * @param objectName
-	 * @param stream
-	 * @param srcFileName
+	 * @param bucket			can not be null
+	 * @param objectName		can not be null
+	 * @param stream			can not be null
+	 * @param srcFileName		can not be null	
 	 */
 	private void saveObjectMetadata(VFSBucket bucket, String objectName, String srcFileName, String contentType, int version) {
 		
