@@ -71,10 +71,10 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
  *<p>
+ * Base class for IO Drivers (RAID 0, RAID 1, RAID 6)
+ * </p>
  *
- *</p>
- *
- * @see {@link RAIDZeroDriver} {@link RAIDOneDriver}
+ * @see {@link RAIDZeroDriver} {@link RAIDOneDriver} {@link RAIDSixDriver}
  *
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */

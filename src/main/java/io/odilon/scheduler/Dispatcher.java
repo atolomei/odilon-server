@@ -20,23 +20,26 @@ package io.odilon.scheduler;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import EDU.oswego.cs.dl.util.concurrent.LinkedQueue;
 import EDU.oswego.cs.dl.util.concurrent.PooledExecutor;
+import io.odilon.log.Logger;
 import io.odilon.model.ODModelObject;
+import io.odilon.model.ServerConstant;
 
 /**
- * 
+ * <p>A Dispatcher contains a ThreadPool and assigns incoming {@link ServiceRequest} to its Threads.</p>
+ *<p>There is one Dispatcher for every {@link SchedulerWorkder} in the system</p>
  *
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ * 
  */
 public class Dispatcher extends ODModelObject {
 
-	static private Logger startupLogger = LogManager.getLogger("StartupLogger");
-	static private Logger logger = LogManager.getLogger(Dispatcher.class.getName());
+	static private Logger startupLogger = Logger.getLogger("StartupLogger");
+	static private Logger logger = Logger.getLogger(Dispatcher.class.getName());
 	
 	private int priority;
 	private int maxPoolSize;
@@ -180,8 +183,7 @@ public class Dispatcher extends ODModelObject {
 			this.threadPool.execute(serviceExecutor); 
 		}
 		catch (InterruptedException e) {
-			logger.error(e);
-			throw new RuntimeException(e);
+			logger.error(e, ServerConstant.NOT_THROWN);
 		}
 	}
 
@@ -190,8 +192,7 @@ public class Dispatcher extends ODModelObject {
 			this.threadPool.execute(runnable);
 		}
 		catch (InterruptedException e) {
-			logger.error(e);
-			throw new RuntimeException(e);
+			logger.error(e, ServerConstant.NOT_THROWN);
 		}
 	}
 

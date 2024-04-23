@@ -19,10 +19,12 @@ package io.odilon.scheduler;
 import java.time.OffsetDateTime;
 
 import io.odilon.log.Logger;
+import io.odilon.model.ServerConstant;
 
 
 /**
- * 
+ * <p>This is a Thread that executes a ServiceRequest</p>
+ * <p>The Thread is one the Dispatcher's pool</p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
@@ -50,7 +52,7 @@ public class ServiceRequestExecutor implements Runnable {
 		 	this.success = this.request.isSuccess();
 			
 		} catch (Throwable e) {
-			logger.error(e);
+			logger.error(e, ServerConstant.NOT_THROWN);
 			this.request.setStatus(ServiceRequestStatus.ERROR);
 			this.success = false;
 				
@@ -65,12 +67,12 @@ public class ServiceRequestExecutor implements Runnable {
 					this.schedulerWorker.fail(this.request);
 			
 			} catch (Throwable e) {
-				logger.error(e);
+				logger.error(e, ServerConstant.NOT_THROWN);
 				try {
 					this.request.setStatus(ServiceRequestStatus.ERROR);
 					this.schedulerWorker.fail(this.request);
 				} catch (Exception e1) {
-					logger.error(e1);
+					logger.error(e1, ServerConstant.NOT_THROWN);
 				}
 			}
 		}

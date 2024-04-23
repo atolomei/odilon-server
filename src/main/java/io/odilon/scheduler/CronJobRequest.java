@@ -41,6 +41,7 @@ import io.odilon.errors.InternalCriticalException;
 @Scope("prototype")
 public abstract class CronJobRequest extends AbstractServiceRequest {
 			
+	@SuppressWarnings("unused")
 	static private Logger logger = LogManager.getLogger(CronJobRequest.class.getName());
 	
 	private static final long serialVersionUID = 1L;

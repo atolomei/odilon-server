@@ -71,7 +71,11 @@ import io.odilon.vfs.model.VirtualFileSystemService;
  * {@link Bucket} structure is the same for all drives <br/>
  * {@link VirtualFileSystemService} checks consistency during startup.
  * </p>
- * <p>For each object, a copy is created on each {@link Drive}.</p> 
+ * <p>For each object, a copy is created on each {@link Drive}.</p>
+ * 
+ * <p>This Class is works as a <a href="https://en.wikipedia.org/wiki/Facade_pattern">Facade pattern</a> 
+ * that uses {@link  RAIDOneCreateObjectHandler},  {@link RAIDOneDeleteObjectHandler}, {@link  RAIDOneUpdateObjectHandler} and other
+ * </p>
  */
 @ThreadSafe
 @Component

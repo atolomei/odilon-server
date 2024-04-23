@@ -64,6 +64,9 @@ import io.odilon.vfs.model.VFSObject;
 import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VFSop;
 import io.odilon.vfs.model.VirtualFileSystemService;
+import io.odilon.vfs.raid1.RAIDOneCreateObjectHandler;
+import io.odilon.vfs.raid1.RAIDOneDeleteObjectHandler;
+import io.odilon.vfs.raid1.RAIDOneUpdateObjectHandler;
 
 /**
  * <p>RAID 6. Driver</p>
@@ -115,6 +118,13 @@ import io.odilon.vfs.model.VirtualFileSystemService;
  * Each file is stored only on 6 Drives. If a file does not have the file's
  * Metadata Directory -> the file is considered "non existent"
  * </p>
+ * 
+ * 
+ *<p>This Class is works as a <a href="https://en.wikipedia.org/wiki/Facade_pattern">Facade pattern</a> 
+ * that uses {@link  RAIDSixCreateObjectHandler},  {@link RAIDSixDeleteObjectHandler}, {@link  RAIDSixUpdateObjectHandler}, 
+ * {@link  RAIDSixSyncObjectHandler} and other
+ *</p>
+
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */

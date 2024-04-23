@@ -98,8 +98,12 @@ import io.odilon.vfs.model.VirtualFileSystemService;
  * </p>
  * 
  * <p>NOTE:- There are no {@link Drive} in mode {@link DriveStatus.NOTSYNC} in RAID 0. 
- * All new drives are synced before the VirtualFileSystemService* completes its 
+ * All new drives are sync before the {@link VirtualFileSystemService} completes its 
  * initialization. </p>
+
+ * <p>This Class is works as a <a href="https://en.wikipedia.org/wiki/Facade_pattern">Facade pattern</a> 
+ * that uses {@link  RAIDZeroCreateObjectHandler},  {@link  RAIDZeroDeleteObjectHandler}, {@link  RAIDZeroUpdateObjectHandler} and other
+ * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)	 
  * 
