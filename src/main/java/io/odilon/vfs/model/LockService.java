@@ -23,7 +23,9 @@ import io.odilon.service.SystemService;
 
 
 /**
- * 
+ * <p>Lock Service for Object, FileCacheService, Bucket, ServerInfo. 
+ * It maintains a Map of Object locks that is cleaned after the lock is released or regularly by a clean up process</p>
+ *  
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public interface LockService extends SystemService {

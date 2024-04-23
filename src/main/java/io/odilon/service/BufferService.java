@@ -36,7 +36,9 @@ import io.odilon.vfs.model.LockService;
 @Service
 public class BufferService extends BaseService {
 				
+	@SuppressWarnings("unused")
 	static private Logger logger = Logger.getLogger(FileCacheService.class.getName());
+	@SuppressWarnings("unused")
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 	
 	@JsonIgnore

@@ -182,7 +182,7 @@ public class ODEncryptionService extends BaseService implements EncryptionServic
 	            
 	            return streamEncryption.decrypt(encryptedStream, key);
 	            
-	        } catch (IOException  e) {
+	        } catch (IOException e) {
 	        	throw new InternalCriticalException(e, "decryptStream");
 	        }
 	    }

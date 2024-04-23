@@ -221,8 +221,6 @@ public class ODDrive extends ODModelObject implements Drive {
 		File data_version_dir 		= new File (this.getRootDirPath() 	 + File.separator + bucketName + File.separator + VirtualFileSystemService.VERSION_DIR);
 		File work_dir 				= new File (this.getWorkDirPath() 	 + File.separator + bucketName);
 		
-		
-		
 		try {
 			
 			this.drive_lock.writeLock().lock();

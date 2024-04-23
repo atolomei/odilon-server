@@ -89,9 +89,16 @@ import io.odilon.vfs.raid6.RAIDSixDriver;
 				
 /**
  * <p>
- * Virtual File System (){@link VirtualFileSystemService}) manages the underlying layer that may be RAID 0, RAID 1, RAID 6 / Erasure Coding</p> 
- * <p>Buckets are maintained in a RAM cache by the {@link VirtualFileSystemService}
- * All {@link Drive} must have all buckets</p>
+ * Implementation of the Virtual File System interface {@link VirtualFileSystemService}).
+ * It manages the underlying layer that may be</p> 
+ * <ul>
+ * <li><b>RAID 0</b> {@link RAIDZeroDriver}</li>
+ * <li><b>RAID 1</b> {@link RAIDOneDriver}</li>
+ * <li><b>RAID 6 / Erasure Coding</b>{@link RAIDSixDriver}</li> 
+ * </ul>
+ * 
+ * <p>Buckets are maintained in a RAM cache by the {@link VirtualFileSystemService}.
+ *  INVARIANT: All {@link Drive} must have all buckets</p>
  * 
  * <p>Status: Stopped ->  Starting -> Running -> Stopping</p>
  * 
@@ -154,7 +161,8 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	
 	
 	/** 
-	 * Cache of decoded Files in File System, used only in RAID 6 
+	 * <p>Cache of decoded {@link File} in File System, used only in <b>RAID 6</b></p>
+	 * <p>If the server has encryption.enabled the Files in cache are decoded but encrypted.</p> 
 	 * */
 	@JsonIgnore
 	@Autowired
@@ -860,11 +868,11 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 					try {
 						Thread.sleep(1000 * 3);
 					} catch (Exception e) {
+						logger.error(e, ServerConstant.NOT_THROWN);
 					}
 				}
 
 				setStatus(ServiceStatus.RUNNING);
-					
 
 				
 				} catch (Exception e) {
@@ -1200,7 +1208,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 		
 		boolean newStandByConnection 	= ((getServerSettings().isStandByEnabled()) && (!si.isStandByEnabled()));
 		boolean newVersionControl 		= ((getServerSettings().isVersionControl()) && (!si.isVersionControl()));
-		boolean standByChangedUrl = false;
+		boolean standByChangedUrl 		= false;
 		
 		OffsetDateTime now = OffsetDateTime.now();
 		
@@ -1291,7 +1299,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 								
 			});
 		} catch (Exception e) {
-			logger.error(e);
+			logger.error(e, ServerConstant.NOT_THROWN);
 		}
 	}
 

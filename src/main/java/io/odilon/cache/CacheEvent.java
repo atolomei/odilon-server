@@ -31,9 +31,13 @@ import io.odilon.vfs.model.VFSOperation;
 
 /**
  * <p>Spring events fired by the {@link JournalService} on <b>{@code commit}</b> or <b>{@code cancel}</b>
- * and listened by the {@link FileCacheService} to invalidate File cache (RAID 6) 
- * and {@link ObjectMetadataCacheService} to invalidate ObjectMetadata cache (RAID 0, RAID 1, RAID 6).</p> 
+ * and listened by:</p>
+ * <ul>
+ * <li> {@link FileCacheService} to invalidate File cache (used by RAID 6)</li> 
+ * <li> {@link ObjectMetadataCacheService} to invalidate {@link ObjectMetadata} cache (used by RAID 0, RAID 1, RAID 6).</li>
+ * </ul> 
  * 
+ *  @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public class CacheEvent extends ApplicationEvent {
 

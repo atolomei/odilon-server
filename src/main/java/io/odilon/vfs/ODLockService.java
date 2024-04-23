@@ -44,7 +44,14 @@ import io.odilon.service.ServerSettings;
 import io.odilon.vfs.model.LockService;
 
 /**
- * <p>Lock Service Bucket, Object, File from FileCacheService 
+ * <p>Implementation of the interface {@link ODLockService}. 
+ *  
+ *  Bucket locks
+ *  Object locks 
+ *  File locks for FileCacheService</p>
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ *  
  */
 @Service
 public class ODLockService extends BaseService implements LockService {
@@ -132,7 +139,7 @@ public class ODLockService extends BaseService implements LockService {
 
 				@Override
 		 		public long getSleepTimeMillis() {
-					return Math.round( minTimeToSleepMillisec  + deltaTimeToSleep / (1.0 + ( objectLocks.size() / deltaTimeToSleep)));
+					return Math.round( minTimeToSleepMillisec  + deltaTimeToSleep / (1.0 + ((objectLocks.size() + fileCacheLocks.size()) / deltaTimeToSleep)));
 		 		}
 
 		 		@Override
