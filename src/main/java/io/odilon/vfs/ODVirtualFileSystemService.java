@@ -89,7 +89,7 @@ import io.odilon.vfs.raid6.RAIDSixDriver;
 				
 /**
  * <p>
- * Implementation of the Virtual File System interface {@link VirtualFileSystemService}).
+ * This class is the implementation of the {@link VirtualFileSystemService}) interface. 
  * It manages the underlying layer that may be</p> 
  * <ul>
  * <li><b>RAID 0</b> {@link RAIDZeroDriver}</li>

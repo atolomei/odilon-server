@@ -30,18 +30,6 @@ import io.odilon.model.ServerConstant;
 
 /**
  * 
- * <p><a href="https://odilon.io">Odilon </a> is a scalable and lightweight Open Source Object Storage that runs on standard hardware.</p>
- * <p>It is an infrastructure software designed to be used by applications that need to store terabytes 
- * of medium to large size objects (photos, pdfs, audio, video...) securely and safely through 
- * encryption, replication and redundancy.</p>
- * 
- * <p>It has a simple single-level folder structure similar to the Bucket / Object model of <a href="https://aws.amazon.com/en/s3/"> Amazon S3</a>. 
- * It is small and easy to integrate, offers encryption, data protection and fault tolerance 
- * (software RAID and Erasure Codes) and detection of silent data degradation. Odilon also supports 
- * version control and master - standby replication over the Internet for disaster recovery and 
- * ransomware protection.</p>
- * 
- * <b>Architecture</b><br/>
  * 
  * <p>Odilon has 3 layers 
  * 

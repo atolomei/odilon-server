@@ -48,7 +48,11 @@ import io.odilon.service.ServerSettings;
 import io.odilon.service.SystemService;
 
 /**
- * 
+ * <p>The virtual file system layer manages the Objects repository on top of the OS File System. <br/>
+ *	It implements <a href="https://en.wikipedia.org/wiki/Standard_RAID_levels">software RAID</a>, 
+ *	which depending on the configuration can be RAID 0, RAID 1, 
+ *	<a href="https://en.wikipedia.org/wiki/Erasure_code">RAID 6/Erasure Coding</a>. <br/>
+ *	Odilon uses <a href="https://en.wikipedia.org/wiki/Reed%E2%80%93Solomon_error_correction"> Reed Solomon encoding</a> for <a href="https://en.wikipedia.org/wiki/Erasure_code">Erasure Codes</a>.</p>
  * 
  *  <p>Implementations of this interface are expected to be thread-safe, and can be safely accessed
  * by multiple concurrent threads.</p>

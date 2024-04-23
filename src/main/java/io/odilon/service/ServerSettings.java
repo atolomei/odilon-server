@@ -50,6 +50,7 @@ import io.odilon.util.RandomIDGenerator;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
+ * <p>Server configuration defined in file {@code odilon.properties}</p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  * 
@@ -146,7 +147,8 @@ public class ServerSettings implements APIObject {
 	
 	
 	// DATA STORAGE -------------------------------------------
-	//
+	// by default RAID 0 with 1 directory
+	// 
 	
 	@Value("${redundancyLevel:RAID 0}")
 	@NonNull
