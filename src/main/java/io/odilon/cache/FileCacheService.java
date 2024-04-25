@@ -57,7 +57,7 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
  * <p>{@link File} cache used by {@link RAIDSixDriver} (the other RAID configurations do not need it).</p> 
- * It Uses {@link Caffeine} to keep references to entries in memory.
+ * <p>It Uses {@link Caffeine} to keep references to entries in memory.
  * On eviction it has to remove the {@link File} from the File System ({@link FileCacheService#onRemoval}).
  * </p>
  * <p>Listens to Spring Event {@link CacheEvent} that is fired by the {@link JournalService} 

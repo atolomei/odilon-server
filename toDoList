@@ -1,0 +1,11 @@
+To do list
+----------
+
+
+. Replication Service -> replicate previous versions on initial sync
+. Client - Server interaction via HTTPS
+. bit rot detection in RAID 6
+. Rename Bucket
+. Optimization RAID 1. putObject in parallel, one Thread per disk
+. Optimization RAID 6. Decoding is copying a buffer in RAM redundant
+ 

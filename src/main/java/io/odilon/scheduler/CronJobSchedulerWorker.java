@@ -27,8 +27,11 @@ import io.odilon.util.Check;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /***
- * @see {@link CropnExpressionJ8}
  * 
+ * <p>Cron jobs queue that execute regularly based on a {@link CropnExpressionJ8}, 
+ * they are non blocking</p>
+ * 
+ * @see {@link CropnExpressionJ8}
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */

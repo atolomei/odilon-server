@@ -39,10 +39,13 @@ import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
- * <p>Job Queue processor. It can manage multiple Job queues each with a specific executing policy (normally First in, first out)<br/> 
- * and semantics on job failure (ie. retry n times and continue, block and retry until the job can complete successfully).<br/>
- * Jobs are instances of {@link ServiceRequest}, and they must be {@Serializable} becauseThe SchedulerService serializes 
- * them to store in disk.  
+ * 
+ * <p>The Scheduler is a persistent job queue processor.</p> 
+ * <p>It can manage multiple Job queues, each with a specific execution 
+ * policy (normally FIFO: First In, First Out) and semantics on job failure 
+ * (ie. retry N times and continue, block and retry until the job can complete successfully, ...). 
+ * Jobs are instances of {@link ServiceRequest}, and they must be {@Serializable} because
+ * the SchedulerService serializes them to store on the Virtual File System.   
  * </p>
  * <p>{@link SchedulerWorker} is a Job Queue with their own Thread pool ({@link Dispatcher)) to process their queue:
  * </p>
@@ -55,13 +58,13 @@ import io.odilon.vfs.model.VirtualFileSystemService;
  *  </li>
  *	</ul>
  *  
- *  <p>A {@link SchedulerWorker} can process ServiceRequest in parallel using the Dispatcher Thread pool,
+ *  <p>A {@link SchedulerWorker} can process {@link ServiceRequest} in parallel using the Dispatcher Thread pool,
  *  It creates a dependency graph with the ServiceRequest that are to be executed in each batch in order to
  *  to warrant that the after the execution of the batch the end result will be equivalent to
  *  a sequential execution.</p> 
- *   
  *  
- * @author atolomei@novamens.com (Alejandro Tolomei)
+ *  @author atolomei@novamens.com (Alejandro Tolomei)
+ *  @author aferraria@novamens.com (Alejo Feraria)
  */
 @Service
 public class SchedulerService extends BaseService implements SystemService, ApplicationContextAware {
