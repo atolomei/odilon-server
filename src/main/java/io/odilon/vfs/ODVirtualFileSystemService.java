@@ -223,9 +223,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 										MasterKeyService masterKeyEncryptorService,
 										OdilonKeyEncryptorService odilonKeyEncryptorService,
 										FileCacheService fileCacheService,
-										ApplicationEventPublisher applicationEventPublisher
-										
-									) {
+										ApplicationEventPublisher applicationEventPublisher) {
 		
 		this.fileCacheService=fileCacheService;
 		this.objectCacheService=objectCacheService;
