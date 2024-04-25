@@ -337,7 +337,12 @@ public class ReplicationService extends BaseService implements ApplicationContex
 		
 		boolean end = (journalCommitDone || journalAborted || timeOut);
 				
-		/** wait up to 10 seconds for journalService to complete or abort commit operation */
+		/**
+		 *  get sure the commit has completed
+		 * otherwise wait up to 10 seconds for the JournalService 
+		 * to complete the operation
+		 *  
+		 * */
 
 		while (!end) {
 			try {
@@ -353,7 +358,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 			
 		}
 				
-		// if commit aborted -> do nothing
+		// if commit was aborted -> do nothing
 		//
 		if (journalAborted) {
 			odj.removeAborted(opx.getId());
@@ -466,11 +471,8 @@ public class ReplicationService extends BaseService implements ApplicationContex
 			getLockService().getObjectLock(opx.getBucketName(), opx.getObjectName()).readLock().lock();
 			
 			try {
-					
 						ObjectMetadata meta = getVFS().getObjectMetadata(opx.getBucketName(), opx.getObjectName());
-						
 						try {
-						
 							getClient().putObjectStream(opx.getBucketName(), opx.getObjectName(), getVFS().getObjectStream(opx.getBucketName(), opx.getObjectName()), meta.fileName);
 							getMonitoringService().getReplicationObjectCreateCounter().inc();
 							
@@ -555,7 +557,6 @@ public class ReplicationService extends BaseService implements ApplicationContex
 				getLockService().getObjectLock(opx.getBucketName(), opx.getObjectName()).readLock().lock();
 				
 				try {
-					
 					if (getClient().existsObject(opx.getBucketName(), opx.getObjectName())) {
 							getClient().deleteObject(opx.getBucketName(), opx.getObjectName());
 							getMonitoringService().getReplicationObjectDeleteCounter().inc();
