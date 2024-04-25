@@ -53,6 +53,9 @@ import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
+ * <p>System information, mainly hardware and base software info and Odilon settings. 
+ * It does not include dynamic info like Object throughput or Cache usage, those metrics
+ * are provided by the {@link SystemMonitoringService}  </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */

@@ -54,8 +54,16 @@ import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
- * <p>Enqueue operations
- * executes operations
+ * 
+ * <p>Service that asynchronously propagates operations already completed (after commit) to the Standby server</p>
+ * <p>
+ * As part of the Commit operation The {@link JournalService} creates a new {@link StandByReplicaServiceRequest} for the {@link SchedulerService}.
+ * The request is executed by the Thread pool of the {@link StandByReplicaSchedulerWorker}, who calls the this service to 
+ * propagate the operation.</p>
+ * 
+ * <p>Note that is step is after the local operation was committed. If the operation can not be propagated the
+ * request will not be closed and the {@link StandByReplicaSchedulerWorker} will block until it can be successfully propagated,
+ * this means that in the meantime its' job queue may grow. 
  * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)

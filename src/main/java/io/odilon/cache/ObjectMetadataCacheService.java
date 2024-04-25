@@ -38,7 +38,7 @@ import io.odilon.service.ServerSettings;
 import io.odilon.vfs.model.VFSop;
 
 /**
- * <p>{@link ObjectMetadata} cache. It only stores ObjectMetadata head version</p> 
+ * <p>{@link ObjectMetadata} cache. It only stores ObjectMetadata <b>head< version/b></p> 
  * <p>It Uses {@link Caffeine} to keep references to entries in memory.</p> 
  *  
  * @author atolomei@novamens.com (Alejandro Tolomei)

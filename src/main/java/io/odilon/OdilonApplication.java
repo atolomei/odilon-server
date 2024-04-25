@@ -31,36 +31,32 @@ import io.odilon.model.ServerConstant;
 /**
  * 
  * 
- * <p>Odilon has 3 layers 
+ * <p>Odilon has three hierarchical layers (API, Object Storage, Virtual File System) and about a dozen general services used by them (Scheduler, Lock, Journal, Cache, Encryption, etc.). 
+ * See <a href="https://odilon.io/architecture.html">Odilon Architecture</a></p>
  * 
  * <ul>
  *   <li>
  *   <b>API</b><br/>
- *   	RESTFul API implemented with Spring Boot<br/>
+ *   <p>This is the HTTP/S interface used by client applications, like Odilon Java SDK, it is a RESTFul API implemented with Spring Boot: Bucket and Object operations, System info, and others. They interact directly with the Object Storage, they do not see the lower layers.
  *   	API Controllers:  Bucket CRUD, Object CRUD, System info,<br/>
- *   	API controllers interact with the {@link ObjectStorageService}, they do not	see the lower layers.  
- *   <br/>
+ *   	API controllers interact with the {@link ObjectStorageService}, they do not	see the lower layers.
+ *   </p>  
  *   </li>
  *   <li>
  *   <b>Object Storage Service</b><br/>
- *   Buckets and Objects<br/>
- *   It uses a Virtual File System that supports redundancy, bit rot detection and error correction 
- *   <br/>   
- *   <br/>
+ *   It is essentially an intermediary that downloads the requirements into the Virtual File System
  *   </li>
+ *   
  *   <li>
  *   <b>Virtual File System</b><br/>
- *   RAID 0
- *   RAID 1
- *   RAID 6 
- *   Supports at rest encryption 
- *   redundancy, error detection and error correction (RAID) 
+     *The Virtual File System layer manages the repository on top of the OS File System. Odilon uses the underlying File System to store objects as encrypted files, or in some configurations to break objects into chunks. It implements software RAID, which depending on the configuration can be RAID 0, RAID 1, RAID 6/Erasure Coding.
+ *	  Odilon uses Reed Solomon encoding for Erasure Codes. 
  *   it uses RAID drivers for I/O on the underlying {@code Drive} 
- *   
  *   <br/>
  *   <br/>
  *   </li>
  * </ul>
+ * 
  * 
  * @see {@link OdilonVersion#VERSION} for the version of the server
  * 

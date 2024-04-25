@@ -40,7 +40,8 @@ import io.odilon.service.ServerSettings;
 import io.odilon.service.SystemService;
 
 /**
- * <p>System Metrics</p>
+ * <p>Dynamic metrics on the status of the server</p>
+ * <p>For hardware, base software and Odilon server's configuration there is a {@link SystemInfoService}  </p>
  *   
  *@author atolomei@novamens.com (Alejandro Tolomei)
  */
@@ -119,39 +120,8 @@ public class SystemMonitorService extends BaseService implements SystemService {
 
 	@JsonIgnore
 	private Counter replicaRestoreObjectPreviousVersionCounter;
+
 	
-	public Counter getObjectRestorePreviousVersionCounter() {
-		return objectRestorePreviousVersionCounter;
-	}
-
-	public void setObjectRestorePreviousVersionCounter(Counter objectRestorePreviousVersionCounter) {
-		this.objectRestorePreviousVersionCounter = objectRestorePreviousVersionCounter;
-	}
-
-	public Counter getObjectDeleteAllVersionsCounter() {
-		return objectDeleteAllVersionsCounter;
-	}
-
-	public void setObjectDeleteAllVersionsCounter(Counter objectDeleteAllVersionsCounter) {
-		this.objectDeleteAllVersionsCounter = objectDeleteAllVersionsCounter;
-	}
-
-	public Counter getReplicaRestoreObjectPreviousVersionCounter() {
-		return replicaRestoreObjectPreviousVersionCounter;
-	}
-
-	public void setReplicaRestoreObjectPreviousVersionCounter(Counter replicaRestoreObjectPreviousVersionCounter) {
-		this.replicaRestoreObjectPreviousVersionCounter = replicaRestoreObjectPreviousVersionCounter;
-	}
-
-	public Counter getReplicaDeleteObjectAllVersionsCounter() {
-		return replicaDeleteObjectAllVersionsCounter;
-	}
-
-	public void setReplicaDeleteObjectAllVersionsCounter(Counter replicaDeleteObjectAllVersionsCounter) {
-		this.replicaDeleteObjectAllVersionsCounter = replicaDeleteObjectAllVersionsCounter;
-	}
-
 	@JsonIgnore
 	private Counter replicaDeleteObjectAllVersionsCounter;
 	
@@ -199,17 +169,49 @@ public class SystemMonitorService extends BaseService implements SystemService {
 	@JsonIgnore
 	@Autowired
 	private final FileCacheService fileCacheService;
-	
-	
-	public FileCacheService getFileCacheService() {
-		return fileCacheService;
-	}
+
 
 	
 	public SystemMonitorService(ServerSettings serverSettings, ObjectMetadataCacheService cacheService, FileCacheService fileCacheService) {
 		this.objectCacheService=cacheService;
 		this.serverSettings=serverSettings;
 		this.fileCacheService=fileCacheService;
+	}
+	
+	public Counter getObjectRestorePreviousVersionCounter() {
+		return objectRestorePreviousVersionCounter;
+	}
+
+	public void setObjectRestorePreviousVersionCounter(Counter objectRestorePreviousVersionCounter) {
+		this.objectRestorePreviousVersionCounter = objectRestorePreviousVersionCounter;
+	}
+
+	public Counter getObjectDeleteAllVersionsCounter() {
+		return objectDeleteAllVersionsCounter;
+	}
+
+	public void setObjectDeleteAllVersionsCounter(Counter objectDeleteAllVersionsCounter) {
+		this.objectDeleteAllVersionsCounter = objectDeleteAllVersionsCounter;
+	}
+
+	public Counter getReplicaRestoreObjectPreviousVersionCounter() {
+		return replicaRestoreObjectPreviousVersionCounter;
+	}
+
+	public void setReplicaRestoreObjectPreviousVersionCounter(Counter replicaRestoreObjectPreviousVersionCounter) {
+		this.replicaRestoreObjectPreviousVersionCounter = replicaRestoreObjectPreviousVersionCounter;
+	}
+
+	public Counter getReplicaDeleteObjectAllVersionsCounter() {
+		return replicaDeleteObjectAllVersionsCounter;
+	}
+
+	public void setReplicaDeleteObjectAllVersionsCounter(Counter replicaDeleteObjectAllVersionsCounter) {
+		this.replicaDeleteObjectAllVersionsCounter = replicaDeleteObjectAllVersionsCounter;
+	}
+
+	public FileCacheService getFileCacheService() {
+		return fileCacheService;
 	}
 
 	public long getObjectCacheSize() {
@@ -306,21 +308,20 @@ public class SystemMonitorService extends BaseService implements SystemService {
 		
 		set(me.getObjectMeter, 	this.getObjectMeter); 
 		set(me.putObjectMeter, 	this.putObjectMeter);
-		
-		me.createObjectCounter 					= this.createObjectCounter.getCount();
-		me.updateObjectCounter 					= this.updateObjectCounter.getCount();
-		me.deleteObjectCounter 					= this.deleteObjectCounter.getCount();
-		me.deleteObjectVersionCounter 			= this.deleteObjectVersionCounter.getCount();
-		me.objectRestorePreviousVersionCounter 	= this.objectRestorePreviousVersionCounter.getCount();
-		me.objectDeleteAllVersionsCounter		= this.objectDeleteAllVersionsCounter.getCount();
-		
+													
+		me.createObjectCounter 							= this.createObjectCounter.getCount();
+		me.updateObjectCounter 							= this.updateObjectCounter.getCount();
+		me.deleteObjectCounter 							= this.deleteObjectCounter.getCount();
+		me.deleteObjectVersionCounter 					= this.deleteObjectVersionCounter.getCount();
+		me.objectRestorePreviousVersionCounter 			= this.objectRestorePreviousVersionCounter.getCount();
+		me.objectDeleteAllVersionsCounter				= this.objectDeleteAllVersionsCounter.getCount();
 		
 		me.replicaObjectCreate 							= this.replicaCreateObject.getCount();
 		me.replicaObjectUpdate 							= this.replicaUpdateObject.getCount();
 		me.replicaObjectDelete 							= this.replicaDeleteObject.getCount();
 		me.replicaRestoreObjectPreviousVersionCounter	= this.replicaRestoreObjectPreviousVersionCounter.getCount();
 		me.replicaDeleteObjectAllVersionsCounter 		= this.replicaDeleteObjectAllVersionsCounter.getCount();
-		
+					
 		me.cacheObjectHitCounter 		= this.cacheObjectHitCounter.getCount();
 		me.cacheObjectMissCounter 		= this.cacheObjectMissCounter.getCount();
 		me.cacheObjectSize 				= this.objectCacheService.size();
