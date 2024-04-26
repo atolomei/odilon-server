@@ -29,11 +29,16 @@ import io.odilon.log.Logger;
 import io.odilon.model.ServerConstant;
 
 /**
+ * <p><a href="https://odilon.io">Odilon</a> 
+ * has three hierarchical layers (API, Object Storage, Virtual File System) and about a dozen general services used by them (
+ * {@link SchedulerService}, 
+ * {@link LockService},  
+ * {@link JournalService},
+ * {@link CacheService},
+ * {@link EncryptionService}, etc.).
+ * </p>
  * 
- * 
- * <p>Odilon has three hierarchical layers (API, Object Storage, Virtual File System) and about a dozen general services used by them (Scheduler, Lock, Journal, Cache, Encryption, etc.).
- *  
- * See Article: <b><a href="https://odilon.io/architecture.html">Odilon Architecture</a></b></p>
+ * <p>See <a href="https://odilon.io/architecture.html">Odilon Architecture</a></p>
  * 
  * <ul>
  *   <li>
@@ -42,26 +47,32 @@ import io.odilon.model.ServerConstant;
  *   	API Controllers:  Bucket CRUD, Object CRUD, System info,<br/>
  *   	API controllers interact with the {@link ObjectStorageService}, they do not	see the lower layers.
  *   </p>  
+ *   <br/>
  *   </li>
  *   <li>
  *   <b>Object Storage Service</b><br/>
- *   It is essentially an intermediary that downloads the requirements into the Virtual File System
+ *   <p>It is essentially an intermediary that downloads the requirements into the Virtual File System
+ *   <br/>
+ *   <br/>
+ *   </p>
  *   </li>
- *   
  *   <li>
  *   <b>Virtual File System</b><br/>
-     *The Virtual File System layer manages the repository on top of the OS File System. Odilon uses the underlying File System to store objects as encrypted files, or in some configurations to break objects into chunks. It implements software RAID, which depending on the configuration can be RAID 0, RAID 1, RAID 6/Erasure Coding.
+ *   <p>The Virtual File System layer manages the repository on top of the OS File System. Odilon uses the underlying File System to store objects as encrypted files, or in some configurations to break objects into chunks. It implements software RAID, which depending on the configuration can be RAID 0, RAID 1, RAID 6/Erasure Coding.
  *	  Odilon uses Reed Solomon encoding for Erasure Codes. 
  *   it uses RAID drivers for I/O on the underlying {@code Drive} 
- *   <br/>
- *   <br/>
+ *   </p>
  *   </li>
  * </ul>
- * 
+ * <br/>
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ * <br/>
+ * <br/>
  * @see {@link OdilonVersion#VERSION} for the version of the server
  * 
  * 
- * @author atolomei@novamens.com (Alejandro Tolomei)
+ * 
+ * 
  */
 @SpringBootApplication
 @ComponentScan({"io.odilon"})

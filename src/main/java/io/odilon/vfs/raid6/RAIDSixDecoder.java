@@ -202,7 +202,6 @@ public class RAIDSixDecoder {
 
         /** Combine the data shards into one buffer for convenience.
          	we have to change this to improve performance */
-        
         byte [] allBytes = new byte [shardSize * this.data_shards];     	// BUFFER 6
         for (int i = 0; i < this.data_shards; i++) 
             System.arraycopy(shards[i], 0, allBytes, shardSize * i, shardSize);

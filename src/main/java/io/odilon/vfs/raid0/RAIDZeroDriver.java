@@ -84,26 +84,23 @@ import io.odilon.vfs.model.VirtualFileSystemService;
  * <p>
  * <b>RAID 0. Stripped Disks.</b>
  * </p>
- * 
  * <p>Two or more disks are combined to form a volume, which appears as a single 
  * virtual drive. It is not aconfiguration with data replication, its function is 
  * to provide greater storage and performance by allowing access to the disks in 
  * parallel.</p>
- * 
  * <p>
  * All buckets <b>must</b> exist on all drives. If a bucket is not present on a
  * drive -> the Bucket is considered <i>"non existent"</i>.<br/>
  * Each file is stored only on 1 Drive in RAID 0. If a file does not have the file's
  * Metadata Directory -> the file is considered <i>"non existent"</i>.
  * </p>
- * 
  * <p>NOTE:- There are no {@link Drive} in mode {@link DriveStatus.NOTSYNC} in RAID 0. 
- * All new drives are sync before the {@link VirtualFileSystemService} completes its 
+ * All new drives are synchronized before the {@link VirtualFileSystemService} completes its 
  * initialization. </p>
 
  * <p>This Class is works as a <a href="https://en.wikipedia.org/wiki/Facade_pattern">Facade pattern</a> 
- * that uses {@link  RAIDZeroCreateObjectHandler},  {@link  RAIDZeroDeleteObjectHandler}, {@link  RAIDZeroUpdateObjectHandler} and other
- * </p>
+ * that uses {@link  RAIDZeroCreateObjectHandler}, {@link  RAIDZeroDeleteObjectHandler}, {@link  RAIDZeroUpdateObjectHandler} 
+ * and other</p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)	 
  * 
