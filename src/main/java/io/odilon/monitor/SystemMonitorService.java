@@ -40,7 +40,7 @@ import io.odilon.service.ServerSettings;
 import io.odilon.service.SystemService;
 
 /**
- * <p>Dynamic metrics on the status of the server</p>
+ * <p>Dynamic metrics on the status of the server<. It uses the <a href="https://metrics.dropwizard.io">Dropwizard Metrics library</a></p>
  * <p>For hardware, base software and Odilon server's configuration there is a {@link SystemInfoService}  </p>
  *   
  *@author atolomei@novamens.com (Alejandro Tolomei)
