@@ -17,12 +17,15 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 
 /**
+ * * <ul>
+ * 		<li>/wipeallpreviousversions</li>
  * 
+ * 	</ul> 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public class SystemController extends BaseApiController {
 
-	@SuppressWarnings("unused")
+
 	static private Logger logger = Logger.getLogger(SystemController.class.getName());
 	
 	@SuppressWarnings("unused")
@@ -40,7 +43,7 @@ public class SystemController extends BaseApiController {
 	}
 	
 	/**
-	 * <p>in JSON format</p>
+	 * <p>DELETE HTTP Request</p>
 	 */
 	@RequestMapping(value = "/wipeallpreviousversions", method = RequestMethod.DELETE)
 	public void wipeAllPreviousVersions() {

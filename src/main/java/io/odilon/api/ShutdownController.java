@@ -32,6 +32,7 @@ import io.odilon.traffic.TrafficControlService;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
+ * <p>Executed when a shutdown command is received from the API </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */

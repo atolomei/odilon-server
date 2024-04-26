@@ -50,6 +50,7 @@ import io.odilon.vfs.model.VFSBucket;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
+ * 
  *  /bucket/list
  *
  *  /bucket/exists/{name}

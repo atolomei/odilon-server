@@ -31,8 +31,9 @@ import io.odilon.model.ServerConstant;
 /**
  * 
  * 
- * <p>Odilon has three hierarchical layers (API, Object Storage, Virtual File System) and about a dozen general services used by them (Scheduler, Lock, Journal, Cache, Encryption, etc.). 
- * See <a href="https://odilon.io/architecture.html">Odilon Architecture</a></p>
+ * <p>Odilon has three hierarchical layers (API, Object Storage, Virtual File System) and about a dozen general services used by them (Scheduler, Lock, Journal, Cache, Encryption, etc.).
+ *  
+ * See Article: <b><a href="https://odilon.io/architecture.html">Odilon Architecture</a></b></p>
  * 
  * <ul>
  *   <li>
@@ -57,7 +58,6 @@ import io.odilon.model.ServerConstant;
  *   </li>
  * </ul>
  * 
- * 
  * @see {@link OdilonVersion#VERSION} for the version of the server
  * 
  * 
@@ -80,7 +80,6 @@ public class OdilonApplication {
 		cmdArgs = args;
 		application.run(args);
 	}
-	
 	
 		 
 	public OdilonApplication() {
