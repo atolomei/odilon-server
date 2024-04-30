@@ -175,7 +175,6 @@ More info in Odilon's website <br/>
 <ul>
 <li><a href="https://odilon.io/development.html" target="_blank">Java Application Development with Odilon</a></li>	
 <li><a href="https://odilon.io/javadoc/index.html" target="_blank">Odilon SDK Javadoc</a></li>	
-<li><a href="https://odilon.io/architecture.html" target="_blank">Odilon software Architecture</a></li>	
 <li class="list-item"><a href="https://github.com/atolomei/odilon-client" target="_blank">odilon-client GitHub project</a></li>
 <li class="list-item"><a href="https://github.com/atolomei/odilon-model" target="_blank">odilon-model GitHub project</a></li>
 </ul>
