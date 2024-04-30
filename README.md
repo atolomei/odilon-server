@@ -73,11 +73,6 @@ Odilon will propagate each operation to the standby server. It will also run a r
 <h2>What Odilon is not</h2>
 <p>
 <ul class="group-list>
-<li class="list-item"><b>Odilon is not S3 compatible</b><br/>
-Odilon API is simpler than S3. The only thing it has in common with AWS S3 it that uses the bucket/object methafor to organize the object space.
-<br/>
-<br/>
-</li>
 <li class="list-item"><b>Odilon is not a Distributed Storage like Cassandra, Hadoop etc.</b><br/>
 Odilon supports master-standby architecture for archival, backup and data protection, 
 but it is not a Distributed Storage and it does not support active-active replication.
@@ -89,12 +84,21 @@ It uses the underlying file system to stores objects as encrypted files, or in s
 <br/>
 <br/>
 </li>
-<li class="list-item"><b>Odilon is not a NoSQL database like MongoDB, CouchDB, etc.</b><br/> 
+
+	<li class="list-item"><b>Odilon is not a NoSQL database like MongoDB, CouchDB, etc.</b><br/> 
 It does not use a database engine, 
 Odilon uses its own journaling agent for Transaction Management 
 and only supports very simple queries, ie. to retrieve an object and to list the objects of a bucket filtered by objectname's prefix.
 <br/>
 <br/>
+</li>
+
+<li class="list-item"><b>Odilon is not S3 compatible</b><br/>
+Odilon API is simpler than S3. The only thing it has in common with AWS S3 it that uses the bucket/object methafor to organize the object space.
+<br/>
+<br/>
+</li>
+
 <li class="list-item"><b>Odilon is not optimized for a very large number of small files</b></b><br/>  
 Odilon does not have optimization for lots of small files. 
 The files are simply stored encrypted and compressed to local disks. 
@@ -102,6 +106,7 @@ Plus the extra meta file and shards for erasure coding.
 <br/>
 <br/>
 </li>
+
 </ul>
 
 
