@@ -26,6 +26,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import io.odilon.log.Logger;
@@ -50,6 +51,7 @@ public abstract class BaseApiController implements ApplicationContextAware, APIO
 	static  {
 		mapper.registerModule(new JavaTimeModule());
 		mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+		mapper.registerModule(new Jdk8Module());
 	}
 
 	static private Logger logger = Logger.getLogger(BaseApiController.class.getName());

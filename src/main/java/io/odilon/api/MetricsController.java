@@ -17,6 +17,7 @@
 package io.odilon.api;
 
 
+
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -94,7 +95,7 @@ public class MetricsController extends BaseApiController {
 
 	
 	/**
-	 * @return
+	 * @return info in JSON format
 	 */
 	@RequestMapping(value = "/systeminfo", produces = "application/json", method = RequestMethod.GET)
 	@ResponseBody
@@ -114,15 +115,19 @@ public class MetricsController extends BaseApiController {
 		}
 	}
 	
-	@RequestMapping(value = "/metricscolloquial", produces = "application/json", method = RequestMethod.GET)
+
+	/**
+	 * <p>in text format</p>
+	 */
+	@RequestMapping(value = "/metricscolloquial", produces = "text/plain", method = RequestMethod.GET)
 	public ResponseEntity<String> getMetricsColloquial() {
 		return getMetricsInformal();
 	}
 	
 	/**
-	 * <p>in JSON format</p>
+	 * <p>in text format</p>
 	 */
-	@RequestMapping(value = "/metricsinformal", produces = "application/json", method = RequestMethod.GET)
+	@RequestMapping(value = "/metricsinformal", produces = "text/plain", method = RequestMethod.GET)
 	public ResponseEntity<String> getMetricsInformal() {
 		
 		TrafficPass pass = null;

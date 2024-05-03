@@ -25,6 +25,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import io.odilon.log.Logger;
@@ -48,6 +49,7 @@ public class ODVFSOperation implements VFSOperation {
 	static  {
 		mapper.registerModule(new JavaTimeModule());
 		mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+		mapper.registerModule(new Jdk8Module());
 	}
 	
 	@JsonIgnore
@@ -88,7 +90,7 @@ public class ODVFSOperation implements VFSOperation {
 					((objectName!=null) ? objectName :"null" );
 	}
 	
-	public ODVFSOperation(	String id, 
+	public ODVFSOperation( 	String id, 
 							VFSop op,  
 							Optional<String> bucketName,
 							Optional<String> objectName,
@@ -107,6 +109,7 @@ public class ODVFSOperation implements VFSOperation {
 		
 		if (objectName.isPresent())
 			this.objectName = objectName.get();
+		
 		this.raid =raid;
 		this.journalService = journalService;
 		this.timestamp = OffsetDateTime.now();  
@@ -176,7 +179,7 @@ public class ODVFSOperation implements VFSOperation {
 	public String toString() {
 		StringBuilder str = new StringBuilder();
 		str.append(this.getClass().getSimpleName());
-			str.append(toJSON());
+		str.append(toJSON());
 		return str.toString();
 	}
 	

@@ -44,6 +44,7 @@ import org.springframework.context.ApplicationContextAware;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import io.odilon.OdilonVersion;
@@ -92,6 +93,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 	static  {
 		mapper.registerModule(new JavaTimeModule());
 		mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+		mapper.registerModule(new Jdk8Module());
 	}
 	
 	@JsonIgnore
