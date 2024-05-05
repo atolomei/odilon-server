@@ -2,19 +2,20 @@
 <h1>Odilon Object Storage</h2>
 
 <h2>Lightweight and scalable</h2>
-<p>Odilon is a scalable and lightweight <b>Open Source</b> <b>Object Storage</b> that runs on standard hardware (<a href="https://odilon.io" target="_blank">Odilon project website</a>).</p>
+<p>Odilon is an <b>Open Source</b> <b>Object Storage</b> that runs on standard hardware (<a href="https://odilon.io" target="_blank">Odilon project website</a>).</p>
 <p>It was designed as a redundant and secure file storage for applications that need to manage medium to large size objects (like pdfs, photos, audio, video).</p>
-<p>It has a simple single-level folder structure similar to the <b>Bucket</b> / <b>Object</b> model of <a href="https://aws.amazon.com/s3 /" target="_blank">Amazon S3</a>. It is small and easy to integrate, offers <b>encryption</b>, data protection and fault tolerance (<b>software RAID </b> and <b>Erasure Codes</b>) and detection of <b>silent data degradation</b>. Odilon also supports <b>version control</b> and <b>master - standby replication over the Internet</b>.</p>
+<p>It has a simple single-level folder structure similar to the <b>Bucket</b> / <b>Object</b> model of <a href="https://aws.amazon.com/s3 /" target="_blank">Amazon S3</a>. 
+It is small and easy to integrate, offers <b>encryption</b>, data protection and fault tolerance (<b>software RAID </b> and <b>Erasure Codes</b>) and detection of <b>silent data degradation</b>. 
+Odilon also supports <b>version control</b> and <b>master - standby replication over the Internet</b>.</p>
 </p>
 
 <h2>Main features</h2>
 				<p>
 				<ul>
 				<li> Scalable Object Storage on commodity disks</li>
-				<li>Single binary, does not neet Database or other external service</li>
+				<li>Single binary, does not need Database or other external service</li>
 				<li> Developed in Java, the server requires Java 17+ (uses <a href="https://spring.io/projects/spring-boot">Spring Boot</a>, <a href="https://square.github.io/okhttp/">OkHttp</a>, <a href="https://github.com/FasterXML/jackson">Jackson</a>, <a href="https://github.com/ben-manes/caffeine">Caffeine</a>, <a href="https://metrics.dropwizard.io/4.2.0/">Metrics</a>, among others) </li>
 				<li> Runs on Linux and Windows</li>				
-				<li>Single dependency-free binary, does not neet Database or other external service</li>
 				<li> SDK Java 11+ for client applications</li >
 				<li> HTTP/S for client server communication</li>
 				<li>License <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank">Open Source Apache 2</a>. It can be used for Open Source and commercial projects </li>
@@ -90,7 +91,7 @@ and only supports very simple queries, ie. to retrieve an object and to list the
 <br/>
 <br/>
 </li>
-<li class="list-item"><b>Odilon is not S3 compatible</b><br/>
+<li class="list-item"><b>Odilon API is not fully S3 compatible</b><br/>
 Odilon API is simpler than S3. The only thing it has in common with AWS S3 it that uses the bucket/object methafor to organize the object space.
 <br/>
 <br/>
