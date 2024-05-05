@@ -12,18 +12,16 @@
 	<artifactId>odilon-server</artifactId>
 	<version>1.6-beta</version>
 	<name>odilon server</name>
-	<description>Odilon is a scalable and lightweight Open Source Object Storage that runs on standard hardware.
-	It is an infrastructure software to be used by applications that need to store 
-	that needs to store terabytes of medium to large size objects (like photos or pdfs) securely and safely through encryption, replication and redundancy.
-	A typical installation would by 100M pdfs 20KB-30MB each.
-	It has a simple single-level folder structure similar to the Bucket / Object model of Amazon S3. 
-	It is small and easy to integrate, offers encryption, data protection and fault tolerance (software RAID and Erasure Codes) and detection of silent data degradation. Odilon also supports version control 
-	and master - standby replication over the Internet for disaster recovery and anti ransomware.</description>
+	
+	<description>Odilon is an Open Source Object Storage that runs on standard hardware.
+	It was designed as a redundant and secure file storage for applications that need to manage medium to large size objects (like pdfs, photos, audio, video).
+	It has a simple single-level folder structure similar to the Bucket / Object model of Amazon S3. It is small and easy to integrate, offers encryption, 
+	data protection and fault tolerance (software RAID and Erasure Codes) and detection of silent data degradation. Odilon also supports version control 
+	and master - standby replication over the Internet for disaster recovery and ransomware protection..</description>
 	
 	<properties>
 		<java.version>17</java.version>
-		<!-- caffeine-version>we used the one provided by Spring </caffeine-version -->	 							
-		<commons-lang3-version>3.14.0</commons-lang3-version>	 						<!--  03/2024   -->
+		<!-- commons-lang3-version>3.14.0</ commons-lang3-version -->	 						<!--  03/2024   -->
 		<oswego-version>1.3.4</oswego-version>											<!--  01/2024   -->
 		<spring-vault-core>3.1.1</spring-vault-core> 									<!--  03/2024   -->
 		<odilon-client-version>1.6-beta</odilon-client-version>
@@ -58,14 +56,9 @@
 		<dependency>
 		  <groupId>com.github.ben-manes.caffeine</groupId>
 		  <artifactId>caffeine</artifactId>
-		  <!-- version: we used the one provided by Spring --> 
+		  <!-- version -> we use the one provided by Spring --> 
 		</dependency>
 			
-
-		
-	 
-
-
 
 		<!--  Spring =====================================================================================  -->
 	  
@@ -185,10 +178,11 @@
 			    </exclusions>
 			</dependency>
 			
-			
-			 
 		<!--  Client Java SDK  (end) =====================================================================================  -->
 
+
+		<!--  Testing ====================================================================================================  -->
+		
 		<!-- Temporary explicit version to fix Thymeleaf bug -->
 		<dependency>
 			<groupId>junit</groupId>
