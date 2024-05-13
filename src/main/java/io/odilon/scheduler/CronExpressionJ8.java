@@ -33,14 +33,15 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 /**
 * This provides cron support for java8 using java-time.
-* <P>
-* 
-* Parser for unix-like cron expressions: Cron expressions allow specifying combinations of criteria for time
-* such as: &quot;Each Monday-Friday at 08:00&quot; or &quot;Every last friday of the month at 01:30&quot;
 * <p>
-* A cron expressions consists of 5 or 6 mandatory fields (seconds may be omitted) separated by space. <br>
+* * Parser for unix-like cron expressions: Cron expressions allow specifying combinations of criteria for time
+* such as: &quot;Each Monday-Friday at 08:00&quot; or &quot;Every last friday of the month at 01:30&quot;
+* </p>
+* 
+* <p>A cron expressions consists of 5 or 6 mandatory fields (seconds may be omitted) separated by space. <br>
 * These are:
-*
+* </p>
+* 
 * <table cellspacing="8">
 * <tr>
 * <th align="left">Field</th>

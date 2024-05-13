@@ -28,8 +28,7 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 /***
  * 
- * <p>Cron jobs queue that execute regularly based on a {@link CropnExpressionJ8}, 
- * they are non blocking</p>
+ * <p>Cron jobs queue that execute regularly based on a {@link CropnExpressionJ8}, they are non blocking</p>
  * 
  * @see {@link CropnExpressionJ8}
  * 

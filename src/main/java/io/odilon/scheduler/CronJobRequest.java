@@ -33,7 +33,8 @@ import io.odilon.errors.InternalCriticalException;
 
 /**
  * 
- * <p>{@link ServiceRequest} that executes regularly based on a {@link CronExpressionJ8}</p>
+ * <p>{@link ServiceRequest} that executes regularly 
+ * based on a {@link CronExpressionJ8}</p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */

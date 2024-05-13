@@ -54,7 +54,8 @@ include = As.PROPERTY, property = "type") @JsonSubTypes({
 
 /**
  * <p>Base class of {@link ServiceRequest} executed async by the {@link SchedulerService}.
- * The Scheduler has a persistent Queue in disk, for this reason all subclasses must be {@link Serializable}</p>
+ * The {@link SchedulerService} has a persistent {@link Queue} in disk, for this reason 
+ * all subclasses must be {@link Serializable}</p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
