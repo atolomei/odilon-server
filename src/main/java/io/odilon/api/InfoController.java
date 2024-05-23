@@ -35,7 +35,10 @@ import io.odilon.traffic.TrafficPass;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
- * 
+ *  <ul> 
+ *  	<li>/info</li>
+ *  </ul>
+
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @RestController

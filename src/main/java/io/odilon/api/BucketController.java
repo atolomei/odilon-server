@@ -50,16 +50,14 @@ import io.odilon.vfs.model.VFSBucket;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
- * 
- *  /bucket/list
- *
- *  /bucket/exists/{name}
- *  /bucket/get/{name} 
- *
- *  /bucket/create/{name}
- *  /bucket/delete/{name}
- *  
- *  /bucket/forcedelete/{name}
+ *	<ul> 
+ *  <li>/bucket/create/{name}</li>
+ *  <li>/bucket/delete/{name}</li>
+ *  <li>/bucket/exists/{name}</li>
+ *  <li>/bucket/forcedelete/{name}</li>
+ *  <li>/bucket/get/{name}</li>
+ *  <li>/bucket/list</li>
+ *  </ul>
  *
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
@@ -171,7 +169,6 @@ public class BucketController extends BaseApiController  {
 		}
 	}
 
-	
 		
 	/**
 	 * 
@@ -183,9 +180,7 @@ public class BucketController extends BaseApiController  {
 		TrafficPass pass = null;
 
 		try {
-		
 			pass = getTrafficControlService().getPass();
-			
 			return new ResponseEntity<Boolean>(Boolean.valueOf(getObjectStorageService().existsBucket(name) ? true : false), HttpStatus.OK);
 			 
 		} catch (OdilonServerAPIException e) {

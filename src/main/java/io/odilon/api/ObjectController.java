@@ -56,24 +56,20 @@ import io.odilon.traffic.TrafficPass;
 import io.odilon.vfs.model.VirtualFileSystemService;
 /**
  * 
- * <ul>
- * 	<li>	/exists/{bucketName}/{objectName}</li>
-	<li>	/hasversions/{bucketName}/{objectName}</li>
-	<li>	/get/{bucketName}/{objectName}</li>
-	<li>	/getversion/{bucketName}/{objectName}</li>
-	<li>	/getpreviousversion/{bucketName}/{objectName}</li>
-	<li>	/get/presignedurl/{bucketName}/{objectName}</li>
-	<li>	/getmetadata/{bucketName}/{objectName}</li>
-	<li>	/getmetadatapreviousversion/{bucketName}/{objectName}</li>
-	<li>	/getmetadatapreviousversionall/{bucketName}/{objectName}</li>
-	<li>	/delete/{bucketName}/{objectName}</li>
-	<li>	/deleteallpreviousversion/{bucketName}/{objectName}</li>
-	<li>	/upload/{bucketName}/{objectName}</li>
+ * 	<ul>
+ * 		<li>	/object/delete/{bucketName}/{objectName}</li>
+		<li>	/object/deleteallpreviousversion/{bucketName}/{objectName}</li>
+	 	<li>	/object/exists/{bucketName}/{objectName}</li>
+		<li>	/object/get/{bucketName}/{objectName}</li>
+		<li>	/object/getmetadata/{bucketName}/{objectName}</li>
+		<li>	/object/getmetadatapreviousversion/{bucketName}/{objectName}</li>
+		<li>	/object/getmetadatapreviousversionall/{bucketName}/{objectName}</li>
+		<li>	/object/get/presignedurl/{bucketName}/{objectName}</li>
+		<li>	/object/getpreviousversion/{bucketName}/{objectName}</li>
+		<li>	/object/hasversions/{bucketName}/{objectName}</li>
+		<li>	/object/upload/{bucketName}/{objectName}</li>
 	</ul>
 
- *   <p>
- *   Content-Disposition: attachment; filename="fname.ext"
- *   </p>
  *   @author atolomei@novamens.com (Alejandro Tolomei)
  *   
  */
@@ -178,27 +174,19 @@ public class ObjectController extends BaseApiController  {
 				pass = getTrafficControlService().getPass();
 				
 				if (!getObjectStorageService().existsObject(bucketName, objectName))
-					throw new OdilonObjectNotFoundException(
-							String.format("object not found -> b: %s | o:%s", 
-							Optional.ofNullable(bucketName).orElse("null"), 
-							Optional.ofNullable(objectName).orElse("null")
-					));
+					throw new OdilonObjectNotFoundException(String.format("object not found -> b: %s | o:%s",Optional.ofNullable(bucketName).orElse("null"),Optional.ofNullable(objectName).orElse("null")));
 				
-					
 				ObjectMetadata meta = getObjectStorageService().getObjectMetadata(bucketName, objectName);
 				
 					if (meta==null || meta.status == ObjectStatus.DELETED || meta.status == ObjectStatus.DRAFT)
 						throw new OdilonObjectNotFoundException(String.format("object not found -> b: %s | o:%s", Optional.ofNullable(bucketName).orElse("null"), Optional.ofNullable(objectName).orElse("null")));
 				
-				 
 				MediaType contentType=MediaType.APPLICATION_OCTET_STREAM;
 				
 				InputStream in = getObjectStorageService().getObjectStream(bucketName, objectName);
 							
 				getSystemMonitorService().getGetObjectMeter().mark();
 				 
-				
-				
 				 return ResponseEntity.ok()
 			      .contentType(contentType)
 			      .body(new InputStreamResource(in));
