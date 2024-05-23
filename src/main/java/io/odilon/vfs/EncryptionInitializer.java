@@ -331,11 +331,6 @@ public class EncryptionInitializer extends ODModelObject {
 		return isLinux() ? (ServerConstant.ENABLE_ENCRYPTION_SCRIPT_LINUX) : (ServerConstant.ENABLE_ENCRYPTION_SCRIPT_WINDOWS);
 	}
 	
-	//private String getRekeyEncryptionScriptName() {
-	//		return isLinux() ? ServerConstant.REKEY_ENCRYPTION_SCRIPT_LINUX : ServerConstant.REKEY_ENCRYPTION_SCRIPT_WINDOWS;
-	//}
-	
-	
 	/**
 	 * @return
 	 */
