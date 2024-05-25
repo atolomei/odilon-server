@@ -16,6 +16,7 @@
  */
 package io.odilon.api;
 
+
 import java.io.IOException;
 
 import java.io.File;
@@ -40,7 +41,6 @@ import io.odilon.log.Logger;
 import io.odilon.monitor.SystemMonitorService;
 import io.odilon.service.ObjectStorageService;
 import io.odilon.traffic.TrafficControlService;
-import io.odilon.traffic.XXTrafficControlService;
 import io.odilon.util.RandomIDGenerator;
 import io.odilon.vfs.model.VirtualFileSystemService;
 

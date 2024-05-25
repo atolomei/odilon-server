@@ -16,6 +16,7 @@
  */
 package io.odilon.api;
 
+
 import java.io.InputStream;
 import java.util.Optional;
 
@@ -41,7 +42,6 @@ import io.odilon.security.AuthToken;
 import io.odilon.security.TokenService;
 import io.odilon.service.ServerSettings;
 import io.odilon.service.ObjectStorageService;
-import io.odilon.traffic.XXTrafficControlService;
 import io.odilon.traffic.TrafficControlService;
 import io.odilon.traffic.TrafficPass;
 import io.odilon.vfs.model.VFSObject;

@@ -16,6 +16,7 @@
  */
 package io.odilon.api;
 
+
 import jakarta.annotation.PostConstruct;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,7 +35,6 @@ import io.odilon.model.APIObject;
 import io.odilon.monitor.SystemMonitorService;
 import io.odilon.service.ObjectStorageService;
 import io.odilon.traffic.TrafficControlService;
-import io.odilon.traffic.XXTrafficControlService;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**

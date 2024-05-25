@@ -64,9 +64,6 @@ import io.odilon.vfs.model.VFSObject;
 import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VFSop;
 import io.odilon.vfs.model.VirtualFileSystemService;
-import io.odilon.vfs.raid1.RAIDOneCreateObjectHandler;
-import io.odilon.vfs.raid1.RAIDOneDeleteObjectHandler;
-import io.odilon.vfs.raid1.RAIDOneUpdateObjectHandler;
 
 /**
  * <p>RAID 6. Driver</p>

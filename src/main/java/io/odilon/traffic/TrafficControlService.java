@@ -136,7 +136,7 @@ public class TrafficControlService extends BaseService {
 		this.tokens  = serverSettings.getMaxTrafficTokens();
 		createPasses();
 		setStatus(ServiceStatus.RUNNING);
- 		startuplogger.debug("Started -> " + XXTrafficControlService.class.getSimpleName());
+ 		startuplogger.debug("Started -> " + TrafficControlService.class.getSimpleName());
 	}
 	
 	protected synchronized void createPasses() {
