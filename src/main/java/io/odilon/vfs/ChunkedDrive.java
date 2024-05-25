@@ -29,6 +29,7 @@ import io.odilon.log.Logger;
 * @author atolomei@novamens.com (Alejandro Tolomei)
 * 
 */
+@Deprecated
 @Component
 @Scope("prototype")
 public class ChunkedDrive extends ODDrive {

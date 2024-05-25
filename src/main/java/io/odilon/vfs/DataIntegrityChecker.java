@@ -66,8 +66,6 @@ public class DataIntegrityChecker implements Runnable, ApplicationContextAware  
 	static private Logger logger = Logger.getLogger(DataIntegrityChecker.class.getName());
 	static private Logger checkerLogger = Logger.getLogger("dataIntegrityCheck");
 
-	static final int PAGESIZE = ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE;
-
 	private boolean forceCheckAll = false;
 	private int maxProcessingThread  = 1;
 	
@@ -147,7 +145,7 @@ public class DataIntegrityChecker implements Runnable, ApplicationContextAware  
 			executor = Executors.newFixedThreadPool(this.maxProcessingThread);
 			
 			for (VFSBucket bucket: getVirtualFileSystemService().listAllBuckets()) {
-				Integer pageSize = Integer.valueOf(PAGESIZE);
+				Integer pageSize = Integer.valueOf(ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE);
 				Long offset = Long.valueOf(0);
 				String agentId = null;
 				boolean done = false;
