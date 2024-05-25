@@ -4,8 +4,7 @@
 <h2>Lightweight and scalable</h2>
 <p>Odilon is an Open Source Object Storage that runs on standard hardware (<a href="https://odilon.io" target="_blank">Odilon project website</a>).</p>
 <p>It was designed as a redundant and secure file storage for applications that need to manage medium to large size objects (like pdfs, photos, audio, video).</p>
-<p>It has a simple single-level folder structure similar to the <b>Bucket</b> / <b>Object</b> model of <a href="https://aws.amazon.com/s3 /" target="_blank">Amazon S3</a>. 
-It is small and easy to integrate, offers <b>encryption</b>, data protection and fault tolerance (<b>software RAID </b> and <b>Erasure Codes</b>) and detection of <b>silent data degradation</b>. 
+<p>It is small and easy to integrate, offers <b>encryption</b>, data protection and fault tolerance (<b>software RAID </b> and <b>Erasure Codes</b>) and detection of <b>silent data degradation</b>. 
 Odilon also supports <b>version control</b> and <b>master - standby replication over the Internet</b>.</p>
 </p>
 
@@ -14,7 +13,7 @@ Odilon also supports <b>version control</b> and <b>master - standby replication 
 				<ul>
 				<li> Scalable Object Storage on commodity disks</li>
 				<li>Single binary, does not need a database or other external software</li>
-    				<li>It has a simple single-level folder structure similar to the Bucket/Object model of Amazon S3</li>					
+    				<li>It has a simple single-level folder structure similar to the Bucket/Object model of <a href="https://aws.amazon.com/s3 /" target="_blank">Amazon S3</a></li>					
 				<li> Runs on Linux and Windows</li>				
 				<li> SDK Java 11+ for client applications</li >
 				<li> HTTP/S for client server communication</li>
