@@ -487,7 +487,7 @@ public class ServerSettings implements APIObject {
 			startuplogger.error(		"No rootDirs are defined. \n"
 										+ 	"for RAID 0. at least 1 dataDir must be defined in file -> odilon.properties \n"
 										+ 	"for RAID 1. at least 1 dataDir must be defined in file -> odilon.properties \n"
-										+ 	"for RAID 6.  3 or 6 or 12 dataDirs must be defined in file	-> odilon.properties \n"
+										+ 	"for RAID 6.  3, 6, 12 or 24 dataDirs must be defined in file	-> odilon.properties \n"
 										+   "using default values ");
 			
 			getDefaultRootDirs().forEach( o -> startuplogger.error(o));
@@ -592,8 +592,8 @@ public class ServerSettings implements APIObject {
 		}
 		else if (this.redundancyLevel==RedundancyLevel.RAID_6) {
 		
-			if (!((this.rootDirs.size()==3) || (this.rootDirs.size()==6) || (this.rootDirs.size()==12))) {
-				exit("DataStorage must have 3 or 6 or 12 entries for -> " +	redundancyLevel.getName());
+			if (!((this.rootDirs.size()==3) || (this.rootDirs.size()==6) || (this.rootDirs.size()==12) || (this.rootDirs.size()==24))) {
+				exit("DataStorage must have 3 or 6 or 12 or 24 entries for -> " +	redundancyLevel.getName());
 			}
 			
 				if (this.rootDirs.size()==3) {
@@ -614,12 +614,24 @@ public class ServerSettings implements APIObject {
 					if (this.raid6ParityDrives==-1)
 						this.raid6ParityDrives=4;
 				}
-
+				else if (this.rootDirs.size()==24) {
+					if (this.raid6DataDrives==-1)
+						this.raid6DataDrives=16;
+					if (this.raid6ParityDrives==-1)
+						this.raid6ParityDrives=8;
+				}
+				
+				
 				if ( !(( (this.rootDirs.size()==3) && (this.raid6DataDrives==2) && (this.raid6ParityDrives==1)) || 
 					   ( (this.rootDirs.size()==6) && (this.raid6DataDrives==4) && (this.raid6ParityDrives==2)) || 
-					   ( (this.rootDirs.size()==12)&& (this.raid6DataDrives==8) && (this.raid6ParityDrives==4)) 
+					   ( (this.rootDirs.size()==12)&& (this.raid6DataDrives==8) && (this.raid6ParityDrives==4)) ||
+					   ( (this.rootDirs.size()==24)&& (this.raid6DataDrives==16) && (this.raid6ParityDrives==8))
 					  )) { 
-					exit(RedundancyLevel.RAID_6.getName() +" configurations supported are -> 6 dirs in DataStorage and raid6.dataDrives=4 and raid6.parityDrives=2 | 3 dirs in DataStorage and raid6.dataDrives=2 and raid6.parityDrives=1 | 12 dirs in DataStorage and raid6.dataDrives=8 and raid6.parityDrives=4 ");
+					exit(RedundancyLevel.RAID_6.getName() +" configurations supported are -> "
+							+ "3 dirs  in DataStorage and raid6.dataDrives=2 and raid6.parityDrives=1 | "
+							+ "6 dirs  in DataStorage and raid6.dataDrives=4 and raid6.parityDrives=2 | "
+							+ "12 dirs in DataStorage and raid6.dataDrives=8 and raid6.parityDrives=4 | "
+							+ "24 dirs in DataStorage and raid6.dataDrives=16 and raid6.parityDrives=8 ");
 					}
 				}
 		try {
@@ -983,7 +995,8 @@ public class ServerSettings implements APIObject {
 
 	
 	public boolean isRAID6ConfigurationValid(int dataShards, int parityShards) {
-		return  (dataShards==8 && parityShards==4) ||
+		return  (dataShards==16 && parityShards==8) ||
+				(dataShards==8 && parityShards==4) ||
 			    (dataShards==4 && parityShards==2) ||
 			    (dataShards==2 && parityShards==1);
 	}

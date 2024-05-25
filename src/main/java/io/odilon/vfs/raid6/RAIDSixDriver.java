@@ -106,8 +106,10 @@ import io.odilon.vfs.model.VirtualFileSystemService;
  * <p>
  * RAID 6. The only configurations supported in v1.x is -><br/>   
  * <br/>
- * data shards = 2 + parity shards=1 -> 3 disks <br/>
- * data shards = 4 + parity shards=2 -> 6 disks <br/>
+ * data shards = 2 + parity shards=1  ->  3 disks <br/>
+ * data shards = 4 + parity shards=2  ->  6 disks <br/>
+ * data shards = 8 + parity shards=4  -> 12 disks <br/>
+ * data shards = 16 + parity shards=8 -> 24 disks <br/>
  * </p>
  * <p>
  * All buckets <b>must</b> exist on all drives. If a bucket is not present on a
