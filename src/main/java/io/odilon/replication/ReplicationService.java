@@ -48,6 +48,7 @@ import io.odilon.service.BaseService;
 import io.odilon.service.ServerSettings;
 import io.odilon.util.Check;
 import io.odilon.vfs.ODJournalService;
+import io.odilon.vfs.model.JournalService;
 import io.odilon.vfs.model.LockService;
 import io.odilon.vfs.model.VFSBucket;
 import io.odilon.vfs.model.VFSOperation;
@@ -55,10 +56,10 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
  * 
- * <p>Service that asynchronously propagates operations already completed (after commit) to the Standby server</p>
+ * <p>Service that asynchronously propagates operations already completed (after Commit) to the Standby server</p>
  * <p>
  * As part of the Commit operation The {@link JournalService} creates a new {@link StandByReplicaServiceRequest} for the {@link SchedulerService}.
- * The request is executed by the Thread pool of the {@link StandByReplicaSchedulerWorker}, who calls the this service to 
+ * The request is executed by the Thread pool of the {@link StandByReplicaSchedulerWorker}, who calls a method of this service to 
  * propagate the operation.</p>
  * 
  * <p>Note that is step is after the local operation was committed. If the operation can not be propagated the
@@ -367,9 +368,9 @@ public class ReplicationService extends BaseService implements ApplicationContex
 		
 		// if commit never completed there is something wrong
 		//
-		if (journalExecuting) {
-			throw new InternalCriticalException("JournalService still executing on opx after 10 seconds -> " + opx.toString());
-		}
+		if (journalExecuting)
+			throw new InternalCriticalException(JournalService.class.getName() + " still executing on opx after " + (System.currentTimeMillis()-start) + " milliseconds -> " + opx.toString());
+		
 
 		logger.debug("Replicate -> " + opx.getOp().getName() + " " +( (opx.getBucketName()!=null) ? (" b:"+opx.getBucketName()):"" ) + ( (opx.getObjectName()!=null) ? (" o:"+opx.getObjectName()):""));
 		

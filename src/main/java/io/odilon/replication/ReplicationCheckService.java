@@ -1,4 +1,21 @@
+/*
+ * Odilon Object Storage
+ * (C) Novamens 
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.odilon.replication;
+
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -16,15 +33,24 @@ import io.odilon.model.ServerConstant;
 import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
 import io.odilon.model.list.ResultSet;
+import io.odilon.service.BaseService;
 import io.odilon.vfs.model.VFSBucket;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
-@Service
-public class ReplicationCheck {
-								
-	static private Logger logger = Logger.getLogger(ReplicationCheck.class.getName());
 
-	static final int PAGESIZE = ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE;
+/**
+ * 
+ * <p>/p>
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ * 
+ */
+@Service
+public class ReplicationCheckService extends BaseService {
+								
+	static private Logger logger = Logger.getLogger(ReplicationCheckService.class.getName());
+
+	
 	
 	@Autowired
 	private final ReplicationService replicationService;
@@ -32,7 +58,7 @@ public class ReplicationCheck {
 	@Autowired
 	private final VirtualFileSystemService virtualFileSystemService;
 	
-	public ReplicationCheck(ReplicationService replicationService,  VirtualFileSystemService virtualFileSystemService) {
+	public ReplicationCheckService(ReplicationService replicationService,  VirtualFileSystemService virtualFileSystemService) {
 		this.replicationService=replicationService;
 		 this.virtualFileSystemService=virtualFileSystemService;
 	}
@@ -94,7 +120,7 @@ public class ReplicationCheck {
 			List<String> errors = new ArrayList<String>();
 			
 			{
-				Integer pageSize = Integer.valueOf(PAGESIZE);
+				Integer pageSize = Integer.valueOf(ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE);
 				Long offset = Long.valueOf(0);
 				String agentId = null;
 				

@@ -902,7 +902,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 				Drive drive = null;
 				
 				if (getServerSettings().getRedundancyLevel()==RedundancyLevel.RAID_6) {
-					drive=new ChunkedDrive(String.valueOf(configOrder), dir, configOrder);
+					drive=new ODDrive(String.valueOf(configOrder), dir, configOrder);
 					configOrder++;
 				}
 				else {
