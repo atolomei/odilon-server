@@ -31,6 +31,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import io.odilon.log.Logger;
 import io.odilon.model.ServerConstant;
+import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
 import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VirtualFileSystemService;
@@ -94,7 +95,7 @@ public class StandByReplicaSchedulerWorker extends SchedulerWorker {
 			getServiceRequestQueue().remove(request);
 		
 		} catch (Exception e) {
-			logger.error(e, ServerConstant.NOT_THROWN);
+			logger.error(e, SharedConstant.NOT_THROWN);
 		}	
 	}
 
@@ -110,7 +111,7 @@ public class StandByReplicaSchedulerWorker extends SchedulerWorker {
 			getServiceRequestQueue().remove(request);
 			
 		} catch (Exception e) {
-			logger.error(e, ServerConstant.NOT_THROWN);
+			logger.error(e, SharedConstant.NOT_THROWN);
 		}
 	}
 	
@@ -151,7 +152,7 @@ public class StandByReplicaSchedulerWorker extends SchedulerWorker {
 				getFailed().put(request.getId(), request);
 			
 		} catch (Exception e) {
-			logger.error(e, ServerConstant.NOT_THROWN);
+			logger.error(e, SharedConstant.NOT_THROWN);
 		}
 	}
 
@@ -289,7 +290,7 @@ public class StandByReplicaSchedulerWorker extends SchedulerWorker {
 	private boolean isCompatible(ServiceRequest request, Map<String, ServiceRequest> map) {
 		
 		if (!(request instanceof StandByReplicaServiceRequest)) {
-			logger.error("invalid class -> " + request.getClass().getName(), ServerConstant.NOT_THROWN);
+			logger.error("invalid class -> " + request.getClass().getName(), SharedConstant.NOT_THROWN);
 			return false;
 		}
 		

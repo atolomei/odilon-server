@@ -34,6 +34,7 @@ import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ObjectStatus;
 import io.odilon.model.ServerConstant;
+import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
 import io.odilon.util.ODFileUtils;
 import io.odilon.vfs.model.Drive;
@@ -117,7 +118,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 										if (!isMainException)
 											throw new InternalCriticalException(e, "b:" + bucketName + " o:"+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null"));
 										else
-											logger.error(e, " finally | b:" + bucketName +	" o:" 	+ objectName + ", f:" 	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null") +  ServerConstant.NOT_THROWN);
+											logger.error(e, " finally | b:" + bucketName +	" o:" 	+ objectName + ", f:" 	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null") +  SharedConstant.NOT_THROWN);
 									}
 								}
 						}
@@ -164,14 +165,14 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 			if (!recoveryMode)
 				throw(e);
 			else
-				logger.error(e, "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null"), ServerConstant.NOT_THROWN);
+				logger.error(e, "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null"), SharedConstant.NOT_THROWN);
 			
 		} catch (Exception e) {
 			String msg = "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null");
 			if (!recoveryMode)
 				throw new InternalCriticalException(e, msg);
 			else
-				logger.error(e, msg + ServerConstant.NOT_THROWN);
+				logger.error(e, msg + SharedConstant.NOT_THROWN);
 		}
 		finally {
 			if (done || recoveryMode) 
@@ -228,7 +229,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 									out[n].close();
 							}
 						} catch (IOException e) {
-							logger.error(e, "b:" + bucketName + " o:"+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null") + (isMainException ? ServerConstant.NOT_THROWN :""));
+							logger.error(e, "b:" + bucketName + " o:"+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null") + (isMainException ? SharedConstant.NOT_THROWN :""));
 							secEx=e;
 						}
 				}

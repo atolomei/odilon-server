@@ -35,6 +35,7 @@ import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ObjectStatus;
 import io.odilon.model.ServerConstant;
+import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
 import io.odilon.util.ODFileUtils;
 import io.odilon.vfs.model.Drive;
@@ -122,12 +123,12 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 											if (!isMainException) 
 												throw e;
 											else
-												logger.error(e, " finally | b:" + bucketName +	" o:" 	+ objectName + ", f:" 	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null") +  ServerConstant.NOT_THROWN);
+												logger.error(e, " finally | b:" + bucketName +	" o:" 	+ objectName + ", f:" 	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null") +  SharedConstant.NOT_THROWN);
 										} catch (Exception e) {
 											if (!isMainException) 
 												throw new InternalCriticalException(e, " finally | b:" + bucketName +	" o:" 	+ objectName + ", f:" 	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null"));
 											else
-												logger.error(e, " finally | b:" + bucketName +	" o:" 	+ objectName + ", f:" 	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null") +  ServerConstant.NOT_THROWN);
+												logger.error(e, " finally | b:" + bucketName +	" o:" 	+ objectName + ", f:" 	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null") +  SharedConstant.NOT_THROWN);
 										}
 									}
 							}
@@ -170,13 +171,13 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 			if (!recoveryMode)
 				throw(e);
 			else
-				logger.error(e, "Rollback: " + op.toString() + ServerConstant.NOT_THROWN);
+				logger.error(e, "Rollback: " + op.toString() + SharedConstant.NOT_THROWN);
 			
 		} catch (Exception e) {
 			if (!recoveryMode)
 				throw new InternalCriticalException(e, "Rollback | " + op.toString());
 			else
-				logger.error(e, "Rollback: " + op.toString() + ServerConstant.NOT_THROWN);
+				logger.error(e, "Rollback: " + op.toString() + SharedConstant.NOT_THROWN);
 		}
 		finally {
 			if (done || recoveryMode) 
@@ -223,7 +224,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 						
 					} catch (IOException e) {
 						if (isMainException)
-							logger.error(e, "b:"  + bucket.getName() + ", o:" + objectName + ", f:" + srcFileName + (isMainException ? ServerConstant.NOT_THROWN :""));
+							logger.error(e, "b:"  + bucket.getName() + ", o:" + objectName + ", f:" + srcFileName + (isMainException ? SharedConstant.NOT_THROWN :""));
 						secEx=e;
 					}
 				if ((!isMainException) && (secEx!=null)) 

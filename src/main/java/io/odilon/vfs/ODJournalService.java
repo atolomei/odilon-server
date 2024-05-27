@@ -35,6 +35,7 @@ import io.odilon.log.Logger;
 import io.odilon.model.RedundancyLevel;
 import io.odilon.model.ServerConstant;
 import io.odilon.model.ServiceStatus;
+import io.odilon.model.SharedConstant;
 import io.odilon.replication.ReplicationService;
 import io.odilon.scheduler.SchedulerService;
 import io.odilon.service.BaseService;
@@ -283,7 +284,7 @@ public class ODJournalService extends BaseService implements JournalService {
 				getVFS().removeJournal(opx.getId());
 				
 			} catch (InternalCriticalException e) {
-				logger.error(e, "this is normally not a critical Exception (the op may have saved in some of the drives and not in others due to a crash)", ServerConstant.NOT_THROWN);
+				logger.error(e, "this is normally not a critical Exception (the op may have saved in some of the drives and not in others due to a crash)", SharedConstant.NOT_THROWN);
 			}
 			logger.debug("Cancel ->" + opx.toString());
 			getOps().remove(opx.getId());

@@ -31,6 +31,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import io.odilon.log.Logger;
 import io.odilon.model.ServerConstant;
+import io.odilon.model.SharedConstant;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
@@ -230,7 +231,7 @@ public abstract class SchedulerWorker implements Runnable {
 	}
 	
 	protected void processError(Throwable e) {
-		logger.error(e, ServerConstant.NOT_THROWN);
+		logger.error(e, SharedConstant.NOT_THROWN);
 	}
 	
 	private void setSleeping(boolean value) {

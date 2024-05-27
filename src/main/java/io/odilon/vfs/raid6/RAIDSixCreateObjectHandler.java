@@ -35,6 +35,7 @@ import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ObjectStatus;
 import io.odilon.model.ServerConstant;
+import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
 import io.odilon.util.ODFileUtils;
 import io.odilon.vfs.model.Drive;
@@ -119,7 +120,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 										rollbackJournal(op, false);
 									} catch (Exception e) {
 										if (isMainException)
-											logger.error("b:" + bucketName + " o:" 	+ objectName + ", f:" 	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null"), ServerConstant.NOT_THROWN);
+											logger.error("b:" + bucketName + " o:" 	+ objectName + ", f:" 	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null"), SharedConstant.NOT_THROWN);
 										else
 											throw new InternalCriticalException(e, 	"b:"+ bucketName + " o:" 	+ objectName + ", f:" 	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null"));
 									}
@@ -163,7 +164,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 					try {
 						meta=drive.getObjectMetadata(bucketName, objectName);
 					} catch (Exception e) {
-						logger.warn("can not load meta -> d: " + drive.getName() + ServerConstant.NOT_THROWN);
+						logger.warn("can not load meta -> d: " + drive.getName() + SharedConstant.NOT_THROWN);
 					}
 				}
 				FileUtils.deleteQuietly(new File(drive.getObjectMetadataDirPath(bucketName, objectName)));
@@ -179,13 +180,13 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 			if (!recoveryMode)
 				throw(e);
 			else
-				logger.error(e, "Rollback: " + op.toString() + ServerConstant.NOT_THROWN);
+				logger.error(e, "Rollback: " + op.toString() + SharedConstant.NOT_THROWN);
 			
 		} catch (Exception e) {
 			if (!recoveryMode)
-				throw new InternalCriticalException(e, "Rollback: " + op.toString() + ServerConstant.NOT_THROWN);
+				throw new InternalCriticalException(e, "Rollback: " + op.toString() + SharedConstant.NOT_THROWN);
 			else
-				logger.error(e, "Rollback: " + op.toString() + ServerConstant.NOT_THROWN);
+				logger.error(e, "Rollback: " + op.toString() + SharedConstant.NOT_THROWN);
 		}
 		finally {
 			if (done || recoveryMode) {

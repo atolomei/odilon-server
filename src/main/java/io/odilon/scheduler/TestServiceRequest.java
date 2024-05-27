@@ -23,6 +23,7 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import io.odilon.log.Logger;
 import io.odilon.model.ServerConstant;
+import io.odilon.model.SharedConstant;
 
 /**
  * 
@@ -52,7 +53,7 @@ public class TestServiceRequest extends AbstractServiceRequest implements Standa
 			logger.debug("Testing " + getName());
 		} catch (Exception e) {
 			isSuccess=false;
-			logger.error(e, ServerConstant.NOT_THROWN);
+			logger.error(e, SharedConstant.NOT_THROWN);
 		} finally {
 			isSuccess=true;
 			setStatus(ServiceRequestStatus.COMPLETED);

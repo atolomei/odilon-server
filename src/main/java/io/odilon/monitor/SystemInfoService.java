@@ -45,6 +45,7 @@ import io.odilon.log.Logger;
 import io.odilon.model.RedundancyLevel;
 import io.odilon.model.ServerConstant;
 import io.odilon.model.ServiceStatus;
+import io.odilon.model.SharedConstant;
 import io.odilon.model.SystemInfo;
 import io.odilon.service.BaseService;
 import io.odilon.service.ServerSettings;
@@ -204,7 +205,7 @@ public class SystemInfoService extends BaseService implements SystemService {
 		    	totalStorage.put(root.toFile().getAbsolutePath(), Long.valueOf(store.getTotalSpace()));
 		    	availableStorage.put(root.toFile().getAbsolutePath(), Long.valueOf(store.getUsableSpace()));
 		    } catch (IOException e) {
-		    	logger.warn(e, ServerConstant.NOT_THROWN);
+		    	logger.warn(e, SharedConstant.NOT_THROWN);
 		    }
 		}
 		
@@ -225,7 +226,7 @@ public class SystemInfoService extends BaseService implements SystemService {
 		    	driveTotalStorage.put(path.toFile().getName(), Long.valueOf(store.getTotalSpace()));
 		    	driveAvailableStorage.put(path.toFile().getName(), Long.valueOf(store.getUsableSpace()));
 		    } catch (IOException e) {
-		    	logger.warn(e, ServerConstant.NOT_THROWN);
+		    	logger.warn(e, SharedConstant.NOT_THROWN);
 		    }
 		}
 		return info;

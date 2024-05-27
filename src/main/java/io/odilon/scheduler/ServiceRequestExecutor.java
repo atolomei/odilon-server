@@ -20,6 +20,7 @@ import java.time.OffsetDateTime;
 
 import io.odilon.log.Logger;
 import io.odilon.model.ServerConstant;
+import io.odilon.model.SharedConstant;
 
 
 /**
@@ -52,7 +53,7 @@ public class ServiceRequestExecutor implements Runnable {
 		 	this.success = this.request.isSuccess();
 			
 		} catch (Throwable e) {
-			logger.error(e, ServerConstant.NOT_THROWN);
+			logger.error(e, SharedConstant.NOT_THROWN);
 			this.request.setStatus(ServiceRequestStatus.ERROR);
 			this.success = false;
 				
@@ -67,12 +68,12 @@ public class ServiceRequestExecutor implements Runnable {
 					this.schedulerWorker.fail(this.request);
 			
 			} catch (Throwable e) {
-				logger.error(e, ServerConstant.NOT_THROWN);
+				logger.error(e, SharedConstant.NOT_THROWN);
 				try {
 					this.request.setStatus(ServiceRequestStatus.ERROR);
 					this.schedulerWorker.fail(this.request);
 				} catch (Exception e1) {
-					logger.error(e1, ServerConstant.NOT_THROWN);
+					logger.error(e1, SharedConstant.NOT_THROWN);
 				}
 			}
 		}

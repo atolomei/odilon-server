@@ -30,6 +30,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.odilon.log.Logger;
 import io.odilon.model.ServerConstant;
 import io.odilon.model.ServiceStatus;
+import io.odilon.model.SharedConstant;
 import io.odilon.monitor.SystemMonitorService;
 import io.odilon.service.BaseService;
 import io.odilon.service.ServerSettings;
@@ -139,7 +140,7 @@ public class SchedulerService extends BaseService implements SystemService, Appl
 			}
 		}
 		else 
-			logger.error("invalid " + ServiceRequest.class.getSimpleName() + " of class -> " + request.getClass().getName() + ServerConstant.NOT_THROWN);
+			logger.error("invalid " + ServiceRequest.class.getSimpleName() + " of class -> " + request.getClass().getName() + SharedConstant.NOT_THROWN);
 		
 		return request.getId();
 	}

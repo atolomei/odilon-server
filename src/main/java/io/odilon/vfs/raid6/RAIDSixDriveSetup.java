@@ -36,6 +36,7 @@ import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.OdilonServerInfo;
 import io.odilon.model.ServerConstant;
+import io.odilon.model.SharedConstant;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.DriveStatus;
 import io.odilon.vfs.model.IODriveSetup;
@@ -168,7 +169,7 @@ public class RAIDSixDriveSetup implements IODriveSetup, ApplicationContextAware 
 			}
 	
 		} catch (Exception e) {
-			startuplogger.error(e, ServerConstant.NOT_THROWN);
+			startuplogger.error(e, SharedConstant.NOT_THROWN);
 			startuplogger.error("The process can not be completed due to errors");
 			return false;
 		}
@@ -217,7 +218,7 @@ public class RAIDSixDriveSetup implements IODriveSetup, ApplicationContextAware 
 							}
 						} catch (Exception e) {
 							this.errors.getAndIncrement();
-							logger.error(e, ServerConstant.NOT_THROWN);
+							logger.error(e, SharedConstant.NOT_THROWN);
 							return;
 						}
 					}

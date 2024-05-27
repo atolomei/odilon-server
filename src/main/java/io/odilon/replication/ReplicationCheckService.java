@@ -30,6 +30,7 @@ import io.odilon.log.Logger;
 import io.odilon.model.Bucket;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ServerConstant;
+import io.odilon.model.SharedConstant;
 import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
 import io.odilon.model.list.ResultSet;
@@ -87,7 +88,7 @@ public class ReplicationCheckService extends BaseService {
 					bucketsLocalNotRemote.add(bucket.getName());
 				}
 			} catch (ODClientException e) {
-				logger.error(e, ServerConstant.NOT_THROWN);
+				logger.error(e, SharedConstant.NOT_THROWN);
 			}
 		}
 		
@@ -99,7 +100,7 @@ public class ReplicationCheckService extends BaseService {
 			}
 			
 		} catch (ODClientException e) {
-			logger.error(e, ServerConstant.NOT_THROWN);
+			logger.error(e, SharedConstant.NOT_THROWN);
 		}
 		
 		bucketsLocalNotRemote.forEach(n -> logger.error(n));
@@ -178,7 +179,7 @@ public class ReplicationCheckService extends BaseService {
 						}
 						
 					} catch (ODClientException e) {
-						logger.error(e, ServerConstant.NOT_THROWN);
+						logger.error(e, SharedConstant.NOT_THROWN);
 					}
 				}
 			}

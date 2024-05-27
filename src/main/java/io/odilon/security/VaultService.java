@@ -40,6 +40,7 @@ import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.ServerConstant;
 import io.odilon.model.ServiceStatus;
+import io.odilon.model.SharedConstant;
 import io.odilon.monitor.SystemMonitorService;
 import io.odilon.service.BaseService;
 import io.odilon.service.ServerSettings;
@@ -96,7 +97,7 @@ public class VaultService extends BaseService implements SystemService {
 	        try {
 	        	getSystemMonitorService().getMeterVaultEncrypt().mark();
 	        } catch (Exception e) {
-	        	logger.error(e, ServerConstant.NOT_THROWN);
+	        	logger.error(e, SharedConstant.NOT_THROWN);
 	        }
         }
          return result;

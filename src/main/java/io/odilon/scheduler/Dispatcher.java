@@ -28,6 +28,7 @@ import EDU.oswego.cs.dl.util.concurrent.PooledExecutor;
 import io.odilon.log.Logger;
 import io.odilon.model.ODModelObject;
 import io.odilon.model.ServerConstant;
+import io.odilon.model.SharedConstant;
 
 /**
  * <p>A Dispatcher contains a ThreadPool and assigns incoming {@link ServiceRequest} to its Threads.</p>
@@ -183,7 +184,7 @@ public class Dispatcher extends ODModelObject {
 			this.threadPool.execute(serviceExecutor); 
 		}
 		catch (InterruptedException e) {
-			logger.error(e, ServerConstant.NOT_THROWN);
+			logger.error(e, SharedConstant.NOT_THROWN);
 		}
 	}
 
@@ -192,7 +193,7 @@ public class Dispatcher extends ODModelObject {
 			this.threadPool.execute(runnable);
 		}
 		catch (InterruptedException e) {
-			logger.error(e, ServerConstant.NOT_THROWN);
+			logger.error(e, SharedConstant.NOT_THROWN);
 		}
 	}
 

@@ -32,6 +32,7 @@ import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ServerConstant;
+import io.odilon.model.SharedConstant;
 import io.odilon.scheduler.AfterDeleteObjectServiceRequest;
 import io.odilon.scheduler.DeleteBucketObjectPreviousVersionServiceRequest;
 import io.odilon.util.Check;
@@ -119,7 +120,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 							if (!isMainException)
 								throw new InternalCriticalException(e, "op:" + op.getOp().getName() +	", b:"  + bucketName + ", o:" 	+ objectName);
 							else
-								logger.error(e, "op:" + op.getOp().getName() +	", b:"  + bucketName + ", o:" 	+ objectName, ServerConstant.NOT_THROWN);
+								logger.error(e, "op:" + op.getOp().getName() +	", b:"  + bucketName + ", o:" 	+ objectName, SharedConstant.NOT_THROWN);
 						}
 					}
 					else if (done) {
@@ -134,7 +135,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 					 */
 					
 				} catch (Exception e) {
-					logger.error(e, "op:" + op.getOp().getName() +	", b:"  + bucketName +", o:" 	+ objectName, ServerConstant.NOT_THROWN);
+					logger.error(e, "op:" + op.getOp().getName() +	", b:"  + bucketName +", o:" 	+ objectName, SharedConstant.NOT_THROWN);
 				}
 				finally {
 					getLockService().getBucketLock(bucketName).readLock().unlock();
@@ -233,7 +234,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 								if (!isMainException)
 									throw new InternalCriticalException(e, "b:" + bucketName + ", o:" + objectName);
 								else
-									logger.error(e, "b:" + bucketName + ", o:" + objectName, ServerConstant.NOT_THROWN);
+									logger.error(e, "b:" + bucketName + ", o:" + objectName, SharedConstant.NOT_THROWN);
 							}
 						}
 						else if (done) {
@@ -283,7 +284,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 				FileUtils.deleteQuietly(new File(drive.getBucketWorkDirPath(bucketName), objectName));
 			
 		} catch (Exception e) {
-			logger.error(e, ServerConstant.NOT_THROWN);
+			logger.error(e, SharedConstant.NOT_THROWN);
 		}
 	}
 	
@@ -325,13 +326,13 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 			if (!recoveryMode)
 				throw(e);
 			else
-				logger.error(msg, ServerConstant.NOT_THROWN);
+				logger.error(msg, SharedConstant.NOT_THROWN);
 			
 		} catch (Exception e) {
 			if (!recoveryMode)
 				throw new InternalCriticalException(e, "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null"));
 			else
-				logger.error("Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null"), ServerConstant.NOT_THROWN);
+				logger.error("Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null"), SharedConstant.NOT_THROWN);
 		}
 		finally {
 			if (done || recoveryMode) 
@@ -370,7 +371,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 				FileUtils.deleteQuietly(new File(drive.getBucketWorkDirPath(bucketName), objectName));
 			}
 		catch (Exception e) {
-			logger.error(e, ServerConstant.NOT_THROWN);
+			logger.error(e, SharedConstant.NOT_THROWN);
 		}
 		
 	}
@@ -407,7 +408,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 				getVFS().getSchedulerService().enqueue(getVFS().getApplicationContext().getBean(AfterDeleteObjectServiceRequest.class, op.getOp(), meta, headVersion));
 			}
 		} catch (Exception e) {
-			logger.error(e, ServerConstant.NOT_THROWN);
+			logger.error(e, SharedConstant.NOT_THROWN);
 		}
 	}
 	

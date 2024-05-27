@@ -56,7 +56,7 @@ import io.odilon.model.ODModelObject;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ObjectStatus;
 import io.odilon.model.ServiceStatus;
-
+import io.odilon.model.SharedConstant;
 import io.odilon.scheduler.ServiceRequest;
 import io.odilon.util.Check;
 import io.odilon.vfs.model.Drive;
@@ -771,7 +771,7 @@ public class ODDrive extends ODModelObject implements Drive {
 					if (n>0)
 						logger.debug("Removed temp files from d: " + getName() + " dir:"+ getBucketCacheDirPath(bucketName) + " | b:" + bucketName+ " total:" + String.valueOf(n));
 		} catch (Exception e) {
-			logger.error(e, ServerConstant.NOT_THROWN);
+			logger.error(e, SharedConstant.NOT_THROWN);
 		}
 	}
 	
@@ -791,7 +791,7 @@ public class ODDrive extends ODModelObject implements Drive {
 					if (n>0)
 						logger.debug("Removed temp files from d: " + getName() + " dir:"+ getBucketWorkDirPath(bucketName) + " | b:" + bucketName+ " total:" + String.valueOf(n));
 		} catch (Exception e) {
-			logger.error(e, ServerConstant.NOT_THROWN);
+			logger.error(e, SharedConstant.NOT_THROWN);
 		}
 	}
 

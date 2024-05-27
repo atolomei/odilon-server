@@ -24,6 +24,7 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import io.odilon.log.Logger;
 import io.odilon.model.ServerConstant;
+import io.odilon.model.SharedConstant;
 import io.odilon.vfs.DataIntegrityChecker;
 
 
@@ -68,7 +69,7 @@ public class CronJobDataIntegrityCheckRequest extends CronJobRequest {
 				logger.debug("Started -> " + checker.toString());
 			
 			} catch (Exception e) {
-				logger.error(e, ServerConstant.NOT_THROWN);
+				logger.error(e, SharedConstant.NOT_THROWN);
 		
 			} finally {
 				setStatus(ServiceRequestStatus.COMPLETED);

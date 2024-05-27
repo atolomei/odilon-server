@@ -34,6 +34,7 @@ import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.OdilonServerInfo;
 import io.odilon.model.ServerConstant;
+import io.odilon.model.SharedConstant;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.DriveStatus;
 import io.odilon.vfs.model.IODriveSetup;
@@ -198,7 +199,7 @@ public class RAIDOneDriveSetup implements IODriveSetup, ApplicationContextAware 
 							}
 						} catch (Exception e) {
 							this.errors.getAndIncrement();
-							logger.error(e, ServerConstant.NOT_THROWN);
+							logger.error(e, SharedConstant.NOT_THROWN);
 							return;
 						}
 					}

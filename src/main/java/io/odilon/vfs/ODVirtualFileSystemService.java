@@ -866,7 +866,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 					try {
 						Thread.sleep(1000 * 3);
 					} catch (Exception e) {
-						logger.error(e, ServerConstant.NOT_THROWN);
+						logger.error(e, SharedConstant.NOT_THROWN);
 					}
 				}
 
@@ -1108,7 +1108,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 					}
 					
 			} catch (Exception e) {
-					logger.error(e, ServerConstant.NOT_THROWN);
+					logger.error(e, SharedConstant.NOT_THROWN);
 			}
 			finally {
 					getLockService().getBucketLock(bucket.getName()).writeLock().unlock();
@@ -1297,7 +1297,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 								
 			});
 		} catch (Exception e) {
-			logger.error(e, ServerConstant.NOT_THROWN);
+			logger.error(e, SharedConstant.NOT_THROWN);
 		}
 	}
 

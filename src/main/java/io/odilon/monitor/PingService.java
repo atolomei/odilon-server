@@ -32,6 +32,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import io.odilon.log.Logger;
 import io.odilon.model.ServerConstant;
+import io.odilon.model.SharedConstant;
 import io.odilon.replication.ReplicationService;
 import io.odilon.service.BaseService;
 import io.odilon.service.ObjectStorageService;
@@ -100,7 +101,7 @@ public class PingService extends BaseService implements ApplicationContextAware 
 				}
 				
 		} catch (Throwable e) {
-			logger.error(e, ServerConstant.NOT_THROWN);
+			logger.error(e, SharedConstant.NOT_THROWN);
 			list.add(e.getClass().getName()+" | " + e.getMessage());
 		}
 		return list;

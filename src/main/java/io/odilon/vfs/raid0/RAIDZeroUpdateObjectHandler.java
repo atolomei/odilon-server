@@ -37,6 +37,7 @@ import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ObjectStatus;
 import io.odilon.model.ServerConstant;
+import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
 import io.odilon.util.ODFileUtils;
 import io.odilon.vfs.model.Drive;
@@ -134,7 +135,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 							if (!isMaixException)
 								throw new InternalCriticalException("b:" + bucketName + ", o:"	+ objectName + ", f:"	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName): "null"));
 							else
-								logger.error(e, "b:" + bucketName + ", o:"	+ objectName + ", f:"	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName): "null")+ ServerConstant.NOT_THROWN);
+								logger.error(e, "b:" + bucketName + ", o:"	+ objectName + ", f:"	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName): "null")+ SharedConstant.NOT_THROWN);
 						}
 					}
 					else {
@@ -239,7 +240,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 							if (!isMainException)
 								throw new InternalCriticalException(e, "b:" + bucketName + ", o:"	+ objectName);
 							else
-								logger.error(e, " finally | b:" + bucketName +	" o:" 	+ objectName +  ServerConstant.NOT_THROWN);
+								logger.error(e, " finally | b:" + bucketName +	" o:" 	+ objectName +  SharedConstant.NOT_THROWN);
 						}
 					}
 					else {
@@ -250,7 +251,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 									FileUtils.deleteQuietly(getDriver().getWriteDrive(bucket.getName(), objectName).getObjectMetadataVersionFile(bucket.getName(), objectName,  beforeHeadVersion));
 									FileUtils.deleteQuietly(((SimpleDrive) getDriver().getWriteDrive(bucket.getName(), objectName)).getObjectDataVersionFile(bucket.getName(), objectName,  beforeHeadVersion));
 							} catch (Exception e) {
-							logger.error(e, ServerConstant.NOT_THROWN);
+							logger.error(e, SharedConstant.NOT_THROWN);
 							}
 						}
 					}	
@@ -309,7 +310,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 								if (!isMainException)
 									throw new InternalCriticalException(e, "b:"  + meta.bucketName + ", o:" + meta.objectName);
 								else
-									logger.error(e, " finally | b:" + meta.bucketName +	" o:" 	+ meta.objectName +  ServerConstant.NOT_THROWN);
+									logger.error(e, " finally | b:" + meta.bucketName +	" o:" 	+ meta.objectName +  SharedConstant.NOT_THROWN);
 							}
 					}
 					else {
@@ -317,7 +318,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 						try {
 							FileUtils.deleteQuietly(new File(getDriver().getWriteDrive(meta.bucketName, meta.objectName).getBucketWorkDirPath(meta.bucketName) + File.separator + meta.objectName));
 						} catch (Exception e) {
-							logger.error(e, ServerConstant.NOT_THROWN);
+							logger.error(e, SharedConstant.NOT_THROWN);
 						}
 						
 					}
@@ -490,7 +491,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 						
 				} catch (IOException e) {
 					String msg ="b:"  + (Optional.ofNullable(bucket).isPresent() ? (bucket.getName()) :"null") + ", o:" + (Optional.ofNullable(objectName).isPresent() ? (objectName):"null") + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null"); 
-					logger.error(e, msg + (isMainException ? ServerConstant.NOT_THROWN :""));
+					logger.error(e, msg + (isMainException ? SharedConstant.NOT_THROWN :""));
 					secEx=e;
 				}
 				
@@ -675,7 +676,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 				FileUtils.deleteQuietly(((SimpleDrive) getDriver().getWriteDrive(bucket.getName(), objectName)).getObjectDataVersionFile(bucket.getName(), objectName, previousVersion));
 			}
 		} catch (Exception e) {
-			logger.error(e, ServerConstant.NOT_THROWN);
+			logger.error(e, SharedConstant.NOT_THROWN);
 		}
 	}
 	

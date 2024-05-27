@@ -51,6 +51,7 @@ import io.odilon.model.Bucket;
 import io.odilon.model.BucketMetadata;
 import io.odilon.model.BucketStatus;
 import io.odilon.model.ServerConstant;
+import io.odilon.model.SharedConstant;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ObjectStatus;
 import io.odilon.model.OdilonServerInfo;
@@ -266,7 +267,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 				}
 				
 			} catch (Exception e) {
-				logger.error(e, ServerConstant.NOT_THROWN);
+				logger.error(e, SharedConstant.NOT_THROWN);
 			} finally {
 				getLockService().getServerLock().writeLock().unlock();
 			}
@@ -511,7 +512,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 				if (!isMainException)
 					throw new InternalCriticalException(e, "finally");
 				else
-				logger.error(e, ServerConstant.NOT_THROWN);
+				logger.error(e, SharedConstant.NOT_THROWN);
 			} finally {
 				getLockService().getBucketLock(bucketName).writeLock().unlock();
 			}
@@ -710,7 +711,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 				try {
 					item = new Item<ObjectMetadata>(getOM(bucketName, iterator.next().toFile().getName(), Optional.empty(), false));
 				} catch (Exception e) {
-					logger.error(e, ServerConstant.NOT_THROWN);
+					logger.error(e, SharedConstant.NOT_THROWN);
 					item = new Item<ObjectMetadata>(e);
 				}
 				list.add(item);
@@ -1080,7 +1081,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 				try {
 					Files.delete(file.toPath());
 				} catch (IOException e1) {
-					logger.error(e, ServerConstant.NOT_THROWN);
+					logger.error(e, SharedConstant.NOT_THROWN);
 				}
 			}
 		}
@@ -1322,7 +1323,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 				readDrive.saveObjectMetadata(metadata);
 				return true;
 			} else {
-				logger.error("Integrity Check failed for -> d: " + readDrive.getName() + " | b:" + bucketName + " | o:" + objectName + " | " + ServerConstant.NOT_THROWN);
+				logger.error("Integrity Check failed for -> d: " + readDrive.getName() + " | b:" + bucketName + " | o:" + objectName + " | " + SharedConstant.NOT_THROWN);
 			}
 			/**
 			 * it is not possible to fix the file if the integrity fails because there is no
@@ -1335,14 +1336,14 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 				if (bucketLock)
 					getLockService().getBucketLock(bucketName).readLock().unlock();
 			} catch (Exception e) {
-				logger.error(e, ServerConstant.NOT_THROWN);
+				logger.error(e, SharedConstant.NOT_THROWN);
 			}
 			
 			try {
 				if (objectLock)
 					getLockService().getObjectLock(bucketName, objectName).readLock().unlock();
 			} catch (Exception e) {
-				logger.error(e, ServerConstant.NOT_THROWN);
+				logger.error(e, SharedConstant.NOT_THROWN);
 			}
 
 		}
@@ -1455,7 +1456,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 					rollbackJournal(op);
 				}
 			} catch (Exception e) {
-				logger.error(e, ServerConstant.NOT_THROWN);
+				logger.error(e, SharedConstant.NOT_THROWN);
 			} finally {
 				getLockService().getServerLock().writeLock().unlock();
 			}
@@ -1570,7 +1571,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 					rollbackJournal(op);
 				}
 			} catch (Exception e) {
-				logger.error(e, ServerConstant.NOT_THROWN);
+				logger.error(e, SharedConstant.NOT_THROWN);
 			} finally {
 				getLockService().getServerLock().writeLock().unlock();
 			}
@@ -1580,7 +1581,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	@Override
 	public void syncObject(ObjectMetadata meta) {
 		Check.requireNonNullArgument(meta, "meta is null");
-		logger.error("not done" , ServerConstant.NOT_THROWN);
+		logger.error("not done" , SharedConstant.NOT_THROWN);
 	}
 	
 

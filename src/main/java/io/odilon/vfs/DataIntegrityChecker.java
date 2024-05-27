@@ -41,6 +41,7 @@ import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ServerConstant;
 import io.odilon.model.ServiceStatus;
+import io.odilon.model.SharedConstant;
 import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
 import io.odilon.service.ServerSettings;
@@ -169,8 +170,8 @@ public class DataIntegrityChecker implements Runnable, ApplicationContextAware  
 									this.notAvailable.getAndIncrement();
 							
 							} catch (Exception e) {
-								logger.error(e, ServerConstant.NOT_THROWN);
-								checkerLogger.error(e, ServerConstant.NOT_THROWN);
+								logger.error(e, SharedConstant.NOT_THROWN);
+								checkerLogger.error(e, SharedConstant.NOT_THROWN);
 							}
 							return null;
 						 });
@@ -179,8 +180,8 @@ public class DataIntegrityChecker implements Runnable, ApplicationContextAware  
 					try {
 						executor.invokeAll(tasks, 20, TimeUnit.MINUTES);						
 					} catch (InterruptedException e) {
-						logger.error(e, ServerConstant.NOT_THROWN);
-						checkerLogger.error(e, ServerConstant.NOT_THROWN);
+						logger.error(e, SharedConstant.NOT_THROWN);
+						checkerLogger.error(e, SharedConstant.NOT_THROWN);
 					}
 					offset += Long.valueOf(Integer.valueOf(data.getList().size()).longValue());
 					done = data.isEOD();
@@ -259,8 +260,8 @@ public class DataIntegrityChecker implements Runnable, ApplicationContextAware  
 				this.checkOk.getAndIncrement();
 			}
 		} catch (Exception e) {
-			checkerLogger.error(e, ServerConstant.NOT_THROWN);
-			logger.error(e, ServerConstant.NOT_THROWN);
+			checkerLogger.error(e, SharedConstant.NOT_THROWN);
+			logger.error(e, SharedConstant.NOT_THROWN);
 		}
 	}
 	

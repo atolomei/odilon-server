@@ -30,6 +30,7 @@ import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ServerConstant;
+import io.odilon.model.SharedConstant;
 import io.odilon.scheduler.AfterDeleteObjectServiceRequest;
 import io.odilon.scheduler.DeleteBucketObjectPreviousVersionServiceRequest;
 import io.odilon.util.Check;
@@ -131,7 +132,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 					 */
 					
 				} catch (Exception e) {
-					logger.error(e, "op:" + op.getOp().getName() + ", b:"  + bucketName +	", o:" 	+ objectName, ServerConstant.NOT_THROWN);
+					logger.error(e, "op:" + op.getOp().getName() + ", b:"  + bucketName +	", o:" 	+ objectName, SharedConstant.NOT_THROWN);
 				}
 				finally {
 					getLockService().getBucketLock(bucketName).readLock().unlock();
@@ -259,7 +260,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 								if (!isMainException)
 									throw new InternalCriticalException(e, "b:" + meta.bucketName + ", o:" + meta.objectName);
 								else
-									logger.error(e, "b:" + meta.bucketName + ", o:" + meta.objectName, ServerConstant.NOT_THROWN);
+									logger.error(e, "b:" + meta.bucketName + ", o:" + meta.objectName, SharedConstant.NOT_THROWN);
 							}
 						}
 						else if (done) {
@@ -354,7 +355,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 			}
 			
 		} catch (Exception e) {
-			logger.error(e, ServerConstant.NOT_THROWN);
+			logger.error(e, SharedConstant.NOT_THROWN);
 		}
 		
 	}
@@ -403,7 +404,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 					for (Drive drive:getDriver().getDrivesAll()) 
 						FileUtils.deleteQuietly(new File(drive.getBucketWorkDirPath(bucketName) + File.separator + objectName));
 		} catch (Exception e) {
-			logger.error(e, ServerConstant.NOT_THROWN);
+			logger.error(e, SharedConstant.NOT_THROWN);
 		}
 	}
 
@@ -453,7 +454,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 			if (op.getOp()==VFSop.DELETE_OBJECT || op.getOp()==VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS)
 				getVFS().getSchedulerService().enqueue(getVFS().getApplicationContext().getBean(AfterDeleteObjectServiceRequest.class, op.getOp(), meta, headVersion));
 		} catch (Exception e) {
-			logger.error(e, " | " + ServerConstant.NOT_THROWN);
+			logger.error(e, " | " + SharedConstant.NOT_THROWN);
 		}
 	}
 

@@ -42,6 +42,7 @@ import io.odilon.log.Logger;
 import io.odilon.model.BucketMetadata;
 import io.odilon.model.BucketStatus;
 import io.odilon.model.ServerConstant;
+import io.odilon.model.SharedConstant;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ObjectStatus;
 import io.odilon.model.RedundancyLevel;
@@ -364,7 +365,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 				}
 				
 			} catch (Exception e) {
-				logger.error(e, ServerConstant.NOT_THROWN);
+				logger.error(e, SharedConstant.NOT_THROWN);
 			}
 			finally {
 				getLockService().getBucketLock(bucketName).writeLock().unlock();
@@ -617,10 +618,10 @@ public class RAIDOneDriver extends BaseIODriver  {
 					item = new Item<ObjectMetadata>(getObjectMetadata(bucketName,objectName));
 				
 				} catch (IllegalMonitorStateException e) {
-					logger.error(e, ServerConstant.NOT_THROWN);
+					logger.error(e, SharedConstant.NOT_THROWN);
 					item = new Item<ObjectMetadata>(e);
 				} catch (Exception e) {
-					logger.error(e, ServerConstant.NOT_THROWN);
+					logger.error(e, SharedConstant.NOT_THROWN);
 					item = new Item<ObjectMetadata>(e);
 				}
 				list.add(item);
@@ -735,14 +736,14 @@ public class RAIDOneDriver extends BaseIODriver  {
 				}
 			}
 			catch (InterruptedException e) {
-				logger.warn(e, ServerConstant.NOT_THROWN);
+				logger.warn(e, SharedConstant.NOT_THROWN);
 				return true;
 			}
 			
 			try {
 				bucketLock = getLockService().getBucketLock(bucketName).readLock().tryLock(20, TimeUnit.SECONDS);
 				if(!bucketLock) {
-					logger.warn("Can not acquire read Lock for Bucket. Assumes check is ok -> " + bucketName, ServerConstant.NOT_THROWN);
+					logger.warn("Can not acquire read Lock for Bucket. Assumes check is ok -> " + bucketName, SharedConstant.NOT_THROWN);
 					return true;
 				}
 			}
@@ -788,7 +789,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 						}
 					
 					} catch (NoSuchAlgorithmException | IOException e) {
-						logger.error(e, ServerConstant.NOT_THROWN);
+						logger.error(e, SharedConstant.NOT_THROWN);
 						iCheck[n]=Boolean.valueOf(false);
 					}	
 				}
@@ -815,14 +816,14 @@ public class RAIDOneDriver extends BaseIODriver  {
 				if (bucketLock)
 					getLockService().getBucketLock(bucketName).readLock().unlock();
 			} catch (Exception e) {
-				logger.error(e, ServerConstant.NOT_THROWN);
+				logger.error(e, SharedConstant.NOT_THROWN);
 			}
 			
 			try {
 				if (objectLock)
 					getLockService().getObjectLock(bucketName, objectName).readLock().unlock();
 			} catch (Exception e) {
-				logger.error(e, ServerConstant.NOT_THROWN);
+				logger.error(e, SharedConstant.NOT_THROWN);
 			}
 
 		}
@@ -934,7 +935,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 			}
 			else if (op.getOp()==VFSop.UPDATE_SERVER_METADATA) {
 				if (objectName!=null) {
-					logger.error("not done -> "  +op.getOp() + " | " + bucketName, ServerConstant.NOT_THROWN );
+					logger.error("not done -> "  +op.getOp() + " | " + bucketName, SharedConstant.NOT_THROWN );
 				}
 				done=true;
 			}
@@ -1028,7 +1029,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 								
 								
 							} catch (IOException e) {
-									logger.error(e, ServerConstant.NOT_THROWN);
+									logger.error(e, SharedConstant.NOT_THROWN);
 									retValue = false;
 							}
 							finally {
@@ -1044,7 +1045,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 				
 				}
 				catch (Exception e) {
-					logger.error(e, ServerConstant.NOT_THROWN);
+					logger.error(e, SharedConstant.NOT_THROWN);
 					retValue = false;
 				}
 				finally {
@@ -1133,6 +1134,6 @@ public class RAIDOneDriver extends BaseIODriver  {
 	@Override
 	public void syncObject(ObjectMetadata meta) {
 		Check.requireNonNullArgument(meta, "meta is null");
-		logger.error("not done" , ServerConstant.NOT_THROWN);
+		logger.error("not done" , SharedConstant.NOT_THROWN);
 	}
 }

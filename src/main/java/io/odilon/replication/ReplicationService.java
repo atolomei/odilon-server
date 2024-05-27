@@ -41,6 +41,7 @@ import io.odilon.model.ObjectMetadata;
 import io.odilon.model.OdilonServerInfo;
 import io.odilon.model.ServerConstant;
 import io.odilon.model.ServiceStatus;
+import io.odilon.model.SharedConstant;
 import io.odilon.monitor.SystemMonitorService;
 import io.odilon.scheduler.SchedulerService;
 import io.odilon.scheduler.StandByReplicaServiceRequest;
@@ -301,10 +302,10 @@ public class ReplicationService extends BaseService implements ApplicationContex
 								
 			default: {
 				try {
-					logger.error(opx.getOp().toString() + " -> not recognized | " + ServerConstant.NOT_THROWN);
+					logger.error(opx.getOp().toString() + " -> not recognized | " + SharedConstant.NOT_THROWN);
 				
 				} catch (Exception e) {
-					logger.error(e, ServerConstant.NOT_THROWN);
+					logger.error(e, SharedConstant.NOT_THROWN);
 				}
 			}
 		}

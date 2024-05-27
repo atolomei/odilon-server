@@ -265,7 +265,7 @@ public class StandByInitialSync implements Runnable {
 													}
 													
 												} catch (Exception e) {
-													logger.error(e, "can not sync -> " + item.getObject().bucketName+"-"+item.getObject().objectName, ServerConstant.NOT_THROWN);
+													logger.error(e, "can not sync -> " + item.getObject().bucketName+"-"+item.getObject().objectName, SharedConstant.NOT_THROWN);
 													intialSynclogger.error(e, "can not sync -> " + item.getObject().bucketName+"-"+item.getObject().objectName);
 													this.errors.getAndIncrement();
 												}
@@ -285,9 +285,9 @@ public class StandByInitialSync implements Runnable {
 													getDriver().putObjectMetadata(meta);
 												
 												} catch (Exception e) {
-													logger.error("can not sync ObjectMetadata -> " + item.getObject().bucketName+"-"+item.getObject().objectName, ServerConstant.NOT_THROWN);
+													logger.error("can not sync ObjectMetadata -> " + item.getObject().bucketName+"-"+item.getObject().objectName, SharedConstant.NOT_THROWN);
 													intialSynclogger.error("can not sync ObjectMetadata -> " + item.getObject().bucketName+"-"+item.getObject().objectName);
-													intialSynclogger.error(e, ServerConstant.NOT_THROWN);
+													intialSynclogger.error(e, SharedConstant.NOT_THROWN);
 													this.errors.getAndIncrement();
 												}
 											}
@@ -297,8 +297,8 @@ public class StandByInitialSync implements Runnable {
 									this.notAvailable.getAndIncrement();
 								}
 							} catch (Exception e) {
-								logger.error(e, ServerConstant.NOT_THROWN);
-								intialSynclogger.error(e, ServerConstant.NOT_THROWN);
+								logger.error(e, SharedConstant.NOT_THROWN);
+								intialSynclogger.error(e, SharedConstant.NOT_THROWN);
 								this.errors.getAndIncrement();
 							}
 							return null;

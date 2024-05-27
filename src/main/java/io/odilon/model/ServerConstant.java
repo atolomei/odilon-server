@@ -30,7 +30,7 @@ public class ServerConstant {
 	
 	static final public String ENC_SUFFIX = ".enc";
 
-	static final public String NOT_THROWN = "---- not thrown ----";
+	//static final public String NOT_THROWN = "---- not thrown ----";
 	
 	static final public String BO_SEPARATOR = "$";
 	

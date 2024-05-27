@@ -30,6 +30,7 @@ import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ServerConstant;
+import io.odilon.model.SharedConstant;
 import io.odilon.scheduler.AfterDeleteObjectServiceRequest;
 import io.odilon.scheduler.DeleteBucketObjectPreviousVersionServiceRequest;
 import io.odilon.util.Check;
@@ -122,14 +123,14 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 							if (!isMainException)
 								throw new InternalCriticalException(e, "b:" + bucketName + ", o:" + objectName);
 							else
-								logger.error(e, "b:" + bucketName + ", o:" + objectName, ServerConstant.NOT_THROWN);
+								logger.error(e, "b:" + bucketName + ", o:" + objectName, SharedConstant.NOT_THROWN);
 						}
 					}
 					else if (done) { 
 						try {
 							postObjectDeleteCommit(meta, headVersion);
 						} catch (Exception e) {
-							logger.error(e, "b:" + bucketName + ", o:" + objectName, ServerConstant.NOT_THROWN);
+							logger.error(e, "b:" + bucketName + ", o:" + objectName, SharedConstant.NOT_THROWN);
 						} 
 					}
 				}
@@ -221,12 +222,12 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 								if (!isMainExcetion)
 									throw e;
 								else
-									logger.error(e, "b:" + meta.bucketName + " o:" 	+ meta.objectName+" | " + ServerConstant.NOT_THROWN );
+									logger.error(e, "b:" + meta.bucketName + " o:" 	+ meta.objectName+" | " + SharedConstant.NOT_THROWN );
 							} catch (Exception e) {
 								if (!isMainExcetion)
 									throw new InternalCriticalException(e, "b:" + meta.bucketName + " o:" 	+ meta.objectName);
 								else
-									logger.error(e, "b:" + meta.bucketName + " o:" 	+ meta.objectName+" | " + ServerConstant.NOT_THROWN );
+									logger.error(e, "b:" + meta.bucketName + " o:" 	+ meta.objectName+" | " + SharedConstant.NOT_THROWN );
 							}
 						}
 						else if (done) {
@@ -235,7 +236,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 								postObjectPreviousVersionDeleteAllCommit(meta, headVersion);
 								
 							} catch (Exception e) {
-								logger.error(e, "b:" + meta.bucketName + " o:" 	+ meta.objectName+" | " + ServerConstant.NOT_THROWN);
+								logger.error(e, "b:" + meta.bucketName + " o:" 	+ meta.objectName+" | " + SharedConstant.NOT_THROWN);
 							}
 						}
 					}
@@ -295,13 +296,13 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 			if (!recoveryMode)
 				throw(e);
 			else
-				logger.error("Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null") + " | " + ServerConstant.NOT_THROWN );
+				logger.error("Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null") + " | " + SharedConstant.NOT_THROWN );
 			
 		} catch (Exception e) {
 			if (!recoveryMode)
 				throw new InternalCriticalException(e, "Rollback: " + op.toString());
 			else
-				logger.error("Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null") + " | " + ServerConstant.NOT_THROWN );
+				logger.error("Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null") + " | " + SharedConstant.NOT_THROWN );
 		}
 		finally {
 			if (done || recoveryMode) 
@@ -378,7 +379,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 			FileUtils.deleteQuietly(new File(getDriver().getWriteDrive(bucketName, objectName).getBucketWorkDirPath(bucketName) + File.separator + objectName));
 			
 		} catch (Exception e) {
-			logger.error(e, ServerConstant.NOT_THROWN);
+			logger.error(e, SharedConstant.NOT_THROWN);
 		}
 	}
 
@@ -458,7 +459,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 	private void onAfterCommit(VFSOperation op, ObjectMetadata meta, int headVersion) {
 		
 		if ((op==null) || (meta==null)) {
-			logger.error("op or meta is null, should not happen", ServerConstant.NOT_THROWN);
+			logger.error("op or meta is null, should not happen", SharedConstant.NOT_THROWN);
 			return;
 		}
 		
@@ -467,7 +468,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 				getVFS().getSchedulerService().enqueue(getVFS().getApplicationContext().getBean(AfterDeleteObjectServiceRequest.class, op.getOp(), meta, headVersion));
 			
 		} catch (Exception e) {
-			logger.error(e, " onAfterCommit | " + op.toString() + " | " + ServerConstant.NOT_THROWN);
+			logger.error(e, " onAfterCommit | " + op.toString() + " | " + SharedConstant.NOT_THROWN);
 		}
 	}
 

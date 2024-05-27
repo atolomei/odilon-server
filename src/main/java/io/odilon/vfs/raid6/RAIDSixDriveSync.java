@@ -40,6 +40,7 @@ import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ServerConstant;
 import io.odilon.model.ServiceStatus;
+import io.odilon.model.SharedConstant;
 import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
 import io.odilon.vfs.DriveInfo;
@@ -263,7 +264,7 @@ public class RAIDSixDriveSync implements Runnable {
 									this.notAvailable.getAndIncrement();
 								}
 							} catch (Exception e) {
-								logger.error(e,ServerConstant.NOT_THROWN);
+								logger.error(e,SharedConstant.NOT_THROWN);
 								this.errors.getAndIncrement();
 							}
 							return null;

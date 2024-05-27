@@ -39,6 +39,7 @@ import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ObjectStatus;
 import io.odilon.model.ServerConstant;
+import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
 import io.odilon.util.ODFileUtils;
 import io.odilon.vfs.model.Drive;
@@ -137,7 +138,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 								if (isMainException)
 									throw new InternalCriticalException(e, "b:"+ bucketName + " o:"  + objectName +	 ", f:"	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName) :"null"));
 								else
-									logger.error("b:"+ bucketName + " o:"  + objectName +	 ", f:"	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName) :"null"), ServerConstant.NOT_THROWN);
+									logger.error("b:"+ bucketName + " o:"  + objectName +	 ", f:"	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName) :"null"), SharedConstant.NOT_THROWN);
 							}
 						}
 						else {
@@ -311,13 +312,13 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 								if (isMainException)
 									throw new InternalCriticalException(e);
 								else
-									logger.error(e, "b:" + bucketName + " o:" + objectName, ServerConstant.NOT_THROWN);
+									logger.error(e, "b:" + bucketName + " o:" + objectName, SharedConstant.NOT_THROWN);
 								
 							} catch (Exception e) {
 								if (isMainException)
 									throw new InternalCriticalException(e, "b:"   +  bucketName +  " o:" + objectName);
 								else
-									logger.error(e, "b:" + bucketName + " o:" + objectName, ServerConstant.NOT_THROWN);	
+									logger.error(e, "b:" + bucketName + " o:" + objectName, SharedConstant.NOT_THROWN);	
 							}
 						}
 						else {
@@ -399,7 +400,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 				}
 				
 		} catch (Exception e) {
-			logger.error(e, ServerConstant.NOT_THROWN);
+			logger.error(e, SharedConstant.NOT_THROWN);
 		}
 	}
 
@@ -553,7 +554,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 						sourceStream.close();
 					
 				} catch (IOException e) {
-					logger.error(e, ("b:" + bucket.getName() + ", o:" + objectName) + (isMainException ? ServerConstant.NOT_THROWN :""));
+					logger.error(e, ("b:" + bucket.getName() + ", o:" + objectName) + (isMainException ? SharedConstant.NOT_THROWN :""));
 					secEx=e;
 				}
 				if (!isMainException && (secEx!=null)) 
@@ -585,13 +586,13 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 			if (!recoveryMode)
 				throw(e);
 			else
-				logger.error(msg, ServerConstant.NOT_THROWN);
+				logger.error(msg, SharedConstant.NOT_THROWN);
 			
 		} catch (Exception e) {
 			if (!recoveryMode)
 				throw new InternalCriticalException(e, "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null"));
 			else
-				logger.error("Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null"), ServerConstant.NOT_THROWN);
+				logger.error("Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null"), SharedConstant.NOT_THROWN);
 		}
 		finally {
 			if (done || recoveryMode) {
@@ -635,7 +636,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 				FileUtils.deleteQuietly(new File(drive.getBucketWorkDirPath(bucketName) + File.separator + objectName));
 			}
 		} catch (Exception e) {
-			logger.error(e, ServerConstant.NOT_THROWN);
+			logger.error(e, SharedConstant.NOT_THROWN);
 		}
 	}
 	
@@ -656,7 +657,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 				}
 			}
 		} catch (Exception e) {
-			logger.error(e, ServerConstant.NOT_THROWN);
+			logger.error(e, SharedConstant.NOT_THROWN);
 		}
 	}
 	
@@ -765,13 +766,13 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 			if (!recoveryMode)
 				throw(e);
 			else
-				logger.error(e, "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null"), ServerConstant.NOT_THROWN);
+				logger.error(e, "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null"), SharedConstant.NOT_THROWN);
 			
 		} catch (Exception e) {
 			if (!recoveryMode)
 				throw new InternalCriticalException(e, "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null"));
 			else
-				logger.error(e, "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null"), ServerConstant.NOT_THROWN);	
+				logger.error(e, "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null"), SharedConstant.NOT_THROWN);	
 		}
 		finally {
 			if (done || recoveryMode) {

@@ -19,6 +19,7 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ServerConstant;
+import io.odilon.model.SharedConstant;
 import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
 import io.odilon.service.ServerSettings;
@@ -134,7 +135,7 @@ public class DeleteBucketObjectPreviousVersionServiceRequest extends AbstractSer
 							this.notAvailable.getAndIncrement();
 					
 					} catch (Exception e) {
-						logger.error(e, ServerConstant.NOT_THROWN);
+						logger.error(e, SharedConstant.NOT_THROWN);
 					}
 					return null;
 				 });
@@ -143,7 +144,7 @@ public class DeleteBucketObjectPreviousVersionServiceRequest extends AbstractSer
 			try {
 				executor.invokeAll(tasks, 20, TimeUnit.MINUTES);						
 			} catch (InterruptedException e) {
-				logger.error(e, ServerConstant.NOT_THROWN);
+				logger.error(e, SharedConstant.NOT_THROWN);
 			}
 			offset += Long.valueOf(Integer.valueOf(data.getList().size()).longValue());
 			done = data.isEOD();
@@ -197,7 +198,7 @@ public class DeleteBucketObjectPreviousVersionServiceRequest extends AbstractSer
 			
 		} catch (Exception e) {
 			this.isSuccess=false;
-			 logger.error(e, ServerConstant.NOT_THROWN);
+			 logger.error(e, SharedConstant.NOT_THROWN);
 	
 		} finally {
 			instanceRunning.set(false);
@@ -234,7 +235,7 @@ public class DeleteBucketObjectPreviousVersionServiceRequest extends AbstractSer
 			this.checkOk.incrementAndGet();
 		} catch (Exception e) {
 			this.errors.getAndIncrement();
-			logger.error(e, "Could not process -> " + item.getObject().bucketName + " - "+item.getObject().objectName + " " + ServerConstant.NOT_THROWN);
+			logger.error(e, "Could not process -> " + item.getObject().bucketName + " - "+item.getObject().objectName + " " + SharedConstant.NOT_THROWN);
 			
 		}
 	}

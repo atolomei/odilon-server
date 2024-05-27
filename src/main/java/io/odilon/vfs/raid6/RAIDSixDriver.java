@@ -48,6 +48,7 @@ import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ObjectStatus;
 import io.odilon.model.RedundancyLevel;
 import io.odilon.model.ServerConstant;
+import io.odilon.model.SharedConstant;
 import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
 import io.odilon.query.BucketIteratorService;
@@ -333,7 +334,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 			//	readDrive.saveObjectMetadata(metadata);
 			//	return true;
 			//} else {
-			//	logger.error("Integrity Check failed for -> d: " + readDrive.getName() + " | b:" + bucketName + " | o:" + objectName + " | " + ServerConstant.NOT_THROWN);
+			//	logger.error("Integrity Check failed for -> d: " + readDrive.getName() + " | b:" + bucketName + " | o:" + objectName + " | " + SharedConstant.NOT_THROWN);
 			//}
 			/**
 			 * it is not possible to fix the file if the integrity fails because there is no
@@ -347,14 +348,14 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 				if (bucketLock)
 					getLockService().getBucketLock(bucketName).readLock().unlock();
 			} catch (Exception e) {
-				logger.error(e, ServerConstant.NOT_THROWN);
+				logger.error(e, SharedConstant.NOT_THROWN);
 			}
 			
 			try {
 				if (objectLock)
 					getLockService().getObjectLock(bucketName, objectName).readLock().unlock();
 			} catch (Exception e) {
-				logger.error(e, ServerConstant.NOT_THROWN);
+				logger.error(e, SharedConstant.NOT_THROWN);
 			}
 		}
 		
@@ -871,10 +872,10 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 					item = new Item<ObjectMetadata>(getObjectMetadata(bucketName,objectName));
 				
 				} catch (IllegalMonitorStateException e) {
-					logger.error(e, ServerConstant.NOT_THROWN);
+					logger.error(e, SharedConstant.NOT_THROWN);
 					item = new Item<ObjectMetadata>(e);
 				} catch (Exception e) {
-					logger.error(e, ServerConstant.NOT_THROWN);
+					logger.error(e, SharedConstant.NOT_THROWN);
 					item = new Item<ObjectMetadata>(e);
 				}
 				list.add(item);

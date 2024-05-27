@@ -37,6 +37,7 @@ import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ServerConstant;
+import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.VFSOperation;
@@ -251,14 +252,14 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 				if (!recoveryMode)
 					throw(e);
 				else
-					logger.error("Rollback -> " + op.toString(), ServerConstant.NOT_THROWN);
+					logger.error("Rollback -> " + op.toString(), SharedConstant.NOT_THROWN);
 		
 			} catch (Exception e) {
 				String msg = "Rollback -> " + op.toString();
 				if (!recoveryMode)
 					throw new InternalCriticalException(e, msg);
 				else
-					logger.error(e, msg + ServerConstant.NOT_THROWN);
+					logger.error(e, msg + SharedConstant.NOT_THROWN);
 			}
 			finally {
 				try {	

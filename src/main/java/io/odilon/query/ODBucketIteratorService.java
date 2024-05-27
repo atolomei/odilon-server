@@ -35,6 +35,7 @@ import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.ServerConstant;
 import io.odilon.model.ServiceStatus;
+import io.odilon.model.SharedConstant;
 import io.odilon.service.BaseService;
 import io.odilon.service.Scavenger;
 import io.odilon.util.Check;
@@ -164,7 +165,7 @@ public class ODBucketIteratorService extends BaseService implements BucketIterat
 			 						try {
 										walker.close();
 									} catch (IOException e) {
-										logger.error(e, ServerConstant.NOT_THROWN);
+										logger.error(e, SharedConstant.NOT_THROWN);
 									}
 			 						logger.debug( "closing -> " + 
 			 										walkers.get(item).toString() + 
@@ -196,7 +197,7 @@ public class ODBucketIteratorService extends BaseService implements BucketIterat
 				setStatus(ServiceStatus.RUNNING);
 			} catch (Exception e) {
 				setStatus(ServiceStatus.STOPPED);
-				logger.error(e, ServerConstant.NOT_THROWN);
+				logger.error(e, SharedConstant.NOT_THROWN);
 				throw e;
 			}
 		}

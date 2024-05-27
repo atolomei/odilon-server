@@ -56,6 +56,7 @@ import io.odilon.model.ObjectMetadata;
 import io.odilon.model.OdilonServerInfo;
 import io.odilon.model.RedundancyLevel;
 import io.odilon.model.ServerConstant;
+import io.odilon.model.SharedConstant;
 import io.odilon.scheduler.AbstractServiceRequest;
 import io.odilon.scheduler.SchedulerService;
 import io.odilon.scheduler.ServiceRequest;
@@ -180,7 +181,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 				try {
 					Files.delete(file.toPath());
 				} catch (IOException e1) {
-					logger.error(e, ServerConstant.NOT_THROWN);
+					logger.error(e, SharedConstant.NOT_THROWN);
 				}
 			}
 		}
@@ -192,7 +193,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 						try {
 							Files.delete(file.toPath());
 						} catch (Exception e1) {
-							logger.error(e1, ServerConstant.NOT_THROWN);
+							logger.error(e1, SharedConstant.NOT_THROWN);
 						}			
 					}
 			});
@@ -232,7 +233,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 						try {
 							Files.delete(file.toPath());
 						} catch (IOException e1) {
-							logger.error(e, ServerConstant.NOT_THROWN);
+							logger.error(e, SharedConstant.NOT_THROWN);
 						}
 					}				
 				}
@@ -432,7 +433,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 				}
 				
 			} catch (Exception e) {
-				logger.error(e, ServerConstant.NOT_THROWN);
+				logger.error(e, SharedConstant.NOT_THROWN);
 			} finally {
 				getLockService().getServerLock().writeLock().unlock();
 			}
@@ -490,7 +491,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 					rollbackJournal(op);
 
 			} catch (Exception e) {
-				logger.error(e, ServerConstant.NOT_THROWN);
+				logger.error(e, SharedConstant.NOT_THROWN);
 			} finally {
 				getLockService().getBucketLock(bucketName).writeLock().unlock();
 			}
@@ -860,7 +861,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 					rollbackJournal(op);
 				}
 			} catch (Exception e) {
-				logger.error(e, ServerConstant.NOT_THROWN);
+				logger.error(e, SharedConstant.NOT_THROWN);
 			}
 			finally {
 				getLockService().getServerLock().writeLock().unlock();	
@@ -915,7 +916,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 					rollbackJournal(op);
 				}
 			} catch (Exception e) {
-				logger.error(e, ServerConstant.NOT_THROWN);
+				logger.error(e, SharedConstant.NOT_THROWN);
 			}
 			finally {
 				getLockService().getServerLock().writeLock().unlock();	

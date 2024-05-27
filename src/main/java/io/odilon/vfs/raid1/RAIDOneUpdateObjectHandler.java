@@ -38,6 +38,7 @@ import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ObjectStatus;
 import io.odilon.model.ServerConstant;
+import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
 import io.odilon.util.ODFileUtils;
 import io.odilon.vfs.model.Drive;
@@ -130,7 +131,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 							if (stream!=null) 
 								stream.close();
 						} catch (IOException e) {
-							logger.error(e, ServerConstant.NOT_THROWN);
+							logger.error(e, SharedConstant.NOT_THROWN);
 						}
 
 						if (!done) {
@@ -142,7 +143,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 								if (!isMainException)
 									throw new InternalCriticalException(e, msg);
 								else
-									logger.error(e,msg + ServerConstant.NOT_THROWN);
+									logger.error(e,msg + SharedConstant.NOT_THROWN);
 							}
 						}
 						else {
@@ -244,7 +245,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 								if (!isMainException)
 									throw new InternalCriticalException(e, msg);
 								else
-									logger.error(e, msg, ServerConstant.NOT_THROWN);
+									logger.error(e, msg, SharedConstant.NOT_THROWN);
 							}
 						}
 						else {
@@ -305,7 +306,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 								if (!isMainException)
 									throw new InternalCriticalException(e,   "b:" + meta.bucketName + " o:"+ meta.objectName );
 								else
-									logger.error(e, "b:" + meta.bucketName + " o:"+ meta.objectName, ServerConstant.NOT_THROWN);
+									logger.error(e, "b:" + meta.bucketName + " o:"+ meta.objectName, SharedConstant.NOT_THROWN);
 							}
 					}
 					else {
@@ -375,7 +376,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 			if (!recoveryMode)
 				throw new InternalCriticalException(e, "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null"));
 			else
-				logger.error(e, "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null"), ServerConstant.NOT_THROWN);
+				logger.error(e, "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null"), SharedConstant.NOT_THROWN);
 		}
 		finally {
 			if (done || recoveryMode) {
@@ -486,7 +487,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 								String msg ="b:"   	+ (Optional.ofNullable(bucket).isPresent()    ? (bucket.getName()) :"null") + 
 										", o:" 		+ (Optional.ofNullable(objectName).isPresent() ? (objectName)       :"null") +  
 										", f:" 		+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)     :"null"); 
-								logger.error(e, msg + (isMainException ? ServerConstant.NOT_THROWN :""));
+								logger.error(e, msg + (isMainException ? SharedConstant.NOT_THROWN :""));
 								secEx=e;
 							}	
 					}
@@ -498,7 +499,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 						String msg ="b:" 		+ (Optional.ofNullable(bucket).isPresent()    ? (bucket.getName()) :"null") + 
 									", o:" 		+ (Optional.ofNullable(objectName).isPresent() ? (objectName)       :"null") +  
 									", f:" 		+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)     :"null");
-						logger.error(e, msg + (isMainException ? ServerConstant.NOT_THROWN :""));
+						logger.error(e, msg + (isMainException ? SharedConstant.NOT_THROWN :""));
 						secEx=e;
 					}
 				if (!isMainException && (secEx!=null)) 
@@ -636,7 +637,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 					FileUtils.deleteQuietly(((SimpleDrive) drive).getObjectDataVersionFile(bucket.getName(), objectName,  versionDiscarded));
 				}
 		} catch (Exception e) {
-			logger.error(e, ServerConstant.NOT_THROWN);
+			logger.error(e, SharedConstant.NOT_THROWN);
 		}
 	}
 
@@ -688,7 +689,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 				}
 			}
 		} catch (Exception e) {
-			logger.error(e, ServerConstant.NOT_THROWN);
+			logger.error(e, SharedConstant.NOT_THROWN);
 		}
 	}
 	
@@ -701,7 +702,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 				FileUtils.deleteQuietly(new File(drive.getBucketWorkDirPath(bucketName) + File.separator + objectName));
 			}
 		} catch (Exception e) {
-			logger.error(e, bucketName +" o: " +objectName, ServerConstant.NOT_THROWN);
+			logger.error(e, bucketName +" o: " +objectName, SharedConstant.NOT_THROWN);
 		}
 	}
 	

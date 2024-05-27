@@ -9,6 +9,7 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import io.odilon.log.Logger;
 import io.odilon.model.ServerConstant;
+import io.odilon.model.SharedConstant;
 import io.odilon.vfs.ODVFSOperation;
 import io.odilon.vfs.model.VFSOperation;
 
@@ -56,7 +57,7 @@ static private Logger logger = Logger.getLogger(CleanUpWorkDirServiceRequest.cla
 			
 		} catch (Exception e) {
 			 isSuccess=false;
-			 logger.error(e, ServerConstant.NOT_THROWN);
+			 logger.error(e, SharedConstant.NOT_THROWN);
 		}
 	}
 
