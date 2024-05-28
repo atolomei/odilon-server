@@ -773,7 +773,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 			 (reqlicaQueueSize == 0) ) {
 			 	startuplogger.info("Standby sync is up to date");
 			 	return;
-		}
+		 }
 		
 		 if (reqlicaQueueSize>0)
 			 startuplogger.info("Replica pending queue size -> " + String.valueOf(reqlicaQueueSize));

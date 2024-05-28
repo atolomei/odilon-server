@@ -36,7 +36,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
-import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
 import io.odilon.vfs.model.Drive;

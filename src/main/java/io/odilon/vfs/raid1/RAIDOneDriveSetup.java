@@ -16,6 +16,7 @@
  */
 package io.odilon.vfs.raid1;
 
+
 import java.io.File;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
@@ -33,7 +34,6 @@ import com.google.common.io.Files;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.OdilonServerInfo;
-import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.DriveStatus;

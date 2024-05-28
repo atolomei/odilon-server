@@ -17,6 +17,7 @@
 package io.odilon.vfs.raid6;
 
 
+
 import java.io.File;
 import java.io.IOException;
 import java.time.OffsetDateTime;
@@ -31,7 +32,6 @@ import io.odilon.error.OdilonObjectNotFoundException;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
-import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
 import io.odilon.scheduler.AfterDeleteObjectServiceRequest;
 import io.odilon.scheduler.DeleteBucketObjectPreviousVersionServiceRequest;

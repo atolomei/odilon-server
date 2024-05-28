@@ -16,6 +16,7 @@
  */
 package io.odilon.vfs.raid6;
 
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -34,7 +35,6 @@ import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ObjectStatus;
-import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
 import io.odilon.util.ODFileUtils;

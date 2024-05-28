@@ -25,13 +25,11 @@ import io.odilon.vfs.model.LockService;
 import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
-
 /**
  * 
  * <p>Base class for all RAID 1 handlers</p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
- * 
  */
 @ThreadSafe
 public abstract class RAIDOneHandler implements RAIDHandler {
