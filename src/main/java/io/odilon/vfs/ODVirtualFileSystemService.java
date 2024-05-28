@@ -141,7 +141,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 
 	@JsonIgnore
 	@Autowired
-	private final BucketIteratorService walkerService;
+	private final BucketIteratorService bucketIteratorService;
 	
 	@JsonIgnore
 	@Autowired
@@ -169,7 +169,9 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	private final FileCacheService fileCacheService;
 	
 	
-	/** All Drives, either {@link DriveStatus.ENABLED} or {@link DriveStatus.NOT_SYNC}(ie. in the sync process to become {@link DriveStatus.ENABLED}*/
+	/** All Drives, either {@link DriveStatus.ENABLED} or 
+	 * {@link DriveStatus.NOT_SYNC}(ie. in the sync process 
+	 * to become {@link DriveStatus.ENABLED}*/
 	@JsonIgnore
 	private Map<String, Drive> drivesAll = new ConcurrentHashMap<String, Drive>();
 	
@@ -211,7 +213,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	 * 
 	 */
 	@Autowired
-	public ODVirtualFileSystemService(	ServerSettings serverSettings, 
+	public ODVirtualFileSystemService(  ServerSettings serverSettings, 
 										SystemMonitorService montoringService,
 										EncryptionService encrpytionService,
 										LockService  vfsLockService,
@@ -233,7 +235,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 		this.encrpytionService=encrpytionService;
 		this.journalService=journalService;
 		this.schedulerService=schedulerService;
-		this.walkerService=walkerService;
+		this.bucketIteratorService=walkerService;
 		this.raid=serverSettings.getRedundancyLevel();
 		this.replicationService=replicationService;
 		this.masterKeyEncryptorService = masterKeyEncryptorService;
@@ -316,8 +318,8 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	}
 
 	/**
-	 * <p>Creates the bucket folder in every Drive
-	 * if the bucket does not exist
+	 * <p>Creates the bucket folder in every {@link Drive}</p>
+	 * <p>if the bucket does not exist:
 	 * creates the bucket
 	 * rollback -> delete the bucket</p>
 	 * <p>if the bucket exists mark as deleted</p>
@@ -722,7 +724,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	
 	@Override
 	public BucketIteratorService getBucketIteratorService() {
-		return walkerService;
+		return bucketIteratorService;
 	}
 
 	@Override
@@ -784,7 +786,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	}
 	
 	/**
-	 * <p>if the object does not exist or is in state DELETE -> not found</p>
+	 * <p>if the object does not exist or is in state {@link ObjectStatus#DELETE} -> not found</p>
 	 */
 	@Override
 	public OdilonServerInfo getOdilonServerInfo() {
@@ -1399,7 +1401,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 			byte[] key = driver.getServerMasterKey();
 			this.odilonKeyEncryptorService.setMasterKey(key);
 		} catch (Exception e) {
-			logger.error(e.getClass().getName() + " | " + e.getMessage());
+			logger.error(e.getClass().getName() + " | " + e.getMessage(), SharedConstant.NOT_THROWN);
 			throw new InternalCriticalException(e, "error with encryption key");
 		}
 

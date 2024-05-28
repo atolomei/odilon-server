@@ -35,12 +35,11 @@ import io.odilon.model.BucketStatus;
 public interface VFSBucket {
 	
 	public String getName();
+	// public String getId();
 	public OffsetDateTime getCreationDate();
 	public BucketStatus getStatus();
 	public BucketMetadata getBucketMetadata();
 	public boolean isAccesible();
 	public OffsetDateTime getLastModifiedDate();
-	
-	
 	
 }
