@@ -4,7 +4,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.2.4</version> <!-- 27/01/2024 -->
+		<version>3.3.0</version> <!-- 06/2024 -->
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	
@@ -15,13 +15,11 @@
 	
 	<description>Odilon is an Open Source Object Storage that runs on standard hardware.
 	It was designed as a redundant and secure file storage for applications that need to manage medium to large size objects (like pdfs, photos, audio, video).
-	It has a simple single-level folder structure similar to the Bucket / Object model of Amazon S3. It is small and easy to integrate, offers encryption, 
-	data protection and fault tolerance (software RAID and Erasure Codes) and detection of silent data degradation. Odilon also supports version control 
-	and master - standby replication over the Internet for disaster recovery and ransomware protection..</description>
+	It is small and easy to integrate, offers encryption, data protection and fault tolerance (software RAID and Erasure Codes) and detection of silent data degradation. 
+	Odilon also supports version control and master - standby replication over the Internet.</description>
 	
 	<properties>
 		<java.version>17</java.version>
-		<!-- commons-lang3-version>3.14.0</ commons-lang3-version -->	 						<!--  03/2024   -->
 		<oswego-version>1.3.4</oswego-version>											<!--  01/2024   -->
 		<spring-vault-core>3.1.1</spring-vault-core> 									<!--  03/2024   -->
 		<odilon-client-version>1.6-beta</odilon-client-version>
@@ -50,6 +48,7 @@
 	    <dependency>
 	        <groupId>io.dropwizard.metrics</groupId>
 	        <artifactId>metrics-core</artifactId>
+	        <version> 4.2.0</version>
 	        <!-- version: we used the one provided by Spring -->
 	    </dependency>
 
@@ -66,12 +65,10 @@
 				  <groupId>org.springframework.boot</groupId>
 				  <artifactId>spring-boot-starter-web</artifactId>
 				  <exclusions>
-				    
 				    <!--exclusion>
 				      <groupId>org.springframework.boot</groupId>
 				      <artifactId>spring-boot-starter-tomcat</artifactId>
 				    </exclusion -->
-				   	
 				   	<exclusion>
 						<artifactId>commons-logging</artifactId>
 						<groupId>commons-logging</groupId>
@@ -105,6 +102,15 @@
 		        </exclusion>
 		    </exclusions>
 		</dependency>
+		
+		
+		<!-- dependency>
+		    <groupId>ch.qos.logback</groupId>
+		    <artifactId>logback-classic</artifactId>
+		    <version>1.5.6</version>
+		</ dependency-->
+
+		
 		
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
