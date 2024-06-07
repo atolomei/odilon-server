@@ -39,7 +39,7 @@ import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
 import io.odilon.util.ODFileUtils;
 import io.odilon.vfs.model.Drive;
-import io.odilon.vfs.model.VFSBucket;
+import io.odilon.vfs.model.ODBucket;
 import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VFSop;
 
@@ -73,34 +73,35 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 	 * @param srcFileName
 	 * @param contentType
 	 */
-	protected void create(VFSBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType) {
+	protected void create(ODBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType) {
 	
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 		
-		String bucketName = bucket.getName();
 
+		Long bucketId = bucket.getId();
+				
 		VFSOperation op = null;
 		boolean done = false;
 		boolean isMainException = false;
 		
 		try {
 			
-			getLockService().getObjectLock(bucketName, objectName).writeLock().lock();
+			getLockService().getObjectLock(bucket.getId(), objectName).writeLock().lock();
 			
 			try (stream) {
 				
-					getLockService().getBucketLock(bucketName).readLock().lock();
+					getLockService().getBucketLock(bucket.getId()).readLock().lock();
 			
-					if (getDriver().getObjectMetadataReadDrive(bucketName, objectName).existsObjectMetadata(bucket.getName(), objectName))											
-						throw new IllegalArgumentException("Object already exist -> b:" + bucketName+ " o:"+ objectName);
+					if (getDriver().getObjectMetadataReadDrive(bucket.getId(), objectName).existsObjectMetadata(bucket.getId(), objectName))											
+						throw new IllegalArgumentException("Object already exist -> b:" + bucket.getId().toString() + " o:"+ objectName);
 					
 					int version = 0;
 					
-					op = getJournalService().createObject(bucketName, objectName);
+					op = getJournalService().createObject(bucketId, objectName);
 					
-					RAIDSixBlocks ei = saveObjectDataFile(bucketName, objectName, stream);
-					saveObjectMetadata(bucketName, objectName, ei, srcFileName, contentType, version);
+					RAIDSixBlocks ei = saveObjectDataFile(bucketId, objectName, stream);
+					saveObjectMetadata(bucketId, objectName, ei, srcFileName, contentType, version);
 					
 					done = op.commit();
 					
@@ -112,7 +113,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 				} catch (Exception e) {
 						done=false;
 						isMainException=true;
-						throw new InternalCriticalException(e, "b:" + bucketName + " o:" 	+ objectName + ", f:" 	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null"));
+						throw new InternalCriticalException(e, "b:" + bucketId.toString() + " o:" 	+ objectName + ", f:" 	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null"));
 				} finally {
 						try {
 								if ((!done) && (op!=null)) {
@@ -120,18 +121,18 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 										rollbackJournal(op, false);
 									} catch (Exception e) {
 										if (isMainException)
-											logger.error("b:" + bucketName + " o:" 	+ objectName + ", f:" 	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null"), SharedConstant.NOT_THROWN);
+											logger.error("b:" + bucketId.toString() + " o:" 	+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null"), SharedConstant.NOT_THROWN);
 										else
-											throw new InternalCriticalException(e, 	"b:"+ bucketName + " o:" 	+ objectName + ", f:" 	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null"));
+											throw new InternalCriticalException(e, 	"b:"+ bucketId.toString() + " o:"	+ objectName + ", f:" 	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null"));
 									}
 								}
 						}
 						finally {
-							getLockService().getBucketLock(bucketName).readLock().unlock();
+							getLockService().getBucketLock(bucketId).readLock().unlock();
 						}
 				}
 		} finally {
-			getLockService().getObjectLock(bucketName, objectName).writeLock().unlock();	
+			getLockService().getObjectLock(bucketId, objectName).writeLock().unlock();	
 		}
 	}
 
@@ -147,6 +148,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 		
 		String objectName = op.getObjectName();
 		String bucketName = op.getBucketName();
+		Long bucketId = op.getBucketId();
 		
 		boolean done = false;
 				
@@ -159,15 +161,15 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 
 			/** remove metadata dir on all drives */
 			for (Drive drive: getDriver().getDrivesAll()) {
-				File f_meta = drive.getObjectMetadataFile(bucketName, objectName);
+				File f_meta = drive.getObjectMetadataFile(bucketId, objectName);
 				if ((meta==null) && (f_meta!=null)) {
 					try {
-						meta=drive.getObjectMetadata(bucketName, objectName);
+						meta=drive.getObjectMetadata(bucketId, objectName);
 					} catch (Exception e) {
 						logger.warn("can not load meta -> d: " + drive.getName() + SharedConstant.NOT_THROWN);
 					}
 				}
-				FileUtils.deleteQuietly(new File(drive.getObjectMetadataDirPath(bucketName, objectName)));
+				FileUtils.deleteQuietly(new File(drive.getObjectMetadataDirPath(bucketId, objectName)));
 			}
 			
 			/** remove data dir on all drives */			
@@ -201,14 +203,14 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 	 * @param stream
 	 * @param srcFileName
 	 */
-	private RAIDSixBlocks saveObjectDataFile(String bucketName, String objectName, InputStream stream) {
+	private RAIDSixBlocks saveObjectDataFile(Long bucketId, String objectName, InputStream stream) {
 		
 			try (InputStream sourceStream = isEncrypt() ? (getVFS().getEncryptionService().encryptStream(stream)) : stream) {
 				
-				return (new RAIDSixEncoder(getDriver())).encodeHead(sourceStream, bucketName, objectName);
+				return (new RAIDSixEncoder(getDriver())).encodeHead(sourceStream, bucketId, objectName);
 				
 			} catch (Exception e) {
-				throw new InternalCriticalException(e, "b:" + bucketName + " o:" + objectName);		
+				throw new InternalCriticalException(e, "b:" + bucketId.toString() + " o:" + objectName);		
 			}
 	}
 
@@ -222,7 +224,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 	 * todo en el object metadata o cada file por separado
 	 * 
 	 */
-	private void saveObjectMetadata(String bucketName, String objectName, RAIDSixBlocks ei, String srcFileName, String contentType, int version) {
+	private void saveObjectMetadata(Long bucketId, String objectName, RAIDSixBlocks ei, String srcFileName, String contentType, int version) {
 		
 		List<String> shaBlocks = new ArrayList<String>();
 		StringBuilder etag_b = new StringBuilder();
@@ -231,7 +233,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 			try {
 				shaBlocks.add(ODFileUtils.calculateSHA256String(item));
 			} catch (Exception e) {
-				throw new InternalCriticalException(e, "b:"+ bucketName + " o:" + objectName+ ", f:" + (Optional.ofNullable(item).isPresent() ? (item.getName()) : "null"));
+				throw new InternalCriticalException(e, "b:"+ bucketId.toString() + " o:" + objectName+ ", f:" + (Optional.ofNullable(item).isPresent() ? (item.getName()) : "null"));
 			}
 		});
 
@@ -242,7 +244,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 		try {
 			etag = ODFileUtils.calculateSHA256String(etag_b.toString());
 		} catch (NoSuchAlgorithmException | IOException e) {
-   			throw new InternalCriticalException(e, "b:"+ bucketName + " o:" + objectName+ ", f:" + "| etag");
+   			throw new InternalCriticalException(e, "b:"+ bucketId.toString() + " o:" + objectName+ ", f:" + "| etag");
 		} 
 
 		OffsetDateTime creationDate=OffsetDateTime.now();
@@ -250,7 +252,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 		for (Drive drive: getDriver().getDrivesAll()) {
 
 			try {
-				ObjectMetadata meta = new ObjectMetadata(bucketName, objectName);
+				ObjectMetadata meta = new ObjectMetadata(bucketId, objectName);
 				meta.fileName=srcFileName;
 				meta.appVersion=OdilonVersion.VERSION;
 				meta.contentType=contentType;
@@ -269,7 +271,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 				drive.saveObjectMetadata(meta);
 	
 			} catch (Exception e) {
-				throw new InternalCriticalException(e, "b:"+ bucketName + " o:" + objectName+", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null"));
+				throw new InternalCriticalException(e, "b:"+ bucketId.toString() + " o:" + objectName+", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null"));
 			}
 		}
 	}

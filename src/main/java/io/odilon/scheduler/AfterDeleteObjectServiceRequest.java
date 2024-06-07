@@ -25,7 +25,6 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
-import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
 import io.odilon.vfs.model.VFSop;
 import io.odilon.vfs.model.VirtualFileSystemService;
@@ -113,7 +112,7 @@ public class AfterDeleteObjectServiceRequest extends AbstractServiceRequest impl
 	public String getUUID() {
 		if (meta==null)
 			return "null";
-		return  ((meta.bucketName!=null) ? meta.bucketName :"null" ) + ":" + 
+		return  ((meta.bucketId!=null) ? meta.bucketId.toString() :"null" ) + ":" + 
 				((meta.objectName!=null) ? meta.objectName :"null" );
 	}
 	
@@ -129,7 +128,8 @@ public class AfterDeleteObjectServiceRequest extends AbstractServiceRequest impl
 
 	
 	/**
-	 * <p>There is nothing to do if the VFSOp or ObjectMetadata are null at this point. They should never have reached here</p> 
+	 * <p>There is nothing to do if the VFSOp or ObjectMetadata are null at this point. 
+	 * They should never have reached here</p> 
 	 * 
 	 */
 	private void clean() {

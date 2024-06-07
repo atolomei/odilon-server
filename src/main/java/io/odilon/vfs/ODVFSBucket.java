@@ -24,13 +24,13 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.odilon.model.BucketMetadata;
 import io.odilon.model.BucketStatus;
 import io.odilon.vfs.model.DriveBucket;
-import io.odilon.vfs.model.VFSBucket;
+import io.odilon.vfs.model.ODBucket;
 
 /**
  *  
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
-public class ODVFSBucket implements VFSBucket {
+public class ODVFSBucket implements ODBucket {
 
 	@JsonProperty("bucketMetadata")
 	final private BucketMetadata meta;
@@ -72,15 +72,23 @@ public class ODVFSBucket implements VFSBucket {
 	}
 	
 	@Override
+	public Long getId() {
+		return meta.id;
+	}
+	
+	@Override
 	public String toString() {
 		StringBuilder str = new StringBuilder();
 		str.append(this.getClass().getSimpleName() +"{");
 		str.append("\"name\":" + (Optional.ofNullable(meta.bucketName).isPresent() ? ("\""+meta.bucketName+"\"") :"null"));
+		str.append("\"id\":" + (Optional.ofNullable(meta.id).isPresent() ? ("+meta.id+") :"null"));
 		str.append(", \"status\":" + (Optional.ofNullable(meta.status).isPresent() ? ("\""+meta.status.getName()+"\"") :"null"));
 		str.append(", \"creationDate\":" + (meta.creationDate!=null ? ("\""+meta.creationDate+"\"") :"null"));
 		str.append("}");
 		return str.toString();
 	}
+
+	
 
 	
 

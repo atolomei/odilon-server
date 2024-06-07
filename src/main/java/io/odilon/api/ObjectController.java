@@ -57,6 +57,8 @@ import io.odilon.traffic.TrafficPass;
 import io.odilon.vfs.model.VirtualFileSystemService;
 /**
  * 
+ * <p>API endpoint for Object operations</p>
+ * 
  * 	<ul>
  * 		<li>	/object/delete/{bucketName}/{objectName}</li>
 		<li>	/object/deleteallpreviousversion/{bucketName}/{objectName}</li>

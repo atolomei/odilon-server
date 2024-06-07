@@ -91,6 +91,8 @@ public class RAIDSixDecoder {
     
     private File decode(ObjectMetadata meta, boolean isHead) {
     	
+    	
+    	Long bucketId = meta.bucketId;
     	String bucketName = meta.bucketName;
     	String objectName = meta.objectName;
     	
@@ -99,7 +101,7 @@ public class RAIDSixDecoder {
     	Optional<Integer> ver = isHead ? Optional.empty() :  Optional.of(Integer.valueOf(meta.version));
     	int chunk = 0;
     	
-	    	File file = getVFS().getFileCacheService().get(bucketName, objectName, ver); 
+	    	File file = getVFS().getFileCacheService().get(bucketId , objectName, ver); 
 
 	    	if (file!=null) {
 	    		getDriver().getVFS().getSystemMonitorService().getCacheFileHitCounter().inc();
@@ -107,11 +109,11 @@ public class RAIDSixDecoder {
 	    	}
 	    	getDriver().getVFS().getSystemMonitorService().getCacheFileMissCounter().inc();
 	    	
-	    	getVFS().getFileCacheService().getLockService().getFileCacheLock(bucketName, objectName, ver).writeLock().lock();
+	    	getVFS().getFileCacheService().getLockService().getFileCacheLock(bucketId , objectName, ver).writeLock().lock();
 
 	    	try {
 	    	
-	    		String tempPath = getVFS().getFileCacheService().getFileCachePath(bucketName, objectName, ver);
+	    		String tempPath = getVFS().getFileCacheService().getFileCachePath(bucketId , objectName, ver);
 		    
 		    	try (OutputStream out = new BufferedOutputStream(new FileOutputStream(tempPath))) {
 		    		while (chunk<totalChunks) {
@@ -123,11 +125,11 @@ public class RAIDSixDecoder {
 					throw new InternalCriticalException(e, "b:" + bucketName +  " | o:" + objectName + " | f:" +tempPath);
 				}
 		    	File decodedFile = new File(tempPath);
-		    	getVFS().getFileCacheService().put(bucketName, objectName, ver, decodedFile, false);
+		    	getVFS().getFileCacheService().put(bucketId , objectName, ver, decodedFile, false);
 		    	return decodedFile;
 		    	
 	    	} finally {
-	    		getVFS().getFileCacheService().getLockService().getFileCacheLock(bucketName, objectName, ver).writeLock().unlock();
+	    		getVFS().getFileCacheService().getLockService().getFileCacheLock(bucketId , objectName, ver).writeLock().unlock();
 	    	}
     }
     
@@ -160,10 +162,10 @@ public class RAIDSixDecoder {
     		
     		if (drive!=null) {
 	        	if (isHead) {
-	        			shardFile = new File(drive.getBucketObjectDataDirPath(meta.bucketName), meta.objectName+ "." + String.valueOf(chunk) +"." + String.valueOf(disk));	
+	        			shardFile = new File(drive.getBucketObjectDataDirPath(meta.bucketId), meta.objectName+ "." + String.valueOf(chunk) +"." + String.valueOf(disk));	
 	        	}
 	        	else {
-	        		shardFile = new File(drive.getBucketObjectDataDirPath(meta.bucketName)+ File.separator + VirtualFileSystemService.VERSION_DIR, meta.objectName+ "." + String.valueOf(chunk) +"." + String.valueOf(disk)+ ".v" + String.valueOf(meta.version));
+	        		shardFile = new File(drive.getBucketObjectDataDirPath(meta.bucketId)+ File.separator + VirtualFileSystemService.VERSION_DIR, meta.objectName+ "." + String.valueOf(chunk) +"." + String.valueOf(disk)+ ".v" + String.valueOf(meta.version));
 	        	}
     		}
         	

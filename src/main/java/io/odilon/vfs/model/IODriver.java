@@ -40,27 +40,27 @@ public interface IODriver {
 	/**
 	 * Bucket
 	 */
-	public VFSBucket 	createBucket(String bucketName);
-	public void 		deleteBucket(VFSBucket bucket);
-	public boolean 		isEmpty(VFSBucket bucket);
+	public ODBucket 	createBucket(String bucketName);
+	public void 		deleteBucket(ODBucket bucket);
+	public boolean 		isEmpty(ODBucket bucket);
 	
 	/**
 	 * Object get/ put / delete
 	 */
-	public ObjectMetadata 	getObjectMetadata(String bucketName, String objectName);
+	public ObjectMetadata 	getObjectMetadata(ODBucket bucket, String objectName);
 	public void 			putObjectMetadata(ObjectMetadata meta);
-	public void 			putObject(VFSBucket bucket, String objectName, InputStream stream, String fileName, String contentType);
-	public void 			putObject(VFSBucket bucket, String objectName, File file);
-	public VFSObject 		getObject(String bucketName, String objectName);
-	public VFSObject 		getObject(VFSBucket bucket, String objectName);
-	public boolean 			exists(VFSBucket bucket, String objectName);
-	public InputStream 		getInputStream(VFSBucket bucket, String objectName) throws IOException;
-	public void 			delete(VFSBucket bucket, String objectName);
+	public void 			putObject(ODBucket bucket, String objectName, InputStream stream, String fileName, String contentType);
+	public void 			putObject(ODBucket bucket, String objectName, File file);
+	
+	public VFSObject 		getObject(ODBucket bucket, String objectName);
+	public boolean 			exists(ODBucket bucket, String objectName);
+	public InputStream 		getInputStream(ODBucket bucket, String objectName) throws IOException;
+	public void 			delete(ODBucket bucket, String objectName);
 	
 	/**
 	 * Object List
 	 */
-	public DataList<Item<ObjectMetadata>> listObjects(String bucketName, Optional<Long> offset, Optional<Integer> pageSize,	Optional<String> prefix, Optional<String> serverAgentId);
+	public DataList<Item<ObjectMetadata>> listObjects(ODBucket bucket, Optional<Long> offset, Optional<Integer> pageSize,	Optional<String> prefix, Optional<String> serverAgentId);
 
 	/** 
 	 * Post Transaction (Async)
@@ -88,7 +88,7 @@ public interface IODriver {
 	/**
 	 * 
 	 */
-	boolean checkIntegrity(String bucketName, String objectName, boolean forceCheck);
+	boolean checkIntegrity(ODBucket bucket, String objectName, boolean forceCheck); // [A]
 	public boolean setUpDrives();
 	
 	/**
@@ -116,29 +116,22 @@ public interface IODriver {
 	 * VERSION CONTROL
 	 */
 	
-	public ObjectMetadata getObjectMetadataPreviousVersion(String bucketName, String objectName);
-	public ObjectMetadata getObjectMetadataVersion(String bucketName, String objectName, int version);
+	public ObjectMetadata getObjectMetadataPreviousVersion(Long bucketId, String objectName);              // [A]
+	public ObjectMetadata getObjectMetadataVersion(Long bucketId, String objectName, int version);  // [A]
 	
-	public List<ObjectMetadata> getObjectMetadataVersionAll(String bucketName, String objectName);
-	public InputStream getObjectVersionInputStream(String bucketName, String objectName, int version);
+	public List<ObjectMetadata> getObjectMetadataVersionAll(Long bucketId, String objectName); // [A]
+	public InputStream getObjectVersionInputStream(Long bucketId, String objectName, int version); // [A]
 	
 	public void deleteObjectAllPreviousVersions(ObjectMetadata meta);
 
-	public void deleteBucketAllPreviousVersions(String bucketName);
+	public void deleteBucketAllPreviousVersions(Long bucketId); // [A]
 	
 	public void wipeAllPreviousVersions();
-	public ObjectMetadata restorePreviousVersion(String bucketName, String objectName);
-	public boolean hasVersions(String bucketName, String objectName);
-	/**
-	 * 
-	 * 
-	 */
-	
-	
-	/**
-	 * 
-	 */
+	public ObjectMetadata restorePreviousVersion(Long bucketId, String objectName); // [A]
+	public boolean hasVersions(ODBucket bucket, String objectName);
+
 	public void syncObject(ObjectMetadata meta);
+	
 	
 
 	

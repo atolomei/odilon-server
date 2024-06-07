@@ -29,6 +29,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import jakarta.annotation.PostConstruct;
 import javax.annotation.concurrent.ThreadSafe;
@@ -79,7 +81,7 @@ import io.odilon.vfs.model.JournalService;
 import io.odilon.vfs.model.VFSObject;
 import io.odilon.vfs.model.VFSOperation;
 
-import io.odilon.vfs.model.VFSBucket;
+import io.odilon.vfs.model.ODBucket;
 import io.odilon.vfs.model.IODriver;
 import io.odilon.vfs.model.LockService;
 import io.odilon.vfs.model.VirtualFileSystemService;
@@ -169,6 +171,15 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	private final FileCacheService fileCacheService;
 	
 	
+	@JsonIgnore
+    private AtomicLong bucket_id;
+
+	
+	
+	public Long getNextBucketId() {
+		return Long.valueOf(bucket_id.addAndGet(1));
+	}
+	
 	/** All Drives, either {@link DriveStatus.ENABLED} or 
 	 * {@link DriveStatus.NOT_SYNC}(ie. in the sync process 
 	 * to become {@link DriveStatus.ENABLED}*/
@@ -197,9 +208,22 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	 * marked as {@code BucketState.DELETED} or {@code BucketState.DRAFT}
 	 * </p>
 	 */
-	@JsonIgnore
-	private Map<String, VFSBucket> buckets = new ConcurrentHashMap<String, VFSBucket>();
+	@JsonIgnore						
+	private Map<String, ODBucket> buckets_by_name = new ConcurrentHashMap<String, ODBucket>();
 
+	@JsonIgnore
+	private Map<Long, ODBucket> buckets_by_id = new ConcurrentHashMap<Long, ODBucket>();
+	
+	
+	private Map<String, ODBucket> getBucketsByNameMap() {
+		return buckets_by_name;
+	}
+	
+	private Map<Long, ODBucket> getBucketsByIdMap() {
+		return buckets_by_id;
+	}
+	
+	
 	/**
 	 * 
 	 * @param serverSettings
@@ -258,24 +282,44 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	public List<ObjectMetadata> getObjectMetadataAllVersions(String bucketName, String objectName) {
 		Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null or empty | b:" + bucketName);
-		Check.requireTrue(this.buckets.containsKey(bucketName), "bucket does not exist | b: " + bucketName);
-		return createVFSIODriver().getObjectMetadataVersionAll(bucketName, objectName);
+		Check.requireTrue(getBucketsByNameMap().containsKey(bucketName), "bucket does not exist | b: " + bucketName);
+		
+		Long bucketId=getBucketsByNameMap().get(bucketName).getBucketMetadata().getId();
+		List<ObjectMetadata> list =createVFSIODriver().getObjectMetadataVersionAll(bucketId, objectName); 
+		list.forEach(t-> t.bucketName=bucketName);
+		return list;
 	}
 	
 	@Override
 	public ObjectMetadata getObjectMetadataVersion(String bucketName, String objectName, int version) {
 		Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null or empty | b:" + bucketName);
-		Check.requireTrue(this.buckets.containsKey(bucketName), "bucket does not exist | b: " + bucketName);
-		return createVFSIODriver().getObjectMetadataVersion(bucketName, objectName, version);
+		Check.requireTrue(getBucketsByNameMap().containsKey(bucketName), "bucket does not exist | b: " + bucketName);
+
+		Long bucketId=getBucketsByNameMap().get(bucketName).getBucketMetadata().getId();
+		ObjectMetadata meta = createVFSIODriver().getObjectMetadataVersion(bucketId, objectName, version);
+		
+		if (meta!=null)
+			meta.bucketName=bucketName;
+		
+		return meta;
 	}
 	
 	@Override
 	public ObjectMetadata getObjectMetadataPreviousVersion(String bucketName, String objectName) {
 		Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null or empty | b:" + bucketName);
-		Check.requireTrue(this.buckets.containsKey(bucketName), "bucket does not exist | b: " + bucketName);
-		return createVFSIODriver().getObjectMetadataPreviousVersion(bucketName, objectName);
+		Check.requireTrue(getBucketsByNameMap().containsKey(bucketName), "bucket does not exist | b: " + bucketName);
+		
+		Long bucketId=  getBucketsByNameMap().get(bucketName).getBucketMetadata().getId();
+		
+		ObjectMetadata meta  = createVFSIODriver().getObjectMetadataPreviousVersion(bucketId, objectName);
+		
+		if (meta!=null)
+			meta.bucketName=bucketName;
+		
+		return meta;
+		
 	}
 	
 	@Override
@@ -283,14 +327,20 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 		Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null or empty | b:" + bucketName);
 		Check.requireTrue(version>=0, "version must be >=0");
-		return createVFSIODriver().getObjectVersionInputStream(bucketName, objectName, version);
+		
+		Check.requireTrue(getBucketsByNameMap().containsKey(bucketName), "bucket does not exist | b: " + bucketName);
+		Long bucketId=  getBucketsByNameMap().get(bucketName).getBucketMetadata().getId();
+		
+		return createVFSIODriver().getObjectVersionInputStream(bucketId, objectName, version);
 	}
+	
 	
 	@Override
 	public boolean hasVersions(String bucketName, String objectName) {
 		Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null or empty | b:" + bucketName);
-		return createVFSIODriver().hasVersions(bucketName, objectName);
+		Check.requireTrue(getBucketsByNameMap().containsKey(bucketName), "bucket does not exist | b: " + bucketName);
+		return createVFSIODriver().hasVersions(getBucketsByNameMap().get(bucketName), objectName);
 	}
 				
 	@Override
@@ -302,7 +352,9 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	@Override
 	public void deleteBucketAllPreviousVersions(String bucketName) {
 		Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
-		createVFSIODriver().deleteBucketAllPreviousVersions(bucketName);
+		Check.requireTrue(getBucketsByNameMap().containsKey(bucketName), "bucket does not exist | b: " + bucketName);
+		Long bucketId= getBucketsByNameMap().get(bucketName).getBucketMetadata().getId();
+		createVFSIODriver().deleteBucketAllPreviousVersions(bucketId);
 	}
 	
 	@Override
@@ -314,7 +366,16 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	public ObjectMetadata restorePreviousVersion(String bucketName, String objectName) {
 		Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null or empty | b:" + bucketName);
-		return createVFSIODriver().restorePreviousVersion(bucketName, objectName);
+		
+		Check.requireTrue(getBucketsByNameMap().containsKey(bucketName), "bucket does not exist | b: " + bucketName);
+		Long bucketId= getBucketsByNameMap().get(bucketName).getBucketMetadata().getId();
+		
+		ObjectMetadata meta  = createVFSIODriver().restorePreviousVersion(bucketId, objectName);
+		
+		if (meta!=null)
+			meta.bucketName=bucketName;
+
+		return meta;
 	}
 
 	/**
@@ -325,10 +386,10 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	 * <p>if the bucket exists mark as deleted</p>
 	 */
 	@Override
-	public VFSBucket createBucket(String bucketName) throws IOException {
+	public ODBucket createBucket(String bucketName) throws IOException {
 	
 		Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
-		Check.requireTrue(!this.buckets.containsKey(bucketName), "bucket already exist | b: " + bucketName);
+		Check.requireTrue(!getBucketsByNameMap().containsKey(bucketName), "bucket already exist | b: " + bucketName);
 
 		if (!bucketName.matches(SharedConstant.bucket_valid_regex)) 
 			throw new IllegalArgumentException("bucketName contains invalid character | regular expression is -> " + SharedConstant.bucket_valid_regex +" |  b:" + bucketName);
@@ -339,10 +400,10 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	
 	
 	@Override
-	public VFSBucket renameBucketName(String bucketName, String newBucketName) {
+	public ODBucket renameBucketName(String bucketName, String newBucketName) {
 		
 		Check.requireNonNullStringArgument(newBucketName, "newBucketName can not be null or empty");
-		Check.requireTrue(this.buckets.containsKey(bucketName), "bucket does not exist | b: " + bucketName);
+		Check.requireTrue(getBucketsByNameMap().containsKey(bucketName), "bucket does not exist | b: " + bucketName);
 		
 		if (!newBucketName.matches(SharedConstant.bucket_valid_regex)) 
 			throw new IllegalArgumentException("bucketName contains invalid character | regular expression is -> " + SharedConstant.bucket_valid_regex +" |  b:" + newBucketName);
@@ -358,7 +419,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	 * </p>
 	 */
 	@Override
-	public void removeBucket(VFSBucket bucket) {
+	public void removeBucket(ODBucket bucket) {
 		removeBucket(bucket, false);
 	}
 
@@ -368,7 +429,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	@Override
 	public void removeBucket(String bucketName) {
 		Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
-		removeBucket(buckets.get(bucketName), false);
+		removeBucket(getBucketsByNameMap().get(bucketName), false);
 	}
 	
 	/**
@@ -377,7 +438,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	@Override
 	public void forceRemoveBucket(String bucketName) {
 		Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
-		removeBucket(buckets.get(bucketName), true);
+		removeBucket(getBucketsByNameMap().get(bucketName), true);
 	}
 	
 	/**
@@ -385,8 +446,11 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	 */
 	@Override
 	public boolean existsBucket(String bucketName) {
+		
 		Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
-		return (this.buckets.containsKey(bucketName));
+		boolean exists=getBucketsByNameMap().containsKey(bucketName);
+		
+		return (exists);
 	}
 	
 	/**
@@ -395,17 +459,17 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	@Override
 	public boolean isEmptyBucket(String bucketName) {
 		Check.requireNonNullArgument(bucketName, "bucketName can not be null or empty");
-		Check.requireTrue(this.buckets.containsKey(bucketName), "bucket does not exist or is not Accesible | b: " + bucketName);
-		return isEmpty(buckets.get(bucketName));
+		Check.requireTrue(getBucketsByNameMap().containsKey(bucketName), "bucket does not exist or is not Accesible | b: " + bucketName);
+		return isEmpty(getBucketsByNameMap().get(bucketName));
 	}
 	
 	/**
 	 * 
 	 */
 	@Override
-	public boolean isEmpty(VFSBucket bucket) {
+	public boolean isEmpty(ODBucket bucket) {
 		Check.requireNonNullArgument(bucket, "bucket can not be null");
-		Check.requireTrue(this.buckets.containsKey(bucket.getName()), "bucket does not exist or is not Accesible | b: " + bucket.getName());
+		Check.requireTrue(getBucketsByNameMap().containsKey(bucket.getName()), "bucket does not exist or is not Accesible | b: " + bucket.getName());
 		return createVFSIODriver().isEmpty(bucket);
 	}
 	
@@ -413,9 +477,9 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	 * 
 	 */
 	@Override
-	public void putObject(VFSBucket bucket, String objectName, File file) {
+	public void putObject(ODBucket bucket, String objectName, File file) {
 		Check.requireNonNullArgument(bucket, "bucket can not be null");
-		Check.requireTrue(this.buckets.containsKey(bucket.getName()), "bucket does not exist b: " + bucket.getName());
+		Check.requireTrue(getBucketsByNameMap().containsKey(bucket.getName()), "bucket does not exist b: " + bucket.getName());
 		createVFSIODriver().putObject(bucket, objectName, file);
 	}
 
@@ -425,18 +489,18 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	@Override
 	public void putObject(String bucketName, String objectName, InputStream is, String fileName, String contentType) {
 		Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
-		Check.requireTrue(this.buckets.containsKey(bucketName), "bucket does not exist | b: " + bucketName);
+		Check.requireTrue(getBucketsByNameMap().containsKey(bucketName), "bucket does not exist | b: " + bucketName);
 		Check.requireNonNullArgument(objectName, "objectName can not be null -> b:" + bucketName);
-		putObject(this.buckets.get(bucketName), objectName, is, fileName, contentType);
+		putObject(getBucketsByNameMap().get(bucketName), objectName, is, fileName, contentType);
 	}
 
 	/**
 	 * 
 	 */
 	@Override
-	public void putObject(VFSBucket bucket, String objectName, InputStream stream, String fileName, String contentType) {
+	public void putObject(ODBucket bucket, String objectName, InputStream stream, String fileName, String contentType) {
 		Check.requireNonNullArgument(bucket, "bucket can not be null ");
-		Check.requireTrue(this.buckets.containsKey(bucket.getName()), "bucket does not exist | b: " + bucket.getName());
+		Check.requireTrue(getBucketsByNameMap().containsKey(bucket.getName()), "bucket does not exist | b: " + bucket.getName());
 		Check.requireNonNullArgument(objectName, "objectName can not be null -> b:" + bucket.getName());
 		createVFSIODriver().putObject(bucket, objectName, stream, fileName, contentType);
 	}
@@ -445,9 +509,9 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	 * 
 	 */
 	@Override
-	public VFSObject getObject(VFSBucket bucket, String objectName) {
+	public VFSObject getObject(ODBucket bucket, String objectName) {
 		Check.requireNonNullArgument(bucket, "bucket can not be null ");
-		Check.requireTrue(this.buckets.containsKey(bucket.getName()), "bucket does not exist | b: " + bucket.getName());
+		Check.requireTrue(getBucketsByNameMap().containsKey(bucket.getName()), "bucket does not exist | b: " + bucket.getName());
 		return createVFSIODriver().getObject(bucket,  objectName);
 	}
 
@@ -456,8 +520,12 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	 */
 	@Override
 	public VFSObject getObject(String bucketName, String objectName) {
-		Check.requireTrue(this.buckets.containsKey(bucketName), "bucket does not exist | b: " + bucketName);
-		return createVFSIODriver().getObject(bucketName,  objectName);
+		Check.requireTrue(getBucketsByNameMap().containsKey(bucketName), "bucket does not exist | b: " + bucketName);
+		
+		Check.requireTrue(getBucketsByNameMap().containsKey(bucketName), "bucket does not exist | b: " + bucketName);
+		ODBucket bucket = getBucketsByNameMap().get(bucketName);
+		
+		return createVFSIODriver().getObject(bucket,  objectName);
 	}
 	
 	/**
@@ -468,9 +536,9 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	 * @throws IOException 
 	 */
 	@Override
-	public InputStream getObjectStream(VFSBucket bucket, String objectName) throws IOException {
+	public InputStream getObjectStream(ODBucket bucket, String objectName) throws IOException {
 		Check.requireNonNullArgument(bucket, "bucket can not be null ");
-		Check.requireTrue(this.buckets.containsKey(bucket.getName()), "bucket does not exist | b: " + bucket.getName());
+		Check.requireTrue(getBucketsByNameMap().containsKey(bucket.getName()), "bucket does not exist | b: " + bucket.getName());
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null or empty | b:" + bucket.getName());
 		return createVFSIODriver().getInputStream(bucket, objectName);
 	}
@@ -485,9 +553,9 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	@Override		
 	public InputStream getObjectStream(String bucketName, String objectName) throws IOException {
 		Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
-		Check.requireTrue(this.buckets.containsKey(bucketName), "bucket does not exist | b: " + bucketName);
+		Check.requireTrue(getBucketsByNameMap().containsKey(bucketName), "bucket does not exist | b: " + bucketName);
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null or empty | b:" + bucketName);
-		return getObjectStream(this.buckets.get(bucketName), objectName);
+		return getObjectStream(getBucketsByNameMap().get(bucketName), objectName);
 	}
 	
 	/**
@@ -503,8 +571,13 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	@Override
 	public DataList<Item<ObjectMetadata>> listObjects(String bucketName, Optional<Long> offset, Optional<Integer> pageSize,	Optional<String> prefix, Optional<String> serverAgentId) {
 		Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
-		Check.requireTrue(this.buckets.containsKey(bucketName), "bucket does not exist | b: " + bucketName);
-		return createVFSIODriver().listObjects(bucketName, offset, pageSize, prefix, serverAgentId);
+		Check.requireTrue(getBucketsByNameMap().containsKey(bucketName), "bucket does not exist | b: " + bucketName);
+		
+		Check.requireTrue(getBucketsByNameMap().containsKey(bucketName), "bucket does not exist | b: " + bucketName);
+		
+		ODBucket bucket = getBucketsByNameMap().get(bucketName);
+		
+		return createVFSIODriver().listObjects(bucket, offset, pageSize, prefix, serverAgentId);
 	}
 	
 	/**
@@ -512,10 +585,20 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	 */
 	@Override
 	public ObjectMetadata getObjectMetadata(String bucketName, String objectName) {
+
 		Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null or empty | b:" + bucketName);
-		Check.requireTrue(this.buckets.containsKey(bucketName), "bucket does not exist | b: " + bucketName);
-		return createVFSIODriver().getObjectMetadata(bucketName, objectName);
+
+		Check.requireTrue(getBucketsByNameMap().containsKey(bucketName), "bucket does not exist | b: " + bucketName);
+		
+		ODBucket bucket = getBucketsByNameMap().get(bucketName);
+
+		ObjectMetadata meta  = createVFSIODriver().getObjectMetadata(bucket, objectName);
+		
+		if (meta!=null)
+			meta.bucketName=bucketName;
+
+		return meta;
 	}
 	
 	/**
@@ -525,19 +608,33 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	@Override					
 	public boolean existsObject(String bucketName, String objectName) {
 		Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
-		Check.requireTrue(this.buckets.containsKey(bucketName), "bucket does not exist | b: " + bucketName);
+		Check.requireTrue(getBucketsByNameMap().containsKey(bucketName), "bucket does not exist | b: " + bucketName);
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null or empty | b:" + bucketName);
-		return createVFSIODriver().exists(buckets.get(bucketName), objectName);
+		
+		Check.requireTrue(getBucketsByNameMap().containsKey(bucketName), "bucket does not exist | b: " + bucketName);
+		
+		return createVFSIODriver().exists(getBucketsByNameMap().get(bucketName), objectName);
 	}
 
+
+	@Override					
+	public boolean existsObject(Long bucketId, String objectName) {
+		Check.requireNonNullArgument(bucketId, "bucketId can not be null or empty");
+		Check.requireTrue(getBucketsByIdMap().containsKey(bucketId), "bucket does not exist | b: " + bucketId.toString());
+		Check.requireNonNullStringArgument(objectName, "objectName can not be null or empty | b:" + bucketId.toString());
+		Check.requireTrue(getBucketsByIdMap().containsKey(bucketId), "bucket does not exist | b: " + bucketId.toString());
+		return createVFSIODriver().exists(getBucketsByNameMap().get(bucketId.toString()), objectName);
+	}
+
+	
 	/**
 	 * <p>returns true if the  object exist and is not in state DELETED</p>
 	 */
 	@Override
-	public boolean existsObject(VFSBucket bucket, String objectName) {
+	public boolean existsObject(ODBucket bucket, String objectName) {
 		Check.requireNonNullArgument(bucket, "bucket can not be null ");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null or empty | b:" + bucket.getName());
-		Check.requireTrue(this.buckets.containsKey(bucket.getName()), "bucket does not exist | b: " + bucket.getName());
+		Check.requireTrue(getBucketsByNameMap().containsKey(bucket.getName()), "bucket does not exist | b: " + bucket.getName());
 		return createVFSIODriver().exists(bucket, objectName);
 	}
 	
@@ -545,11 +642,19 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	 * 
 	 */
 	@Override
-	public VFSBucket getBucket(String bucketName) {
+	public ODBucket getBucketByName(String bucketName) {
 		Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
-		Check.requireTrue(this.buckets.containsKey(bucketName), "bucket does not exist | b: " + bucketName);
-		return buckets.get(bucketName);
+		Check.requireTrue(getBucketsByNameMap().containsKey(bucketName), "bucket does not exist | b: " + bucketName);
+		return this.getBucketsByNameMap().get(bucketName);
 	}
+	
+	@Override
+	public ODBucket getBucketById(Long id) {
+		Check.requireNonNullArgument(id, "id can not be null");
+		Check.requireTrue(getBucketsByIdMap().containsKey(id), "bucket does not exist | b: " + id.toString());
+		return this.getBucketsByIdMap().get(id);
+	}
+	
 	
 	/**
 	 * 
@@ -557,20 +662,20 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	@Override
 	public void deleteObject(String bucketName, String objectName) {
 		Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
-		Check.requireTrue(this.buckets.containsKey(bucketName), "bucket does not exist | b: " + bucketName);
+		Check.requireTrue(getBucketsByNameMap().containsKey(bucketName), "bucket does not exist | b: " + bucketName);
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null or empty | b:" + bucketName);
-		createVFSIODriver().delete(buckets.get(bucketName), objectName);
+		createVFSIODriver().delete(getBucketsByNameMap().get(bucketName), objectName);
 	}
 	
 	/**
 	 * 
 	 */
 	@Override
-	public void deleteObject(VFSBucket bucket, String objectName) {
+	public void deleteObject(ODBucket bucket, String objectName) {
 		Check.requireNonNullArgument(bucket, "bucket can not be null");
-		Check.requireTrue(this.buckets.containsKey(bucket.getName()), "bucket does not exist | b: " + bucket.getName());
+		Check.requireTrue(getBucketsByNameMap().containsKey(bucket.getName()), "bucket does not exist | b: " + bucket.getName());
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null or empty | b:" + bucket.getName());
-		Check.requireTrue(buckets.containsKey(bucket.getName()), "bucket does not exist -> b:"  + bucket.getName());
+		Check.requireTrue(getBucketsByNameMap().containsKey(bucket.getName()), "bucket does not exist -> b:"  + bucket.getName());
 		createVFSIODriver().delete(bucket, objectName);
 	}
 	
@@ -652,10 +757,10 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 		return this.raid;
 	}
 
-	@Override
-	public Map<String, VFSBucket> getBucketsCache() {
-		return buckets;
-	}
+	//@Override
+	//public Map<String, ODBucket> getBucketsCache() {
+	//	return getBucketsByNameMap();
+	//}
 	
 	@Override
 	public IODriver createVFSIODriver() {
@@ -706,9 +811,9 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	}
 
 	@Override
-	public List<VFSBucket> listAllBuckets() {
-			List<VFSBucket> list = new ArrayList<VFSBucket>();
-			Map<String, VFSBucket> map = new HashMap<String, VFSBucket>();
+	public List<ODBucket> listAllBuckets() {
+			List<ODBucket> list = new ArrayList<ODBucket>();
+			Map<String, ODBucket> map = new HashMap<String, ODBucket>();
 			for (Entry<String, Drive> entry: getMapDrivesEnabled().entrySet()) {
 				List<DriveBucket> db = entry.getValue().getBuckets();
 				db.forEach( item -> map.put(item.getName(), new ODVFSBucket(item)));
@@ -719,7 +824,12 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 
 	@Override
 	public boolean checkIntegrity(String bucketName, String objectName, boolean forceCheck) {
-		return createVFSIODriver().checkIntegrity(bucketName, objectName, forceCheck);
+									
+		Check.requireNonNullStringArgument(bucketName, "bucketName is null");
+		ODBucket bucket = getBucketsByNameMap().get(bucketName);
+		Check.requireNonNullArgument(bucket, "bucket does not exist b:" + bucketName);
+		
+		return createVFSIODriver().checkIntegrity(bucket, objectName, forceCheck);
 	}
 	
 	@Override
@@ -959,31 +1069,79 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 			for (DriveBucket driveBucket: buckets) {
 				if (driveBucket.isDeleted()) {
 					logger.debug("Deleting ghost bucket -> b:" + driveBucket.getName() + " d:" + drive.getName());
-					((ODDrive) drive).forceDeleteBucket(driveBucket.getName());
+					((ODDrive) drive).forceDeleteBucket(driveBucket.getId());
 				}
 			}
 		}
 	}
 	
+
+	@Override
+	public synchronized void addBucketCache(ODBucket bucket) {
+		this.getBucketsByIdMap().put(bucket.getId(), bucket);
+		this.getBucketsByNameMap().put(bucket.getName(), bucket);
+	}
+
+	private synchronized void removeBucketCache(ODBucket bucket) {
+		this.getBucketsByIdMap().remove(bucket.getId());
+		this.getBucketsByNameMap().remove(bucket.getName());
+	}
+	
 	/**
 	 * 
 	 */
-	private void loadBuckets() {
-		Map<String, VFSBucket> map = ((BaseIODriver) createVFSIODriver()).getBucketsMap();
+	private synchronized void loadBuckets() {
+		
+		Map<String, ODBucket> map = ((BaseIODriver) createVFSIODriver()).getBucketsMap();
+		
 		if (map.size()==0) 
-			startuplogger.debug("Adding buckets to cache -> ok (no buckets)"); 
+			startuplogger.debug("Adding buckets to cache -> ok (no buckets)");
+		
 		else  {
-			map.forEach((k,v) -> buckets.put(k,v));
+			
+			map.forEach((k,v) -> buckets_by_name.put(k,v));
+			map.forEach((k,v) -> buckets_by_id.put(v.getId(),v));
+			
 			startuplogger.debug("Adding buckets to cache -> ok (" + String.valueOf(map.size()) + ")");
 		}
+		
+		map.values().forEach( bucket -> {
+											if (bucket.getId()==null)
+												bucket.getBucketMetadata().id=Long.valueOf(0);
+										});
+		
+		if (map.size()>0)
+			bucket_id = new AtomicLong(map.values().stream().mapToLong(value -> value.getId()).max().orElseThrow(IllegalStateException::new));
+		
+		
+		if ((bucket_id==null) || (bucket_id.get()<1))
+			bucket_id = new AtomicLong(0);
+		
+		map.values().forEach( bucket -> {
+			if (bucket.getId().longValue()==0) {
+				bucket.getBucketMetadata().id= getNextBucketId();
+				// save bucket !
+				//
+				
+				logger.debug("save bucket -> " + bucket.getName());
+				//createIODriver()
+			}
+		});
+		
+		map.values().forEach( bucket -> {
+			logger.debug( bucket.getBucketMetadata().bucketName +" -> " + bucket.getBucketMetadata().getId().longValue());
+		});
+	
+		logger.debug("done");
 	}
+	
 	
 	/**
 	 * <p>deletes the folder in every Drive</p>
 	 */
-	private void removeBucket(VFSBucket bucket, boolean forceDelete) {
+	private void removeBucket(ODBucket bucket, boolean forceDelete) {
 		Check.requireNonNullArgument(bucket, "bucket can not be null");
-		Check.requireTrue(buckets.containsKey(bucket.getName()), "bucket does not exist -> b:"  + bucket.getName());
+		Check.requireTrue(getBucketsByNameMap().containsKey(bucket.getName()), "bucket does not exist -> b:"  + bucket.getName());
 		deleteBucketInternal(bucket,forceDelete);
 	}
 
@@ -1048,7 +1206,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	/**
 	 * <p>@param bucket bucket must exist in the system</p> 
 	 */
-	private void deleteBucketInternal(VFSBucket bucket, boolean forceDelete) {
+	private void deleteBucketInternal(ODBucket bucket, boolean forceDelete) {
 		
 		Check.requireNonNullArgument(bucket, "bucket can not be null");
 		Check.requireTrue(isEmpty(bucket), "bucket is not Emtpy | b:" + bucket.getName()); 
@@ -1060,7 +1218,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 		
 		try {
 			
-			getLockService().getBucketLock(bucket.getName()).writeLock().lock();
+			getLockService().getBucketLock(bucket.getId()).writeLock().lock();
 			
 			if (!existsBucket(bucket.getName()))
 				throw new IllegalArgumentException("bucket does not exist -> b:" +bucket.getName());
@@ -1068,13 +1226,13 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 			if ((!forceDelete) && (!isEmpty(bucket))) 
 				throw new OdilonServerAPIException("bucket must be empty to be deleted -> b:" +bucket.getName());
 			
-			op = getJournalService().deleteBucket(bucket.getName());
+			op = getJournalService().deleteBucket(bucket);
 			
 			listDrives = new ArrayList<Drive>(getMapDrivesAll().values());
 			
 			for (Drive drive: listDrives) {
 				try {
-					drive.markAsDeletedBucket(bucket.getName());
+					drive.markAsDeletedBucket(bucket.getId());
 				} catch (Exception e) {
 					done=false;
 					throw new InternalCriticalException(e);
@@ -1096,24 +1254,32 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 						 *  buckets -> all marked as "deleted" or all marked as "enabled".
 						 *  TBA this step can be Async
 						 */
-						this.buckets.remove(bucket.getName());
+						
+						//getBucketsByNameMap().remove(bucket.getName());
+						//getBucketsByIdMap().remove(bucket.getId());
+						
+						removeBucketCache(bucket);
+						
 						if (listDrives!=null) {
 							for (Drive drive: listDrives) {
-								((ODDrive) drive).forceDeleteBucket(bucket.getName());
+								((ODDrive) drive).forceDeleteBucket(bucket.getId());
 							}		
 						}
 					}
 					else {
 						/** rollback restores all buckets */
 						createVFSIODriver().rollbackJournal(op, false);
-						this.buckets.put(bucket.getName(), bucket);
+						addBucketCache(bucket);
+						//getBucketsByNameMap().put(bucket.getName(), bucket);
+						//getBucketsByIdMap().put(bucket.getId(), bucket);
+						
 					}
 					
 			} catch (Exception e) {
 					logger.error(e, SharedConstant.NOT_THROWN);
 			}
 			finally {
-					getLockService().getBucketLock(bucket.getName()).writeLock().unlock();
+					getLockService().getBucketLock(bucket.getId()).writeLock().unlock();
 			}
 		}
 	}
@@ -1292,9 +1458,9 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	private synchronized void cleanUpWorkDir() {
 		try {
 			getMapDrivesAll().values().forEach( item ->  {
-						for ( VFSBucket bucket:listAllBuckets()) { 
-								item.cleanUpWorkDir(bucket.getName());
-								item.cleanUpCacheDir(bucket.getName());
+						for ( ODBucket bucket:listAllBuckets()) { 
+								item.cleanUpWorkDir(bucket.getId());
+								item.cleanUpCacheDir(bucket.getId());
 						}
 								
 			});

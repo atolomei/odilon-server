@@ -42,6 +42,7 @@ import io.odilon.service.BaseService;
 import io.odilon.service.ServerSettings;
 import io.odilon.util.Check;
 import io.odilon.vfs.model.JournalService;
+import io.odilon.vfs.model.ODBucket;
 import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VFSop;
 import io.odilon.vfs.model.VirtualFileSystemService;
@@ -126,45 +127,49 @@ public class ODJournalService extends BaseService implements JournalService {
 	}
 	
 	@Override											
-	public VFSOperation createBucket(String bucketName) {
-		Check.requireNonNullStringArgument(bucketName, "bucketName is null");
-		return createNew(VFSop.CREATE_BUCKET, Optional.of(bucketName), Optional.empty(), Optional.empty());
+	public VFSOperation createBucket(Long bucketId) {
+		Check.requireNonNullArgument(bucketId, "bucketId is null");
+		return createNew(VFSop.CREATE_BUCKET, Optional.of(bucketId), Optional.empty(), Optional.empty());
 	}
 	
 	@Override														
-	public VFSOperation deleteBucket(String bucketName) {
-		Check.requireNonNullStringArgument(bucketName, "bucketName is null");
-		return createNew(VFSop.DELETE_BUCKET, Optional.of(bucketName), Optional.empty(), Optional.empty());
+	public VFSOperation deleteBucket(ODBucket bucket) {
+		Check.requireNonNullArgument(bucket, "bucket is null");
+
+		return createNew(	VFSop.DELETE_BUCKET, 
+							Optional.of(bucket.getId()),
+							Optional.of(bucket.getName()),
+							Optional.empty(), Optional.empty()  );
 	}
 	
 	@Override								
-	public VFSOperation deleteObjectPreviousVersions(String bucketName, String objectName, int currentHeadVersion) {
+	public VFSOperation deleteObjectPreviousVersions(Long bucketId, String objectName, int currentHeadVersion) {
 		return createNew(VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS, 
-						 Optional.of(bucketName), 
+						 Optional.of(bucketId), 
 						 Optional.ofNullable(objectName), 
 						 Optional.of(Integer.valueOf(currentHeadVersion)));
 	}
 	
 	@Override							
-	public VFSOperation syncObject(String bucketName, String objectName) {
+	public VFSOperation syncObject(Long bucketId, String objectName) {
 		return createNew(VFSop.SYNC_OBJECT_NEW_DRIVE, 
-						 Optional.of(bucketName), 
+						 Optional.of(bucketId), 
 						 Optional.ofNullable(objectName), 
 						 Optional.empty());
 	}
 	
 	@Override			
-	public VFSOperation deleteObject(String bucketName, String objectName, int currentHeadVersion) {
+	public VFSOperation deleteObject(Long bucketId, String objectName, int currentHeadVersion) {
 		return createNew(VFSop.DELETE_OBJECT, 
-						 Optional.of(bucketName), 
+						 Optional.of(bucketId), 
 						 Optional.ofNullable(objectName), 
 						 Optional.of(Integer.valueOf(currentHeadVersion)));
 	}
 	
 	@Override
-	public VFSOperation restoreObjectPreviousVersion(String bucketName, String objectName, int currentHeadVersion) {
+	public VFSOperation restoreObjectPreviousVersion(Long bucketId, String objectName, int currentHeadVersion) {
 		return createNew(VFSop.RESTORE_OBJECT_PREVIOUS_VERSION, 
-						 Optional.of(bucketName), 
+						 Optional.of(bucketId), 
 						 Optional.ofNullable(objectName), 
 						 Optional.of(Integer.valueOf(currentHeadVersion)));
 	}
@@ -173,9 +178,9 @@ public class ODJournalService extends BaseService implements JournalService {
 	 * 
   	 */
 	@Override
-	public VFSOperation createObject(String bucketName, String objectName) {
+	public VFSOperation createObject(Long bucketId, String objectName) {
 		return createNew(VFSop.CREATE_OBJECT, 
-						 Optional.of(bucketName), 
+						 Optional.of(bucketId), 
 						 Optional.ofNullable(objectName), 
 						 Optional.of(Integer.valueOf(0)));
 	}
@@ -184,9 +189,9 @@ public class ODJournalService extends BaseService implements JournalService {
  	 *
 	 */
 	@Override
-	public VFSOperation updateObject(String bucketName, String objectName, int version) {
+	public VFSOperation updateObject(Long bucketId, String objectName, int version) {
 		return createNew(VFSop.UPDATE_OBJECT, 
-						 Optional.of(bucketName), 
+						 Optional.of(bucketId), 
 						 Optional.ofNullable(objectName), 
 						 Optional.of(Integer.valueOf(version)));
 	}
@@ -195,9 +200,9 @@ public class ODJournalService extends BaseService implements JournalService {
 	 * 
 	 */
 	@Override
-	public VFSOperation updateObjectMetadata(String bucketName, String objectName, int version) {
+	public VFSOperation updateObjectMetadata(Long bucketId, String objectName, int version) {
 		return createNew(VFSop.UPDATE_OBJECT_METADATA, 
-						 Optional.of(bucketName), 
+						 Optional.of(bucketId), 
 						 Optional.ofNullable(objectName), 
 						 Optional.of(Integer.valueOf(version)));
 	}
@@ -250,9 +255,6 @@ public class ODJournalService extends BaseService implements JournalService {
 		}
 		
 	}
-	
-
-	
 	
 	public boolean isExecuting(String opid) {
 		return getOps().containsKey(opid);
@@ -337,9 +339,18 @@ public class ODJournalService extends BaseService implements JournalService {
 	private RedundancyLevel getRedundancyLevel() {
 		return this.virtualFileSystemService.getRedundancyLevel();
 	}
-
-	private synchronized VFSOperation createNew(VFSop op, Optional<String> bucketName, Optional<String> objectName, Optional<Integer> iVersion) {
-			final VFSOperation odop = new ODVFSOperation(newOperationId(), op, bucketName, objectName, iVersion, getRedundancyLevel() , this);
+		
+	
+	private synchronized VFSOperation createNew(VFSop op, Optional<Long> bucketId, Optional<String> objectName, Optional<Integer> iVersion) {
+		final VFSOperation odop = new ODVFSOperation(newOperationId(), op, bucketId, Optional.empty(), objectName, iVersion, getRedundancyLevel() , this);
+		getVFS().saveJournal(odop);
+		getOps().put(odop.getId(), odop);
+		return odop;
+}
+	
+	
+	private synchronized VFSOperation createNew(VFSop op, Optional<Long> bucketId, Optional<String> bucketName, Optional<String> objectName, Optional<Integer> iVersion) {
+			final VFSOperation odop = new ODVFSOperation(newOperationId(), op, bucketId, bucketName, objectName, iVersion, getRedundancyLevel() , this);
 			getVFS().saveJournal(odop);
 			getOps().put(odop.getId(), odop);
 			return odop;

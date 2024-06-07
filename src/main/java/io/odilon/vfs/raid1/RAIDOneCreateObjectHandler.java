@@ -39,7 +39,7 @@ import io.odilon.util.Check;
 import io.odilon.util.ODFileUtils;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.SimpleDrive;
-import io.odilon.vfs.model.VFSBucket;
+import io.odilon.vfs.model.ODBucket;
 import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VFSop;
 import io.odilon.vfs.model.VirtualFileSystemService;
@@ -73,42 +73,44 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 	 * @param srcFileName
 	 * @param contentType
 	 */
-	protected void create(VFSBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType) {
+	protected void create(ODBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType) {
 					
 		Check.requireNonNullArgument(bucket, "bucket is null");
-		String bucketName = bucket.getName();
+		//String bucketName = bucket.getName();
+		Long bucketId=bucket.getId();
 		
-		Check.requireNonNullStringArgument(bucketName, "bucketName is null");
-		Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucketName);
+		
+		Check.requireNonNullArgument(bucketId, "bucketId is null");
+		Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucketId.toString());
 		
 		VFSOperation op = null;
 		boolean done = false;
 		boolean isMainException = false;
 		
-		getLockService().getObjectLock( bucketName, objectName).writeLock().lock();
+		getLockService().getObjectLock(bucketId, objectName).writeLock().lock();
 		
 		try  {
 		
-			getLockService().getBucketLock(bucketName).readLock().lock();
+			getLockService().getBucketLock(bucketId).readLock().lock();
 			
 			try (stream) {
 				
-					if (getDriver().getReadDrive(bucketName, objectName).existsObjectMetadata(bucketName, objectName))											
-						throw new IllegalArgumentException("object already exist -> b:" + bucketName + " o:"+objectName);
+					if (getDriver().getReadDrive(bucketId, objectName).existsObjectMetadata(bucketId, objectName))											
+						throw new IllegalArgumentException("object already exist -> b:" + bucketId.toString() + " o:"+objectName);
 					
 					int version = 0;
 					
-					op = getJournalService().createObject(bucketName, objectName);
+					op = getJournalService().createObject(bucket.getId(), objectName);
 					
-					saveObjectDataFile(bucketName, objectName, stream, srcFileName);
-					saveObjectMetadata(bucketName, objectName, srcFileName, contentType, version);
+					saveObjectDataFile(bucket.getId(), objectName, stream, srcFileName);
+					saveObjectMetadata(bucket.getId(), objectName, srcFileName, contentType, version);
 					
 					done = op.commit();
 							
 				} catch (Exception e) {
 						done=false;
 						isMainException=true;
-						throw new InternalCriticalException(e, "b:" + bucketName + " o:"+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null"));
+						throw new InternalCriticalException(e, "b:" + bucket.getId().toString() + " o:"+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null"));
 				} finally {
 						try {
 								if ((!done) && (op!=null)) {
@@ -116,18 +118,18 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 										rollbackJournal(op, false);
 									} catch (Exception e) {
 										if (!isMainException)
-											throw new InternalCriticalException(e, "b:" + bucketName + " o:"+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null"));
+											throw new InternalCriticalException(e, "b:" + bucket.getId().toString() + " o:"+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null"));
 										else
-											logger.error(e, " finally | b:" + bucketName +	" o:" 	+ objectName + ", f:" 	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null") +  SharedConstant.NOT_THROWN);
+											logger.error(e, " finally | b:" + bucketId.toString() +	" o:" 	+ objectName + ", f:" 	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null") +  SharedConstant.NOT_THROWN);
 									}
 								}
 						}
 						finally {
-							getLockService().getBucketLock(bucketName).readLock().unlock();
+							getLockService().getBucketLock(bucketId).readLock().unlock();
 						}
 				}
 		} finally {
-			getLockService().getObjectLock(bucketName, objectName).writeLock().unlock();
+			getLockService().getObjectLock(bucketId, objectName).writeLock().unlock();
 		}
 	}
 
@@ -144,10 +146,10 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 		Check.checkTrue(op.getOp()==VFSop.CREATE_OBJECT, "Invalid op ->  " + op.getOp().getName());
 		
 		String objectName = op.getObjectName();
-		String bucketName = op.getBucketName();
+		Long  bucketId = op.getBucketId();
 		
-		Check.requireNonNullStringArgument(bucketName, "bucketName is null");
-		Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucketName);
+		Check.requireNonNullArgument(bucketId, "bucketId is null");
+		Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucketId.toString());
 		
 		boolean done = false;
 		
@@ -156,8 +158,8 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 				getVFS().getReplicationService().cancel(op);
 
 			for (Drive drive: getDriver().getDrivesAll()) {
-				drive.deleteObjectMetadata(bucketName, objectName);
-				FileUtils.deleteQuietly(new File (drive.getRootDirPath(), bucketName + File.separator + objectName));
+				drive.deleteObjectMetadata(bucketId, objectName);
+				FileUtils.deleteQuietly(new File (drive.getRootDirPath(), bucketId.toString() + File.separator + objectName));
 			}
 			done=true;
 			
@@ -189,7 +191,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 	 * @param stream
 	 * @param srcFileName
 	 */
-	private void saveObjectDataFile(String bucketName, String objectName, InputStream stream, String srcFileName) {
+	private void saveObjectDataFile(Long bucketId, String objectName, InputStream stream, String srcFileName) {
 		
 		int total_drives = getDriver().getDrivesAll().size();
 		byte[] buf = new byte[ VirtualFileSystemService.BUFFER_SIZE ];
@@ -203,7 +205,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 				
 				int n_d=0;
 				for (Drive drive: getDriver().getDrivesAll()) { 
-					String sPath = ((SimpleDrive) drive).getObjectDataFilePath(bucketName, objectName);
+					String sPath = ((SimpleDrive) drive).getObjectDataFilePath(bucketId, objectName);
 					out[n_d++] = new BufferedOutputStream(new FileOutputStream(sPath), VirtualFileSystemService.BUFFER_SIZE);
 				}
 				int bytesRead;
@@ -217,7 +219,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 				
 			} catch (Exception e) {
 				isMainException = true;
-				throw new InternalCriticalException(e, "b:" + bucketName + " o:"+ objectName);		
+				throw new InternalCriticalException(e, "b:" + bucketId.toString() + " o:"+ objectName);		
 	
 			} finally {
 				IOException secEx = null;
@@ -229,7 +231,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 									out[n].close();
 							}
 						} catch (IOException e) {
-							logger.error(e, "b:" + bucketName + " o:"+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null") + (isMainException ? SharedConstant.NOT_THROWN :""));
+							logger.error(e, "b:" + bucketId.toString() + " o:"+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null") + (isMainException ? SharedConstant.NOT_THROWN :""));
 							secEx=e;
 						}
 				}
@@ -248,7 +250,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 	 * @param stream
 	 * @param srcFileName
 	 */
-	private void saveObjectMetadata(String bucketName, String objectName, String srcFileName, String contentType, int version) {
+	private void saveObjectMetadata(Long bucketId, String objectName, String srcFileName, String contentType, int version) {
 		
 		String sha=null;
 		String baseDrive=null;
@@ -257,7 +259,9 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 		
 		
 		for (Drive drive: getDriver().getDrivesAll()) {
-			File file =((SimpleDrive) drive).getObjectDataFile(bucketName,  objectName);
+			
+			File file =((SimpleDrive) drive).getObjectDataFile(bucketId,  objectName);
+			
 			try {
 				String sha256 = ODFileUtils.calculateSHA256String(file);
 				if (sha==null) {
@@ -269,7 +273,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 						throw new InternalCriticalException("SHA 256 are not equal for -> d:" + baseDrive+" ->" + sha + "  vs   d:" + drive.getName()+ " -> " + sha256);
 				}
 				
-				ObjectMetadata meta = new ObjectMetadata(bucketName, objectName);
+				ObjectMetadata meta = new ObjectMetadata(bucketId, objectName);
 				meta.fileName=srcFileName;
 				meta.appVersion=OdilonVersion.VERSION;
 				meta.contentType=contentType;
@@ -287,7 +291,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 				drive.saveObjectMetadata(meta);
 	
 			} catch (Exception e) {
-				throw new InternalCriticalException(e, "b:" + bucketName + " o:"+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null"));
+				throw new InternalCriticalException(e, "b:" + bucketId.toString() + " o:"+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null"));
 			}
 		}
 	}

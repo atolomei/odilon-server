@@ -68,8 +68,8 @@ public abstract class RAIDZeroHandler implements RAIDHandler {
 		return this.driver.getRedundancyLevel(); 
 	}
 	
-	public Drive getWriteDrive(String bucketName, String objectName) {
-		return this.driver.getWriteDrive(bucketName, objectName);
+	public Drive getWriteDrive(Long bucketId, String objectName) {
+		return this.driver.getWriteDrive(bucketId, objectName);
 	}
 	
 

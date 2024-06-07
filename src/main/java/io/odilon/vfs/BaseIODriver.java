@@ -16,7 +16,6 @@
  */
 package io.odilon.vfs;
 
-
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -55,7 +54,6 @@ import io.odilon.model.BucketStatus;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.OdilonServerInfo;
 import io.odilon.model.RedundancyLevel;
-import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
 import io.odilon.scheduler.AbstractServiceRequest;
 import io.odilon.scheduler.SchedulerService;
@@ -65,7 +63,7 @@ import io.odilon.util.Check;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.DriveBucket;
 import io.odilon.vfs.model.JournalService;
-import io.odilon.vfs.model.VFSBucket;
+import io.odilon.vfs.model.ODBucket;
 import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.IODriver;
 import io.odilon.vfs.model.LockService;
@@ -73,7 +71,11 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
  *<p>
- * Base class for IO Drivers (RAID 0, RAID 1, RAID 6)
+ * Base class for VirtualFileSystemDrivers ({@link IODriver}):
+ * <br/>
+ * RAID 0: {@link RAIDZeroDriver}, <br/>
+ *  RAID 1: {@link RAIDOneDriver},  <br/>
+ *  RAID 6: {@link RAIDSixDriver} <br/> 
  * </p>
  *
  * @see {@link RAIDZeroDriver} {@link RAIDOneDriver} {@link RAIDSixDriver}
@@ -113,9 +115,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 	private ApplicationContext applicationContext;
 
 	
-	
 	/**
-	 * 
 	 * @param vfs
 	 * @param vfsLockService
 	 */
@@ -124,6 +124,217 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		this.vfsLockService=vfsLockService;
 	}
 
+	/**
+	 * <p>Shared by RAID 1 and RAID 6</p>
+	 */
+	@Override
+	public ODBucket createBucket(String bucketName) {
+	
+		Check.requireNonNullArgument(bucketName, "bucketName is null");
+
+		BucketMetadata meta = new BucketMetadata(bucketName);
+		VFSOperation op = null;
+		boolean done = false;
+
+		meta.status = BucketStatus.ENABLED;
+		meta.appVersion = OdilonVersion.VERSION;
+		meta.id=getVFS().getNextBucketId();
+		
+		ODBucket bucket = new ODVFSBucket(meta);
+
+		getLockService().getBucketLock(meta.id).writeLock().lock();
+		
+		try {
+
+			if (getVFS().existsBucket(bucketName))
+				throw new IllegalArgumentException("bucket already exist | b: " + bucketName);
+
+			op = getJournalService().createBucket(meta.id);
+
+			OffsetDateTime now = OffsetDateTime.now();
+
+			meta.creationDate = now;
+			meta.lastModified = now;
+
+			for (Drive drive : getDrivesAll()) {
+				try {
+					
+					drive.createBucket(meta);
+					
+				} catch (Exception e) {
+					done = false;
+					throw new InternalCriticalException(e, "Drive -> " + drive.getName());
+				}
+			}
+			
+			done = op.commit();
+			return bucket;
+			
+		} finally {
+			try {
+				if (done) {
+					getVFS().addBucketCache(bucket);
+				}
+				else
+					rollbackJournal(op);
+
+			} catch (Exception e) {
+				logger.error(e, SharedConstant.NOT_THROWN);
+			} finally {
+				getLockService().getBucketLock(meta.id).writeLock().unlock();
+			}
+		}
+	}
+
+
+	/**
+	 * <p>Shared by RAID 1 and RAID 6</p>
+	 */
+
+	@Override
+	public void deleteBucket(ODBucket bucket) {
+		getVFS().removeBucket(bucket);
+	}
+
+
+	/**
+	 * <p>Shared by RAID 1 and RAID 6</p>
+	 */
+
+	
+	@Override
+	public boolean isEmpty(ODBucket bucket) {
+
+		Check.requireNonNullArgument(bucket, "bucket is null");
+		Check.requireTrue(existsBucketInDrives(bucket.getId()), "bucket does not exist in all drives -> b: " + bucket.getName());
+		
+		try {
+			getLockService().getBucketLock(bucket.getId()).readLock().lock();
+			for (Drive drive: getDrivesEnabled()) {
+				if (!drive.isEmpty(bucket.getId()))
+					return false;
+			}
+			return true;
+		} catch (Exception e) {
+			String msg = "b:" + (Optional.ofNullable(bucket).isPresent() ? (bucket.getName()) : "null");
+			logger.error(e, msg);
+			throw new InternalCriticalException(e, msg);
+
+		} finally {
+			getLockService().getBucketLock(bucket.getId()).readLock().unlock();
+		}
+	}
+	
+	
+
+	/**
+	 * <p>Shared by RAID 1 and RAID 6</p>
+	 */
+	public void rollbackJournal(VFSOperation op) {
+		rollbackJournal(op, false);
+	}
+	
+	
+	
+
+	/**
+	 * <p>ObjectMetadata is copied to all drives as regular files. 
+	 * Shared by RAID 1 and RAID 6</p>
+	 */
+	@Override
+	public ObjectMetadata getObjectMetadataPreviousVersion(Long bucketId, String objectName) {
+
+		getLockService().getObjectLock(bucketId, objectName).readLock().lock();
+		
+		try {
+			
+			getLockService().getBucketLock(bucketId).readLock().lock();
+		
+			try {
+				List<ObjectMetadata> list = getObjectMetadataVersionAll(bucketId, objectName);
+				if (list!=null && !list.isEmpty())
+					return list.get(list.size()-1);
+				
+				return null;
+			}
+			catch (Exception e) {
+				final String msg = "b:" + (Optional.ofNullable(bucketId).isPresent() ? (bucketId.toString()) :"null") + ", o:" + (Optional.ofNullable(objectName).isPresent() ? (objectName) : "null");
+				throw new InternalCriticalException(e, msg);
+			}
+			finally {
+				getLockService().getBucketLock(bucketId).readLock().unlock();
+			}
+		}
+		finally { 
+			getLockService().getObjectLock(bucketId, objectName).readLock().unlock();
+		}
+		
+	}
+	
+	public abstract RedundancyLevel getRedundancyLevel();
+	
+	public ObjectMapper getObjectMapper() {
+		return mapper;
+	}
+	
+	public LockService getLockService() {
+		return this.vfsLockService;
+	}
+	
+	public JournalService getJournalService() {
+		return this.VFS.getJournalService();
+	}
+		
+	public SchedulerService getSchedulerService() {
+		return this.VFS.getSchedulerService();
+	}
+	
+	public VirtualFileSystemService getVFS() {
+		return VFS;
+	}
+
+	public void setVFS(VirtualFileSystemService vfs) {
+		this.VFS = vfs;
+	}
+
+	/**
+	 * 
+	 * Save metadata
+	 * Save stream
+	 * 
+	 * @param folderName
+	 * @param objectName
+	 * @param file
+	 */
+	@Override
+	public void putObject(ODBucket bucket, String objectName, File file) {
+		
+		Check.requireNonNullArgument(bucket, "bucket is null");
+		Check.requireNonNullArgument(objectName, "objectName can not be null | b:" + bucket.getName());
+		Check.requireNonNullArgument(file, "file is null | b:" + bucket.getName());
+
+		Path filePath = file.toPath();
+
+		if (!Files.isRegularFile(filePath))
+			throw new IllegalArgumentException("'" + file.getName() + "' -> not a regular file");
+
+		String contentType = null;
+		
+		try {
+			 contentType = Files.probeContentType(filePath);
+		 } catch (IOException e) {
+				final String msg ="b:" + (Optional.ofNullable(bucket.getName()).isPresent()  ? bucket.getName() :"null");  
+				throw new InternalCriticalException(e, msg);
+		 }
+		try {
+			putObject(bucket, objectName, new BufferedInputStream(new FileInputStream(file)), file.getName(), contentType);
+		} catch (FileNotFoundException e) {
+			final String msg ="b:" + (Optional.ofNullable(bucket.getName()).isPresent()  ? bucket.getName() :"null");
+			throw new InternalCriticalException(e, msg);
+		}
+	}
+	
+	
 	public ApplicationContext getApplicationContext()  {
 		return this.applicationContext;
 	}
@@ -282,9 +493,10 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 	@Override
 	public byte[] getServerMasterKey() {
 
+		getLockService().getServerLock().readLock().lock();
+		
 		try {
-			
-			getLockService().getServerLock().readLock().lock();
+
 			File file = getDrivesEnabled().get(0).getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE);
 			
 			if (file == null || !file.exists())
@@ -361,8 +573,9 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		
 		VFSOperation op = null;
 		
+		getLockService().getServerLock().writeLock().lock();
+		
 		try {
-				getLockService().getServerLock().writeLock().lock();
 			
 				/** backup */
 				for (Drive drive : getDrivesAll()) {
@@ -417,7 +630,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 			throw e;
 			
 		} catch (Exception e) {
-			logger.error(e);
 			throw new InternalCriticalException(e);
 			
 		} finally {
@@ -441,205 +653,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 	}
 
 	
-
-	/**
-	 * <p>Shared by RAID 1 and RAID 6</p>
-	 */
-	@Override
-	public VFSBucket createBucket(String bucketName) {
-	
-		Check.requireNonNullArgument(bucketName, "bucketName is null");
-
-		BucketMetadata meta = new BucketMetadata(bucketName);
-		VFSOperation op = null;
-		boolean done = false;
-
-		meta.status = BucketStatus.ENABLED;
-		meta.appVersion = OdilonVersion.VERSION;
-
-		VFSBucket bucket = new ODVFSBucket(meta);
-
-		try {
-
-			getLockService().getBucketLock(bucketName).writeLock().lock();
-
-			if (getVFS().existsBucket(bucketName))
-				throw new IllegalArgumentException("bucket already exist | b: " + bucketName);
-
-			op = getJournalService().createBucket(bucketName);
-
-			OffsetDateTime now = OffsetDateTime.now();
-
-			meta.creationDate = now;
-			meta.lastModified = now;
-
-			for (Drive drive : getDrivesAll()) {
-				try {
-					drive.createBucket(bucketName, meta);
-				} catch (Exception e) {
-					done = false;
-					throw new InternalCriticalException(e, "Drive -> " + drive.getName());
-				}
-			}
-			done = op.commit();
-			return bucket;
-		} finally {
-			try {
-				if (done)
-					getVFS().getBucketsCache().put(bucket.getName(), bucket);
-				else
-					rollbackJournal(op);
-
-			} catch (Exception e) {
-				logger.error(e, SharedConstant.NOT_THROWN);
-			} finally {
-				getLockService().getBucketLock(bucketName).writeLock().unlock();
-			}
-		}
-	}
-
-
-	/**
-	 * <p>Shared by RAID 1 and RAID 6</p>
-	 */
-
-	@Override
-	public void deleteBucket(VFSBucket bucket) {
-		getVFS().removeBucket(bucket);
-	}
-
-
-	/**
-	 * <p>Shared by RAID 1 and RAID 6</p>
-	 */
-
-	
-	@Override
-	public boolean isEmpty(VFSBucket bucket) {
-
-		Check.requireNonNullArgument(bucket, "bucket is null");
-		Check.requireTrue(existsBucketInDrives(bucket.getName()), "bucket does not exist in all drives -> b: " + bucket.getName());
-		
-		try {
-			getLockService().getBucketLock(bucket.getName()).readLock().lock();
-			for (Drive drive: getDrivesEnabled()) {
-				if (!drive.isEmpty(bucket.getName()))
-					return false;
-			}
-			return true;
-		} catch (Exception e) {
-			String msg = "b:" + (Optional.ofNullable(bucket).isPresent() ? (bucket.getName()) : "null");
-			logger.error(e, msg);
-			throw new InternalCriticalException(e, msg);
-
-		} finally {
-			getLockService().getBucketLock(bucket.getName()).readLock().unlock();
-		}
-	}
-	
-	
-
-	/**
-	 * <p>Shared by RAID 1 and RAID 6</p>
-	 */
-	public void rollbackJournal(VFSOperation op) {
-		rollbackJournal(op, false);
-	}
-	
-	
-	
-
-	/**
-	 * <p>ObjectMetadata is copied to all drives as regular files. 
-	 * Shared by RAID 1 and RAID 6</p>
-	 */
-	@Override
-	public ObjectMetadata getObjectMetadataPreviousVersion(String bucketName, String objectName) {
-
-		try {
-			getLockService().getObjectLock(bucketName, objectName).readLock().lock();
-			getLockService().getBucketLock(bucketName).readLock().lock();
-			
-			List<ObjectMetadata> list = getObjectMetadataVersionAll(bucketName, objectName);
-			if (list!=null && !list.isEmpty())
-				return list.get(list.size()-1);
-			
-			return null;
-		}
-		catch (Exception e) {
-			final String msg = "b:" + (Optional.ofNullable(bucketName).isPresent() ? (bucketName) :"null") + ", o:" + (Optional.ofNullable(objectName).isPresent() ? (objectName) : "null");
-			logger.error(e, msg);
-			throw new InternalCriticalException(e, msg);
-		}
-		finally {
-			getLockService().getBucketLock(bucketName).readLock().unlock();
-			getLockService().getObjectLock(bucketName, objectName).readLock().unlock();
-		}
-	}
-	
-	public abstract RedundancyLevel getRedundancyLevel();
-	
-	public ObjectMapper getObjectMapper() {
-		return mapper;
-	}
-	
-	public LockService getLockService() {
-		return this.vfsLockService;
-	}
-	
-	public JournalService getJournalService() {
-		return this.VFS.getJournalService();
-	}
-		
-	public SchedulerService getSchedulerService() {
-		return this.VFS.getSchedulerService();
-	}
-	
-	public VirtualFileSystemService getVFS() {
-		return VFS;
-	}
-
-	public void setVFS(VirtualFileSystemService vfs) {
-		this.VFS = vfs;
-	}
-
-	/**
-	 * 
-	 * Save metadata
-	 * Save stream
-	 * 
-	 * @param folderName
-	 * @param objectName
-	 * @param file
-	 */
-	@Override
-	public void putObject(VFSBucket bucket, String objectName, File file) {
-		
-		Check.requireNonNullArgument(bucket, "bucket is null");
-		Check.requireNonNullArgument(objectName, "objectName can not be null | b:" + bucket.getName());
-		Check.requireNonNullArgument(file, "file is null | b:" + bucket.getName());
-
-		Path filePath = file.toPath();
-
-		if (!Files.isRegularFile(filePath))
-			throw new IllegalArgumentException("'" + file.getName() + "': not a regular file");
-
-		String contentType = null;
-		
-		try {
-			 contentType = Files.probeContentType(filePath);
-		 } catch (IOException e) {
-				logger.error(e);
-				String msg ="b:" + (Optional.ofNullable(bucket.getName()).isPresent()  ? bucket.getName() :"null");  
-				throw new InternalCriticalException(e, msg);
-		 }
-		try {
-			putObject(bucket, objectName, new BufferedInputStream(new FileInputStream(file)), file.getName(), contentType);
-		} catch (FileNotFoundException e) {
-			logger.error(e);
-			throw new RuntimeException(e);
-		}
-	}
 
 	/**
 	 * 
@@ -777,10 +790,11 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 	/**
 	 * 
 	 */
-	protected boolean existsBucketInDrives(String bucketName) {
+	protected boolean existsBucketInDrives(Long bucketId) {
+
 		for (Drive drive : getDrivesEnabled()) {
-			if (!drive.existsBucket(bucketName)) {
-				logger.error(("b: " + (Optional.of(bucketName).isPresent() ? bucketName : "null")) + " -> not in d:" + drive.getName());
+			if (!drive.existsBucket(bucketId)) {
+				logger.error(("b: " + (Optional.of(bucketId).isPresent() ? bucketId.toString() : "null")) + " -> not in d:" + drive.getName());
 				return false;
 			}
 		}
@@ -790,9 +804,9 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 	/**
 	 * <p>all drives have all buckets</p>
 	 */
-	protected Map<String, VFSBucket> getBucketsMap() {
+	protected Map<String, ODBucket> getBucketsMap() {
 		
-		Map<String, VFSBucket> map = new HashMap<String, VFSBucket>();
+		Map<String, ODBucket> map = new HashMap<String, ODBucket>();
 		Map<String, Integer> control = new HashMap<String, Integer>();
 		
 		int totalDrives = getDrivesEnabled().size();
@@ -820,7 +834,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 			if (control.containsKey(name)) {
 				Integer count = control.get(name);
 				if (count==totalDrives) {
-					VFSBucket vfsbucket = new ODVFSBucket(bucket);
+					ODBucket vfsbucket = new ODVFSBucket(bucket);
 					map.put(vfsbucket.getName(), vfsbucket);
 				}
 			}
@@ -851,7 +865,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 			done = op.commit();
 			
 		} catch (Exception e) {
-			logger.error(e, serverInfo.toString());
 			throw new InternalCriticalException(e, serverInfo.toString());
 			
 		} finally {						
@@ -876,8 +889,10 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		boolean mayReqRestoreBackup = false;
 		VFSOperation op = null;
 		
+		getLockService().getServerLock().writeLock().lock();
+		
 		try {
-			getLockService().getServerLock().writeLock().lock();
+
 			op = getJournalService().updateServerMetadata();
 			String jsonString = getObjectMapper().writeValueAsString(serverInfo);
 			
@@ -904,7 +919,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 			done = op.commit();
 			
 		} catch (Exception e) {
-			logger.error(e, serverInfo.toString());
 			throw new InternalCriticalException(e, serverInfo.toString());
 			
 		} finally {						

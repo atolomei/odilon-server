@@ -1,3 +1,19 @@
+/*
+ * Odilon Object Storage
+ * (C) Novamens 
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.odilon.scheduler;
 
 import java.util.ArrayList;
@@ -18,12 +34,11 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
-import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
 import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
 import io.odilon.service.ServerSettings;
-import io.odilon.vfs.model.VFSBucket;
+import io.odilon.vfs.model.ODBucket;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
@@ -45,6 +60,9 @@ public class DeleteBucketObjectPreviousVersionServiceRequest extends AbstractSer
 	static final int PAGESIZE = 1000;
 	
 	private String bucketName;
+	
+	private Long  bucketId;
+	
 	
 	@JsonIgnore
 	private long start_ms = 0;
@@ -78,8 +96,9 @@ public class DeleteBucketObjectPreviousVersionServiceRequest extends AbstractSer
 	public DeleteBucketObjectPreviousVersionServiceRequest() {
 	}
 	
-	public DeleteBucketObjectPreviousVersionServiceRequest(String bucketName) {
+	public DeleteBucketObjectPreviousVersionServiceRequest(String bucketName, Long bucketId) {
 		this.bucketName=bucketName;
+		this.bucketId=bucketId;
 	}
 
 	@Override
@@ -100,18 +119,25 @@ public class DeleteBucketObjectPreviousVersionServiceRequest extends AbstractSer
 	public String getBucketName() {
 		return this.bucketName;
 	}
+				
+	public Long getBucketId() {
+		return this.bucketId;
+	}
 	
 	
-	
-	private void processBucket(String bname) {
+	private void processBucket(Long bucketId) {
 		
 		Integer pageSize = Integer.valueOf(PAGESIZE);
 		Long offset = Long.valueOf(0);
 		String agentId = null;
 		boolean done = false;
+		
+		ODBucket bucket = getVirtualFileSystemService().getBucketById(bucketId);
+		
+		
 		while (!done) {
 			
-			DataList<Item<ObjectMetadata>> data = getVirtualFileSystemService().listObjects(bname,
+			DataList<Item<ObjectMetadata>> data = getVirtualFileSystemService().listObjects(bucket.getName(),
 																							Optional.of(offset),
 																							Optional.ofNullable(pageSize),
 																							Optional.empty(),
@@ -180,10 +206,10 @@ public class DeleteBucketObjectPreviousVersionServiceRequest extends AbstractSer
 			this.executor = Executors.newFixedThreadPool(this.maxProcessingThread);
 
 			if (getBucketName()!=null)
-				processBucket(getBucketName());
+				processBucket(getBucketId());
 			else {
-				for (VFSBucket bucket: getVirtualFileSystemService().listAllBuckets())
-					processBucket(bucket.getName());
+				for (ODBucket bucket: getVirtualFileSystemService().listAllBuckets())
+					processBucket(bucket.getId());
 			}
 			
 			try {
@@ -235,7 +261,7 @@ public class DeleteBucketObjectPreviousVersionServiceRequest extends AbstractSer
 			this.checkOk.incrementAndGet();
 		} catch (Exception e) {
 			this.errors.getAndIncrement();
-			logger.error(e, "Could not process -> " + item.getObject().bucketName + " - "+item.getObject().objectName + " " + SharedConstant.NOT_THROWN);
+			logger.error(e, "Could not process -> " + item.getObject().bucketId.toString() + " - "+item.getObject().objectName + " " + SharedConstant.NOT_THROWN);
 			
 		}
 	}

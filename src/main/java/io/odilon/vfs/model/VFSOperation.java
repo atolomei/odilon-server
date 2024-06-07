@@ -22,10 +22,12 @@ import java.time.OffsetDateTime;
 import io.odilon.model.RedundancyLevel;
  
 /**
+ * <p>Transactional operation, they are persisted on the File System 
+ * by the JournalService</p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
-public interface VFSOperation{
+public interface VFSOperation {
 
 	public VFSop getOp();
 	
@@ -37,8 +39,10 @@ public interface VFSOperation{
 		
 	public OffsetDateTime getTimestamp();
 	public RedundancyLevel getRedundancyLevel();
+	
 	public String getObjectName();
 	public String getBucketName();
+	public Long getBucketId();
 	
 	public int getVersion();
 

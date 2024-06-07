@@ -25,6 +25,7 @@ import io.odilon.log.Logger;
 
 /**
 * <p>Drive for RAID 6</p>
+* This class is not used anymore.
 * 
 * @author atolomei@novamens.com (Alejandro Tolomei)
 * 

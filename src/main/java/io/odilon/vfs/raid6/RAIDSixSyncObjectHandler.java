@@ -75,22 +75,24 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 		
 		String bucketName = meta.bucketName;
 		String objectName = meta.objectName;
+		Long bucketId = meta.bucketId;
+		
 		
 		VFSOperation op = null;
 		boolean done = false;
 		
 		try {
 														
-			getLockService().getObjectLock(bucketName, objectName).writeLock().lock();
+			getLockService().getObjectLock(bucketId, objectName).writeLock().lock();
 			
 			try {
 			
-				getLockService().getBucketLock(bucketName).readLock().lock();
+				getLockService().getBucketLock(bucketId).readLock().lock();
 				
 				/** backup metadata, there is no need to backup data because existing data files are not touched. **/
 				backupMetadata(meta);
 				
-				op = getJournalService().syncObject(bucketName, objectName);
+				op = getJournalService().syncObject(bucketId, objectName);
 				
 				
 				/** HEAD VERSION --------------------------------------------------------- */
@@ -103,7 +105,7 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 					RAIDSixSDriveSyncEncoder driveInitEncoder = new RAIDSixSDriveSyncEncoder(getDriver(), getDrives());
 					
 					try (InputStream in = new BufferedInputStream(new FileInputStream(file.getAbsolutePath()))) {
-						driveInitEncoder.encodeHead(in, bucketName, objectName);
+						driveInitEncoder.encodeHead(in, bucketId, objectName);
 					} catch (FileNotFoundException e) {
 			    		throw new InternalCriticalException(e, "b:" + meta.bucketName +  " | o:" + meta.objectName );
 					} catch (IOException e) {
@@ -125,7 +127,7 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 					
 					for (int version=0; version < meta.version; version++) {
 						
-						ObjectMetadata versionMeta = getDriver().getObjectMetadataReadDrive(bucketName, objectName).getObjectMetadataVersion(bucketName, objectName, version);
+						ObjectMetadata versionMeta = getDriver().getObjectMetadataReadDrive(bucketId, objectName).getObjectMetadataVersion(bucketId, objectName, version);
 						
 						if (versionMeta!=null) {
 							
@@ -138,7 +140,7 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 							try (InputStream in = new BufferedInputStream(new FileInputStream(file.getAbsolutePath()))) {
 								
 								/** encodes version without saving existing blocks, only the ones that go to the new drive/s */
-								driveEncoder.encodeVersion(in, bucketName, objectName, versionMeta.version);
+								driveEncoder.encodeVersion(in, bucketId, objectName, versionMeta.version);
 								
 							} catch (FileNotFoundException e) {
 					    		throw new InternalCriticalException(e, "b:" + meta.bucketName +  " | o:" + meta.objectName);
@@ -172,11 +174,11 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 						}
 					}
 				}finally  {
-					getLockService().getBucketLock(bucketName).readLock().unlock();
+					getLockService().getBucketLock(bucketId).readLock().unlock();
 				}
 			}
 		} finally {
-			getLockService().getObjectLock(bucketName, objectName).writeLock().unlock();
+			getLockService().getObjectLock(bucketId, objectName).writeLock().unlock();
 
 		}
 		
@@ -237,14 +239,15 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 		
 		String bucketName = op.getBucketName();
 		String objectName = op.getObjectName();
-		
-		getLockService().getObjectLock(bucketName, objectName).writeLock().lock();
+		Long bucketId = op.getBucketId();
+	
+		getLockService().getObjectLock(bucketId, objectName).writeLock().lock();
 		
 		try {
-			getLockService().getBucketLock(bucketName).readLock().lock();
+			getLockService().getBucketLock(bucketId).readLock().lock();
 			
 			try {
-					restoreMetadata(bucketName, objectName);
+					restoreMetadata(bucketId, objectName);
 					done = true;
 				
 			} catch (InternalCriticalException e) {
@@ -266,12 +269,12 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 							op.cancel();
 						}
 				} finally {
-					getLockService().getBucketLock(bucketName).readLock().unlock();
+					getLockService().getBucketLock(bucketId).readLock().unlock();
 				}
 			}
 		}
 		finally {
-			getLockService().getObjectLock(bucketName, objectName).writeLock().unlock();
+			getLockService().getObjectLock(bucketId, objectName).writeLock().unlock();
 		}
 	}
 
@@ -286,8 +289,8 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 		try {
 			for (Drive drive: getDriver().getDrivesEnabled()) {
 				
-				File src	= new File(drive.getObjectMetadataDirPath(meta.bucketName, meta.objectName));
-				File dest	= new File(drive.getBucketWorkDirPath(meta.bucketName) + File.separator + meta.objectName);
+				File src	= new File(drive.getObjectMetadataDirPath(meta.bucketId, meta.objectName));
+				File dest	= new File(drive.getBucketWorkDirPath(meta.bucketId) + File.separator + meta.objectName);
 				
 				if (src.exists())
 					FileUtils.copyDirectory(src, dest);
@@ -297,20 +300,20 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 		}
 	}
 				
-	private void restoreMetadata(String bucketName, String objectName) {
+	private void restoreMetadata(Long bucketId, String objectName) {
 		try {
 			for (Drive drive: getDriver().getDrivesEnabled()) {
 				
-				File dest = new File(drive.getObjectMetadataDirPath(bucketName, objectName));
-				File src  = new File(drive.getBucketWorkDirPath(bucketName) + File.separator + objectName);
+				File dest = new File(drive.getObjectMetadataDirPath(bucketId, objectName));
+				File src  = new File(drive.getBucketWorkDirPath(bucketId) + File.separator + objectName);
 				
 				if (src.exists())
 					FileUtils.copyDirectory(src, dest);
 				else
-					throw new InternalCriticalException("backup dir does not exist " + "b:"+ bucketName +" o:" + objectName + "dir:" + src.getAbsolutePath());
+					throw new InternalCriticalException("backup dir does not exist " + "b:"+ bucketId.toString() +" o:" + objectName + "dir:" + src.getAbsolutePath());
 			}
 		} catch (IOException e) {
-			throw new InternalCriticalException(e, "b:"+ bucketName +" o:" + objectName);
+			throw new InternalCriticalException(e, "b:"+ bucketId.toString() +" o:" + objectName);
 		}
 	}
 	

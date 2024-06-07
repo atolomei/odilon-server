@@ -18,7 +18,9 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 
 /**
- * * <ul>
+ * <p>System operations</p>
+ * 
+ *  <ul>
  * 		<li>/wipeallpreviousversions</li>
  * 
  * 	</ul> 
@@ -27,24 +29,26 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 public class SystemController extends BaseApiController {
 
 
+	@SuppressWarnings("unused")
 	static private Logger logger = Logger.getLogger(SystemController.class.getName());
 	
 	@SuppressWarnings("unused")
 	private ServerSettings settings;
 	
 	@Autowired
-	public SystemController(			ObjectStorageService objectStorageService, 
-										VirtualFileSystemService virtualFileSystemService,
-										SystemMonitorService monitoringService,
-										ServerSettings settings, 
-										TrafficControlService trafficControlService) {
+	public SystemController( 	ObjectStorageService objectStorageService, 
+								VirtualFileSystemService virtualFileSystemService,
+								SystemMonitorService monitoringService,
+								ServerSettings settings, 
+								TrafficControlService trafficControlService) {
 
 		super(objectStorageService, virtualFileSystemService, monitoringService, trafficControlService);
 		this.settings = settings;
 	}
 	
 	/**
-	 * <p>DELETE HTTP Request</p>
+	 * <p>Wipe all previous versions for all Buckets. This command is Async, returns after adding a 
+	 * ServiceRequest to the Scheduler</p>
 	 */
 	@RequestMapping(value = "/wipeallpreviousversions", method = RequestMethod.DELETE)
 	public void wipeAllPreviousVersions() {
@@ -52,9 +56,6 @@ public class SystemController extends BaseApiController {
 		TrafficPass pass = null;
 		try {
 			pass = getTrafficControlService().getPass();
-			
-			logger.info("wipeAllPreviousVersions");
-			
 			getObjectStorageService().wipeAllPreviousVersions();
 		
 		} catch (OdilonServerAPIException e) {

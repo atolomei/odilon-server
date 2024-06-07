@@ -47,10 +47,11 @@ import io.odilon.net.ODHttpStatus;
 import io.odilon.service.ObjectStorageService;
 import io.odilon.traffic.TrafficControlService;
 import io.odilon.traffic.TrafficPass;
-import io.odilon.vfs.model.VFSBucket;
+import io.odilon.vfs.model.ODBucket;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
+ *  <p>Bucket API</p>
  *	<ul> 
  *  <li>/bucket/create/{name}</li>
  *  <li>/bucket/delete/{name}</li>
@@ -88,7 +89,7 @@ public class BucketController extends BaseApiController  {
 		try {
 			pass = getTrafficControlService().getPass();
 			List<Bucket> list = new ArrayList<Bucket>();
-			getObjectStorageService().findAllBuckets().forEach(item -> list.add( new Bucket(item.getName(), item.getCreationDate(),  item.getLastModifiedDate(), item.getStatus())));
+			getObjectStorageService().findAllBuckets().forEach(item -> list.add( new Bucket(item.getName(), item.getId(), item.getCreationDate(),  item.getLastModifiedDate(), item.getStatus())));
 			return new ResponseEntity<List<Bucket>>(list, HttpStatus.OK);
 			
 		} catch (OdilonInternalErrorException e) {
@@ -141,7 +142,7 @@ public class BucketController extends BaseApiController  {
 	
 	/**
 	 * <p>Get a Bucket in JSON format</p>
-	 * The server manages Buckets as instances of the class {@link VFSBucket}
+	 * The server manages Buckets as instances of the class {@link ODBucket}
 	 * but buckets are exported to the clients as {@link Bucket}
 	 * 
 	 */
@@ -152,12 +153,12 @@ public class BucketController extends BaseApiController  {
 		
 		try {
 			pass = getTrafficControlService().getPass();
-			VFSBucket bucket = getObjectStorageService().findBucketName(name);
+			ODBucket bucket = getObjectStorageService().findBucketName(name);
 			
 			if (bucket==null)															
 				throw new OdilonObjectNotFoundException( ErrorCode.BUCKET_NOT_EXISTS, String.format("bucket does not exist -> %s", name));
 			
-			return new ResponseEntity<Bucket>( new Bucket(bucket.getName(), bucket.getCreationDate(), bucket.getLastModifiedDate(), bucket.getStatus()), HttpStatus.OK);
+			return new ResponseEntity<Bucket>( new Bucket(bucket.getName(), bucket.getId(), bucket.getCreationDate(), bucket.getLastModifiedDate(), bucket.getStatus()), HttpStatus.OK);
 		
 		} catch (OdilonServerAPIException e) {
 			throw e;
@@ -206,7 +207,7 @@ public class BucketController extends BaseApiController  {
 		try {						
 			pass = getTrafficControlService().getPass();
 			
-			VFSBucket bucket = getObjectStorageService().findBucketName(name);
+			ODBucket bucket = getObjectStorageService().findBucketName(name);
 			
 			if (bucket==null)
 				throw new OdilonObjectNotFoundException(ErrorCode.BUCKET_NOT_EXISTS, String.format("bucket does not exist -> %s", name));
@@ -269,7 +270,7 @@ public class BucketController extends BaseApiController  {
 			
 			pass = getTrafficControlService().getPass();
 			
-			VFSBucket bucket = getObjectStorageService().findBucketName(name);
+			ODBucket bucket = getObjectStorageService().findBucketName(name);
 			
 			if (bucket==null)															
 				throw new OdilonObjectNotFoundException( ErrorCode.BUCKET_NOT_EXISTS, String.format("bucket does not exist -> %s", name));
@@ -280,7 +281,7 @@ public class BucketController extends BaseApiController  {
 			
 			bucket = getObjectStorageService().updateBucketName(bucket, newname);
 			
-			return new ResponseEntity<Bucket>( new Bucket(bucket.getName(), bucket.getCreationDate(), bucket.getLastModifiedDate(), bucket.getStatus()), HttpStatus.OK);
+			return new ResponseEntity<Bucket>( new Bucket(bucket.getName(), bucket.getId(), bucket.getCreationDate(), bucket.getLastModifiedDate(), bucket.getStatus()), HttpStatus.OK);
 		
 		} catch (OdilonServerAPIException e) {
 			throw e;

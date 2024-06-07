@@ -35,7 +35,7 @@ import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
 import io.odilon.model.list.ResultSet;
 import io.odilon.service.BaseService;
-import io.odilon.vfs.model.VFSBucket;
+import io.odilon.vfs.model.ODBucket;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 
@@ -66,7 +66,7 @@ public class ReplicationCheckService extends BaseService {
 
 	public void check() {
 		checkBuckets();
-		for (VFSBucket bucket: getVirtualFileSystemService().listAllBuckets()) {
+		for (ODBucket bucket: getVirtualFileSystemService().listAllBuckets()) {
 			checkBucket(bucket);
 		}
 	}
@@ -82,7 +82,7 @@ public class ReplicationCheckService extends BaseService {
 		List<String> bucketsLocalNotRemote = new ArrayList<String>();
 		List<String> bucketsRemoteNotLocal = new ArrayList<String>();
 		
-		for (VFSBucket bucket: getVirtualFileSystemService().listAllBuckets()) {
+		for (ODBucket bucket: getVirtualFileSystemService().listAllBuckets()) {
 			try {
 				if (!getReplicationService().getClient().existsBucket(bucket.getName())) {
 					bucketsLocalNotRemote.add(bucket.getName());
@@ -113,7 +113,7 @@ public class ReplicationCheckService extends BaseService {
 	 * 
 	 * 
 	 */
-	protected void checkBucket(VFSBucket bucket) {
+	protected void checkBucket(ODBucket bucket) {
 			
 			List<String> localNotRemote = new ArrayList<String>();
 			List<String> remoteNotLocal = new ArrayList<String>();
@@ -140,7 +140,7 @@ public class ReplicationCheckService extends BaseService {
 							if (item.isOk()) {
 								try {
 									if (!getReplicationService().getClient().existsObject(item.getObject().bucketName, item.getObject().objectName)) {
-										localNotRemote.add(item.getObject().bucketName + " /" + item.getObject().objectName);
+										localNotRemote.add(item.getObject().bucketId.toString() + " /" + item.getObject().objectName);
 									}
 								} catch (ODClientException | IOException e) {
 									errors.add(e.getClass().getName());
@@ -163,7 +163,7 @@ public class ReplicationCheckService extends BaseService {
 					 ResultSet<Item<ObjectMetadata>> data;
 					try {
 						
-						data = getReplicationService().getClient().listObjects( bucket.getName());
+						data = getReplicationService().getClient().listObjects(bucket.getName());
 						
 						while (data.hasNext()) {
 							Item<ObjectMetadata> item = data.next();

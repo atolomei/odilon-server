@@ -64,6 +64,9 @@ public class ODVFSOperation implements VFSOperation {
 	@JsonProperty("version")
 	private int version;
 	
+	@JsonProperty("bucketId")
+	private Long bucketId;
+	
 	@JsonProperty("bucketName")
 	private String bucketName;
 
@@ -86,12 +89,13 @@ public class ODVFSOperation implements VFSOperation {
 	public String getUUID() {
 
 		return  	op.getEntityGroupCode() + ":"  +
-					((bucketName!=null) ? bucketName :"null" ) + ":" + 
+					((bucketId!=null) ? bucketId.toString() :"null" ) + ":" + 
 					((objectName!=null) ? objectName :"null" );
 	}
 	
 	public ODVFSOperation( 	String id, 
-							VFSop op,  
+							VFSop op,
+							Optional<Long> bucketId,
 							Optional<String> bucketName,
 							Optional<String> objectName,
 							Optional<Integer> iVersion,
@@ -104,11 +108,14 @@ public class ODVFSOperation implements VFSOperation {
 		if (iVersion.isPresent())
 			version= iVersion.get().intValue();
 			
-		if (bucketName.isPresent())
-			this.bucketName = bucketName.get();
+		if (bucketId.isPresent())
+			this.bucketId = bucketId.get();
 		
 		if (objectName.isPresent())
 			this.objectName = objectName.get();
+		
+		if (bucketName.isPresent())
+			this.bucketName = bucketName.get();
 		
 		this.raid =raid;
 		this.journalService = journalService;
@@ -116,12 +123,12 @@ public class ODVFSOperation implements VFSOperation {
 	}
 
 	@Override
-	public String getBucketName() {
-		return bucketName;
+	public Long getBucketId() {
+		return bucketId;
 	}
 
-	public void setBucketName(String bucketName) {
-		this.bucketName = bucketName;
+	public void setBucketId(Long bucketId) {
+		this.bucketId = bucketId;
 	}
 
 	@Override
@@ -219,6 +226,11 @@ public class ODVFSOperation implements VFSOperation {
 
 	public void setJournalService(JournalService journalService) {
 		this.journalService=journalService;
+	}
+
+	@Override
+	public String getBucketName() {
+		return this.bucketName;
 	}
 
 

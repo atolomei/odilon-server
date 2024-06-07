@@ -82,7 +82,7 @@ public class FileCacheService extends BaseService implements ApplicationListener
 	@Autowired
 	private final ServerSettings serverSettings;
 	
-	/** lazy injection due to circular dependencies */
+	/** lazy injection (otherwise there are circular dependencies) */
 	@JsonIgnore
 	private VirtualFileSystemService vfs;
 
@@ -103,14 +103,14 @@ public class FileCacheService extends BaseService implements ApplicationListener
 	}
 	
 
-    public boolean containsKey(String bucketName, String objectName, Optional<Integer> version) {
-    	Check.requireNonNullArgument(bucketName, "bucket is null");
-		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucketName);
-		getLockService().getFileCacheLock(bucketName, objectName, version).readLock().lock();
+    public boolean containsKey(Long bucketId, String objectName, Optional<Integer> version) {
+    	Check.requireNonNullArgument(bucketId, "bucketId is null");
+		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucketId.toString());
+		getLockService().getFileCacheLock(bucketId, objectName, version).readLock().lock();
 		try {
-    		return (getCache().getIfPresent(getKey(bucketName, objectName, version))!=null);
+    		return (getCache().getIfPresent(getKey(bucketId, objectName, version))!=null);
     	} finally {
-    		getLockService().getFileCacheLock(bucketName, objectName, version).readLock().unlock();
+    		getLockService().getFileCacheLock(bucketId, objectName, version).readLock().unlock();
     	}
     }
 
@@ -120,14 +120,14 @@ public class FileCacheService extends BaseService implements ApplicationListener
      * @return File from cache, null if it is not present
      * 
      */
-    public File get(String bucketName, String objectName, Optional<Integer> version) {
-    	Check.requireNonNullArgument(bucketName, "bucket is null");
-		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucketName);
-		getLockService().getFileCacheLock(bucketName, objectName, version).readLock().lock();
+    public File get(Long bucketId, String objectName, Optional<Integer> version) {
+    	Check.requireNonNullArgument(bucketId, "bucketId is null");
+		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucketId.toString());
+		getLockService().getFileCacheLock(bucketId, objectName, version).readLock().lock();
     	try {
-    		return getCache().getIfPresent(getKey(bucketName, objectName, version));
+    		return getCache().getIfPresent(getKey(bucketId, objectName, version));
     	} finally {
-    		getLockService().getFileCacheLock(bucketName, objectName, version).readLock().unlock();
+    		getLockService().getFileCacheLock(bucketId, objectName, version).readLock().unlock();
     	}
     }
 
@@ -137,42 +137,42 @@ public class FileCacheService extends BaseService implements ApplicationListener
      * @param objectName
      * @param file
      */
-    public void put(String bucketName, String objectName, Optional<Integer> version, File file, boolean lockRequired) {
-    	Check.requireNonNullArgument(bucketName, "bucket is null");
-		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucketName);
+    public void put(Long bucketId, String objectName, Optional<Integer> version, File file, boolean lockRequired) {
+    	Check.requireNonNullArgument(bucketId, "bucketId is null");
+		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucketId.toString());
 		Check.requireNonNullArgument(file, "file is null");
 		if (lockRequired)
-			getLockService().getFileCacheLock(bucketName, objectName, version).writeLock().lock();
+			getLockService().getFileCacheLock(bucketId, objectName, version).writeLock().lock();
 		try {
-			getCache().put(getKey(bucketName, objectName, version), file);
+			getCache().put(getKey(bucketId, objectName, version), file);
 			this.cacheSizeBytes.getAndAdd(file.length());
     	} finally {
     		if (lockRequired)
-    			getLockService().getFileCacheLock(bucketName, objectName, version).writeLock().unlock();
+    			getLockService().getFileCacheLock(bucketId, objectName, version).writeLock().unlock();
     	}
     }
     /**
      * @param bucketName
      * @param objectName
      */
-    public void remove(String bucketName, String objectName, Optional<Integer> version) {
+    public void remove(Long bucketId, String objectName, Optional<Integer> version) {
     	
-    	Check.requireNonNullArgument(bucketName, "bucket is null");
-		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucketName);
+    	Check.requireNonNullArgument(bucketId, "bucketId is null");
+		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucketId.toString());
 		
-		getLockService().getFileCacheLock(bucketName, objectName, version).writeLock().lock();
+		getLockService().getFileCacheLock(bucketId, objectName, version).writeLock().lock();
 		
     	try {
     	
-    		File file = getCache().getIfPresent(getKey(bucketName, objectName, version));
-    		getCache().invalidate(getKey(bucketName, objectName, version));
+    		File file = getCache().getIfPresent(getKey(bucketId, objectName, version));
+    		getCache().invalidate(getKey(bucketId, objectName, version));
     		
     		if (file!=null) {
     			FileUtils.deleteQuietly(file);
     			this.cacheSizeBytes.getAndAdd(-file.length());
     		}
     	} finally {
-    		getLockService().getFileCacheLock(bucketName, objectName, version).writeLock().unlock();
+    		getLockService().getFileCacheLock(bucketId, objectName, version).writeLock().unlock();
     	}
     }
 
@@ -181,8 +181,8 @@ public class FileCacheService extends BaseService implements ApplicationListener
      * @param objectName
      * @return String with the absolute path where to save the File cache
      */
-	public String getFileCachePath(String bucketName, String objectName, Optional<Integer> version) {
-		String path = getKey(bucketName, objectName, version);
+	public String getFileCachePath(Long bucketId, String objectName, Optional<Integer> version) {
+		String path = getKey(bucketId, objectName, version);
 		return getDrivesAll().get(Math.abs(path.hashCode()) % getDrivesAll().size()).getCacheDirPath() + File.separator + path;
 	}
 	
@@ -216,6 +216,58 @@ public class FileCacheService extends BaseService implements ApplicationListener
 		return this.vfsLockService;
 	}
 	
+
+	
+	@Override
+	public void onApplicationEvent(CacheEvent event) {
+		
+		if (event.getVFSOperation()==null) {
+    		logger.error("event is null ");
+    		return;
+    	}
+    	if (event.getVFSOperation().getOp()==null) {
+    		logger.debug("op is null -> "  + event.toString());
+    		return;
+    	}
+    	
+		if (event.getVFSOperation().getOp()==VFSop.CREATE_OBJECT) {
+			remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName(), Optional.empty());
+			remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName(), Optional.of(event.getVFSOperation().getVersion()));
+			return;
+		}
+		if (event.getVFSOperation().getOp()==VFSop.UPDATE_OBJECT) {
+			remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName(), Optional.empty());
+			remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName(), Optional.of(event.getVFSOperation().getVersion()));
+			return;
+		}
+		if (event.getVFSOperation().getOp()==VFSop.RESTORE_OBJECT_PREVIOUS_VERSION) {
+			remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName(), Optional.empty());
+			remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName(), Optional.of(event.getVFSOperation().getVersion()));
+			return;
+		}
+		if (event.getVFSOperation().getOp()==VFSop.DELETE_OBJECT) {
+			remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName(), Optional.empty());
+			return;
+		}
+		
+		if (event.getVFSOperation().getOp()==VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS) {
+			remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName(), Optional.empty());
+			if (getVFS().getServerSettings().isVersionControl()) { 
+				for (int version=0; version < event.getVFSOperation().getVersion(); version++) 
+					remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName(), Optional.of(version));
+			}
+			return;
+		}
+		
+		if (event.getVFSOperation().getOp()==VFSop.SYNC_OBJECT_NEW_DRIVE) {
+			remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName(), Optional.empty());
+			return;
+		}
+	
+	}
+	
+	
+		
 	@PostConstruct
 	protected synchronized void onInitialize() {
 		
@@ -250,23 +302,23 @@ public class FileCacheService extends BaseService implements ApplicationListener
 				String  arr[]  = ((String)key).split(pattern);
 				String verr[] = (arr[1].split(ServerConstant.BO_SEPARATOR));
 				
-				String bucketName = arr[0];
+				Long bucketId = Long.valueOf(arr[0]);
 				String objectName = ((verr.length==1) ? arr[1] : verr[0]);
 				Optional<Integer> version = ((verr.length==1) ? Optional.empty() : Optional.of(Integer.valueOf(verr[1]).intValue()));
 
-				getLockService().getFileCacheLock(bucketName, objectName, version).writeLock().lock();
+				getLockService().getFileCacheLock(bucketId, objectName, version).writeLock().lock();
 				try {
 		    			FileUtils.deleteQuietly((File) value);
 		    			this.cacheSizeBytes.getAndAdd(-((File)value).length());
 				} finally {
-					getLockService().getFileCacheLock(bucketName, objectName, version).writeLock().unlock();
+					getLockService().getFileCacheLock(bucketId, objectName, version).writeLock().unlock();
 				}
 			}
 		}
 	}
 	
-    private String getKey(String bucketName, String objectName, Optional<Integer> version) {
-    	return bucketName + File.separator + objectName + (version.isEmpty()?"":(ServerConstant.BO_SEPARATOR+String.valueOf(version.get().intValue())));
+    private String getKey(Long bucketId, String objectName, Optional<Integer> version) {
+    	return bucketId.toString() + File.separator + objectName + (version.isEmpty()?"":(ServerConstant.BO_SEPARATOR+String.valueOf(version.get().intValue())));
     }
     
     
@@ -312,55 +364,4 @@ public class FileCacheService extends BaseService implements ApplicationListener
 
 
 	
-	@Override
-	public void onApplicationEvent(CacheEvent event) {
-		
-		if (event.getVFSOperation()==null) {
-    		logger.error("event is null ");
-    		return;
-    	}
-    	if (event.getVFSOperation().getOp()==null) {
-    		logger.debug("op is null -> "  + event.toString());
-    		return;
-    	}
-    	
-		if (event.getVFSOperation().getOp()==VFSop.CREATE_OBJECT) {
-			remove(event.getVFSOperation().getBucketName(), event.getVFSOperation().getObjectName(), Optional.empty());
-			remove(event.getVFSOperation().getBucketName(), event.getVFSOperation().getObjectName(), Optional.of(event.getVFSOperation().getVersion()));
-			return;
-		}
-		if (event.getVFSOperation().getOp()==VFSop.UPDATE_OBJECT) {
-			remove(event.getVFSOperation().getBucketName(), event.getVFSOperation().getObjectName(), Optional.empty());
-			remove(event.getVFSOperation().getBucketName(), event.getVFSOperation().getObjectName(), Optional.of(event.getVFSOperation().getVersion()));
-			return;
-		}
-		if (event.getVFSOperation().getOp()==VFSop.RESTORE_OBJECT_PREVIOUS_VERSION) {
-			remove(event.getVFSOperation().getBucketName(), event.getVFSOperation().getObjectName(), Optional.empty());
-			remove(event.getVFSOperation().getBucketName(), event.getVFSOperation().getObjectName(), Optional.of(event.getVFSOperation().getVersion()));
-			return;
-		}
-		if (event.getVFSOperation().getOp()==VFSop.DELETE_OBJECT) {
-			remove(event.getVFSOperation().getBucketName(), event.getVFSOperation().getObjectName(), Optional.empty());
-			return;
-		}
-		
-		if (event.getVFSOperation().getOp()==VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS) {
-			remove(event.getVFSOperation().getBucketName(), event.getVFSOperation().getObjectName(), Optional.empty());
-			if (getVFS().getServerSettings().isVersionControl()) { 
-				for (int version=0; version < event.getVFSOperation().getVersion(); version++) 
-					remove(event.getVFSOperation().getBucketName(), event.getVFSOperation().getObjectName(), Optional.of(version));
-			}
-			return;
-		}
-		
-		if (event.getVFSOperation().getOp()==VFSop.SYNC_OBJECT_NEW_DRIVE) {
-			remove(event.getVFSOperation().getBucketName(), event.getVFSOperation().getObjectName(), Optional.empty());
-			return;
-		}
-	
-	}
-	
-	
-		
-
 }

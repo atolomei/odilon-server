@@ -62,7 +62,7 @@ public class DriveBucket {
 	
 	@JsonIgnore
 	public Path getBucketControlDir() {
-		return Paths.get(getDrive().getBucketMetadataDirPath(meta.bucketName));
+		return Paths.get(getDrive().getBucketMetadataDirPath(meta.id));
 	}
 	
 	@JsonIgnore
@@ -72,6 +72,10 @@ public class DriveBucket {
 	
 	public String getName() {
 		return meta.bucketName;
+	}
+	
+	public Long getId() {
+		return meta.id;
 	}
 	
 	public OffsetDateTime getCreationDate() {

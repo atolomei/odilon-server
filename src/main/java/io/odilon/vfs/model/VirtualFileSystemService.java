@@ -117,42 +117,47 @@ public interface VirtualFileSystemService extends SystemService {
 	/** used to add a new disk enabled after a Drive sync process */
 	public void updateDriveStatus(Drive drive);
 	
-	public List<VFSBucket> listAllBuckets();
+	public List<ODBucket> listAllBuckets();
 	
 
 	/**
 	 * Bucket
 	 */
-	public VFSBucket createBucket(String bucketName) throws IOException;
-	public VFSBucket renameBucketName(String name, String newBucketName);
+	public ODBucket createBucket(String bucketName) throws IOException;
+	public ODBucket renameBucketName(String currentBucketName, String newBucketName);
 	
-	public VFSBucket getBucket(String bucketName);
+	public ODBucket getBucketByName(String bucketName);
+	public ODBucket getBucketById(Long bucketId);
+	
 	public boolean existsBucket(String bucketName);
-	public boolean isEmpty(VFSBucket bucket);
-	public void removeBucket(VFSBucket bucket);
+	public boolean isEmpty(ODBucket bucket);
+	public void removeBucket(ODBucket bucket);
 	public void removeBucket(String bucketName);
 	public void forceRemoveBucket(String bucketName);	
 
+	public Long getNextBucketId();
+	
 	public String ping();
 	
 	/**
 	 * Objects
 	 */
-	public void putObject(VFSBucket bucket, String objectName, File file);
-	public void putObject(VFSBucket bucket, String objectName, InputStream stream, String fileName, String contentType);
+	public void putObject(ODBucket bucket, String objectName, File file);
+	public void putObject(ODBucket bucket, String objectName, InputStream stream, String fileName, String contentType);
 	public void putObject(String bucketName, String objectName, InputStream is, String fileName, String contentType);
 	
-	public VFSObject getObject(VFSBucket bucket, String objectName);
+	public VFSObject getObject(ODBucket bucket, String objectName);
 	public VFSObject getObject(String bucketName, String objectName);
 	public ObjectMetadata getObjectMetadata(String bucketName, String objectName);
 	
-	public boolean existsObject(VFSBucket bucket, String objectName);
+	public boolean existsObject(ODBucket bucket, String objectName);
 	public boolean existsObject(String bucketName, String objectName);
+	public boolean existsObject(Long bucketId, String objectName);
 	
-	public void  deleteObject(VFSBucket bucket, String objectName);
-	public void  deleteObject(String bucketName, String objectName);
+	public void deleteObject(ODBucket bucket, String objectName);
+	public void deleteObject(String bucketName, String objectName);
 	
-	public InputStream getObjectStream(VFSBucket bucket, String objectName) throws IOException;
+	public InputStream getObjectStream(ODBucket bucket, String objectName) throws IOException;
 	public InputStream getObjectStream(String bucketName, String objectName) throws IOException;
 	
 	
@@ -206,7 +211,8 @@ public interface VirtualFileSystemService extends SystemService {
 	public boolean isEmptyBucket(String bucketName);
 	
 	public BucketIteratorService getBucketIteratorService();
-	public Map<String, VFSBucket> getBucketsCache();
+	
+
 
 	public boolean checkIntegrity(String bucketName, String objectName, boolean forceCheck);
 
@@ -229,6 +235,11 @@ public interface VirtualFileSystemService extends SystemService {
 
 	
 	public ApplicationContext getApplicationContext();
+
+
+	public void addBucketCache(ODBucket bucket);
+	//public Map<String, ODBucket> getBucketsCache();
+	
 
 
 

@@ -57,8 +57,8 @@ public class RAIDSixSDriveSyncEncoder extends RAIDSixEncoder {
 	 * - create ObjectMetadata <br/>
 	 * </p>
  	 */
-	public RAIDSixBlocks encodeHead (InputStream is, String bucketName, String objectName) {
-		return super.encodeHead(is, bucketName, objectName);
+	public RAIDSixBlocks encodeHead (InputStream is, Long bucketId, String objectName) {
+		return super.encodeHead(is, bucketId, objectName);
 	}
 
 	/**
@@ -69,8 +69,8 @@ public class RAIDSixSDriveSyncEncoder extends RAIDSixEncoder {
 	 * </p>
  	 */
 
-	public RAIDSixBlocks encodeVersion (InputStream is, String bucketName, String objectName, int version) {
-		return super.encodeVersion(is, bucketName, objectName, version);
+	public RAIDSixBlocks encodeVersion (InputStream is, Long bucketId, String objectName, int version) {
+		return super.encodeVersion(is, bucketId, objectName, version);
 	}
 	
 	/**

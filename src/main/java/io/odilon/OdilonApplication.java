@@ -17,7 +17,6 @@
 
 package io.odilon;
 
-
 import jakarta.annotation.PostConstruct;
 
 import org.springframework.boot.Banner;
@@ -70,9 +69,6 @@ import io.odilon.model.ServerConstant;
  * <br/>
  * @see {@link OdilonVersion#VERSION} for the version of the server
  * 
- * 
- * 
- * 
  */
 @SpringBootApplication
 @ComponentScan({"io.odilon"})
@@ -96,17 +92,16 @@ public class OdilonApplication {
 	public OdilonApplication() {
 	}
 	
+	
 	@PostConstruct
 	public void onInitialize() {
 		
 		std_logger.info("");
 		for (String s : OdilonVersion.getAppCharacterName())
 			std_logger.info(s);
-		
 		std_logger.info(ServerConstant.SEPARATOR);
 		std_logger.info("This software is licensed under the Apache License, Version 2.0");
 		std_logger.info("http://www.apache.org/licenses/LICENSE-2.0");
-
 		initShutdownMessage();
 	}
 	
@@ -124,6 +119,10 @@ public class OdilonApplication {
             }
         });
 	}
+
+	
+	
+	
 	
 	
 	/**

@@ -36,6 +36,7 @@ import io.odilon.model.ServerConstant;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ObjectStatus;
 import io.odilon.vfs.model.Drive;
+import io.odilon.vfs.model.ODBucket;
 import io.odilon.vfs.model.BucketIterator;
 
 /**
@@ -81,8 +82,8 @@ public class RAIDOneIterator extends BucketIterator implements Closeable {
 	@JsonIgnore
 	RAIDOneDriver driver;
 	
-	public RAIDOneIterator(RAIDOneDriver driver, String bucketName, Optional<Long> opOffset,  Optional<String> opPrefix) {
-		super(bucketName);
+	public RAIDOneIterator(RAIDOneDriver driver, ODBucket bucket, Optional<Long> opOffset,  Optional<String> opPrefix) {
+		super(bucket);
 		opPrefix.ifPresent( x -> this.prefix = x.toLowerCase().trim());
 		opOffset.ifPresent( x -> setOffset(x));
 		this.driver = driver;
@@ -151,7 +152,7 @@ public class RAIDOneIterator extends BucketIterator implements Closeable {
 	}
 	private void init() {
 		
-			Path start = new File( getDrive().getBucketMetadataDirPath(getBucketName())).toPath();
+			Path start = new File( getDrive().getBucketMetadataDirPath(getBucketId())).toPath();
 			try {
 				this.stream = Files.walk(start, 1).skip(1).
 						filter(file -> Files.isDirectory(file)).
@@ -212,7 +213,7 @@ public class RAIDOneIterator extends BucketIterator implements Closeable {
 	 */
 	@SuppressWarnings("unused")
 	private boolean isObjectStateEnabled(Path path) {
-		ObjectMetadata meta = getDriver().getObjectMetadata(getBucketName(), path.toFile().getName());
+		ObjectMetadata meta = getDriver().getObjectMetadata(getBucket(), path.toFile().getName());
 		if (meta==null)
 			return false;
 		if (meta.status == ObjectStatus.ENABLED) 

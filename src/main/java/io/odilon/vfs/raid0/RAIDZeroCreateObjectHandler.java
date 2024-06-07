@@ -40,7 +40,7 @@ import io.odilon.util.Check;
 import io.odilon.util.ODFileUtils;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.SimpleDrive;
-import io.odilon.vfs.model.VFSBucket;
+import io.odilon.vfs.model.ODBucket;
 import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VFSop;
 import io.odilon.vfs.model.VirtualFileSystemService;
@@ -72,31 +72,30 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 	 * @param srcFileName
 	 * @param contentType
 	 */
-	protected void create(@NonNull VFSBucket bucket, @NonNull String objectName, @NonNull InputStream stream, String srcFileName, String contentType) {
+	protected void create(@NonNull ODBucket bucket, @NonNull String objectName, @NonNull InputStream stream, String srcFileName, String contentType) {
 	
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 		
-		String bucketName = bucket.getName();
-		
+			
 		VFSOperation op = null;
 		boolean done = false;
 		boolean isMainException = false;
 				
 		try {
 			
-			getLockService().getObjectLock(bucketName, objectName).writeLock().lock();
+			getLockService().getObjectLock(bucket.getId(), objectName).writeLock().lock();
 			
 				try (stream) {
 					
-						getLockService().getBucketLock(bucketName).readLock().lock();
+						getLockService().getBucketLock(bucket.getId()).readLock().lock();
 
-						if (getDriver().getWriteDrive(bucketName, objectName).existsObjectMetadata(bucketName, objectName))											
-							throw new IllegalArgumentException("object already exist -> b:" + bucketName+ " o:"+(Optional.ofNullable(objectName).isPresent() ? (objectName) :"null"));
+						if (getDriver().getWriteDrive(bucket.getId(), objectName).existsObjectMetadata(bucket.getId(), objectName))											
+							throw new IllegalArgumentException("object already exist -> b:" + bucket.getName() + " o:"+(Optional.ofNullable(objectName).isPresent() ? (objectName) :"null"));
 						
 						int version = 0;
 						
-						op = getJournalService().createObject(bucketName, objectName);
+						op = getJournalService().createObject(bucket.getId(), objectName);
 						
 						saveObjectDataFile(bucket,objectName, stream, srcFileName);
 						saveObjectMetadata(bucket,objectName, srcFileName, contentType, version);
@@ -111,7 +110,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 				} catch (Exception e) {
 							done=false;
 							isMainException=true;
-							throw new InternalCriticalException(e, "b:" + bucketName + " o:" 	+ objectName + ", f:" 	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null"));
+							throw new InternalCriticalException(e, "b:" + bucket.getName() + " o:" 	+ objectName + ", f:" 	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null"));
 				} finally {
 							try {
 									if ((!done) && (op!=null)) {
@@ -123,22 +122,22 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 											if (!isMainException) 
 												throw e;
 											else
-												logger.error(e, " finally | b:" + bucketName +	" o:" 	+ objectName + ", f:" 	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null") +  SharedConstant.NOT_THROWN);
+												logger.error(e, " finally | b:" + bucket.getName() +	" o:" 	+ objectName + ", f:" 	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null") +  SharedConstant.NOT_THROWN);
 										} catch (Exception e) {
 											if (!isMainException) 
-												throw new InternalCriticalException(e, " finally | b:" + bucketName +	" o:" 	+ objectName + ", f:" 	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null"));
+												throw new InternalCriticalException(e, " finally | b:" + bucket.getName() +	" o:" 	+ objectName + ", f:" 	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null"));
 											else
-												logger.error(e, " finally | b:" + bucketName +	" o:" 	+ objectName + ", f:" 	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null") +  SharedConstant.NOT_THROWN);
+												logger.error(e, " finally | b:" +bucket.getName() +	" o:" 	+ objectName + ", f:" 	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null") +  SharedConstant.NOT_THROWN);
 										}
 									}
 							}
 							finally {
-								getLockService().getBucketLock(bucketName).readLock().unlock();
+								getLockService().getBucketLock(bucket.getId()).readLock().unlock();
 							}
 				}
 		}
 		finally {
-			getLockService().getObjectLock(bucket.getName(), objectName).writeLock().unlock();
+			getLockService().getObjectLock(bucket.getId(), objectName).writeLock().unlock();
 		}
 	}
 
@@ -153,7 +152,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 		Check.checkTrue(op.getOp()==VFSop.CREATE_OBJECT, "Invalid op ->  " + op.getOp().getName());
 			
 		String objectName = op.getObjectName();
-		String bucketName = op.getBucketName();
+		Long bucketId = op.getBucketId();
 		
 		boolean done = false;
 				
@@ -162,8 +161,8 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 			if (getVFS().getServerSettings().isStandByEnabled())
 				getVFS().getReplicationService().cancel(op);
 			
-			getWriteDrive(bucketName, objectName).deleteObjectMetadata(bucketName, objectName);
-			FileUtils.deleteQuietly(new File (getWriteDrive(bucketName, objectName).getRootDirPath(), bucketName + File.separator + objectName));
+			getWriteDrive(bucketId, objectName).deleteObjectMetadata(bucketId, objectName);
+			FileUtils.deleteQuietly(new File (getWriteDrive(bucketId, objectName).getRootDirPath(), bucketId.toString() + File.separator + objectName));
 			
 			done=true;
 			
@@ -196,7 +195,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 	 * 
 	 * 
 	 */
-	private void saveObjectDataFile(VFSBucket bucket, String objectName, InputStream stream, String srcFileName) {
+	private void saveObjectDataFile(ODBucket bucket, String objectName, InputStream stream, String srcFileName) {
 		
 		byte[] buf = new byte[VirtualFileSystemService.BUFFER_SIZE];
 
@@ -205,7 +204,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 		
 		try (InputStream sourceStream = isEncrypt() ? getVFS().getEncryptionService().encryptStream(stream) : stream) {
 			
-				out = new BufferedOutputStream(new FileOutputStream(((SimpleDrive) getWriteDrive(bucket.getName(), objectName)).getObjectDataFilePath(bucket.getName(), objectName)), VirtualFileSystemService.BUFFER_SIZE);
+				out = new BufferedOutputStream(new FileOutputStream(((SimpleDrive) getWriteDrive(bucket.getId(), objectName)).getObjectDataFilePath(bucket.getId(), objectName)), VirtualFileSystemService.BUFFER_SIZE);
 				int bytesRead;
 				
 				while ((bytesRead = sourceStream.read(buf, 0, buf.length)) >= 0) {
@@ -240,17 +239,15 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 	 * @param stream			can not be null
 	 * @param srcFileName		can not be null	
 	 */
-	private void saveObjectMetadata(VFSBucket bucket, String objectName, String srcFileName, String contentType, int version) {
+	private void saveObjectMetadata(ODBucket bucket, String objectName, String srcFileName, String contentType, int version) {
 		
 		OffsetDateTime now=OffsetDateTime.now();
-		Drive drive=getWriteDrive(bucket.getName(), objectName);
-		File file=((SimpleDrive)drive).getObjectDataFile(bucket.getName(), objectName);
+		Drive drive=getWriteDrive(bucket.getId(), objectName);
+		File file=((SimpleDrive)drive).getObjectDataFile(bucket.getId(), objectName);
 
-		String bucketName = bucket.getName();
-		
 		try {
 				String sha256 = ODFileUtils.calculateSHA256String(file);
-				ObjectMetadata meta = new ObjectMetadata(bucketName, objectName);
+				ObjectMetadata meta = new ObjectMetadata(bucket.getId(), objectName);
 				meta.fileName=srcFileName;
 				meta.appVersion=OdilonVersion.VERSION;
 				meta.contentType=contentType;
@@ -270,7 +267,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 				drive.saveObjectMetadata(meta);
 			
 		} catch (Exception e) {										
-				throw new InternalCriticalException(e, "b:"  + bucketName + ", o:" + objectName + ", f:" + srcFileName);
+				throw new InternalCriticalException(e, "b:"  + bucket.getId().toString() + ", o:" + objectName + ", f:" + srcFileName);
 		}
 	}
 }

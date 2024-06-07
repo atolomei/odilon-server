@@ -100,18 +100,18 @@ public class ODLockService extends BaseService implements LockService {
 	}
 
 	@Override
-	public ReadWriteLock getObjectLock(String bucketName, String objectName) {
-		return objectLocks.computeIfAbsent(getKey( bucketName, objectName), key -> new ReentrantReadWriteLock());
+	public ReadWriteLock getObjectLock(Long bucketId, String objectName) {
+		return objectLocks.computeIfAbsent(getKey(bucketId, objectName), key -> new ReentrantReadWriteLock());
 	}
 
 	@Override
-	public ReadWriteLock getFileCacheLock(String bucketName, String objectName, Optional<Integer> version) {
-		return fileCacheLocks.computeIfAbsent(getFileKey(bucketName, objectName, version), key -> new ReentrantReadWriteLock());
+	public ReadWriteLock getFileCacheLock(Long bucketId, String objectName, Optional<Integer> version) {
+		return fileCacheLocks.computeIfAbsent(getFileKey(bucketId, objectName, version), key -> new ReentrantReadWriteLock());
 	}
 	
 	@Override
-	public ReadWriteLock getBucketLock(String bucketName) {
-		return bucketLocks.computeIfAbsent(bucketName, key -> new ReentrantReadWriteLock());
+	public ReadWriteLock getBucketLock(Long bucketId) {
+		return bucketLocks.computeIfAbsent(bucketId.toString(), key -> new ReentrantReadWriteLock());
 	}
 
 	@Override
@@ -223,12 +223,12 @@ public class ODLockService extends BaseService implements LockService {
 		}
 	}
 
-	private String getKey(String bucketName, String objectName) {
-		return (bucketName +  ServerConstant.BO_SEPARATOR + objectName);
+	private String getKey(Long bucketId, String objectName) {
+		return (bucketId.toString() +  ServerConstant.BO_SEPARATOR + objectName);
 	}
 	
-	private String getFileKey(String bucketName, String objectName, Optional<Integer> version) {
-		return (bucketName +  ServerConstant.BO_SEPARATOR + objectName +(version.isEmpty()?"":(ServerConstant.BO_SEPARATOR+String.valueOf(version.get().intValue()))));
+	private String getFileKey(Long bucketId, String objectName, Optional<Integer> version) {
+		return (bucketId.toString() +  ServerConstant.BO_SEPARATOR + objectName +(version.isEmpty()?"":(ServerConstant.BO_SEPARATOR+String.valueOf(version.get().intValue()))));
 	}
 	
 	

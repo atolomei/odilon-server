@@ -27,6 +27,7 @@ import io.odilon.log.Logger;
 import io.odilon.net.ErrorCode;
 
 /**
+ * <p>API Exception controller</p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */

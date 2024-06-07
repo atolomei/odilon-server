@@ -21,6 +21,7 @@ import io.odilon.vfs.model.BucketIterator;
 
 
 /**
+ * <p>Directory of Iterators being used.</p> 
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */

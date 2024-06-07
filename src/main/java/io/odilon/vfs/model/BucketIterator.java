@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Iterator;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -44,9 +45,9 @@ public abstract class BucketIterator implements Iterator<Path>  {
 		mapper.registerModule(new JavaTimeModule());
 		mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 	}
-
-	@JsonProperty("bucketName")
-	private String bucketName;
+	
+		
+	
 	
 	@JsonProperty("agentId")
 	private String agentId = null;
@@ -54,13 +55,23 @@ public abstract class BucketIterator implements Iterator<Path>  {
 	@JsonProperty("offset")
 	private Long offset = Long.valueOf(0);
 	
+	@JsonIgnore
+	private final ODBucket bucket;
+
+	@JsonProperty("bucketId")
+	private final Long bucketId;
+
+	@JsonProperty("bucketName")
+	private final String bucketName;
+	
 	/**
 	 * @param bucketName can not be null
 	 */
-	public BucketIterator(String bucketName) {
-		Check.requireNonNullArgument(bucketName, "bucketName is null");
-		this.bucketName=bucketName;
-		
+	public BucketIterator(final ODBucket bucket) {
+		Check.requireNonNullArgument(bucket, "bucket is null");
+		this.bucket=bucket;
+		this.bucketId=bucket.getId();
+		this.bucketName=bucket.getName();
 	}
 	
 	public String getAgentId() {
@@ -71,13 +82,18 @@ public abstract class BucketIterator implements Iterator<Path>  {
 		this.agentId = agentId;
 	}
 	
-	public String getBucketName() {
-		return bucketName;
+	
+	public ODBucket getBucket() {
+		return this.bucket;
+	}
+	
+	public Long getBucketId() {
+		return bucket.getId();
 	}
 
-	public void setBucketName(String bucketName) {
-		this.bucketName = bucketName;
-	}
+	//public void setBucketId(Long bucketId) {
+	//	this.bucketId = bucketId;
+	//}
 
 	public Long getOffset() {
 		return offset;

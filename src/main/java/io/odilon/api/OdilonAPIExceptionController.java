@@ -23,6 +23,7 @@ import org.springframework.http.HttpStatus;
 
 
 /**
+ * <p>API Exception controller</p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */

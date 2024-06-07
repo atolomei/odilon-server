@@ -51,7 +51,7 @@ import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.DriveStatus;
 import io.odilon.vfs.model.LockService;
 import io.odilon.vfs.model.SimpleDrive;
-import io.odilon.vfs.model.VFSBucket;
+import io.odilon.vfs.model.ODBucket;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 
@@ -185,7 +185,7 @@ public class RAIDOneDriveSync implements Runnable {
 			
 			executor = Executors.newFixedThreadPool(maxProcessingThread);
 			
-			for (VFSBucket bucket: this.getDriver().getVFS().listAllBuckets()) {
+			for (ODBucket bucket: this.getDriver().getVFS().listAllBuckets()) {
 				
 				Integer pageSize = Integer.valueOf(ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE);
 				Long offset = Long.valueOf(0);
@@ -225,29 +225,29 @@ public class RAIDOneDriveSync implements Runnable {
 										if (drive.getDriveInfo().getStatus()==DriveStatus.NOTSYNC) {
 										
 											try {
-												getLockService().getObjectLock(item.getObject().bucketName, item.getObject().objectName).writeLock().lock();
+												getLockService().getObjectLock(item.getObject().bucketId, item.getObject().objectName).writeLock().lock();
 												
 												try {
 													
-													getLockService().getBucketLock(item.getObject().bucketName).readLock().lock();
+													getLockService().getBucketLock(item.getObject().bucketId).readLock().lock();
 													
 													
 													{
 														/** HEAD VERSION --------------------------------------------------------- */
 														
-															File newmeta = drive.getObjectMetadataFile(item.getObject().bucketName, item.getObject().objectName);
+															File newmeta = drive.getObjectMetadataFile(item.getObject().bucketId, item.getObject().objectName);
 															
 															// If ObjectMetadata exists -> the file was already synced, skip
 															
 															if (!newmeta.exists()) {
 																
 																	// copy data ----
-																	File dataFile = ((SimpleDrive) enabledDrive).getObjectDataFile(item.getObject().bucketName, item.getObject().objectName);
+																	File dataFile = ((SimpleDrive) enabledDrive).getObjectDataFile(item.getObject().bucketId, item.getObject().objectName);
 		
 																	try (InputStream is = new BufferedInputStream( new FileInputStream(dataFile))) {
 																	
 																		byte[] buf = new byte[ VirtualFileSystemService.BUFFER_SIZE ];
-																		String sPath = ((SimpleDrive) drive).getObjectDataFilePath(bucket.getName(), item.getObject().objectName);
+																		String sPath = ((SimpleDrive) drive).getObjectDataFilePath(bucket.getId(), item.getObject().objectName);
 																	
 																		try (BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(sPath), VirtualFileSystemService.BUFFER_SIZE)) {
 																			int bytesRead;
@@ -273,14 +273,14 @@ public class RAIDOneDriveSync implements Runnable {
 														
 														for (int version=0; version<item.getObject().version; version++) {
 															// copy Meta Version
-															File meta_version_n=enabledDrive.getObjectMetadataVersionFile(item.getObject().bucketName, item.getObject().objectName, version);
+															File meta_version_n=enabledDrive.getObjectMetadataVersionFile(item.getObject().bucketId, item.getObject().objectName, version);
 															if (meta_version_n.exists()) {
-																drive.putObjectMetadataVersionFile(item.getObject().bucketName, item.getObject().objectName, version, meta_version_n);
+																drive.putObjectMetadataVersionFile(item.getObject().bucketId, item.getObject().objectName, version, meta_version_n);
 															}
 															// copy Data Version
-															File version_n = ((SimpleDrive) enabledDrive).getObjectDataVersionFile(item.getObject().bucketName, item.getObject().objectName, version);
+															File version_n = ((SimpleDrive) enabledDrive).getObjectDataVersionFile(item.getObject().bucketId, item.getObject().objectName, version);
 															if (version_n.exists()) {
-																((SimpleDrive) drive).putObjectDataVersionFile(item.getObject().bucketName, item.getObject().objectName, version, version_n);
+																((SimpleDrive) drive).putObjectDataVersionFile(item.getObject().bucketId, item.getObject().objectName, version, version_n);
 															}
 														}
 													}
@@ -291,10 +291,10 @@ public class RAIDOneDriveSync implements Runnable {
 													this.errors.getAndIncrement();
 												}
 												finally {
-													getLockService().getBucketLock(item.getObject().bucketName).readLock().unlock();
+													getLockService().getBucketLock(item.getObject().bucketId).readLock().unlock();
 												}
 											} finally {
-												getLockService().getObjectLock(item.getObject().bucketName, item.getObject().objectName).writeLock().unlock();	
+												getLockService().getObjectLock(item.getObject().bucketId, item.getObject().objectName).writeLock().unlock();	
 											}
 										}
 									}

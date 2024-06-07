@@ -40,7 +40,7 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
  * 
- * <p>API endpoint for System monitoring metrics:</p>
+ * <p>API endpoint for System Monitoring Metrics</p>
  * 
  * <ul>
  *  <li>/metrics</li>	

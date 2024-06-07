@@ -63,24 +63,24 @@ public class ODSimpleDrive extends ODDrive implements SimpleDrive {
 	 * 
 	 * <p>Constructor explicit
 	 * 
-	 * @param name
+	 * @param driveNanme
 	 * @param rootDir
 	 */
-	protected ODSimpleDrive(String name, String rootDir, int configOrder) {
-		super(name, rootDir, configOrder);
+	protected ODSimpleDrive(String driveName, String rootDir, int configOrder) {
+		super(driveName, rootDir, configOrder);
 	}
 	
 	/**
 	 * <p></p>
 	 */	
 	@Override
-	public String getObjectDataFilePath(String bucketName, String objectName) {
-		return this.getRootDirPath() + File.separator + bucketName + File.separator + objectName;
+	public String getObjectDataFilePath(Long bucketId, String objectName) {
+		return this.getRootDirPath() + File.separator + bucketId.toString() + File.separator + objectName;
 	}
 	
 	@Override
-	public String getObjectDataVersionFilePath(String bucketName, String objectName, int version) {
-		return this.getRootDirPath() + File.separator + bucketName + File.separator + VirtualFileSystemService.VERSION_DIR + File.separator + objectName + VirtualFileSystemService.VERSION_EXTENSION + String.valueOf(version);
+	public String getObjectDataVersionFilePath(Long bucketId, String objectName, int version) {
+		return this.getRootDirPath() + File.separator + bucketId.toString() + File.separator + VirtualFileSystemService.VERSION_DIR + File.separator + objectName + VirtualFileSystemService.VERSION_EXTENSION + String.valueOf(version);
 	}
 	
 	/**
@@ -89,15 +89,15 @@ public class ODSimpleDrive extends ODDrive implements SimpleDrive {
 	 * <p>This method is not ThreadSafe</p>
 	 */
 	@Override
-	public InputStream getObjectInputStream(String bucketName, String objectName) {
+	public InputStream getObjectInputStream(Long bucketId, String objectName) {
 
-		Check.requireNonNullArgument(bucketName, "bucketName is null");
-		Check.requireNonNullStringArgument(objectName, "objectName can not be null -> b:" + bucketName);
+		Check.requireNonNullArgument(bucketId.toString(), "bucketId is null");
+		Check.requireNonNullStringArgument(objectName, "objectName can not be null -> b:" + bucketId.toString());
 		
 		try {
-			return Files.newInputStream(getObjectDataFile(bucketName, objectName).toPath());
+			return Files.newInputStream(getObjectDataFile(bucketId, objectName).toPath());
 		} catch (Exception e) {
-			throw new InternalCriticalException(e, "b:" +  bucketName + ", o:" + objectName +", d:" + getName());
+			throw new InternalCriticalException(e, "b:" +  bucketId.toString() + ", o:" + objectName +", d:" + getName());
 		}
 	}
 	
@@ -110,66 +110,69 @@ public class ODSimpleDrive extends ODDrive implements SimpleDrive {
 	 * 
 	 */							
 	@Override
-	public File putObjectStream(String bucketName, String objectName, InputStream stream) throws IOException {
+	public File putObjectStream(Long bucketId, String objectName, InputStream stream) throws IOException {
 
-		Check.requireNonNullArgument(bucketName, "bucketName is null");
-		Check.requireNonNullStringArgument(objectName, "objectName can not be null -> b:" + bucketName);
+		Check.requireNonNullArgument(bucketId, "bucketId is null");
+		Check.requireNonNullStringArgument(objectName, "objectName can not be null -> b:" + bucketId.toString());
 
-		if (!super.existBucketMetadataDir(bucketName))
-			  throw new IllegalStateException("Bucket Metadata Directory must exist -> d:" + getName() + " | b:" + bucketName);
+		if (!super.existBucketMetadataDir(bucketId))
+			  throw new IllegalStateException("Bucket Metadata Directory must exist -> d:" + getName() + " | b:" + bucketId.toString());
 		
 		/** data Bucket created on demand */
-		createDataBucketDirIfNotExists(bucketName);
+		createDataBucketDirIfNotExists(bucketId);
 		
 		try {
 
-			String dataFilePath = this.getObjectDataFilePath(bucketName, objectName); 
+			String dataFilePath = this.getObjectDataFilePath(bucketId, objectName); 
 			transferTo(stream, dataFilePath);
 			
 			return new File(dataFilePath);
 		}
 		 catch (IOException e) {
-			logger.error(e.getClass().getName() + " putObjectStream -> " + "b:" +  bucketName + ", o:" + objectName +", d:" + getName());
+			logger.error(e.getClass().getName() + " putObjectStream -> " + "b:" +  bucketId.toString() + ", o:" + objectName +", d:" + getName());
 			throw (e);
 		}
 	}
 	
 	@Override
-	public void putObjectDataFile(String bucketName, String objectName, File objectFile) throws IOException {
+	public void putObjectDataFile(Long bucketId, String objectName, File objectFile) throws IOException {
+		Check.requireNonNullArgument(bucketId, "bucketId is null");
 		try (InputStream is = new FileInputStream(objectFile)) {
-			putObjectStream(bucketName, objectName, is);
+			putObjectStream(bucketId, objectName, is);
 		}
 	}
 	
 	@Override				
-	public void putObjectDataVersionFile(String bucketName, String objectName, int version, File objectFile) throws IOException {
+	public void putObjectDataVersionFile(Long bucketId, String objectName, int version, File objectFile) throws IOException {
+		Check.requireNonNullArgument(bucketId, "bucketId is null");
 		try (InputStream is = new BufferedInputStream(new FileInputStream(objectFile))) {
-			putObjectDataVersionStream(bucketName, objectName, version, is);
+			putObjectDataVersionStream(bucketId, objectName, version, is);
 		}
 	}
 
 	@Override
-	public File getObjectDataFile(String bucketName, String objectName) {
-		return new File(this.getRootDirPath(), bucketName + File.separator + objectName);
+	public File getObjectDataFile(Long bucketId, String objectName) {
+		Check.requireNonNullArgument(bucketId, "bucketId is null");
+		return new File(this.getRootDirPath(), bucketId.toString() + File.separator + objectName);
 	}
 
 	@Override
-	public File getObjectDataVersionFile(String bucketName, String objectName, int version) {
-		return new File(getObjectDataVersionFilePath(bucketName, objectName, version));
+	public File getObjectDataVersionFile(Long bucketId, String objectName, int version) {
+		Check.requireNonNullArgument(bucketId, "bucketId is null");
+		return new File(getObjectDataVersionFilePath(bucketId, objectName, version));
 	}
 
-	protected File putObjectDataVersionStream(String bucketName, String objectName, int version, InputStream stream) throws IOException {
-
-		Check.requireNonNullArgument(bucketName, "bucketName is null");
-		Check.requireNonNullStringArgument(objectName, "objectName can not be null -> b:" + bucketName);
+	protected File putObjectDataVersionStream(Long bucketId, String objectName, int version, InputStream stream) throws IOException {
+		Check.requireNonNullArgument(bucketId, "bucketId is null");
+		Check.requireNonNullStringArgument(objectName, "objectName can not be null -> b:" + bucketId.toString());
 		
 		try {
-			String dataFilePath = this.getObjectDataVersionFilePath(bucketName, objectName, version); 
+			String dataFilePath = this.getObjectDataVersionFilePath(bucketId, objectName, version); 
 			transferTo(stream, dataFilePath);
 			return new File(dataFilePath);
 		}
 		 catch (IOException e) {
-				logger.error(e.getClass().getName() + " getObjectDataVersionFile -> " + "b:" +  bucketName + ", o:" + objectName +", d:" + getName());			
+				logger.error(e.getClass().getName() + " getObjectDataVersionFile -> " + "b:" +  bucketId.toString() + ", o:" + objectName +", d:" + getName());			
 				throw (e);
 		}
 	}

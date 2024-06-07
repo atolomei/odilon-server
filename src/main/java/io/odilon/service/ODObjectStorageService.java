@@ -51,7 +51,7 @@ import io.odilon.monitor.SystemInfoService;
 import io.odilon.monitor.SystemMonitorService;
 import io.odilon.util.Check;
 import io.odilon.vfs.model.VFSObject;
-import io.odilon.vfs.model.VFSBucket;
+import io.odilon.vfs.model.ODBucket;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
@@ -349,9 +349,9 @@ public class ODObjectStorageService extends BaseService implements ObjectStorage
 	 * 
 	 */
 	@Override
-	public VFSBucket findBucketName(String bucketName) {
+	public ODBucket findBucketName(String bucketName) {
 		Check.requireTrue(isVFSEnabled(), "VFS invalid state -> " + getVFS().getStatus().toString());
-		return getVFS().getBucket(bucketName);
+		return getVFS().getBucketByName(bucketName);
 	}
 
 	/**
@@ -359,7 +359,7 @@ public class ODObjectStorageService extends BaseService implements ObjectStorage
 	 * @return
 	 */
 	@Override
-	public VFSBucket createBucket(String bucketName) {
+	public ODBucket createBucket(String bucketName) {
 		
 		Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
 		Check.requireTrue(isVFSEnabled(), "VFS invalid state -> " + getVFS().getStatus().toString());
@@ -398,7 +398,7 @@ public class ODObjectStorageService extends BaseService implements ObjectStorage
 	 * @return
 	 */
 	@Override
-	public VFSBucket updateBucketName(VFSBucket bucket, String newBucketName) {
+	public ODBucket updateBucketName(ODBucket bucket, String newBucketName) {
 		
 		Check.requireNonNullArgument(bucket, "bucket can not be null or empty");
 		Check.requireNonNullStringArgument(newBucketName, "newbucketName can not be null or empty");
@@ -471,7 +471,7 @@ public class ODObjectStorageService extends BaseService implements ObjectStorage
 	 * @return
 	 */
 	@Override
-	public List<VFSBucket> findAllBuckets() {
+	public List<ODBucket> findAllBuckets() {
 		Check.requireTrue(isVFSEnabled(), "VFS invalid state -> " + getVFS().getStatus().toString());
 		return getVFS().listAllBuckets();
 	}

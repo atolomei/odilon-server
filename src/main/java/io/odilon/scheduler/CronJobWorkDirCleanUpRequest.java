@@ -35,7 +35,7 @@ import io.odilon.log.Logger;
 import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
 import io.odilon.vfs.model.Drive;
-import io.odilon.vfs.model.VFSBucket;
+import io.odilon.vfs.model.ODBucket;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 
@@ -83,8 +83,8 @@ public class CronJobWorkDirCleanUpRequest extends CronJobRequest {
 			List<File> list = new ArrayList<File>();
 			
 			for (Drive drive: vfs.getMapDrivesAll().values()) {
-				for (VFSBucket bucket: vfs.listAllBuckets()) {
-					File bucketDir = new File (drive.getBucketWorkDirPath(bucket.getName()));
+				for (ODBucket bucket: vfs.listAllBuckets()) {
+					File bucketDir = new File (drive.getBucketWorkDirPath(bucket.getId()));
 					if (bucketDir.exists()) {
 						File files[] = bucketDir.listFiles();
 		

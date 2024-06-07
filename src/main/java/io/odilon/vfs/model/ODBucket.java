@@ -32,10 +32,10 @@ import io.odilon.model.BucketStatus;
  *
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
-public interface VFSBucket {
+public interface ODBucket {
 	
 	public String getName();
-	// public String getId();
+	public Long getId();
 	public OffsetDateTime getCreationDate();
 	public BucketStatus getStatus();
 	public BucketMetadata getBucketMetadata();

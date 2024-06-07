@@ -30,13 +30,13 @@ import io.odilon.service.SystemService;
  */
 public interface LockService extends SystemService {
 	
-	public ReadWriteLock getObjectLock(String bucketName, String objectName);
-	public ReadWriteLock getBucketLock(String bucketName);
+	public ReadWriteLock getObjectLock(Long bucketId, String objectName);
+	public ReadWriteLock getBucketLock(Long bucketId);
 	
 	public ReadWriteLock getServerLock();
 	
 	
-	public ReadWriteLock getFileCacheLock(String bucketName, String objectName, Optional<Integer> version);
+	public ReadWriteLock getFileCacheLock(Long bucketId, String objectName, Optional<Integer> version);
 	
 	
 	

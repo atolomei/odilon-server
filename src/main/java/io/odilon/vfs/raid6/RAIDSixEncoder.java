@@ -107,28 +107,28 @@ public class RAIDSixEncoder {
 	 *</p>
 	 * 
 	 * @param is
-	 * @param bucketName
+	 * @param bucketId
 	 * @param objectName
 	 * 
 	 * @return the size of the source file in bytes (note that the disk used by the shards 
 	 * is more (16 bytes for the file size plus the padding to make every shard multiple of 4)
 	 */
 	
-	public RAIDSixBlocks encodeHead (InputStream is, String bucketName, String objectName) {
-		return encode(is, bucketName, objectName, Optional.empty());
+	public RAIDSixBlocks encodeHead (InputStream is, Long bucketId, String objectName) {
+		return encode(is,  bucketId, objectName, Optional.empty());
 	}
 	
-	public RAIDSixBlocks encodeVersion (InputStream is, String bucketName, String objectName, int version) {
-		return encode(is, bucketName, objectName, Optional.of(version));
+	public RAIDSixBlocks encodeVersion (InputStream is, Long  bucketId, String objectName, int version) {
+		return encode(is,  bucketId, objectName, Optional.of(version));
 		
 	}
 	
-	protected RAIDSixBlocks encode (InputStream is, String bucketName, String objectName, Optional<Integer> version ) {
+	protected RAIDSixBlocks encode (InputStream is, Long bucketId, String objectName, Optional<Integer> version ) {
 		
 		Check.requireNonNull(is);
 		
     	Check.requireNonNull(objectName);
-    	Check.requireNonNull(bucketName);
+    	Check.requireNonNull(bucketId);
     	
     	if (!driver.isConfigurationValid(data_shards, partiy_shards))
 			throw new InternalCriticalException("Incorrect configuration for RAID 6 -> data: " + String.valueOf(data_shards) + " | parity:" + String.valueOf(partiy_shards));
@@ -145,7 +145,7 @@ public class RAIDSixEncoder {
     	try (is) {
 
     		while (!done)  
-	    		done = encodeChunk(is, bucketName, objectName, chunk++, version);
+	    		done = encodeChunk(is, bucketId, objectName, chunk++, version);
 	    	
 	    } catch (Exception e) {
 	    		throw new InternalCriticalException(e, "o:" + objectName);
@@ -159,7 +159,7 @@ public class RAIDSixEncoder {
      * 
      * @param is
      */
-    public boolean encodeChunk(InputStream is, String bucketName, String objectName, int chunk, Optional<Integer> o_version) {
+    public boolean encodeChunk(InputStream is, Long bucketId, String objectName, int chunk, Optional<Integer> o_version) {
 
     	// BUFFER 1
     	final byte [] allBytes = new byte[ ServerConstant.MAX_CHUNK_SIZE ];
@@ -178,7 +178,7 @@ public class RAIDSixEncoder {
 				done = eof || (totalBytesRead==maxBytesToRead);
 			}
 		} catch (IOException e) {
-			throw new InternalCriticalException(e, " reading inputStream | b:" +bucketName + ", o:" + objectName);
+			throw new InternalCriticalException(e, " reading inputStream | b:" +bucketId.toString() + ", o:" + objectName);
 		}
 
 		if (totalBytesRead==0) 
@@ -211,16 +211,16 @@ public class RAIDSixEncoder {
         for (int disk = 0; disk < total_shards; disk++) {
 
         	if (isWrite(disk)) {
-	        	String dirPath = getDrives().get(disk).getBucketObjectDataDirPath(bucketName)      + ((o_version.isEmpty()) ? "" : (File.separator + VirtualFileSystemService.VERSION_DIR));
+	        	String dirPath = getDrives().get(disk).getBucketObjectDataDirPath(bucketId)      + ((o_version.isEmpty()) ? "" : (File.separator + VirtualFileSystemService.VERSION_DIR));
 	        	String name = objectName+ "." + String.valueOf(chunk) +"." + String.valueOf(disk)  + (o_version.isEmpty()   ? "" : "v." +  String.valueOf(o_version.get().intValue()));
 	        	
 	        	File outputFile = new File(dirPath, name);
 				try  (OutputStream out = new BufferedOutputStream(new FileOutputStream(outputFile))) {
 					out.write(shards[disk]);
 		        } catch (FileNotFoundException e) {
-					throw new InternalCriticalException(e, "b:" +bucketName + ", o:" + objectName +" f: " + name);
+					throw new InternalCriticalException(e, "b:" +bucketId.toString() + ", o:" + objectName +" f: " + name);
 				} catch (IOException e) {
-					throw new InternalCriticalException(e, "b:" +bucketName + ", o:" + objectName +" f: " + name);
+					throw new InternalCriticalException(e, "b:" +bucketId.toString() + ", o:" + objectName +" f: " + name);
 				}
 				this.encodedInfo.encodedBlocks.add(outputFile);
         	}

@@ -16,6 +16,7 @@
  */
 package io.odilon.monitor;
 
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -43,7 +44,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.odilon.OdilonVersion;
 import io.odilon.log.Logger;
 import io.odilon.model.RedundancyLevel;
-import io.odilon.model.ServerConstant;
+
 import io.odilon.model.ServiceStatus;
 import io.odilon.model.SharedConstant;
 import io.odilon.model.SystemInfo;

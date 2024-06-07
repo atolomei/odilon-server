@@ -26,7 +26,8 @@ import io.odilon.log.Logger;
 import io.odilon.util.Check;
 
 /**
- * <p>Data Storage modes</p>
+ * <p>Data Storage modes. They can be standard (Read Write), ReadOnly, or WORM
+ * (Write Once Read Many)</p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */

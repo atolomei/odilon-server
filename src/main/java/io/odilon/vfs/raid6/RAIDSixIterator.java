@@ -39,6 +39,7 @@ import io.odilon.model.ServerConstant;
 import io.odilon.util.Check;
 import io.odilon.vfs.model.BucketIterator;
 import io.odilon.vfs.model.Drive;
+import io.odilon.vfs.model.ODBucket;
 
 
 /**
@@ -96,8 +97,8 @@ public class RAIDSixIterator extends BucketIterator implements Closeable {
 	 * @param opOffset
 	 * @param opPrefix
 	 */
-	public RAIDSixIterator(RAIDSixDriver driver, String bucketName, Optional<Long> opOffset,  Optional<String> opPrefix) {
-		super(bucketName);
+	public RAIDSixIterator(RAIDSixDriver driver, ODBucket bucket, Optional<Long> opOffset,  Optional<String> opPrefix) {
+		super(bucket);
 		
 		Check.requireNonNull(driver);
 		
@@ -165,7 +166,7 @@ public class RAIDSixIterator extends BucketIterator implements Closeable {
 	
 	private void init() {
 		
-		Path start = new File(getDrive().getBucketMetadataDirPath(getBucketName())).toPath();
+		Path start = new File(getDrive().getBucketMetadataDirPath(getBucketId())).toPath();
 		try {
 			this.stream = Files.walk(start, 1).skip(1).
 					filter(file -> Files.isDirectory(file)).
@@ -205,7 +206,7 @@ public class RAIDSixIterator extends BucketIterator implements Closeable {
 	 */
 	@SuppressWarnings("unused")
 	private boolean isObjectStateEnabled(Path path) {
-		ObjectMetadata meta = getDriver().getObjectMetadata(getBucketName(), path.toFile().getName());
+		ObjectMetadata meta = getDriver().getObjectMetadata(getBucket(), path.toFile().getName());
 		if (meta==null)
 			return false;
 		if (meta.status == ObjectStatus.ENABLED) 

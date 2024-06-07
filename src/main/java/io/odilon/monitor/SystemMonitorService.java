@@ -40,8 +40,9 @@ import io.odilon.service.ServerSettings;
 import io.odilon.service.SystemService;
 
 /**
- * <p>Dynamic metrics on the status of the server<. It uses the <a href="https://metrics.dropwizard.io">Dropwizard Metrics library</a></p>
- * <p>For hardware, base software and Odilon server's configuration there is a {@link SystemInfoService}  </p>
+ * <p>Dynamic metrics on the status of the server. 
+ * It uses the <a href="https://metrics.dropwizard.io">Dropwizard Metrics library</a></p>
+ * <p>For non dynamic configurations attributes (hardware, base software, Odilon server) there is {@link SystemInfoService}</p>
  *   
  *@author atolomei@novamens.com (Alejandro Tolomei)
  */
@@ -64,8 +65,9 @@ public class SystemMonitorService extends BaseService implements SystemService {
 	private Meter allAPICallMeter;
 	
 	
-	// ----------------------------
-	// OBJECT CRUD
+	/** ----------------------------
+	 * OBJECT CRUD
+	 */
 
 	@JsonIgnore
 	private Counter createObjectCounter;
@@ -80,8 +82,9 @@ public class SystemMonitorService extends BaseService implements SystemService {
 	private Counter deleteObjectVersionCounter;
 	
 
-	// ----------------------------
-	// OBJECT VERSION CONTROL
+	/** ----------------------------
+	* OBJECT VERSION CONTROL
+	*/
 
 	@JsonIgnore
 	private Counter objectRestorePreviousVersionCounter;
@@ -322,14 +325,14 @@ public class SystemMonitorService extends BaseService implements SystemService {
 		me.replicaRestoreObjectPreviousVersionCounter	= this.replicaRestoreObjectPreviousVersionCounter.getCount();
 		me.replicaDeleteObjectAllVersionsCounter 		= this.replicaDeleteObjectAllVersionsCounter.getCount();
 					
-		me.cacheObjectHitCounter 		= this.cacheObjectHitCounter.getCount();
-		me.cacheObjectMissCounter 		= this.cacheObjectMissCounter.getCount();
-		me.cacheObjectSize 				= this.objectCacheService.size();
+		me.cacheObjectHitCounter 						= this.cacheObjectHitCounter.getCount();
+		me.cacheObjectMissCounter 						= this.cacheObjectMissCounter.getCount();
+		me.cacheObjectSize 								= this.objectCacheService.size();
 		
-		me.cacheFileHitCounter 			= this.cacheFileHitCounter.getCount();
-		me.cacheFileMissCounter 		= this.cacheFileMissCounter.getCount();
-		me.cacheFileSize 				= this.fileCacheService.size();
-		me.cacheFileHardDiskUsage 		= this.fileCacheService.hardDiskUsage();
+		me.cacheFileHitCounter 							= this.cacheFileHitCounter.getCount();
+		me.cacheFileMissCounter					 		= this.cacheFileMissCounter.getCount();
+		me.cacheFileSize 								= this.fileCacheService.size();
+		me.cacheFileHardDiskUsage				 		= this.fileCacheService.hardDiskUsage();
 
 		set(me.encrpytFileMeter, 	this.encrpytFileMeter);
 		set(me.decryptFileMeter, 	this.decryptFileMeter);

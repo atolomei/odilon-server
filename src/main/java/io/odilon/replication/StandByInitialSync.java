@@ -42,7 +42,7 @@ import io.odilon.model.list.Item;
 import io.odilon.vfs.ODVFSOperation;
 import io.odilon.vfs.model.IODriver;
 import io.odilon.vfs.model.LockService;
-import io.odilon.vfs.model.VFSBucket;
+import io.odilon.vfs.model.ODBucket;
 import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VFSop;
 import io.odilon.vfs.model.VirtualFileSystemService;
@@ -192,10 +192,10 @@ public class StandByInitialSync implements Runnable {
 			
 			executor = Executors.newFixedThreadPool(maxProcessingThread);
 			
-			List<VFSBucket> buckets = this.driver.getVFS().listAllBuckets();
+			List<ODBucket> buckets = this.driver.getVFS().listAllBuckets();
 			boolean completed = buckets.isEmpty();
 			
-			for (VFSBucket bucket: buckets) {
+			for (ODBucket bucket: buckets) {
 				
 				Integer pageSize = Integer.valueOf(ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE);
 				Long offset = Long.valueOf(0);
@@ -233,11 +233,11 @@ public class StandByInitialSync implements Runnable {
 											
 											boolean objectSynced = false;
 											
-											getLockService().getObjectLock(item.getObject().bucketName, item.getObject().objectName).readLock().lock();
+											getLockService().getObjectLock(item.getObject().bucketId, item.getObject().objectName).readLock().lock();
 											
 											try {
 												
-												getLockService().getBucketLock(item.getObject().bucketName).readLock().lock();
+												getLockService().getBucketLock(item.getObject().bucketId).readLock().lock();
 												
 												try {
 											
@@ -245,11 +245,12 @@ public class StandByInitialSync implements Runnable {
 															(item.getObject().dateSynced.isBefore(info.getStandByStartDate()))
 														) {
 														
-														logger.debug(item.getObject().bucketName+"-"+item.getObject().objectName);
+														logger.debug(item.getObject().bucketId.toString()+"-"+item.getObject().objectName);
 														
 														VFSOperation op = new ODVFSOperation(	getDriver().getVFS().getJournalService().newOperationId(), 
 																									VFSop.CREATE_OBJECT,  
-																									Optional.of(item.getObject().bucketName),
+																									Optional.of(item.getObject().bucketId),
+																									Optional.of(getDriver().getVFS().getBucketById(item.getObject().bucketId).getName()),
 																									Optional.of(item.getObject().objectName),
 																									Optional.of(Integer.valueOf(item.getObject().version)),
 																									getDriver().getVFS().getRedundancyLevel(), 
@@ -265,16 +266,16 @@ public class StandByInitialSync implements Runnable {
 													}
 													
 												} catch (Exception e) {
-													logger.error(e, "can not sync -> " + item.getObject().bucketName+"-"+item.getObject().objectName, SharedConstant.NOT_THROWN);
-													intialSynclogger.error(e, "can not sync -> " + item.getObject().bucketName+"-"+item.getObject().objectName);
+													logger.error(e, "can not sync -> " + item.getObject().bucketId.toString()+"-"+item.getObject().objectName, SharedConstant.NOT_THROWN);
+													intialSynclogger.error(e, "can not sync -> " + item.getObject().bucketId.toString()+"-"+item.getObject().objectName);
 													this.errors.getAndIncrement();
 												}
 												finally {
-													getLockService().getBucketLock(item.getObject().bucketName).readLock().unlock();
+													getLockService().getBucketLock(item.getObject().bucketId).readLock().unlock();
 													
 												}
 											} finally {
-												getLockService().getObjectLock(item.getObject().bucketName, item.getObject().objectName).readLock().unlock();
+												getLockService().getObjectLock(item.getObject().bucketId, item.getObject().objectName).readLock().unlock();
 											}
 											
 											if (objectSynced) {
@@ -285,8 +286,8 @@ public class StandByInitialSync implements Runnable {
 													getDriver().putObjectMetadata(meta);
 												
 												} catch (Exception e) {
-													logger.error("can not sync ObjectMetadata -> " + item.getObject().bucketName+"-"+item.getObject().objectName, SharedConstant.NOT_THROWN);
-													intialSynclogger.error("can not sync ObjectMetadata -> " + item.getObject().bucketName+"-"+item.getObject().objectName);
+													logger.error("can not sync ObjectMetadata -> " + item.getObject().bucketId.toString()+"-"+item.getObject().objectName, SharedConstant.NOT_THROWN);
+													intialSynclogger.error("can not sync ObjectMetadata -> " + item.getObject().bucketId.toString()+"-"+item.getObject().objectName);
 													intialSynclogger.error(e, SharedConstant.NOT_THROWN);
 													this.errors.getAndIncrement();
 												}

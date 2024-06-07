@@ -38,10 +38,14 @@ import io.odilon.service.ServerSettings;
 import io.odilon.vfs.model.VFSop;
 
 /**
- * <p>{@link ObjectMetadata} cache. It only stores ObjectMetadata <b>head< version/b></p> 
- * <p>It Uses {@link Caffeine} to keep references to entries in memory.</p> 
+ * <p>{@link ObjectMetadata} Cache. It only stores ObjectMetadata's <b>head version</b></p> 
+ * <p>It Uses {@link Caffeine} to keep references to entries in memory
+ * (<a href="https://github.com/ben-manes/caffeine">Caffeine on GitHub).</a>
+ * </p> 
  *  
  * @author atolomei@novamens.com (Alejandro Tolomei)
+ * 
+ * 
  */
 @Service
 public class ObjectMetadataCacheService extends BaseService implements ApplicationListener<CacheEvent>  {
@@ -67,20 +71,20 @@ public class ObjectMetadataCacheService extends BaseService implements Applicati
         return getCache().estimatedSize(); 	
     }
     
-    public boolean containsKey(String bucketName, String objectName) {
-    	return (getCache().getIfPresent(getKey(bucketName, objectName))!=null);
+    public boolean containsKey(Long bucketId, String objectName) {
+    	return (getCache().getIfPresent(getKey(bucketId, objectName))!=null);
     }
 
-    public ObjectMetadata get(String bucketName, String objectName) {
-    	return getCache().getIfPresent(getKey(bucketName, objectName));
+    public ObjectMetadata get(Long bucketId, String objectName) {
+    	return getCache().getIfPresent(getKey(bucketId, objectName));
     }
 
-    public void put(String bucketName, String objectName, ObjectMetadata value) {
-    	getCache().put(getKey(bucketName, objectName), value);
+    public void put(Long bucketId, String objectName, ObjectMetadata value) {
+    	getCache().put(getKey(bucketId, objectName), value);
     }
 
-    public void remove(String bucketName, String objectName) {
-    	getCache().invalidate(getKey(bucketName, objectName));
+    public void remove(Long bucketId, String objectName) {
+    	getCache().invalidate(getKey(bucketId, objectName));
     }
     
     
@@ -101,29 +105,29 @@ public class ObjectMetadataCacheService extends BaseService implements Applicati
     	
     	
 		if (event.getVFSOperation().getOp()==VFSop.CREATE_OBJECT) {
-			remove(event.getVFSOperation().getBucketName(), event.getVFSOperation().getObjectName());
+			remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName());
 			return;
 		}
 		if (event.getVFSOperation().getOp()==VFSop.UPDATE_OBJECT) {
-			remove(event.getVFSOperation().getBucketName(), event.getVFSOperation().getObjectName());
+			remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName());
 			return;
 		}
 		if (event.getVFSOperation().getOp()==VFSop.RESTORE_OBJECT_PREVIOUS_VERSION) {
-			remove(event.getVFSOperation().getBucketName(), event.getVFSOperation().getObjectName());
+			remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName());
 			return;
 		}
 		if (event.getVFSOperation().getOp()==VFSop.DELETE_OBJECT) {
-			remove(event.getVFSOperation().getBucketName(), event.getVFSOperation().getObjectName());
+			remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName());
 			return;
 		}
 		
 		if (event.getVFSOperation().getOp()==VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS) {
-			remove(event.getVFSOperation().getBucketName(), event.getVFSOperation().getObjectName());
+			remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName());
 			return;
 		}
 		
 		if (event.getVFSOperation().getOp()==VFSop.SYNC_OBJECT_NEW_DRIVE) {
-			remove(event.getVFSOperation().getBucketName(), event.getVFSOperation().getObjectName());
+			remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName());
 			return;
 		}
     }
@@ -153,8 +157,8 @@ public class ObjectMetadataCacheService extends BaseService implements Applicati
      * @param objectName
      * @return
      */
-    private String getKey( String bucketName, String objectName) {
-    	return bucketName+File.separator+objectName;
+    private String getKey(Long bucketId, String objectName) {
+    	return bucketId.toString() + File.separator + objectName;
     }
     
     private Cache<String, ObjectMetadata> getCache() {

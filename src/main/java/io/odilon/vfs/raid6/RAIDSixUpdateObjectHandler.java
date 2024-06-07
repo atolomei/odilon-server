@@ -42,7 +42,7 @@ import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
 import io.odilon.util.ODFileUtils;
 import io.odilon.vfs.model.Drive;
-import io.odilon.vfs.model.VFSBucket;
+import io.odilon.vfs.model.ODBucket;
 import io.odilon.vfs.model.VFSOperation;
 
 import io.odilon.vfs.model.VirtualFileSystemService;
@@ -78,13 +78,15 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 	 * @param srcFileName
 	 * @param contentType
 	 */
-	protected void update(VFSBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType) {
+	protected void update(ODBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType) {
 	
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 		Check.requireNonNullArgument(stream, "stream is null");
 
 		String bucketName = bucket.getName();
+		Long bucketId = bucket.getId();
+				
 		VFSOperation op = null;
 		boolean done = false;
 		boolean isMainException = false;
@@ -93,21 +95,21 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 		int afterHeadVersion = -1;
 		ObjectMetadata meta = null;
 		
-		getLockService().getObjectLock(bucketName, objectName).writeLock().lock();
+		getLockService().getObjectLock(bucketId, objectName).writeLock().lock();
 		
 		try {
 		
-				getLockService().getBucketLock(bucketName).readLock().lock();
+				getLockService().getBucketLock(bucketId).readLock().lock();
 			
 				try (stream) {
 		
-					if (!getDriver().getObjectMetadataReadDrive(bucketName, objectName).existsObjectMetadata(bucketName, objectName))
+					if (!getDriver().getObjectMetadataReadDrive(bucketId, objectName).existsObjectMetadata(bucketId, objectName))
 						throw new IllegalArgumentException(" object not found -> b:" + bucketName + " o:"+ objectName);
 					
-					meta = getDriver().getObjectMetadataInternal(bucketName, objectName, false);
+					meta = getDriver().getObjectMetadataInternal(bucketId, objectName, false);
 					beforeHeadVersion = meta.version;							
 																
-					op = getJournalService().updateObject(bucketName, objectName, beforeHeadVersion);
+					op = getJournalService().updateObject(bucketId, objectName, beforeHeadVersion);
 					
 					/** backup current head version */
 					backupVersionObjectDataFile(meta, meta.version);
@@ -146,12 +148,12 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 								cleanUpUpdate(meta, beforeHeadVersion, afterHeadVersion);
 						}
 					} finally {
-						getLockService().getBucketLock(bucket.getName()).readLock().unlock();
+						getLockService().getBucketLock(bucketId).readLock().unlock();
 					}
 				}
 		
 		} finally {
-			getLockService().getObjectLock(bucket.getName(), objectName).writeLock().unlock();
+			getLockService().getObjectLock(bucketId, objectName).writeLock().unlock();
 		}
 	}
 
@@ -176,14 +178,14 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 		
 		boolean done = false;
 		
-		getLockService().getObjectLock( meta.bucketName, meta.objectName).writeLock().lock();		
+		getLockService().getObjectLock( meta.bucketId, meta.objectName).writeLock().lock();		
 			
 		try {
-				getLockService().getBucketLock( meta.bucketName).readLock().lock();
+				getLockService().getBucketLock( meta.bucketId).readLock().lock();
 				
 				try {
 						
-					op = getJournalService().updateObjectMetadata(meta.bucketName, meta.objectName, meta.version);
+					op = getJournalService().updateObjectMetadata(meta.bucketId, meta.objectName, meta.version);
 			
 					backupMetadata(meta);
 					saveObjectMetadata(meta, isHead);
@@ -192,7 +194,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 						
 				} catch (Exception e) {
 						done=false;
-						throw new InternalCriticalException(e, "b:" + meta.bucketName + ", o:" + meta.objectName); 
+						throw new InternalCriticalException(e, "b:" + meta.bucketId + ", o:" + meta.objectName); 
 						
 				} finally {
 						try {
@@ -200,19 +202,19 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 									try {
 										rollbackJournal(op, false);
 									} catch (Exception e) {
-										throw new InternalCriticalException(e, "b:" + (Optional.ofNullable(meta.bucketName).isPresent() ? (meta.bucketName) :"null")); 
+										throw new InternalCriticalException(e, "b:" + (Optional.ofNullable(meta.bucketId).isPresent() ? (meta.bucketName) :"null")); 
 									}
 							}
 							else {
 								/** TODO AT -> Sync by the moment. TODO see how to make it Async */
-								cleanUpBackupMetadataDir(meta.bucketName, meta.objectName);
+								cleanUpBackupMetadataDir(meta.bucketId, meta.objectName);
 							}
 						} finally {
-							getLockService().getBucketLock(meta.bucketName).readLock().unlock();
+							getLockService().getBucketLock(meta.bucketId).readLock().unlock();
 						}
 				}
 		} finally {
-				getLockService().getObjectLock(meta.bucketName, meta.objectName).writeLock().unlock();
+				getLockService().getObjectLock(meta.bucketId, meta.objectName).writeLock().unlock();
 		}
 	}
 
@@ -227,7 +229,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 	 */
 	 
 	 
-	 protected ObjectMetadata restorePreviousVersion(VFSBucket bucket, String objectName) {
+	 protected ObjectMetadata restorePreviousVersion(ODBucket bucket, String objectName) {
 		
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		String bucketName = bucket.getName();
@@ -245,15 +247,15 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 		ObjectMetadata metaHeadToRemove = null;
 		ObjectMetadata metaToRestore = null;
 		
-		getLockService().getObjectLock(bucket.getName(), objectName).writeLock().lock();
+		getLockService().getObjectLock(bucket.getId(), objectName).writeLock().lock();
 
 			try {
 				
-				getLockService().getBucketLock(bucketName).readLock().lock();
+				getLockService().getBucketLock(bucket.getId()).readLock().lock();
 			
 				try {
 					
-					metaHeadToRemove = getDriver().getObjectMetadataInternal(bucketName, objectName, false);
+					metaHeadToRemove = getDriver().getObjectMetadataInternal(bucket.getId(), objectName, false);
 		
 					if (metaHeadToRemove.getVersion()==0)
 						throw new IllegalArgumentException(	"Object does not have any previous version | " + "b:" +	 bucketName + " o:" + objectName);
@@ -265,7 +267,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 					List<ObjectMetadata> metaVersions = new ArrayList<ObjectMetadata>();
 					
 					for (int version=0; version<beforeHeadVersion; version++) {
-						ObjectMetadata mv = getDriver().getObjectMetadataReadDrive(bucketName, objectName).getObjectMetadataVersion(bucketName, objectName, version);
+						ObjectMetadata mv = getDriver().getObjectMetadataReadDrive(bucket.getId(), objectName).getObjectMetadataVersion(bucket.getId(), objectName, version);
 						if (mv!=null)
 							metaVersions.add(mv);
 					}
@@ -273,7 +275,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 					if (metaVersions.isEmpty()) 
 						throw new OdilonObjectNotFoundException(Optional.of(metaHeadToRemove.systemTags).orElse("previous versions deleted"));
 					
-					op = getJournalService().restoreObjectPreviousVersion(bucketName, objectName, beforeHeadVersion);
+					op = getJournalService().restoreObjectPreviousVersion(bucket.getId(), objectName, beforeHeadVersion);
 					
 					/** save current head version MetadataFile .vN  and data File vN - no need to additional backup */
 					backupVersionObjectDataFile(metaHeadToRemove,  metaHeadToRemove.version);
@@ -285,7 +287,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 					if (!restoreVersionObjectDataFile(metaToRestore, metaToRestore.version))
 						throw new OdilonObjectNotFoundException(Optional.of(metaHeadToRemove.systemTags).orElse("previous versions deleted"));
 					
-					if (!restoreVersionObjectMetadata(metaToRestore.bucketName, metaToRestore.objectName, metaToRestore.version))
+					if (!restoreVersionObjectMetadata(metaToRestore.bucketId, metaToRestore.objectName, metaToRestore.version))
 						throw new OdilonObjectNotFoundException(Optional.of(metaHeadToRemove.systemTags).orElse("previous versions deleted"));
 					
 					
@@ -330,11 +332,11 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 								cleanUpRestoreVersion(metaHeadToRemove, beforeHeadVersion, metaToRestore);
 						}
 					} finally {
-						getLockService().getBucketLock(bucket.getName()).readLock().unlock();
+						getLockService().getBucketLock(bucket.getId()).readLock().unlock();
 					}
 				}
 			} finally {
-				getLockService().getObjectLock(bucket.getName(), objectName).writeLock().unlock();
+				getLockService().getObjectLock(bucket.getId(), objectName).writeLock().unlock();
 			}
 	}
 
@@ -381,11 +383,12 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 	
 				String bucketName = metaHeadRemoved.bucketName;
 				String objectName = metaHeadRemoved.objectName;
+				Long bucketId  = metaHeadRemoved.bucketId;
 				
 				// Metadata
 				for (Drive drive: getDriver().getDrivesAll()) {
-					FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(bucketName, objectName,  versionDiscarded));
-					FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(bucketName, objectName,  metaNewHeadRestored.version));
+					FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(bucketId, objectName,  versionDiscarded));
+					FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(bucketId, objectName,  metaNewHeadRestored.version));
 				}
 				
 				{
@@ -411,15 +414,16 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 	 * @param objectName
 	 * @param version
 	 */
-	private void backupVersionObjectMetadata(VFSBucket bucket, String objectName,	int version) {
+	private void backupVersionObjectMetadata(ODBucket bucket, String objectName,	int version) {
 		
 		String bucketName = bucket.getName();
+		Long bucketId = bucket.getId();
 		
 		try {
 			for (Drive drive: getDriver().getDrivesAll()) {
-				File file=drive.getObjectMetadataFile(bucket.getName(), objectName);
+				File file=drive.getObjectMetadataFile(bucketId, objectName);
 				if (file.exists())
-					drive.putObjectMetadataVersionFile(bucket.getName(), objectName, version, file);
+					drive.putObjectMetadataVersionFile(bucketId, objectName, version, file);
 			}
 		
 		} catch (InternalCriticalException e) {
@@ -444,9 +448,9 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 		
 		for (Drive drive: map.keySet()) {
 			for (String filename: map.get(drive)) {
-				File current = new File(drive.getBucketObjectDataDirPath(meta.bucketName), filename);
+				File current = new File(drive.getBucketObjectDataDirPath(meta.bucketId), filename);
 				String suffix = ".v"+ String.valueOf(headVersion);
-				File backupFile = new File(drive.getBucketObjectDataDirPath(meta.bucketName) + File.separator + VirtualFileSystemService.VERSION_DIR, filename + suffix);
+				File backupFile = new File(drive.getBucketObjectDataDirPath(meta.bucketId) + File.separator + VirtualFileSystemService.VERSION_DIR, filename + suffix);
 				try {
 					
 					if(current.exists())
@@ -471,7 +475,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 	 * @param version
 	 * @param headCreationDate
 	 */
-	private void saveObjectMetadata(VFSBucket bucket, String objectName, RAIDSixBlocks ei, String srcFileName, String contentType, int version, OffsetDateTime headCreationDate) {
+	private void saveObjectMetadata(ODBucket bucket, String objectName, RAIDSixBlocks ei, String srcFileName, String contentType, int version, OffsetDateTime headCreationDate) {
 		
 		List<String> shaBlocks = new ArrayList<String>();
 		StringBuilder etag_b = new StringBuilder();
@@ -499,7 +503,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 		for (Drive drive: getDriver().getDrivesAll()) {
 			
 			try {
-				ObjectMetadata meta = new ObjectMetadata(bucket.getName(), objectName);
+				ObjectMetadata meta = new ObjectMetadata(bucket.getId(), objectName);
 				
 				meta.fileName=srcFileName;
 				meta.appVersion=OdilonVersion.VERSION;
@@ -531,14 +535,14 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 	 * @param stream
 	 * @param srcFileName
 	 */
-	private RAIDSixBlocks saveObjectDataFile(VFSBucket bucket, String objectName, InputStream stream) {
+	private RAIDSixBlocks saveObjectDataFile(ODBucket bucket, String objectName, InputStream stream) {
 		
 		InputStream sourceStream = null;
 		boolean isMainException = false;
 		try {
 				sourceStream = isEncrypt() ? (getVFS().getEncryptionService().encryptStream(stream)) : stream;
 				RAIDSixEncoder encoder = new RAIDSixEncoder(getDriver());
-				return encoder.encodeHead(sourceStream, bucket.getName(), objectName);
+				return encoder.encodeHead(sourceStream, bucket.getId(), objectName);
 			
 			} catch (Exception e) {
 				isMainException = true;
@@ -576,7 +580,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 			if (getVFS().getServerSettings().isStandByEnabled()) 
 				getVFS().getReplicationService().cancel(op);
 			
-			restoreVersionObjectMetadata(op.getBucketName(), op.getObjectName(),  op.getVersion());
+			restoreVersionObjectMetadata(op.getBucketId(), op.getObjectName(),  op.getVersion());
 			
 			done = true;
 		
@@ -611,10 +615,10 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 	private void backupMetadata(ObjectMetadata meta) {
 		try {
 			for (Drive drive: getDriver().getDrivesAll()) {
-				String objectMetadataDirPath = drive.getObjectMetadataDirPath(meta.bucketName, meta.objectName);
+				String objectMetadataDirPath = drive.getObjectMetadataDirPath(meta.bucketId, meta.objectName);
 				File src=new File(objectMetadataDirPath);
 				if (src.exists()) 
-					FileUtils.copyDirectory(src, new File(drive.getBucketWorkDirPath(meta.bucketName) + File.separator + meta.objectName));
+					FileUtils.copyDirectory(src, new File(drive.getBucketWorkDirPath(meta.bucketId) + File.separator + meta.objectName));
 				
 			}
 		} catch (IOException e) {
@@ -628,11 +632,11 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 	 * @param bucketName
 	 * @param objectName
 	 */
-	private void cleanUpBackupMetadataDir(String bucketName, String objectName) {
+	private void cleanUpBackupMetadataDir(Long bucketId, String objectName) {
 		
 		try {
 				for (Drive drive: getDriver().getDrivesAll()) {
-				FileUtils.deleteQuietly(new File(drive.getBucketWorkDirPath(bucketName) + File.separator + objectName));
+				FileUtils.deleteQuietly(new File(drive.getBucketWorkDirPath(bucketId) + File.separator + objectName));
 			}
 		} catch (Exception e) {
 			logger.error(e, SharedConstant.NOT_THROWN);
@@ -650,7 +654,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 			if (!getVFS().getServerSettings().isVersionControl()) {
 				
 				for (Drive drive: getDriver().getDrivesAll()) {
-					FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(meta.bucketName, meta.objectName, previousVersion));
+					FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(meta.bucketId, meta.objectName, previousVersion));
 					List<File> files = getDriver().getObjectDataFiles(meta, Optional.of(previousVersion));
 					files.forEach( file -> {FileUtils.deleteQuietly(file);});
 				}
@@ -679,15 +683,15 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 	 * @param version
 	 * @return
 	 */
-	private boolean restoreVersionObjectMetadata(String bucketName, String objectName, int version) {
+	private boolean restoreVersionObjectMetadata(Long bucketId, String objectName, int version) {
 		
-		Check.requireNonNullArgument(bucketName, "bucketName is null");
-		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketName);
+		Check.requireNonNullArgument(bucketId, "bucketId is null");
+		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketId.toString());
 
 		try {
 			boolean success = true;
 			
-			ObjectMetadata versionMeta = getDriver().getObjectMetadataVersion(bucketName, objectName, version);
+			ObjectMetadata versionMeta = getDriver().getObjectMetadataVersion(bucketId, objectName, version);
 			
 			for (Drive drive: getDriver().getDrivesAll()) {
 				versionMeta.drive=drive.getName();
@@ -698,7 +702,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 		} catch (InternalCriticalException e) {
 			throw e;
 		} catch (Exception e) {
-			throw new InternalCriticalException(e, "b:"+ bucketName +" o:" + objectName);
+			throw new InternalCriticalException(e, "b:"+ bucketId.toString() +" o:" + objectName);
 		}
 	}
 
@@ -718,9 +722,9 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 					String arr[] =name.split(".v");
 					String headFileName = arr[0];
 					try {
-						if (new File(drive.getBucketObjectDataDirPath(meta.bucketName)+File.separator+VirtualFileSystemService.VERSION_DIR, name).exists()) {
-							Files.copy((new File(drive.getBucketObjectDataDirPath(meta.bucketName)+File.separator+VirtualFileSystemService.VERSION_DIR,  name)).toPath(), 
-									(new File(drive.getBucketObjectDataDirPath(meta.bucketName), headFileName)).toPath(), 
+						if (new File(drive.getBucketObjectDataDirPath(meta.bucketId)+File.separator+VirtualFileSystemService.VERSION_DIR, name).exists()) {
+							Files.copy((new File(drive.getBucketObjectDataDirPath(meta.bucketId)+File.separator+VirtualFileSystemService.VERSION_DIR,  name)).toPath(), 
+									(new File(drive.getBucketObjectDataDirPath(meta.bucketId), headFileName)).toPath(), 
 									StandardCopyOption.REPLACE_EXISTING);
 						}
 					} catch (IOException e) {
@@ -752,11 +756,11 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 			if (getVFS().getServerSettings().isStandByEnabled()) 
 				getVFS().getReplicationService().cancel(op);
 				
-			ObjectMetadata meta = getDriver().getObjectMetadataReadDrive(op.getBucketName(), op.getObjectName()).getObjectMetadata(op.getBucketName(), op.getObjectName());
+			ObjectMetadata meta = getDriver().getObjectMetadataReadDrive(op.getBucketId(), op.getObjectName()).getObjectMetadata(op.getBucketId(), op.getObjectName());
 			
 			if (meta!=null) {
 				restoreVersionObjectDataFile(meta, op.getVersion());
-				restoreVersionObjectMetadata(op.getBucketName(), op.getObjectName(),  op.getVersion());
+				restoreVersionObjectMetadata(op.getBucketId(), op.getObjectName(),  op.getVersion());
 			}
 			
 			done = true;

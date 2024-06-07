@@ -50,25 +50,25 @@ public interface JournalService extends SystemService {
 	 * BUCKET
 	 * ------------------*/
 
-	public VFSOperation createBucket(String bucketName);
-	public VFSOperation deleteBucket(String bucketName);
+	public VFSOperation createBucket(Long bucketId);
+	public VFSOperation deleteBucket(ODBucket bucket);
 	
 	/** -----------------
 	 * OJBECT
 	 * ------------------*/		
-	public VFSOperation createObject(String bucketName, String objectName);
-	public VFSOperation updateObject(String bucketName, String objectName, int version);
+	public VFSOperation createObject(Long bucketId, String objectName);
+	public VFSOperation updateObject(Long bucketId, String objectName, int version);
 	
-	public VFSOperation updateObjectMetadata(String bucketName, String objectName, int version);
+	public VFSOperation updateObjectMetadata(Long bucketId, String objectName, int version);
 
 	/** Version control */
-	public VFSOperation restoreObjectPreviousVersion(String bucketName, String objectName, int versionToRestore);
-	public VFSOperation deleteObject(String bucketName, String objectName, int currentHeadVersion);
-	public VFSOperation deleteObjectPreviousVersions(String bucketName, String objectName, int currentHeadVersion);
+	public VFSOperation restoreObjectPreviousVersion(Long bucketId, String objectName, int versionToRestore);
+	public VFSOperation deleteObject(Long bucketId, String objectName, int currentHeadVersion);
+	public VFSOperation deleteObjectPreviousVersions(Long bucketId, String objectName, int currentHeadVersion);
 	
 
 	/** sync new drive */
-	public VFSOperation syncObject(String bucketName, String objectName);
+	public VFSOperation syncObject(Long bucketId, String objectName);
 	
 	
 	

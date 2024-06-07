@@ -49,7 +49,7 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
  * 
- * <p>Object's presigned url</p>
+ * <p>API endopoint to get an Object's presigned url</p>
  * 
  * <p>A presigned URL is a way to grant temporary access to an Object, for example in an HTML webpage.
    It remains valid for a limited period of time which is specified when the URL is generated.</p>

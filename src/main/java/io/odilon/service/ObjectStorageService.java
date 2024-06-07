@@ -26,7 +26,7 @@ import io.odilon.model.ObjectMetadata;
 import io.odilon.model.SystemInfo;
 import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
-import io.odilon.vfs.model.VFSBucket;
+import io.odilon.vfs.model.ODBucket;
 import io.odilon.vfs.model.VFSObject;
 
 /**
@@ -39,12 +39,12 @@ public interface ObjectStorageService extends SystemService {
 	/** -------------------
 	* Bucket
 	* -------------------*/
-	public VFSBucket findBucketName(String bucketName);
+	public ODBucket findBucketName(String bucketName);
 	public void deleteBucketByName(String bucketName);
-	public List<VFSBucket> findAllBuckets();
+	public List<ODBucket> findAllBuckets();
 	
-	public VFSBucket createBucket(String bucketName);
-	public VFSBucket updateBucketName(VFSBucket bucket, String newBucketName);
+	public ODBucket createBucket(String bucketName);
+	public ODBucket updateBucketName(ODBucket bucket, String newBucketName);
 	
 	
 	public boolean existsBucket(String bucketName);

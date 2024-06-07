@@ -38,6 +38,7 @@ import io.odilon.model.ServerConstant;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ObjectStatus;
 import io.odilon.vfs.model.Drive;
+import io.odilon.vfs.model.ODBucket;
 import io.odilon.vfs.model.BucketIterator;
 
 
@@ -83,17 +84,17 @@ public class RAIDZeroIterator extends BucketIterator implements Closeable {
 	private boolean initiated = false;
 
 
-	public RAIDZeroIterator(RAIDZeroDriver driver, String bucketName, Optional<Long> opOffset,  Optional<String> opPrefix) {
-			this(driver, bucketName, opOffset, opPrefix, Optional.empty());
+	public RAIDZeroIterator(RAIDZeroDriver driver, ODBucket bucket, Optional<Long> opOffset,  Optional<String> opPrefix) {
+			this(driver, bucket, opOffset, opPrefix, Optional.empty());
 	}
 
 	
-	public RAIDZeroIterator(RAIDZeroDriver driver, String bucketName, Optional<Long> opOffset,  Optional<String> opPrefix, Optional<String> serverAgentId) {
-			super(bucketName);
+	public RAIDZeroIterator(RAIDZeroDriver driver, ODBucket bucket, Optional<Long> opOffset,  Optional<String> opPrefix, Optional<String> serverAgentId) {
+			super(bucket);
 
-		opOffset.ifPresent( x -> setOffset(x));
+		opOffset.ifPresent(x -> setOffset(x));
 		serverAgentId.ifPresent( x -> setAgentId(x));
-		opPrefix.ifPresent( x -> this.prefix=x);
+		opPrefix.ifPresent(x -> this.prefix=x);
 		this.driver = driver;
 		
 		/** after the VirtualFileService starts up
@@ -170,7 +171,7 @@ public class RAIDZeroIterator extends BucketIterator implements Closeable {
 	 */
 	private void init() {
 		for (Drive drive: getDrives()) {
-			Path start = new File(drive.getBucketMetadataDirPath(getBucketName())).toPath();
+			Path start = new File(drive.getBucketMetadataDirPath(getBucketId())).toPath();
 			Stream<Path> stream = null;
 			try {
 				stream = Files.walk(start, 1).
@@ -192,7 +193,7 @@ public class RAIDZeroIterator extends BucketIterator implements Closeable {
 	
 	@SuppressWarnings("unused")
 	private boolean isObjectStateEnabled(Path path) {
-		ObjectMetadata meta = driver.getObjectMetadata(getBucketName(), path.toFile().getName());
+		ObjectMetadata meta = driver.getObjectMetadata(getBucket(), path.toFile().getName());
 		if (meta==null)
 			return false;
 		if (meta.status == ObjectStatus.ENABLED) 

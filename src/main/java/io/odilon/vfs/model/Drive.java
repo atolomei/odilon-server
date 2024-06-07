@@ -43,8 +43,8 @@ public interface Drive {
 	public DriveInfo getDriveInfo();
 	public void setDriveInfo(DriveInfo info);
 
-	 public void cleanUpWorkDir(String name);
-	 public void cleanUpCacheDir(String name);
+	 public void cleanUpWorkDir(Long bucketId);
+	 public void cleanUpCacheDir(Long bucketId);
 	 
 
 	/** -----------------
@@ -67,10 +67,10 @@ public interface Drive {
 	public String getSysDirPath();
 	public String getBucketsDirPath();
 	public String getCacheDirPath();
-	public String getBucketCacheDirPath(String bucketName);
+	public String getBucketCacheDirPath(Long bucketId);
 	
 	public String getWorkDirPath();
-	public String getBucketWorkDirPath(String bucketName);
+	public String getBucketWorkDirPath(Long bucketId);
 	
 	String getJournalDirPath();
 	String getTempDirPath();
@@ -95,36 +95,36 @@ public interface Drive {
 	/** -----------------
 	 * Bucket
 	 ------------------*/
-	public File 				createBucket(String bucketName, BucketMetadata meta) throws IOException; 	
-	public boolean 				existsBucket(String bucketName);
-	public void 				deleteBucket(String bucketName); 											
+	public File 				createBucket(BucketMetadata meta) throws IOException; 	
+	public boolean 				existsBucket(Long bucketId);
+	public void 				deleteBucket(Long bucketId); 											
 	public List<DriveBucket> 	getBuckets();
-	public void 				markAsDeletedBucket(String bucketName);
-	public void 				markAsEnabledBucket(String bucketName);
-	public boolean 				isEmpty(String bucketName); 												
-	public String 				getBucketMetadataDirPath(String bucketName);
-	public String 				getBucketObjectDataDirPath(String bucketName);
+	public void 				markAsDeletedBucket(Long bucketId);
+	public void 				markAsEnabledBucket(Long bucketId);
+	public boolean 				isEmpty(Long bucketId); 												
+	public String 				getBucketMetadataDirPath(Long bucketId);
+	public String 				getBucketObjectDataDirPath(Long bucketId);
 	
 
 	/** ----------------------
 	 *  ObjectMetadata (head)
 		----------------------*/
-    public boolean existsObjectMetadata		(String bucketName, String objectName);
-    public void markAsDeletedObject			(String name, String objectName);
-    public String getObjectMetadataDirPath	(String bucketName, String objectName); 
-    public ObjectMetadata getObjectMetadata	(String bucketName, String objectName);
+    public boolean existsObjectMetadata		(Long bucketId, String objectName);
+    public void markAsDeletedObject			(Long bucketId, String objectName);
+    public String getObjectMetadataDirPath	(Long bucketId, String objectName); 
+    public ObjectMetadata getObjectMetadata	(Long bucketId, String objectName);
 	
-	public void deleteObjectMetadata		(String bucketName, String objectName);
+	public void deleteObjectMetadata		(Long bucketId, String objectName);
 	
 	public void saveObjectMetadata			(ObjectMetadata meta);
-	public File getObjectMetadataFile		(String bucketName, String objectName);
-	public void putObjectMetadataFile		(String bucketName, String objectName, File metaFile) throws IOException;;
+	public File getObjectMetadataFile		(Long bucketId, String objectName);
+	public void putObjectMetadataFile		(Long bucketId, String objectName, File metaFile) throws IOException;;
 	 
-	 /** ObjectMetadata. Version ---*/
+	/** ObjectMetadata. Version ---*/
 	public void saveObjectMetadataVersion			(ObjectMetadata meta);
-	public ObjectMetadata getObjectMetadataVersion	(String bucketName, String objectName, int version);
-	 public File getObjectMetadataVersionFile		(String bucketName, String objectName, int version);
-	 public void putObjectMetadataVersionFile		(String bucketName, String objectName, int version, File metaFile) throws IOException;
+	public ObjectMetadata getObjectMetadataVersion	(Long bucketId, String objectName, int version);
+	public File getObjectMetadataVersionFile		(Long bucketId, String objectName, int version);
+	public void putObjectMetadataVersionFile		(Long bucketId, String objectName, int version, File metaFile) throws IOException;
 	 
 	 
 	
