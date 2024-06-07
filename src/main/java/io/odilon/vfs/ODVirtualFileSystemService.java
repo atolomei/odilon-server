@@ -296,11 +296,10 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null or empty | b:" + bucketName);
 		Check.requireTrue(getBucketsByNameMap().containsKey(bucketName), "bucket does not exist | b: " + bucketName);
 
-		Long bucketId=getBucketsByNameMap().get(bucketName).getBucketMetadata().getId();
-		ObjectMetadata meta = createVFSIODriver().getObjectMetadataVersion(bucketId, objectName, version);
+		ObjectMetadata meta = createVFSIODriver().getObjectMetadataVersion(getBucketsByNameMap().get(bucketName), objectName, version);
 		
-		if (meta!=null)
-			meta.bucketName=bucketName;
+		//if (meta!=null)
+		//	meta.bucketName=bucketName;
 		
 		return meta;
 	}
@@ -367,10 +366,11 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 		Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null or empty | b:" + bucketName);
 		
-		Check.requireTrue(getBucketsByNameMap().containsKey(bucketName), "bucket does not exist | b: " + bucketName);
-		Long bucketId= getBucketsByNameMap().get(bucketName).getBucketMetadata().getId();
 		
-		ObjectMetadata meta  = createVFSIODriver().restorePreviousVersion(bucketId, objectName);
+		ODBucket bucket = getBucketsByNameMap().get(bucketName);
+		Check.requireNonNullArgument(bucket, "bucket can not be null or empty");
+		
+		ObjectMetadata meta  = createVFSIODriver().restorePreviousVersion(bucket, objectName);
 		
 		if (meta!=null)
 			meta.bucketName=bucketName;

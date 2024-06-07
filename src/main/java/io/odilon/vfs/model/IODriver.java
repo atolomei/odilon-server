@@ -117,7 +117,7 @@ public interface IODriver {
 	 */
 	
 	public ObjectMetadata getObjectMetadataPreviousVersion(Long bucketId, String objectName);              // [A]
-	public ObjectMetadata getObjectMetadataVersion(Long bucketId, String objectName, int version);  // [A]
+	public ObjectMetadata getObjectMetadataVersion(ODBucket bucket, String objectName, int version); 
 	
 	public List<ObjectMetadata> getObjectMetadataVersionAll(Long bucketId, String objectName); // [A]
 	public InputStream getObjectVersionInputStream(Long bucketId, String objectName, int version); // [A]
@@ -127,7 +127,7 @@ public interface IODriver {
 	public void deleteBucketAllPreviousVersions(Long bucketId); // [A]
 	
 	public void wipeAllPreviousVersions();
-	public ObjectMetadata restorePreviousVersion(Long bucketId, String objectName); // [A]
+	public ObjectMetadata restorePreviousVersion(ODBucket bucket, String objectName);
 	public boolean hasVersions(ODBucket bucket, String objectName);
 
 	public void syncObject(ObjectMetadata meta);

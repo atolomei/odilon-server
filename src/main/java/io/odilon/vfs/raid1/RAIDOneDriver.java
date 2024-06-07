@@ -123,13 +123,10 @@ public class RAIDOneDriver extends BaseIODriver  {
 	 * 
 	 */
 	@Override
-	public ObjectMetadata restorePreviousVersion(Long bucketId, String objectName) {
+	public ObjectMetadata restorePreviousVersion(ODBucket bucket, String objectName) {
 											
-		Check.requireNonNullArgument(bucketId, "bucketId is null");
-		ODBucket bucket = getVFS().getBucketById(bucketId);
-		
-		Check.requireNonNullArgument(bucket, "bucket does not exist -> b:" + bucketId.toString());
-		Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie. " + BucketStatus.ARCHIVED.getName() +" or " + BucketStatus.ENABLED.getName() + ") | b:" + bucketId.toString());
+		Check.requireNonNullArgument(bucket, "bucket is null");
+		Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie. " + BucketStatus.ARCHIVED.getName() +" or " + BucketStatus.ENABLED.getName() + ") | b:" + bucket.getId().toString());
 
 		RAIDOneUpdateObjectHandler agent = new RAIDOneUpdateObjectHandler(this);
 		return agent.restorePreviousVersion(bucket, objectName);
@@ -165,7 +162,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 				if (!readDrive.existsBucket(bucket.getId()))
 					throw new IllegalStateException("bucket -> b:" +  bucket.getId() + " does not exist for -> d:" + readDrive.getName() + " | v:" + String.valueOf(version));
 	
-				ObjectMetadata meta = getObjectMetadataVersion(bucket.getId(), objectName, version);
+				ObjectMetadata meta = getObjectMetadataVersion(bucket, objectName, version);
 				
 				if ((meta==null) || (!meta.isAccesible()))
 					throw new OdilonObjectNotFoundException("object version does not exists for -> b:" +  bucket.getId() +" | o:" + objectName + " | v:" + String.valueOf(version));
@@ -423,7 +420,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 					if (!readDrive.existsBucket(bucket.getId()))
 						  throw new IllegalStateException("CRITICAL ERROR | bucket -> b:" +  bucket.getId() + " does not exist for -> d:" + readDrive.getName() +" | raid -> " + this.getClass().getSimpleName());
 		
-					ObjectMetadata meta = getObjectMetadataInternal(bucketId, objectName, true);
+					ObjectMetadata meta = getObjectMetadataInternal(bucket, objectName, true);
 					meta.bucketName=bucket.getName();
 					
 					if ((meta==null) || (!meta.isAccesible()))
@@ -434,8 +431,10 @@ public class RAIDOneDriver extends BaseIODriver  {
 					
 					for (int version=0; version<meta.version; version++) {
 						ObjectMetadata meta_version = readDrive.getObjectMetadataVersion(bucketId, objectName, version);
-						if (meta_version!=null)
+						if (meta_version!=null) {
+							meta_version.setBucketName(bucket.getName());
 							list.add(meta_version);
+						}
 					}
 					
 					return list;
@@ -463,8 +462,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 	}
 	
 	@Override
-	public ObjectMetadata getObjectMetadataVersion(Long bucketId, String objectName, int version) {
-		ODBucket bucket = getVFS().getBucketById(bucketId);
+	public ObjectMetadata getObjectMetadataVersion(ODBucket bucket, String objectName, int version) {
 		return getOM(bucket, objectName, Optional.of(Integer.valueOf(version)), true);		
 	}
 	
@@ -508,7 +506,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 				if (!exists(bucket, objectName))
 					  throw new IllegalArgumentException("object does not exists for ->  b:" +  bucket.getId() +" | o:" + objectName + " | " + this.getClass().getSimpleName());			
 	
-				ObjectMetadata meta = getObjectMetadataInternal(bucket.getId(), objectName, true);
+				ObjectMetadata meta = getObjectMetadataInternal(bucket, objectName, true);
 				
 				if (meta.status==ObjectStatus.ENABLED || meta.status==ObjectStatus.ARCHIVED) {
 					return new ODVFSObject(bucket, objectName, getVFS());
@@ -667,7 +665,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 					throw new IllegalStateException("bucket -> b:" +  bucket.getId() + " does not exist for drive -> d:" + readDrive.getName() +" | class -> " + this.getClass().getSimpleName());
 				
 				
-				ObjectMetadata meta = getObjectMetadataInternal(bucket.getId(), objectName, true);
+				ObjectMetadata meta = getObjectMetadataInternal(bucket, objectName, true);
 				
 				InputStream stream = getInputStreamFromSelectedDrive(readDrive, bucket.getId(), objectName);
 	
@@ -959,7 +957,11 @@ public class RAIDOneDriver extends BaseIODriver  {
 		 REDO in this version means deleting the object from the drives where it completed
 	 */
 
-
+						
+	protected Drive getObjectMetadataReadDrive(Long bucketId, String objectName) {
+		return getReadDrive(bucketId, objectName);
+	}
+	
 	protected Drive getReadDrive(Long bucketId, String objectName) {
 		return getDrivesEnabled().get(Double.valueOf(Math.abs(Math.random()*1000)).intValue() % getDrivesEnabled().size());
 	}
@@ -1052,7 +1054,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 
 	/**
 	 * <p>Object must be locked (either for reading or writing) before calling this method</p>
-	 */
+	 
 	protected ObjectMetadata getObjectMetadataInternal(Long bucketId, String objectName, boolean addToCacheIfmiss) {
 		
 		
@@ -1062,7 +1064,10 @@ public class RAIDOneDriver extends BaseIODriver  {
 		
 		if (getVFS().getObjectMetadataCacheService().containsKey(bucketId, objectName)) {
 			getVFS().getSystemMonitorService().getCacheObjectHitCounter().inc();
+			
 			return getVFS().getObjectMetadataCacheService().get(bucketId, objectName);
+			
+			
 		}
 		
 		ObjectMetadata meta = getReadDrive(bucketId, objectName).getObjectMetadata(bucketId, objectName);
@@ -1075,6 +1080,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 		return meta;
 		
 	}
+	*/
 	/**
 	 *<p> RAID 1. read is from only 1 drive, selected randomly from all drives</p>
 	 */
@@ -1105,10 +1111,18 @@ public class RAIDOneDriver extends BaseIODriver  {
 				if (!exists(bucket, objectName))
 					  throw new IllegalArgumentException("Object does not exists for ->  b:" +  bucket.getName() +" | o:" + objectName + " | class:" + this.getClass().getSimpleName());			
 	
-				if (o_version.isPresent())
-					return readDrive.getObjectMetadataVersion(bucket.getId(), objectName, o_version.get());
-				else
-			 		return getObjectMetadataInternal(bucket.getId(), objectName, addToCacheifMiss);
+				ObjectMetadata meta;
+				
+				if (o_version.isPresent()) {
+					meta = readDrive.getObjectMetadataVersion(bucket.getId(), objectName, o_version.get());
+				}
+				else {
+			 		meta = getObjectMetadataInternal(bucket, objectName, addToCacheifMiss);
+				}
+				
+				meta.setBucketName(bucket.getName());
+				return meta;
+				
 			}
 			catch (Exception e) {
 				throw new InternalCriticalException(e, "b:" + bucket.getId()+ ", o:" + objectName + ", d:" + (Optional.ofNullable(readDrive).isPresent()  ? (readDrive.getName()) : "null") + (o_version.isPresent()? (", v:" + String.valueOf(o_version.get())) :""));

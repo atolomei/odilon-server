@@ -76,7 +76,6 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucket.getName());
 		
-		//String bucketName = bucket.getName();	
 		Long bucketId = bucket.getId();
 		
 		VFSOperation op = null;
@@ -98,8 +97,8 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 				if (!getDriver().getWriteDrive(bucketId, objectName).existsObjectMetadata(bucketId, objectName))
 					throw new IllegalArgumentException("object does not exist -> b:" + bucketId.toString() + " o:"+ objectName);
 				
-				ObjectMetadata meta = getDriver().getObjectMetadataInternal(bucket.getId(), objectName, false);
-										
+				ObjectMetadata meta = getDriver().getObjectMetadataInternal(bucket, objectName, false);
+				
 				beforeHeadVersion = meta.version;							
 				
 				op = getJournalService().updateObject(bucketId, objectName, meta.version);
@@ -169,9 +168,8 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucket.getName());
 		
-		//String bucketName = bucket.getName();	
 		Long bucketId = bucket.getId();
-		
+
 		int beforeHeadVersion = -1;
 		
 		getLockService().getObjectLock(bucketId, objectName).writeLock().lock();
@@ -182,7 +180,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 			
 			try {
 				
-				ObjectMetadata meta = getDriver().getObjectMetadataInternal(bucketId, objectName, false);
+				ObjectMetadata meta = getDriver().getObjectMetadataInternal(bucket, objectName, false);
 				
 				if (meta.version==0)
 					throw new IllegalArgumentException(	"Object does not have any previous version | " + "b:" + bucketId.toString() + ", o:"	+ objectName);
@@ -207,6 +205,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 	
 				/** save previous version as head */
 				ObjectMetadata metaToRestore = metaVersions.get(metaVersions.size()-1);
+				metaToRestore.setBucketName(bucket.getName());
 	
 				if (!restoreVersionObjectDataFile(metaToRestore.bucketId, metaToRestore.objectName, metaToRestore.version))
 					throw new OdilonObjectNotFoundException(Optional.of(meta.systemTags).orElse("previous versions deleted"));

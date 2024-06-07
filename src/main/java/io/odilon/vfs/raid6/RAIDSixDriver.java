@@ -177,7 +177,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 				if (!readDrive.existsBucket(bucket.getId()))
 					throw new IllegalStateException("b:" + bucket.getId()+ " does not exist for drive -> d:" + readDrive.getName() + " | class -> " + this.getClass().getSimpleName());
 	
-				ObjectMetadata meta = getObjectMetadataInternal(bucket.getId(), objectName, true);
+				ObjectMetadata meta = getObjectMetadataInternal(bucket, objectName, true);
 	
 				if ((meta != null) && meta.isAccesible()) {
 					RAIDSixDecoder decoder = new RAIDSixDecoder(this);
@@ -498,7 +498,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 	
 	@Override
 	public ObjectMetadata getObjectMetadata(ODBucket bucket, String objectName) {
-		return getOM(bucket.getId(), objectName, Optional.empty(), true);
+		return getOM(bucket, objectName, Optional.empty(), true);
 	}
 
 	/**
@@ -607,7 +607,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 				if (!exists(bucket, objectName))
 					  throw new IllegalArgumentException("object does not exists for ->  b:" +  bucket.getName() +" | o:" + objectName + " | " + this.getClass().getSimpleName());			
 	
-				ObjectMetadata meta = getObjectMetadataInternal(bucketId, objectName, true);
+				ObjectMetadata meta = getObjectMetadataInternal(bucket, objectName, true);
 				
 				if (meta.status==ObjectStatus.ENABLED || meta.status==ObjectStatus.ARCHIVED) {
 					return new ODVFSObject(bucket, objectName, getVFS());
@@ -702,7 +702,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 				if (!readDrive.existsBucket(bucketId))
 					  throw new IllegalStateException("bucket -> b:" +  bucket.getName() + " does not exist for -> d:" + readDrive.getName() +" | raid -> " + this.getClass().getSimpleName());
 	
-				ObjectMetadata meta = getObjectMetadataInternal(bucketId, objectName, true);
+				ObjectMetadata meta = getObjectMetadataInternal(bucket, objectName, true);
 				meta.bucketName=bucket.getName();
 				
 				if ((meta==null) || (!meta.isAccesible()))
@@ -757,8 +757,8 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 	 * 
 	 */
 	@Override
-	public ObjectMetadata getObjectMetadataVersion(Long bucketId, String objectName, int version) {
-		return getOM(bucketId, objectName, Optional.of(Integer.valueOf(version)), true);
+	public ObjectMetadata getObjectMetadataVersion(ODBucket bucket, String objectName, int version) {
+		return getOM(bucket, objectName, Optional.of(Integer.valueOf(version)), true);
 	}
 
 	/**
@@ -766,12 +766,10 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 	 * 
 	 */
 	@Override
-	public ObjectMetadata restorePreviousVersion(Long bucketId, String objectName) {
+	public ObjectMetadata restorePreviousVersion(ODBucket bucket, String objectName) {
 		
-		Check.requireNonNullArgument(bucketId, "bucketId is null");
-		ODBucket bucket = getVFS().getBucketById(bucketId);
-		Check.requireNonNullArgument(bucket, "bucket does not exist -> b:" + bucketId.toString());
-		Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie. " + BucketStatus.ARCHIVED.getName() +" or " + BucketStatus.ENABLED.getName() + ") | b:" + bucketId.toString());
+		Check.requireNonNullArgument(bucket, "bucket is null");
+		Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie. " + BucketStatus.ARCHIVED.getName() +" or " + BucketStatus.ENABLED.getName() + ") | b:" + bucket.getId().toString());
 
 		RAIDSixUpdateObjectHandler agent = new RAIDSixUpdateObjectHandler(this);
 		return agent.restorePreviousVersion(bucket, objectName);
@@ -922,7 +920,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 	 * @param objectName
 	 * @param addToCacheIfmiss
 	 * @return
-	 */
+	 
 	protected ObjectMetadata getObjectMetadataInternal(Long bucketId, String objectName, boolean addToCacheIfmiss) {
 		
 		if ((!getVFS().getServerSettings().isUseObjectCache()))  {
@@ -942,19 +940,19 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		
 		return meta;
  	}
- 	
+ 	*/
+	
 	/**
 	 *<p> RAID 6. Metadata read is from only 1 drive, selected randomly from all drives</p>
 	 */
-	private ObjectMetadata getOM(Long bucketId, String objectName, Optional<Integer> o_version, boolean addToCacheifMiss) {
+	private ObjectMetadata getOM(ODBucket bucket, String objectName, Optional<Integer> o_version, boolean addToCacheifMiss) {
 		
-		Check.requireNonNullArgument(bucketId, "bucketId is null");
-		Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucketId.toString());
+		Check.requireNonNullArgument(bucket, "bucket is null");
+		Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucket.getId().toString());
 		
-		ODBucket bucket = getVFS().getBucketById(bucketId);
 		
-		Check.requireNonNullArgument(bucket, "bucket does not exist -> b:" + bucketId.toString());
-		Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie. " + BucketStatus.ARCHIVED.getName() +" or " + BucketStatus.ENABLED.getName() + ") | b:" + bucketId.toString());
+
+		Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie. " + BucketStatus.ARCHIVED.getName() +" or " + BucketStatus.ENABLED.getName() + ") | b:" + bucket.getId().toString());
 
 		Drive readDrive = null;
 		
@@ -967,28 +965,35 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 			try {
 				
 				/** read is from only 1 drive */
-				readDrive = getObjectMetadataReadDrive(bucketId, objectName);
+				readDrive = getObjectMetadataReadDrive(bucket.getId(), objectName);
 				
 				if (!readDrive.existsBucket(bucket.getId()))												
-					  throw new IllegalArgumentException("b:" +  bucketId.toString() + " does not exist for -> d:" + readDrive.getName() +" | raid -> " + this.getClass().getSimpleName());
+					  throw new IllegalArgumentException("b:" +  bucket.getId().toString() + " does not exist for -> d:" + readDrive.getName() +" | raid -> " + this.getClass().getSimpleName());
 	
 				if (!exists(bucket, objectName))
-					  throw new IllegalArgumentException("b:" +  bucketId.toString() +" | o:" + objectName + " | class:" + this.getClass().getSimpleName());			
+					  throw new IllegalArgumentException("b:" +  bucket.getId().toString() +" | o:" + objectName + " | class:" + this.getClass().getSimpleName());			
 	
-				if (o_version.isPresent())
-					return readDrive.getObjectMetadataVersion(bucketId, objectName, o_version.get());
-				else
-			 		return getObjectMetadataInternal(bucketId, objectName, addToCacheifMiss);
+				ObjectMetadata meta;
+				
+				if (o_version.isPresent()) {
+					meta = readDrive.getObjectMetadataVersion(bucket.getId(), objectName, o_version.get());
+				}
+				else {
+			 		meta = getObjectMetadataInternal(bucket, objectName, addToCacheifMiss);
+				}
+				
+				meta.setBucketName(bucket.getName());
+				return meta;
 			}
 			catch (Exception e) {
-				throw new InternalCriticalException(e, "b:"  + bucketId.toString()+	", o:" + objectName + ", d:" + readDrive.getName() + (o_version.isPresent()? (", v:" + String.valueOf(o_version.get())) :""));
+				throw new InternalCriticalException(e, "b:"  + bucket.getName() +	", o:" + objectName + ", d:" + readDrive.getName() + (o_version.isPresent()? (", v:" + String.valueOf(o_version.get())) :""));
 			}
 			finally {
-				getLockService().getBucketLock(bucketId).readLock().unlock();
+				getLockService().getBucketLock(bucket.getId()).readLock().unlock();
 				
 			}
 		} finally {
-			getLockService().getObjectLock(bucketId, objectName).readLock().unlock();
+			getLockService().getObjectLock(bucket.getId(), objectName).readLock().unlock();
 		}
 	}
  

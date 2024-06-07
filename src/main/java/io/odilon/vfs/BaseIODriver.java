@@ -787,6 +787,59 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 			drive.removeJournal(id);
 	}
 
+	
+	
+	
+	
+	protected abstract Drive getObjectMetadataReadDrive(Long bucketId, String objectName);
+	
+		
+	
+	
+	public ObjectMetadata getObjectMetadataInternal(ODBucket bucket, String objectName, boolean addToCacheIfmiss) {
+
+		if ((!getVFS().getServerSettings().isUseObjectCache()) || (getVFS().getObjectMetadataCacheService().size() >= MAX_CACHE_SIZE)) 
+			return  getObjectMetadataReadDrive(bucket.getId(), objectName).getObjectMetadata(bucket.getId(), objectName);
+
+		
+		if (getVFS().getObjectMetadataCacheService().containsKey(bucket.getId(), objectName)) {
+			getVFS().getSystemMonitorService().getCacheObjectHitCounter().inc();
+			
+			ObjectMetadata meta = getVFS().getObjectMetadataCacheService().get(bucket.getId(), objectName);
+			meta.setBucketName(bucket.getName());
+			return meta;
+		}
+
+		ObjectMetadata meta =  getObjectMetadataReadDrive(bucket.getId(), objectName).getObjectMetadata(bucket.getId(), objectName);
+		meta.setBucketName(bucket.getName());
+		
+		getVFS().getSystemMonitorService().getCacheObjectMissCounter().inc();
+
+		if (addToCacheIfmiss) {
+			getVFS().getObjectMetadataCacheService().put(bucket.getId(), objectName, meta);
+		}
+		return meta;
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	/**
 	 * 
 	 */
