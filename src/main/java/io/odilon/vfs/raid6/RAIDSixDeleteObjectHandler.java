@@ -132,7 +132,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 					/**  DATA CONSISTENCY
 					 *   ----------------
 						 If The system crashes before Commit or Cancel -> next time the system starts up it will REDO all stored operations.
-						 Also, the if there are error buckets in the drives, they will be normalized when the system starts. 
+						 Also, if there are error buckets in the drives, they will be normalized when the system starts. 
 					 */
 					
 				} catch (Exception e) {
@@ -308,7 +308,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 			
 		String objectName = op.getObjectName();
 		String bucketName = op.getBucketName();
-		Long bucketId = op.getBucketId();
+		
 		
 		Check.requireNonNullStringArgument(bucketName, "bucket is null");
 		Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucketName);
