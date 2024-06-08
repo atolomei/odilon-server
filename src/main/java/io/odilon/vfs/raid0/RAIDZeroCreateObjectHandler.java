@@ -90,7 +90,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 					
 						getLockService().getBucketLock(bucket.getId()).readLock().lock();
 
-						if (getDriver().getWriteDrive(bucket.getId(), objectName).existsObjectMetadata(bucket.getId(), objectName))											
+						if (getDriver().getWriteDrive(bucket, objectName).existsObjectMetadata(bucket.getId(), objectName))											
 							throw new IllegalArgumentException("object already exist -> b:" + bucket.getName() + " o:"+(Optional.ofNullable(objectName).isPresent() ? (objectName) :"null"));
 						
 						int version = 0;
@@ -152,7 +152,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 		Check.checkTrue(op.getOp()==VFSop.CREATE_OBJECT, "Invalid op ->  " + op.getOp().getName());
 			
 		String objectName = op.getObjectName();
-		Long bucketId = op.getBucketId();
+		
 		
 		boolean done = false;
 				
@@ -161,8 +161,9 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 			if (getVFS().getServerSettings().isStandByEnabled())
 				getVFS().getReplicationService().cancel(op);
 			
-			getWriteDrive(bucketId, objectName).deleteObjectMetadata(bucketId, objectName);
-			FileUtils.deleteQuietly(new File (getWriteDrive(bucketId, objectName).getRootDirPath(), bucketId.toString() + File.separator + objectName));
+			
+			getWriteDrive(this.getVFS().getBucketById(op.getBucketId()), objectName).deleteObjectMetadata(op.getBucketId(), objectName);
+			FileUtils.deleteQuietly(new File (getWriteDrive(this.getVFS().getBucketById(op.getBucketId()), objectName).getRootDirPath(), op.getBucketId().toString() + File.separator + objectName));
 			
 			done=true;
 			
@@ -204,7 +205,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 		
 		try (InputStream sourceStream = isEncrypt() ? getVFS().getEncryptionService().encryptStream(stream) : stream) {
 			
-				out = new BufferedOutputStream(new FileOutputStream(((SimpleDrive) getWriteDrive(bucket.getId(), objectName)).getObjectDataFilePath(bucket.getId(), objectName)), VirtualFileSystemService.BUFFER_SIZE);
+				out = new BufferedOutputStream(new FileOutputStream(((SimpleDrive) getWriteDrive(bucket, objectName)).getObjectDataFilePath(bucket.getId(), objectName)), VirtualFileSystemService.BUFFER_SIZE);
 				int bytesRead;
 				
 				while ((bytesRead = sourceStream.read(buf, 0, buf.length)) >= 0) {
@@ -242,7 +243,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 	private void saveObjectMetadata(ODBucket bucket, String objectName, String srcFileName, String contentType, int version) {
 		
 		OffsetDateTime now=OffsetDateTime.now();
-		Drive drive=getWriteDrive(bucket.getId(), objectName);
+		Drive drive=getWriteDrive(bucket, objectName);
 		File file=((SimpleDrive)drive).getObjectDataFile(bucket.getId(), objectName);
 
 		try {

@@ -92,7 +92,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 			
 			try {
 				
-				meta = getDriver().getObjectMetadataReadDrive(bucketId, objectName).getObjectMetadata(bucketId, objectName);
+				meta = getDriver().getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucketId, objectName);
 				
 				headVersion = meta.version;
 			
@@ -176,6 +176,10 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 		String objectName = headMeta.objectName;
 		Long bucketId = headMeta.bucketId;
 		
+		
+		final ODBucket bucket = getVFS().getBucketById(headMeta.bucketId);
+		
+		
 		getLockService().getObjectLock(bucketId, objectName).writeLock().lock();
 		
 		try {
@@ -183,7 +187,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 			
 				try {
 				
-					if (!getDriver().getObjectMetadataReadDrive(bucketId, objectName).existsObjectMetadata(bucketId, objectName))
+					if (!getDriver().getObjectMetadataReadDrive(bucket, objectName).existsObjectMetadata(bucketId, objectName))
 						throw new OdilonObjectNotFoundException("object does not exist -> b:" + bucketId.toString() + " o:"+(Optional.ofNullable(objectName).isPresent() ? (objectName) :"null"));
 					
 					headVersion = headMeta.version;
@@ -311,6 +315,8 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 		
 		boolean done = false;
 	 
+		ODBucket bucket = getDriver().getVFS().getBucketById(op.getBucketId());
+		
 		try {
 
 			if (getVFS().getServerSettings().isStandByEnabled())
@@ -318,10 +324,10 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 			
 			/** rollback is the same for both operations */
 			if (op.getOp()==VFSop.DELETE_OBJECT)
-				restoreMetadata(bucketId,objectName);
+				restoreMetadata(bucket,objectName);
 			
 			else if (op.getOp()==VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS)
-				restoreMetadata(bucketId,objectName);
+				restoreMetadata(bucket,objectName);
 			
 			done=true;
 			
@@ -419,15 +425,15 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 	/**
 	 *  restore metadata directory 
 	 * */
-	private void restoreMetadata(Long bucketId, String objectName) {
+	private void restoreMetadata(ODBucket bucket, String objectName) {
 		for (Drive drive: getDriver().getDrivesAll()) {
-			String objectMetadataBackupDirPath = drive.getBucketWorkDirPath(bucketId) + File.separator + objectName;
-			String objectMetadataDirPath = drive.getObjectMetadataDirPath(bucketId, objectName);
+			String objectMetadataBackupDirPath = drive.getBucketWorkDirPath(bucket.getId()) + File.separator + objectName;
+			String objectMetadataDirPath = drive.getObjectMetadataDirPath(bucket.getId(), objectName);
 			try {
 				if ((new File(objectMetadataBackupDirPath)).exists())
 					FileUtils.copyDirectory(new File(objectMetadataBackupDirPath), new File(objectMetadataDirPath));
 			} catch (IOException e) {
-				throw new InternalCriticalException(e, "b:" + bucketId.toString() + ", o:" + objectName);
+				throw new InternalCriticalException(e, "b:" + bucket.getName() + ", o:" + objectName);
 			}
 		}
 	}

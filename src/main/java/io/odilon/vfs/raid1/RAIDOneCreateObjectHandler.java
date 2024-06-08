@@ -76,9 +76,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 	protected void create(ODBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType) {
 					
 		Check.requireNonNullArgument(bucket, "bucket is null");
-		//String bucketName = bucket.getName();
 		Long bucketId=bucket.getId();
-		
 		
 		Check.requireNonNullArgument(bucketId, "bucketId is null");
 		Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucketId.toString());
@@ -95,7 +93,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 			
 			try (stream) {
 				
-					if (getDriver().getReadDrive(bucketId, objectName).existsObjectMetadata(bucketId, objectName))											
+					if (getDriver().getReadDrive(bucket, objectName).existsObjectMetadata(bucketId, objectName))											
 						throw new IllegalArgumentException("object already exist -> b:" + bucketId.toString() + " o:"+objectName);
 					
 					int version = 0;

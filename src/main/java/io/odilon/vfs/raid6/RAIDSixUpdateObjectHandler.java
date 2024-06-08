@@ -103,7 +103,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 			
 				try (stream) {
 		
-					if (!getDriver().getObjectMetadataReadDrive(bucketId, objectName).existsObjectMetadata(bucketId, objectName))
+					if (!getDriver().getObjectMetadataReadDrive(bucket, objectName).existsObjectMetadata(bucketId, objectName))
 						throw new IllegalArgumentException(" object not found -> b:" + bucketName + " o:"+ objectName);
 					
 					meta = getDriver().getObjectMetadataInternal(bucket, objectName, false);
@@ -267,7 +267,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 					List<ObjectMetadata> metaVersions = new ArrayList<ObjectMetadata>();
 					
 					for (int version=0; version<beforeHeadVersion; version++) {
-						ObjectMetadata mv = getDriver().getObjectMetadataReadDrive(bucket.getId(), objectName).getObjectMetadataVersion(bucket.getId(), objectName, version);
+						ObjectMetadata mv = getDriver().getObjectMetadataReadDrive(bucket, objectName).getObjectMetadataVersion(bucket.getId(), objectName, version);
 						if (mv!=null)
 							metaVersions.add(mv);
 					}
@@ -751,12 +751,14 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 		
 		boolean done = false;
 		
+		final ODBucket bucket = getVFS().getBucketById(op.getBucketId());
+		
 		try {
 		
 			if (getVFS().getServerSettings().isStandByEnabled()) 
 				getVFS().getReplicationService().cancel(op);
 				
-			ObjectMetadata meta = getDriver().getObjectMetadataReadDrive(op.getBucketId(), op.getObjectName()).getObjectMetadata(op.getBucketId(), op.getObjectName());
+			ObjectMetadata meta = getDriver().getObjectMetadataReadDrive( bucket, op.getObjectName()).getObjectMetadata(op.getBucketId(), op.getObjectName());
 			
 			if (meta!=null) {
 				restoreVersionObjectDataFile(meta, op.getVersion());

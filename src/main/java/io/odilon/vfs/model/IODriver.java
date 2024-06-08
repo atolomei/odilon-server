@@ -77,7 +77,6 @@ public interface IODriver {
 	public void rollbackJournal(VFSOperation op, boolean recoveryMode);
 	public List<VFSOperation> getJournalPending(JournalService journalService);
 
-	
 	/** 
 	 * Scheduler
 	 */
@@ -116,16 +115,16 @@ public interface IODriver {
 	 * VERSION CONTROL
 	 */
 	
-	public ObjectMetadata getObjectMetadataPreviousVersion(Long bucketId, String objectName);              // [A]
+	public ObjectMetadata getObjectMetadataPreviousVersion(ODBucket bucket, String objectName);
 	public ObjectMetadata getObjectMetadataVersion(ODBucket bucket, String objectName, int version); 
 	
-	public List<ObjectMetadata> getObjectMetadataVersionAll(Long bucketId, String objectName); // [A]
-	public InputStream getObjectVersionInputStream(Long bucketId, String objectName, int version); // [A]
+	public List<ObjectMetadata> getObjectMetadataVersionAll(ODBucket bucket, String objectName); 
+
+	public InputStream getObjectVersionInputStream(ODBucket bucket, String objectName, int version); 
 	
 	public void deleteObjectAllPreviousVersions(ObjectMetadata meta);
+	public void deleteBucketAllPreviousVersions(ODBucket bucket); 
 
-	public void deleteBucketAllPreviousVersions(Long bucketId); // [A]
-	
 	public void wipeAllPreviousVersions();
 	public ObjectMetadata restorePreviousVersion(ODBucket bucket, String objectName);
 	public boolean hasVersions(ODBucket bucket, String objectName);

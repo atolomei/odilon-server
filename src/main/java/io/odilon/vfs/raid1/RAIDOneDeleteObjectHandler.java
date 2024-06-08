@@ -92,7 +92,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 			
 			try {
 											
-				meta = getDriver().getReadDrive(bucket.getId(), objectName).getObjectMetadata(bucket.getId(), objectName);
+				meta = getDriver().getReadDrive(bucket, objectName).getObjectMetadata(bucket.getId(), objectName);
 				headVersion = meta.version;
 				op = getJournalService().deleteObject(bucket.getId(), objectName, headVersion);
 				
@@ -211,7 +211,9 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 
 			try {
 				
-					if (!getDriver().getReadDrive(meta.bucketId, objectName).existsObjectMetadata(meta.bucketId, objectName))
+					ODBucket bucket = getDriver().getVFS().getBucketById(meta.bucketId);
+				
+					if (!getDriver().getReadDrive(bucket, objectName).existsObjectMetadata(meta.bucketId, objectName))
 						throw new IllegalArgumentException("object does not exist -> b:" + meta.bucketId.toString() + " o:" + objectName);
 		
 					headVersion = meta.version;

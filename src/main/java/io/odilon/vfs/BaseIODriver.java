@@ -242,31 +242,33 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 	 * Shared by RAID 1 and RAID 6</p>
 	 */
 	@Override
-	public ObjectMetadata getObjectMetadataPreviousVersion(Long bucketId, String objectName) {
+	public ObjectMetadata getObjectMetadataPreviousVersion(ODBucket bucket, String objectName) {
 
-		getLockService().getObjectLock(bucketId, objectName).readLock().lock();
+		Check.requireNonNullArgument(bucket, "bucket is null");
+		Check.requireNonNullArgument(objectName, "objectName can not be null | b:" + bucket.getName());
+		
+		getLockService().getObjectLock(bucket.getId(), objectName).readLock().lock();
 		
 		try {
 			
-			getLockService().getBucketLock(bucketId).readLock().lock();
+			getLockService().getBucketLock(bucket.getId()).readLock().lock();
 		
 			try {
-				List<ObjectMetadata> list = getObjectMetadataVersionAll(bucketId, objectName);
+				List<ObjectMetadata> list = getObjectMetadataVersionAll(bucket, objectName);
 				if (list!=null && !list.isEmpty())
 					return list.get(list.size()-1);
 				
 				return null;
 			}
 			catch (Exception e) {
-				final String msg = "b:" + (Optional.ofNullable(bucketId).isPresent() ? (bucketId.toString()) :"null") + ", o:" + (Optional.ofNullable(objectName).isPresent() ? (objectName) : "null");
-				throw new InternalCriticalException(e, msg);
+				throw new InternalCriticalException(e, "b:" + bucket.getName() + ", o:" +objectName);
 			}
 			finally {
-				getLockService().getBucketLock(bucketId).readLock().unlock();
+				getLockService().getBucketLock(bucket.getId()).readLock().unlock();
 			}
 		}
 		finally { 
-			getLockService().getObjectLock(bucketId, objectName).readLock().unlock();
+			getLockService().getObjectLock(bucket.getId(), objectName).readLock().unlock();
 		}
 		
 	}
@@ -323,14 +325,12 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		try {
 			 contentType = Files.probeContentType(filePath);
 		 } catch (IOException e) {
-				final String msg ="b:" + (Optional.ofNullable(bucket.getName()).isPresent()  ? bucket.getName() :"null");  
-				throw new InternalCriticalException(e, msg);
+				throw new InternalCriticalException(e, "b:" + bucket.getName() + ", o:" +objectName);
 		 }
 		try {
 			putObject(bucket, objectName, new BufferedInputStream(new FileInputStream(file)), file.getName(), contentType);
 		} catch (FileNotFoundException e) {
-			final String msg ="b:" + (Optional.ofNullable(bucket.getName()).isPresent()  ? bucket.getName() :"null");
-			throw new InternalCriticalException(e, msg);
+			throw new InternalCriticalException(e, "b:" + bucket.getName() + ", o:" +objectName);
 		}
 	}
 	
@@ -788,18 +788,14 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 	}
 
 	
-	
-	
-	
-	protected abstract Drive getObjectMetadataReadDrive(Long bucketId, String objectName);
-	
-		
+													
+	protected abstract Drive getObjectMetadataReadDrive(ODBucket bucket, String objectName);
 	
 	
 	public ObjectMetadata getObjectMetadataInternal(ODBucket bucket, String objectName, boolean addToCacheIfmiss) {
 
 		if ((!getVFS().getServerSettings().isUseObjectCache()) || (getVFS().getObjectMetadataCacheService().size() >= MAX_CACHE_SIZE)) 
-			return  getObjectMetadataReadDrive(bucket.getId(), objectName).getObjectMetadata(bucket.getId(), objectName);
+			return  getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucket.getId(), objectName);
 
 		
 		if (getVFS().getObjectMetadataCacheService().containsKey(bucket.getId(), objectName)) {
@@ -810,7 +806,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 			return meta;
 		}
 
-		ObjectMetadata meta =  getObjectMetadataReadDrive(bucket.getId(), objectName).getObjectMetadata(bucket.getId(), objectName);
+		ObjectMetadata meta =  getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucket.getId(), objectName);
 		meta.setBucketName(bucket.getName());
 		
 		getVFS().getSystemMonitorService().getCacheObjectMissCounter().inc();

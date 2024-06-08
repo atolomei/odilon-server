@@ -39,6 +39,7 @@ import io.odilon.model.ObjectMetadata;
 import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
 import io.odilon.vfs.model.Drive;
+import io.odilon.vfs.model.ODBucket;
 import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VFSop;
 
@@ -80,6 +81,8 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 		
 		VFSOperation op = null;
 		boolean done = false;
+		
+		final ODBucket bucket = getVFS().getBucketById(meta.bucketId);
 		
 		try {
 														
@@ -127,7 +130,7 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 					
 					for (int version=0; version < meta.version; version++) {
 						
-						ObjectMetadata versionMeta = getDriver().getObjectMetadataReadDrive(bucketId, objectName).getObjectMetadataVersion(bucketId, objectName, version);
+						ObjectMetadata versionMeta = getDriver().getObjectMetadataReadDrive(bucket, objectName).getObjectMetadataVersion(bucketId, objectName, version);
 						
 						if (versionMeta!=null) {
 							

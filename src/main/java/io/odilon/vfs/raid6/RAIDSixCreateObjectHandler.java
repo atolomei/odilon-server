@@ -78,6 +78,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 		
+		
 
 		Long bucketId = bucket.getId();
 				
@@ -93,7 +94,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 				
 					getLockService().getBucketLock(bucket.getId()).readLock().lock();
 			
-					if (getDriver().getObjectMetadataReadDrive(bucket.getId(), objectName).existsObjectMetadata(bucket.getId(), objectName))											
+					if (getDriver().getObjectMetadataReadDrive(bucket, objectName).existsObjectMetadata(bucket.getId(), objectName))											
 						throw new IllegalArgumentException("Object already exist -> b:" + bucket.getId().toString() + " o:"+ objectName);
 					
 					int version = 0;
@@ -101,7 +102,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 					op = getJournalService().createObject(bucketId, objectName);
 					
 					RAIDSixBlocks ei = saveObjectDataFile(bucketId, objectName, stream);
-					saveObjectMetadata(bucketId, objectName, ei, srcFileName, contentType, version);
+					saveObjectMetadata(bucket, objectName, ei, srcFileName, contentType, version);
 					
 					done = op.commit();
 					
@@ -224,7 +225,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 	 * todo en el object metadata o cada file por separado
 	 * 
 	 */
-	private void saveObjectMetadata(Long bucketId, String objectName, RAIDSixBlocks ei, String srcFileName, String contentType, int version) {
+	private void saveObjectMetadata(ODBucket bucket, String objectName, RAIDSixBlocks ei, String srcFileName, String contentType, int version) {
 		
 		List<String> shaBlocks = new ArrayList<String>();
 		StringBuilder etag_b = new StringBuilder();
@@ -233,7 +234,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 			try {
 				shaBlocks.add(ODFileUtils.calculateSHA256String(item));
 			} catch (Exception e) {
-				throw new InternalCriticalException(e, "b:"+ bucketId.toString() + " o:" + objectName+ ", f:" + (Optional.ofNullable(item).isPresent() ? (item.getName()) : "null"));
+				throw new InternalCriticalException(e, "b:"+ bucket.getName() + " o:" + objectName+ ", f:" + (Optional.ofNullable(item).isPresent() ? (item.getName()) : "null"));
 			}
 		});
 
@@ -244,7 +245,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 		try {
 			etag = ODFileUtils.calculateSHA256String(etag_b.toString());
 		} catch (NoSuchAlgorithmException | IOException e) {
-   			throw new InternalCriticalException(e, "b:"+ bucketId.toString() + " o:" + objectName+ ", f:" + "| etag");
+   			throw new InternalCriticalException(e, "b:"+ bucket.getName() + " o:" + objectName+ ", f:" + "| etag");
 		} 
 
 		OffsetDateTime creationDate=OffsetDateTime.now();
@@ -252,7 +253,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 		for (Drive drive: getDriver().getDrivesAll()) {
 
 			try {
-				ObjectMetadata meta = new ObjectMetadata(bucketId, objectName);
+				ObjectMetadata meta = new ObjectMetadata(bucket.getId(), objectName);
 				meta.fileName=srcFileName;
 				meta.appVersion=OdilonVersion.VERSION;
 				meta.contentType=contentType;
@@ -271,7 +272,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 				drive.saveObjectMetadata(meta);
 	
 			} catch (Exception e) {
-				throw new InternalCriticalException(e, "b:"+ bucketId.toString() + " o:" + objectName+", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null"));
+				throw new InternalCriticalException(e, "b:"+ bucket.getName() + " o:" + objectName+", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null"));
 			}
 		}
 	}
