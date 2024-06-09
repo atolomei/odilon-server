@@ -258,7 +258,7 @@ public class BucketController extends BaseApiController  {
 
 	
 	/**
-	 * <p>Get a Bucket in JSON format</p>
+	 * <p>Rename a Bucket and returns the Bucket in JSON format</p>
 	 */
 	@RequestMapping(value = "/rename/{name}/{newname}", produces = "application/json", method = RequestMethod.POST)
 	public ResponseEntity<Bucket> rename(	@PathVariable("name") String name,

@@ -385,14 +385,18 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	@Override
 	public ODBucket renameBucketName(String bucketName, String newBucketName) {
 		
+											
+		Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
 		Check.requireNonNullStringArgument(newBucketName, "newBucketName can not be null or empty");
 		Check.requireTrue(getBucketsByNameMap().containsKey(bucketName), "bucket does not exist | b: " + bucketName);
 		
 		if (!newBucketName.matches(SharedConstant.bucket_valid_regex)) 
 			throw new IllegalArgumentException("bucketName contains invalid character | regular expression is -> " + SharedConstant.bucket_valid_regex +" |  b:" + newBucketName);
 		
-		throw new InternalCriticalException("method not implemented");
+		if (this.existsBucket(newBucketName))
+			throw new IllegalArgumentException( "bucketName already used " + newBucketName);
 		
+		return createVFSIODriver().renameBucket(getBucketByName(bucketName), newBucketName);
 	}
 	
 	/**
@@ -1062,18 +1066,48 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	@JsonIgnore
 	ReentrantReadWriteLock bucketCacheLock = new ReentrantReadWriteLock();
 	 
+	
+	@Override
+	public void updateBucketCache(String oldBucketName, ODBucket bucket) {
+		
+		this.bucketCacheLock.writeLock().lock();
+		try {
+			
+			this.getBucketsByNameMap().remove(oldBucketName);
+			this.getBucketsByNameMap().put(bucket.getName(), bucket);
+			this.getBucketsByIdMap().put(bucket.getId(), bucket);
+			
+			//this.getBucketsByIdMap().forEach ((k,v) -> logger.debug(v.getName()));
+			
+			
+			
+		} finally {
+			this.bucketCacheLock.writeLock().unlock();
+		}
+		
+	}
+	
+	
 	@Override
 	public void addBucketCache(ODBucket bucket) {
 		
 		this.bucketCacheLock.writeLock().lock();
 		try {
+			
 			this.getBucketsByIdMap().put(bucket.getId(), bucket);
 			this.getBucketsByNameMap().put(bucket.getName(), bucket);
+			
+			
+			//this.getBucketsByIdMap().forEach ((k,v) -> logger.debug(v.getName()));
+			
+			
+			
 		} finally {
 			this.bucketCacheLock.writeLock().unlock();
 		}
 	}
 
+	
 	private void removeBucketCache(ODBucket bucket) {
 		
 		this.bucketCacheLock.writeLock().lock();

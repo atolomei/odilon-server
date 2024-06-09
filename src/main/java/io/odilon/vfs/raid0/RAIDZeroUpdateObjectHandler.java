@@ -548,21 +548,20 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 
 	/**
 	 * 
+	 * 
 	 */
 	private void saveVersionObjectMetadata(ODBucket bucket, String objectName,	int version) {
 		try {
-			
-			
 			Drive drive=getWriteDrive(bucket, objectName);
 			File file=drive.getObjectMetadataFile(bucket.getId(), objectName);
 			drive.putObjectMetadataVersionFile(bucket.getId(), objectName, version, file);
 		} catch (Exception e) {
 				throw new InternalCriticalException(e, "b:" + bucket.getName() +" o:"+ objectName);
 		}
-		
 	}
 
 	/**
+	 * 
 	 * 
 	 */									
 	private void saveVersionObjectDataFile(ODBucket bucket, String objectName, int version) {

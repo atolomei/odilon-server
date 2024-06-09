@@ -41,6 +41,7 @@ public interface IODriver {
 	 * Bucket
 	 */
 	public ODBucket 	createBucket(String bucketName);
+	public ODBucket 	renameBucket(ODBucket bucket, String newBucketName);
 	public void 		deleteBucket(ODBucket bucket);
 	public boolean 		isEmpty(ODBucket bucket);
 	

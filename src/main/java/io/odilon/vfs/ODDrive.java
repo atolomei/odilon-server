@@ -935,15 +935,27 @@ public class ODDrive extends ODModelObject implements Drive {
 			this.drive_lock.writeLock().unlock();
 		}
 	}
-	
 
-	protected BucketMetadata getBucketMetadata(Long bucketId) {
+	
+	/**
+	 * 
+	 * @param bucketId
+	 * @return
+	 */
+	public BucketMetadata getBucketMetadata(Long bucketId) {
 		Check.requireNonNullArgument(bucketId, "bucketId is null");
 		try {
 				return getObjectMapper().readValue(Paths.get(this.getBucketsDirPath() + File.separator + bucketId.toString() + File.separator + bucketId.toString() + ServerConstant.JSON).toFile(), BucketMetadata.class);
 		} catch (IOException e) {
 			throw new InternalCriticalException(e, "b:" + bucketId.toString() + ", d:" + getName());
 		}
+	}
+	
+	
+	@Override
+	public void updateBucket(BucketMetadata meta) throws IOException {
+		Check.requireNonNullArgument(meta, "meta is null");
+		saveBucketMetadata(meta);
 	}
 	
 	

@@ -286,7 +286,9 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		return !getObjectMetadataVersionAll(bucket, objectName).isEmpty();
 	}
 
+
 	/**
+	 * 
 	 * <p>
 	 * Delete all versions older than the current <b>head version</b>. <br/>
 	 * <b>IMPORTANT</b>. It does not delete the current head version. <br/>
@@ -318,13 +320,14 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	@Override
 	public ObjectMetadata restorePreviousVersion(ODBucket bucket, String objectName) {
 		Check.requireNonNullArgument(bucket, "bucket is null");
-		Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie. " + BucketStatus.ARCHIVED.getName() + " or " + BucketStatus.ENABLED.getName() + ") | b:" + bucket.getId().toString());
+		Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie." + BucketStatus.ARCHIVED.getName() + " or " + BucketStatus.ENABLED.getName() + ") | b:" + bucket.getName());
 
 		RAIDZeroUpdateObjectHandler agent = new RAIDZeroUpdateObjectHandler(this);
 		return agent.restorePreviousVersion(bucket, objectName);
 	}
 
 	/**
+	 * 
 	 * <p>
 	 * Creates a ServiceRequest to walk through all objects and delete versions.
 	 * This process is Async and handler returns immediately.
@@ -368,7 +371,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	public void deleteBucketAllPreviousVersions(ODBucket bucket) {
 
 		Check.requireNonNullArgument(bucket, "bucket is null");
-
 		Check.requireNonNullArgument(bucket, "bucket does not exist -> b:" + bucket.getName());
 		Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie. " + BucketStatus.ARCHIVED.getName() + " or " + BucketStatus.ENABLED.getName() + ") | b:" + bucket.getName());
 
@@ -426,7 +428,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	 */
 	@Override
 	public void postObjectDeleteTransaction(ObjectMetadata meta, int headVersion) {
-
 		Check.requireNonNullArgument(meta, "meta is null");
 		RAIDZeroDeleteObjectHandler createAgent = new RAIDZeroDeleteObjectHandler(this);
 		createAgent.postObjectDelete(meta, headVersion);
@@ -437,7 +438,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	 */
 	@Override
 	public void postObjectPreviousVersionDeleteAllTransaction(ObjectMetadata meta,int headVersion) {
-		
 		Check.requireNonNullArgument(meta, "meta is null");
 		RAIDZeroDeleteObjectHandler createAgent = new RAIDZeroDeleteObjectHandler(this);
 		createAgent.postObjectPreviousVersionDeleteAll(meta, headVersion);
@@ -514,6 +514,8 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 			}
 		}
 	}
+	
+	
 
 	/**
 	 * @param bucket bucket must exist in the system
@@ -549,14 +551,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		}
 	}
 
-	/**
-	public VFSObject getObject(Long bucketId, String objectName) {
-		Check.requireNonNullArgument(bucketId, "bucketId is null");
-		ODBucket bucket = getVFS().getBucketById(bucketId);
-		Check.requireNonNullArgument(bucket, "bucket does not exist -> " + bucketId.toString());
-		return getObject(bucket, objectName);
-	}
-	**/
 
 	/**
 	 * <p>
@@ -615,10 +609,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		finally {
 			getLockService().getObjectLock(bucket.getId(), objectName).readLock().unlock();
 		}
-		
-		
-		
-		
 	}
 
 	/**
@@ -691,7 +681,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 				iterator = getVFS().getBucketIteratorService().get(serverAgentId.get());
 
 			if (iterator == null) {
-				iterator = new RAIDZeroIterator(this, bucket, offset, prefix);
+				iterator = new RAIDZeroBucketIterator(this, bucket, offset, prefix);
 				getVFS().getBucketIteratorService().register(iterator);
 			}
 
@@ -749,10 +739,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
-
-		//ODBucket bucket = getVFS().getBucketById(bucketId);
-
-		Check.requireNonNullArgument(bucket, "bucket does not exist -> b:" + bucket.getName());
 		Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie. " + BucketStatus.ARCHIVED.getName() + " or " + BucketStatus.ENABLED.getName() + ") | b:" + bucket.getName());
 
 		List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
@@ -821,104 +807,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		return getOM(bucket, objectName, Optional.of(Integer.valueOf(version)), true);
 	}
 
-	/**
-	 * <p>
-	 * Object must be locked (either for reading or writing) before calling this
-	 * method
-	 * </p>
-	 * 
-	 * @param bucketName
-	 * @param objectName
-	 * @param addToCacheIfmiss
-	 * @return
-	
-
-	protected ObjectMetadata getObjectMetadataInternal(ODBucket bucket, String objectName, boolean addToCacheIfmiss) {
-
-		if ((!getVFS().getServerSettings().isUseObjectCache()) || (getVFS().getObjectMetadataCacheService().size() >= MAX_CACHE_SIZE)) 
-			return getReadDrive(bucket.getId(), objectName).getObjectMetadata(bucket.getId(), objectName);
-
-		
-		if (getVFS().getObjectMetadataCacheService().containsKey(bucket.getId(), objectName)) {
-			getVFS().getSystemMonitorService().getCacheObjectHitCounter().inc();
-			
-			ObjectMetadata meta = getVFS().getObjectMetadataCacheService().get(bucket.getId(), objectName);
-			meta.setBucketName(bucket.getName());
-			return meta;
-		}
-
-		ObjectMetadata meta = getReadDrive(bucket.getId(), objectName).getObjectMetadata(bucket.getId(), objectName);
-		meta.setBucketName(bucket.getName());
-		
-		getVFS().getSystemMonitorService().getCacheObjectMissCounter().inc();
-
-		if (addToCacheIfmiss) {
-			getVFS().getObjectMetadataCacheService().put(bucket.getId(), objectName, meta);
-		}
-		return meta;
-	}
-
- */
-	
-	/**
-	 * <p>
-	 * If the bucket does not exist on the selected Drive -> the system is in an
-	 * illegal state
-	 * </p>
-	 */
-
-	private ObjectMetadata getOM(ODBucket bucket, String objectName, Optional<Integer> o_version, boolean addToCacheifMiss) {
-
-		Check.requireNonNullArgument(bucket, "bucket is null");
-		Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
-
-	 
-		Drive readDrive = null;
-		
-		getLockService().getObjectLock(bucket.getId(), objectName).readLock().lock();
-		
-		try {
-		
-			getLockService().getBucketLock(bucket.getId()).readLock().lock();
-			
-			try {
-		
-				/** read is from only 1 drive */
-				readDrive = getReadDrive(bucket, objectName);
-	
-				if (!readDrive.existsBucket(bucket.getId()))
-					throw new IllegalStateException("bucket -> b:" + bucket.getId().toString() + " does not exist for -> d:" + readDrive.getName() + " | raid -> " + this.getClass().getSimpleName());
-	
-				ObjectMetadata meta = null;
-	
-				if (o_version.isPresent()) {
-					meta = readDrive.getObjectMetadataVersion(bucket.getId(), objectName, o_version.get());
-					meta.setBucketName(bucket.getName());
-				}
-				else  {
-					meta = getObjectMetadataInternal(bucket, objectName, addToCacheifMiss);
-				}
-				
-				if ((meta != null) && meta.isAccesible())
-					return meta;
-				else
-					throw new OdilonObjectNotFoundException("ObjectMetadata does not exist");
-				
-			} catch (OdilonObjectNotFoundException e) {
-				String msg = "b:" + bucket.getId().toString() + ",bucket.getId()"	+ (Optional.ofNullable(readDrive).isPresent() ? (readDrive.getName()) : "null")	+ (o_version.isPresent() ? (", v:" + String.valueOf(o_version.get())) : "");
-				e.setErrorMessage(msg);
-				throw e;
-			} catch (Exception e) {
-				String msg = "b:" + bucket.getId().toString() + ", o:" + objectName + ", d:"	+ (Optional.ofNullable(readDrive).isPresent() ? (readDrive.getName()) : "null")	+ (o_version.isPresent() ? (", v:" + String.valueOf(o_version.get())) : "");
-				throw new InternalCriticalException(e, msg);
-			} finally {
-				getLockService().getBucketLock(bucket.getId()).readLock().unlock();
-				
-			}
-		}finally {
-			getLockService().getObjectLock(bucket.getId(), objectName).readLock().unlock();
-		}
-	}
 
 	/**
 	 * <p>
@@ -1193,8 +1081,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 					drive.markAsEnabledBucket(bucketId);
 				done = true;
 			} else if (op.getOp() == VFSop.UPDATE_BUCKET) {
-				// for (Drive drive: getDrivesAll())
-				// drive.markAsEnabledBucket(bucketName);
+				restoreBucketMetadata(getVFS().getBucketById(bucketId));
 				done = true;
 			} else if (op.getOp() == VFSop.CREATE_SERVER_METADATA) {
 				if (objectName != null) {
@@ -1260,7 +1147,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	public boolean checkIntegrity(ODBucket bucket, String objectName, boolean forceCheck) {
 
 		Check.requireNonNullArgument(bucket, "bucket is null");
-		Check.requireNonNullArgument(objectName, "objectName is null for b:" + bucket.getId().toString());
+		Check.requireNonNullArgument(objectName, "objectName is null for b:" + bucket.getName());
 
 		OffsetDateTime thresholdDate = OffsetDateTime.now().minusDays(getVFS().getServerSettings().getIntegrityCheckDays());
 
@@ -1285,7 +1172,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 			try {
 				bucketLock = getLockService().getBucketLock(bucket.getId()).readLock().tryLock(20, TimeUnit.SECONDS);
 				if (!bucketLock) {
-					logger.warn("Can not acquire read Lock for b: " + bucket.getId().toString() + ". Assumes -> check is ok");
+					logger.warn("Can not acquire read Lock for b: " + bucket.getName()+ ". Assumes -> check is ok");
 					return true;
 				}
 			} catch (InterruptedException e) {
@@ -1334,7 +1221,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 				readDrive.saveObjectMetadata(metadata);
 				return true;
 			} else {
-				logger.error("Integrity Check failed for -> d: " + readDrive.getName() + " | b:" + bucket.getId().toString() + " | o:" + objectName + " | " + SharedConstant.NOT_THROWN);
+				logger.error("Integrity Check failed for -> d: " + readDrive.getName() + " | b:" + bucket.getName() + " | o:" + objectName + " | " + SharedConstant.NOT_THROWN);
 			}
 			/**
 			 * it is not possible to fix the file if the integrity fails because there is no
@@ -1609,6 +1496,62 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		return getReadDrive(bucket, objectName);
 	}
 
+
+	/**
+	 * <p>
+	 * If the bucket does not exist on the selected Drive -> the system is in an
+	 * illegal state
+	 * </p>
+	 */
+	private ObjectMetadata getOM(ODBucket bucket, String objectName, Optional<Integer> o_version, boolean addToCacheifMiss) {
+
+		Check.requireNonNullArgument(bucket, "bucket is null");
+		Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
+	 
+		Drive readDrive = null;
+		
+		getLockService().getObjectLock(bucket.getId(), objectName).readLock().lock();
+		
+		try {
+		
+			getLockService().getBucketLock(bucket.getId()).readLock().lock();
+			
+			try {
+		
+				/** read is from only 1 drive */
+				readDrive = getReadDrive(bucket, objectName);
+	
+				if (!readDrive.existsBucket(bucket.getId()))
+					throw new IllegalStateException("bucket -> b:" + bucket.getName() + " does not exist for -> d:" + readDrive.getName() + " | raid -> " + this.getClass().getSimpleName());
+	
+				ObjectMetadata meta = null;
+	
+				if (o_version.isPresent()) {
+					meta = readDrive.getObjectMetadataVersion(bucket.getId(), objectName, o_version.get());
+					meta.setBucketName(bucket.getName());
+				}
+				else  {
+					meta = getObjectMetadataInternal(bucket, objectName, addToCacheifMiss);
+				}
+				
+				if ((meta != null) && meta.isAccesible())
+					return meta;
+				else
+					throw new OdilonObjectNotFoundException("ObjectMetadata does not exist");
+				
+			} catch (OdilonObjectNotFoundException e) {
+				e.setErrorMessage("b:" + bucket.getName() + " "	+ (Optional.ofNullable(readDrive).isPresent() ? (readDrive.getName()) : "null")	+ (o_version.isPresent() ? (", v:" + String.valueOf(o_version.get())) : ""));
+				throw e;
+			} catch (Exception e) {
+				throw new InternalCriticalException(e, "b:" + bucket.getName() + ", o:" + objectName + ", d:"	+ (Optional.ofNullable(readDrive).isPresent() ? (readDrive.getName()) : "null")	+ (o_version.isPresent() ? (", v:" + String.valueOf(o_version.get())) : ""));
+			} finally {
+				getLockService().getBucketLock(bucket.getId()).readLock().unlock();
+				
+			}
+		}finally {
+			getLockService().getObjectLock(bucket.getId(), objectName).readLock().unlock();
+		}
+	}
 
 
 }

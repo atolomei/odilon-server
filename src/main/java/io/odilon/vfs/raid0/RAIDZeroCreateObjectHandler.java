@@ -76,7 +76,6 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 	
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
-		
 			
 		VFSOperation op = null;
 		boolean done = false;
@@ -242,6 +241,8 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 	 */
 	private void saveObjectMetadata(ODBucket bucket, String objectName, String srcFileName, String contentType, int version) {
 		
+		Check.requireNonNullArgument(bucket, "bucket is null");
+		
 		OffsetDateTime now=OffsetDateTime.now();
 		Drive drive=getWriteDrive(bucket, objectName);
 		File file=((SimpleDrive)drive).getObjectDataFile(bucket.getId(), objectName);
@@ -268,7 +269,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 				drive.saveObjectMetadata(meta);
 			
 		} catch (Exception e) {										
-				throw new InternalCriticalException(e, "b:"  + bucket.getId().toString() + ", o:" + objectName + ", f:" + srcFileName);
+				throw new InternalCriticalException(e, "b:"  + bucket.getName() + ", o:" + objectName + ", f:" + srcFileName);
 		}
 	}
 }

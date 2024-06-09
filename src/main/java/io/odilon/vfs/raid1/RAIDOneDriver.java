@@ -201,8 +201,8 @@ public class RAIDOneDriver extends BaseIODriver  {
 		
 		ODBucket bucket = getVFS().getBucketById(bucketId);
 		
-		Check.requireNonNullArgument(bucket, "bucket does not exist -> b:" + bucket.getId().toString());		
-		Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie. " + BucketStatus.ARCHIVED.getName() +" or " + BucketStatus.ENABLED.getName() + ") | b:" + bucket.getId().toString());
+		Check.requireNonNullArgument(bucket, "bucket does not exist -> b:" + bucket.getName());		
+		Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie. " + BucketStatus.ARCHIVED.getName() +" or " + BucketStatus.ENABLED.getName() + ") | b:" + bucket.getName());
 		
 		if (!exists(bucket, objectName))
 			throw new OdilonObjectNotFoundException("object does not exist -> b:" + bucket.getId()+ " o:"+(Optional.ofNullable(objectName).isPresent() ? (objectName) :"null"));
@@ -355,13 +355,14 @@ public class RAIDOneDriver extends BaseIODriver  {
 		}
 	}
 	
+
 	/**
 	 * <p>@param bucket bucket must exist in the system</p> 
 	 */
 	public void deleteBucket(ODBucket bucket) {
 		getVFS().removeBucket(bucket);
-		
 	}
+	
 	
 	/**
 	 * <p>RAID 1 -> Read drive can be any from the pool</p>
@@ -391,10 +392,6 @@ public class RAIDOneDriver extends BaseIODriver  {
 		
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
-		
-		//ODBucket bucket = getVFS().getBucketById(bucketId);
-		
-		Check.requireNonNullArgument(bucket, "bucket does not exist -> b:" + bucket.getName());
 		Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie. " + BucketStatus.ARCHIVED.getName() +" or " + BucketStatus.ENABLED.getName() + ") | b:" + bucket.getName());
 	
 		List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
@@ -584,7 +581,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 				bucketIterator = walkerService.get(serverAgentId.get());
 			
 			if (bucketIterator==null) {
-				bucketIterator = new RAIDOneIterator(this, bucket, offset, prefix);
+				bucketIterator = new RAIDOneBucketIterator(this, bucket, offset, prefix);
 				walkerService.register(bucketIterator);
 			}
 			
@@ -640,7 +637,6 @@ public class RAIDOneDriver extends BaseIODriver  {
 	public InputStream getInputStream(ODBucket bucket, String objectName) throws IOException {
 
 		Check.requireNonNullArgument(bucket, "bucket is null");
-		Long bucketId = bucket.getId();
 		
 		Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie. enabled or archived) b:" + bucket.getId());
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getId());
@@ -727,7 +723,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 			try {
 				bucketLock = getLockService().getBucketLock(bucket.getId()).readLock().tryLock(20, TimeUnit.SECONDS);
 				if(!bucketLock) {
-					logger.warn("Can not acquire read Lock for Bucket. Assumes check is ok -> " + bucket.getId().toString(), SharedConstant.NOT_THROWN);
+					logger.warn("Can not acquire read Lock for Bucket. Assumes check is ok -> " + bucket.getName(), SharedConstant.NOT_THROWN);
 					return true;
 				}
 			}
@@ -902,7 +898,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 				done=true;
 			}
 			else if (op.getOp()==VFSop.UPDATE_BUCKET) {
-				logger.error("not done -> "  +op.getOp() + " | " + bucketId );
+				restoreBucketMetadata(getVFS().getBucketById(bucketId));
 				done=true;
 			}
 			else if (op.getOp()==VFSop.DELETE_BUCKET) {

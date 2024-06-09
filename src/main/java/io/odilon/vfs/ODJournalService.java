@@ -132,6 +132,12 @@ public class ODJournalService extends BaseService implements JournalService {
 		return createNew(VFSop.CREATE_BUCKET, Optional.of(bucketId), Optional.empty(), Optional.empty());
 	}
 	
+	@Override															
+	public VFSOperation updateBucket(ODBucket bucket) {
+		Check.requireNonNullArgument(bucket, "bucket is null");
+		return createNew(VFSop.UPDATE_BUCKET, Optional.of(bucket.getId()), Optional.empty(), Optional.empty());
+	}
+	
 	@Override														
 	public VFSOperation deleteBucket(ODBucket bucket) {
 		Check.requireNonNullArgument(bucket, "bucket is null");
@@ -139,7 +145,7 @@ public class ODJournalService extends BaseService implements JournalService {
 		return createNew(	VFSop.DELETE_BUCKET, 
 							Optional.of(bucket.getId()),
 							Optional.of(bucket.getName()),
-							Optional.empty(), Optional.empty()  );
+							Optional.empty(), Optional.empty());
 	}
 	
 	@Override								

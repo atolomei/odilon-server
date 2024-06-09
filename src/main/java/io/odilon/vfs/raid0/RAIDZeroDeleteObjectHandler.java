@@ -109,7 +109,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 			} catch (Exception e) {
 				done=false;
 				isMainException = true;
-				throw new InternalCriticalException(e, "b:" + bucket.getId().toString() + ", o:" + objectName);
+				throw new InternalCriticalException(e, "b:" + bucket.getName() + ", o:" + objectName);
 			}
 			finally {
 
@@ -119,16 +119,16 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 							rollbackJournal(op, false);
 						} catch (Exception e) {
 							if (!isMainException)
-								throw new InternalCriticalException(e, "b:" + bucket.getId().toString() + ", o:" + objectName);
+								throw new InternalCriticalException(e, "b:" + bucket.getName() + ", o:" + objectName);
 							else
-								logger.error(e, "b:" + bucket.getId().toString() + ", o:" + objectName, SharedConstant.NOT_THROWN);
+								logger.error(e, "b:" + bucket.getName() + ", o:" + objectName, SharedConstant.NOT_THROWN);
 						}
 					}
 					else if (done) { 
 						try {
 							postObjectDeleteCommit(meta, headVersion);
 						} catch (Exception e) {
-							logger.error(e, "b:" +bucket.getId().toString() + ", o:" + objectName, SharedConstant.NOT_THROWN);
+							logger.error(e, "b:" + bucket.getName() + ", o:" + objectName, SharedConstant.NOT_THROWN);
 						} 
 					}
 				}

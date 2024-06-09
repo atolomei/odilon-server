@@ -56,6 +56,10 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
  *
+ *
+ *<p>Implementation of the Object Storage interface</p>
+ *<p>The  Object Storage  is essentially an intermediary that downloads the requirements into the Virtual File System</p>
+ *
  *  @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @Service		
@@ -421,6 +425,10 @@ public class ODObjectStorageService extends BaseService implements ObjectStorage
 					" and must contain just lowercase letters and numbers, java regex = '" +
 					SharedConstant.bucket_valid_regex + "' | b:" + newBucketName);
 
+		
+		if (this.existsBucket(newBucketName))
+			throw new IllegalArgumentException( "bucketName already used " + newBucketName);
+		
 		try {
 
 			return getVFS().renameBucketName(bucket.getName(), newBucketName);

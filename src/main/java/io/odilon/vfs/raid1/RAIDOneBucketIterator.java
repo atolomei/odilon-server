@@ -50,9 +50,9 @@ import io.odilon.vfs.model.BucketIterator;
  *   
  *  @author atolomei@novamens.com (Alejandro Tolomei)
  */
-public class RAIDOneIterator extends BucketIterator implements Closeable {
+public class RAIDOneBucketIterator extends BucketIterator implements Closeable {
 		
-	private static final Logger logger = Logger.getLogger(RAIDOneIterator.class.getName());
+	private static final Logger logger = Logger.getLogger(RAIDOneBucketIterator.class.getName());
 	
 	@JsonProperty("prefix")
 	private String prefix;
@@ -82,7 +82,7 @@ public class RAIDOneIterator extends BucketIterator implements Closeable {
 	@JsonIgnore
 	RAIDOneDriver driver;
 	
-	public RAIDOneIterator(RAIDOneDriver driver, ODBucket bucket, Optional<Long> opOffset,  Optional<String> opPrefix) {
+	public RAIDOneBucketIterator(RAIDOneDriver driver, ODBucket bucket, Optional<Long> opOffset,  Optional<String> opPrefix) {
 		super(bucket);
 		opPrefix.ifPresent( x -> this.prefix = x.toLowerCase().trim());
 		opOffset.ifPresent( x -> setOffset(x));

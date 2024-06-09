@@ -54,6 +54,7 @@ import io.odilon.model.BucketStatus;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.OdilonServerInfo;
 import io.odilon.model.RedundancyLevel;
+import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
 import io.odilon.scheduler.AbstractServiceRequest;
 import io.odilon.scheduler.SchedulerService;
@@ -187,6 +188,111 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 	}
 
 
+	
+	/**
+	 * 
+	 * 
+	 */
+	@Override
+	public ODBucket renameBucket(ODBucket bucket, String newBucketName) {
+									
+		Check.requireNonNullArgument(bucket, "bucket is null");
+		
+		VFSOperation op = null;
+		boolean done = false;
+		
+		OffsetDateTime now = OffsetDateTime.now();
+		
+		
+		getLockService().getBucketLock(bucket.getId()).writeLock().lock();
+		
+		BucketMetadata meta = null;
+		
+		String oldName = bucket.getName();
+		
+		try {
+		
+			if (getVFS().existsBucket(newBucketName))
+					throw new IllegalArgumentException("bucketName already used | b: " + newBucketName);
+
+			op = getJournalService().updateBucket(bucket);
+
+			backupBucketMetadata(bucket);
+			
+			meta = bucket.getBucketMetadata();	
+			meta.lastModified=now;
+			meta.bucketName=newBucketName;
+
+			for (Drive drive: getDrivesAll()) {
+				try {
+					drive.updateBucket(meta);
+				} catch (Exception e) {
+					done=false;
+					throw new InternalCriticalException(e, "Drive -> " + drive.getName());
+				}
+			}
+			
+			done=op.commit();
+			return bucket;
+		}
+		finally {
+			try {
+				if (done) {
+					getVFS().updateBucketCache(oldName, new ODVFSBucket(meta));
+				}
+				else {
+					if (op!=null)
+						rollbackJournal(op);
+				}
+				
+			} catch (Exception e) {
+				logger.error(e, SharedConstant.NOT_THROWN);
+			}
+			finally {
+				getLockService().getBucketLock(bucket.getId()).writeLock().unlock();
+			}
+		}
+		
+	}
+
+	
+	/**
+	 * 
+	 * @param bucket
+	 */
+	protected void restoreBucketMetadata(ODBucket bucket) {
+		try {
+			for (Drive drive: getDrivesAll()) {
+				String path=drive.getBucketWorkDirPath(bucket.getId()) + File.separator + "bucketmetadata-" + bucket.getId().toString() + ServerConstant.JSON;
+				BucketMetadata meta = getObjectMapper().readValue(Paths.get(path).toFile(), BucketMetadata.class);
+				drive.updateBucket(meta);
+			}
+		} catch (Exception e) {
+			throw new InternalCriticalException(e, "b:" + bucket.getName());
+		}
+	}
+
+	/**
+	 * @param bucket
+	 */
+	protected void backupBucketMetadata(ODBucket bucket) {
+		try {
+			for (Drive drive: getDrivesAll()) {
+				BucketMetadata meta = drive.getBucketMetadata(bucket.getId());
+				String path=drive.getBucketWorkDirPath(bucket.getId()) + File.separator + "bucketmetadata-" + bucket.getId().toString() + ServerConstant.JSON;
+				Files.writeString(Paths.get(path), getObjectMapper().writeValueAsString(meta));
+			}
+		} catch (Exception e) {
+			throw new InternalCriticalException(e, "b:" + bucket.getName());
+		}
+	}
+
+	
+	
+	
+	
+	
+	
 	/**
 	 * <p>Shared by RAID 1 and RAID 6</p>
 	 */
@@ -787,11 +893,15 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 			drive.removeJournal(id);
 	}
 
-	
 													
 	protected abstract Drive getObjectMetadataReadDrive(ODBucket bucket, String objectName);
 	
+
 	
+	/**
+	 *<p> Note that bucketName is not stored on disk, we must set the bucketName explicitly. Disks identify Buckets by id, the name is stored in the
+	 *BucketMetadata file</p> 
+	 */
 	public ObjectMetadata getObjectMetadataInternal(ODBucket bucket, String objectName, boolean addToCacheIfmiss) {
 
 		if ((!getVFS().getServerSettings().isUseObjectCache()) || (getVFS().getObjectMetadataCacheService().size() >= MAX_CACHE_SIZE)) 
@@ -816,25 +926,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		}
 		return meta;
 	}
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
 	
 	/**
 	 * 
@@ -891,8 +982,10 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		return map;
 	}
 
-	
-	
+
+	/**
+	 * @param serverInfo
+	 */
 	private void saveNewServerInfo(OdilonServerInfo serverInfo) {
 		
 		boolean done = false;

@@ -96,6 +96,9 @@ public interface Drive {
 	 * Bucket
 	 ------------------*/
 	public File 				createBucket(BucketMetadata meta) throws IOException; 	
+	public void  				updateBucket(BucketMetadata meta) throws IOException;
+	public BucketMetadata 		getBucketMetadata(Long bucketId) throws IOException;
+	
 	public boolean 				existsBucket(Long bucketId);
 	public void 				deleteBucket(Long bucketId); 											
 	public List<DriveBucket> 	getBuckets();

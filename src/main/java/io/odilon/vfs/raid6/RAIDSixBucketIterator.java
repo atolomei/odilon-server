@@ -56,10 +56,10 @@ import io.odilon.vfs.model.ODBucket;
  * @author atolomei@novamens.com (Alejandro Tolomei)
  * 
  */
-public class RAIDSixIterator extends BucketIterator implements Closeable {
+public class RAIDSixBucketIterator extends BucketIterator implements Closeable {
 
 	@SuppressWarnings("unused")
-	private static final Logger logger = Logger.getLogger(RAIDSixIterator.class.getName());
+	private static final Logger logger = Logger.getLogger(RAIDSixBucketIterator.class.getName());
 	
 	@JsonProperty("prefix")
 	private String prefix = null;
@@ -97,7 +97,7 @@ public class RAIDSixIterator extends BucketIterator implements Closeable {
 	 * @param opOffset
 	 * @param opPrefix
 	 */
-	public RAIDSixIterator(RAIDSixDriver driver, ODBucket bucket, Optional<Long> opOffset,  Optional<String> opPrefix) {
+	public RAIDSixBucketIterator(RAIDSixDriver driver, ODBucket bucket, Optional<Long> opOffset,  Optional<String> opPrefix) {
 		super(bucket);
 		
 		Check.requireNonNull(driver);

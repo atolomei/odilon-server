@@ -238,7 +238,7 @@ public interface VirtualFileSystemService extends SystemService {
 
 
 	public void addBucketCache(ODBucket bucket);
-	//public Map<String, ODBucket> getBucketsCache();
+	public void updateBucketCache(String oldBucketName, ODBucket bucket);
 	
 
 

@@ -108,7 +108,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 				} catch (Exception e) {
 						done=false;
 						isMainException=true;
-						throw new InternalCriticalException(e, "b:" + bucket.getId().toString() + " o:"+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null"));
+						throw new InternalCriticalException(e, "b:" + bucket.getName() + " o:"+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null"));
 				} finally {
 						try {
 								if ((!done) && (op!=null)) {
@@ -116,7 +116,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 										rollbackJournal(op, false);
 									} catch (Exception e) {
 										if (!isMainException)
-											throw new InternalCriticalException(e, "b:" + bucket.getId().toString() + " o:"+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null"));
+											throw new InternalCriticalException(e, "b:" + bucket.getName() + " o:"+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null"));
 										else
 											logger.error(e, " finally | b:" + bucketId.toString() +	" o:" 	+ objectName + ", f:" 	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null") +  SharedConstant.NOT_THROWN);
 									}

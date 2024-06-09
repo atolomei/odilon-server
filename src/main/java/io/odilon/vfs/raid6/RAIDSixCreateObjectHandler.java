@@ -95,7 +95,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 					getLockService().getBucketLock(bucket.getId()).readLock().lock();
 			
 					if (getDriver().getObjectMetadataReadDrive(bucket, objectName).existsObjectMetadata(bucket.getId(), objectName))											
-						throw new IllegalArgumentException("Object already exist -> b:" + bucket.getId().toString() + " o:"+ objectName);
+						throw new IllegalArgumentException("Object already exist -> b:" + bucket.getName() + " o:"+ objectName);
 					
 					int version = 0;
 					

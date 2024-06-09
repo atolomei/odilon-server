@@ -74,7 +74,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 		
 		
 		Check.requireNonNullArgument(bucket.getId(), "bucketId is null");
-		Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucket.getId().toString());
+		Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 		
 		if (!getDriver().exists(bucket, objectName))
 			throw new OdilonObjectNotFoundException("object does not exist -> b:" + bucket.getName()+ " o:"+objectName);
@@ -109,7 +109,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 				
 			} catch (Exception e) {
 				done=false;
-				throw new InternalCriticalException(e, "op:" + op.getOp().getName() + ", b:"  + bucket.getId().toString() +	", o:" 	+ objectName);
+				throw new InternalCriticalException(e, "op:" + op.getOp().getName() + ", b:"  + bucket.getName() +	", o:" 	+ objectName);
 			}
 			finally {
 				
@@ -119,7 +119,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 						try {
 							rollbackJournal(op, false);
 						} catch (Exception e) {
-							throw new InternalCriticalException(e, "op:" + op.getOp().getName() + ", b:"  + bucket.getId().toString()  +	", o:" 	+ objectName);
+							throw new InternalCriticalException(e, "op:" + op.getOp().getName() + ", b:"  + bucket.getName()  +	", o:" 	+ objectName);
 						}
 					}
 					else if (done)
@@ -132,7 +132,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 					 */
 					
 				} catch (Exception e) {
-					logger.error(e, "op:" + op.getOp().getName() + ", b:"  + bucket.getId().toString() + ", o:" 	+ objectName, SharedConstant.NOT_THROWN);
+					logger.error(e, "op:" + op.getOp().getName() + ", b:"  + bucket.getName() + ", o:" 	+ objectName, SharedConstant.NOT_THROWN);
 				}
 				finally {
 					getLockService().getBucketLock(bucket.getId()).readLock().unlock();
