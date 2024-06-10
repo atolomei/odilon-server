@@ -39,7 +39,7 @@ import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.SimpleDrive;
 import io.odilon.vfs.model.ODBucket;
 import io.odilon.vfs.model.VFSOperation;
-import io.odilon.vfs.model.VFSop;
+import io.odilon.vfs.model.VFSOp;
 
 
 /**
@@ -264,7 +264,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 		Check.requireNonNullArgument(op, "op is null");
 
 		/** also checked by the calling driver */
-		Check.requireTrue(op.getOp()==VFSop.DELETE_OBJECT || op.getOp()==VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS, VFSOperation.class.getName() + " invalid -> op: " + op.getOp().getName());
+		Check.requireTrue(op.getOp()==VFSOp.DELETE_OBJECT || op.getOp()==VFSOp.DELETE_OBJECT_PREVIOUS_VERSIONS, VFSOperation.class.getName() + " invalid -> op: " + op.getOp().getName());
 		
 		String objectName = op.getObjectName();
 
@@ -289,10 +289,10 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 			 * DELETE_OBJECT_PREVIOUS_VERSIONS
 			 * 
 			 * */
-			if (op.getOp()==VFSop.DELETE_OBJECT)
+			if (op.getOp()==VFSOp.DELETE_OBJECT)
 				restoreMetadata(bucket,objectName);
 			
-			else if (op.getOp()==VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS)
+			else if (op.getOp()==VFSOp.DELETE_OBJECT_PREVIOUS_VERSIONS)
 				restoreMetadata(bucket,objectName);
 			
 			done=true;
@@ -478,7 +478,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 		}
 		
 		try {
-			if (op.getOp()==VFSop.DELETE_OBJECT || op.getOp()==VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS)
+			if (op.getOp()==VFSOp.DELETE_OBJECT || op.getOp()==VFSOp.DELETE_OBJECT_PREVIOUS_VERSIONS)
 				getVFS().getSchedulerService().enqueue(getVFS().getApplicationContext().getBean(AfterDeleteObjectServiceRequest.class, op.getOp(), meta, headVersion));
 			
 		} catch (Exception e) {

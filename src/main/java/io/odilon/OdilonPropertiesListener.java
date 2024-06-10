@@ -18,6 +18,7 @@
 package io.odilon;
 
 
+import java.util.Locale;
 import java.util.Properties;
 
 import org.springframework.boot.context.event.ApplicationEnvironmentPreparedEvent;
@@ -54,6 +55,9 @@ public class OdilonPropertiesListener implements ApplicationListener<Application
 		    //props.put("spring.resources.cache.cachecontrol.must-revalidate", "true");
 		    		
 		    environment.getPropertySources().addFirst(new PropertiesPropertySource("odilonProps", props));
+		    
+		    Locale.setDefault(Locale.ENGLISH);
+		    
 	}
 	 
 }

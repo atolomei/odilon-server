@@ -32,7 +32,7 @@ import io.odilon.log.Logger;
 import io.odilon.model.RedundancyLevel;
 import io.odilon.vfs.model.JournalService;
 import io.odilon.vfs.model.VFSOperation;
-import io.odilon.vfs.model.VFSop;
+import io.odilon.vfs.model.VFSOp;
 
 
 /**
@@ -77,7 +77,7 @@ public class ODVFSOperation implements VFSOperation {
 	private OffsetDateTime timestamp;
 	
 	@JsonProperty("operation")
-	private VFSop op;
+	private VFSOp op;
 	
 	@JsonProperty("raid")
 	private RedundancyLevel raid;
@@ -94,7 +94,7 @@ public class ODVFSOperation implements VFSOperation {
 	}
 	
 	public ODVFSOperation( 	String id, 
-							VFSop op,
+							VFSOp op,
 							Optional<Long> bucketId,
 							Optional<String> bucketName,
 							Optional<String> objectName,
@@ -206,11 +206,11 @@ public class ODVFSOperation implements VFSOperation {
 	}
 
 	@Override
-	public VFSop getOp() {
+	public VFSOp getOp() {
 		return op;
 	}
 
-	public void setOp(VFSop op) {
+	public void setOp(VFSOp op) {
 		this.op = op;
 	}
 

@@ -41,7 +41,7 @@ import io.odilon.util.ODFileUtils;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.ODBucket;
 import io.odilon.vfs.model.VFSOperation;
-import io.odilon.vfs.model.VFSop;
+import io.odilon.vfs.model.VFSOp;
 
 /**
  * <b>RAID 6 Object creation</b> 
@@ -145,7 +145,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 	protected void rollbackJournal(VFSOperation op, boolean recoveryMode) {
 		
 		Check.requireNonNullArgument(op, "op is null");
-		Check.checkTrue(op.getOp()==VFSop.CREATE_OBJECT, "Invalid op ->  " + op.getOp().getName());
+		Check.checkTrue(op.getOp()==VFSOp.CREATE_OBJECT, "Invalid op ->  " + op.getOp().getName());
 		
 		String objectName = op.getObjectName();
 		String bucketName = op.getBucketName();

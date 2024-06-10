@@ -41,7 +41,7 @@ import io.odilon.util.Check;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.ODBucket;
 import io.odilon.vfs.model.VFSOperation;
-import io.odilon.vfs.model.VFSop;
+import io.odilon.vfs.model.VFSOp;
 
 /**
  * <p>RAID 6. Sync Object. This class regenerates the object's chunks when a new disk is added</p> 
@@ -192,7 +192,7 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 	@Override
 	public void rollbackJournal(VFSOperation op, boolean recoveryMode) {
 		Check.requireNonNullArgument(op, "op is null");
-		Check.requireTrue(op.getOp()==VFSop.SYNC_OBJECT_NEW_DRIVE,VFSOperation.class.getName() + "can not be  ->  op: " + op.getOp().getName());
+		Check.requireTrue(op.getOp()==VFSOp.SYNC_OBJECT_NEW_DRIVE,VFSOperation.class.getName() + "can not be  ->  op: " + op.getOp().getName());
 		
 		switch (op.getOp()) {
 					case SYNC_OBJECT_NEW_DRIVE: 

@@ -44,7 +44,7 @@ import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.SimpleDrive;
 import io.odilon.vfs.model.ODBucket;
 import io.odilon.vfs.model.VFSOperation;
-import io.odilon.vfs.model.VFSop;
+import io.odilon.vfs.model.VFSOp;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
@@ -350,9 +350,9 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 	protected void rollbackJournal(VFSOperation op, boolean recoveryMode) {
 		
 		Check.requireNonNullArgument(op, "op is null");
-		Check.requireTrue( (op.getOp()==VFSop.UPDATE_OBJECT ||
-							op.getOp()==VFSop.UPDATE_OBJECT_METADATA ||
-							op.getOp()==VFSop.RESTORE_OBJECT_PREVIOUS_VERSION
+		Check.requireTrue( (op.getOp()==VFSOp.UPDATE_OBJECT ||
+							op.getOp()==VFSOp.UPDATE_OBJECT_METADATA ||
+							op.getOp()==VFSOp.RESTORE_OBJECT_PREVIOUS_VERSION
 							), "VFSOperation can not be  ->  op: " + op.getOp().getName());
 
 		switch (op.getOp()) {
@@ -437,7 +437,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 			if (getVFS().getServerSettings().isStandByEnabled()) 
 				getVFS().getReplicationService().cancel(op);
 			
-			if (op.getOp()==VFSop.UPDATE_OBJECT_METADATA)
+			if (op.getOp()==VFSOp.UPDATE_OBJECT_METADATA)
 				restoreMetadata(bucket, op.getObjectName());
 			
 			done = true;

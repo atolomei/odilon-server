@@ -50,7 +50,7 @@ public interface JournalService extends SystemService {
 	 * BUCKET
 	 * ------------------*/
 
-	public VFSOperation createBucket(Long bucketId);
+	public VFSOperation createBucket(Long bucketId, String bucketName);
 	public VFSOperation updateBucket(ODBucket bucket);
 	public VFSOperation deleteBucket(ODBucket bucket);
 	

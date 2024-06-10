@@ -42,12 +42,12 @@ import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.SimpleDrive;
 import io.odilon.vfs.model.ODBucket;
 import io.odilon.vfs.model.VFSOperation;
-import io.odilon.vfs.model.VFSop;
+import io.odilon.vfs.model.VFSOp;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
  * <p>RAID 0 Handler <br/>  
- * Creates new Objects ({@link VFSop.CREATE_OBJECT})</p>
+ * Creates new Objects ({@link VFSOp.CREATE_OBJECT})</p>
  *
  * @author atolomei@novamens.com (Alejandro Tolomei)	 
  */
@@ -148,7 +148,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 	protected void rollbackJournal(VFSOperation op, boolean recoveryMode) {
 		
 		Check.requireNonNullArgument(op, "op is null");
-		Check.checkTrue(op.getOp()==VFSop.CREATE_OBJECT, "Invalid op ->  " + op.getOp().getName());
+		Check.checkTrue(op.getOp()==VFSOp.CREATE_OBJECT, "Invalid op ->  " + op.getOp().getName());
 			
 		String objectName = op.getObjectName();
 		

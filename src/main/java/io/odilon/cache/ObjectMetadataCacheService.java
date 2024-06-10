@@ -35,7 +35,7 @@ import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ServiceStatus;
 import io.odilon.service.BaseService;
 import io.odilon.service.ServerSettings;
-import io.odilon.vfs.model.VFSop;
+import io.odilon.vfs.model.VFSOp;
 
 /**
  * <p>{@link ObjectMetadata} Cache. It only stores ObjectMetadata's <b>head version</b></p> 
@@ -104,29 +104,29 @@ public class ObjectMetadataCacheService extends BaseService implements Applicati
     	}
     	
     	
-		if (event.getVFSOperation().getOp()==VFSop.CREATE_OBJECT) {
+		if (event.getVFSOperation().getOp()==VFSOp.CREATE_OBJECT) {
 			remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName());
 			return;
 		}
-		if (event.getVFSOperation().getOp()==VFSop.UPDATE_OBJECT) {
+		if (event.getVFSOperation().getOp()==VFSOp.UPDATE_OBJECT) {
 			remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName());
 			return;
 		}
-		if (event.getVFSOperation().getOp()==VFSop.RESTORE_OBJECT_PREVIOUS_VERSION) {
+		if (event.getVFSOperation().getOp()==VFSOp.RESTORE_OBJECT_PREVIOUS_VERSION) {
 			remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName());
 			return;
 		}
-		if (event.getVFSOperation().getOp()==VFSop.DELETE_OBJECT) {
-			remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName());
-			return;
-		}
-		
-		if (event.getVFSOperation().getOp()==VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS) {
+		if (event.getVFSOperation().getOp()==VFSOp.DELETE_OBJECT) {
 			remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName());
 			return;
 		}
 		
-		if (event.getVFSOperation().getOp()==VFSop.SYNC_OBJECT_NEW_DRIVE) {
+		if (event.getVFSOperation().getOp()==VFSOp.DELETE_OBJECT_PREVIOUS_VERSIONS) {
+			remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName());
+			return;
+		}
+		
+		if (event.getVFSOperation().getOp()==VFSOp.SYNC_OBJECT_NEW_DRIVE) {
 			remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName());
 			return;
 		}

@@ -63,7 +63,7 @@ import io.odilon.vfs.model.LockService;
 import io.odilon.vfs.model.SimpleDrive;
 import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.BucketIterator;
-import io.odilon.vfs.model.VFSop;
+import io.odilon.vfs.model.VFSOp;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
@@ -319,7 +319,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 			if (getVFS().existsBucket(bucketName))
 					throw new IllegalArgumentException("bucket already exist | b: " + bucketName);
 
-			op = getJournalService().createBucket(bucket.getId());
+			op = getJournalService().createBucket(bucket.getId(), bucketName);
 			
 			meta.creationDate=now;
 			meta.lastModified=now;
@@ -839,30 +839,30 @@ public class RAIDOneDriver extends BaseIODriver  {
 		
 		Check.requireNonNullArgument(op, "VFSOperation is null");
 		
-		if (op.getOp()==VFSop.CREATE_OBJECT) {
+		if (op.getOp()==VFSOp.CREATE_OBJECT) {
 			RAIDOneCreateObjectHandler handler = new RAIDOneCreateObjectHandler(this);
 			handler.rollbackJournal(op, recoveryMode);
 			return;
 		}
-		else if (op.getOp()==VFSop.UPDATE_OBJECT) {
+		else if (op.getOp()==VFSOp.UPDATE_OBJECT) {
 			RAIDOneUpdateObjectHandler handler = new RAIDOneUpdateObjectHandler(this);
 			handler.rollbackJournal(op, recoveryMode);
 			return;
 			
 		}
-		else if (op.getOp()==VFSop.DELETE_OBJECT) {
+		else if (op.getOp()==VFSOp.DELETE_OBJECT) {
 			RAIDOneDeleteObjectHandler handler = new RAIDOneDeleteObjectHandler(this);
 			handler.rollbackJournal(op, recoveryMode);
 			return;
 		}
 		
-		else if (op.getOp()==VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS) {
+		else if (op.getOp()==VFSOp.DELETE_OBJECT_PREVIOUS_VERSIONS) {
 			RAIDOneDeleteObjectHandler handler = new RAIDOneDeleteObjectHandler(this);
 			handler.rollbackJournal(op, recoveryMode);
 			return;
 		}
 		
-		else if (op.getOp()==VFSop.UPDATE_OBJECT_METADATA) {
+		else if (op.getOp()==VFSOp.UPDATE_OBJECT_METADATA) {
 			RAIDOneUpdateObjectHandler handler = new RAIDOneUpdateObjectHandler(this);
 			handler.rollbackJournal(op, recoveryMode);
 			return;
@@ -884,7 +884,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 				rs.cancel(op);
 			}
 			
-			else if (op.getOp() == VFSop.CREATE_SERVER_MASTERKEY) {
+			else if (op.getOp() == VFSOp.CREATE_SERVER_MASTERKEY) {
 				for (Drive drive : getDrivesAll()) {
 					File file = drive.getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE);
 					if ((file != null) && file.exists())
@@ -892,21 +892,21 @@ public class RAIDOneDriver extends BaseIODriver  {
 				}
 				done = true;
 			}
-			else if (op.getOp()==VFSop.CREATE_BUCKET) {
+			else if (op.getOp()==VFSOp.CREATE_BUCKET) {
 				for (Drive drive: getDrivesAll())
 					((ODDrive) drive).forceDeleteBucket(bucketId);
 				done=true;
 			}
-			else if (op.getOp()==VFSop.UPDATE_BUCKET) {
+			else if (op.getOp()==VFSOp.UPDATE_BUCKET) {
 				restoreBucketMetadata(getVFS().getBucketById(bucketId));
 				done=true;
 			}
-			else if (op.getOp()==VFSop.DELETE_BUCKET) {
+			else if (op.getOp()==VFSOp.DELETE_BUCKET) {
 				for (Drive drive: getDrivesAll())
 					drive.markAsEnabledBucket(bucketId);
 				done=true;
 			}
-			else if (op.getOp()==VFSop.CREATE_SERVER_METADATA) {
+			else if (op.getOp()==VFSOp.CREATE_SERVER_METADATA) {
 				if (objectName!=null) {
 					for (Drive drive: getDrivesAll()) {
 						drive.removeSysFile(op.getObjectName());
@@ -914,7 +914,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 				}
 				done=true;
 			}
-			else if (op.getOp()==VFSop.UPDATE_SERVER_METADATA) {
+			else if (op.getOp()==VFSOp.UPDATE_SERVER_METADATA) {
 				if (objectName!=null) {
 					logger.error("not done -> "  +op.getOp() + " | " + bucketName, SharedConstant.NOT_THROWN );
 				}

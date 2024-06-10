@@ -29,7 +29,7 @@ import io.odilon.model.RedundancyLevel;
  */
 public interface VFSOperation {
 
-	public VFSop getOp();
+	public VFSOp getOp();
 	
 	public boolean commit();
 	public boolean cancel();

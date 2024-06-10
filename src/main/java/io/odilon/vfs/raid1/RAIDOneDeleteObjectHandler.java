@@ -38,11 +38,11 @@ import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.SimpleDrive;
 import io.odilon.vfs.model.ODBucket;
 import io.odilon.vfs.model.VFSOperation;
-import io.odilon.vfs.model.VFSop;
+import io.odilon.vfs.model.VFSOp;
 
 /**
  * <p>RAID 1 Handler <br/>  
- * Delete methods ({@link VFSop.DELETE_OBJECT})</p> * 
+ * Delete methods ({@link VFSOp.DELETE_OBJECT})</p> * 
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
@@ -283,7 +283,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 		
 		/** checked by the calling driver */
 		Check.requireNonNullArgument(op, "op is null");
-		Check.requireTrue(op.getOp()==VFSop.DELETE_OBJECT || op.getOp()==VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS, "VFSOperation invalid -> op: " + op.getOp().getName());
+		Check.requireTrue(op.getOp()==VFSOp.DELETE_OBJECT || op.getOp()==VFSOp.DELETE_OBJECT_PREVIOUS_VERSIONS, "VFSOperation invalid -> op: " + op.getOp().getName());
 			
 		String objectName = op.getObjectName();
 		Long bucketId = op.getBucketId();
@@ -301,10 +301,10 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 				getVFS().getReplicationService().cancel(op);
 			
 			/** rollback is the same for both operations */
-			if (op.getOp()==VFSop.DELETE_OBJECT)
+			if (op.getOp()==VFSOp.DELETE_OBJECT)
 				restoreMetadata(bucketId,objectName);
 			
-			else if (op.getOp()==VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS)
+			else if (op.getOp()==VFSOp.DELETE_OBJECT_PREVIOUS_VERSIONS)
 				restoreMetadata(bucketId,objectName);
 			
 			done=true;
@@ -452,7 +452,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 	 */
 	private void onAfterCommit(VFSOperation op, ObjectMetadata meta, int headVersion) {
 		try {
-			if (op.getOp()==VFSop.DELETE_OBJECT || op.getOp()==VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS)
+			if (op.getOp()==VFSOp.DELETE_OBJECT || op.getOp()==VFSOp.DELETE_OBJECT_PREVIOUS_VERSIONS)
 				getVFS().getSchedulerService().enqueue(getVFS().getApplicationContext().getBean(AfterDeleteObjectServiceRequest.class, op.getOp(), meta, headVersion));
 		} catch (Exception e) {
 			logger.error(e, " | " + SharedConstant.NOT_THROWN);

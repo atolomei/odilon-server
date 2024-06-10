@@ -142,6 +142,8 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		meta.id=getVFS().getNextBucketId();
 		
 		ODBucket bucket = new ODVFSBucket(meta);
+		boolean isMainException = false;
+		
 
 		getLockService().getBucketLock(meta.id).writeLock().lock();
 		
@@ -150,7 +152,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 			if (getVFS().existsBucket(bucketName))
 				throw new IllegalArgumentException("bucket already exist | b: " + bucketName);
 
-			op = getJournalService().createBucket(meta.id);
+			op = getJournalService().createBucket(meta.id, bucketName);
 
 			OffsetDateTime now = OffsetDateTime.now();
 
@@ -164,6 +166,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 					
 				} catch (Exception e) {
 					done = false;
+					isMainException = true;
 					throw new InternalCriticalException(e, "Drive -> " + drive.getName());
 				}
 			}
@@ -180,7 +183,10 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 					rollbackJournal(op);
 
 			} catch (Exception e) {
-				logger.error(e, SharedConstant.NOT_THROWN);
+				if (!isMainException)
+					throw new InternalCriticalException(e, "finally");
+				else
+					logger.error(e, SharedConstant.NOT_THROWN);
 			} finally {
 				getLockService().getBucketLock(meta.id).writeLock().unlock();
 			}

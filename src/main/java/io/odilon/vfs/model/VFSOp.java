@@ -26,7 +26,7 @@ import java.util.ResourceBundle;
  *  
  *  @author atolomei@novamens.com (Alejandro Tolomei)
  */
-public enum VFSop {
+public enum VFSOp {
 	
 	CREATE_BUCKET 						("create_bucket", 0, "b"), // 1
 	UPDATE_BUCKET 						("update_bucket", 1, "b"), // 2 
@@ -45,14 +45,14 @@ public enum VFSop {
 	
 	CREATE_SERVER_MASTERKEY		 		("create_server_key", 90, "s"); 		// 13
 	
-	static List<VFSop> ops;
+	static List<VFSOp> ops;
 	
 	private String name;
 	private int code;
 	private String enttiyGroupCode;
 	
 	
-	public static VFSop fromId(String id) {
+	public static VFSOp fromId(String id) {
 		
 		if (id==null)
 			throw new IllegalArgumentException("id is null");
@@ -68,12 +68,12 @@ public enum VFSop {
 		}
 	}
 	
-	public static List<VFSop> getValues() {
+	public static List<VFSOp> getValues() {
 		
 		if (ops!=null)
 			return ops;
 		
-		ops = new ArrayList<VFSop>();
+		ops = new ArrayList<VFSOp>();
 		
 		ops.add( CREATE_BUCKET );
 		ops.add( UPDATE_BUCKET ); 
@@ -102,7 +102,7 @@ public enum VFSop {
 	 * @param name
 	 * @return
 	 */
-	public static VFSop get(String name) {
+	public static VFSOp get(String name) {
 		
 		if (name==null)
 			throw new IllegalArgumentException ("name is null");
@@ -130,7 +130,7 @@ public enum VFSop {
 		throw new IllegalArgumentException ("unsuported name -> " + name);
 	}
 	
-	public static VFSop get(int code) {
+	public static VFSOp get(int code) {
 		
 		if (code==CREATE_BUCKET.getCode()) return CREATE_BUCKET;
 		if (code==UPDATE_BUCKET.getCode()) return UPDATE_BUCKET;
@@ -157,8 +157,9 @@ public enum VFSop {
 	}
 	
 	public String getDescription(Locale locale) {
-		ResourceBundle res = ResourceBundle.getBundle(VFSop.this.getClass().getName(), locale);
-		return res.getString(this.getName());
+		//ResourceBundle res = ResourceBundle.getBundle(this.getClass().getSimpleName(), locale);
+		//return res.getString(this.getName());
+		return this.getName();
 	}
 	
 	public String toJSON() {
@@ -198,7 +199,7 @@ public enum VFSop {
 		return enttiyGroupCode;
 	}
 
-	private VFSop(String name, int code, String groupCode) {
+	private VFSOp(String name, int code, String groupCode) {
 		this.name = name;
 		this.code = code;
 		this.enttiyGroupCode=groupCode;

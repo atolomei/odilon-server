@@ -63,7 +63,7 @@ import io.odilon.vfs.model.LockService;
 import io.odilon.vfs.model.ODBucket;
 import io.odilon.vfs.model.VFSObject;
 import io.odilon.vfs.model.VFSOperation;
-import io.odilon.vfs.model.VFSop;
+import io.odilon.vfs.model.VFSOp;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
@@ -415,7 +415,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 					rs.cancel(op);
 				}
 				
-				else if (op.getOp() == VFSop.CREATE_SERVER_MASTERKEY) {
+				else if (op.getOp() == VFSOp.CREATE_SERVER_MASTERKEY) {
 					for (Drive drive : getDrivesAll()) {
 						File file = drive.getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE);
 						if ((file != null) && file.exists())
@@ -423,21 +423,21 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 					}
 					done = true;
 				}
-				else if (op.getOp()==VFSop.CREATE_BUCKET) {
+				else if (op.getOp()==VFSOp.CREATE_BUCKET) {
 					for (Drive drive: getDrivesAll())
 						((ODDrive) drive).forceDeleteBucket(bucketId);
 					done=true;
 				}
-				else if (op.getOp()==VFSop.UPDATE_BUCKET) {
+				else if (op.getOp()==VFSOp.UPDATE_BUCKET) {
 					restoreBucketMetadata(getVFS().getBucketById(bucketId));
 					done=true;
 				}
-				else if (op.getOp()==VFSop.DELETE_BUCKET) {
+				else if (op.getOp()==VFSOp.DELETE_BUCKET) {
 					for (Drive drive: getDrivesAll())
 						drive.markAsEnabledBucket(bucketId);
 					done=true;
 				}
-				else if (op.getOp()==VFSop.CREATE_SERVER_METADATA) {
+				else if (op.getOp()==VFSOp.CREATE_SERVER_METADATA) {
 					if (objectName!=null) {
 						for (Drive drive: getDrivesAll()) {
 							drive.removeSysFile(op.getObjectName());
@@ -445,7 +445,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 					}
 					done=true;
 				}
-				else if (op.getOp()==VFSop.UPDATE_SERVER_METADATA) {
+				else if (op.getOp()==VFSOp.UPDATE_SERVER_METADATA) {
 					if (objectName!=null) {
 						logger.error("not done -> "  +op.getOp() + " | " + bucketName );
 					}

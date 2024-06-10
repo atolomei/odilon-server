@@ -78,7 +78,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 	
 
-	static final int TEN_SECONDS_MS = 10000;
+	static final int FIFTEEN_SECONDS_MS = 15000;
 	
 	@JsonIgnore 
 	private OdilonClient client;
@@ -348,14 +348,14 @@ public class ReplicationService extends BaseService implements ApplicationContex
 
 		while (!end) {
 			try {
-				Thread.sleep(200);
+				Thread.sleep(250);
 			} catch (InterruptedException e) {
 			}
 			
 			journalExecuting 	= odj.isExecuting(opx.getId());
 			journalAborted	 	= odj.isAborted(opx.getId());
 			journalCommitDone	= (!journalExecuting) && (!journalAborted);
-			timeOut 			= ((System.currentTimeMillis()-start) > TEN_SECONDS_MS);
+			timeOut 			= ((System.currentTimeMillis()-start) > FIFTEEN_SECONDS_MS);
 			end 				= (journalCommitDone || journalAborted || timeOut);
 			
 		}
@@ -370,7 +370,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 		// if commit never completed there is something wrong
 		//
 		if (journalExecuting)
-			throw new InternalCriticalException(JournalService.class.getName() + " still executing on opx after " + (System.currentTimeMillis()-start) + " milliseconds -> " + opx.toString());
+			throw new InternalCriticalException(JournalService.class.getName() + " still executing on opx after " + (System.currentTimeMillis()-start) + " ms -> " + opx.toString());
 		
 
 		logger.debug("Replicate -> " + opx.getOp().getName() + " " +( (opx.getBucketId()!=null) ? (" b:"+opx.getBucketId()):"" ) + ( (opx.getObjectName()!=null) ? (" o:"+opx.getObjectName()):""));
@@ -689,26 +689,29 @@ public class ReplicationService extends BaseService implements ApplicationContex
 	private void replicateCreateBucket(VFSOperation opx) {
 
 		Check.requireNonNullArgument(opx, "opx is null");
-		
-		ODBucket bucket = getVFS().getBucketById(opx.getBucketId());
-		
-		Check.requireNonNullArgument(bucket, "bucket is null");
 
-		if (!getVFS().existsBucket(bucket.getName())) {
-			return;
-		}
+		
 
-		getLockService().getBucketLock(bucket.getId()).readLock().lock();
+		
+		getLockService().getBucketLock(opx.getBucketId()).readLock().lock();
 			
 		try {
-				if (!getClient().existsBucket(bucket.getName()))
+		
+			if (!getVFS().existsBucket(opx.getBucketName())) {
+				logger.error("bucket does not exist -> " + opx.getBucketName());
+				return;
+			}
+			
+			ODBucket bucket = getVFS().getBucketById(opx.getBucketId());
+
+			if (!getClient().existsBucket(bucket.getName()))
 					getClient().createBucket(bucket.getName());
 				
 		} catch (ODClientException e) {
 				throw new InternalCriticalException(e, opx.toString());
 		}			
 		finally {
-				getLockService().getBucketLock(bucket.getId()).readLock().unlock();
+				getLockService().getBucketLock(opx.getBucketId()).readLock().unlock();
 		}
 	}
 
@@ -749,16 +752,24 @@ public class ReplicationService extends BaseService implements ApplicationContex
 		
 			Check.requireNonNullArgument(opx, "opx is null");
 		
+			
 			getLockService().getBucketLock(opx.getBucketId()).readLock().lock();
 			
 			try {
+
+				ODBucket bucket = getVFS().getBucketById(opx.getBucketId());
+
+				if (!getVFS().existsBucket(bucket.getName())) {
+					return;
+				}
 				
 				if (!getClient().existsBucket(opx.getBucketName()))
 					throw new InternalCriticalException("bucket does not exist in Standby -> " + this.client.getUrl());
 		
-				logger.error("replicateUpdateBucket not implemented");
+				logger.debug("rename " + opx.getBucketName() + " -> " +  bucket.getName());
+				getClient().renameBucket(opx.getBucketName(), bucket.getName());
+					
 				
-				throw new InternalCriticalException("replicateUpdateBucket not implemented");
 				
 			} catch (ODClientException e) {
 				throw new InternalCriticalException(e, opx.toString());

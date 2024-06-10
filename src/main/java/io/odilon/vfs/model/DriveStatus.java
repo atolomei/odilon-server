@@ -50,8 +50,9 @@ public enum DriveStatus {
 	}
 	
 	public String getDescription(Locale locale) {
-		ResourceBundle res = ResourceBundle.getBundle(DriveStatus.this.getClass().getName(), locale);
-		return res.getString(this.getName());
+		//ResourceBundle res = ResourceBundle.getBundle(DriveStatus.this.getClass().getName(), locale);
+		//return res.getString(this.getName());
+		return this.getName();
 	}
 	
 	public String toJSON() {
