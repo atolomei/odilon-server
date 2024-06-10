@@ -43,6 +43,12 @@ This is the first release of Odilon Object Storage
 2024.04.10 code cleanup
 
 
+==================  1.7 ==================
+
+2024.05.05 rename bucket (drives store buckets by id and no longer by buckename)
+
+
+
 
 
 
