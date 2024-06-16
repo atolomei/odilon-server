@@ -45,7 +45,9 @@ This is the first release of Odilon Object Storage
 
 ==================  1.7 ==================
 
+2024.02.05 Reed Solomon encoding for RAID 6 added suppport for 24 disks (16 data, 8 parity)
 2024.05.05 rename bucket (drives store buckets by id and no longer by buckename)
+2024.06.16 Encryption now uses AES/GCM/NoPadding  
 
 
 
