@@ -20,25 +20,19 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
-import io.odilon.model.ServerConstant;
 import io.odilon.model.ServiceStatus;
 import io.odilon.service.BaseService;
 import io.odilon.service.ServerSettings;
-
 import jakarta.annotation.PostConstruct;
 import javax.crypto.*;
+import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-
-
 
 /**
- * 
  * <p>Encrypts key for each file using the Master Key</p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
@@ -50,88 +44,65 @@ public class OdilonKeyEncryptorService extends BaseService implements KeyEncrypt
 
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 
-	static final String keyEncryptionAlgorithm = ServerConstant.DEFAULT_ENCRYPT_ALGORITHM;
-	static final String keyAlgorithm = ServerConstant.DEFAULT_KEY_ALGORITHM;
-	
+
 	@JsonIgnore
 	@Autowired
 	private final ServerSettings serverSettings;
 	
    @JsonIgnore
-   private byte[] masterKey;  
+   private byte[] masterKey = null;  
    
-   @JsonIgnore
-   private Cipher enc;
-   
-   @JsonIgnore
-   private Cipher dec;
+
    
     public OdilonKeyEncryptorService(ServerSettings serverSettings) {
     	this.serverSettings=serverSettings;
     }
     
-    
-    public void setMasterKey(byte[] key) {
+
+        public void setMasterKey(byte[] key) {
     	
     	synchronized (this) {
 				
-			try {
-				
 	    		this.masterKey = key;
-				
-				SecretKeySpec secretKeySpec = new SecretKeySpec(masterKey, keyAlgorithm);
-				
-				this.enc = Cipher.getInstance(keyEncryptionAlgorithm);
-				this.enc.init(Cipher.ENCRYPT_MODE, secretKeySpec);
-			
-				this.dec = Cipher.getInstance(keyEncryptionAlgorithm);
-				this.dec.init(Cipher.DECRYPT_MODE, secretKeySpec);
-
-				startuplogger.debug("Started -> " + this.getClass().getSimpleName());
+	    		startuplogger.debug("Started -> " + this.getClass().getSimpleName());
 				setStatus(ServiceStatus.RUNNING);
-			
-			} catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException e) {
-				logger.error(e);
-				setStatus(ServiceStatus.STOPPED);
-				throw new InternalCriticalException(e);
-			}
     	}
     }
-    
-    /**
-     * 
-     */
+
+
     @Override
-    public byte[] encryptKey(byte[] key) {
+    public byte[] encryptKey(byte[] key, byte[] iv) {
         try {
-            return processBytes(key, Cipher.ENCRYPT_MODE, masterKey);
+        	SecretKeySpec secretKeySpec = new SecretKeySpec(masterKey, EncryptionService.ENCRYPTION_ALGORITHM);
+			Cipher enc = Cipher.getInstance(EncryptionService.ENCRYPTION_ALGORITHM_METHOD);
+			enc.init(Cipher.ENCRYPT_MODE, secretKeySpec, new GCMParameterSpec(EncryptionService.IV_LENGTH_BIT, iv));
+			return enc.doFinal(key);
         } catch (Exception e){
         	throw new InternalCriticalException(e, "encryptKey");
         }
     }
 
-    /**
-     * 
-     */
+
     @Override
-    public byte[] decryptKey(byte[] key) {
+    public byte[] decryptKey(byte[] key, byte[] iv) {
         try {
-            return processBytes(key,Cipher.DECRYPT_MODE, masterKey);
+        	
+        	SecretKeySpec secretKeySpec = new SecretKeySpec(masterKey, EncryptionService.ENCRYPTION_ALGORITHM);
+			Cipher dec = Cipher.getInstance(EncryptionService.ENCRYPTION_ALGORITHM_METHOD);
+			dec.init(Cipher.DECRYPT_MODE, secretKeySpec, new GCMParameterSpec(EncryptionService.IV_LENGTH_BIT, iv));
+			byte [] decKey = dec.doFinal(key);
+        	return decKey;
+        	
         } catch (Exception e){
         	throw new InternalCriticalException(e, "decryptKey");
         }
     }
     
-    /**
-     * 
-     */
+    
 	@PostConstruct
 	protected void onInitialize() {
-
 		synchronized (this) {
-				
 				try {
-
 					setStatus(ServiceStatus.STARTING);
 				} catch (Exception e) {
 					startuplogger.error(e.getClass().getName() + " | " + e.getMessage());
@@ -141,25 +112,7 @@ public class OdilonKeyEncryptorService extends BaseService implements KeyEncrypt
 				}
 		}
 	}
-		   
-	/**
-	 * 
-	 * @param bytes
-	 * @param encryptMode
-	 * @param key
-	 * @return
-	 * @throws NoSuchAlgorithmException
-	 * @throws NoSuchPaddingException
-	 * @throws InvalidKeyException
-	 * @throws BadPaddingException
-	 * @throws IllegalBlockSizeException
-	 */
-    private byte[] processBytes(byte[] bytes, int encryptMode, byte[] key) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException {
-        if (encryptMode==Cipher.ENCRYPT_MODE)
-        	return this.enc.doFinal(bytes);
-        else
-        	return this.dec.doFinal(bytes);
-    }
+
 }
 
 

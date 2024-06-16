@@ -72,18 +72,21 @@ public class VaultKeyEncryptorService extends BaseService implements KeyEncrypto
 			}
 	}
     
-    @Override
     public byte[] encryptKey(byte[] key) {
         String keyStr = Base64.getEncoder().encodeToString(key);
         return getVaultService().encrypt(this.getKeyID(), keyStr).getBytes(StandardCharsets.UTF_8);
     }
 
-    @Override
+    
     public byte[] decryptKey(byte[] key) {
         String keyStr = new String(key, StandardCharsets.UTF_8);
         return Base64.getDecoder().decode(getVaultService().decrypt(this.getKeyID(), keyStr));
     }
+    
 
+    public byte[] encryptKey(byte[] key, byte[] iv) {return  encryptKey(key);}
+	public byte[] decryptKey(byte[] key, byte[] iv) {return  decryptKey(key);}
+	
     public String getKeyID() {
         return keyID;
     }
@@ -95,5 +98,7 @@ public class VaultKeyEncryptorService extends BaseService implements KeyEncrypto
     public VaultService getVaultService() {
         return vaultService;
     }
+    
+	
 
 }

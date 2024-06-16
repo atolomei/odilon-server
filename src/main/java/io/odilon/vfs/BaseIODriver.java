@@ -599,6 +599,9 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 			updateServerInfo(serverInfo);
 	}
 	
+	
+	
+	
 	/**
 	 * <p>Shared by RAID 1 and RAID 6</p>
 	 */
@@ -608,59 +611,58 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		getLockService().getServerLock().readLock().lock();
 		
 		try {
-
+			
 			File file = getDrivesEnabled().get(0).getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE);
 			
 			if (file == null || !file.exists())
 				return null;
 			
 			byte[] bDataEnc = FileUtils.readFileToByteArray(file);
-			byte[] bdataDec = getVFS().getMasterKeyEncryptorService().decryptKey(bDataEnc);
 			
 			String encryptionKey = getVFS().getServerSettings().getEncryptionKey();
+			String encryptionIV = getVFS().getServerSettings().getEncryptionIV();
 			
-			if (encryptionKey==null)
-				throw new InternalCriticalException(" encryptionKey is null");
+			if (encryptionKey==null || encryptionIV==null)
+				throw new InternalCriticalException(" encryption Key or IV is null");
 			
 			byte [] b_encryptionKey = ByteToString.hexStringToByte(encryptionKey);
-			byte [] b_hmacOriginal;
+			byte [] b_encryptionKeyIV = ByteToString.hexStringToByte(encryptionKey+encryptionIV);
 			
+			byte [] b_hmacOriginal;
+
 			try {
-				b_hmacOriginal = getVFS().HMAC(b_encryptionKey, b_encryptionKey);
+				
+				b_hmacOriginal = getVFS().HMAC(b_encryptionKeyIV, b_encryptionKey);
 				
 			} catch (InvalidKeyException | NoSuchAlgorithmException e) {
-				throw new InternalCriticalException(e, "can not calculate HMAC for odilon.properties encryption key");
+				throw new InternalCriticalException(e, "can not calculate HMAC for 'odilon.properties' encryption key");
 			}
 			
-			byte[] b_hmacNew = new byte[32];
+			/** HMAC(32) + Master Key (16) + IV(12) + Salt (64) */
+			byte[] bdataDec = getVFS().getMasterKeyEncryptorService().decryptKey(bDataEnc);
+
+			
+			byte[] b_hmacNew = new byte[VirtualFileSystemService.HMAC_SIZE];
 			System.arraycopy(bdataDec, 0, b_hmacNew, 0, b_hmacNew.length);
 			
 			if (!Arrays.equals(b_hmacOriginal, b_hmacNew)) {
-				throw new InternalCriticalException("HMAC is not correct, HMAC of 'encryption.key' in 'odilon.properties' is not match with HMAC in key.enc  -> encryption.key=" + encryptionKey);
+				logger.error("HMAC is not correct, HMAC of 'encryption.key' in 'odilon.properties' does not match with HMAC in 'key.enc'  -> encryption.key=" + encryptionKey+encryptionIV);
+				throw new InternalCriticalException("HMAC is not correct, HMAC of 'encryption.key' in 'odilon.properties' does not match with HMAC in 'key.enc'  -> encryption.key=" + encryptionKey+encryptionIV);
 			}
 			
 			/** HMAC is correct */
 			byte[] key = new byte[VirtualFileSystemService.AES_KEY_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE];
 			System.arraycopy(bdataDec, b_hmacNew.length, key, 0,  key.length);
+			
 			return key;
 
 		} catch (InternalCriticalException e) {
-			if ((e.getCause()!=null) && (e.getCause() instanceof javax.crypto.BadPaddingException)) {
-				
-				logger.error("");
-				logger.error("-----------------------------------");
+			if ((e.getCause()!=null) && (e.getCause() instanceof javax.crypto.BadPaddingException))
 				logger.error("possible cause -> the value of 'encryption.key' in 'odilon.properties' is incorrect");
-				logger.error("-----------------------------------");
-				logger.error("");
-				try {
-					Thread.sleep(10000);
-				} catch (InterruptedException e1) {
-				}
-			}
 			throw e;
 			
 		} catch (IOException e) {
-			throw new InternalCriticalException(e);
+			throw new InternalCriticalException(e, "getServerMasterKey");
 
 		} finally {
 			getLockService().getServerLock().readLock().unlock();
@@ -668,14 +670,12 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 	}
 
 	
-	
-
 	/**
 	 * <p>Shared by RAID 1 and RAID 6</p>
 	 */
 
 	@Override
-	public void saveServerMasterKey(byte[] key, byte[] hmac, byte[] salt) {
+	public void saveServerMasterKey(byte[] key, byte[] hmac, byte[] iv, byte[] salt) {
 				
 		Check.requireNonNullArgument(key, "key is null");
 		Check.requireNonNullArgument(salt, "salt is null");
@@ -688,7 +688,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		getLockService().getServerLock().writeLock().lock();
 		
 		try {
-			
 				/** backup */
 				for (Drive drive : getDrivesAll()) {
 					try {
@@ -707,19 +706,15 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 				
 				Exception eThrow = null;
 
-				byte[] data = new byte[hmac.length + key.length + salt.length];
+				byte[] data = new byte[hmac.length + iv.length + key.length + salt.length];
 				
-
-				// HMAC(32) + Master Key (16) + Salt (64)
+				/** HMAC(32) + Master Key (16) + IV(12) + Salt (64) */
+				System.arraycopy(hmac, 0, data, 0        							, hmac.length);
+				System.arraycopy(key,  0, data, hmac.length 						, key.length);
+				System.arraycopy(iv,   0, data, (hmac.length+key.length) 			, iv.length);
+				System.arraycopy(salt, 0, data, (hmac.length+iv.length+key.length)	, salt.length);
 				
-				System.arraycopy(hmac, 0, data, 0        					, hmac.length);
-				System.arraycopy(key,  0, data, hmac.length 				, key.length);
-				System.arraycopy(salt, 0, data, (hmac.length+key.length)	, salt.length);
-				
-				// logger.debug("hmac -> " + ByteToString.byteToHexString(hmac));
-				// logger.debug("key -> " + ByteToString.byteToHexString(key));
-				
-				byte[] dataEnc = getVFS().getMasterKeyEncryptorService().encryptKey(data);
+				byte[] dataEnc = getVFS().getMasterKeyEncryptorService().encryptKey(data, iv);
 
 				/** save */
 				for (Drive drive: getDrivesAll()) {
@@ -742,14 +737,13 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 			throw e;
 			
 		} catch (Exception e) {
-			throw new InternalCriticalException(e);
+			if (logger.isDebugEnabled())
+				logger.error(e);
+			throw new InternalCriticalException(e, "saveServerMasterKey");
 			
 		} finally {
-			
 			try {
-				
 				if (!done) {
-					
 					if (!reqRestoreBackup) 
 						op.cancel();
 					else	
@@ -762,6 +756,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 				getLockService().getServerLock().writeLock().unlock();
 			}
 		}
+
 	}
 
 	

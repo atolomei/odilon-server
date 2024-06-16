@@ -46,10 +46,8 @@ public class EncryptionInitializer extends ODModelObject {
 	static private Logger logger = Logger.getLogger(EncryptionInitializer.class.getName());
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 
-	
 	private Optional<String> providedMasterKey;
 	private VirtualFileSystemService vfs;
-	
 	
 	public EncryptionInitializer(VirtualFileSystemService vfs, Optional<String> providedMasterKey) {
 		this.vfs=vfs;
@@ -66,7 +64,6 @@ public class EncryptionInitializer extends ODModelObject {
 			rekey();
 		else
 			initializeEnc();
-		
 	}
 
 	
@@ -99,28 +96,41 @@ public class EncryptionInitializer extends ODModelObject {
 		
 		SecureRandom secureRandom = new SecureRandom();
 		 
-		byte 	[] encKey 		= new byte[VirtualFileSystemService.AES_KEY_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE];
+		byte 	[] encKey 		= new byte[VirtualFileSystemService.AES_KEY_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE]; // 16 bytes -> 2 ASCII chars per byte -> 32 ASCII chars
+		byte 	[] iv			= new byte[VirtualFileSystemService.AES_IV_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE];  // 12 bytes -> 2 ASCII chars per byte -> 24 ASCII chars
 		byte 	[] masterKey	= new byte[VirtualFileSystemService.AES_KEY_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE];
 		byte	[] salt 		= new byte[VirtualFileSystemService.AES_KEY_SALT_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE];
 		byte 	[] hmac;
 		 
 		secureRandom.nextBytes(encKey);
+		secureRandom.nextBytes(iv);
 		secureRandom.nextBytes(masterKey);
 		secureRandom.nextBytes(salt);
 		
+		byte 	[] encKeyIV = new byte[ encKey.length + iv.length ];
+		
+		System.arraycopy(encKey, 0, encKeyIV, 			  0, encKey.length);
+		System.arraycopy(iv,     0, encKeyIV, encKey.length, iv.length);
+		
+		
 		try {
 			
-			hmac = getVFS().HMAC(encKey, encKey);
+			// 
+			// HMAC is   taken from -> enc key + IV (28 bytes)
+			//
+			hmac = getVFS().HMAC(encKeyIV, encKey);
 			
 		} catch (InvalidKeyException | NoSuchAlgorithmException e) {
 			throw new InternalCriticalException(e);
 		}
 
-		getVFS().getMasterKeyEncryptorService().setKeyToEncryptMasterKey(encKey);
+		getVFS().getMasterKeyEncryptorService().setKeyToEncryptMasterKey(encKey, iv);
 				 
-		driver.saveServerMasterKey(masterKey, hmac, salt);
+		driver.saveServerMasterKey(masterKey, hmac, iv, salt);
+		
 		info.setEncryptionIntialized(true);
 		OffsetDateTime now = OffsetDateTime.now();
+		
 		info.setEncryptionIntializedDate(now);
 		info.setEncryptionLastModifiedDate(now);
 		
@@ -128,7 +138,12 @@ public class EncryptionInitializer extends ODModelObject {
 		
 		startuplogger.info("ENCRYPTION KEY");
 		startuplogger.info("--------------");
-		startuplogger.info("encryption.key = " + ByteToString.byteToHexString(encKey));
+
+		
+		// the encryption key encoded in ASCII 
+		// is = AES KEY 32 ASCII characters + IV 24 ASCIII characteres = 56 ASCII chars
+		
+		startuplogger.info("encryption.key = " + ByteToString.byteToHexString(encKeyIV));
 		startuplogger.info("The encrytion key must be added to the 'odilon.properties' file in variable 'encryption.key' as printed above.");
 		startuplogger.info("");
 		startuplogger.info("MASTER KEY");
@@ -142,7 +157,9 @@ public class EncryptionInitializer extends ODModelObject {
 		startuplogger.info("");
 		startuplogger.info("process completed.");
 		
-		// startuplogger.debug("HMAC -> " + ByteToString.byteToHexString(hmac));
+		
+		
+		
 		
 		/** try to copy kbee.enc -> /config  */
 
@@ -186,7 +203,6 @@ public class EncryptionInitializer extends ODModelObject {
 		// check if the provided master key is correct
 		boolean isCorrectMasterKey = false;
 		
-		
 		byte[] key = driver.getServerMasterKey();
 		
 		if (key==null) {
@@ -206,33 +222,45 @@ public class EncryptionInitializer extends ODModelObject {
 				
 		SecureRandom secureRandom = new SecureRandom();
 		 
-		byte 	[] encKey 		= new byte[VirtualFileSystemService.AES_KEY_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE];
-		byte 	[] masterKey	= new byte[VirtualFileSystemService.AES_KEY_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE];
-		byte	[] salt 		= new byte[VirtualFileSystemService.AES_KEY_SALT_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE];
+		byte 	[] encKey 		= new byte[ VirtualFileSystemService.AES_KEY_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE]; // 16 bytes -> 2 ASCII chars per byte -> 32 ASCII chars
+		byte 	[] iv			= new byte[ VirtualFileSystemService.AES_IV_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE];  // 12 bytes -> 2 ASCII chars per byte -> 24 ASCII chars
+		//byte 	[] masterKey	= new byte[ VirtualFileSystemService.AES_KEY_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE];
+		byte	[] salt 		= new byte[ VirtualFileSystemService.AES_KEY_SALT_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE];
 		byte 	[] hmac;
-		 
+
 		secureRandom.nextBytes(encKey);
-		secureRandom.nextBytes(masterKey);
+		secureRandom.nextBytes(iv);
+		//secureRandom.nextBytes(masterKey);
+		
 		secureRandom.nextBytes(salt);
 		
+		byte 	[] encKeyIV = new byte[ encKey.length + iv.length ];
+		
+		System.arraycopy(encKey, 0, encKeyIV, 			  0, encKey.length);
+		System.arraycopy(iv,     0, encKeyIV, encKey.length, iv.length);
+		
+		
 		try {
-			hmac = getVFS().HMAC(encKey, encKey);
+			// 
+			// HMAC is   taken from -> enc key + IV (28 bytes)
+			//
+			hmac = getVFS().HMAC(encKeyIV, encKey);
 			
 		} catch (InvalidKeyException | NoSuchAlgorithmException e) {
 			throw new InternalCriticalException(e);
 		}
 
-		getVFS().getMasterKeyEncryptorService().setKeyToEncryptMasterKey(encKey);
+		getVFS().getMasterKeyEncryptorService().setKeyToEncryptMasterKey(encKey, iv);
 				 
-		driver.saveServerMasterKey(masterKey, hmac, salt);
+		driver.saveServerMasterKey(key, hmac, iv, salt);
+		
 		info.setEncryptionIntialized(true);
 		info.setEncryptionLastModifiedDate(OffsetDateTime.now());
 		
-		
 		driver.setServerInfo(info);
 		
-		startuplogger.info("encryption.key = " + ByteToString.byteToHexString(encKey));
-		startuplogger.info("The encrytion key must be added to the 'odilon.properties' file in variable 'encryption.key'.");
+		startuplogger.info("encryption.key = " + ByteToString.byteToHexString(encKeyIV));
+		startuplogger.info("The encrytion key must replice the previous value of encryption.key in 'odilon.properties'.");
 		startuplogger.info("");
 		startuplogger.info("");
 		startuplogger.info("process completed.");

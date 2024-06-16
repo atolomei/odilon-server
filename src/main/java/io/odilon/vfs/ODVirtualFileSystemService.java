@@ -1161,9 +1161,9 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 			}
 		});
 		
-		map.values().forEach( bucket -> {
-			logger.debug( bucket.getBucketMetadata().bucketName +" -> " + bucket.getBucketMetadata().getId().longValue());
-		});
+		//map.values().forEach( bucket -> {
+		//	logger.debug( bucket.getBucketMetadata().bucketName +" -> " + bucket.getBucketMetadata().getId().longValue());
+		//});
 	
 		logger.debug("done");
 	}
@@ -1592,7 +1592,9 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 		
 		
 		try {
+			
 			byte[] key = driver.getServerMasterKey();
+			//byte[] iv = driver.getServerAESIV();
 			this.odilonKeyEncryptorService.setMasterKey(key);
 		} catch (Exception e) {
 			logger.error(e.getClass().getName() + " | " + e.getMessage(), SharedConstant.NOT_THROWN);

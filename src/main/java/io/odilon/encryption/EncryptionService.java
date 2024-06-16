@@ -22,11 +22,15 @@ import io.odilon.service.SystemService;
 
 /**
  * 
- * @see {@link ODEncryptionService}
+ * @see {@link OdilonEncryptionService}
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public interface EncryptionService extends SystemService {
+	
+	public static final String ENCRYPTION_ALGORITHM = "AES";
+	public static final String ENCRYPTION_ALGORITHM_METHOD = "AES/GCM/NoPadding";
+	public static final int IV_LENGTH_BIT = 128;
 	
 	public InputStream encryptStream(InputStream inputStream);
 	public InputStream decryptStream(InputStream inputStream);

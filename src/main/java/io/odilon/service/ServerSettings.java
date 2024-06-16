@@ -131,7 +131,7 @@ public class ServerSettings implements APIObject {
 	protected boolean isEncrypt;
 	
 	@Value("${encryption.key:#{null}}")
-	protected String encryptionKey;
+	protected String encryptionKeyIV;
 	
 	@Value("${encryption.masterkey:#{null}}")
 	protected String masterkey_lowercase;
@@ -496,17 +496,22 @@ public class ServerSettings implements APIObject {
 
 		
 		
-		if (encryptionKey!=null)  {
-			encryptionKey=encryptionKey.trim();
-			if (encryptionKey.length()!= (2*VirtualFileSystemService.AES_KEY_SIZE_BITS/8))
-				exit("encryption key length must be -> " + String.valueOf((2*VirtualFileSystemService.AES_KEY_SIZE_BITS/8)));
+		if (encryptionKeyIV!=null)  {
+			encryptionKeyIV=encryptionKeyIV.trim();
+			if (encryptionKeyIV.length()!= ( 2 * (VirtualFileSystemService.AES_KEY_SIZE_BITS + VirtualFileSystemService.AES_IV_SIZE_BITS) / 8))
+				exit("encryption key length must be -> " + String.valueOf((2 * (VirtualFileSystemService.AES_KEY_SIZE_BITS + VirtualFileSystemService.AES_IV_SIZE_BITS) / 8)));
 			try {
 				@SuppressWarnings("unused")
-				byte[] be = ByteToString.hexStringToByte(encryptionKey);
+				byte[] be = ByteToString.hexStringToByte(encryptionKeyIV);
 			} catch (Exception e) {					
-				exit("encryption key is not a valid hex String -> " + encryptionKey);
+				exit("encryption key is not a valid hex String -> " + encryptionKeyIV);
 			}
+		
+			this.encryptionKey = encryptionKeyIV.substring(0, 2 * VirtualFileSystemService.AES_KEY_SIZE_BITS / 8);
+			this.encryptionIV = encryptionKeyIV.substring(2 * VirtualFileSystemService.AES_KEY_SIZE_BITS / 8);
+			
 		}
+		
 		
 		if ( (masterKey==null) && (masterkey_lowercase!=null)) {
 			masterKey=masterkey_lowercase.trim();
@@ -817,8 +822,17 @@ public class ServerSettings implements APIObject {
 		return  vaultKeyId;
 	}
 	
+	
+	private String encryptionKey;
+	private String encryptionIV;
+	
 	public  String getEncryptionKey() {
 		return  encryptionKey;
+	}
+	
+	
+	public  String getEncryptionIV() {
+		return  encryptionIV;
 	}
 	
 	

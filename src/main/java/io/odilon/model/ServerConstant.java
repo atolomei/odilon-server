@@ -49,6 +49,10 @@ public class ServerConstant {
 	public static final int DAYS_INTEGRITY_CHECKS = 180;
 	
 	public static final String DEFAULT_ENCRYPT_ALGORITHM 	= "AES/ECB/PKCS5Padding";
+	//public static final String DEFAULT_ENCRYPT_ALGORITHM 	= "AES/CFB/PKCS5Padding";
+	//public static final String DEFAULT_ENCRYPT_ALGORITHM 	= "AES/GCM/NoPadding";
+	
+	
 	public static final String DEFAULT_KEY_ALGORITHM 		= "AES";
 
 	public static final String ENABLE_ENCRYPTION_SCRIPT_LINUX 	= "enable-encryption.sh";

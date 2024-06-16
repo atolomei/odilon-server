@@ -101,9 +101,10 @@ public interface IODriver {
 	/**
 	 * Key
 	 */
-	public void saveServerMasterKey(byte[] masterKey, byte[] hmac, byte[] salt);
+	public void saveServerMasterKey(byte[] masterKey, byte[] hmac, byte[] iv, byte[] salt);
 	public byte[] getServerMasterKey();
 	
+	// public byte[] getServerAESIV();
 	
 	
 	public LockService getLockService();
@@ -131,8 +132,6 @@ public interface IODriver {
 	public boolean hasVersions(ODBucket bucket, String objectName);
 
 	public void syncObject(ObjectMetadata meta);
-	
-	
 
 	
 	

@@ -57,7 +57,8 @@ public class KeyEncriptorWrapper implements KeyEncryptor, ApplicationContextAwar
 	public KeyEncriptorWrapper () {
 	}
 	
-    @Override
+	/**
+	@Override
     public byte[] encryptKey(byte[] key) {
     	if ((getApplicationContext().getBean(ServerSettings.class).isUseVaultNewFiles()) &&  (this.vaultUrl.isPresent())) {  
     			return (getVaultKeyEncryptor()).encryptKey(key); 
@@ -66,7 +67,20 @@ public class KeyEncriptorWrapper implements KeyEncryptor, ApplicationContextAwar
     			return (getOdilonKeyEncryptor()).encryptKey(key);
     	}
     }
+*/
 
+	@Override
+    public byte[] encryptKey(byte[] key, byte [] iv) {
+    	if ((getApplicationContext().getBean(ServerSettings.class).isUseVaultNewFiles()) &&  (this.vaultUrl.isPresent())) {  
+    			return (getVaultKeyEncryptor()).encryptKey(key, iv); 
+    	}
+    	else {
+    			return (getOdilonKeyEncryptor()).encryptKey(key, iv);
+    	}
+    }
+
+	
+	/**
     @Override
     public byte[] decryptKey(byte[] key) {
     	boolean useVault = (new String(key)).startsWith("vault:");
@@ -75,8 +89,18 @@ public class KeyEncriptorWrapper implements KeyEncryptor, ApplicationContextAwar
     	else
     		return getOdilonKeyEncryptor().decryptKey(key);
     }
+    **/
     
-
+    @Override
+    public byte[] decryptKey(byte[] key, byte []iv) { 
+    	boolean useVault = (new String(key)).startsWith("vault:");
+    	if (useVault)
+    		return (getVaultKeyEncryptor()).decryptKey(key, iv);
+    	else
+    		return getOdilonKeyEncryptor().decryptKey(key, iv);
+    }
+    
+    
 	public VaultKeyEncryptorService getVaultKeyEncryptor() {
 		return vaultKeyEncryptor;
 	}

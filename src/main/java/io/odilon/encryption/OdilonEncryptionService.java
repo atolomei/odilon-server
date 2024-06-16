@@ -17,12 +17,12 @@
 package io.odilon.encryption;
 
 
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
-import java.util.Optional;
 
 import jakarta.annotation.PostConstruct;
 
@@ -30,7 +30,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
 
@@ -39,7 +38,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
-import io.odilon.model.ServerConstant;
 import io.odilon.model.ServiceStatus;
 import io.odilon.monitor.SystemMonitorService;
 import io.odilon.service.BaseService;
@@ -83,10 +81,10 @@ import io.odilon.service.ServerSettings;
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @Service
-public class ODEncryptionService extends BaseService implements EncryptionService  {
+public class OdilonEncryptionService extends BaseService implements EncryptionService  {
 		
 	   @SuppressWarnings("unused")
-	static private Logger logger = Logger.getLogger(ODEncryptionService.class.getName());
+	   static private Logger logger = Logger.getLogger(OdilonEncryptionService.class.getName());
 	   static private Logger startuplogger = Logger.getLogger("StartupLogger");
 	   
 	    @JsonIgnore
@@ -101,38 +99,20 @@ public class ODEncryptionService extends BaseService implements EncryptionServic
 	    @Autowired
 		private final KeyEncriptorWrapper odilonKeyEncriptorWrapper;
  
-	    @JsonProperty("encryptionAlgorithm")
-		private String encryptionAlgorithm = ServerConstant.DEFAULT_ENCRYPT_ALGORITHM;
-	    
-	    @JsonProperty("keyAlgorithm")
-	    private String keyAlgorithm = ServerConstant.DEFAULT_KEY_ALGORITHM; 
-
-	    @JsonIgnore
-	    private String dataEncryptionKey = "YU3t6v9y$B&E)H@M";
-	    
 	    /**
-		 * 
 		 * @param serverSettings
 		 * @param montoringService
 		 * @param odilonKeyEncriptorWrapper
 		 */
-	    public ODEncryptionService(	ServerSettings serverSettings, 
-									SystemMonitorService montoringService,
-									KeyEncriptorWrapper odilonKeyEncriptorWrapper) {
+	    public OdilonEncryptionService(	ServerSettings serverSettings, 
+										SystemMonitorService montoringService,
+										KeyEncriptorWrapper odilonKeyEncriptorWrapper) {
 			
 			this.serverSettings=serverSettings;
 			this.monitoringService=montoringService;
 			this.odilonKeyEncriptorWrapper=odilonKeyEncriptorWrapper;
 		}
 
-	    
-	    public void setEncryptionKey(String key) {
-	    	dataEncryptionKey = key;
-	    }
-	    
-	    public String getEncryptionKey() {
-	    	return dataEncryptionKey;
-	    }
 	    
 	   /**
 	    * 
@@ -141,11 +121,12 @@ public class ODEncryptionService extends BaseService implements EncryptionServic
 	   public InputStream encryptStream(InputStream inputStream) {
 	        try {
 	            															
-	        	StreamEncryptor streamEncryption = new JCipherStreamEncryptor(this.encryptionAlgorithm, this.keyAlgorithm, this.odilonKeyEncriptorWrapper);
+	        	StreamEncryptor streamEnc = new JCipherStreamEncryptor(EncryptionService.ENCRYPTION_ALGORITHM_METHOD, EncryptionService.ENCRYPTION_ALGORITHM, this.odilonKeyEncriptorWrapper);
 	        	
-	        	String key = streamEncryption.genNewKey();
-	        													
-	            EncryptedInputStream odilonEncryptedInputStream = streamEncryption.encrypt(inputStream, key);
+	        	String key = streamEnc.getNewKey();
+	        	String iv = streamEnc.getIV();
+	        	
+	            EncryptedInputStream odilonEncryptedInputStream = streamEnc.encrypt(inputStream, key, iv);
 
 	            String jsonStreamEncryptionInfo = getObjectMapper().writeValueAsString(odilonEncryptedInputStream.getStreamEncryptorInfo());
 	            InputStream jsonStreamEncryptionInfoStream = new ByteArrayInputStream(jsonStreamEncryptionInfo.getBytes());
@@ -169,7 +150,10 @@ public class ODEncryptionService extends BaseService implements EncryptionServic
 	            String json = parser.readValueAsTree().toString();
 
 	            StreamEncryptorInfo streamEncryptionInfo  = new ObjectMapper().readValue(json, StreamEncryptorInfo.class);
+	            
 	            String key = streamEncryptionInfo.getEncryptedKey();
+	            String iv = streamEncryptionInfo.getIV();
+	            
 	            StreamEncryptor streamEncryption = streamEncryptionInfo.getStreamEncryption();
 
 	            ByteArrayOutputStream remainderOutputStream = new ByteArrayOutputStream();
@@ -180,7 +164,7 @@ public class ODEncryptionService extends BaseService implements EncryptionServic
 
 	            getSystemMonitorService().getDecryptFileMeter().mark();
 	            
-	            return streamEncryption.decrypt(encryptedStream, key);
+	            return streamEncryption.decrypt(encryptedStream, key, iv);
 	            
 	        } catch (IOException e) {
 	        	throw new InternalCriticalException(e, "decryptStream");
@@ -202,12 +186,8 @@ public class ODEncryptionService extends BaseService implements EncryptionServic
 	   protected void onInitialize() {
 			synchronized (this) {
 				setStatus(ServiceStatus.STARTING);
-				this.encryptionAlgorithm = Optional.ofNullable(this.serverSettings.getEncryptionAlgorithm()).orElseGet(() -> ServerConstant.DEFAULT_ENCRYPT_ALGORITHM);
-				this.keyAlgorithm = Optional.ofNullable(this.serverSettings.getKeyAlgorithm()).orElseGet(() -> ServerConstant.DEFAULT_KEY_ALGORITHM);
 				startuplogger.debug("Started -> " + EncryptionService.class.getSimpleName());
 				setStatus(ServiceStatus.RUNNING);
 			}
 		}
 }
-
-
