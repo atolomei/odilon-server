@@ -19,7 +19,6 @@ package io.odilon.scheduler;
 import java.time.OffsetDateTime;
 
 import io.odilon.log.Logger;
-import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
 
 

@@ -22,7 +22,6 @@ import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import io.odilon.log.Logger;
-import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
 
 /**
