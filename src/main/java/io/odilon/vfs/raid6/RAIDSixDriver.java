@@ -162,8 +162,6 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie. " + BucketStatus.ENABLED.getName() +" or " + BucketStatus.ENABLED.getName() + "  | b:" +  bucket.getName());
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 
-
-		
 		getLockService().getObjectLock(bucket.getId(), objectName).readLock().lock();
 		
 		try {
