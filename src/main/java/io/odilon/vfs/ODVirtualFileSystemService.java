@@ -170,13 +170,13 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	@JsonIgnore
 	@Autowired
 	private final FileCacheService fileCacheService;
-	
+
+	@JsonIgnore
+	ReentrantReadWriteLock bucketCacheLock = new ReentrantReadWriteLock();
 	
 	@JsonIgnore
     private AtomicLong bucket_id;
 
-	
-	
 	
 	/** All Drives, either {@link DriveStatus.ENABLED} or 
 	 * {@link DriveStatus.NOT_SYNC}(ie. in the sync process 
@@ -1063,24 +1063,15 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	}
 	
 
-	@JsonIgnore
-	ReentrantReadWriteLock bucketCacheLock = new ReentrantReadWriteLock();
 	 
-	
 	@Override
 	public void updateBucketCache(String oldBucketName, ODBucket bucket) {
 		
 		this.bucketCacheLock.writeLock().lock();
 		try {
-			
 			this.getBucketsByNameMap().remove(oldBucketName);
 			this.getBucketsByNameMap().put(bucket.getName(), bucket);
 			this.getBucketsByIdMap().put(bucket.getId(), bucket);
-			
-			//this.getBucketsByIdMap().forEach ((k,v) -> logger.debug(v.getName()));
-			
-			
-			
 		} finally {
 			this.bucketCacheLock.writeLock().unlock();
 		}
@@ -1093,15 +1084,8 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 		
 		this.bucketCacheLock.writeLock().lock();
 		try {
-			
 			this.getBucketsByIdMap().put(bucket.getId(), bucket);
 			this.getBucketsByNameMap().put(bucket.getName(), bucket);
-			
-			
-			//this.getBucketsByIdMap().forEach ((k,v) -> logger.debug(v.getName()));
-			
-			
-			
 		} finally {
 			this.bucketCacheLock.writeLock().unlock();
 		}
@@ -1594,7 +1578,6 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 		try {
 			
 			byte[] key = driver.getServerMasterKey();
-			//byte[] iv = driver.getServerAESIV();
 			this.odilonKeyEncryptorService.setMasterKey(key);
 		} catch (Exception e) {
 			logger.error(e.getClass().getName() + " | " + e.getMessage(), SharedConstant.NOT_THROWN);

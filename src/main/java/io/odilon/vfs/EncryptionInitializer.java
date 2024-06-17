@@ -27,6 +27,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 
 import com.google.common.io.Files;
 
+import io.odilon.encryption.EncryptionService;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.ODModelObject;
@@ -36,9 +37,17 @@ import io.odilon.service.util.ByteToString;
 import io.odilon.vfs.model.IODriver;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
-
 /**
- * 
+ * <p>Initialize the encryption service</p>
+ * <p>An instance of this class is created by the initialize encryption script and also by the rekey script. 
+ * Both scripts start up the application with one (initialize) or two (rekey) parameters: <br/>
+ * <br/>
+ * To initialze encryption:<br/>
+ * -DinitializeEncryption=true<br/>
+ * <br/>
+ * The rekey script also adds this parameter (the master key must be provided to generate a new encryption key):<br/>
+ * -DmasterKey=ab5d6e5d6f9523eba7208b5b3ec875ba<br/>
+ * </p>	
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public class EncryptionInitializer extends ODModelObject {
@@ -57,8 +66,11 @@ public class EncryptionInitializer extends ODModelObject {
 	public VirtualFileSystemService getVFS() {
 		return this.vfs;
 	}
-	
 
+	/**
+	 * 
+	 * 
+	 */
 	public void execute() {
 		if (getProvidedMasterKey().isPresent())
 			rekey();
@@ -66,10 +78,7 @@ public class EncryptionInitializer extends ODModelObject {
 			initializeEnc();
 	}
 
-	
-	
-	
-	private void initializeEnc() {
+	private synchronized void initializeEnc() {
 		
 	 	startuplogger.info("Initializing Encryption Service");
 	 	startuplogger.info("");
@@ -86,7 +95,7 @@ public class EncryptionInitializer extends ODModelObject {
 			startuplogger.info("The server will shutdown now.");
 			try {
 				
-				Thread.sleep(5000);
+				Thread.sleep(10000);
 				
 			} catch (InterruptedException e) {
 			}
@@ -96,10 +105,10 @@ public class EncryptionInitializer extends ODModelObject {
 		
 		SecureRandom secureRandom = new SecureRandom();
 		 
-		byte 	[] encKey 		= new byte[VirtualFileSystemService.AES_KEY_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE]; // 16 bytes -> 2 ASCII chars per byte -> 32 ASCII chars
-		byte 	[] iv			= new byte[VirtualFileSystemService.AES_IV_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE];  // 12 bytes -> 2 ASCII chars per byte -> 24 ASCII chars
-		byte 	[] masterKey	= new byte[VirtualFileSystemService.AES_KEY_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE];
-		byte	[] salt 		= new byte[VirtualFileSystemService.AES_KEY_SALT_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE];
+		byte 	[] encKey 		= new byte[EncryptionService.AES_KEY_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE]; // 16 bytes -> 2 ASCII chars per byte -> 32 ASCII chars
+		byte 	[] iv			= new byte[EncryptionService.AES_IV_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE];  // 12 bytes -> 2 ASCII chars per byte -> 24 ASCII chars
+		byte 	[] masterKey	= new byte[EncryptionService.AES_KEY_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE];
+		byte	[] salt 		= new byte[EncryptionService.AES_KEY_SALT_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE];
 		byte 	[] hmac;
 		 
 		secureRandom.nextBytes(encKey);
@@ -182,7 +191,7 @@ public class EncryptionInitializer extends ODModelObject {
 	 * 
 	 * 
 	 */
-	private void rekey() {
+	private synchronized void rekey() {
 		
 		startuplogger.info("NEW ENCRYPTION KEY");
 		startuplogger.info("------------------");
@@ -222,15 +231,14 @@ public class EncryptionInitializer extends ODModelObject {
 				
 		SecureRandom secureRandom = new SecureRandom();
 		 
-		byte 	[] encKey 		= new byte[ VirtualFileSystemService.AES_KEY_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE]; // 16 bytes -> 2 ASCII chars per byte -> 32 ASCII chars
-		byte 	[] iv			= new byte[ VirtualFileSystemService.AES_IV_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE];  // 12 bytes -> 2 ASCII chars per byte -> 24 ASCII chars
-		//byte 	[] masterKey	= new byte[ VirtualFileSystemService.AES_KEY_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE];
-		byte	[] salt 		= new byte[ VirtualFileSystemService.AES_KEY_SALT_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE];
+		byte 	[] encKey 		= new byte[ EncryptionService.AES_KEY_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE]; // 16 bytes -> 2 ASCII chars per byte -> 32 ASCII chars
+		byte 	[] iv			= new byte[ EncryptionService.AES_IV_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE];  // 12 bytes -> 2 ASCII chars per byte -> 24 ASCII chars
+
+		byte	[] salt 		= new byte[ EncryptionService.AES_KEY_SALT_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE];
 		byte 	[] hmac;
 
 		secureRandom.nextBytes(encKey);
 		secureRandom.nextBytes(iv);
-		//secureRandom.nextBytes(masterKey);
 		
 		secureRandom.nextBytes(salt);
 		
@@ -346,7 +354,7 @@ public class EncryptionInitializer extends ODModelObject {
 		startuplogger.info("");
 		startuplogger.info(ServerConstant.SEPARATOR);
 	try {
-					Thread.sleep(3000);
+					Thread.sleep(6000);
 			
 		} catch (InterruptedException e) {
 		}

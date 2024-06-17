@@ -89,14 +89,10 @@ public interface VirtualFileSystemService extends SystemService {
 	
 	static final  public String VERSION_EXTENSION 	= ".v";
 	
-	static final  public int AES_KEY_SIZE_BITS = 128; // 16 bytes
-	static final  public int AES_IV_SIZE_BITS = 96; // 12 bytes
-	
-	static final  public int AES_KEY_SALT_SIZE_BITS = 512;
+
 	
 	static final  public int BITS_PER_BYTE = 8;
 	
-	static final public int	HMAC_SIZE = 32;
 
 	/** 
 	 * Create RAID driver

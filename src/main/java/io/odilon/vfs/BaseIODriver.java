@@ -47,6 +47,7 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import io.odilon.OdilonVersion;
+import io.odilon.encryption.EncryptionService;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.BucketMetadata;
@@ -642,8 +643,9 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 			byte[] bdataDec = getVFS().getMasterKeyEncryptorService().decryptKey(bDataEnc);
 
 			
-			byte[] b_hmacNew = new byte[VirtualFileSystemService.HMAC_SIZE];
+			byte[] b_hmacNew = new byte[EncryptionService.HMAC_SIZE];
 			System.arraycopy(bdataDec, 0, b_hmacNew, 0, b_hmacNew.length);
+			
 			
 			if (!Arrays.equals(b_hmacOriginal, b_hmacNew)) {
 				logger.error("HMAC is not correct, HMAC of 'encryption.key' in 'odilon.properties' does not match with HMAC in 'key.enc'  -> encryption.key=" + encryptionKey+encryptionIV);
@@ -651,7 +653,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 			}
 			
 			/** HMAC is correct */
-			byte[] key = new byte[VirtualFileSystemService.AES_KEY_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE];
+			byte[] key = new byte[EncryptionService.AES_KEY_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE];
 			System.arraycopy(bdataDec, b_hmacNew.length, key, 0,  key.length);
 			
 			return key;

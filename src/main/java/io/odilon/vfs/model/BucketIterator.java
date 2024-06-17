@@ -46,9 +46,6 @@ public abstract class BucketIterator implements Iterator<Path>  {
 		mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 	}
 	
-		
-	
-	
 	@JsonProperty("agentId")
 	private String agentId = null;
 	
@@ -90,10 +87,6 @@ public abstract class BucketIterator implements Iterator<Path>  {
 	public Long getBucketId() {
 		return bucket.getId();
 	}
-
-	//public void setBucketId(Long bucketId) {
-	//	this.bucketId = bucketId;
-	//}
 
 	public Long getOffset() {
 		return offset;

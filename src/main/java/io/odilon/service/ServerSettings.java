@@ -39,6 +39,7 @@ import org.springframework.lang.NonNull;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.odilon.OdilonVersion;
+import io.odilon.encryption.EncryptionService;
 import io.odilon.log.Logger;
 import io.odilon.model.APIObject;
 import io.odilon.model.DataStorage;
@@ -498,8 +499,8 @@ public class ServerSettings implements APIObject {
 		
 		if (encryptionKeyIV!=null)  {
 			encryptionKeyIV=encryptionKeyIV.trim();
-			if (encryptionKeyIV.length()!= ( 2 * (VirtualFileSystemService.AES_KEY_SIZE_BITS + VirtualFileSystemService.AES_IV_SIZE_BITS) / 8))
-				exit("encryption key length must be -> " + String.valueOf((2 * (VirtualFileSystemService.AES_KEY_SIZE_BITS + VirtualFileSystemService.AES_IV_SIZE_BITS) / 8)));
+			if (encryptionKeyIV.length()!= ( 2 * (EncryptionService.AES_KEY_SIZE_BITS + EncryptionService.AES_IV_SIZE_BITS) / VirtualFileSystemService.BITS_PER_BYTE))
+				exit("encryption key length must be -> " + String.valueOf((2 * (EncryptionService.AES_KEY_SIZE_BITS + EncryptionService.AES_IV_SIZE_BITS) / VirtualFileSystemService.BITS_PER_BYTE)));
 			try {
 				@SuppressWarnings("unused")
 				byte[] be = ByteToString.hexStringToByte(encryptionKeyIV);
@@ -507,8 +508,8 @@ public class ServerSettings implements APIObject {
 				exit("encryption key is not a valid hex String -> " + encryptionKeyIV);
 			}
 		
-			this.encryptionKey = encryptionKeyIV.substring(0, 2 * VirtualFileSystemService.AES_KEY_SIZE_BITS / 8);
-			this.encryptionIV = encryptionKeyIV.substring(2 * VirtualFileSystemService.AES_KEY_SIZE_BITS / 8);
+			this.encryptionKey = encryptionKeyIV.substring(0, 2 * EncryptionService.AES_KEY_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE);
+			this.encryptionIV = encryptionKeyIV.substring(2 *EncryptionService.AES_KEY_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE);
 			
 		}
 		
@@ -519,8 +520,8 @@ public class ServerSettings implements APIObject {
 		
 		if (masterKey!=null) {
 			masterKey=masterKey.trim();
-			if (masterKey.length()!= (2*VirtualFileSystemService.AES_KEY_SIZE_BITS/8))
-				exit("masterKey key length must be -> " + String.valueOf((2*VirtualFileSystemService.AES_KEY_SIZE_BITS/8)));
+			if (masterKey.length()!= (2*EncryptionService.AES_KEY_SIZE_BITS/VirtualFileSystemService.BITS_PER_BYTE))
+				exit("masterKey key length must be -> " + String.valueOf((2*EncryptionService.AES_KEY_SIZE_BITS/VirtualFileSystemService.BITS_PER_BYTE)));
 			try {
 				@SuppressWarnings("unused")
 				byte[] be = ByteToString.hexStringToByte(masterKey);
@@ -625,7 +626,6 @@ public class ServerSettings implements APIObject {
 					if (this.raid6ParityDrives==-1)
 						this.raid6ParityDrives=8;
 				}
-				
 				
 				if ( !(( (this.rootDirs.size()==3) && (this.raid6DataDrives==2) && (this.raid6ParityDrives==1)) || 
 					   ( (this.rootDirs.size()==6) && (this.raid6DataDrives==4) && (this.raid6ParityDrives==2)) || 

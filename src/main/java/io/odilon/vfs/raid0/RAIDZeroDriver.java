@@ -16,8 +16,6 @@
  */
 package io.odilon.vfs.raid0;
 
-
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -45,6 +43,8 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import io.odilon.encryption.EncryptionService;
 import io.odilon.error.OdilonObjectNotFoundException;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
@@ -132,7 +132,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	
 	/**
 	 * @return
-	 */
+	 
 	@Override
 	public byte[] getServerMasterKey() {
 
@@ -166,11 +166,11 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 				throw new InternalCriticalException(e, "can not calculate HMAC for 'odilon.properties' encryption key");
 			}
 			
-			/** HMAC(32) + Master Key (16) + IV(12) + Salt (64) */
+			// HMAC(32) + Master Key (16) + IV(12) + Salt (64) 
 			byte[] bdataDec = getVFS().getMasterKeyEncryptorService().decryptKey(bDataEnc);
 
 			
-			byte[] b_hmacNew = new byte[VirtualFileSystemService.HMAC_SIZE];
+			byte[] b_hmacNew = new byte[EncryptionService.HMAC_SIZE];
 			System.arraycopy(bdataDec, 0, b_hmacNew, 0, b_hmacNew.length);
 			
 			if (!Arrays.equals(b_hmacOriginal, b_hmacNew)) {
@@ -178,8 +178,8 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 				throw new InternalCriticalException("HMAC is not correct, HMAC of 'encryption.key' in 'odilon.properties' does not match with HMAC in 'key.enc'  -> encryption.key=" + encryptionKey+encryptionIV);
 			}
 			
-			/** HMAC is correct */
-			byte[] key = new byte[VirtualFileSystemService.AES_KEY_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE];
+			// HMAC is correct 
+			byte[] key = new byte[EncryptionService.AES_KEY_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE];
 			System.arraycopy(bdataDec, b_hmacNew.length, key, 0,  key.length);
 			
 			return key;
@@ -196,7 +196,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 			getLockService().getServerLock().readLock().unlock();
 		}
 	}
-
+	*/
 	
 	
 	

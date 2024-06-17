@@ -201,7 +201,6 @@ public class DataIntegrityChecker implements Runnable, ApplicationContextAware  
 		}
 	}
 
-	
 	/**
 	 * 
 	 * 
