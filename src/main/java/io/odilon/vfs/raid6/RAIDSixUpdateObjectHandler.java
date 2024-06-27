@@ -120,8 +120,6 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 					RAIDSixBlocks ei = saveObjectDataFile(bucket,objectName, stream);
 					saveObjectMetadata(bucket, objectName, ei, srcFileName, contentType, afterHeadVersion, meta.creationDate);
 
-					
-					
 					done = op.commit();
 				
 				} catch (Exception e) {
