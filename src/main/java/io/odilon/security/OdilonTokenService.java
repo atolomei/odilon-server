@@ -63,7 +63,7 @@ import io.odilon.vfs.model.VirtualFileSystemService;
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @Service
-public class ODTokenService extends BaseService implements TokenService, ApplicationContextAware {
+public class OdilonTokenService extends BaseService implements TokenService, ApplicationContextAware {
 			
 	    static private Logger startuplogger = Logger.getLogger("StartupLogger");
 	    @SuppressWarnings("unused")
@@ -117,7 +117,7 @@ public class ODTokenService extends BaseService implements TokenService, Applica
 	    private String secretKey;
 	
 
-	public ODTokenService ( ServerSettings serverSettings, 
+	public OdilonTokenService ( ServerSettings serverSettings, 
 							SystemMonitorService montoringService,
 							EncryptionService encrpytionService,
 							VirtualFileSystemService vfs) {

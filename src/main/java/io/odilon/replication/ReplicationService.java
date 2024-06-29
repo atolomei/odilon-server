@@ -78,7 +78,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 	
 
-	static final int FIFTEEN_SECONDS_MS = 15000;
+	static final int MAX_WAIT_FOR_COMMIT_MS = 15000;
 	
 	@JsonIgnore 
 	private OdilonClient client;
@@ -355,7 +355,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 			journalExecuting 	= odj.isExecuting(opx.getId());
 			journalAborted	 	= odj.isAborted(opx.getId());
 			journalCommitDone	= (!journalExecuting) && (!journalAborted);
-			timeOut 			= ((System.currentTimeMillis()-start) > FIFTEEN_SECONDS_MS);
+			timeOut 			= ((System.currentTimeMillis()-start) > MAX_WAIT_FOR_COMMIT_MS);
 			end 				= (journalCommitDone || journalAborted || timeOut);
 			
 		}

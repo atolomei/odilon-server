@@ -41,8 +41,6 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
  * 
- * <p>/p>
- * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  * 
  */

@@ -23,7 +23,7 @@ import java.util.Locale;
 import io.odilon.util.Check;
 
 /**
- * <p>State machine of the Status of the Odilon {@link SystemService}</p> 
+ * <p>State machine of the Status of all Odilon´s system services ({@link SystemService})</p> 
  *  
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */

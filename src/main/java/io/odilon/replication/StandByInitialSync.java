@@ -350,24 +350,6 @@ public class StandByInitialSync implements Runnable {
 	}
 
 	 
-	//boolean headSynced = false;
-	
-	/**
-	if (getVirtualFileSystemService().getServerSettings().isVersionControl()) {
-		if (getReplicationService().getClient().isVersionControl()) {
-			if (item.getObject().version>0) {
-				for (int version=0; version<item.getObject().version; version++) {
-				}
-			}
-			// sync head
-			headSynced = true;
-		}
-	}
-	**/
-	
-
-	
-	
 	/**
 	 * @param logger
 	 */

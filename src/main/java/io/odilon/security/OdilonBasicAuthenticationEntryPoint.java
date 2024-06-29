@@ -34,7 +34,7 @@ import org.springframework.stereotype.Component;
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @Component
-public class ODBasicAuthenticationEntryPoint extends BasicAuthenticationEntryPoint {
+public class OdilonBasicAuthenticationEntryPoint extends BasicAuthenticationEntryPoint {
 
 	 @Override
 	 public void commence(

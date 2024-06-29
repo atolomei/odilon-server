@@ -22,8 +22,7 @@ import java.util.Iterator;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import io.odilon.log.Logger;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -32,13 +31,15 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 
+import io.odilon.model.SharedConstant;
+
 /**
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei) 
  */
 public class CronJobList implements SortedSet<CronJobRequest> {
 			
-	static private Logger logger = LogManager.getLogger(CronJobList.class.getName());
+	static private Logger logger = Logger.getLogger(CronJobList.class.getName());
 
 	@JsonIgnore
 	static private ObjectMapper mapper = new ObjectMapper();
@@ -64,7 +65,7 @@ public class CronJobList implements SortedSet<CronJobRequest> {
                 return a.getTime().isBefore(b.getTime()) ? -1 : 1;
                 
             } catch (Exception e) {
-                logger.error(e);
+                logger.error(e, SharedConstant.NOT_THROWN);
                 return 0;
             }
         }
