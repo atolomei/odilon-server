@@ -140,8 +140,9 @@ public class ServerSettings implements APIObject {
 	@Value("${encryption.masterKey:#{null}}")
 	protected String masterKey;
 
-	@Value("${encryption.algorithm:AES/ECB/PKCS5Padding}")
-	protected String encryptionAlgorithm;
+	//@Value("${encryption.algorithm:AES/GCM/NoPadding}")
+	//protected String encryptionAlgorithm;
+	
 	
 	@Value("${encryption.keyAlgorithm:AES}")
 	protected String keyAlgorithm;
@@ -379,7 +380,8 @@ public class ServerSettings implements APIObject {
 		
 		str.append(", \"encrypt\":\"" + "\""+  (isEncryptionEnabled() ? "true" : "false") +"\"");
 		str.append(", \"keyAlgorithm\":" + (Optional.ofNullable(keyAlgorithm).isPresent() ? ("\""+keyAlgorithm+"\"") :"null"));
-		str.append(", \"encryptionAlgorithm\":" + (Optional.ofNullable(encryptionAlgorithm).isPresent() ? ("\""+encryptionAlgorithm+"\"") :"null"));
+		
+		//str.append(", \"encryptionAlgorithm\":" + (Optional.ofNullable(encryptionAlgorithm).isPresent() ? ("\""+encryptionAlgorithm+"\"") :"null"));
 		str.append(", \"lockRateMillisecs\":" + String.format("%6.2f", getLockRateMillisecs()).trim());
 		
 		// Scheduler
@@ -437,7 +439,7 @@ public class ServerSettings implements APIObject {
 		
 		
 		map.put("keyAlgorithm", (Optional.ofNullable(keyAlgorithm).isPresent() ? (keyAlgorithm) :"null"));		
-		map.put("encryptionAlgorithm", (Optional.ofNullable(encryptionAlgorithm).isPresent() ? (encryptionAlgorithm) :"null"));
+		//map.put("encryptionAlgorithm", (Optional.ofNullable(encryptionAlgorithm).isPresent() ? (encryptionAlgorithm) :"null"));
 		map.put("lockRateMillisecs",String.format("%6.2f", getLockRateMillisecs()).trim());
 		
 		map.put("standby.enabled", isStandByEnabled() ? "true" : "false");
@@ -777,13 +779,13 @@ public class ServerSettings implements APIObject {
 		}
 	}
 	
-	public String getEncryptionAlgorithm() {
-		return encryptionAlgorithm;
-	}
+	//public String getEncryptionAlgorithm() {
+	//	return encryptionAlgorithm;
+	//}
 
-	public void setEncryptionAlgorithm(String encryptionAlgorithm) {
-		this.encryptionAlgorithm = encryptionAlgorithm;
-	}
+	//public void setEncryptionAlgorithm(String encryptionAlgorithm) {
+	//	this.encryptionAlgorithm = encryptionAlgorithm;
+	//}
 
 	public String getKeyAlgorithm() {
 		return keyAlgorithm;
