@@ -20,14 +20,14 @@ package io.odilon.model;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.ResourceBundle;
+//import java.util.ResourceBundle;
 
 import io.odilon.log.Logger;
 import io.odilon.util.Check;
 
 /**
- * <p>Data Storage modes. They can be standard (Read Write), ReadOnly, or WORM
- * (Write Once Read Many)</p>
+ * <p>Data Storage modes. They can be READ_WRITE (the standard read write mode), 
+ * READONLY, or WORM (<i>Write Once Read Many</i>)</p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */

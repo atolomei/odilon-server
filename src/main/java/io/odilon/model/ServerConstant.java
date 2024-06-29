@@ -30,10 +30,7 @@ public class ServerConstant {
 	
 	static final public String ENC_SUFFIX = ".enc";
 
-	//static final public String NOT_THROWN = "---- not thrown ----";
-	
 	static final public String BO_SEPARATOR = "$";
-	
 	
 	static final  public String JSON = ".json";
 
@@ -48,12 +45,7 @@ public class ServerConstant {
 	public static final int TRAFFIC_TOKENS_DEFAULT = 12;	
 	public static final int DAYS_INTEGRITY_CHECKS = 180;
 	
-	public static final String DEFAULT_ENCRYPT_ALGORITHM 	= "AES/ECB/PKCS5Padding";
-	//public static final String DEFAULT_ENCRYPT_ALGORITHM 	= "AES/CFB/PKCS5Padding";
-	//public static final String DEFAULT_ENCRYPT_ALGORITHM 	= "AES/GCM/NoPadding";
-	
-	
-	public static final String DEFAULT_KEY_ALGORITHM 		= "AES";
+	public static final String DEFAULT_KEY_ALGORITHM 			= "AES";
 
 	public static final String ENABLE_ENCRYPTION_SCRIPT_LINUX 	= "enable-encryption.sh";
 	public static final String ENABLE_ENCRYPTION_SCRIPT_WINDOWS = "enable-encryption.bat";
