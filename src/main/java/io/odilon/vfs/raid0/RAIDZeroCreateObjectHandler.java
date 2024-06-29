@@ -152,7 +152,6 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 			
 		String objectName = op.getObjectName();
 		
-		
 		boolean done = false;
 				
 		try {
