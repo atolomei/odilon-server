@@ -33,7 +33,7 @@ import io.odilon.log.Logger;
 @Deprecated
 @Component
 @Scope("prototype")
-public class ChunkedDrive extends ODDrive {
+public class ChunkedDrive extends OdilonDrive {
 
 	@SuppressWarnings("unused")
 	static private Logger logger = Logger.getLogger(ODSimpleDrive.class.getName());

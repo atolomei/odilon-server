@@ -45,7 +45,7 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 @NotThreadSafe
 @Component
 @Scope("prototype")
-public class ODSimpleDrive extends ODDrive implements SimpleDrive {
+public class ODSimpleDrive extends OdilonDrive implements SimpleDrive {
 			
 	
 	static private Logger logger = Logger.getLogger(ODSimpleDrive.class.getName());

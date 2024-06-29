@@ -93,10 +93,10 @@ import org.springframework.context.annotation.Scope;
  */
 @Component
 @Scope("prototype")
-public class ODDrive extends ODModelObject implements Drive {
+public class OdilonDrive extends ODModelObject implements Drive {
 
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
-	static private Logger logger = Logger.getLogger(ODDrive.class.getName());
+	static private Logger logger = Logger.getLogger(OdilonDrive.class.getName());
 	
 	@JsonIgnore
 	private ServiceStatus status = ServiceStatus.STOPPED;;
@@ -124,7 +124,7 @@ public class ODDrive extends ODModelObject implements Drive {
 	
 	
 	@Autowired
-	protected ODDrive(String rootDir) {
+	protected OdilonDrive(String rootDir) {
 		this.name=rootDir;
 		this.rootDir=rootDir;
 	}
@@ -136,7 +136,7 @@ public class ODDrive extends ODModelObject implements Drive {
 	 * @param name
 	 * @param rootDir
 	 */
-	protected ODDrive(String name, String rootDir, int configOrder) {
+	protected OdilonDrive(String name, String rootDir, int configOrder) {
 		this.name=name;
 		this.rootDir=rootDir;
 		this.configOrder=configOrder;
@@ -1215,7 +1215,7 @@ public class ODDrive extends ODModelObject implements Drive {
 				subBucket.forEach( item -> 
 					{
 						try {
-							driveBuckets.put( Long.valueOf(item.toFile().getName()), new DriveBucket(ODDrive.this,  getBucketMetadata(Long.valueOf(item.toFile().getName()))));
+							driveBuckets.put( Long.valueOf(item.toFile().getName()), new DriveBucket(OdilonDrive.this,  getBucketMetadata(Long.valueOf(item.toFile().getName()))));
 						} catch (IOException e) {
 							throw new InternalCriticalException(e, "loadbuckets");
 						}

@@ -109,9 +109,9 @@ import io.odilon.vfs.raid6.RAIDSixDriver;
  */
 @ThreadSafe
 @Service
-public class ODVirtualFileSystemService extends BaseService implements VirtualFileSystemService, ApplicationContextAware {
+public class OdilonVirtualFileSystemService extends BaseService implements VirtualFileSystemService, ApplicationContextAware {
 		
-	static private Logger logger = Logger.getLogger(ODVirtualFileSystemService.class.getName());
+	static private Logger logger = Logger.getLogger(OdilonVirtualFileSystemService.class.getName());
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 					
 	@JsonIgnore
@@ -235,7 +235,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 	 * 
 	 */
 	@Autowired
-	public ODVirtualFileSystemService(  ServerSettings serverSettings, 
+	public OdilonVirtualFileSystemService(  ServerSettings serverSettings, 
 										SystemMonitorService montoringService,
 										EncryptionService encrpytionService,
 										LockService  vfsLockService,
@@ -1001,7 +1001,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 				Drive drive = null;
 				
 				if (getServerSettings().getRedundancyLevel()==RedundancyLevel.RAID_6) {
-					drive=new ODDrive(String.valueOf(configOrder), dir, configOrder);
+					drive=new OdilonDrive(String.valueOf(configOrder), dir, configOrder);
 					configOrder++;
 				}
 				else {
@@ -1056,7 +1056,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 			for (DriveBucket driveBucket: buckets) {
 				if (driveBucket.isDeleted()) {
 					logger.debug("Deleting ghost bucket -> b:" + driveBucket.getName() + " d:" + drive.getName());
-					((ODDrive) drive).forceDeleteBucket(driveBucket.getId());
+					((OdilonDrive) drive).forceDeleteBucket(driveBucket.getId());
 				}
 			}
 		}
@@ -1277,7 +1277,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 						
 						if (listDrives!=null) {
 							for (Drive drive: listDrives) {
-								((ODDrive) drive).forceDeleteBucket(bucket.getId());
+								((OdilonDrive) drive).forceDeleteBucket(bucket.getId());
 							}		
 						}
 					}
@@ -1338,7 +1338,7 @@ public class ODVirtualFileSystemService extends BaseService implements VirtualFi
 		((io.odilon.query.ODBucketIteratorService) getBucketIteratorService()).setVFS(this);
 
 		/** JournalService -> lazy injection */ 
-		((ODJournalService) getJournalService()).setVFS(this);
+		((OdilonJournalService) getJournalService()).setVFS(this);
 
 		/** ReplicationService -> lazy injection */
 		getReplicationService().setVFS(this);

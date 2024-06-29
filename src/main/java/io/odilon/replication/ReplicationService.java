@@ -48,7 +48,7 @@ import io.odilon.scheduler.StandByReplicaServiceRequest;
 import io.odilon.service.BaseService;
 import io.odilon.service.ServerSettings;
 import io.odilon.util.Check;
-import io.odilon.vfs.ODJournalService;
+import io.odilon.vfs.OdilonJournalService;
 import io.odilon.vfs.model.JournalService;
 import io.odilon.vfs.model.LockService;
 import io.odilon.vfs.model.ODBucket;
@@ -326,7 +326,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 		Check.requireNonNullArgument(opx, "opx is null");
 		Check.requireTrue(this.client!=null, "There is no standby connection (" + url +":" + port+")");
 
-		ODJournalService odj = (ODJournalService) getVFS().getJournalService();
+		OdilonJournalService odj = (OdilonJournalService) getVFS().getJournalService();
 		
 		
 		boolean journalExecuting	=  odj.isExecuting(opx.getId());

@@ -26,7 +26,7 @@ import io.odilon.util.Check;
  * <p>Simple abstract class that can execute a cleanup process regularly</p>
  * <p>Subclasses must implement the method {@code cleanUp}</p>
  * 
- * @see {@link ODLockService}
+ * @see {@link OdilonLockService}
  *  
  * @author atolomei@novamens.com (Alejandro Tolomei)
  * 

@@ -44,7 +44,7 @@ import io.odilon.service.ServerSettings;
 import io.odilon.vfs.model.LockService;
 
 /**
- * <p>Implementation of the interface {@link ODLockService}. 
+ * <p>Implementation of the interface {@link OdilonLockService}. 
  *  
  *  Bucket locks
  *  Object locks 
@@ -54,10 +54,10 @@ import io.odilon.vfs.model.LockService;
  *  
  */
 @Service
-public class ODLockService extends BaseService implements LockService {
+public class OdilonLockService extends BaseService implements LockService {
 	
 	@SuppressWarnings("unused")
-	private static Logger logger = Logger.getLogger(ODLockService.class.getName());
+	private static Logger logger = Logger.getLogger(OdilonLockService.class.getName());
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 	
 	private static final DecimalFormat formatter = new DecimalFormat("###,###,###");
@@ -95,7 +95,7 @@ public class ODLockService extends BaseService implements LockService {
 	 * 
 	 */
 	@Autowired		
-	public ODLockService(ServerSettings serverSettings) {
+	public OdilonLockService(ServerSettings serverSettings) {
 		this.serverSettings=serverSettings;
 	}
 

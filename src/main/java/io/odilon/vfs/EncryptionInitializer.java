@@ -39,15 +39,24 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
  * <p>Initialize the encryption service</p>
- * <p>An instance of this class is created by the initialize encryption script and also by the rekey script. 
- * Both scripts start up the application with one (initialize) or two (rekey) parameters: <br/>
+ * <p>An instance of this class is created by the <b>initialize encryption</b> script:<br/>
+ * ./bin/enable-encryption.sh (Linux) or .\bin\enable-encryption.bat (Windows) <br/>
+ * <br/>  
+ * and also by the <b>rekey</b> script: <br/>
+ * ./rekey-encryption.sh -m masterkey (Linux) or rekey-encryption.bat -m masterkey (Windows).</p>
+ *  
+ * <p>Both scripts start up the application with one (initialize) or two (rekey) parameters: <br/>
  * <br/>
  * To initialze encryption:<br/>
  * -DinitializeEncryption=true<br/>
  * <br/>
  * The rekey script also adds this parameter (the master key must be provided to generate a new encryption key):<br/>
  * -DmasterKey=ab5d6e5d6f9523eba7208b5b3ec875ba<br/>
- * </p>	
+ * </p>
+ * 
+ * <p>See <a href="https://odilon.io/configuration-advanced.html">https://odilon.io/configuration-advanced.html</a>
+ * </p>
+ * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public class EncryptionInitializer extends ODModelObject {

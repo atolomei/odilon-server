@@ -73,9 +73,9 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 @ThreadSafe
 @Service
-public class ODJournalService extends BaseService implements JournalService {
+public class OdilonJournalService extends BaseService implements JournalService {
 			
-	static private Logger logger = Logger.getLogger(ODJournalService.class.getName());	
+	static private Logger logger = Logger.getLogger(OdilonJournalService.class.getName());	
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 
 	/* lazy injection  */
@@ -107,7 +107,7 @@ public class ODJournalService extends BaseService implements JournalService {
 	@JsonIgnore
 	private boolean isStandBy;
 	
-	public ODJournalService() {
+	public OdilonJournalService() {
 	}
 	
 	@Override														

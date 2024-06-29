@@ -64,7 +64,7 @@ import io.odilon.service.util.ByteToString;
 import io.odilon.util.Check;
 import io.odilon.util.ODFileUtils;
 import io.odilon.vfs.BaseIODriver;
-import io.odilon.vfs.ODDrive;
+import io.odilon.vfs.OdilonDrive;
 import io.odilon.vfs.ODVFSBucket;
 import io.odilon.vfs.ODVFSObject;
 import io.odilon.vfs.ODVFSOperation;
@@ -1086,7 +1086,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 			}
 			else if (op.getOp() == VFSOp.CREATE_BUCKET) {
 				for (Drive drive : getDrivesAll())
-					((ODDrive) drive).forceDeleteBucket(bucketId);
+					((OdilonDrive) drive).forceDeleteBucket(bucketId);
 				done = true;
 			}
 			else if (op.getOp() == VFSOp.DELETE_BUCKET) {
