@@ -40,7 +40,7 @@ import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ObjectStatus;
 import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
-import io.odilon.util.ODFileUtils;
+import io.odilon.util.OdilonFileUtils;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.ODBucket;
 import io.odilon.vfs.model.VFSOperation;
@@ -480,7 +480,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 		
 		ei.encodedBlocks.forEach(item -> {
 			try {
-				shaBlocks.add(ODFileUtils.calculateSHA256String(item));
+				shaBlocks.add(OdilonFileUtils.calculateSHA256String(item));
 			} catch (Exception e) {
 				throw new InternalCriticalException(e, "saveObjectMetadata" + "b:" + bucket.getName() + " o:" 	+ objectName + ", f:" + (Optional.ofNullable(item).isPresent() ? (item.getName()):"null"));
 			}
@@ -490,7 +490,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 		String etag = null;
 		
 		try {
-			etag = ODFileUtils.calculateSHA256String(etag_b.toString());
+			etag = OdilonFileUtils.calculateSHA256String(etag_b.toString());
 		} catch (NoSuchAlgorithmException | IOException e) {
 				throw new InternalCriticalException(e, "saveObjectMetadata etag" + "b:" + bucket.getName() + " o:" 	+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null"));
 		} 

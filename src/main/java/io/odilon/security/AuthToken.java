@@ -23,14 +23,14 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.odilon.log.Logger;
 import io.odilon.model.ServerConstant;
-import io.odilon.model.ODModelObject;
+import io.odilon.model.OdilonModelObject;
 
 /**
  * <p>AuthToken are used to generate timed pre-signed urls to access objects without authentication</p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
-public class AuthToken extends ODModelObject implements Serializable  {
+public class AuthToken extends OdilonModelObject implements Serializable  {
 
 	static final int VERSION = 1;
 	

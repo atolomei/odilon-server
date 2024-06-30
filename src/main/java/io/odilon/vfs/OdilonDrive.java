@@ -52,7 +52,7 @@ import io.odilon.log.Logger;
 import io.odilon.model.BucketMetadata;
 import io.odilon.model.BucketStatus;
 import io.odilon.model.ServerConstant;
-import io.odilon.model.ODModelObject;
+import io.odilon.model.OdilonModelObject;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ObjectStatus;
 import io.odilon.model.ServiceStatus;
@@ -93,7 +93,7 @@ import org.springframework.context.annotation.Scope;
  */
 @Component
 @Scope("prototype")
-public class OdilonDrive extends ODModelObject implements Drive {
+public class OdilonDrive extends OdilonModelObject implements Drive {
 
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 	static private Logger logger = Logger.getLogger(OdilonDrive.class.getName());
@@ -530,7 +530,7 @@ public class OdilonDrive extends ODModelObject implements Drive {
 			File dir = new File(getSchedulerDirPath() + File.separator +  queueId);
 			if (!dir.exists() || !dir.isDirectory()) {
 				try {
-					io.odilon.util.ODFileUtils.forceMkdir(dir);
+					io.odilon.util.OdilonFileUtils.forceMkdir(dir);
 				} catch (IOException e) {
 					throw new InternalCriticalException(e, "Can not create dir -> d: " + getName() + " dir:" + dir.getName());
 				}
@@ -988,12 +988,12 @@ public class OdilonDrive extends ODModelObject implements Drive {
 			/** data */
 			if (!Files.exists(Paths.get(getRootDirPath() + File.separator + bucketId.toString()))) {
 				logger.debug("Creating Data Bucket Directory for  -> b:" + bucketId.toString());	
-				io.odilon.util.ODFileUtils.forceMkdir(new File(getRootDirPath() + File.separator + bucketId.toString()));
+				io.odilon.util.OdilonFileUtils.forceMkdir(new File(getRootDirPath() + File.separator + bucketId.toString()));
 			}
 			
 			/** data version */
 			if ( !Files.exists(Paths.get(getRootDirPath() + File.separator + bucketId.toString() + File.separator + VirtualFileSystemService.VERSION_DIR))) {
-				io.odilon.util.ODFileUtils.forceMkdir(new File(getRootDirPath() + File.separator + bucketId.toString() + File.separator + VirtualFileSystemService.VERSION_DIR));
+				io.odilon.util.OdilonFileUtils.forceMkdir(new File(getRootDirPath() + File.separator + bucketId.toString() + File.separator + VirtualFileSystemService.VERSION_DIR));
 			}
 			
 		} catch (IOException e) {
@@ -1011,7 +1011,7 @@ public class OdilonDrive extends ODModelObject implements Drive {
 	protected void createRootDirectory() {
 		try {
 			logger.debug("Creating Data Directory -> " + getRootDirPath());
-			io.odilon.util.ODFileUtils.forceMkdir(new File(getRootDirPath()));
+			io.odilon.util.OdilonFileUtils.forceMkdir(new File(getRootDirPath()));
 			
 		} catch (IOException e) {
 			throw new InternalCriticalException(e, "Can not create root Directory -> dir:" + rootDir + "  | d:" + name);
@@ -1021,7 +1021,7 @@ public class OdilonDrive extends ODModelObject implements Drive {
 	protected void createSysDirectory() {
 		try {
 			logger.debug("Creating Directory -> " + getSysDirPath());
-			io.odilon.util.ODFileUtils.forceMkdir(new File(getSysDirPath()));
+			io.odilon.util.OdilonFileUtils.forceMkdir(new File(getSysDirPath()));
 			
 		} catch (IOException e) {
 			String msg = "Can not create sys Directory ->  dir:" +getSysDirPath()  + "  d:" + name;	
@@ -1034,7 +1034,7 @@ public class OdilonDrive extends ODModelObject implements Drive {
 		try {
 			
 			logger.debug("Creating Directory -> " + getWorkDirPath());
-			io.odilon.util.ODFileUtils.forceMkdir(new File(getWorkDirPath()));
+			io.odilon.util.OdilonFileUtils.forceMkdir(new File(getWorkDirPath()));
 			
 		} catch (IOException e) {											
 			String msg = "Can not create work Directory ->  dir:" +getWorkDirPath()  + "  d:" + name;	
@@ -1046,7 +1046,7 @@ public class OdilonDrive extends ODModelObject implements Drive {
 		try {
 			
 			logger.debug("Creating Directory -> " + getCacheDirPath());
-			io.odilon.util.ODFileUtils.forceMkdir(new File(getCacheDirPath()));
+			io.odilon.util.OdilonFileUtils.forceMkdir(new File(getCacheDirPath()));
 			
 		} catch (IOException e) {											
 			String msg = "Can not create cache Directory ->  dir:" +getCacheDirPath()  + "  d:" + name;	
@@ -1059,7 +1059,7 @@ public class OdilonDrive extends ODModelObject implements Drive {
 	private void createSchedulerDirectory() {
 		try {		
 			logger.debug("Creating Directory -> " + getSchedulerDirPath());
-			io.odilon.util.ODFileUtils.forceMkdir(new File(getSchedulerDirPath()));
+			io.odilon.util.OdilonFileUtils.forceMkdir(new File(getSchedulerDirPath()));
 			
 		} catch (IOException e) {
 			String msg = "Can not create scheduler Directory ->  dir:" +getSchedulerDirPath()  + "  d:" + name;	
@@ -1071,7 +1071,7 @@ public class OdilonDrive extends ODModelObject implements Drive {
 	private void createBucketsDirectory() {
 		try {
 			logger.debug("Creating Directory -> " + getBucketsDirPath());
-			io.odilon.util.ODFileUtils.forceMkdir(new File(getBucketsDirPath()));
+			io.odilon.util.OdilonFileUtils.forceMkdir(new File(getBucketsDirPath()));
 			
 		} catch (IOException e) {
 			String msg = "Can not create Buckets Metadata Directory ->  dir:" +getBucketsDirPath()  + "  d:" + name;	
@@ -1083,7 +1083,7 @@ public class OdilonDrive extends ODModelObject implements Drive {
 		try {
 									
 			logger.debug("Creating Directory -> " + getJournalDirPath());
-			io.odilon.util.ODFileUtils.forceMkdir(new File(getJournalDirPath()));
+			io.odilon.util.OdilonFileUtils.forceMkdir(new File(getJournalDirPath()));
 			
 		} catch (IOException e) {
 			String msg = "Can not create Journal Directory ->  dir:" +getJournalDirPath()  + "  d:" + name;	
@@ -1095,7 +1095,7 @@ public class OdilonDrive extends ODModelObject implements Drive {
 	private void createTempDirectory() {
 		try {
 			logger.debug("Creating Directory -> " + getTempDirPath());
-			io.odilon.util.ODFileUtils.forceMkdir(new File(getTempDirPath()));
+			io.odilon.util.OdilonFileUtils.forceMkdir(new File(getTempDirPath()));
 			
 		} catch (IOException e) {
 			String msg = "Can not create temp Directory ->  dir:" +getTempDirPath()  + "  d:" + name;	
@@ -1133,7 +1133,7 @@ public class OdilonDrive extends ODModelObject implements Drive {
 				if (!workDir.exists()) {
 					logger.debug("Creating Directory -> " + workDir.getName());
 					try {
-						io.odilon.util.ODFileUtils.forceMkdir(workDir);
+						io.odilon.util.OdilonFileUtils.forceMkdir(workDir);
 					} catch (IOException e) {
 						throw new InternalCriticalException(e, "Can not create -> " + workDir.getName());
 					}
@@ -1145,7 +1145,7 @@ public class OdilonDrive extends ODModelObject implements Drive {
 				if (!cacheDir.exists()) {
 					logger.debug("Creating Directory -> " + cacheDir.getName());
 					try {
-						io.odilon.util.ODFileUtils.forceMkdir(cacheDir);
+						io.odilon.util.OdilonFileUtils.forceMkdir(cacheDir);
 					} catch (IOException e) {
 						throw new InternalCriticalException(e, "Can not create -> " + cacheDir.getName());
 					}
@@ -1180,7 +1180,7 @@ public class OdilonDrive extends ODModelObject implements Drive {
 				if (!ex) {
 					logger.debug("Creating Directory -> " + version);
 					try {
-						io.odilon.util.ODFileUtils.forceMkdir(new File(version));
+						io.odilon.util.OdilonFileUtils.forceMkdir(new File(version));
 					} catch (IOException e) {
 						throw new InternalCriticalException(e, "Can not create -> " + version);
 					}

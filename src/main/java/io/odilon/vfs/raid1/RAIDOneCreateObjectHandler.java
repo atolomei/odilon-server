@@ -36,7 +36,7 @@ import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ObjectStatus;
 import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
-import io.odilon.util.ODFileUtils;
+import io.odilon.util.OdilonFileUtils;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.SimpleDrive;
 import io.odilon.vfs.model.ODBucket;
@@ -261,7 +261,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 			File file =((SimpleDrive) drive).getObjectDataFile(bucketId,  objectName);
 			
 			try {
-				String sha256 = ODFileUtils.calculateSHA256String(file);
+				String sha256 = OdilonFileUtils.calculateSHA256String(file);
 				if (sha==null) {
 					sha=sha256;
 					baseDrive=drive.getName();

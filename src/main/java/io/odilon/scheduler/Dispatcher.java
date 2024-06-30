@@ -26,7 +26,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import EDU.oswego.cs.dl.util.concurrent.LinkedQueue;
 import EDU.oswego.cs.dl.util.concurrent.PooledExecutor;
 import io.odilon.log.Logger;
-import io.odilon.model.ODModelObject;
+import io.odilon.model.OdilonModelObject;
 import io.odilon.model.SharedConstant;
 
 /**
@@ -36,7 +36,7 @@ import io.odilon.model.SharedConstant;
  * @author atolomei@novamens.com (Alejandro Tolomei)
  * 
  */
-public class Dispatcher extends ODModelObject {
+public class Dispatcher extends OdilonModelObject {
 
 	static private Logger startupLogger = Logger.getLogger("StartupLogger");
 	static private Logger logger = Logger.getLogger(Dispatcher.class.getName());

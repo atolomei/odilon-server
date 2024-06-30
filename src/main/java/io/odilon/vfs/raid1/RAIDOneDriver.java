@@ -51,7 +51,7 @@ import io.odilon.model.list.Item;
 import io.odilon.query.BucketIteratorService;
 import io.odilon.replication.ReplicationService;
 import io.odilon.util.Check;
-import io.odilon.util.ODFileUtils;
+import io.odilon.util.OdilonFileUtils;
 import io.odilon.vfs.BaseIODriver;
 import io.odilon.vfs.OdilonDrive;
 import io.odilon.vfs.ODVFSBucket;
@@ -746,7 +746,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 					
 					try {
 
-						sha256 = ODFileUtils.calculateSHA256String(file);
+						sha256 = OdilonFileUtils.calculateSHA256String(file);
 						
 						if (originalSha256==null) {
 							meta.sha256=sha256;

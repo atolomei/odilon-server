@@ -62,7 +62,7 @@ import io.odilon.scheduler.DeleteBucketObjectPreviousVersionServiceRequest;
 import io.odilon.scheduler.ServiceRequest;
 import io.odilon.service.util.ByteToString;
 import io.odilon.util.Check;
-import io.odilon.util.ODFileUtils;
+import io.odilon.util.OdilonFileUtils;
 import io.odilon.vfs.BaseIODriver;
 import io.odilon.vfs.OdilonDrive;
 import io.odilon.vfs.ODVFSBucket;
@@ -1222,7 +1222,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 			String sha256 = null;
 
 			try {
-				sha256 = ODFileUtils.calculateSHA256String(file);
+				sha256 = OdilonFileUtils.calculateSHA256String(file);
 
 			} catch (NoSuchAlgorithmException | IOException e) {
 				logger.error(e);
