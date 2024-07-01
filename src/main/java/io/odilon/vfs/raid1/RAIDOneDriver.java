@@ -54,7 +54,7 @@ import io.odilon.util.Check;
 import io.odilon.util.OdilonFileUtils;
 import io.odilon.vfs.BaseIODriver;
 import io.odilon.vfs.OdilonDrive;
-import io.odilon.vfs.ODVFSBucket;
+import io.odilon.vfs.OdilonBucket;
 import io.odilon.vfs.ODVFSObject;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.ODBucket;
@@ -310,7 +310,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 		
 		OffsetDateTime now = OffsetDateTime.now();
 		
-		ODBucket bucket = new ODVFSBucket(meta);
+		ODBucket bucket = new OdilonBucket(meta);
 		
 		getLockService().getBucketLock(meta.id).writeLock().lock();
 		

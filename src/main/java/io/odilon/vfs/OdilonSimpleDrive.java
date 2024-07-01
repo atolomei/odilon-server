@@ -45,17 +45,17 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 @NotThreadSafe
 @Component
 @Scope("prototype")
-public class ODSimpleDrive extends OdilonDrive implements SimpleDrive {
+public class OdilonSimpleDrive extends OdilonDrive implements SimpleDrive {
 			
 	
-	static private Logger logger = Logger.getLogger(ODSimpleDrive.class.getName());
+	static private Logger logger = Logger.getLogger(OdilonSimpleDrive.class.getName());
 	
 	/**
 	 * Constructor called by Spring.io 
 	 * @param rootDir
 	 */
 	@Autowired
-	protected ODSimpleDrive(String rootDir) {
+	protected OdilonSimpleDrive(String rootDir) {
 		super(rootDir);
 	}
 
@@ -66,7 +66,7 @@ public class ODSimpleDrive extends OdilonDrive implements SimpleDrive {
 	 * @param driveNanme
 	 * @param rootDir
 	 */
-	protected ODSimpleDrive(String driveName, String rootDir, int configOrder) {
+	protected OdilonSimpleDrive(String driveName, String rootDir, int configOrder) {
 		super(driveName, rootDir, configOrder);
 	}
 	

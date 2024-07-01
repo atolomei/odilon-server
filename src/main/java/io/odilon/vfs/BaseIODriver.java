@@ -142,7 +142,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		meta.appVersion = OdilonVersion.VERSION;
 		meta.id=getVFS().getNextBucketId();
 		
-		ODBucket bucket = new ODVFSBucket(meta);
+		ODBucket bucket = new OdilonBucket(meta);
 		boolean isMainException = false;
 		
 
@@ -244,7 +244,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		finally {
 			try {
 				if (done) {
-					getVFS().updateBucketCache(oldName, new ODVFSBucket(meta));
+					getVFS().updateBucketCache(oldName, new OdilonBucket(meta));
 				}
 				else {
 					if (op!=null)
@@ -976,7 +976,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 			if (control.containsKey(name)) {
 				Integer count = control.get(name);
 				if (count==totalDrives) {
-					ODBucket vfsbucket = new ODVFSBucket(bucket);
+					ODBucket vfsbucket = new OdilonBucket(bucket);
 					map.put(vfsbucket.getName(), vfsbucket);
 				}
 			}

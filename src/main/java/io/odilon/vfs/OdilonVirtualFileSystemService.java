@@ -803,7 +803,7 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 			Map<String, ODBucket> map = new HashMap<String, ODBucket>();
 			for (Entry<String, Drive> entry: getMapDrivesEnabled().entrySet()) {
 				List<DriveBucket> db = entry.getValue().getBuckets();
-				db.forEach( item -> map.put(item.getName(), new ODVFSBucket(item)));
+				db.forEach( item -> map.put(item.getName(), new OdilonBucket(item)));
 			}
 			map.forEach( (k,v) -> list.add(v));
 			return list;
@@ -1005,7 +1005,7 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 					configOrder++;
 				}
 				else {
-					drive=new ODSimpleDrive(String.valueOf(configOrder), dir, configOrder);
+					drive=new OdilonSimpleDrive(String.valueOf(configOrder), dir, configOrder);
 					configOrder++;
 				}
 				
@@ -1335,7 +1335,7 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 		getFileCacheService().setVFS(this);
 		
 		/** WalkerService -> lazy injection */
-		((io.odilon.query.ODBucketIteratorService) getBucketIteratorService()).setVFS(this);
+		((io.odilon.query.OdilonBucketIteratorService) getBucketIteratorService()).setVFS(this);
 
 		/** JournalService -> lazy injection */ 
 		((OdilonJournalService) getJournalService()).setVFS(this);

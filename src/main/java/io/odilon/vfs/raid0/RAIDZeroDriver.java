@@ -65,7 +65,7 @@ import io.odilon.util.Check;
 import io.odilon.util.OdilonFileUtils;
 import io.odilon.vfs.BaseIODriver;
 import io.odilon.vfs.OdilonDrive;
-import io.odilon.vfs.ODVFSBucket;
+import io.odilon.vfs.OdilonBucket;
 import io.odilon.vfs.ODVFSObject;
 import io.odilon.vfs.ODVFSOperation;
 import io.odilon.vfs.model.Drive;
@@ -1407,7 +1407,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 			if (control.containsKey(name)) {
 				Integer count = control.get(name);
 				if (count == totalDrives) {
-					ODBucket vfsbucket = new ODVFSBucket(bucket);
+					ODBucket vfsbucket = new OdilonBucket(bucket);
 					map.put(vfsbucket.getName(), vfsbucket);
 				}
 			}

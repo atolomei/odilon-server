@@ -49,9 +49,9 @@ import io.odilon.vfs.model.VirtualFileSystemService;
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @Service
-public class ODBucketIteratorService extends BaseService implements BucketIteratorService {
+public class OdilonBucketIteratorService extends BaseService implements BucketIteratorService {
 		
-	static private Logger logger = Logger.getLogger(ODBucketIteratorService.class.getName());	
+	static private Logger logger = Logger.getLogger(OdilonBucketIteratorService.class.getName());	
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 	
 	@JsonIgnore
@@ -67,7 +67,7 @@ public class ODBucketIteratorService extends BaseService implements BucketIterat
 	private ConcurrentMap<String, OffsetDateTime> lastAccess = new ConcurrentHashMap<>();
 	
 	
-	public ODBucketIteratorService() {
+	public OdilonBucketIteratorService() {
 	}
 	
 	

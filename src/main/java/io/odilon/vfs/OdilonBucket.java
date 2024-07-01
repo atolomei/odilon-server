@@ -30,16 +30,16 @@ import io.odilon.vfs.model.ODBucket;
  *  
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
-public class ODVFSBucket implements ODBucket {
+public class OdilonBucket implements ODBucket {
 
 	@JsonProperty("bucketMetadata")
 	final private BucketMetadata meta;
 	
-	public ODVFSBucket(DriveBucket db) {
+	public OdilonBucket(DriveBucket db) {
 		this.meta=db.getBucketMetadata();
 	}
 
-	public ODVFSBucket(BucketMetadata meta) {
+	public OdilonBucket(BucketMetadata meta) {
 		this.meta=meta;
 	}
 

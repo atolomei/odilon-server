@@ -486,11 +486,16 @@ public class ServerSettings implements APIObject {
 	@PostConstruct
 	public void onInitialize() {
 	
+		if (secretKey==null)  {
+			exit("secretKey can not be null");
+		}
+		
+		
 		if (rootDirs==null || rootDirs.size()<1) {
 			startuplogger.error(		"No rootDirs are defined. \n"
 										+ 	"for RAID 0. at least 1 dataDir must be defined in file -> odilon.properties \n"
 										+ 	"for RAID 1. at least 1 dataDir must be defined in file -> odilon.properties \n"
-										+ 	"for RAID 6.  3, 6, 12 or 24 dataDirs must be defined in file	-> odilon.properties \n"
+										+ 	"for RAID 6.  3, 6, 12 or 24 dataDirs must be defined in file -> odilon.properties \n"
 										+   "using default values ");
 			
 			getDefaultRootDirs().forEach( o -> startuplogger.error(o));

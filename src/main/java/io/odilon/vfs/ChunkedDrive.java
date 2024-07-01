@@ -36,7 +36,7 @@ import io.odilon.log.Logger;
 public class ChunkedDrive extends OdilonDrive {
 
 	@SuppressWarnings("unused")
-	static private Logger logger = Logger.getLogger(ODSimpleDrive.class.getName());
+	static private Logger logger = Logger.getLogger(OdilonSimpleDrive.class.getName());
 	
 	@Autowired
 	protected ChunkedDrive(String rootDir) {

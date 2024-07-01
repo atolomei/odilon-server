@@ -28,9 +28,9 @@ import io.odilon.service.SystemService;
  */
 public interface EncryptionService extends SystemService {
 	
-	public static final String ENCRYPTION_ALGORITHM = "AES";
-	public static final String ENCRYPTION_ALGORITHM_METHOD = "AES/GCM/NoPadding";
-	public static final int IV_LENGTH_BIT = 128;
+	static public final String ENCRYPTION_ALGORITHM = "AES";
+	static public final String ENCRYPTION_ALGORITHM_METHOD = "AES/GCM/NoPadding";
+	static public final int IV_LENGTH_BIT = 128;
 	
 	static final  public int AES_KEY_SIZE_BITS = 128; // 16 bytes
 	static final  public int AES_IV_SIZE_BITS = 96; // 12 bytes

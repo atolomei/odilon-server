@@ -90,8 +90,8 @@ public class OdilonTokenService extends BaseService implements TokenService, App
 	    @JsonIgnore
 		private ApplicationContext applicationContext;
 
-	    @JsonIgnore
-	    private Cipher cipher;
+	    //@JsonIgnore
+	    //private Cipher cipher;
 	    
 	    @JsonIgnore
 	    private IvParameterSpec ivspec;
@@ -101,20 +101,24 @@ public class OdilonTokenService extends BaseService implements TokenService, App
 		
 	    @JsonIgnore
 	    private KeySpec spec;
-	    
-	    @JsonIgnore
-	    private SecretKey tmp;
-		
+
 	    @JsonIgnore
 	    private SecretKeySpec secretKeySpec;
-	    
+
 	    @JsonIgnore
-	    private Cipher encCipher;
-	    
-	    @JsonIgnore
-	    private Cipher decCipher;
-	    
 	    private String secretKey;
+	    
+	    
+	    //@JsonIgnore
+	    //private SecretKey tmp;
+		
+	    //@JsonIgnore
+	    //private Cipher encCipher;
+	    
+	    //@JsonIgnore
+	    //private Cipher decCipher;
+	    
+	    
 	
 
 	public OdilonTokenService ( ServerSettings serverSettings, 
@@ -135,9 +139,12 @@ public class OdilonTokenService extends BaseService implements TokenService, App
 
 		try {
 			
-			return Base64.getEncoder().encodeToString(this.encCipher.doFinal(token.toJSON().getBytes("UTF-8")));
+			Cipher encCipher;
+			encCipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+	    	encCipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, ivspec);
+			return Base64.getEncoder().encodeToString(encCipher.doFinal(token.toJSON().getBytes("UTF-8")));
 			
-		} catch (IllegalBlockSizeException | BadPaddingException | UnsupportedEncodingException e) {
+		} catch (IllegalBlockSizeException | BadPaddingException | UnsupportedEncodingException | NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | InvalidAlgorithmParameterException e) {
 			throw new InternalCriticalException(e, "encrypt");
 		}
 
@@ -149,9 +156,15 @@ public class OdilonTokenService extends BaseService implements TokenService, App
 	 public AuthToken decrypt(String enc) {
 		 	String str;
 			try {
-				str = new String(this.decCipher.doFinal(Base64.getDecoder().decode(enc)));
 				
-			} catch (IllegalBlockSizeException | BadPaddingException e1) {
+				Cipher decCipher;
+				
+				decCipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+				decCipher.init(Cipher.DECRYPT_MODE, secretKeySpec, ivspec);
+				
+				str = new String(decCipher.doFinal(Base64.getDecoder().decode(enc)));
+				
+			} catch (IllegalBlockSizeException | BadPaddingException | NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | InvalidAlgorithmParameterException e1) {
 				throw new InternalCriticalException(e1, "decrypt");
 			}
 			
@@ -199,21 +212,8 @@ public class OdilonTokenService extends BaseService implements TokenService, App
 		        this.ivspec = new IvParameterSpec(iv);
 		        this.factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
 		        this.spec = new PBEKeySpec(this.secretKey.toCharArray(), salt.getBytes(), 65536, 256);
-		        this.tmp = factory.generateSecret(this.spec);
-		        this.secretKeySpec = new SecretKeySpec(tmp.getEncoded(), "AES");
-
-				try {
-
-					encCipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-			    	encCipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, ivspec);
-								
-					decCipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-					decCipher.init(Cipher.DECRYPT_MODE, secretKeySpec, ivspec);
-					
-				} catch (NoSuchAlgorithmException | NoSuchPaddingException  | InvalidKeyException | InvalidAlgorithmParameterException e) {
-					throw new InternalCriticalException(e, "onInitialize");
-				}
-		        
+		        this.secretKeySpec = new SecretKeySpec(factory.generateSecret(this.spec).getEncoded(), "AES");
+						        
 				startuplogger.debug("Started -> " +  TokenService.class.getSimpleName());
 				setStatus(ServiceStatus.RUNNING);
 				}
