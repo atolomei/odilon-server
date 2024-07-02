@@ -23,14 +23,17 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.odilon.model.BucketMetadata;
 import io.odilon.model.BucketStatus;
+import io.odilon.model.OdilonModelObject;
 import io.odilon.vfs.model.DriveBucket;
 import io.odilon.vfs.model.ODBucket;
 
 /**
  *  
+ *  <p>Server representation of a Bucket. A bucket is like a folder, it just contains binary objects, potentially a very large number.</p>
+ *  
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
-public class OdilonBucket implements ODBucket {
+public class OdilonBucket extends OdilonModelObject implements ODBucket {
 
 	@JsonProperty("bucketMetadata")
 	final private BucketMetadata meta;

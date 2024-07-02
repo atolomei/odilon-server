@@ -24,6 +24,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.odilon.log.Logger;
 import io.odilon.model.ServerConstant;
 import io.odilon.model.ObjectMetadata;
+import io.odilon.model.OdilonModelObject;
 import io.odilon.vfs.model.ODBucket;
 import io.odilon.vfs.model.VFSObject;
 import io.odilon.vfs.model.VirtualFileSystemService;
@@ -32,10 +33,10 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 *  
 * @author atolomei@novamens.com (Alejandro Tolomei)
 */
-public class ODVFSObject implements VFSObject {
+public class OdilonVFSObject extends OdilonModelObject implements VFSObject {
 			
 	@SuppressWarnings("unused")
-	private static Logger logger = Logger.getLogger(ODVFSObject.class.getName());
+	private static Logger logger = Logger.getLogger(OdilonVFSObject.class.getName());
 
 	
 	private ODBucket bucket;
@@ -48,7 +49,7 @@ public class ODVFSObject implements VFSObject {
 	private VirtualFileSystemService vfs;
 	
 	
-	public ODVFSObject(ODBucket bucket, String objectName, VirtualFileSystemService vfs) {
+	public OdilonVFSObject(ODBucket bucket, String objectName, VirtualFileSystemService vfs) {
 		this.bucket=bucket;
 		this.objectName=objectName;
 		this.vfs=vfs;

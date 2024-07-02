@@ -56,7 +56,7 @@ import io.odilon.replication.ReplicationService;
 import io.odilon.util.Check;
 import io.odilon.vfs.BaseIODriver;
 import io.odilon.vfs.OdilonDrive;
-import io.odilon.vfs.ODVFSObject;
+import io.odilon.vfs.OdilonVFSObject;
 import io.odilon.vfs.model.BucketIterator;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.LockService;
@@ -597,7 +597,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 				ObjectMetadata meta = getObjectMetadataInternal(bucket, objectName, true);
 				
 				if (meta.status==ObjectStatus.ENABLED || meta.status==ObjectStatus.ARCHIVED) {
-					return new ODVFSObject(bucket, objectName, getVFS());
+					return new OdilonVFSObject(bucket, objectName, getVFS());
 				}
 				
 				/**

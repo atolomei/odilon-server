@@ -55,7 +55,7 @@ import io.odilon.util.OdilonFileUtils;
 import io.odilon.vfs.BaseIODriver;
 import io.odilon.vfs.OdilonDrive;
 import io.odilon.vfs.OdilonBucket;
-import io.odilon.vfs.ODVFSObject;
+import io.odilon.vfs.OdilonVFSObject;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.ODBucket;
 import io.odilon.vfs.model.VFSObject;
@@ -69,7 +69,7 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 /**
  * <p><b>RAID 1</b></p>
  * <p>
- * {@link Bucket} structure is the same for all drives <br/>
+ * {@link OdilonBucket} structure is the same for all drives <br/>
  * {@link VirtualFileSystemService} checks consistency during startup.
  * </p>
  * <p>For each object, a copy is created on each {@link Drive}.</p>
@@ -501,7 +501,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 				ObjectMetadata meta = getObjectMetadataInternal(bucket, objectName, true);
 				
 				if (meta.status==ObjectStatus.ENABLED || meta.status==ObjectStatus.ARCHIVED) {
-					return new ODVFSObject(bucket, objectName, getVFS());
+					return new OdilonVFSObject(bucket, objectName, getVFS());
 				}
 				
 				/**

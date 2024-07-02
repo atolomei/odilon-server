@@ -66,7 +66,7 @@ import io.odilon.util.OdilonFileUtils;
 import io.odilon.vfs.BaseIODriver;
 import io.odilon.vfs.OdilonDrive;
 import io.odilon.vfs.OdilonBucket;
-import io.odilon.vfs.ODVFSObject;
+import io.odilon.vfs.OdilonVFSObject;
 import io.odilon.vfs.ODVFSOperation;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.DriveBucket;
@@ -600,7 +600,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 				ObjectMetadata meta = getObjectMetadataInternal(bucket, objectName, true);
 	
 				if (meta.status == ObjectStatus.ENABLED || meta.status == ObjectStatus.ARCHIVED) {
-					return new ODVFSObject(bucket, objectName, getVFS());
+					return new OdilonVFSObject(bucket, objectName, getVFS());
 				}
 	
 				/**
