@@ -31,16 +31,16 @@ import io.odilon.util.Check;
  * @author atolomei@novamens.com (Alejandro Tolomei)
  * 
  */
-public abstract class Scavenger implements Runnable {
+public abstract class PoolCleaner implements Runnable {
 	
-	static public Logger logger = Logger.getLogger(Scavenger.class.getName());
+	static public Logger logger = Logger.getLogger(PoolCleaner.class.getName());
 	
 	static final long DEFAULT_SLEEP_TIME = 1 * 60 * 1000; // 1 minute
 	
 	private AtomicBoolean exit = new AtomicBoolean(false);
 	private Thread thread;
 	
-	public Scavenger() {
+	public PoolCleaner() {
 	}
 	
 	public abstract void cleanUp();
