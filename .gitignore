@@ -37,3 +37,4 @@ replay_pid*
 
 *.enc
 
+/dependency.txt
