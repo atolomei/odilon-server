@@ -41,7 +41,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.odilon.OdilonVersion;
 import io.odilon.encryption.EncryptionService;
 import io.odilon.log.Logger;
-import io.odilon.model.APIObject;
+import io.odilon.model.BaseObject;
 import io.odilon.model.DataStorage;
 import io.odilon.model.OdilonServerInfo;
 import io.odilon.model.RedundancyLevel;
@@ -58,7 +58,7 @@ import io.odilon.vfs.model.VirtualFileSystemService;
  */
 @Configuration
 @PropertySource("classpath:odilon.properties")
-public class ServerSettings implements APIObject {
+public class ServerSettings implements BaseObject {
 
 	static private Logger logger = Logger.getLogger(ServerSettings.class.getName());
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");

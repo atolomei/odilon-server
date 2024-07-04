@@ -31,7 +31,7 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import io.odilon.log.Logger;
-import io.odilon.model.APIObject;
+import io.odilon.model.BaseObject;
 import io.odilon.monitor.SystemMonitorService;
 import io.odilon.service.ObjectStorageService;
 import io.odilon.traffic.TrafficControlService;
@@ -42,7 +42,7 @@ import io.odilon.vfs.model.VirtualFileSystemService;
  *  
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
-public abstract class BaseApiController implements ApplicationContextAware, APIObject  {
+public abstract class BaseApiController implements ApplicationContextAware, BaseObject  {
 
 	static private ObjectMapper mapper = new ObjectMapper();
 	

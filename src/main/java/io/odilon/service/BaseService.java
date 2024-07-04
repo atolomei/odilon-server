@@ -24,7 +24,7 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import io.odilon.log.Logger;
-import io.odilon.model.APIObject;
+import io.odilon.model.BaseObject;
 import io.odilon.model.ServiceStatus;
 import io.odilon.util.RandomIDGenerator;
 
@@ -32,7 +32,7 @@ import io.odilon.util.RandomIDGenerator;
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
-public abstract class BaseService implements APIObject {
+public abstract class BaseService implements BaseObject {
 			
 	static private Logger logger = Logger.getLogger(BaseService.class.getName());
 	
