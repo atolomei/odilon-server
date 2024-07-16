@@ -16,8 +16,6 @@
  */
 package io.odilon.vfs.raid6;
 
-
-
 import java.io.File;
 import java.io.IOException;
 import java.time.OffsetDateTime;
@@ -40,7 +38,6 @@ import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.ODBucket;
 import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VFSOp;
-
 
 /**
  * <p>RAID 6. Delete Object handler</p>

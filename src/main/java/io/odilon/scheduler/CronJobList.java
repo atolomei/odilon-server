@@ -51,9 +51,6 @@ public class CronJobList implements SortedSet<CronJobRequest> {
 		mapper.registerModule(new Jdk8Module());
 	}
 
-	@JsonIgnore
-	private TreeSet<CronJobRequest> jobs = new TreeSet<CronJobRequest>(new CronJobComparator());
-	
 	private class CronJobComparator implements Comparator<CronJobRequest> {
 		
         @Override
@@ -71,6 +68,12 @@ public class CronJobList implements SortedSet<CronJobRequest> {
         }
     }
 
+	
+	@JsonIgnore
+	private TreeSet<CronJobRequest> jobs = new TreeSet<CronJobRequest>(new CronJobComparator());
+	
+
+	
 	public synchronized CronJobRequest pollFirst() {
 
 		CronJobRequest job = getJobs().pollFirst();
@@ -171,16 +174,16 @@ public class CronJobList implements SortedSet<CronJobRequest> {
 
 	@Override
 	public CronJobRequest first() {
-		return jobs.first();
+		return this.jobs.first();
 	}
 
 	@Override
 	public CronJobRequest last() {
-		return jobs.last();
+		return this.jobs.last();
 	}
 
 	protected TreeSet<CronJobRequest> getJobs() {
-        return jobs;
+        return this.jobs;
     }
 }
 

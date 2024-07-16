@@ -145,10 +145,8 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 			
 			if(done) 
 				onAfterCommit(op, meta, headVersion);
-			
 		}
 
-	
 	
 	/**
 	 * <p>Adds a {@link DeleteBucketObjectPreviousVersionServiceRequest} to the {@link SchedulerService} 
