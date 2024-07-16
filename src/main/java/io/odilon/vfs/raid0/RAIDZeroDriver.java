@@ -63,7 +63,7 @@ import io.odilon.vfs.BaseIODriver;
 import io.odilon.vfs.OdilonDrive;
 import io.odilon.vfs.OdilonBucket;
 import io.odilon.vfs.OdilonVFSObject;
-import io.odilon.vfs.ODVFSOperation;
+import io.odilon.vfs.OdilonVFSperation;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.DriveBucket;
 import io.odilon.vfs.model.JournalService;
@@ -951,7 +951,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 				Path pa = Paths.get(file.getAbsolutePath());
 				try {
 					String str = Files.readString(pa);
-					ODVFSOperation op = getObjectMapper().readValue(str, ODVFSOperation.class);
+					OdilonVFSperation op = getObjectMapper().readValue(str, OdilonVFSperation.class);
 					op.setJournalService(getJournalService());
 					list.add(op);
 				} catch (IOException e) {

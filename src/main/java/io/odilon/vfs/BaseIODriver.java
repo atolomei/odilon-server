@@ -546,7 +546,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 					Path pa=Paths.get(file.getAbsolutePath());
 					try {
 						String str=Files.readString(pa);
-						ODVFSOperation op = getObjectMapper().readValue(str, ODVFSOperation.class);
+						OdilonVFSperation op = getObjectMapper().readValue(str, OdilonVFSperation.class);
 						op.setJournalService(getJournalService());
 						if (!list.contains(op))
 							list.add(op);

@@ -9,7 +9,7 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import io.odilon.log.Logger;
 import io.odilon.model.SharedConstant;
-import io.odilon.vfs.ODVFSOperation;
+import io.odilon.vfs.OdilonVFSperation;
 import io.odilon.vfs.model.VFSOperation;
 
 /**
@@ -33,14 +33,14 @@ static private Logger logger = Logger.getLogger(CleanUpWorkDirServiceRequest.cla
 	private boolean isSuccess = false;
 	
 	@JsonProperty("operation")
-	private ODVFSOperation operation;
+	private OdilonVFSperation operation;
 	
 
 	protected CleanUpWorkDirServiceRequest() {
 	}
 	
 	public CleanUpWorkDirServiceRequest(VFSOperation operation) {
-		this.operation = (ODVFSOperation) operation;
+		this.operation = (OdilonVFSperation) operation;
 	}
 	
 	/**

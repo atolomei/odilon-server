@@ -356,7 +356,7 @@ public class OdilonJournalService extends BaseService implements JournalService 
 		
 	
 	private synchronized VFSOperation createNew(VFSOp op, Optional<Long> bucketId, Optional<String> bucketName, Optional<String> objectName, Optional<Integer> iVersion) {
-			final VFSOperation odop = new ODVFSOperation(newOperationId(), op, bucketId, bucketName, objectName, iVersion, getRedundancyLevel() , this);
+			final VFSOperation odop = new OdilonVFSperation(newOperationId(), op, bucketId, bucketName, objectName, iVersion, getRedundancyLevel() , this);
 			getVFS().saveJournal(odop);
 			getOps().put(odop.getId(), odop);
 			return odop;

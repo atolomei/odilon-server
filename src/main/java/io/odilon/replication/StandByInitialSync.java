@@ -39,7 +39,7 @@ import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
 import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
-import io.odilon.vfs.ODVFSOperation;
+import io.odilon.vfs.OdilonVFSperation;
 import io.odilon.vfs.model.IODriver;
 import io.odilon.vfs.model.LockService;
 import io.odilon.vfs.model.ODBucket;
@@ -247,7 +247,7 @@ public class StandByInitialSync implements Runnable {
 														
 														logger.debug(item.getObject().bucketId.toString()+"-"+item.getObject().objectName);
 														
-														VFSOperation op = new ODVFSOperation(	getDriver().getVFS().getJournalService().newOperationId(), 
+														VFSOperation op = new OdilonVFSperation(	getDriver().getVFS().getJournalService().newOperationId(), 
 																									VFSOp.CREATE_OBJECT,  
 																									Optional.of(item.getObject().bucketId),
 																									Optional.of(getDriver().getVFS().getBucketById(item.getObject().bucketId).getName()),

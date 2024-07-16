@@ -39,9 +39,9 @@ import io.odilon.vfs.model.VFSOp;
 *  
 * @author atolomei@novamens.com (Alejandro Tolomei)
 */
-public class ODVFSOperation implements VFSOperation {
+public class OdilonVFSperation implements VFSOperation {
 				
-	static private Logger logger = Logger.getLogger(ODVFSOperation.class.getName());
+	static private Logger logger = Logger.getLogger(OdilonVFSperation.class.getName());
 
 	@JsonIgnore
 	static private ObjectMapper mapper = new ObjectMapper();
@@ -82,7 +82,7 @@ public class ODVFSOperation implements VFSOperation {
 	@JsonProperty("raid")
 	private RedundancyLevel raid;
 	
-	public ODVFSOperation() {
+	public OdilonVFSperation() {
 	}
 	
 	@Override
@@ -93,7 +93,7 @@ public class ODVFSOperation implements VFSOperation {
 					((objectName!=null) ? objectName :"null" );
 	}
 	
-	public ODVFSOperation( 	String id, 
+	public OdilonVFSperation( 	String id, 
 							VFSOp op,
 							Optional<Long> bucketId,
 							Optional<String> bucketName,
@@ -160,8 +160,8 @@ public class ODVFSOperation implements VFSOperation {
 	@Override
 	public boolean equals(Object o) {
 		
-		if (o instanceof ODVFSOperation) {
-			String oid =((ODVFSOperation) o).getId();
+		if (o instanceof OdilonVFSperation) {
+			String oid =((OdilonVFSperation) o).getId();
 			if (this.id==null) 
 				return oid==null;
 			if (oid==null)

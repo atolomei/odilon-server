@@ -27,7 +27,7 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import io.odilon.log.Logger;
 import io.odilon.model.SharedConstant;
 import io.odilon.replication.ReplicationService;
-import io.odilon.vfs.ODVFSOperation;
+import io.odilon.vfs.OdilonVFSperation;
 import io.odilon.vfs.model.VFSOperation;
 
 /**
@@ -50,14 +50,14 @@ public class StandByReplicaServiceRequest extends AbstractServiceRequest {
 	private boolean isSuccess = false;
 	
 	@JsonProperty("operation")
-	private ODVFSOperation operation;
+	private OdilonVFSperation operation;
 	
 	protected StandByReplicaServiceRequest() {
 	}
 
 	
 	public StandByReplicaServiceRequest(VFSOperation operation) {
-		this.operation = (ODVFSOperation) operation;
+		this.operation = (OdilonVFSperation) operation;
 	}
 	
 	/**
