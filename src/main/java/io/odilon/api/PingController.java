@@ -38,8 +38,8 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 /**
  * <p>Ping API is used to check the status of the system.</p>
  * <p>It can be called by client applications through the SDK ({@link OdilonClient},
- * on the web at /ping. If the server is not accesible on the web, from the local console it is 
- * posible to ping the server with:
+ * on the web at /ping. If the server is not accessible on the web, from the local 
+ * console it is possible to ping the server with:
  * </p>
  *
  * <pre>{@code # the following command should display the info page in the Linux console
