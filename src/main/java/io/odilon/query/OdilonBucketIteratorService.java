@@ -70,7 +70,6 @@ public class OdilonBucketIteratorService extends BaseService implements BucketIt
 	public OdilonBucketIteratorService() {
 	}
 	
-	
 	@Override
 	public boolean exists(String agentId) {
 		 Check.requireNonNullArgument(agentId, "agentId can not be null");

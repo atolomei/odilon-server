@@ -120,6 +120,13 @@ public abstract class AbstractServiceRequest implements ServiceRequest {
 	public  AbstractServiceRequest() {
 		setName(getClass().getSimpleName());
 	}
+
+	@Override
+	public abstract void execute();
+
+	@Override
+	public abstract void stop();
+	
 	
 	@Override
 	public boolean equals(Object o) {
@@ -148,30 +155,24 @@ public abstract class AbstractServiceRequest implements ServiceRequest {
 		this.ended=end;
 	}
 
-	@Override
-	public abstract void execute();
-
-	@Override
-	public abstract void stop();
-	
  	@Override
 	public double getProgress() {
-		return progress;
+		return this.progress;
 	}
 
 	@Override
 	public OffsetDateTime started() {
-		return  started;
+		return this.started;
 	}
 
 	@Override
 	public OffsetDateTime ended() {
-		return ended;
+		return this.ended;
 	}
 
 	@Override
 	public String getName() {
-		return name;
+		return this.name;
 	}
 
 	@Override
@@ -181,32 +182,32 @@ public abstract class AbstractServiceRequest implements ServiceRequest {
 
 	@Override
 	public String getDescription() {
-		return description;
+		return this.description;
 	}
 
 	@Override
 	public void setDescription(String des) {
-			description=des;
+		this.description=des;
 	}
 
 	@Override
 	public void setParameters(Map<String, String> map) {
-		parameters = map;
+		this.parameters = map;
 	}
 
 	@Override
 	public Map<String, String> getParameters() {
-		return parameters;
+		return this.parameters;
 	}
 
 	@Override
 	public void setExecuteAfter(OffsetDateTime d) {
-		executeAfter=d;
+		this.executeAfter=d;
 	}
 
 	@Override
 	public OffsetDateTime getExecuteAfter() {
-		return executeAfter;
+		return this.executeAfter;
 	}
 
 	@Override
@@ -221,7 +222,7 @@ public abstract class AbstractServiceRequest implements ServiceRequest {
 
 	@Override
 	public Serializable getId() {
-		return id;
+		return this.id;
 	}
 	
 	@Override
@@ -230,7 +231,7 @@ public abstract class AbstractServiceRequest implements ServiceRequest {
 	}
 	
 	public ServiceRequestStatus getStatus() {
-		return status;
+		return this.status;
 	}
 
 	public void setStatus(ServiceRequestStatus status) {
@@ -258,7 +259,7 @@ public abstract class AbstractServiceRequest implements ServiceRequest {
 	}
 
 	public int getRetries() {
-		return retries;
+		return this.retries;
 	}
 	
 	public void setRetries(int retries) {

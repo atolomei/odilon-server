@@ -141,8 +141,6 @@ public class StandByInitialSync implements Runnable {
 		return this.done;
 	}
 	
-	
-	
 	protected IODriver getDriver() {
 		return driver;
 	}

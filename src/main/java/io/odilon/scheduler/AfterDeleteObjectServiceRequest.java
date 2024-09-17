@@ -87,7 +87,7 @@ public class AfterDeleteObjectServiceRequest extends AbstractServiceRequest impl
 	
 	@Override
 	public boolean isSuccess() {
-		return isSuccess;
+		return this.isSuccess;
 	}
 
 	/**
@@ -98,12 +98,12 @@ public class AfterDeleteObjectServiceRequest extends AbstractServiceRequest impl
 		try {
 			setStatus(ServiceRequestStatus.RUNNING);
 			clean();
-			isSuccess=true;
+			this.isSuccess=true;
 			setStatus(ServiceRequestStatus.COMPLETED);
 			
 		} catch (Exception e) {
 			logger.error(e, SharedConstant.NOT_THROWN);
-			isSuccess=false;
+			this.isSuccess=false;
 			setStatus(ServiceRequestStatus.ERROR);
 		}
 	}
@@ -123,7 +123,7 @@ public class AfterDeleteObjectServiceRequest extends AbstractServiceRequest impl
 	
 	@Override
 	public void stop() {
-		 isSuccess=true;
+		 this.isSuccess=true;
 	}
 
 	
@@ -140,7 +140,6 @@ public class AfterDeleteObjectServiceRequest extends AbstractServiceRequest impl
 			logger.error("Invalid " + VFSOp.class.getName() + " is null ", SharedConstant.NOT_THROWN);
 			return;
 		}
-		
 		
 		if (this.meta==null) {
 			logger.error("Invalid " + ObjectMetadata.class.getName() + " is null ", SharedConstant.NOT_THROWN);

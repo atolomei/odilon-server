@@ -307,11 +307,11 @@ public class StandardSchedulerWorker extends SchedulerWorker {
 	}
 	
 	protected Map<Serializable, ServiceRequest> getExecuting() {
-		return executing;
+		return this.executing;
 	}
 	
 	protected Map<Serializable, ServiceRequest> getFailed() {
-		return failed;
+		return this.failed;
 	}
 
 }

@@ -16,7 +16,6 @@
  */
 package io.odilon.replication;
 
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,17 +39,13 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 
 /**
- * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
- * 
  */
 @Service
 public class ReplicationCheckService extends BaseService {
 								
 	static private Logger logger = Logger.getLogger(ReplicationCheckService.class.getName());
 
-	
-	
 	@Autowired
 	private final ReplicationService replicationService;
 	
@@ -68,13 +63,12 @@ public class ReplicationCheckService extends BaseService {
 			checkBucket(bucket);
 		}
 	}
-	
-	
-	
-	/**
-	 * 
-	 * 
-	 */
+
+	public ReplicationService getReplicationService() {
+		return this.replicationService;
+	}
+
+
 	protected void checkBuckets() {
 
 		List<String> bucketsLocalNotRemote = new ArrayList<String>();
@@ -105,12 +99,6 @@ public class ReplicationCheckService extends BaseService {
 		bucketsRemoteNotLocal.forEach(n -> logger.error(n));
 	}
 	
-	
-	/**
-	 * 
-	 * 
-	 * 
-	 */
 	protected void checkBucket(ODBucket bucket) {
 			
 			List<String> localNotRemote = new ArrayList<String>();
@@ -151,9 +139,7 @@ public class ReplicationCheckService extends BaseService {
 				}
 			}
 
-			
 			{
-				
 				boolean done = false;
 				
 				while (!done) {
@@ -181,21 +167,11 @@ public class ReplicationCheckService extends BaseService {
 					}
 				}
 			}
-			
 			localNotRemote.forEach(n -> logger.error(n));
 			remoteNotLocal.forEach(n -> logger.error(n));
-			
 	}
-	
-	
-	public ReplicationService getReplicationService() {
-		return replicationService;
-	}
-	
 	
 	private VirtualFileSystemService getVirtualFileSystemService() {
 		return virtualFileSystemService;
 	}
-	
-	
 }

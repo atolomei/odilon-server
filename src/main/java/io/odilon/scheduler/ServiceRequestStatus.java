@@ -129,11 +129,11 @@ public enum ServiceRequestStatus {
 	}
 	
 	public String getName() {
-		return name;
+		return this.name;
 	}
 	
 	public int getCode() {
-		return code;
+		return this.code;
 	}
 	
 	private ServiceRequestStatus(String name, int code) {

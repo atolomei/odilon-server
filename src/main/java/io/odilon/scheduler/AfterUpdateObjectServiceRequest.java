@@ -23,6 +23,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import io.odilon.log.Logger;
+import io.odilon.model.SharedConstant;
 
 /**
  * <p>Clean up process for Updates is still Sync with the transaction. <br/>
@@ -51,7 +52,6 @@ public class AfterUpdateObjectServiceRequest extends AbstractServiceRequest impl
 	@JsonIgnore
 	private boolean isSuccess = false;
 	
-	
 
 	protected AfterUpdateObjectServiceRequest() {
 	}
@@ -63,8 +63,8 @@ public class AfterUpdateObjectServiceRequest extends AbstractServiceRequest impl
 	
 	@Override
 	public String getUUID() {
-		return  ((bucketName!=null) ? bucketName :"null" ) + ":" + 
-				((objectName!=null) ? objectName :"null" );
+		return  ((this.bucketName!=null) ? this.bucketName :"null" ) + ":" + 
+				((this.objectName!=null) ? this.objectName :"null" );
 	}
 
 	@Override
@@ -74,7 +74,7 @@ public class AfterUpdateObjectServiceRequest extends AbstractServiceRequest impl
 	
 	@Override
 	public boolean isSuccess() {
-		return isSuccess;
+		return this.isSuccess;
 	}
 	
 	/**
@@ -86,19 +86,19 @@ public class AfterUpdateObjectServiceRequest extends AbstractServiceRequest impl
 
 			setStatus(ServiceRequestStatus.RUNNING);
 			clean();
-			isSuccess = true;
+			this.isSuccess = true;
 			setStatus(ServiceRequestStatus.COMPLETED);
 			
 		} catch (Exception e) {
 			setStatus(ServiceRequestStatus.ERROR);
-			isSuccess=false;
-			 logger.error(e);
+			this.isSuccess=false;
+			logger.error(e, SharedConstant.NOT_THROWN);
 		}
 	}
 
 	@Override
 	public void stop() {
-		 isSuccess=true;
+		this.isSuccess=true;
 	}
 	
 	private void clean() {
