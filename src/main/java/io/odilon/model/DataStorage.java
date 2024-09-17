@@ -16,7 +16,6 @@
  */
 package io.odilon.model;
 
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -74,11 +73,11 @@ public enum DataStorage {
 	}
 	
 	public String getName() {
-		return name;
+		return this.name;
 	}
 	
 	public int getCode() {
-		return code;
+		return this.code;
 	}
 	
 	private DataStorage(String name, int code) {

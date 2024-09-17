@@ -31,7 +31,6 @@ import javax.crypto.spec.SecretKeySpec;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-
 /**
  * <p>Encrypts key for each file using the Master Key</p>
  * 
@@ -44,7 +43,6 @@ public class OdilonKeyEncryptorService extends BaseService implements KeyEncrypt
 
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 
-
 	@JsonIgnore
 	@Autowired
 	private final ServerSettings serverSettings;
@@ -52,23 +50,17 @@ public class OdilonKeyEncryptorService extends BaseService implements KeyEncrypt
    @JsonIgnore
    private byte[] masterKey = null;  
    
-
-   
     public OdilonKeyEncryptorService(ServerSettings serverSettings) {
     	this.serverSettings=serverSettings;
     }
     
-
-        public void setMasterKey(byte[] key) {
-    	
+    public void setMasterKey(byte[] key) {
     	synchronized (this) {
-				
 	    		this.masterKey = key;
 	    		startuplogger.debug("Started -> " + this.getClass().getSimpleName());
 				setStatus(ServiceStatus.RUNNING);
     	}
     }
-
 
     @Override
     public byte[] encryptKey(byte[] key, byte[] iv) {
@@ -82,11 +74,9 @@ public class OdilonKeyEncryptorService extends BaseService implements KeyEncrypt
         }
     }
 
-
     @Override
     public byte[] decryptKey(byte[] key, byte[] iv) {
         try {
-        	
         	SecretKeySpec secretKeySpec = new SecretKeySpec(masterKey, EncryptionService.ENCRYPTION_ALGORITHM);
 			Cipher dec = Cipher.getInstance(EncryptionService.ENCRYPTION_ALGORITHM_METHOD);
 			dec.init(Cipher.DECRYPT_MODE, secretKeySpec, new GCMParameterSpec(EncryptionService.IV_LENGTH_BIT, iv));
@@ -97,7 +87,6 @@ public class OdilonKeyEncryptorService extends BaseService implements KeyEncrypt
         	throw new InternalCriticalException(e, "decryptKey");
         }
     }
-    
     
 	@PostConstruct
 	protected void onInitialize() {

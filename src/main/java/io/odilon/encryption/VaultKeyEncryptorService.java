@@ -34,9 +34,7 @@ import io.odilon.security.VaultService;
 import io.odilon.service.BaseService;
 import io.odilon.service.ServerSettings;
 
-
 /**
- * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @Service
@@ -59,31 +57,15 @@ public class VaultKeyEncryptorService extends BaseService implements KeyEncrypto
     	this.vaultService=vaultService;
     	this.serverSettings=serverSettings;
     }
-    /**
-	 * 
-	 */
-	@PostConstruct
-	protected void onInitialize() {
-			synchronized (this) {
-				setStatus(ServiceStatus.STARTING);
-				this.keyID = "transit/" + serverSettings.getVaultKeyId();
-				startuplogger.debug("Started -> " + VaultKeyEncryptorService.class.getSimpleName());
-				setStatus(ServiceStatus.RUNNING);
-			}
-	}
     
     public byte[] encryptKey(byte[] key) {
-        String keyStr = Base64.getEncoder().encodeToString(key);
-        return getVaultService().encrypt(this.getKeyID(), keyStr).getBytes(StandardCharsets.UTF_8);
+        return getVaultService().encrypt(this.getKeyID(), Base64.getEncoder().encodeToString(key)).getBytes(StandardCharsets.UTF_8);
     }
-
     
     public byte[] decryptKey(byte[] key) {
-        String keyStr = new String(key, StandardCharsets.UTF_8);
-        return Base64.getDecoder().decode(getVaultService().decrypt(this.getKeyID(), keyStr));
+        return Base64.getDecoder().decode(getVaultService().decrypt(this.getKeyID(), new String(key, StandardCharsets.UTF_8)));
     }
     
-
     public byte[] encryptKey(byte[] key, byte[] iv) {return  encryptKey(key);}
 	public byte[] decryptKey(byte[] key, byte[] iv) {return  decryptKey(key);}
 	
@@ -99,6 +81,15 @@ public class VaultKeyEncryptorService extends BaseService implements KeyEncrypto
         return vaultService;
     }
     
-	
+	@PostConstruct
+	protected void onInitialize() {
+			synchronized (this) {
+				setStatus(ServiceStatus.STARTING);
+				this.keyID = "transit/" + serverSettings.getVaultKeyId();
+				startuplogger.debug("Started -> " + VaultKeyEncryptorService.class.getSimpleName());
+				setStatus(ServiceStatus.RUNNING);
+			}
+	}
+    
 
 }

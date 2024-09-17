@@ -67,7 +67,7 @@ public class JCipherStreamEncryptor implements StreamEncryptor {
 		 this.encryptionAlgorithm = encryptionAlgorithm;
 	     this.keyAlgorithm = keyAlgorithm;
 	     this.keyEncryptor = keyEncryptor;
-		 ivs = new byte [EncryptionService.IV_LENGTH_BIT/8];
+	     this.ivs = new byte [EncryptionService.IV_LENGTH_BIT/8];
 	     secRandom.nextBytes(ivs);
 	}
 	
@@ -182,7 +182,7 @@ public class JCipherStreamEncryptor implements StreamEncryptor {
 
 	@Override
 	public String getIV() {
-        return Base64.getEncoder().encodeToString(ivs);
+        return Base64.getEncoder().encodeToString(this.ivs);
     
 	}
 

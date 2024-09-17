@@ -176,7 +176,7 @@ public class OdilonEncryptionService extends BaseService implements EncryptionSe
 	    * 
 	    */
 	   public SystemMonitorService getSystemMonitorService() {
-			return  monitoringService;
+			return  this.monitoringService;
 		}
 
 	   /**

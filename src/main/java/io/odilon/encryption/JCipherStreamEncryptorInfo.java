@@ -44,11 +44,11 @@ public class JCipherStreamEncryptorInfo implements StreamEncryptorInfo {
 
     @Override
     public StreamEncryptor getStreamEncryption() {
-        return new JCipherStreamEncryptor(encryptionAlgorithm, keyAlgorithm, keyEncryptor);
+        return new JCipherStreamEncryptor(this.encryptionAlgorithm, this.keyAlgorithm, this.keyEncryptor);
     }
 
     public String getEncryptionAlgorithm() {
-        return encryptionAlgorithm;
+        return this.encryptionAlgorithm;
     }
 
     public void setEncryptionAlgorithm(String encryptionAlgorithm) {
@@ -57,7 +57,7 @@ public class JCipherStreamEncryptorInfo implements StreamEncryptorInfo {
 
     @Override
     public String getEncryptedKey() {
-        return encryptedKey;
+        return this.encryptedKey;
     }
 
     public void setEncryptedKey(String encryptedKey) {
@@ -65,7 +65,7 @@ public class JCipherStreamEncryptorInfo implements StreamEncryptorInfo {
     }
 
     public String getKeyAlgorithm() {
-        return keyAlgorithm;
+        return this.keyAlgorithm;
     }
 
     public void setKeyAlgorithm(String keyAlgorithm) {
@@ -73,7 +73,7 @@ public class JCipherStreamEncryptorInfo implements StreamEncryptorInfo {
     }
 
     public String getIV() {
-        return iv;
+        return this.iv;
     }
 
     public void setIV(String iv) {
@@ -82,7 +82,7 @@ public class JCipherStreamEncryptorInfo implements StreamEncryptorInfo {
 
     
     public KeyEncryptor getKeyEncryptor() {
-        return keyEncryptor;
+        return this.keyEncryptor;
     }
 
     public void setKeyEncryptor(KeyEncryptor keyEncryptor) {

@@ -33,7 +33,7 @@ public class EncryptedInputStream extends FilterInputStream {
     }
 
     public StreamEncryptorInfo getStreamEncryptorInfo() {
-        return streamEncryptorInfo;
+        return this.streamEncryptorInfo;
     }
 
     public void setStreamEncryptorInfo(StreamEncryptorInfo streamEncryptorInfo) {
