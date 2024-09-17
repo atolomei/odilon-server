@@ -30,6 +30,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import io.odilon.log.Logger;
 import io.odilon.model.RedundancyLevel;
+import io.odilon.model.SharedConstant;
 import io.odilon.vfs.model.JournalService;
 import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VFSOp;
@@ -177,7 +178,7 @@ public class OdilonVFSperation implements VFSOperation {
 		 try {
 			return mapper.writeValueAsString(this);
 		 } catch (Exception e) {
-					logger.error(e);
+					logger.error(e, SharedConstant.NOT_THROWN);
 					return "\"error\":\"" + e.getClass().getName()+"\""; 
 		}
 	  }

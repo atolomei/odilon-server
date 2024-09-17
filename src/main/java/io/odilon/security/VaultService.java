@@ -187,7 +187,7 @@ public String ping() {
 		
 	} catch (Exception e) {
 		logger.error("Ping Vault  | Vault Key Id: " + Optional.ofNullable(getVaultKeyId).orElse("null"));
-		logger.error(e);
+		logger.error(e, SharedConstant.NOT_THROWN);
 		return 	e.getClass().getName() +  
 				(Optional.ofNullable(e.getMessage()).isPresent() ? (" | " + e.getMessage())	:"")  + 
 				" | Ping Vault  | Vault Key Id: " + (Optional.ofNullable(getVaultKeyId).orElse("null"));

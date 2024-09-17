@@ -1215,7 +1215,7 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 			}
 			
 		} catch (Exception e) {
-			logger.error(e);
+			logger.error(e, SharedConstant.NOT_THROWN);
 			throw(e);
 		}
 	}

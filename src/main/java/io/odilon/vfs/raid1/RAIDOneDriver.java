@@ -168,7 +168,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 					return getInputStreamFromSelectedDrive(readDrive, bucket.getId(), objectName, version);	
 			}
 			catch ( OdilonObjectNotFoundException e) {
-				logger.error(e);
+				logger.error(e, SharedConstant.NOT_THROWN);
 				throw e;
 			}
 			catch (Exception e) {
@@ -923,7 +923,6 @@ public class RAIDOneDriver extends BaseIODriver  {
 			
 			
 		} catch (Exception e) {
-			logger.error(e);
 			throw new InternalCriticalException(e);
 		}
 		finally {

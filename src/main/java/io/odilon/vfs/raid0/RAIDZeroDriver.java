@@ -265,7 +265,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 			
 		} catch (Exception e) {
 			if (logger.isDebugEnabled())
-				logger.error(e);
+				logger.error(e, SharedConstant.NOT_THROWN);
 			throw new InternalCriticalException(e, "saveServerMasterKey");
 			
 		} finally {
@@ -959,7 +959,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 					try {
 						Files.delete(file.toPath());
 					} catch (IOException e1) {
-						logger.error(e);
+						logger.error(e, SharedConstant.NOT_THROWN);
 					}
 				}
 			}
@@ -1221,7 +1221,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 				sha256 = OdilonFileUtils.calculateSHA256String(file);
 
 			} catch (NoSuchAlgorithmException | IOException e) {
-				logger.error(e);
+				logger.error(e, SharedConstant.NOT_THROWN);
 				return false;
 			}
 
@@ -1297,7 +1297,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 				return null;
 			return getObjectMapper().readValue(file, OdilonServerInfo.class);
 		} catch (IOException e) {
-			logger.error(e);
+			logger.error(e, SharedConstant.NOT_THROWN);
 			throw new InternalCriticalException(e);
 
 		} finally {

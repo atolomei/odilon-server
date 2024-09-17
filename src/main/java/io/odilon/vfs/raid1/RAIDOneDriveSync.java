@@ -287,7 +287,7 @@ public class RAIDOneDriveSync implements Runnable {
 													
 																								
 												} catch (Exception e) {
-													logger.error(e);
+													logger.error(e, SharedConstant.NOT_THROWN);
 													this.errors.getAndIncrement();
 												}
 												finally {

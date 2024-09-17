@@ -32,6 +32,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import io.odilon.log.Logger;
 import io.odilon.model.BaseObject;
+import io.odilon.model.SharedConstant;
 import io.odilon.monitor.SystemMonitorService;
 import io.odilon.service.ObjectStorageService;
 import io.odilon.traffic.TrafficControlService;
@@ -140,7 +141,7 @@ public abstract class BaseApiController implements ApplicationContextAware, Base
 	   try {
 			return mapper.writeValueAsString(this);
 		} catch (JsonProcessingException e) {
-					logger.error(e);
+					logger.error(e, SharedConstant.NOT_THROWN);
 					return "\"error\":\"" + e.getClass().getName()+ " | " + e.getMessage()+"\""; 
 		}
   }

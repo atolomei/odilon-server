@@ -26,6 +26,7 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import io.odilon.log.Logger;
+import io.odilon.model.SharedConstant;
 import io.odilon.util.RandomIDGenerator;
 import io.odilon.vfs.model.VFSOperation;
 
@@ -84,7 +85,7 @@ public class CacheEvent extends ApplicationEvent {
 		  try {
 				return getObjectMapper().writeValueAsString(this);
 			} catch (JsonProcessingException e) {
-						logger.error(e);
+				logger.error(e, SharedConstant.NOT_THROWN);
 						return "\"error\":\"" + e.getClass().getName()+ " | " + e.getMessage()+"\""; 
 			}
 	}

@@ -38,6 +38,7 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import io.odilon.log.Logger;
+import io.odilon.model.SharedConstant;
 
 @Component
 @Scope("prototype")
@@ -270,7 +271,7 @@ public abstract class AbstractServiceRequest implements ServiceRequest {
 	  try {
 			return mapper.writeValueAsString(this);
 		} catch (JsonProcessingException e) {
-					logger.error(e);
+					logger.error(e, SharedConstant.NOT_THROWN);
 					return "\"error\":\"" + e.getClass().getName()+ " | " + e.getMessage()+"\""; 
 		}
 	}

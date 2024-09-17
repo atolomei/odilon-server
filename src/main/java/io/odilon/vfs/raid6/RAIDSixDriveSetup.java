@@ -129,7 +129,7 @@ public class RAIDSixDriveSetup implements IODriveSetup, ApplicationContextAware 
 		try {
 			jsonString = getDriver().getObjectMapper().writeValueAsString(serverInfo);
 		} catch (JsonProcessingException e) {
-			startuplogger.error(e);
+			startuplogger.error(e, SharedConstant.NOT_THROWN);
 			return false;
 		}
 		

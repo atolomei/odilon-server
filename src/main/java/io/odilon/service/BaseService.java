@@ -26,6 +26,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.odilon.log.Logger;
 import io.odilon.model.BaseObject;
 import io.odilon.model.ServiceStatus;
+import io.odilon.model.SharedConstant;
 import io.odilon.util.RandomIDGenerator;
 
 /**
@@ -81,7 +82,7 @@ public abstract class BaseService implements BaseObject {
 	   try {
 			return mapper.writeValueAsString(this);
 		} catch (JsonProcessingException e) {
-					logger.error(e);
+					logger.error(e, SharedConstant.NOT_THROWN);
 					return "\"error\":\"" + e.getClass().getName()+ " | " + e.getMessage()+"\""; 
 		}
 	  }

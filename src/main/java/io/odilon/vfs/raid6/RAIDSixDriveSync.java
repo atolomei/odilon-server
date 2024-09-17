@@ -275,7 +275,7 @@ public class RAIDSixDriveSync implements Runnable {
 						executor.invokeAll(tasks, 10, TimeUnit.MINUTES);
 						
 					} catch (InterruptedException e) {
-						logger.error(e);
+						logger.error(e, SharedConstant.NOT_THROWN);
 					}
 					
 					offset += Long.valueOf(Integer.valueOf(data.getList().size()).longValue());

@@ -214,7 +214,7 @@ public abstract class SchedulerWorker implements Runnable {
 			setSleeping(false);
 		}
 		catch (Throwable e) {
-			logger.error(e);
+			logger.error(e, SharedConstant.NOT_THROWN);
 			setSleeping(false);
 		}
 	}

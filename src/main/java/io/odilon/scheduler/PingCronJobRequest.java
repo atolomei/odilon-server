@@ -16,13 +16,15 @@
  */
 package io.odilon.scheduler;
 
+
 import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
+import io.odilon.log.Logger;
+import io.odilon.model.SharedConstant;
 import io.odilon.monitor.PingService;
 
 /**
@@ -34,7 +36,7 @@ import io.odilon.monitor.PingService;
 @JsonTypeName("ping")
 public class PingCronJobRequest extends CronJobRequest {
 			
-	static private Logger logger = LogManager.getLogger(PingCronJobRequest.class.getName());
+	static private Logger logger = Logger.getLogger(PingCronJobRequest.class.getName());
 
 	private static final long serialVersionUID = 1L;
 	
@@ -55,7 +57,7 @@ public class PingCronJobRequest extends CronJobRequest {
 			
 		} catch (Throwable e) {
 			setStatus(ServiceRequestStatus.ERROR);
-			logger.error(e);
+			logger.error(e, SharedConstant.NOT_THROWN);
 		} 
 	}
 

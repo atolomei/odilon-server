@@ -297,7 +297,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 				} catch (Exception e) {
 					done=false;
 					isMainException = true;
-					logger.error(e);
+					logger.error(e, SharedConstant.NOT_THROWN);
 					throw new InternalCriticalException(e, "b:" + bucketName + ", o:" + objectName);
 					
 				} finally {

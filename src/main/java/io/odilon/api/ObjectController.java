@@ -46,6 +46,7 @@ import io.odilon.error.OdilonObjectNotFoundException;
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ObjectStatus;
+import io.odilon.model.SharedConstant;
 import io.odilon.monitor.SystemMonitorService;
 import io.odilon.net.ErrorCode;
 import io.odilon.net.ODHttpStatus;
@@ -492,7 +493,7 @@ public class ObjectController extends BaseApiController  {
 			} catch (OdilonServerAPIException e) {
 				throw e;
 			} catch (Exception e) {
-				logger.error(e);
+				logger.error(e, SharedConstant.NOT_THROWN);
 				throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));			
 			
 			} finally {

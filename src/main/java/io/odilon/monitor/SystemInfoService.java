@@ -281,7 +281,7 @@ public class SystemInfoService extends BaseService implements SystemService {
 					this.isEncryptionInitialized = this.virtualFileSystemService.getOdilonServerInfo().isEncryptionIntialized()?"true":"false";
 				
 			} catch (Exception e) {
-				logger.error(e);
+				logger.error(e, SharedConstant.NOT_THROWN);
 			}
 			startuplogger.debug("Started -> " + SystemInfoService.class.getSimpleName());
 			setStatus(ServiceStatus.RUNNING);

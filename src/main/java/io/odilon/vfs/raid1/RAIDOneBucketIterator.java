@@ -33,6 +33,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.ServerConstant;
+import io.odilon.model.SharedConstant;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ObjectStatus;
 import io.odilon.vfs.model.Drive;
@@ -160,7 +161,7 @@ public class RAIDOneBucketIterator extends BucketIterator implements Closeable {
 						//filter(file -> isObjectStateEnabled(file));
 				
 			} catch (IOException e) {
-				logger.error(e);
+				logger.error(e, SharedConstant.NOT_THROWN);
 				throw new InternalCriticalException(e);
 			}
 			this.it = this.stream.iterator();

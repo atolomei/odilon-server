@@ -28,6 +28,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import io.odilon.log.Logger;
+import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
 
 /**
@@ -113,7 +114,7 @@ public abstract class BucketIterator implements Iterator<Path>  {
 	   try {
 			return mapper.writeValueAsString(this);
 		} catch (JsonProcessingException e) {
-					logger.error(e);
+					logger.error(e, SharedConstant.NOT_THROWN);
 					return "\"error\":\"" + e.getClass().getName()+ " | " + e.getMessage()+"\""; 
 		}
 	  }

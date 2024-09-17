@@ -103,7 +103,7 @@ public class RAIDOneDriveSetup implements IODriveSetup, ApplicationContextAware 
 		try {
 			jsonString = getDriver().getObjectMapper().writeValueAsString(serverInfo);
 		} catch (JsonProcessingException e) {
-			startuplogger.error(e);
+			startuplogger.error(e, SharedConstant.NOT_THROWN);
 			return false;
 		}
 	
@@ -141,7 +141,7 @@ public class RAIDOneDriveSetup implements IODriveSetup, ApplicationContextAware 
 				}
 		
 		} catch (Exception e) {
-			startuplogger.error(e);
+			startuplogger.error(e, SharedConstant.NOT_THROWN);
 			startuplogger.error("The process can not be completed due to errors");
 			return false;
 		}

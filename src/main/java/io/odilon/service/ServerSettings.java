@@ -46,6 +46,7 @@ import io.odilon.model.DataStorage;
 import io.odilon.model.OdilonServerInfo;
 import io.odilon.model.RedundancyLevel;
 import io.odilon.model.ServerConstant;
+import io.odilon.model.SharedConstant;
 import io.odilon.service.util.ByteToString;
 import io.odilon.util.RandomIDGenerator;
 import io.odilon.vfs.model.VirtualFileSystemService;
@@ -657,7 +658,7 @@ public class ServerSettings implements BaseObject {
 				this.lockRateMillisecs = 10;
 		
 		} catch (Exception e) {
-			logger.error(e);
+			logger.error(e, SharedConstant.NOT_THROWN);
 			this.lockRateMillisecs = 2;
 		}
 

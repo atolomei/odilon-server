@@ -739,7 +739,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 			
 		} catch (Exception e) {
 			if (logger.isDebugEnabled())
-				logger.error(e);
+				logger.error(e, SharedConstant.NOT_THROWN);
 			throw new InternalCriticalException(e, "saveServerMasterKey");
 			
 		} finally {
