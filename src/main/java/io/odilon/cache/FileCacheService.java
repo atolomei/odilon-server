@@ -263,11 +263,8 @@ public class FileCacheService extends BaseService implements ApplicationListener
 			remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName(), Optional.empty());
 			return;
 		}
-	
 	}
 	
-	
-		
 	@PostConstruct
 	protected synchronized void onInitialize() {
 		
