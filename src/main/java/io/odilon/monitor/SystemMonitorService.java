@@ -81,7 +81,6 @@ public class SystemMonitorService extends BaseService implements SystemService {
 	@JsonIgnore
 	private Counter deleteObjectVersionCounter;
 	
-
 	/** ----------------------------
 	* OBJECT VERSION CONTROL
 	*/
@@ -92,9 +91,9 @@ public class SystemMonitorService extends BaseService implements SystemService {
 	@JsonIgnore
 	private Counter objectDeleteAllVersionsCounter;
 	
-
-	// ----------------------------
-	// ENCRYPTION
+	/** ----------------------------
+ 	ENCRYPTION
+ 	*/
 
 	@JsonIgnore
 	private Meter encrpytFileMeter;
@@ -174,7 +173,6 @@ public class SystemMonitorService extends BaseService implements SystemService {
 	private final FileCacheService fileCacheService;
 
 
-	
 	public SystemMonitorService(ServerSettings serverSettings, ObjectMetadataCacheService cacheService, FileCacheService fileCacheService) {
 		this.objectCacheService=cacheService;
 		this.serverSettings=serverSettings;
@@ -463,9 +461,6 @@ public class SystemMonitorService extends BaseService implements SystemService {
 		}
 	}
 
-	/**
-	 * 
-	 */
 	private String getString(Meter meter) {
 		return 	String.format("%10.4f", meter.getOneMinuteRate()).trim() +", " +
 				String.format("%10.4f", meter.getFiveMinuteRate()).trim() + ", " +
