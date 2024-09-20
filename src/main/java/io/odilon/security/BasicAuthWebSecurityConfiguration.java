@@ -37,7 +37,6 @@ import io.odilon.service.ServerSettings;
 
 /**
  * 
- * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @Configuration
@@ -46,11 +45,11 @@ public class BasicAuthWebSecurityConfiguration {
 
 	@JsonIgnore
 	@Autowired
-	private BasicAuthenticationEntryPoint authenticationEntryPoint;
+	private final BasicAuthenticationEntryPoint authenticationEntryPoint;
 
 	@JsonIgnore
 	@Autowired
-	private ServerSettings serverSettings;
+	private final ServerSettings serverSettings;
 	
 	@Autowired
 	public BasicAuthWebSecurityConfiguration (ServerSettings serverSettings, BasicAuthenticationEntryPoint authenticationEntryPoint) {
@@ -74,8 +73,8 @@ public class BasicAuthWebSecurityConfiguration {
 	@Bean
 	public InMemoryUserDetailsManager userDetailsService() {
 		
-		UserDetails user = User.withUsername(serverSettings.getAccessKey())
-	    .password(passwordEncoder().encode(serverSettings.getSecretKey()))
+		UserDetails user = User.withUsername(this.serverSettings.getAccessKey())
+	    .password(passwordEncoder().encode(this.serverSettings.getSecretKey()))
 	    .roles("USER")
 	    .build();
 		return new InMemoryUserDetailsManager(user);

@@ -141,10 +141,6 @@ public class ServerSettings implements BaseObject {
 	@Value("${encryption.masterKey:#{null}}")
 	protected String masterKey;
 
-	//@Value("${encryption.algorithm:AES/GCM/NoPadding}")
-	//protected String encryptionAlgorithm;
-	
-	
 	@Value("${encryption.keyAlgorithm:AES}")
 	protected String keyAlgorithm;
 	
@@ -182,7 +178,6 @@ public class ServerSettings implements BaseObject {
 	@Value("${lockRateMillisecs:2}")
 	String s_lockRateMillisecs;
 	protected double lockRateMillisecs;
-	
 	
 	// SCHEDULER -------------------------------------------
 	//
@@ -303,15 +298,7 @@ public class ServerSettings implements BaseObject {
 	protected long retryFailedSeconds;
 
 	
-	
-	
-	
-	
-	
 	/**
-	 * 
-	 * 
-	 * 
 	 * 
 	 * 
 	 */
@@ -998,21 +985,21 @@ public class ServerSettings implements BaseObject {
 	}
 
 	public int getObjectCacheCapacity() {
-		return objectCacheCapacity;
+		return this.objectCacheCapacity;
 	}
 
 	
 	public @NonNegative long getObjectCacheExpireDays() {
-		return objectExpireDays;
+		return this.objectExpireDays;
 	}
 	
 	
 	public long getFileCacheCapacity() {
-		return fileCacheCapacity;
+		return this.fileCacheCapacity;
 	}
 	
 	public long getFileCacheDurationDays() {
-		return fileCacheDurationDays;
+		return this.fileCacheDurationDays;
 	}
 
 	
@@ -1024,7 +1011,7 @@ public class ServerSettings implements BaseObject {
 	}
 
 	public DataStorage getDataStorage() {
-		return dataStorage;
+		return this.dataStorage;
 	}
 	
 	protected String randomString(final int size) {

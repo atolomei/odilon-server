@@ -16,7 +16,6 @@
  */
 package io.odilon.security;
 
-
 import java.io.UnsupportedEncodingException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -30,7 +29,6 @@ import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
-import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
@@ -56,9 +54,7 @@ import io.odilon.service.ServerSettings;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
- * <p>
- * This service is used to generate tokens for presigned urls 
- * </p>
+ * <p>This service is used to generate tokens for presigned urls</p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
@@ -73,26 +69,23 @@ public class OdilonTokenService extends BaseService implements TokenService, App
 	   
 	    @JsonIgnore
 		@Autowired
-		private ServerSettings serverSettings;
+		private final ServerSettings serverSettings;
 
 	    @JsonIgnore
 	    @Autowired
-		private EncryptionService encrpytionService;
+		private final EncryptionService encrpytionService;
 
 	    @JsonIgnore
 	    @Autowired
-		private SystemMonitorService monitoringService;
+		private final SystemMonitorService monitoringService;
 		
 	    @JsonIgnore
 	    @Autowired
-		private VirtualFileSystemService virtualFileSystemService;
+		private final VirtualFileSystemService virtualFileSystemService;
 		
 	    @JsonIgnore
 		private ApplicationContext applicationContext;
 
-	    //@JsonIgnore
-	    //private Cipher cipher;
-	    
 	    @JsonIgnore
 	    private IvParameterSpec ivspec;
 		
@@ -108,20 +101,8 @@ public class OdilonTokenService extends BaseService implements TokenService, App
 	    @JsonIgnore
 	    private String secretKey;
 	    
-	    
-	    //@JsonIgnore
-	    //private SecretKey tmp;
-		
-	    //@JsonIgnore
-	    //private Cipher encCipher;
-	    
-	    //@JsonIgnore
-	    //private Cipher decCipher;
-	    
-	    
 	
-
-	public OdilonTokenService ( ServerSettings serverSettings, 
+	    public OdilonTokenService ( ServerSettings serverSettings, 
 							SystemMonitorService montoringService,
 							EncryptionService encrpytionService,
 							VirtualFileSystemService vfs) {
@@ -139,8 +120,7 @@ public class OdilonTokenService extends BaseService implements TokenService, App
 
 		try {
 			
-			Cipher encCipher;
-			encCipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+			Cipher encCipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
 	    	encCipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, ivspec);
 			return Base64.getEncoder().encodeToString(encCipher.doFinal(token.toJSON().getBytes("UTF-8")));
 			
@@ -157,9 +137,7 @@ public class OdilonTokenService extends BaseService implements TokenService, App
 		 	String str;
 			try {
 				
-				Cipher decCipher;
-				
-				decCipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+				Cipher decCipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
 				decCipher.init(Cipher.DECRYPT_MODE, secretKeySpec, ivspec);
 				
 				str = new String(decCipher.doFinal(Base64.getDecoder().decode(enc)));
@@ -169,7 +147,9 @@ public class OdilonTokenService extends BaseService implements TokenService, App
 			}
 			
 			try {
+				
 				return getObjectMapper().readValue(str, AuthToken.class);
+				
 			} catch (JsonProcessingException e) {
 				throw new InternalCriticalException(e, "decrypt");
 			}
