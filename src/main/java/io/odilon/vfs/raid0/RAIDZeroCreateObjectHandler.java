@@ -16,7 +16,6 @@
  */
 package io.odilon.vfs.raid0;
 
-
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -185,7 +184,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 	
 	
 	/**
-	 * <p>This method is <b>not</b> ThreadSafe, callers must ensure proper concurrency control
+	 * <p>This method is <b>not</b> ThreadSafe, callers must ensure proper concurrency control</p>
 	 * 
 	 * @param bucket		can not be null
 	 * @param objectName	can not be null
@@ -231,7 +230,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 	}
 
 	/**
-	 * <p>This method is <b>not</b> ThreadSafe, callers must ensure proper concurrency control
+	 * <p>This method is <b>not</b> ThreadSafe, callers must ensure proper concurrency control</p>
 	 * 
 	 * @param bucket			can not be null
 	 * @param objectName		can not be null

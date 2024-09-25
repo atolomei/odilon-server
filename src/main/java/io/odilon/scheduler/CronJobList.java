@@ -51,23 +51,23 @@ public class CronJobList implements SortedSet<CronJobRequest> {
 		mapper.registerModule(new Jdk8Module());
 	}
 
+	/**
+	 * 
+	 */
 	private class CronJobComparator implements Comparator<CronJobRequest> {
-		
-        @Override
+	    @Override
         public int compare(CronJobRequest a, CronJobRequest b) {
             try {
                 if (a.getTime() == null && b.getTime() == null) return 0;
                 if (a.getTime() == null) return -1;
                 if (b.getTime() == null) return 1;
                 return a.getTime().isBefore(b.getTime()) ? -1 : 1;
-                
             } catch (Exception e) {
                 logger.error(e, SharedConstant.NOT_THROWN);
                 return 0;
             }
         }
     }
-
 	
 	@JsonIgnore
 	private TreeSet<CronJobRequest> jobs = new TreeSet<CronJobRequest>(new CronJobComparator());

@@ -243,7 +243,7 @@ public class SchedulerService extends BaseService implements SystemService, Appl
 	}
 	
 	public ServerSettings getServerSettings() {
-		return serverSettings;
+		return this.serverSettings;
 	}
 	
 	public boolean isRunning() {
@@ -259,7 +259,7 @@ public class SchedulerService extends BaseService implements SystemService, Appl
 	}
 
 	protected SchedulerWorker getCronjobsWorker() {
-		return cronjobsWorker;
+		return this.cronjobsWorker;
 	}
 
 	protected void setCronjobsWorker(SchedulerWorker cronjobsWorker) {
@@ -274,7 +274,7 @@ public class SchedulerService extends BaseService implements SystemService, Appl
 	}
 	
 	protected StandByReplicaSchedulerWorker getReplicaWorker() {
-		return replicaWorker;
+		return this.replicaWorker;
 	}
 
 	protected void setReplicaWorker(StandByReplicaSchedulerWorker replicaWorker) {

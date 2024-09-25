@@ -186,15 +186,15 @@ public abstract class SchedulerWorker implements Runnable {
 	}
 	 
 	public VirtualFileSystemService getVFS() {
-		return  virtualFileSystemService;
+		return  this.virtualFileSystemService;
 	}
 
 	protected void setSiestaMillisecs(long siestaMill) {
-		siesta_mili= siestaMill;
+		this.siesta_mili= siestaMill;
 	}
 	
 	protected long getSiestaMillisecs() {
-		return siesta_mili;
+		return this.siesta_mili;
 	}
 	
 	protected void rest(long value) {
@@ -202,15 +202,12 @@ public abstract class SchedulerWorker implements Runnable {
 			if (value>0) {
 				synchronized (this) {
 					setSleeping(true);
-					//long start = System.currentTimeMillis();
 					this.wait(value);
 					setSleeping(false);
-					//logger.debug("Again awake after siesta "+ getId() + " -> " + String.valueOf(Double.valueOf(System.currentTimeMillis()-start)/1000.0) + " secs");
 				}
 			}
 		} 
 		catch (InterruptedException e) {
-			//logger.debug("Again awake " + getId() + " via -> " + e.getClass().getName());	
 			setSleeping(false);
 		}
 		catch (Throwable e) {
@@ -226,7 +223,7 @@ public abstract class SchedulerWorker implements Runnable {
 	}
 
 	protected Dispatcher getDispatcher() {
-		return  dispatcher;
+		return  this.dispatcher;
 	}
 	
 	protected void processError(Throwable e) {

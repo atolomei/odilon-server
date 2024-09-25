@@ -83,7 +83,6 @@ public class DriveInfo extends OdilonModelObject implements Serializable {
 	public void setOrder(int order) {
 		this.order = order;
 	}
-
 	
 	public String getDriveId() {
 		return driveId;
@@ -100,6 +99,5 @@ public class DriveInfo extends OdilonModelObject implements Serializable {
 	public void setDateConnected(OffsetDateTime dateConnected) {
 		this.dateConnected = dateConnected;
 	}
-	
 	
 }

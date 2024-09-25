@@ -121,10 +121,6 @@ public class OdilonApplication {
 	}
 
 	
-	
-	
-	
-	
 	/**
 	 @Bean
 	 public FilterRegistrationBean<Filter> filterRegistrationBean() {

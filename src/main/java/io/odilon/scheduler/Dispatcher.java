@@ -145,7 +145,7 @@ public class Dispatcher extends OdilonModelObject {
 	}
 	
 	public String getInfo() {
-		return "Priority: " + String.valueOf(priority) + ". Workers: " + String.valueOf(maxPoolSize);
+		return "Priority: " + String.valueOf(this.priority) + ". Workers: " + String.valueOf(this.maxPoolSize);
 	}
 	
 	public String getStatus() {
@@ -162,11 +162,11 @@ public class Dispatcher extends OdilonModelObject {
 	}
 	
 	public int getPoolSize() {
-		return threadPool.getPoolSize();
+		return this.threadPool.getPoolSize();
 	}
 					
 	public int getMaximumPoolSize() {
-		return threadPool.getMaximumPoolSize();
+		return this.threadPool.getMaximumPoolSize();
 	}
 
 	public int getPriority() {

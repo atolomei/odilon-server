@@ -86,7 +86,7 @@ public class StandByReplicaServiceRequest extends AbstractServiceRequest {
 
 	@Override
 	public void stop() {
-		 isSuccess=true;
+		 this.isSuccess=true;
 	}
 
 	@Override

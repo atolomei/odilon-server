@@ -57,6 +57,7 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 			
 	private static Logger logger = Logger.getLogger(RAIDZeroUpdateObjectHandler.class.getName());
+
 	
 	/**
 	 * <p>All {@link RAIDHandler} are used internally by the 
@@ -66,11 +67,11 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 		super(driver);
 	}
 	
+
 	/**
 	 * 
 	 * 
 	 */
-
 	protected void update(ODBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType) {
 
 		Check.requireNonNullArgument(bucket, "bucket is null");
@@ -650,7 +651,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 		try {
 			FileUtils.copyDirectory(new File(objectMetadataBackupDirPath), new File(objectMetadataDirPath));
 		} catch (IOException e) {
-			throw new InternalCriticalException(e, "b:"   + (Optional.ofNullable(bucket.getId()).isPresent()    ? (bucket.getId().toString()) :"null") + ", o:" + (Optional.ofNullable(objectName).isPresent() ? (objectName)    :"null"));
+			throw new InternalCriticalException(e, "b:"   + (Optional.ofNullable(bucket.getId()).isPresent() ? (bucket.getId().toString()) :"null") + ", o:" + (Optional.ofNullable(objectName).isPresent() ? (objectName)    :"null"));
 		}
 	}
 	
