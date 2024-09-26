@@ -122,9 +122,6 @@ public class ServerSettings implements BaseObject {
 	protected boolean isRecoverMode = false;
 
 	
-
-	
-	
 	// ENCRYPTION -----------------------------------------------
 	//
 	// by default encryption is not enabled
@@ -169,8 +166,6 @@ public class ServerSettings implements BaseObject {
 	protected String dataStorageMode; /** readwrite, readonly, WORM  */	
 	
 	private DataStorage dataStorage;
-	
-
 	
 	
 	// LOCK SERVICE ------------------------------------------
@@ -278,8 +273,6 @@ public class ServerSettings implements BaseObject {
 	@Value("${objectMetadataCache.expireDays:15}")
 	protected long objectExpireDays;
 		
-
-	
 	
 	// FILE CACHE (USED BY RAID 6) -----------------------
 	
@@ -992,7 +985,6 @@ public class ServerSettings implements BaseObject {
 	public @NonNegative long getObjectCacheExpireDays() {
 		return this.objectExpireDays;
 	}
-	
 	
 	public long getFileCacheCapacity() {
 		return this.fileCacheCapacity;

@@ -142,6 +142,6 @@ public class TrafficControlService extends BaseService {
 	protected synchronized void createPasses() {
 		this.passes = Collections.synchronizedSet(new HashSet<TrafficPass>(this.tokens));
 		for (int n=0; n<this.tokens; n++)
-			passes.add(new ODTrafficPass(n));
+			passes.add(new OdilonTrafficPass(n));
 	}
 }

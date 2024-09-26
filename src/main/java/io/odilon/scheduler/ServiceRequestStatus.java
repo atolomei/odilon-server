@@ -20,11 +20,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+import io.odilon.log.Logger;
+import io.odilon.model.SharedConstant;
+
 /**
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public enum ServiceRequestStatus {
+
 
 	STOPPED 	("stopped", 0),
 	STARTING 	("starting", 1),
@@ -37,6 +41,9 @@ public enum ServiceRequestStatus {
 	private int code;
 
 	static List<ServiceRequestStatus> ops;
+
+	static private Logger logger = Logger.getLogger(ServiceRequestStatus.class.getName());
+
 	
 	public static ServiceRequestStatus fromId(String id) {
 		
@@ -112,11 +119,16 @@ public enum ServiceRequestStatus {
 	}
 	
 	public String toJSON() {
-		StringBuilder str = new StringBuilder();
-		str.append("\"name\":\"" + name + "\"");
-		str.append(", \"code\":" + code );
-		str.append(", \"description\": \"" + getDescription() + "\"");
-		return str.toString();
+		   try {
+				StringBuilder str = new StringBuilder();
+				str.append("\"name\":\"" + name + "\"");
+				str.append(", \"code\":" + code );
+				str.append(", \"description\": \"" + getDescription() + "\"");
+				return str.toString();
+		   } catch (Exception e) {
+				logger.error(e, SharedConstant.NOT_THROWN);
+				return "\"error\":\"" + e.getClass().getName()+ " | " + e.getMessage()+"\""; 
+		   }
 	}
 	
 	@Override

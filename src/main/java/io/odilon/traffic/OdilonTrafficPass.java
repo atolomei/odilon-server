@@ -20,14 +20,14 @@ package io.odilon.traffic;
  * 
  *  @author atolomei@novamens.com (Alejandro Tolomei)
  */
-public class ODTrafficPass implements TrafficPass {
+public class OdilonTrafficPass implements TrafficPass {
 	
 	
 	private static final long serialVersionUID = 1L;
 	
 	final int id;
 	
-	public ODTrafficPass(int id) {
+	public OdilonTrafficPass(int id) {
 		this.id=id;
 	}
 	
