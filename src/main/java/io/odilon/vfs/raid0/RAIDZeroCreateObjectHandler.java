@@ -158,7 +158,6 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 			if (getVFS().getServerSettings().isStandByEnabled())
 				getVFS().getReplicationService().cancel(op);
 			
-			
 			getWriteDrive(this.getVFS().getBucketById(op.getBucketId()), objectName).deleteObjectMetadata(op.getBucketId(), objectName);
 			FileUtils.deleteQuietly(new File (getWriteDrive(this.getVFS().getBucketById(op.getBucketId()), objectName).getRootDirPath(), op.getBucketId().toString() + File.separator + objectName));
 			

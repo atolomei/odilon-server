@@ -24,7 +24,7 @@ import io.odilon.model.ServiceStatus;
  * @author atolomei@novamens.com (Alejandro Tolomei)
  * 
  */
-public interface SystemService extends ODService {
+public interface SystemService extends OdilonService {
 	
 	public ServiceStatus getStatus();
 

@@ -259,9 +259,11 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
 			}
 		}
 		{
-			int dIndex = 0;
-			while (isItems && this.buffer.size() < ServerConstant.BUCKET_ITERATOR_DEFAULT_BUFFER_SIZE) {
-				int dPoll = dIndex++ % this.getDrives().size();
+			
+			int buffer_index = 0;
+			
+			while (isItems && (this.buffer.size() < ServerConstant.BUCKET_ITERATOR_DEFAULT_BUFFER_SIZE)) {
+				int dPoll = buffer_index++ % this.getDrives().size();
 				Drive drive = this.getDrives().get(dPoll);
 				Iterator<Path> iterator = this.itMap.get(drive);
 				if (iterator.hasNext()) {
@@ -276,7 +278,11 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
 				}
 			}
 		}
-		return !this.buffer.isEmpty();
+		
+		boolean notEmpty = !this.buffer.isEmpty();
+		
+		return  notEmpty;
+		
 	}
 	
 }

@@ -63,10 +63,10 @@ import io.odilon.vfs.model.VirtualFileSystemService;
  *  @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @Service		
-public class ODObjectStorageService extends BaseService implements ObjectStorageService, ApplicationContextAware {
+public class OdilonObjectStorageService extends BaseService implements ObjectStorageService, ApplicationContextAware {
 
    static private Logger startuplogger = Logger.getLogger("StartupLogger");
-   static private Logger logger = Logger.getLogger(ODObjectStorageService.class.getName());
+   static private Logger logger = Logger.getLogger(OdilonObjectStorageService.class.getName());
 
     @JsonIgnore
 	@Autowired
@@ -110,7 +110,7 @@ public class ODObjectStorageService extends BaseService implements ObjectStorage
 	 * @param encrpytionService
 	 * @param vfs
 	 */
-	public ODObjectStorageService( 	ServerSettings serverSettings, 
+	public OdilonObjectStorageService( 	ServerSettings serverSettings, 
 									SystemMonitorService montoringService,   
 									EncryptionService encrpytionService, 
 									VirtualFileSystemService vfs, 

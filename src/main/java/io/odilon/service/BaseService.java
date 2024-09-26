@@ -57,7 +57,7 @@ public abstract class BaseService implements BaseObject {
 	private ServiceStatus status;
 	
 	public BaseService() {
-		status=ServiceStatus.STOPPED;
+		this.status=ServiceStatus.STOPPED;
 	}
 	
 	public void setStatus(ServiceStatus status) {

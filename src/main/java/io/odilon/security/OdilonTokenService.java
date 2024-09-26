@@ -49,7 +49,7 @@ import io.odilon.log.Logger;
 import io.odilon.model.ServiceStatus;
 import io.odilon.monitor.SystemMonitorService;
 import io.odilon.service.BaseService;
-import io.odilon.service.ODObjectStorageService;
+import io.odilon.service.OdilonObjectStorageService;
 import io.odilon.service.ServerSettings;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
@@ -62,8 +62,9 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 public class OdilonTokenService extends BaseService implements TokenService, ApplicationContextAware {
 			
 	    static private Logger startuplogger = Logger.getLogger("StartupLogger");
+	    
 	    @SuppressWarnings("unused")
-		static private Logger logger = Logger.getLogger(ODObjectStorageService.class.getName());
+		static private Logger logger = Logger.getLogger(OdilonObjectStorageService.class.getName());
 
 	    static private String salt = randomString(20);
 	   
@@ -103,9 +104,9 @@ public class OdilonTokenService extends BaseService implements TokenService, App
 	    
 	
 	    public OdilonTokenService ( ServerSettings serverSettings, 
-							SystemMonitorService montoringService,
-							EncryptionService encrpytionService,
-							VirtualFileSystemService vfs) {
+									SystemMonitorService montoringService,
+									EncryptionService encrpytionService,
+									VirtualFileSystemService vfs) {
 
 	    		this.serverSettings=serverSettings;
     			this.monitoringService=montoringService;

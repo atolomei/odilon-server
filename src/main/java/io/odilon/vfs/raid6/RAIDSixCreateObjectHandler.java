@@ -77,8 +77,6 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 	
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
-		
-		
 
 		Long bucketId = bucket.getId();
 				
@@ -148,7 +146,6 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 		Check.checkTrue(op.getOp()==VFSOp.CREATE_OBJECT, "Invalid op ->  " + op.getOp().getName());
 		
 		String objectName = op.getObjectName();
-		String bucketName = op.getBucketName();
 		Long bucketId = op.getBucketId();
 		
 		boolean done = false;

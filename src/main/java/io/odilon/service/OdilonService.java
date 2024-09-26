@@ -24,7 +24,7 @@ import io.odilon.model.BaseObject;
  * @author atolomei@novamens.com (Alejandro Tolomei)
  * 
  */
-public interface ODService extends BaseObject {
+public interface OdilonService extends BaseObject {
 	
 
 }
