@@ -91,8 +91,4 @@ public class OdilonBucket extends OdilonModelObject implements ODBucket {
 		return str.toString();
 	}
 
-	
-
-	
-
 }

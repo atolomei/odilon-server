@@ -87,6 +87,31 @@ public class EncryptionInitializer extends OdilonModelObject {
 			initializeEnc();
 	}
 
+	public void notInitializedError() {
+		startuplogger.info("");
+		startuplogger.info("The server is configured to use encryption (ie. 'encryption.enabled=true' in file 'odilon.properties')");
+		startuplogger.info("but the encryption service has not been initialized yet.");
+		startuplogger.info("");
+		startuplogger.info("You have to either:"); 
+		startuplogger.info("a. Disable encryption in 'odilon.properties' by changing the variable to 'encryption.enabled=false' or");
+		startuplogger.info("");
+		startuplogger.info("b. Initialize the encryption service by executing '"+getEnableEncryptionScriptName()+"'");
+		startuplogger.info("");
+		startuplogger.info("If you execute '"+getEnableEncryptionScriptName()+"' Odilon will generate the encryption keys");
+		startuplogger.info("The server will shutdown now.");
+		startuplogger.info("");
+		startuplogger.info(ServerConstant.SEPARATOR);
+	try {
+					Thread.sleep(6000);
+			
+		} catch (InterruptedException e) {
+		}
+		((ConfigurableApplicationContext) getVFS().getApplicationContext()).close();
+		System.exit(1);
+	}
+	
+
+	
 	private synchronized void initializeEnc() {
 		
 	 	startuplogger.info("Initializing Encryption Service");
@@ -133,9 +158,7 @@ public class EncryptionInitializer extends OdilonModelObject {
 		
 		try {
 			
-			// 
-			// HMAC is   taken from -> enc key + IV (28 bytes)
-			//
+			/**	HMAC is   taken from -> enc key + IV (28 bytes) **/
 			hmac = getVFS().HMAC(encKeyIV, encKey);
 			
 		} catch (InvalidKeyException | NoSuchAlgorithmException e) {
@@ -158,8 +181,8 @@ public class EncryptionInitializer extends OdilonModelObject {
 		startuplogger.info("--------------");
 
 		
-		// the encryption key encoded in ASCII 
-		// is = AES KEY 32 ASCII characters + IV 24 ASCIII characteres = 56 ASCII chars
+		/** the encryption key encoded in ASCII 
+		is = AES KEY 32 ASCII characters + IV 24 ASCIII characteres = 56 ASCII chars */
 		
 		startuplogger.info("encryption.key = " + ByteToString.byteToHexString(encKeyIV));
 		startuplogger.info("The encrytion key must be added to the 'odilon.properties' file in variable 'encryption.key' as printed above.");
@@ -174,9 +197,6 @@ public class EncryptionInitializer extends OdilonModelObject {
 		startuplogger.info("It is recommended that you store it securely.");
 		startuplogger.info("");
 		startuplogger.info("process completed.");
-		
-		
-		
 		
 		
 		/** try to copy kbee.enc -> /config  */
@@ -195,11 +215,7 @@ public class EncryptionInitializer extends OdilonModelObject {
 		shutDown(0);
 	}
 
-	
-	/**
-	 * 
-	 * 
-	 */
+
 	private synchronized void rekey() {
 		
 		startuplogger.info("NEW ENCRYPTION KEY");
@@ -216,9 +232,7 @@ public class EncryptionInitializer extends OdilonModelObject {
 			return;
 		}
 		
-		// ---
-		
-		// check if the provided master key is correct
+		/** check if the provided master key is correct */
 		boolean isCorrectMasterKey = false;
 		
 		byte[] key = driver.getServerMasterKey();
@@ -242,7 +256,6 @@ public class EncryptionInitializer extends OdilonModelObject {
 		 
 		byte 	[] encKey 		= new byte[ EncryptionService.AES_KEY_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE]; // 16 bytes -> 2 ASCII chars per byte -> 32 ASCII chars
 		byte 	[] iv			= new byte[ EncryptionService.AES_IV_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE];  // 12 bytes -> 2 ASCII chars per byte -> 24 ASCII chars
-
 		byte	[] salt 		= new byte[ EncryptionService.AES_KEY_SALT_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE];
 		byte 	[] hmac;
 
@@ -258,9 +271,7 @@ public class EncryptionInitializer extends OdilonModelObject {
 		
 		
 		try {
-			// 
-			// HMAC is   taken from -> enc key + IV (28 bytes)
-			//
+			/** HMAC is   taken from -> enc key + IV (28 bytes) */
 			hmac = getVFS().HMAC(encKeyIV, encKey);
 			
 		} catch (InvalidKeyException | NoSuchAlgorithmException e) {
@@ -295,17 +306,9 @@ public class EncryptionInitializer extends OdilonModelObject {
 		} catch (Exception e) {
 			logger.error(e, "Backup encrypted key to -> " + System.getProperty("user.dir") + File.separator + "config");
 		}
-	
 		shutDown(0);
 	}
 	
-
-	/**
-	 * 
-	 * 
-	 * 
-	 * 
-	 */
 	private void rekeyMasterKeyNotCorrectError() {
 		startuplogger.info("");
 		startuplogger.info("The Master key provided -> " + this.providedMasterKey.get());
@@ -321,11 +324,6 @@ public class EncryptionInitializer extends OdilonModelObject {
 		System.exit(1);
 	}
 	
-	/**
-	 * 
-	 * 
-	 * 
-	 */
 	private void rekeyNotIntializedError() {
 		startuplogger.info("The Encryption Service has not been initialized.");
 		startuplogger.info("You have to initialize the Encryption Service by executing '"+getEnableEncryptionScriptName()+"', Odilon will generate the encryption keys");
@@ -343,33 +341,6 @@ public class EncryptionInitializer extends OdilonModelObject {
 		
 	}
 	
-	/**
-	 * 
-	 * 
-	 * 
-	 */
-	public void notInitializedError() {
-		startuplogger.info("");
-		startuplogger.info("The server is configured to use encryption (ie. 'encryption.enabled=true' in file 'odilon.properties')");
-		startuplogger.info("but the encryption service has not been initialized yet.");
-		startuplogger.info("");
-		startuplogger.info("You have to either:"); 
-		startuplogger.info("a. Disable encryption in 'odilon.properties' by changing the variable to 'encryption.enabled=false' or");
-		startuplogger.info("");
-		startuplogger.info("b. Initialize the encryption service by executing '"+getEnableEncryptionScriptName()+"'");
-		startuplogger.info("");
-		startuplogger.info("If you execute '"+getEnableEncryptionScriptName()+"' Odilon will generate the encryption keys");
-		startuplogger.info("The server will shutdown now.");
-		startuplogger.info("");
-		startuplogger.info(ServerConstant.SEPARATOR);
-	try {
-					Thread.sleep(6000);
-			
-		} catch (InterruptedException e) {
-		}
-		((ConfigurableApplicationContext) getVFS().getApplicationContext()).close();
-		System.exit(1);
-	}
 	
 
 	private String getEnableEncryptionScriptName() {

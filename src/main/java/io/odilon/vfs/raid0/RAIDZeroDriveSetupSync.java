@@ -536,7 +536,6 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 		return this.listAllBefore.get(Math.abs(objectName.hashCode() % listAllBefore.size()));
 	}
 	
-	
 	/**
 	 * 
 	 */

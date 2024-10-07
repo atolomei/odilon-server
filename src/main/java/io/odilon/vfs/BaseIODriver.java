@@ -145,8 +145,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		ODBucket bucket = new OdilonBucket(meta);
 		boolean isMainException = false;
 		
-
-		getLockService().getBucketLock(meta.id).writeLock().lock();
 		
 		try {
 
@@ -194,9 +192,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		}
 	}
 
-	
 	/**
-	 * 
 	 * 
 	 */
 	@Override
@@ -293,12 +289,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		}
 	}
 
-	
-	
-	
-	
-	
-	
 	/**
 	 * <p>Shared by RAID 1 and RAID 6</p>
 	 */
@@ -312,8 +302,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 	/**
 	 * <p>Shared by RAID 1 and RAID 6</p>
 	 */
-
-	
 	@Override
 	public boolean isEmpty(ODBucket bucket) {
 

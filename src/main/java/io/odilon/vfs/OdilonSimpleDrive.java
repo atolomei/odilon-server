@@ -172,7 +172,7 @@ public class OdilonSimpleDrive extends OdilonDrive implements SimpleDrive {
 			return new File(dataFilePath);
 		}
 		 catch (IOException e) {
-				logger.error(e.getClass().getName() + " getObjectDataVersionFile -> " + "b:" +  bucketId.toString() + ", o:" + objectName +", d:" + getName());			
+				logger.error(e.getClass().getName() + " -> " + "b:" +  bucketId.toString() + ", o:" + objectName +", d:" + getName());			
 				throw (e);
 		}
 	}

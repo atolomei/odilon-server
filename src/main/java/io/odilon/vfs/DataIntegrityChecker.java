@@ -28,6 +28,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import jakarta.annotation.PostConstruct;
 
+import org.json.JSONObject;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -62,7 +63,7 @@ import io.odilon.vfs.model.VirtualFileSystemService;
  */
 @Component
 @Scope("prototype")
-public class DataIntegrityChecker implements Runnable, ApplicationContextAware  {
+public class DataIntegrityChecker  implements Runnable, ApplicationContextAware  {
 
 	static private Logger logger = Logger.getLogger(DataIntegrityChecker.class.getName());
 	static private Logger checkerLogger = Logger.getLogger("dataIntegrityCheck");
@@ -103,6 +104,7 @@ public class DataIntegrityChecker implements Runnable, ApplicationContextAware  
 	private AtomicLong notAvailable = new AtomicLong(0);
 	
 	
+
 	public DataIntegrityChecker() {
 	}
 
@@ -213,7 +215,6 @@ public class DataIntegrityChecker implements Runnable, ApplicationContextAware  
 		this.thread.start();
 	}
 	
-	
 	@Override
 	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
         this.applicationContext = applicationContext;
@@ -229,9 +230,14 @@ public class DataIntegrityChecker implements Runnable, ApplicationContextAware  
 	}
 
 	public String toJSON() {
+		try {
 		StringBuilder str  = new StringBuilder();
-		str.append("\"name\":" +  (Optional.ofNullable(thread).isPresent() ? thread.getName() : "null"));
+		str.append("\"name\":" + (Optional.ofNullable(thread).isPresent() ? thread.getName() : "null"));
 		return str.toString();
+		} catch (Exception e) {
+			logger.error(e, SharedConstant.NOT_THROWN);
+			return "\"error\":\"" + e.getClass().getName()+ " | " + e.getMessage()+"\"";
+		}
 	}
 
 	public VirtualFileSystemService getVirtualFileSystemService()  {
@@ -271,7 +277,7 @@ public class DataIntegrityChecker implements Runnable, ApplicationContextAware  
 		lg.info("Checked OK: " + String.valueOf(this.checkOk.get()));
 		lg.info("Errors: " + String.valueOf(this.errors.get()));
 		lg.info("Not Available: " + String.valueOf(this.notAvailable.get())); 
-		lg.info("Duration: " + String.valueOf(Double.valueOf(System.currentTimeMillis() - start_ms) / Double.valueOf(1000)) + " secs");
+		lg.info("Duration: " + String.valueOf(Double.valueOf(System.currentTimeMillis() - this.start_ms) / Double.valueOf(1000)) + " secs");
 		lg.info("---------");
 		
 	}

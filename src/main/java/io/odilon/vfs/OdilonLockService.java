@@ -89,11 +89,7 @@ public class OdilonLockService extends BaseService implements LockService {
 	@Autowired
 	private final ServerSettings serverSettings;
 
-	/** ----
-	 * 
-	 * 
-	 * 
-	 */
+
 	@Autowired		
 	public OdilonLockService(ServerSettings serverSettings) {
 		this.serverSettings=serverSettings;

@@ -78,7 +78,7 @@ public class OdilonJournalService extends BaseService implements JournalService 
 	static private Logger logger = Logger.getLogger(OdilonJournalService.class.getName());	
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 
-	/* lazy injection  */
+	/** lazy injection */
 	@JsonIgnore
 	private VirtualFileSystemService virtualFileSystemService;
 
@@ -285,7 +285,7 @@ public class OdilonJournalService extends BaseService implements JournalService 
 	
 	
 	@Override
-	public  boolean cancel(VFSOperation opx) {
+	public boolean cancel(VFSOperation opx) {
 		
 		if (opx==null)
 			return true;
@@ -309,7 +309,6 @@ public class OdilonJournalService extends BaseService implements JournalService 
 		return true;
 	}
 
-	
 	public VirtualFileSystemService getVFS() {
 		if (this.virtualFileSystemService==null) {
 			logger.error("The " + VirtualFileSystemService.class.getName() + " must be set during the @PostConstruct method of the " + JournalService.class.getName() + " instance. It can not be injected via AutoWired beacause of circular dependencies.");
@@ -322,7 +321,6 @@ public class OdilonJournalService extends BaseService implements JournalService 
 		this.virtualFileSystemService=virtualFileSystemService;
 	}
 
-	
 	public ServerSettings getServerSettings() {
 		return this.serverSettings;
 	}

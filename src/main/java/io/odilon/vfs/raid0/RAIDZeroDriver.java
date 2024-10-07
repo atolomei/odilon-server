@@ -125,78 +125,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	
 	
 	
-	
-	/**
-	 * @return
-	 
-	@Override
-	public byte[] getServerMasterKey() {
-
-		getLockService().getServerLock().readLock().lock();
-		
-		try {
-			
-			File file = getDrivesEnabled().get(0).getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE);
-			
-			if (file == null || !file.exists())
-				return null;
-			
-			byte[] bDataEnc = FileUtils.readFileToByteArray(file);
-			
-			String encryptionKey = getVFS().getServerSettings().getEncryptionKey();
-			String encryptionIV = getVFS().getServerSettings().getEncryptionIV();
-			
-			if (encryptionKey==null || encryptionIV==null)
-				throw new InternalCriticalException(" encryption Key or IV is null");
-			
-			byte [] b_encryptionKey = ByteToString.hexStringToByte(encryptionKey);
-			byte [] b_encryptionKeyIV = ByteToString.hexStringToByte(encryptionKey+encryptionIV);
-			
-			byte [] b_hmacOriginal;
-
-			try {
-				
-				b_hmacOriginal = getVFS().HMAC(b_encryptionKeyIV, b_encryptionKey);
-				
-			} catch (InvalidKeyException | NoSuchAlgorithmException e) {
-				throw new InternalCriticalException(e, "can not calculate HMAC for 'odilon.properties' encryption key");
-			}
-			
-			// HMAC(32) + Master Key (16) + IV(12) + Salt (64) 
-			byte[] bdataDec = getVFS().getMasterKeyEncryptorService().decryptKey(bDataEnc);
-
-			
-			byte[] b_hmacNew = new byte[EncryptionService.HMAC_SIZE];
-			System.arraycopy(bdataDec, 0, b_hmacNew, 0, b_hmacNew.length);
-			
-			if (!Arrays.equals(b_hmacOriginal, b_hmacNew)) {
-				logger.error("HMAC is not correct, HMAC of 'encryption.key' in 'odilon.properties' does not match with HMAC in 'key.enc'  -> encryption.key=" + encryptionKey+encryptionIV);
-				throw new InternalCriticalException("HMAC is not correct, HMAC of 'encryption.key' in 'odilon.properties' does not match with HMAC in 'key.enc'  -> encryption.key=" + encryptionKey+encryptionIV);
-			}
-			
-			// HMAC is correct 
-			byte[] key = new byte[EncryptionService.AES_KEY_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE];
-			System.arraycopy(bdataDec, b_hmacNew.length, key, 0,  key.length);
-			
-			return key;
-
-		} catch (InternalCriticalException e) {
-			if ((e.getCause()!=null) && (e.getCause() instanceof javax.crypto.BadPaddingException))
-				logger.error("possible cause -> the value of 'encryption.key' in 'odilon.properties' is incorrect");
-			throw e;
-			
-		} catch (IOException e) {
-			throw new InternalCriticalException(e, "getServerMasterKey");
-
-		} finally {
-			getLockService().getServerLock().readLock().unlock();
-		}
-	}
-	*/
-	
-	
-	
-	
 	/**
 	 * 
 	 * 
@@ -401,7 +329,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		Check.requireNonNullArgument(stream, "InpuStream can not null -> b:" + bucket.getName() + " | o:" + objectName);
 
 		//
-		// TODO AT -> we must fix this, the exist call must be inside the locked section
+		// TODO AT -> the exist call would better be inside the locked section
 		//
 		if (exists(bucket, objectName)) {
 			RAIDZeroUpdateObjectHandler updateAgent = new RAIDZeroUpdateObjectHandler(this);
@@ -463,70 +391,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	}
 
 	/**
-	 * <p>Precondition -> Bucket does not exist</p>
-	
-	
-	public ODBucket createBucket(String bucketName) {
-
-		Check.requireNonNullArgument(bucketName, "bucketName is null");
-
-		BucketMetadata meta = new BucketMetadata(bucketName);
-		VFSOperation op = null;
-		boolean done = false;
-
-		meta.status = BucketStatus.ENABLED;
-		meta.appVersion = OdilonVersion.VERSION;
-		meta.id=getVFS().getNextBucketId();
-
-		ODBucket bucket = new ODVFSBucket(meta);
-		boolean isMainException = false;
-
-		getLockService().getBucketLock(meta.id).writeLock().lock();
-
-		try {
-			if (getVFS().existsBucket(bucketName))
-				throw new IllegalArgumentException("bucket already exist | b: " + bucketName);
-
-			op = getJournalService().createBucket(meta.id, bucketName);
-
-			OffsetDateTime now = OffsetDateTime.now();
-
-			meta.creationDate = now;
-			meta.lastModified = now;
-
-			for (Drive drive: getDrivesAll()) {
-				try {
-					
-					drive.createBucket(meta);
-					
-				} catch (Exception e) {
-					done = false;
-					isMainException = true;
-					throw new InternalCriticalException(e, "Drive -> " + drive.getName());
-				}
-			}
-			done = op.commit();
-			return bucket;
-		} finally {
-			try {
-				if (done) {
-					getVFS().addBucketCache(bucket);
-				}
-				else
-					rollbackJournal(op);
-			} catch (Exception e) {
-				if (!isMainException)
-					throw new InternalCriticalException(e, "finally");
-				else
-				logger.error(e, SharedConstant.NOT_THROWN);
-			} finally {
-				getLockService().getBucketLock(meta.id).writeLock().unlock();
-			}
-		}
-	}
-	 */
-
-	/**
 	 * @param bucket bucket must exist in the system
 	 */
 	public void deleteBucket(ODBucket bucket) {
@@ -548,6 +412,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		getLockService().getBucketLock(bucket.getId()).readLock().lock();
 		
 		try {
+
 			for (Drive drive: getDrivesEnabled()) {
 				if (!drive.isEmpty(bucket.getId()))
 					return false;
@@ -559,7 +424,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 			getLockService().getBucketLock(bucket.getId()).readLock().unlock();
 		}
 	}
-
 
 	/**
 	 * <p>
@@ -1412,9 +1276,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	}
 
 	
-	//protected Drive getObjectMetadataReadDrive(Long bucketId, String objectName) {
-	//	return getReadDrive(bucketId, objectName);
-	//}
 	
 	/**
 	 * <p>
@@ -1429,11 +1290,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		return getDrive(bucket, objectName);
 	}
 
-	
-	
-	//protected Drive getReadDrive(Long bucketId, String objectName) {
-	//	return getDrive(bucketId, objectName);
-	//}
 
 	protected Drive getReadDrive(ODBucket bucket) {
 		return getDrive(bucket, null);
@@ -1546,7 +1402,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 				if ((meta != null) && meta.isAccesible())
 					return meta;
 				else
-					throw new OdilonObjectNotFoundException("ObjectMetadata does not exist");
+					throw new OdilonObjectNotFoundException(ObjectMetadata.class.getSimpleName() + " does not exist");
 				
 			} catch (OdilonObjectNotFoundException e) {
 				e.setErrorMessage("b:" + bucket.getName() + " "	+ (Optional.ofNullable(readDrive).isPresent() ? (readDrive.getName()) : "null")	+ (o_version.isPresent() ? (", v:" + String.valueOf(o_version.get())) : ""));
