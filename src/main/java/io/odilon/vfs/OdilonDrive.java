@@ -408,7 +408,6 @@ public class OdilonDrive extends OdilonModelObject implements Drive {
 	@Override							
 	public String getSchedulerDirPath() 	{return getRootDirPath() + File.separator + VirtualFileSystemService.SYS + File.separator + VirtualFileSystemService.SCHEDULER; }
 
-	
 	@JsonIgnore
 	@Override
 	public String getJournalDirPath() 		{return getRootDirPath() + File.separator + VirtualFileSystemService.SYS + File.separator + VirtualFileSystemService.JOURNAL;}

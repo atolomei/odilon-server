@@ -67,11 +67,11 @@ public class PingController extends BaseApiController {
 	private ServerSettings settings;
 	
 	@Autowired
-	public PingController(			ObjectStorageService objectStorageService, 
-									VirtualFileSystemService virtualFileSystemService,
-									SystemMonitorService monitoringService,
-									ServerSettings settings, 
-									TrafficControlService trafficControlService) {
+	public PingController(	ObjectStorageService objectStorageService, 
+							VirtualFileSystemService virtualFileSystemService,
+							SystemMonitorService monitoringService,
+							ServerSettings settings, 
+							TrafficControlService trafficControlService ) {
 
 		super(objectStorageService, virtualFileSystemService, monitoringService, trafficControlService);
 		this.settings = settings;
