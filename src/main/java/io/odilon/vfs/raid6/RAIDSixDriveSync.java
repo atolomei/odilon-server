@@ -47,7 +47,7 @@ import io.odilon.vfs.DriveInfo;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.DriveStatus;
 import io.odilon.vfs.model.LockService;
-import io.odilon.vfs.model.ODBucket;
+import io.odilon.vfs.model.ServerBucket;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**					
@@ -228,7 +228,7 @@ public class RAIDSixDriveSync implements Runnable {
 			
 			executor = Executors.newFixedThreadPool(maxProcessingThread);
 			
-			for (ODBucket bucket: this.driver.getVFS().listAllBuckets()) {
+			for (ServerBucket bucket: this.driver.getVFS().listAllBuckets()) {
 				
 				Integer pageSize = Integer.valueOf(ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE);
 				Long offset = Long.valueOf(0);

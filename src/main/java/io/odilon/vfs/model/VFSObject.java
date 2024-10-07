@@ -29,7 +29,7 @@ import io.odilon.model.ObjectMetadata;
 public interface VFSObject {
 	
 	public String getObjectName();
-	public ODBucket getBucket();
+	public ServerBucket getBucket();
 	public ObjectMetadata getObjectMetadata();
 	public InputStream getInputStream() throws IOException;
 	

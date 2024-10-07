@@ -37,7 +37,7 @@ import io.odilon.util.Check;
 import io.odilon.vfs.RAIDDeleteObjectHandler;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.SimpleDrive;
-import io.odilon.vfs.model.ODBucket;
+import io.odilon.vfs.model.ServerBucket;
 import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VFSOp;
 
@@ -65,7 +65,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 	 * @param contentType
 	 */
 	@Override
-	public void delete(ODBucket bucket, String objectName) {
+	public void delete(ServerBucket bucket, String objectName) {
 		
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
@@ -165,7 +165,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 		VFSOperation op = null;
 
 		
-		ODBucket bucket = getDriver().getVFS().getBucketById(meta.bucketId);
+		ServerBucket bucket = getDriver().getVFS().getBucketById(meta.bucketId);
 		
 		getLockService().getObjectLock(meta.bucketId, meta.objectName).writeLock().lock();
 		
@@ -276,7 +276,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 		boolean done = false;
 
 		
-		ODBucket bucket = getVFS().getBucketById(op.getBucketId());
+		ServerBucket bucket = getVFS().getBucketById(op.getBucketId());
 		
 		try {
 
@@ -341,7 +341,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 	 * and it can not be rollback</p>
 	 */
 	@Override
-	public void deleteBucketAllPreviousVersions(ODBucket bucket) {
+	public void deleteBucketAllPreviousVersions(ServerBucket bucket) {
 			getVFS().getSchedulerService().enqueue(getVFS().getApplicationContext().getBean(DeleteBucketObjectPreviousVersionServiceRequest.class, bucket.getName(), bucket.getId()));
 	}
 
@@ -377,7 +377,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketId.toString());
 		
 		
-		ODBucket bucket = getDriver().getVFS().getBucketById(bucketId);
+		ServerBucket bucket = getDriver().getVFS().getBucketById(bucketId);
 		
 		try {
 			/** delete data versions(1..n-1). keep headVersion **/
@@ -407,7 +407,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 		Long bucketId=meta.bucketId;
 		String objectName = meta.objectName;
 		
-		ODBucket bucket = getDriver().getVFS().getBucketById(bucketId);
+		ServerBucket bucket = getDriver().getVFS().getBucketById(bucketId);
 		
 		/** delete data versions(1..n-1) **/
 		for (int n=0; n<=headVersion; n++)	
@@ -430,7 +430,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 	 * @param bucket
 	 * @param objectName
 	 */
-	private void backupMetadata(ODBucket bucket, String objectName) {
+	private void backupMetadata(ServerBucket bucket, String objectName) {
 		
 		try {
 			
@@ -450,7 +450,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 	 * @param bucketName
 	 * @param objectName
 	 */					
-	private void restoreMetadata(ODBucket bucket, String objectName) {
+	private void restoreMetadata(ServerBucket bucket, String objectName) {
 		
 		String objectMetadataBackupDirPath = getDriver().getWriteDrive(bucket, objectName).getBucketWorkDirPath(bucket.getId()) + File.separator + objectName;
 		String objectMetadataDirPath = getDriver().getWriteDrive(bucket, objectName).getObjectMetadataDirPath(bucket.getId(), objectName);

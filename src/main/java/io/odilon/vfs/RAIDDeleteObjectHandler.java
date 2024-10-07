@@ -17,7 +17,7 @@
 package io.odilon.vfs;
 
 import io.odilon.model.ObjectMetadata;
-import io.odilon.vfs.model.ODBucket;
+import io.odilon.vfs.model.ServerBucket;
 import io.odilon.vfs.model.VFSOperation;
 
 /**
@@ -27,11 +27,11 @@ import io.odilon.vfs.model.VFSOperation;
 public interface RAIDDeleteObjectHandler {
 
 	/** Delete Object */
-	public void delete(ODBucket bucket, String objectName);
+	public void delete(ServerBucket bucket, String objectName);
 	
 	/** Delete Version */
 	public void deleteObjectAllPreviousVersions(ObjectMetadata meta);
-	public void deleteBucketAllPreviousVersions(ODBucket bucket);
+	public void deleteBucketAllPreviousVersions(ServerBucket bucket);
 	public void wipeAllPreviousVersions();
 
 	/** rollbackJournal */

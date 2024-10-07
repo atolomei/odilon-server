@@ -51,7 +51,7 @@ import io.odilon.util.Check;
 import io.odilon.vfs.OdilonJournalService;
 import io.odilon.vfs.model.JournalService;
 import io.odilon.vfs.model.LockService;
-import io.odilon.vfs.model.ODBucket;
+import io.odilon.vfs.model.ServerBucket;
 import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
@@ -163,7 +163,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 			throw new InternalCriticalException(e, "checkStructure");
 		}
 		
-		List<ODBucket> localBuckets = getVFS().listAllBuckets();
+		List<ServerBucket> localBuckets = getVFS().listAllBuckets();
 		localBuckets.forEach(item -> localNames.add(item.getName()));
 		
 		List<String> localNotStandbyNames  = new ArrayList<String>();
@@ -424,7 +424,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 
 		Check.requireNonNullArgument(opx, "opx is null");
 		
-		ODBucket bucket = getVFS().getBucketById(opx.getBucketId());
+		ServerBucket bucket = getVFS().getBucketById(opx.getBucketId());
 		
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		
@@ -470,7 +470,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 		
 		Check.requireNonNullArgument(opx,"opx is null");
 
-		ODBucket bucket = getVFS().getBucketById(opx.getBucketId());
+		ServerBucket bucket = getVFS().getBucketById(opx.getBucketId());
 		
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		
@@ -518,7 +518,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 		
 		Check.requireNonNullArgument(opx, "opx is null");
 
-		ODBucket bucket = getVFS().getBucketById(opx.getBucketId());
+		ServerBucket bucket = getVFS().getBucketById(opx.getBucketId());
 		
 		Check.requireNonNullArgument(bucket, "bucket is null");
 
@@ -572,7 +572,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 		}
 		
 		
-		ODBucket bucket = getVFS().getBucketById(opx.getBucketId());
+		ServerBucket bucket = getVFS().getBucketById(opx.getBucketId());
 		
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		
@@ -616,7 +616,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 			throw new InternalCriticalException(e, "getClient().isVersionControl()");
 		}
 
-		ODBucket bucket = getVFS().getBucketById(opx.getBucketId());
+		ServerBucket bucket = getVFS().getBucketById(opx.getBucketId());
 		
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		
@@ -667,7 +667,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 				return;
 			}
 			
-			ODBucket bucket = getVFS().getBucketById(opx.getBucketId());
+			ServerBucket bucket = getVFS().getBucketById(opx.getBucketId());
 
 			if (!getClient().existsBucket(bucket.getName()))
 					getClient().createBucket(bucket.getName());
@@ -722,7 +722,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 			
 			try {
 
-				ODBucket bucket = getVFS().getBucketById(opx.getBucketId());
+				ServerBucket bucket = getVFS().getBucketById(opx.getBucketId());
 
 				if (!getVFS().existsBucket(bucket.getName())) {
 					return;

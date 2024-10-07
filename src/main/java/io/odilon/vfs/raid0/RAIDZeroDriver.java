@@ -67,7 +67,7 @@ import io.odilon.vfs.OdilonVFSperation;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.DriveBucket;
 import io.odilon.vfs.model.JournalService;
-import io.odilon.vfs.model.ODBucket;
+import io.odilon.vfs.model.ServerBucket;
 import io.odilon.vfs.model.VFSObject;
 import io.odilon.vfs.model.LockService;
 import io.odilon.vfs.model.SimpleDrive;
@@ -220,7 +220,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	 * 
 	 */
 	@Override
-	public boolean hasVersions(ODBucket bucket, String objectName) {
+	public boolean hasVersions(ServerBucket bucket, String objectName) {
 		return !getObjectMetadataVersionAll(bucket, objectName).isEmpty();
 	}
 
@@ -256,7 +256,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	 * @see {@link RAIDZeroUpdateObjectHandler}
 	 */
 	@Override
-	public ObjectMetadata restorePreviousVersion(ODBucket bucket, String objectName) {
+	public ObjectMetadata restorePreviousVersion(ServerBucket bucket, String objectName) {
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie." + BucketStatus.ARCHIVED.getName() + " or " + BucketStatus.ENABLED.getName() + ") | b:" + bucket.getName());
 
@@ -306,7 +306,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	 * 
 	 */
 	@Override
-	public void deleteBucketAllPreviousVersions(ODBucket bucket) {
+	public void deleteBucketAllPreviousVersions(ServerBucket bucket) {
 
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullArgument(bucket, "bucket does not exist -> b:" + bucket.getName());
@@ -321,7 +321,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	 * </p>
 	 */
 	@Override
-	public void putObject(ODBucket bucket, String objectName, InputStream stream, String fileName,	String contentType) {
+	public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName,	String contentType) {
 
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucket.getName());
@@ -353,7 +353,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	}
 
 	@Override
-	public void delete(ODBucket bucket, String objectName) {
+	public void delete(ServerBucket bucket, String objectName) {
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 		RAIDZeroDeleteObjectHandler agent = new RAIDZeroDeleteObjectHandler(this);
@@ -393,7 +393,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	/**
 	 * @param bucket bucket must exist in the system
 	 */
-	public void deleteBucket(ODBucket bucket) {
+	public void deleteBucket(ServerBucket bucket) {
 		getVFS().removeBucket(bucket);
 	}
 
@@ -404,7 +404,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	 * </p>
 	 */
 	@Override
-	public boolean isEmpty(ODBucket bucket) {
+	public boolean isEmpty(ServerBucket bucket) {
 
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireTrue(existsBucketInDrives(bucket.getId()), "bucket does not exist in all drives -> b: " + bucket.getName());
@@ -434,7 +434,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	 * </p>
 	 */
 	@Override
-	public VFSObject getObject(ODBucket bucket, String objectName) {
+	public VFSObject getObject(ServerBucket bucket, String objectName) {
 
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie. must be " + ObjectStatus.ENABLED.getName() + " or " + ObjectStatus.ARCHIVED.getName() + " b:" + bucket.getName());
@@ -490,7 +490,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	 * </p>
 	 */
 	@Override
-	public boolean exists(ODBucket bucket, String objectName) {
+	public boolean exists(ServerBucket bucket, String objectName) {
 
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie. enabled or archived) b:" + bucket.getName());
@@ -537,7 +537,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	 * 
 	 */
 	@Override
-	public DataList<Item<ObjectMetadata>> listObjects(ODBucket bucket, Optional<Long> offset, Optional<Integer> pageSize, Optional<String> prefix, Optional<String> serverAgentId) {
+	public DataList<Item<ObjectMetadata>> listObjects(ServerBucket bucket, Optional<Long> offset, Optional<Integer> pageSize, Optional<String> prefix, Optional<String> serverAgentId) {
 
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie. enabled or archived) b:" + bucket.getName());
@@ -608,7 +608,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	 * </p>
 	 */
 	@Override
-	public List<ObjectMetadata> getObjectMetadataVersionAll(ODBucket bucket, String objectName) {
+	public List<ObjectMetadata> getObjectMetadataVersionAll(ServerBucket bucket, String objectName) {
 
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
@@ -671,12 +671,12 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	 * 
 	 */
 	@Override
-	public ObjectMetadata getObjectMetadata(ODBucket bucket, String objectName) {
+	public ObjectMetadata getObjectMetadata(ServerBucket bucket, String objectName) {
 		return getOM(bucket, objectName, Optional.empty(), true);
 	}
 
 	@Override
-	public ObjectMetadata getObjectMetadataVersion(ODBucket bucket, String objectName, int version) {
+	public ObjectMetadata getObjectMetadataVersion(ServerBucket bucket, String objectName, int version) {
 		return getOM(bucket, objectName, Optional.of(Integer.valueOf(version)), true);
 	}
 
@@ -687,7 +687,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	 * </p>
 	 */
 	@Override
-	public InputStream getObjectVersionInputStream(ODBucket bucket, String objectName, int version) {
+	public InputStream getObjectVersionInputStream(ServerBucket bucket, String objectName, int version) {
 
 		Check.requireNonNullArgument(bucket, "bucket is null");
 
@@ -747,7 +747,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	 * 
 	 */
 	@Override
-	public InputStream getInputStream(ODBucket bucket, String objectName) {
+	public InputStream getInputStream(ServerBucket bucket, String objectName) {
 
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireTrue(bucket.isAccesible(),	"bucket is not Accesible (ie. enabled or archived) b:" + bucket.getName());
@@ -1003,12 +1003,12 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	/**
 	 * RAID 0 -> read drive and write drive are the same
 	 */
-	public Drive getWriteDrive(ODBucket bucket, String objectName) {
+	public Drive getWriteDrive(ServerBucket bucket, String objectName) {
 		return getDrive(bucket, objectName);
 	}
 
 
-	protected Drive getDrive(ODBucket bucket, String objectName) {
+	protected Drive getDrive(ServerBucket bucket, String objectName) {
 		return getDrivesEnabled().get(Math.abs(objectName.hashCode() % getDrivesEnabled().size()));
 	}
 
@@ -1017,7 +1017,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	 * 
 	 */
 	@Override
-	public boolean checkIntegrity(ODBucket bucket, String objectName, boolean forceCheck) {
+	public boolean checkIntegrity(ServerBucket bucket, String objectName, boolean forceCheck) {
 
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullArgument(objectName, "objectName is null for b:" + bucket.getName());
@@ -1239,9 +1239,9 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	 * </p>
 	 */
 	@Override
-	protected Map<String, ODBucket> getBucketsMap() {
+	protected Map<String, ServerBucket> getBucketsMap() {
 
-		Map<String, ODBucket> map = new HashMap<String, ODBucket>();
+		Map<String, ServerBucket> map = new HashMap<String, ServerBucket>();
 		Map<String, Integer> control = new HashMap<String, Integer>();
 
 		int totalDrives = getDrivesEnabled().size();
@@ -1267,7 +1267,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 			if (control.containsKey(name)) {
 				Integer count = control.get(name);
 				if (count == totalDrives) {
-					ODBucket vfsbucket = new OdilonBucket(bucket);
+					ServerBucket vfsbucket = new OdilonBucket(bucket);
 					map.put(vfsbucket.getName(), vfsbucket);
 				}
 			}
@@ -1286,12 +1286,12 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	 * @param objectName
 	 * @return
 	 */
-	protected Drive getReadDrive(ODBucket bucket, String objectName) {
+	protected Drive getReadDrive(ServerBucket bucket, String objectName) {
 		return getDrive(bucket, objectName);
 	}
 
 
-	protected Drive getReadDrive(ODBucket bucket) {
+	protected Drive getReadDrive(ServerBucket bucket) {
 		return getDrive(bucket, null);
 	}
 
@@ -1357,7 +1357,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 
 
 	@Override
-	protected Drive getObjectMetadataReadDrive(ODBucket bucket, String objectName) {
+	protected Drive getObjectMetadataReadDrive(ServerBucket bucket, String objectName) {
 		return getReadDrive(bucket, objectName);
 	}
 
@@ -1368,7 +1368,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	 * illegal state
 	 * </p>
 	 */
-	private ObjectMetadata getOM(ODBucket bucket, String objectName, Optional<Integer> o_version, boolean addToCacheifMiss) {
+	private ObjectMetadata getOM(ServerBucket bucket, String objectName, Optional<Integer> o_version, boolean addToCacheifMiss) {
 
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucket.getName());

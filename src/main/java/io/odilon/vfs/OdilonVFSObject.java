@@ -25,7 +25,7 @@ import io.odilon.log.Logger;
 import io.odilon.model.ServerConstant;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.OdilonModelObject;
-import io.odilon.vfs.model.ODBucket;
+import io.odilon.vfs.model.ServerBucket;
 import io.odilon.vfs.model.VFSObject;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
@@ -39,7 +39,7 @@ public class OdilonVFSObject extends OdilonModelObject implements VFSObject {
 	private static Logger logger = Logger.getLogger(OdilonVFSObject.class.getName());
 
 	
-	private ODBucket bucket;
+	private ServerBucket bucket;
 	
 	private String objectName;
 	
@@ -49,14 +49,14 @@ public class OdilonVFSObject extends OdilonModelObject implements VFSObject {
 	private VirtualFileSystemService vfs;
 	
 	
-	public OdilonVFSObject(ODBucket bucket, String objectName, VirtualFileSystemService vfs) {
+	public OdilonVFSObject(ServerBucket bucket, String objectName, VirtualFileSystemService vfs) {
 		this.bucket=bucket;
 		this.objectName=objectName;
 		this.vfs=vfs;
 	}
 	
 	@Override
-	public ODBucket getBucket() {
+	public ServerBucket getBucket() {
 		return bucket;
 	}
 	

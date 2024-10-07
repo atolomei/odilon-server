@@ -37,7 +37,7 @@ import io.odilon.model.SharedConstant;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ObjectStatus;
 import io.odilon.vfs.model.Drive;
-import io.odilon.vfs.model.ODBucket;
+import io.odilon.vfs.model.ServerBucket;
 import io.odilon.vfs.model.BucketIterator;
 
 /**
@@ -83,7 +83,7 @@ public class RAIDOneBucketIterator extends BucketIterator implements Closeable {
 	@JsonIgnore
 	RAIDOneDriver driver;
 	
-	public RAIDOneBucketIterator(RAIDOneDriver driver, ODBucket bucket, Optional<Long> opOffset,  Optional<String> opPrefix) {
+	public RAIDOneBucketIterator(RAIDOneDriver driver, ServerBucket bucket, Optional<Long> opOffset,  Optional<String> opPrefix) {
 		super(bucket);
 		opPrefix.ifPresent( x -> this.prefix = x.toLowerCase().trim());
 		opOffset.ifPresent( x -> setOffset(x));

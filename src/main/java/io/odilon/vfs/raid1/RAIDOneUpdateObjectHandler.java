@@ -42,7 +42,7 @@ import io.odilon.util.Check;
 import io.odilon.util.OdilonFileUtils;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.SimpleDrive;
-import io.odilon.vfs.model.ODBucket;
+import io.odilon.vfs.model.ServerBucket;
 import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VFSOp;
 import io.odilon.vfs.model.VirtualFileSystemService;
@@ -82,7 +82,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 	 * @param contentType
 	 */
 	
-	protected void update(ODBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType) {
+	protected void update(ServerBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType) {
 
 		VFSOperation op = null;
 		boolean done = false;
@@ -163,7 +163,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 	 * 
 	 * 
 	 */
-	protected ObjectMetadata restorePreviousVersion(ODBucket bucket, String objectName) {
+	protected ObjectMetadata restorePreviousVersion(ServerBucket bucket, String objectName) {
 	
 		VFSOperation op = null;
 		boolean done = false;
@@ -274,7 +274,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 		boolean done = false;
 		boolean isMainException = false;
 		
-		ODBucket bucket = getVFS().getBucketById(op.getBucketId());
+		ServerBucket bucket = getVFS().getBucketById(op.getBucketId());
 		
 		
 		getLockService().getObjectLock(bucket.getId(), meta.objectName).writeLock().lock();
@@ -334,7 +334,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 	 *
 	 */
 	
-	protected void onAfterCommit(ODBucket bucket, String objectName, int previousVersion, int currentVersion) {}
+	protected void onAfterCommit(ServerBucket bucket, String objectName, int previousVersion, int currentVersion) {}
 	
 	
 	protected void rollbackJournal(VFSOperation op, boolean recoveryMode) {
@@ -364,7 +364,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 			if (getVFS().getServerSettings().isStandByEnabled()) 
 				getVFS().getReplicationService().cancel(op);
 			
-			ODBucket bucket = getVFS().getBucketById(op.getBucketId());
+			ServerBucket bucket = getVFS().getBucketById(op.getBucketId());
 			
 			restoreVersionObjectDataFile(bucket, op.getObjectName(),  op.getVersion());
 			restoreVersionObjectMetadata(bucket, op.getObjectName(),  op.getVersion());
@@ -399,7 +399,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 			if (getVFS().getServerSettings().isStandByEnabled()) 
 				getVFS().getReplicationService().cancel(op);
 			
-			ODBucket bucket = getVFS().getBucketById(op.getBucketId());
+			ServerBucket bucket = getVFS().getBucketById(op.getBucketId());
 			
 			restoreVersionObjectMetadata(bucket, op.getObjectName(),  op.getVersion());
 			
@@ -424,7 +424,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 		}
 	}
 	
-	private void saveVersionObjectMetadata(ODBucket bucket, String objectName,	int version) {
+	private void saveVersionObjectMetadata(ServerBucket bucket, String objectName,	int version) {
 		try {
 		
 			for (Drive drive: getDriver().getDrivesAll())
@@ -436,7 +436,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 		
 	}
 
-	private void saveVersionObjectDataFile(ODBucket bucket, String objectName, int version) {
+	private void saveVersionObjectDataFile(ServerBucket bucket, String objectName, int version) {
 		try {
 			for (Drive drive: getDriver().getDrivesAll()) {
 				File file= ((SimpleDrive) drive).getObjectDataFile(bucket.getId(), objectName);
@@ -448,7 +448,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 	}
 	
 	
-	private void saveObjectDataFile(ODBucket bucket, String objectName, InputStream stream, String srcFileName, int newVersion) {
+	private void saveObjectDataFile(ServerBucket bucket, String objectName, InputStream stream, String srcFileName, int newVersion) {
 		
 		int total_drives = getDriver().getDrivesAll().size();
 		byte[] buf = new byte[ VirtualFileSystemService.BUFFER_SIZE ];
@@ -527,7 +527,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 	 * @param stream
 	 * @param srcFileName
 	 */
-	private void saveObjectMetadata(ODBucket bucket, String objectName, String srcFileName, String contentType, int version) {
+	private void saveObjectMetadata(ServerBucket bucket, String objectName, String srcFileName, String contentType, int version) {
 		
 		OffsetDateTime now =  OffsetDateTime.now();
 		String sha=null;
@@ -584,7 +584,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 		}
 	}
 	
-	private boolean restoreVersionObjectMetadata(ODBucket bucket, String objectName, int version) {
+	private boolean restoreVersionObjectMetadata(ServerBucket bucket, String objectName, int version) {
 		try {
 
 			boolean success = true;
@@ -604,7 +604,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 	}
 
 
-	private boolean restoreVersionObjectDataFile(ODBucket bucket, String objectName, int version) {
+	private boolean restoreVersionObjectDataFile(ServerBucket bucket, String objectName, int version) {
 		try {
 			boolean success = true;
 			for (Drive drive: getDriver().getDrivesAll()) {
@@ -632,7 +632,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 	 * @param objectName			not null
 	 * @param versionDiscarded		if<0 do nothing  
 	 */
-	private void cleanUpRestoreVersion(VFSOperation op, ODBucket bucket, String objectName, int versionDiscarded) {
+	private void cleanUpRestoreVersion(VFSOperation op, ServerBucket bucket, String objectName, int versionDiscarded) {
 		
 		if ((op==null) || (versionDiscarded<0))
 			return;
@@ -679,7 +679,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 	 * @param previousVersion	>=0
 	 * @param currentVersion	> 0
 	 */
-	private void cleanUpUpdate(VFSOperation op, ODBucket bucket, String objectName, int previousVersion, int currentVersion) {
+	private void cleanUpUpdate(VFSOperation op, ServerBucket bucket, String objectName, int previousVersion, int currentVersion) {
 		
 		if (op==null)
 			return;
@@ -700,7 +700,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 	}
 	
 	
-	private void cleanUpBackupMetadataDir(ODBucket bucket, String objectName) {
+	private void cleanUpBackupMetadataDir(ServerBucket bucket, String objectName) {
 		
 		try {
 			/** delete backup Metadata */

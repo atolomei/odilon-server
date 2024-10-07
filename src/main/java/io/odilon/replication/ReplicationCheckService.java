@@ -34,7 +34,7 @@ import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
 import io.odilon.model.list.ResultSet;
 import io.odilon.service.BaseService;
-import io.odilon.vfs.model.ODBucket;
+import io.odilon.vfs.model.ServerBucket;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 
@@ -59,7 +59,7 @@ public class ReplicationCheckService extends BaseService {
 
 	public void check() {
 		checkBuckets();
-		for (ODBucket bucket: getVirtualFileSystemService().listAllBuckets()) {
+		for (ServerBucket bucket: getVirtualFileSystemService().listAllBuckets()) {
 			checkBucket(bucket);
 		}
 	}
@@ -74,7 +74,7 @@ public class ReplicationCheckService extends BaseService {
 		List<String> bucketsLocalNotRemote = new ArrayList<String>();
 		List<String> bucketsRemoteNotLocal = new ArrayList<String>();
 		
-		for (ODBucket bucket: getVirtualFileSystemService().listAllBuckets()) {
+		for (ServerBucket bucket: getVirtualFileSystemService().listAllBuckets()) {
 			try {
 				if (!getReplicationService().getClient().existsBucket(bucket.getName())) {
 					bucketsLocalNotRemote.add(bucket.getName());
@@ -99,7 +99,7 @@ public class ReplicationCheckService extends BaseService {
 		bucketsRemoteNotLocal.forEach(n -> logger.error(n));
 	}
 	
-	protected void checkBucket(ODBucket bucket) {
+	protected void checkBucket(ServerBucket bucket) {
 			
 			List<String> localNotRemote = new ArrayList<String>();
 			List<String> remoteNotLocal = new ArrayList<String>();

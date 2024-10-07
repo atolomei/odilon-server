@@ -47,7 +47,7 @@ import io.odilon.net.ODHttpStatus;
 import io.odilon.service.ObjectStorageService;
 import io.odilon.traffic.TrafficControlService;
 import io.odilon.traffic.TrafficPass;
-import io.odilon.vfs.model.ODBucket;
+import io.odilon.vfs.model.ServerBucket;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
@@ -142,7 +142,7 @@ public class BucketController extends BaseApiController  {
 	
 	/**
 	 * <p>Get a Bucket in JSON format</p>
-	 * The server manages Buckets as instances of the class {@link ODBucket}
+	 * The server manages Buckets as instances of the class {@link ServerBucket}
 	 * but buckets are exported to the clients as {@link Bucket}
 	 * 
 	 */
@@ -153,7 +153,7 @@ public class BucketController extends BaseApiController  {
 		
 		try {
 			pass = getTrafficControlService().getPass();
-			ODBucket bucket = getObjectStorageService().findBucketName(name);
+			ServerBucket bucket = getObjectStorageService().findBucketName(name);
 			
 			if (bucket==null)															
 				throw new OdilonObjectNotFoundException( ErrorCode.BUCKET_NOT_EXISTS, String.format("bucket does not exist -> %s", name));
@@ -207,7 +207,7 @@ public class BucketController extends BaseApiController  {
 		try {						
 			pass = getTrafficControlService().getPass();
 			
-			ODBucket bucket = getObjectStorageService().findBucketName(name);
+			ServerBucket bucket = getObjectStorageService().findBucketName(name);
 			
 			if (bucket==null)
 				throw new OdilonObjectNotFoundException(ErrorCode.BUCKET_NOT_EXISTS, String.format("bucket does not exist -> %s", name));
@@ -270,7 +270,7 @@ public class BucketController extends BaseApiController  {
 			
 			pass = getTrafficControlService().getPass();
 			
-			ODBucket bucket = getObjectStorageService().findBucketName(name);
+			ServerBucket bucket = getObjectStorageService().findBucketName(name);
 			
 			if (bucket==null)															
 				throw new OdilonObjectNotFoundException( ErrorCode.BUCKET_NOT_EXISTS, String.format("bucket does not exist -> %s", name));

@@ -54,7 +54,7 @@ public abstract class BucketIterator implements Iterator<Path>  {
 	private Long offset = Long.valueOf(0);
 	
 	@JsonIgnore
-	private final ODBucket bucket;
+	private final ServerBucket bucket;
 
 	@JsonProperty("bucketId")
 	private final Long bucketId;
@@ -65,7 +65,7 @@ public abstract class BucketIterator implements Iterator<Path>  {
 	/**
 	 * @param bucketName can not be null
 	 */
-	public BucketIterator(final ODBucket bucket) {
+	public BucketIterator(final ServerBucket bucket) {
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		this.bucket=bucket;
 		this.bucketId=bucket.getId();
@@ -81,7 +81,7 @@ public abstract class BucketIterator implements Iterator<Path>  {
 	}
 	
 	
-	public ODBucket getBucket() {
+	public ServerBucket getBucket() {
 		return this.bucket;
 	}
 	

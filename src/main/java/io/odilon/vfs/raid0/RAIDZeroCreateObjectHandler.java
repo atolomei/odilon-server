@@ -39,7 +39,7 @@ import io.odilon.util.Check;
 import io.odilon.util.OdilonFileUtils;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.SimpleDrive;
-import io.odilon.vfs.model.ODBucket;
+import io.odilon.vfs.model.ServerBucket;
 import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VFSOp;
 import io.odilon.vfs.model.VirtualFileSystemService;
@@ -71,7 +71,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 	 * @param srcFileName
 	 * @param contentType
 	 */
-	protected void create(@NonNull ODBucket bucket, @NonNull String objectName, @NonNull InputStream stream, String srcFileName, String contentType) {
+	protected void create(@NonNull ServerBucket bucket, @NonNull String objectName, @NonNull InputStream stream, String srcFileName, String contentType) {
 	
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
@@ -192,7 +192,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 	 * 
 	 * 
 	 */
-	private void saveObjectDataFile(ODBucket bucket, String objectName, InputStream stream, String srcFileName) {
+	private void saveObjectDataFile(ServerBucket bucket, String objectName, InputStream stream, String srcFileName) {
 		
 		byte[] buf = new byte[VirtualFileSystemService.BUFFER_SIZE];
 
@@ -236,7 +236,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 	 * @param stream			can not be null
 	 * @param srcFileName		can not be null	
 	 */
-	private void saveObjectMetadata(ODBucket bucket, String objectName, String srcFileName, String contentType, int version) {
+	private void saveObjectMetadata(ServerBucket bucket, String objectName, String srcFileName, String contentType, int version) {
 		
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		

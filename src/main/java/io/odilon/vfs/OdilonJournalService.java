@@ -41,7 +41,7 @@ import io.odilon.service.BaseService;
 import io.odilon.service.ServerSettings;
 import io.odilon.util.Check;
 import io.odilon.vfs.model.JournalService;
-import io.odilon.vfs.model.ODBucket;
+import io.odilon.vfs.model.ServerBucket;
 import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VFSOp;
 import io.odilon.vfs.model.VirtualFileSystemService;
@@ -133,13 +133,13 @@ public class OdilonJournalService extends BaseService implements JournalService 
 	}
 	
 	@Override															
-	public VFSOperation updateBucket(ODBucket bucket) {
+	public VFSOperation updateBucket(ServerBucket bucket) {
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		return createNew(VFSOp.UPDATE_BUCKET, Optional.of(bucket.getId()), Optional.of(bucket.getName()), Optional.empty(), Optional.empty());
 	}
 	
 	@Override														
-	public VFSOperation deleteBucket(ODBucket bucket) {
+	public VFSOperation deleteBucket(ServerBucket bucket) {
 		Check.requireNonNullArgument(bucket, "bucket is null");
 
 		return createNew(	VFSOp.DELETE_BUCKET, 

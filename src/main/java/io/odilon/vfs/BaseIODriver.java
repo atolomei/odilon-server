@@ -65,7 +65,7 @@ import io.odilon.util.Check;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.DriveBucket;
 import io.odilon.vfs.model.JournalService;
-import io.odilon.vfs.model.ODBucket;
+import io.odilon.vfs.model.ServerBucket;
 import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.IODriver;
 import io.odilon.vfs.model.LockService;
@@ -130,7 +130,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 	 * <p>Shared by RAID 1 and RAID 6</p>
 	 */
 	@Override
-	public ODBucket createBucket(String bucketName) {
+	public ServerBucket createBucket(String bucketName) {
 	
 		Check.requireNonNullArgument(bucketName, "bucketName is null");
 
@@ -142,7 +142,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		meta.appVersion = OdilonVersion.VERSION;
 		meta.id=getVFS().getNextBucketId();
 		
-		ODBucket bucket = new OdilonBucket(meta);
+		ServerBucket bucket = new OdilonBucket(meta);
 		boolean isMainException = false;
 		
 		
@@ -196,7 +196,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 	 * 
 	 */
 	@Override
-	public ODBucket renameBucket(ODBucket bucket, String newBucketName) {
+	public ServerBucket renameBucket(ServerBucket bucket, String newBucketName) {
 									
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		
@@ -262,7 +262,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 	 * 
 	 * @param bucket
 	 */
-	protected void restoreBucketMetadata(ODBucket bucket) {
+	protected void restoreBucketMetadata(ServerBucket bucket) {
 		try {
 			for (Drive drive: getDrivesAll()) {
 				String path=drive.getBucketWorkDirPath(bucket.getId()) + File.separator + "bucketmetadata-" + bucket.getId().toString() + ServerConstant.JSON;
@@ -277,7 +277,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 	/**
 	 * @param bucket
 	 */
-	protected void backupBucketMetadata(ODBucket bucket) {
+	protected void backupBucketMetadata(ServerBucket bucket) {
 		try {
 			for (Drive drive: getDrivesAll()) {
 				BucketMetadata meta = drive.getBucketMetadata(bucket.getId());
@@ -294,7 +294,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 	 */
 
 	@Override
-	public void deleteBucket(ODBucket bucket) {
+	public void deleteBucket(ServerBucket bucket) {
 		getVFS().removeBucket(bucket);
 	}
 
@@ -303,7 +303,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 	 * <p>Shared by RAID 1 and RAID 6</p>
 	 */
 	@Override
-	public boolean isEmpty(ODBucket bucket) {
+	public boolean isEmpty(ServerBucket bucket) {
 
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireTrue(existsBucketInDrives(bucket.getId()), "bucket does not exist in all drives -> b: " + bucket.getName());
@@ -342,7 +342,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 	 * Shared by RAID 1 and RAID 6</p>
 	 */
 	@Override
-	public ObjectMetadata getObjectMetadataPreviousVersion(ODBucket bucket, String objectName) {
+	public ObjectMetadata getObjectMetadataPreviousVersion(ServerBucket bucket, String objectName) {
 
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullArgument(objectName, "objectName can not be null | b:" + bucket.getName());
@@ -409,7 +409,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 	 * @param file
 	 */
 	@Override
-	public void putObject(ODBucket bucket, String objectName, File file) {
+	public void putObject(ServerBucket bucket, String objectName, File file) {
 		
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullArgument(objectName, "objectName can not be null | b:" + bucket.getName());
@@ -884,7 +884,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 	}
 
 													
-	protected abstract Drive getObjectMetadataReadDrive(ODBucket bucket, String objectName);
+	protected abstract Drive getObjectMetadataReadDrive(ServerBucket bucket, String objectName);
 	
 
 	
@@ -892,7 +892,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 	 *<p> Note that bucketName is not stored on disk, we must set the bucketName explicitly. Disks identify Buckets by id, the name is stored in the
 	 *BucketMetadata file</p> 
 	 */
-	public ObjectMetadata getObjectMetadataInternal(ODBucket bucket, String objectName, boolean addToCacheIfmiss) {
+	public ObjectMetadata getObjectMetadataInternal(ServerBucket bucket, String objectName, boolean addToCacheIfmiss) {
 
 		if ((!getVFS().getServerSettings().isUseObjectCache()) || (getVFS().getObjectMetadataCacheService().size() >= MAX_CACHE_SIZE)) 
 			return  getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucket.getId(), objectName);
@@ -934,9 +934,9 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 	/**
 	 * <p>all drives have all buckets</p>
 	 */
-	protected Map<String, ODBucket> getBucketsMap() {
+	protected Map<String, ServerBucket> getBucketsMap() {
 		
-		Map<String, ODBucket> map = new HashMap<String, ODBucket>();
+		Map<String, ServerBucket> map = new HashMap<String, ServerBucket>();
 		Map<String, Integer> control = new HashMap<String, Integer>();
 		
 		int totalDrives = getDrivesEnabled().size();
@@ -964,7 +964,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 			if (control.containsKey(name)) {
 				Integer count = control.get(name);
 				if (count==totalDrives) {
-					ODBucket vfsbucket = new OdilonBucket(bucket);
+					ServerBucket vfsbucket = new OdilonBucket(bucket);
 					map.put(vfsbucket.getName(), vfsbucket);
 				}
 			}

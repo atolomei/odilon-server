@@ -25,7 +25,8 @@ import io.odilon.model.BucketMetadata;
 import io.odilon.model.BucketStatus;
 import io.odilon.model.OdilonModelObject;
 import io.odilon.vfs.model.DriveBucket;
-import io.odilon.vfs.model.ODBucket;
+import io.odilon.vfs.model.ServerBucket;
+
 
 /**
  *  
@@ -33,7 +34,7 @@ import io.odilon.vfs.model.ODBucket;
  *  
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
-public class OdilonBucket extends OdilonModelObject implements ODBucket {
+public class OdilonBucket extends OdilonModelObject implements ServerBucket {
 
 	@JsonProperty("bucketMetadata")
 	final private BucketMetadata meta;

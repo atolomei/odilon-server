@@ -38,7 +38,7 @@ import io.odilon.model.SharedConstant;
 import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
 import io.odilon.service.ServerSettings;
-import io.odilon.vfs.model.ODBucket;
+import io.odilon.vfs.model.ServerBucket;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
@@ -132,7 +132,7 @@ public class DeleteBucketObjectPreviousVersionServiceRequest extends AbstractSer
 		String agentId = null;
 		boolean done = false;
 		
-		ODBucket bucket = getVirtualFileSystemService().getBucketById(bucketId);
+		ServerBucket bucket = getVirtualFileSystemService().getBucketById(bucketId);
 		
 		
 		while (!done) {
@@ -208,7 +208,7 @@ public class DeleteBucketObjectPreviousVersionServiceRequest extends AbstractSer
 			if (getBucketName()!=null)
 				processBucket(getBucketId());
 			else {
-				for (ODBucket bucket: getVirtualFileSystemService().listAllBuckets())
+				for (ServerBucket bucket: getVirtualFileSystemService().listAllBuckets())
 					processBucket(bucket.getId());
 			}
 			

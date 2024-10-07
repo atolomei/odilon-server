@@ -32,7 +32,7 @@ import io.odilon.model.BucketStatus;
  *
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
-public interface ODBucket {
+public interface ServerBucket {
 	
 	public String getName();
 	public Long getId();

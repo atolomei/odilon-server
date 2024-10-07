@@ -39,7 +39,7 @@ import io.odilon.model.ObjectMetadata;
 import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
 import io.odilon.vfs.model.Drive;
-import io.odilon.vfs.model.ODBucket;
+import io.odilon.vfs.model.ServerBucket;
 import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VFSOp;
 
@@ -82,7 +82,7 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 		VFSOperation op = null;
 		boolean done = false;
 		
-		final ODBucket bucket = getVFS().getBucketById(meta.bucketId);
+		final ServerBucket bucket = getVFS().getBucketById(meta.bucketId);
 		
 		try {
 														

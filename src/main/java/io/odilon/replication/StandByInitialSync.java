@@ -42,7 +42,7 @@ import io.odilon.model.list.Item;
 import io.odilon.vfs.OdilonVFSperation;
 import io.odilon.vfs.model.IODriver;
 import io.odilon.vfs.model.LockService;
-import io.odilon.vfs.model.ODBucket;
+import io.odilon.vfs.model.ServerBucket;
 import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VFSOp;
 import io.odilon.vfs.model.VirtualFileSystemService;
@@ -190,10 +190,10 @@ public class StandByInitialSync implements Runnable {
 			
 			executor = Executors.newFixedThreadPool(maxProcessingThread);
 			
-			List<ODBucket> buckets = this.driver.getVFS().listAllBuckets();
+			List<ServerBucket> buckets = this.driver.getVFS().listAllBuckets();
 			boolean completed = buckets.isEmpty();
 			
-			for (ODBucket bucket: buckets) {
+			for (ServerBucket bucket: buckets) {
 				
 				Integer pageSize = Integer.valueOf(ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE);
 				Long offset = Long.valueOf(0);

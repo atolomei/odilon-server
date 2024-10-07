@@ -48,7 +48,7 @@ import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.DriveStatus;
 import io.odilon.vfs.model.IODriveSetup;
 import io.odilon.vfs.model.SimpleDrive;
-import io.odilon.vfs.model.ODBucket;
+import io.odilon.vfs.model.ServerBucket;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
@@ -272,7 +272,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 			
 			executor = Executors.newFixedThreadPool(this.maxProcessingThread);
 			
-			for (ODBucket bucket: this.driver.getVFS().listAllBuckets()) {
+			for (ServerBucket bucket: this.driver.getVFS().listAllBuckets()) {
 				
 				Integer pageSize = Integer.valueOf(ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE);
 				Long offset = Long.valueOf(0);
@@ -393,7 +393,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 			
 			executor = Executors.newFixedThreadPool(maxProcessingThread);
 			
-			for (ODBucket bucket: this.driver.getVFS().listAllBuckets()) {
+			for (ServerBucket bucket: this.driver.getVFS().listAllBuckets()) {
 				
 				Integer pageSize = Integer.valueOf(ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE);
 				Long offset = Long.valueOf(0);
@@ -541,11 +541,11 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 	 */
 	private void createBuckets() {
 		
-		List<ODBucket> list = getDriver().getVFS().listAllBuckets();
+		List<ServerBucket> list = getDriver().getVFS().listAllBuckets();
 		
 		startuplogger.info("3. Creating " + String.valueOf(list.size()) +" Buckets");
 
-		for (ODBucket bucket:list) {
+		for (ServerBucket bucket:list) {
 			for (Drive drive: getDriver().getDrivesAll()) {
 				if (drive.getDriveInfo().getStatus()==DriveStatus.NOTSYNC) {
 					try {

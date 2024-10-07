@@ -42,7 +42,7 @@ import io.odilon.util.Check;
 import io.odilon.util.OdilonFileUtils;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.SimpleDrive;
-import io.odilon.vfs.model.ODBucket;
+import io.odilon.vfs.model.ServerBucket;
 import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VFSOp;
 import io.odilon.vfs.model.VirtualFileSystemService;
@@ -72,7 +72,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 	 * 
 	 * 
 	 */
-	protected void update(ODBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType) {
+	protected void update(ServerBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType) {
 
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucket.getName());
@@ -160,7 +160,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 	 * . The Object previous versions were deleted by a {@code deleteObjectAllPreviousVersions}
 	 * </p>
 	 */
-	protected ObjectMetadata restorePreviousVersion(ODBucket bucket, String objectName) {
+	protected ObjectMetadata restorePreviousVersion(ServerBucket bucket, String objectName) {
 
 		VFSOperation op = null;
 		boolean done = false;
@@ -283,7 +283,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 		boolean done = false;
 		boolean isMainException = false;
 
-		ODBucket bucket = getDriver().getVFS().getBucketById(meta.bucketId);
+		ServerBucket bucket = getDriver().getVFS().getBucketById(meta.bucketId);
 		
 		getLockService().getObjectLock( meta.bucketId, meta.objectName).writeLock().lock();
 		
@@ -339,7 +339,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 	 * </p>There is nothing to do here by the moment</p>
 	 */
 	
-	protected void onAfterCommit(ODBucket bucket, String objectName, int previousVersion, int currentVersion) {
+	protected void onAfterCommit(ServerBucket bucket, String objectName, int previousVersion, int currentVersion) {
 	}
 
 
@@ -392,7 +392,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 			if (getVFS().getServerSettings().isStandByEnabled()) 
 				getVFS().getReplicationService().cancel(op);
 			
-			ODBucket bucket = getDriver().getVFS().getBucketById(op.getBucketId());
+			ServerBucket bucket = getDriver().getVFS().getBucketById(op.getBucketId());
 			
 			
 			restoreVersionObjectDataFile(bucket, op.getObjectName(),  op.getVersion());
@@ -433,7 +433,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 		
 		try {
 
-			ODBucket bucket = getDriver().getVFS().getBucketById(op.getBucketId());
+			ServerBucket bucket = getDriver().getVFS().getBucketById(op.getBucketId());
 			
 			if (getVFS().getServerSettings().isStandByEnabled()) 
 				getVFS().getReplicationService().cancel(op);
@@ -471,7 +471,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 	 * @param srcFileName
 	 * @param newVersion
 	 */
-	private void saveObjectDataFile(ODBucket bucket, String objectName, InputStream stream, String srcFileName, int newVersion) {
+	private void saveObjectDataFile(ServerBucket bucket, String objectName, InputStream stream, String srcFileName, int newVersion) {
 		
 		byte[] buf = new byte[ VirtualFileSystemService.BUFFER_SIZE ];
 
@@ -516,7 +516,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 	 * @param stream
 	 * @param srcFileName
 	 */
-	private void saveObjectMetadataHead(ODBucket bucket, String objectName, String srcFileName, String contentType, int version) {
+	private void saveObjectMetadataHead(ServerBucket bucket, String objectName, String srcFileName, String contentType, int version) {
 		
 		OffsetDateTime now =  OffsetDateTime.now();
 		Drive drive=getWriteDrive(bucket, objectName);
@@ -551,7 +551,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 	 * 
 	 * 
 	 */
-	private void saveVersionObjectMetadata(ODBucket bucket, String objectName,	int version) {
+	private void saveVersionObjectMetadata(ServerBucket bucket, String objectName,	int version) {
 		try {
 			Drive drive=getWriteDrive(bucket, objectName);
 			File file=drive.getObjectMetadataFile(bucket.getId(), objectName);
@@ -565,7 +565,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 	 * 
 	 * 
 	 */									
-	private void saveVersionObjectDataFile(ODBucket bucket, String objectName, int version) {
+	private void saveVersionObjectDataFile(ServerBucket bucket, String objectName, int version) {
 		try {
 			Drive drive=getWriteDrive(bucket, objectName);
 			File file=((SimpleDrive) drive).getObjectDataFile(bucket.getId(), objectName);
@@ -582,7 +582,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 	 * @param objectName
 	 * @param version
 	 */
-	private boolean restoreVersionObjectMetadata(ODBucket bucket, String objectName, int versionToRestore) {
+	private boolean restoreVersionObjectMetadata(ServerBucket bucket, String objectName, int versionToRestore) {
 		try {
 			Drive drive=getWriteDrive(bucket, objectName);
 			File file=drive.getObjectMetadataVersionFile(bucket.getId(), objectName, versionToRestore);
@@ -602,7 +602,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 	 *
 	 * 
 	 */
-	private boolean restoreVersionObjectDataFile(ODBucket bucket, String objectName, int version) {
+	private boolean restoreVersionObjectDataFile(ServerBucket bucket, String objectName, int version) {
 		try {
 			Drive drive=getWriteDrive(bucket, objectName);
 			File file= ((SimpleDrive) drive).getObjectDataVersionFile(bucket.getId(), objectName,version);
@@ -623,7 +623,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 	 */
 	private void backupMetadata(ObjectMetadata meta) {
 		
-		ODBucket bucket = getDriver().getVFS().getBucketById(meta.bucketId);
+		ServerBucket bucket = getDriver().getVFS().getBucketById(meta.bucketId);
 		
 		try {
 			
@@ -644,7 +644,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 	 * restore metadata directory 
 	 * 
 	 */
-	private void restoreMetadata(ODBucket bucket, String objectName) {
+	private void restoreMetadata(ServerBucket bucket, String objectName) {
 
 		String objectMetadataBackupDirPath = getDriver().getWriteDrive(bucket, objectName).getBucketWorkDirPath(bucket.getId()) + File.separator + objectName;
 		String objectMetadataDirPath = getDriver().getWriteDrive(bucket, objectName).getObjectMetadataDirPath(bucket.getId(), objectName);
@@ -679,7 +679,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 	 * @param previousVersion	>=0
 	 * @param currentVersion    >0 
 	 */
-	private void cleanUpUpdate(VFSOperation op, ODBucket bucket, String objectName, int previousVersion, int currentVersion) {
+	private void cleanUpUpdate(VFSOperation op, ServerBucket bucket, String objectName, int previousVersion, int currentVersion) {
 		
 		if (op==null)
 			return;

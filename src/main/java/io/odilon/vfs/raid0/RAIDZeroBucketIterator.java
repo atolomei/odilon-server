@@ -38,7 +38,7 @@ import io.odilon.model.ServerConstant;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ObjectStatus;
 import io.odilon.vfs.model.Drive;
-import io.odilon.vfs.model.ODBucket;
+import io.odilon.vfs.model.ServerBucket;
 import io.odilon.vfs.model.BucketIterator;
 
 
@@ -84,12 +84,12 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
 	private boolean initiated = false;
 
 
-	public RAIDZeroBucketIterator(RAIDZeroDriver driver, ODBucket bucket, Optional<Long> opOffset,  Optional<String> opPrefix) {
+	public RAIDZeroBucketIterator(RAIDZeroDriver driver, ServerBucket bucket, Optional<Long> opOffset,  Optional<String> opPrefix) {
 			this(driver, bucket, opOffset, opPrefix, Optional.empty());
 	}
 
 	
-	public RAIDZeroBucketIterator(RAIDZeroDriver driver, ODBucket bucket, Optional<Long> opOffset,  Optional<String> opPrefix, Optional<String> serverAgentId) {
+	public RAIDZeroBucketIterator(RAIDZeroDriver driver, ServerBucket bucket, Optional<Long> opOffset,  Optional<String> opPrefix, Optional<String> serverAgentId) {
 			super(bucket);
 
 		opOffset.ifPresent(x -> setOffset(x));

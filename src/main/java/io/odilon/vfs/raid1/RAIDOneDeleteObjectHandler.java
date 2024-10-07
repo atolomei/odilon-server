@@ -36,7 +36,7 @@ import io.odilon.scheduler.DeleteBucketObjectPreviousVersionServiceRequest;
 import io.odilon.util.Check;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.SimpleDrive;
-import io.odilon.vfs.model.ODBucket;
+import io.odilon.vfs.model.ServerBucket;
 import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VFSOp;
 
@@ -68,7 +68,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 	 * @param srcFileName
 	 * @param contentType
 	 */
-	protected void delete(ODBucket bucket, String objectName) {
+	protected void delete(ServerBucket bucket, String objectName) {
 		
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		
@@ -180,7 +180,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 	 * itself is not transactional, and it can not be rollback</p>
 	 */
 	
-	protected void deleteBucketAllPreviousVersions(ODBucket bucket) {
+	protected void deleteBucketAllPreviousVersions(ServerBucket bucket) {
 		getVFS().getSchedulerService().enqueue(getVFS().getApplicationContext().getBean(DeleteBucketObjectPreviousVersionServiceRequest.class, bucket.getName(), bucket.getId()));
 	}
 	
@@ -209,7 +209,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 
 			try {
 				
-					ODBucket bucket = getDriver().getVFS().getBucketById(meta.bucketId);
+					ServerBucket bucket = getDriver().getVFS().getBucketById(meta.bucketId);
 				
 					if (!getDriver().getReadDrive(bucket, objectName).existsObjectMetadata(meta.bucketId, objectName))
 						throw new IllegalArgumentException("object does not exist -> b:" + meta.bucketId.toString() + " o:" + objectName);

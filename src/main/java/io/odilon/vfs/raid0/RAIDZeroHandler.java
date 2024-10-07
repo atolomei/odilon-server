@@ -24,7 +24,7 @@ import io.odilon.vfs.RAIDHandler;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.JournalService;
 import io.odilon.vfs.model.LockService;
-import io.odilon.vfs.model.ODBucket;
+import io.odilon.vfs.model.ServerBucket;
 import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
@@ -69,7 +69,7 @@ public abstract class RAIDZeroHandler implements RAIDHandler {
 		return this.driver.getRedundancyLevel(); 
 	}
 	
-	public Drive getWriteDrive(ODBucket bucket, String objectName) {
+	public Drive getWriteDrive(ServerBucket bucket, String objectName) {
 		return this.driver.getWriteDrive(bucket, objectName);
 	}
 	

@@ -117,21 +117,21 @@ public interface VirtualFileSystemService extends SystemService {
 	/** used to add a new disk enabled after a Drive sync process */
 	public void updateDriveStatus(Drive drive);
 	
-	public List<ODBucket> listAllBuckets();
+	public List<ServerBucket> listAllBuckets();
 	
 
 	/**
 	 * Bucket
 	 */
-	public ODBucket createBucket(String bucketName) throws IOException;
-	public ODBucket renameBucketName(String currentBucketName, String newBucketName);
+	public ServerBucket createBucket(String bucketName) throws IOException;
+	public ServerBucket renameBucketName(String currentBucketName, String newBucketName);
 	
-	public ODBucket getBucketByName(String bucketName);
-	public ODBucket getBucketById(Long bucketId);
+	public ServerBucket getBucketByName(String bucketName);
+	public ServerBucket getBucketById(Long bucketId);
 	
 	public boolean existsBucket(String bucketName);
-	public boolean isEmpty(ODBucket bucket);
-	public void removeBucket(ODBucket bucket);
+	public boolean isEmpty(ServerBucket bucket);
+	public void removeBucket(ServerBucket bucket);
 	public void removeBucket(String bucketName);
 	public void forceRemoveBucket(String bucketName);	
 
@@ -142,22 +142,22 @@ public interface VirtualFileSystemService extends SystemService {
 	/**
 	 * Objects
 	 */
-	public void putObject(ODBucket bucket, String objectName, File file);
-	public void putObject(ODBucket bucket, String objectName, InputStream stream, String fileName, String contentType);
+	public void putObject(ServerBucket bucket, String objectName, File file);
+	public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName, String contentType);
 	public void putObject(String bucketName, String objectName, InputStream is, String fileName, String contentType);
 	
-	public VFSObject getObject(ODBucket bucket, String objectName);
+	public VFSObject getObject(ServerBucket bucket, String objectName);
 	public VFSObject getObject(String bucketName, String objectName);
 	public ObjectMetadata getObjectMetadata(String bucketName, String objectName);
 	
-	public boolean existsObject(ODBucket bucket, String objectName);
+	public boolean existsObject(ServerBucket bucket, String objectName);
 	public boolean existsObject(String bucketName, String objectName);
 	public boolean existsObject(Long bucketId, String objectName);
 	
-	public void deleteObject(ODBucket bucket, String objectName);
+	public void deleteObject(ServerBucket bucket, String objectName);
 	public void deleteObject(String bucketName, String objectName);
 	
-	public InputStream getObjectStream(ODBucket bucket, String objectName) throws IOException;
+	public InputStream getObjectStream(ServerBucket bucket, String objectName) throws IOException;
 	public InputStream getObjectStream(String bucketName, String objectName) throws IOException;
 	
 	
@@ -237,8 +237,8 @@ public interface VirtualFileSystemService extends SystemService {
 	public ApplicationContext getApplicationContext();
 
 
-	public void addBucketCache(ODBucket bucket);
-	public void updateBucketCache(String oldBucketName, ODBucket bucket);
+	public void addBucketCache(ServerBucket bucket);
+	public void updateBucketCache(String oldBucketName, ServerBucket bucket);
 	
 
 

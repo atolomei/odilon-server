@@ -35,7 +35,7 @@ import io.odilon.scheduler.AfterDeleteObjectServiceRequest;
 import io.odilon.scheduler.DeleteBucketObjectPreviousVersionServiceRequest;
 import io.odilon.util.Check;
 import io.odilon.vfs.model.Drive;
-import io.odilon.vfs.model.ODBucket;
+import io.odilon.vfs.model.ServerBucket;
 import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VFSOp;
 
@@ -64,7 +64,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 	 * @param bucket
 	 * @param objectName
 	 */
-	protected void delete(@NonNull ODBucket bucket, @NonNull String objectName) {
+	protected void delete(@NonNull ServerBucket bucket, @NonNull String objectName) {
 		
 		 Check.requireNonNullArgument(bucket, "bucket is null");
 		 Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
@@ -153,7 +153,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 		getVFS().getSchedulerService().enqueue(getVFS().getApplicationContext().getBean(DeleteBucketObjectPreviousVersionServiceRequest.class));
 	}
 
-	protected void deleteBucketAllPreviousVersions(ODBucket bucket) {
+	protected void deleteBucketAllPreviousVersions(ServerBucket bucket) {
 		getVFS().getSchedulerService().enqueue(getVFS().getApplicationContext().getBean(DeleteBucketObjectPreviousVersionServiceRequest.class, bucket.getName(), bucket.getId()));
 	}
 
@@ -174,7 +174,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 		Long bucketId = headMeta.bucketId;
 		
 		
-		final ODBucket bucket = getVFS().getBucketById(headMeta.bucketId);
+		final ServerBucket bucket = getVFS().getBucketById(headMeta.bucketId);
 		
 		
 		getLockService().getObjectLock(bucketId, objectName).writeLock().lock();
@@ -312,7 +312,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 		
 		boolean done = false;
 	 
-		ODBucket bucket = getDriver().getVFS().getBucketById(op.getBucketId());
+		ServerBucket bucket = getDriver().getVFS().getBucketById(op.getBucketId());
 		
 		try {
 
@@ -422,7 +422,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 	/**
 	 *  restore metadata directory 
 	 * */
-	private void restoreMetadata(ODBucket bucket, String objectName) {
+	private void restoreMetadata(ServerBucket bucket, String objectName) {
 		for (Drive drive: getDriver().getDrivesAll()) {
 			String objectMetadataBackupDirPath = drive.getBucketWorkDirPath(bucket.getId()) + File.separator + objectName;
 			String objectMetadataDirPath = drive.getObjectMetadataDirPath(bucket.getId(), objectName);

@@ -38,7 +38,7 @@ import io.odilon.model.SharedConstant;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.DriveStatus;
 import io.odilon.vfs.model.IODriveSetup;
-import io.odilon.vfs.model.ODBucket;
+import io.odilon.vfs.model.ServerBucket;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /***
@@ -188,9 +188,9 @@ public class RAIDOneDriveSetup implements IODriveSetup, ApplicationContextAware 
 	
 	
 	private void createBuckets() {
-		List<ODBucket> list = getDriver().getVFS().listAllBuckets();
+		List<ServerBucket> list = getDriver().getVFS().listAllBuckets();
 		startuplogger.info("3. Creating " + String.valueOf(list.size()) +" Buckets");
-		for (ODBucket bucket:list) {
+		for (ServerBucket bucket:list) {
 				for (Drive drive: getDriver().getDrivesAll()) {
 					if (drive.getDriveInfo().getStatus()==DriveStatus.NOTSYNC) {
 						try {

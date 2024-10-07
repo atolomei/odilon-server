@@ -38,7 +38,7 @@ import io.odilon.util.Check;
 import io.odilon.util.OdilonFileUtils;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.SimpleDrive;
-import io.odilon.vfs.model.ODBucket;
+import io.odilon.vfs.model.ServerBucket;
 import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VFSOp;
 import io.odilon.vfs.model.VirtualFileSystemService;
@@ -72,7 +72,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 	 * @param srcFileName
 	 * @param contentType
 	 */
-	protected void create(ODBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType) {
+	protected void create(ServerBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType) {
 					
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Long bucketId=bucket.getId();

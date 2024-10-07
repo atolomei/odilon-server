@@ -42,7 +42,7 @@ import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
 import io.odilon.util.OdilonFileUtils;
 import io.odilon.vfs.model.Drive;
-import io.odilon.vfs.model.ODBucket;
+import io.odilon.vfs.model.ServerBucket;
 import io.odilon.vfs.model.VFSOperation;
 
 import io.odilon.vfs.model.VirtualFileSystemService;
@@ -78,7 +78,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 	 * @param srcFileName
 	 * @param contentType
 	 */
-	protected void update(ODBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType) {
+	protected void update(ServerBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType) {
 	
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
@@ -227,7 +227,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 	 */
 	 
 	 
-	 protected ObjectMetadata restorePreviousVersion(ODBucket bucket, String objectName) {
+	 protected ObjectMetadata restorePreviousVersion(ServerBucket bucket, String objectName) {
 		
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		String bucketName = bucket.getName();
@@ -412,7 +412,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 	 * @param objectName
 	 * @param version
 	 */
-	private void backupVersionObjectMetadata(ODBucket bucket, String objectName,	int version) {
+	private void backupVersionObjectMetadata(ServerBucket bucket, String objectName,	int version) {
 		
 		String bucketName = bucket.getName();
 		Long bucketId = bucket.getId();
@@ -473,7 +473,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 	 * @param version
 	 * @param headCreationDate
 	 */
-	private void saveObjectMetadata(ODBucket bucket, String objectName, RAIDSixBlocks ei, String srcFileName, String contentType, int version, OffsetDateTime headCreationDate) {
+	private void saveObjectMetadata(ServerBucket bucket, String objectName, RAIDSixBlocks ei, String srcFileName, String contentType, int version, OffsetDateTime headCreationDate) {
 		
 		List<String> shaBlocks = new ArrayList<String>();
 		StringBuilder etag_b = new StringBuilder();
@@ -533,7 +533,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 	 * @param stream
 	 * @param srcFileName
 	 */
-	private RAIDSixBlocks saveObjectDataFile(ODBucket bucket, String objectName, InputStream stream) {
+	private RAIDSixBlocks saveObjectDataFile(ServerBucket bucket, String objectName, InputStream stream) {
 		
 		InputStream sourceStream = null;
 		boolean isMainException = false;
@@ -681,7 +681,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 	 * @param version
 	 * @return
 	 */
-	private boolean restoreVersionObjectMetadata(ODBucket bucket, String objectName, int version) {
+	private boolean restoreVersionObjectMetadata(ServerBucket bucket, String objectName, int version) {
 		
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
@@ -749,7 +749,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 		
 		boolean done = false;
 		
-		final ODBucket bucket = getVFS().getBucketById(op.getBucketId());
+		final ServerBucket bucket = getVFS().getBucketById(op.getBucketId());
 		
 		try {
 		

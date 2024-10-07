@@ -39,7 +39,7 @@ import io.odilon.model.ServerConstant;
 import io.odilon.util.Check;
 import io.odilon.vfs.model.BucketIterator;
 import io.odilon.vfs.model.Drive;
-import io.odilon.vfs.model.ODBucket;
+import io.odilon.vfs.model.ServerBucket;
 
 
 /**
@@ -97,7 +97,7 @@ public class RAIDSixBucketIterator extends BucketIterator implements Closeable {
 	 * @param opOffset
 	 * @param opPrefix
 	 */
-	public RAIDSixBucketIterator(RAIDSixDriver driver, ODBucket bucket, Optional<Long> opOffset,  Optional<String> opPrefix) {
+	public RAIDSixBucketIterator(RAIDSixDriver driver, ServerBucket bucket, Optional<Long> opOffset,  Optional<String> opPrefix) {
 		super(bucket);
 		
 		Check.requireNonNull(driver);

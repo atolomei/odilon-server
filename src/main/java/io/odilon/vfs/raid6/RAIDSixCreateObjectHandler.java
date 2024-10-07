@@ -39,7 +39,7 @@ import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
 import io.odilon.util.OdilonFileUtils;
 import io.odilon.vfs.model.Drive;
-import io.odilon.vfs.model.ODBucket;
+import io.odilon.vfs.model.ServerBucket;
 import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VFSOp;
 
@@ -73,7 +73,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 	 * @param srcFileName
 	 * @param contentType
 	 */
-	protected void create(ODBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType) {
+	protected void create(ServerBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType) {
 	
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
@@ -222,7 +222,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 	 * todo en el object metadata o cada file por separado
 	 * 
 	 */
-	private void saveObjectMetadata(ODBucket bucket, String objectName, RAIDSixBlocks ei, String srcFileName, String contentType, int version) {
+	private void saveObjectMetadata(ServerBucket bucket, String objectName, RAIDSixBlocks ei, String srcFileName, String contentType, int version) {
 		
 		List<String> shaBlocks = new ArrayList<String>();
 		StringBuilder etag_b = new StringBuilder();

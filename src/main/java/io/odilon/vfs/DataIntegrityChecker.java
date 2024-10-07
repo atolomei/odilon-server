@@ -47,7 +47,7 @@ import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
 import io.odilon.service.ServerSettings;
 import io.odilon.util.Check;
-import io.odilon.vfs.model.ODBucket;
+import io.odilon.vfs.model.ServerBucket;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
@@ -147,7 +147,7 @@ public class DataIntegrityChecker  implements Runnable, ApplicationContextAware 
 			
 			executor = Executors.newFixedThreadPool(this.maxProcessingThread);
 			
-			for (ODBucket bucket: getVirtualFileSystemService().listAllBuckets()) {
+			for (ServerBucket bucket: getVirtualFileSystemService().listAllBuckets()) {
 				Integer pageSize = Integer.valueOf(ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE);
 				Long offset = Long.valueOf(0);
 				String agentId = null;
