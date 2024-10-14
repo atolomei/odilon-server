@@ -321,7 +321,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	 * </p>
 	 */
 	@Override
-	public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName,	String contentType) {
+	public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName,	String contentType, Optional<List<String>> customTags) {
 
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucket.getName());
@@ -333,11 +333,11 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		//
 		if (exists(bucket, objectName)) {
 			RAIDZeroUpdateObjectHandler updateAgent = new RAIDZeroUpdateObjectHandler(this);
-			updateAgent.update(bucket, objectName, stream, fileName, contentType);
+			updateAgent.update(bucket, objectName, stream, fileName, contentType, customTags);
 			getVFS().getSystemMonitorService().getUpdateObjectCounter().inc();
 		} else {
 			RAIDZeroCreateObjectHandler createAgent = new RAIDZeroCreateObjectHandler(this);
-			createAgent.create(bucket, objectName, stream, fileName, contentType);
+			createAgent.create(bucket, objectName, stream, fileName, contentType, customTags);
 			getVFS().getSystemMonitorService().getCreateObjectCounter().inc();
 		}
 	}

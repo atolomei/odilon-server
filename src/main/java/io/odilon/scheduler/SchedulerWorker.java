@@ -36,7 +36,7 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 /**
  * <p>A Scheduler Worker is the main component of the Scheduler. It is a job queue with its' own policies and Thread pool to process the queue.
  *   It creates a dependency graph with the jobs that are to be executed in parallel in each batch in order to warrant that after the execution 
- *   of the batch the end result will be equivalent to a sequential execution. </p>
+ *   of the batch the end result will be equivalent to a sequential execution.</p>
  *  
  *  @author atolomei@novamens.com (Alejandro Tolomei)
  */

@@ -58,28 +58,29 @@ public class OdilonBucket extends OdilonModelObject implements ServerBucket {
 	}
 	
 	public OffsetDateTime getCreationDate() {
-		return meta.creationDate;
+		return this.meta.creationDate;
 	}
 	
 	public OffsetDateTime getLastModifiedDate() {
-		return meta.lastModified;
+		return this.meta.lastModified;
 	}
 	
 	@Override
 	public BucketStatus getStatus() {
-		return meta.status;
+		return this.meta.status;
 	}
 	
 	@Override
 	public BucketMetadata getBucketMetadata() {
-		return meta;
+		return this.meta;
 	}
 	
 	@Override
 	public Long getId() {
-		return meta.id;
+		return this.meta.id;
 	}
 	
+	/**
 	@Override
 	public String toString() {
 		StringBuilder str = new StringBuilder();
@@ -91,5 +92,6 @@ public class OdilonBucket extends OdilonModelObject implements ServerBucket {
 		str.append("}");
 		return str.toString();
 	}
+	**/
 
 }

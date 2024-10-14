@@ -69,10 +69,11 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 	
 
 	/**
+	 * @param customTags 
 	 * 
 	 * 
 	 */
-	protected void update(ServerBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType) {
+	protected void update(ServerBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType, Optional<List<String>> customTags) {
 
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucket.getName());
@@ -111,7 +112,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 				/** copy new version  head version */
 				afterHeadVersion = meta.version+1;
 				saveObjectDataFile(bucket, objectName, stream, srcFileName, meta.version+1);
-				saveObjectMetadataHead(bucket, objectName, srcFileName, contentType, meta.version+1);
+				saveObjectMetadataHead(bucket, objectName, srcFileName, contentType, meta.version+1, customTags);
 				
 				done = op.commit();
 			
@@ -516,7 +517,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 	 * @param stream
 	 * @param srcFileName
 	 */
-	private void saveObjectMetadataHead(ServerBucket bucket, String objectName, String srcFileName, String contentType, int version) {
+	private void saveObjectMetadataHead(ServerBucket bucket, String objectName, String srcFileName, String contentType, int version, Optional<List<String>> customTags) {
 		
 		OffsetDateTime now =  OffsetDateTime.now();
 		Drive drive=getWriteDrive(bucket, objectName);
@@ -540,6 +541,9 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 				meta.status=ObjectStatus.ENABLED;
 				meta.drive=drive.getName();
 				meta.raid=String.valueOf(getRedundancyLevel().getCode()).trim();
+				if (customTags.isPresent()) 
+					meta.customTags=customTags.get();
+				
 				drive.saveObjectMetadata(meta);
 			
 		} catch (Exception e) {

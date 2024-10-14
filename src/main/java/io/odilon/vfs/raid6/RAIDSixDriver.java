@@ -528,7 +528,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 	 * 
 	 */
 	@Override
-	public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName,	String contentType) {
+	public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName,	String contentType, Optional<List<String>> customTags) {
 		
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:"+ bucket.getName());
@@ -537,12 +537,12 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		
 		if (exists(bucket, objectName)) {
 			RAIDSixUpdateObjectHandler updateAgent = new RAIDSixUpdateObjectHandler(this);
-			updateAgent.update(bucket, objectName, stream, fileName, contentType);
+			updateAgent.update(bucket, objectName, stream, fileName, contentType, customTags);
 			getVFS().getSystemMonitorService().getUpdateObjectCounter().inc();
 		}
 		else {
 			RAIDSixCreateObjectHandler createAgent = new RAIDSixCreateObjectHandler(this);
-			createAgent.create(bucket, objectName, stream, fileName, contentType);
+			createAgent.create(bucket, objectName, stream, fileName, contentType, customTags);
 			getVFS().getSystemMonitorService().getCreateObjectCounter().inc();
 		}
 	}

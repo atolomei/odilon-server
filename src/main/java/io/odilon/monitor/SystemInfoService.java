@@ -93,6 +93,7 @@ public class SystemInfoService extends BaseService implements SystemService {
 	private String isVaultEnabled;
 	private String vaultUrl;
 	
+	
 	private String isVersionControl;
 	
 	
@@ -153,6 +154,9 @@ public class SystemInfoService extends BaseService implements SystemService {
 		info.isStandby = isStandby;
 		info.standbyUrl = standbyUrl;
 		info.standbyPort = standbyPort;
+		
+		
+		info.isHttps=serverSettings.isHTTPS()?"yes":"no"; 
 		
 		info.freeMemory=Runtime.getRuntime().freeMemory();
 		info.redundancyLevel=serverSettings.getRedundancyLevel();

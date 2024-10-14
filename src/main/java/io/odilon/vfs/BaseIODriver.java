@@ -428,7 +428,9 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 				throw new InternalCriticalException(e, "b:" + bucket.getName() + ", o:" +objectName);
 		 }
 		try {
-			putObject(bucket, objectName, new BufferedInputStream(new FileInputStream(file)), file.getName(), contentType);
+			
+			putObject(bucket, objectName, new BufferedInputStream(new FileInputStream(file)), file.getName(), contentType, Optional.empty());
+			
 		} catch (FileNotFoundException e) {
 			throw new InternalCriticalException(e, "b:" + bucket.getName() + ", o:" +objectName);
 		}

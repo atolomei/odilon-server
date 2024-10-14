@@ -72,8 +72,9 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 	 * @param stream
 	 * @param srcFileName
 	 * @param contentType
+	 * @param customTags 
 	 */
-	protected void create(ServerBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType) {
+	protected void create(ServerBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType, Optional<List<String>> customTags) {
 	
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
@@ -100,7 +101,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 					op = getJournalService().createObject(bucketId, objectName);
 					
 					RAIDSixBlocks ei = saveObjectDataFile(bucketId, objectName, stream);
-					saveObjectMetadata(bucket, objectName, ei, srcFileName, contentType, version);
+					saveObjectMetadata(bucket, objectName, ei, srcFileName, contentType, version, customTags);
 					
 					done = op.commit();
 					
@@ -222,7 +223,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 	 * todo en el object metadata o cada file por separado
 	 * 
 	 */
-	private void saveObjectMetadata(ServerBucket bucket, String objectName, RAIDSixBlocks ei, String srcFileName, String contentType, int version) {
+	private void saveObjectMetadata(ServerBucket bucket, String objectName, RAIDSixBlocks ei, String srcFileName, String contentType, int version, Optional<List<String>> customTags) {
 		
 		List<String> shaBlocks = new ArrayList<String>();
 		StringBuilder etag_b = new StringBuilder();
@@ -266,6 +267,9 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 				meta.status=ObjectStatus.ENABLED;
 				meta.drive=drive.getName();
 				meta.raid=String.valueOf(getRedundancyLevel().getCode()).trim();
+				if (customTags.isPresent()) 
+					meta.customTags=customTags.get();
+				
 				drive.saveObjectMetadata(meta);
 	
 			} catch (Exception e) {

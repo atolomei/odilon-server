@@ -56,6 +56,12 @@ public class OdilonPropertiesListener implements ApplicationListener<Application
 		    		
 		    environment.getPropertySources().addFirst(new PropertiesPropertySource("odilonProps", props));
 		    
+		    
+		     //environment.getPropertySources().forEach( item -> logger.debug(item.toString()));
+		     //logger.debug( environment.getProperty("server.ssl.enabled"));
+		     //.forEach( item -> logger.debug(item.toString()));
+		     
+		     
 		    Locale.setDefault(Locale.ENGLISH);
 		    
 	}

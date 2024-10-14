@@ -19,6 +19,7 @@ package io.odilon.api;
 
 
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -632,7 +633,8 @@ public class ObjectController extends BaseApiController  {
 				@RequestParam("file") MultipartFile file,
 				@RequestParam("fileName") Optional<String> oFileName,
 				@RequestParam("Content-Type") String contentType,
-				@RequestParam("version") Optional<Integer> version
+				@RequestParam("version") Optional<Integer> version,
+				@RequestParam("customTags") Optional<String> customTags
 																												
 				) {
 
@@ -646,15 +648,28 @@ public class ObjectController extends BaseApiController  {
 				
 				ObjectMetadata meta;
 				
+				Optional<List<String>> o_list;
+				
+				if (customTags.isPresent()) {
+					
+					List<String> tags = new ArrayList<String>();
+					String arr[] =  customTags.get().split("#");
+					for( String s: arr) 
+						tags.add(s);
+					o_list = Optional.ofNullable(tags);
+				}
+				else  o_list = Optional.empty();
+				
 				if (version.isEmpty()) {
-					getObjectStorageService().putObject(bucketName, objectName, file.getInputStream(), fileName, contentType);
+					getObjectStorageService().putObject(bucketName, objectName, file.getInputStream(), fileName, contentType, o_list);
 					meta = getObjectStorageService().getObjectMetadata(bucketName, objectName);					
 				}
 				else {
+					
 					meta = getObjectStorageService().getObjectMetadataPreviousVersion(bucketName, objectName, version.get().intValue());
 					
 					if (meta!=null) {
-						logger.debug("version not done");
+						logger.error("version update not done");
 					}
 				}
 				

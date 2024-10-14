@@ -252,11 +252,17 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
 			putObject(bucketName, objectName, new BufferedInputStream(fis), file.getName(), contentType);	
 	}
 
+	
+	@Override
+	public void putObject(String bucketName, String objectName, InputStream stream, String fileName, String contentType) {
+		putObject(bucketName, objectName, stream, fileName, contentType, Optional.empty());
+	}
+	
 	/**
 	 * 
 	 */
 	@Override
-	public void putObject(String bucketName, String objectName, InputStream is, String fileName, String contentType) {
+	public void putObject(String bucketName, String objectName, InputStream is, String fileName, String contentType, Optional<List<String>> customTags) {
 
 		Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null or empty | b:"+ bucketName);
@@ -286,7 +292,7 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
 					objectName);
 		
 		try {
-			getVFS().putObject(bucketName, objectName, is, fileName, contentType);
+			getVFS().putObject(bucketName, objectName, is, fileName, contentType, customTags);
 		} 
 		catch (Exception e) {
 			throw new OdilonInternalErrorException(e);
@@ -545,6 +551,9 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
 	private boolean isVFSEnabled() {
 		return (getVFS().getStatus()==ServiceStatus.RUNNING);
 	}
+
+
+
 }
 
 

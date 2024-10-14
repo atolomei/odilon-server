@@ -77,8 +77,9 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 	 * @param stream			can not be null
 	 * @param srcFileName
 	 * @param contentType
+	 * @param customTags 
 	 */
-	protected void update(ServerBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType) {
+	protected void update(ServerBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType, Optional<List<String>> customTags) {
 	
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
@@ -118,7 +119,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 					/** copy new version as head version */
 					afterHeadVersion = meta.version+1;
 					RAIDSixBlocks ei = saveObjectDataFile(bucket,objectName, stream);
-					saveObjectMetadata(bucket, objectName, ei, srcFileName, contentType, afterHeadVersion, meta.creationDate);
+					saveObjectMetadata(bucket, objectName, ei, srcFileName, contentType, afterHeadVersion, meta.creationDate, customTags);
 
 					done = op.commit();
 				
@@ -473,7 +474,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 	 * @param version
 	 * @param headCreationDate
 	 */
-	private void saveObjectMetadata(ServerBucket bucket, String objectName, RAIDSixBlocks ei, String srcFileName, String contentType, int version, OffsetDateTime headCreationDate) {
+	private void saveObjectMetadata(ServerBucket bucket, String objectName, RAIDSixBlocks ei, String srcFileName, String contentType, int version, OffsetDateTime headCreationDate, Optional<List<String>> customTags) {
 		
 		List<String> shaBlocks = new ArrayList<String>();
 		StringBuilder etag_b = new StringBuilder();
@@ -518,6 +519,10 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 				meta.status=ObjectStatus.ENABLED;
 				meta.drive=drive.getName();
 				meta.raid=String.valueOf(getRedundancyLevel().getCode()).trim();
+				if (customTags.isPresent()) 
+					meta.customTags=customTags.get();
+
+				
 				drive.saveObjectMetadata(meta);
 	
 			} catch (Exception e) {

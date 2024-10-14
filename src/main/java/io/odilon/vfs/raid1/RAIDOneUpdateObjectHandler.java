@@ -80,9 +80,10 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 	 * @param stream
 	 * @param srcFileName
 	 * @param contentType
+	 * @param customTags 
 	 */
 	
-	protected void update(ServerBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType) {
+	protected void update(ServerBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType, Optional<List<String>> customTags) {
 
 		VFSOperation op = null;
 		boolean done = false;
@@ -114,7 +115,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 					/** copy new version as head version */
 					afterHeadVersion = meta.version+1;
 					saveObjectDataFile(bucket, objectName, stream, srcFileName, meta.version+1);
-					saveObjectMetadata(bucket, objectName, srcFileName, contentType, meta.version+1);
+					saveObjectMetadata(bucket, objectName, srcFileName, contentType, meta.version+1, customTags);
 					
 					done = op.commit();
 					
@@ -527,7 +528,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 	 * @param stream
 	 * @param srcFileName
 	 */
-	private void saveObjectMetadata(ServerBucket bucket, String objectName, String srcFileName, String contentType, int version) {
+	private void saveObjectMetadata(ServerBucket bucket, String objectName, String srcFileName, String contentType, int version, Optional<List<String>> customTags) {
 		
 		OffsetDateTime now =  OffsetDateTime.now();
 		String sha=null;
@@ -568,6 +569,9 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 						meta.status=ObjectStatus.ENABLED;
 						meta.drive=drive.getName();
 						meta.raid=String.valueOf(getRedundancyLevel().getCode()).trim();
+						if (customTags.isPresent()) 
+							meta.customTags=customTags.get();
+						
 						drive.saveObjectMetadata(meta);
 					} catch (Exception e) {
 						String msg =  	"b:"   + (Optional.ofNullable(bucket).isPresent()    ? (bucket.getId()) :"null") + 

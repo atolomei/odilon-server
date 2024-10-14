@@ -59,6 +59,7 @@ public interface ObjectStorageService extends SystemService {
 	* -------------------*/
 	public void putObject(String bucketName, String objectName, File file);
 	public void putObject(String bucketName, String objectName, InputStream stream, String fileName, String contentType);
+	public void putObject(String bucketName, String objectName, InputStream stream, String fileName, String contentType, Optional<List<String>> customTags);
 	
 	public VFSObject getObject(String bucketName, String objectName);
 	public ObjectMetadata getObjectMetadata(String bucketName, String objectName);

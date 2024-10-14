@@ -144,7 +144,8 @@ public interface VirtualFileSystemService extends SystemService {
 	 */
 	public void putObject(ServerBucket bucket, String objectName, File file);
 	public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName, String contentType);
-	public void putObject(String bucketName, String objectName, InputStream is, String fileName, String contentType);
+	public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName, String contentType, Optional<List<String>> customTags);
+	public void putObject(String bucketName, String objectName, InputStream is, String fileName, String contentType, Optional<List<String>> customTags);
 	
 	public VFSObject getObject(ServerBucket bucket, String objectName);
 	public VFSObject getObject(String bucketName, String objectName);
@@ -239,7 +240,8 @@ public interface VirtualFileSystemService extends SystemService {
 
 	public void addBucketCache(ServerBucket bucket);
 	public void updateBucketCache(String oldBucketName, ServerBucket bucket);
-	
+
+
 
 
 

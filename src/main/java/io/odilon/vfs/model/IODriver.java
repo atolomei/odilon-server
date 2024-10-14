@@ -50,7 +50,7 @@ public interface IODriver {
 	 */
 	public ObjectMetadata 	getObjectMetadata(ServerBucket bucket, String objectName);
 	public void 			putObjectMetadata(ObjectMetadata meta);
-	public void 			putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName, String contentType);
+	public void 			putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName, String contentType, Optional<List<String>> customTags);
 	public void 			putObject(ServerBucket bucket, String objectName, File file);
 	
 	public VFSObject 		getObject(ServerBucket bucket, String objectName);

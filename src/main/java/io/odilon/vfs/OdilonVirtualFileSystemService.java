@@ -467,26 +467,31 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 		createVFSIODriver().putObject(bucket, objectName, file);
 	}
 
-	/**
-	 * 
-	 */
 	@Override
-	public void putObject(String bucketName, String objectName, InputStream is, String fileName, String contentType) {
-		Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
-		Check.requireNonNullArgument(objectName, "objectName can not be null -> b:" + bucketName);
-		Check.requireTrue(getBucketsByNameMap().containsKey(bucketName), "bucket does not exist | b: " + bucketName);
-		putObject(getBucketsByNameMap().get(bucketName), objectName, is, fileName, contentType);
+	public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName, String contentType) {
+			putObject(bucket, objectName, stream, fileName, contentType, Optional.empty());
 	}
 
 	/**
 	 * 
 	 */
 	@Override
-	public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName, String contentType) {
+	public void putObject(String bucketName, String objectName, InputStream is, String fileName, String contentType, Optional<List<String>> customTags) {
+		Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
+		Check.requireNonNullArgument(objectName, "objectName can not be null -> b:" + bucketName);
+		Check.requireTrue(getBucketsByNameMap().containsKey(bucketName), "bucket does not exist | b: " + bucketName);
+		putObject(getBucketsByNameMap().get(bucketName), objectName, is, fileName, contentType, customTags);
+	}
+
+	/**
+	 * 
+	 */
+	@Override
+	public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName, String contentType, Optional<List<String>> customTags) {
 		Check.requireNonNullArgument(bucket, "bucket can not be null ");
 		Check.requireNonNullArgument(objectName, "objectName can not be null -> b:" + bucket.getName());
 		Check.requireTrue(getBucketsByNameMap().containsKey(bucket.getName()), "bucket does not exist | b: " + bucket.getName());
-		createVFSIODriver().putObject(bucket, objectName, stream, fileName, contentType);
+		createVFSIODriver().putObject(bucket, objectName, stream, fileName, contentType, customTags);
 	}
 
 	/**

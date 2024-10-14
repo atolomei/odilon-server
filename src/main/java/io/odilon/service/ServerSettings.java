@@ -16,7 +16,6 @@
  */
 package io.odilon.service;
 
-
 import java.io.File;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -69,6 +68,10 @@ public class ServerSettings implements BaseObject {
 	private static final OffsetDateTime systemStarted = OffsetDateTime.now(); 
 	
 	protected String version = "";
+
+	private String encryptionKey;
+	private String encryptionIV;
+
 	
 	// PING ------------------------
 
@@ -121,6 +124,9 @@ public class ServerSettings implements BaseObject {
 	@Value("${recoveryMode:false}")
 	protected boolean isRecoverMode = false;
 
+	@Value("${server.ssl.enabled}")
+	protected String ishttps;
+	
 	
 	// ENCRYPTION -----------------------------------------------
 	//
@@ -145,7 +151,7 @@ public class ServerSettings implements BaseObject {
 	// DATA STORAGE -------------------------------------------
 	// by default RAID 0 with 1 directory
 	// 
-	
+	//
 	@Value("${redundancyLevel:RAID 0}")
 	@NonNull
 	protected String redundancyLevelStr;
@@ -188,9 +194,7 @@ public class ServerSettings implements BaseObject {
 	@Value("${scheduler.cronJobWorkDirCleanUp:15 5 * * * *}")
 	protected String CronJobWorkDirCleanUp;
 	
-	
 
-	
 	// INTEGRITY CHECK -----------------------------------
 	
 	@Value("${integrityCheck:true}")
@@ -328,6 +332,8 @@ public class ServerSettings implements BaseObject {
 		str.append(", \"accessKey\":\"" + accessKey + "\"");
 		str.append(", \"secretKey\":\"" + secretKey + "\"");
 		
+		str.append(", \"https\":\"" + (isHTTPS() ? "yes" : "no") + "\"");
+		
 		str.append(", \"Vault enabled\":\"" + "\""+  (isVaultEnabled() ? "true" : "false") +"\"");
 		str.append(", \"Use Vault for new files\":\"" + "\""+  (isUseVaultNewFiles() ? "true" : "false") +"\"");
 		str.append(", \"vaultUrl\":\"" + (Optional.ofNullable(vaultUrl).isPresent() ? ("\""+vaultUrl+"\"") :"null"));
@@ -418,6 +424,8 @@ public class ServerSettings implements BaseObject {
 		
 		map.put("dataStorage", getDataStorage().getName());
 		
+		map.put("https", isHTTPS() ? "yes" : "no");
+		
 		
 		map.put("keyAlgorithm", (Optional.ofNullable(keyAlgorithm).isPresent() ? (keyAlgorithm) :"null"));		
 		//map.put("encryptionAlgorithm", (Optional.ofNullable(encryptionAlgorithm).isPresent() ? (encryptionAlgorithm) :"null"));
@@ -458,25 +466,22 @@ public class ServerSettings implements BaseObject {
 		return str.toString();
 	}
 	
-	
-	
 	/**
-	 * 
 	 * 
 	 */
 	@PostConstruct
 	public void onInitialize() {
 	
-		if (secretKey==null)  {
+		if (this.secretKey==null)  {
 			exit("secretKey can not be null");
 		}
 		
 		
-		if (rootDirs==null || rootDirs.size()<1) {
+		if (this.rootDirs==null || this.rootDirs.size()<1) {
 			startuplogger.error(		"No rootDirs are defined. \n"
 										+ 	"for RAID 0. at least 1 dataDir must be defined in file -> odilon.properties \n"
 										+ 	"for RAID 1. at least 1 dataDir must be defined in file -> odilon.properties \n"
-										+ 	"for RAID 6.  3, 6, 12 or 24 dataDirs must be defined in file -> odilon.properties \n"
+										+ 	"for RAID 6. 3, 6, 12, 24 or 48 dataDirs must be defined in file -> odilon.properties \n"
 										+   "using default values ");
 			
 			getDefaultRootDirs().forEach( o -> startuplogger.error(o));
@@ -485,9 +490,9 @@ public class ServerSettings implements BaseObject {
 
 		
 		
-		if (encryptionKeyIV!=null)  {
-			encryptionKeyIV=encryptionKeyIV.trim();
-			if (encryptionKeyIV.length()!= ( 2 * (EncryptionService.AES_KEY_SIZE_BITS + EncryptionService.AES_IV_SIZE_BITS) / VirtualFileSystemService.BITS_PER_BYTE))
+		if (this.encryptionKeyIV!=null)  {
+			this.encryptionKeyIV=encryptionKeyIV.trim();
+			if (this.encryptionKeyIV.length()!= ( 2 * (EncryptionService.AES_KEY_SIZE_BITS + EncryptionService.AES_IV_SIZE_BITS) / VirtualFileSystemService.BITS_PER_BYTE))
 				exit("encryption key length must be -> " + String.valueOf((2 * (EncryptionService.AES_KEY_SIZE_BITS + EncryptionService.AES_IV_SIZE_BITS) / VirtualFileSystemService.BITS_PER_BYTE)));
 			try {
 				@SuppressWarnings("unused")
@@ -502,8 +507,8 @@ public class ServerSettings implements BaseObject {
 		}
 		
 		
-		if ( (masterKey==null) && (masterkey_lowercase!=null)) {
-			masterKey=masterkey_lowercase.trim();
+		if ( (this.masterKey==null) && (this.masterkey_lowercase!=null)) {
+			this.masterKey=this.masterkey_lowercase.trim();
 		}
 		
 		if (masterKey!=null) {
@@ -587,7 +592,7 @@ public class ServerSettings implements BaseObject {
 		else if (this.redundancyLevel==RedundancyLevel.RAID_6) {
 		
 			if (!((this.rootDirs.size()==3) || (this.rootDirs.size()==6) || (this.rootDirs.size()==12) || (this.rootDirs.size()==24))) {
-				exit("DataStorage must have 3 or 6 or 12 or 24 entries for -> " +	redundancyLevel.getName());
+				exit("DataStorage must have 3 or 6 or 12 or 24 or 48 entries for -> " +	redundancyLevel.getName());
 			}
 			
 				if (this.rootDirs.size()==3) {
@@ -615,16 +620,25 @@ public class ServerSettings implements BaseObject {
 						this.raid6ParityDrives=8;
 				}
 				
-				if ( !(( (this.rootDirs.size()==3) && (this.raid6DataDrives==2) && (this.raid6ParityDrives==1)) || 
-					   ( (this.rootDirs.size()==6) && (this.raid6DataDrives==4) && (this.raid6ParityDrives==2)) || 
-					   ( (this.rootDirs.size()==12)&& (this.raid6DataDrives==8) && (this.raid6ParityDrives==4)) ||
+				else if (this.rootDirs.size()==48) {
+					if (this.raid6DataDrives==-1)
+						this.raid6DataDrives=32;
+					if (this.raid6ParityDrives==-1)
+						this.raid6ParityDrives=16;
+				}
+				
+				if ( !(( (this.rootDirs.size()==3) && (this.raid6DataDrives==2) && (this.raid6ParityDrives==1))   || 
+					   ( (this.rootDirs.size()==6) && (this.raid6DataDrives==4) && (this.raid6ParityDrives==2))   || 
+					   ( (this.rootDirs.size()==12)&& (this.raid6DataDrives==8) && (this.raid6ParityDrives==4))   ||
+					   ( (this.rootDirs.size()==48)&& (this.raid6DataDrives==32) && (this.raid6ParityDrives==16)) ||
 					   ( (this.rootDirs.size()==24)&& (this.raid6DataDrives==16) && (this.raid6ParityDrives==8))
 					  )) { 
 					exit(RedundancyLevel.RAID_6.getName() +" configurations supported are -> "
-							+ "3 dirs  in DataStorage and raid6.dataDrives=2 and raid6.parityDrives=1 | "
-							+ "6 dirs  in DataStorage and raid6.dataDrives=4 and raid6.parityDrives=2 | "
-							+ "12 dirs in DataStorage and raid6.dataDrives=8 and raid6.parityDrives=4 | "
-							+ "24 dirs in DataStorage and raid6.dataDrives=16 and raid6.parityDrives=8 ");
+							+ " 3 dirs in DataStorage and raid6.dataDrives=2 and raid6.parityDrives=1  | "
+							+ " 6 dirs in DataStorage and raid6.dataDrives=4 and raid6.parityDrives=2  | "
+							+ "12 dirs in DataStorage and raid6.dataDrives=8 and raid6.parityDrives=4  | "
+							+ "24 dirs in DataStorage and raid6.dataDrives=16 and raid6.parityDrives=8 |  "
+							+ "48 dirs in DataStorage and raid6.dataDrives=32 and raid6.parityDrives=16 ");
 					}
 				}
 		try {
@@ -724,6 +738,10 @@ public class ServerSettings implements BaseObject {
 		return this.versioncontrol;
 	}
 
+	public boolean isHTTPS() {
+		return this.ishttps != null && this.ishttps.toLowerCase().trim().equals("true");
+	}
+	
 	
 	private List<String> getDefaultRootDirs() {
 		
@@ -765,14 +783,15 @@ public class ServerSettings implements BaseObject {
 		}
 	}
 	
-	//public String getEncryptionAlgorithm() {
-	//	return encryptionAlgorithm;
-	//}
+	// public String getEncryptionAlgorithm() {
+	//	 return encryptionAlgorithm;
+	// }
 
-	//public void setEncryptionAlgorithm(String encryptionAlgorithm) {
-	//	this.encryptionAlgorithm = encryptionAlgorithm;
-	//}
+	// public void setEncryptionAlgorithm(String encryptionAlgorithm) {
+	//	 this.encryptionAlgorithm = encryptionAlgorithm;
+	// }
 
+	
 	public String getKeyAlgorithm() {
 		return keyAlgorithm;
 	}
@@ -811,8 +830,6 @@ public class ServerSettings implements BaseObject {
 	}
 	
 	
-	private String encryptionKey;
-	private String encryptionIV;
 	
 	public  String getEncryptionKey() {
 		return  encryptionKey;
@@ -996,9 +1013,10 @@ public class ServerSettings implements BaseObject {
 
 	
 	public boolean isRAID6ConfigurationValid(int dataShards, int parityShards) {
-		return  (dataShards==16 && parityShards==8) ||
-				(dataShards==8 && parityShards==4) ||
-			    (dataShards==4 && parityShards==2) ||
+		return	(dataShards==32 && parityShards==16) ||
+				(dataShards==16 && parityShards==8)  ||
+				(dataShards==8 && parityShards==4)   ||
+			    (dataShards==4 && parityShards==2)   ||
 			    (dataShards==2 && parityShards==1);
 	}
 

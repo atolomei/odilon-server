@@ -142,7 +142,6 @@ public class RAIDOneDriver extends BaseIODriver  {
 		Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 		Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie. " + BucketStatus.ARCHIVED.getName() +" or " + BucketStatus.ENABLED.getName() + ") | b:" + bucket.getName());
 		
-		
 		getLockService().getObjectLock(bucket.getId(), objectName).readLock().lock();
 		
 		try {
@@ -216,7 +215,8 @@ public class RAIDOneDriver extends BaseIODriver  {
 	 * 
 	 * 
 	 */
-	public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName, String contentType) {
+	@Override
+	public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName, String contentType, Optional<List<String>> customTags) {
 		
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:"+ bucket.getId());
@@ -226,12 +226,12 @@ public class RAIDOneDriver extends BaseIODriver  {
 		// TODO AT ->ideally lock must be before creating the agent
 		if (exists(bucket, objectName)) {
 			RAIDOneUpdateObjectHandler updateAgent = new RAIDOneUpdateObjectHandler(this);
-			updateAgent.update(bucket, objectName, stream, fileName, contentType);
+			updateAgent.update(bucket, objectName, stream, fileName, contentType, customTags);
 			getVFS().getSystemMonitorService().getUpdateObjectCounter().inc();
 		}
 		else {
 			RAIDOneCreateObjectHandler createAgent = new RAIDOneCreateObjectHandler(this);
-			createAgent.create(bucket, objectName, stream, fileName, contentType);
+			createAgent.create(bucket, objectName, stream, fileName, contentType, customTags);
 			getVFS().getSystemMonitorService().getCreateObjectCounter().inc();
 		}
 	}

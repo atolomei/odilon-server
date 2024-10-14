@@ -240,7 +240,6 @@ public class OdilonDrive extends OdilonModelObject implements Drive {
 			if ((!work_dir.exists()) || (!work_dir.isDirectory())) 
 				FileUtils.forceMkdir(work_dir);
 			
-					
 			if ((!cache_dir.exists()) || (!cache_dir.isDirectory())) 
 				FileUtils.forceMkdir(cache_dir);
 			

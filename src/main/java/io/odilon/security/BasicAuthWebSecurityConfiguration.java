@@ -61,13 +61,15 @@ public class BasicAuthWebSecurityConfiguration {
 	@Bean
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 		
-		 http
-				  .authorizeHttpRequests((authorize) -> authorize.requestMatchers("/presigned/", "/presigned/object", "/public/").permitAll())
-				  .authorizeHttpRequests(authorizeRequests -> authorizeRequests.anyRequest().authenticated())
-			      .httpBasic(Customizer.withDefaults())
-			      .formLogin(Customizer.withDefaults())  
-			      .csrf(AbstractHttpConfigurer::disable);
-			    return http.build();
+		 //http.requiresChannel(channel -> channel.anyRequest().requiresSecure())
+		
+		 http.authorizeHttpRequests((authorize) -> authorize.requestMatchers("/presigned/", "/presigned/object", "/public/").permitAll())
+			 .authorizeHttpRequests(authorizeRequests -> authorizeRequests.anyRequest().authenticated())
+			 .httpBasic(Customizer.withDefaults())
+			 .formLogin(Customizer.withDefaults())  
+			 .csrf(AbstractHttpConfigurer::disable);
+			 
+		 return http.build();
 	}
 
 	@Bean

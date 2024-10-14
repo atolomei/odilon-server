@@ -97,8 +97,7 @@ public class InfoController extends BaseApiController {
 		
 		
 		} finally {
-			if (pass!=null)
-				getTrafficControlService().release(pass);
+			getTrafficControlService().release(pass);
 			mark();
 		}
 	}

@@ -22,6 +22,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import javax.annotation.concurrent.ThreadSafe;
@@ -71,8 +72,9 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 	 * @param stream
 	 * @param srcFileName
 	 * @param contentType
+	 * @param customTags 
 	 */
-	protected void create(ServerBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType) {
+	protected void create(ServerBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType, Optional<List<String>> customTags) {
 					
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Long bucketId=bucket.getId();
@@ -100,7 +102,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 					op = getJournalService().createObject(bucket.getId(), objectName);
 					
 					saveObjectDataFile(bucket.getId(), objectName, stream, srcFileName);
-					saveObjectMetadata(bucket.getId(), objectName, srcFileName, contentType, version);
+					saveObjectMetadata(bucket.getId(), objectName, srcFileName, contentType, version, customTags);
 					
 					done = op.commit();
 							
@@ -247,7 +249,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 	 * @param stream
 	 * @param srcFileName
 	 */
-	private void saveObjectMetadata(Long bucketId, String objectName, String srcFileName, String contentType, int version) {
+	private void saveObjectMetadata(Long bucketId, String objectName, String srcFileName, String contentType, int version,  Optional<List<String>> customTags) {
 		
 		String sha=null;
 		String baseDrive=null;
@@ -285,6 +287,9 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 				meta.status=ObjectStatus.ENABLED;
 				meta.drive=drive.getName();
 				meta.raid=String.valueOf(getRedundancyLevel().getCode()).trim();
+				if (customTags.isPresent()) 
+					meta.customTags=customTags.get();
+				
 				drive.saveObjectMetadata(meta);
 	
 			} catch (Exception e) {

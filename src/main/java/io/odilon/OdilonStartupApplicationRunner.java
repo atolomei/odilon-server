@@ -163,9 +163,13 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 	 */
 	private boolean initGeneral() {
 		ServerSettings settingsService = getAppContext().getBean(ServerSettings.class);
+		
+		startupLogger.info("Https -> " + (settingsService.isHTTPS() ? "yes" : "no"));
+		
 		startupLogger.info("Port-> " + String.valueOf(settingsService.getPort()));
 		
 		OdilonServerInfo info = getAppContext().getBean(VirtualFileSystemService.class).getOdilonServerInfo();
+		
 		
 		startupLogger.info("Encryption service initialized -> " + ( ((info!=null) && info.isEncryptionIntialized()) ? "true" :"false" ));
 		startupLogger.info("Encryption enabled -> " + String.valueOf(settingsService.isEncryptionEnabled()));

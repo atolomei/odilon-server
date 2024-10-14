@@ -22,6 +22,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import javax.annotation.concurrent.ThreadSafe;
@@ -70,8 +71,9 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 	 * @param stream
 	 * @param srcFileName
 	 * @param contentType
+	 * @param customTags 
 	 */
-	protected void create(@NonNull ServerBucket bucket, @NonNull String objectName, @NonNull InputStream stream, String srcFileName, String contentType) {
+	protected void create(@NonNull ServerBucket bucket, @NonNull String objectName, @NonNull InputStream stream, String srcFileName, String contentType, Optional<List<String>> customTags) {
 	
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
@@ -96,7 +98,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 						op = getJournalService().createObject(bucket.getId(), objectName);
 						
 						saveObjectDataFile(bucket,objectName, stream, srcFileName);
-						saveObjectMetadata(bucket,objectName, srcFileName, contentType, version);
+						saveObjectMetadata(bucket,objectName, srcFileName, contentType, version, customTags);
 
 						done = op.commit();
 					
@@ -235,8 +237,9 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 	 * @param objectName		can not be null
 	 * @param stream			can not be null
 	 * @param srcFileName		can not be null	
+	 * @param customTags 
 	 */
-	private void saveObjectMetadata(ServerBucket bucket, String objectName, String srcFileName, String contentType, int version) {
+	private void saveObjectMetadata(ServerBucket bucket, String objectName, String srcFileName, String contentType, int version, Optional<List<String>> customTags) {
 		
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		
@@ -261,6 +264,8 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 				meta.sha256=sha256;
 				meta.status=ObjectStatus.ENABLED;
 				meta.drive=drive.getName();
+				if (customTags.isPresent()) 
+					meta.customTags=customTags.get();
 				meta.raid=String.valueOf(getRedundancyLevel().getCode()).trim();
 				
 				drive.saveObjectMetadata(meta);
