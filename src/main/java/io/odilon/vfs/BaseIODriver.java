@@ -127,7 +127,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 	}
 
 	/**
-	 * <p>Shared by RAID 1 and RAID 6</p>
+	 * <p>Shared by RAID 0, RAID 1, RAID 6</p>
 	 */
 	@Override
 	public ServerBucket createBucket(String bucketName) {
