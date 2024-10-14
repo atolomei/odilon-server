@@ -50,6 +50,7 @@ It is a method of encoding data into blocks that can be distributed across multi
 	<b>6 disks</b> (4 data 2 parity, supports up to 2 full disks failures) <br/>
 	<b>12 disks</b> (8 data 4 parity, supports up to 4 full disks failures) <br/>
 	<b>24 disks</b> (16 data 8 parity, supports up to 8 full disks failures)</li> <br/>
+	<b>48 disks</b> (32 data 16 parity, supports up to 16 full disks failures)</li> <br/>
 </li> <br/>
 	
 </ul>
