@@ -145,6 +145,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		ServerBucket bucket = new OdilonBucket(meta);
 		boolean isMainException = false;
 		
+		getLockService().getBucketLock(meta.id).writeLock().lock();
 		
 		try {
 
