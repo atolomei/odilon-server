@@ -653,7 +653,7 @@ public class ObjectController extends BaseApiController  {
 				if (customTags.isPresent()) {
 					
 					List<String> tags = new ArrayList<String>();
-					String arr[] =  customTags.get().split("#");
+					String arr[] =  customTags.get().split("||");
 					for( String s: arr) 
 						tags.add(s);
 					o_list = Optional.ofNullable(tags);
