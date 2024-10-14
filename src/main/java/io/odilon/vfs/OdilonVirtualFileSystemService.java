@@ -1153,8 +1153,6 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 		//map.values().forEach( bucket -> {
 		//	logger.debug( bucket.getBucketMetadata().bucketName +" -> " + bucket.getBucketMetadata().getId().longValue());
 		//});
-	
-		logger.debug("done");
 	}
 	
 	

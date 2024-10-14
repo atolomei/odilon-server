@@ -157,7 +157,6 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
 		return getVFS().getObjectMetadataPreviousVersion(bucketName,  objectName);
 	}
 
-	
 	@Override
 	public InputStream getObjectPreviousVersionStream(String bucketName, String objectName, int version) {
 		Check.requireTrue(isVFSEnabled(), "VFS invalid state -> " + getVFS().getStatus().toString());
@@ -173,7 +172,6 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
 	@Override
 	public void deleteObjectAllPreviousVersions(ObjectMetadata meta) {
 		Check.requireTrue(isVFSEnabled(), "VFS invalid state -> " + getVFS().getStatus().toString());
-		
 		getVFS().deleteObjectAllPreviousVersions(meta);
 	}
 
@@ -197,11 +195,9 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
 
 	@Override
 	public void deleteObject(String bucketName, String objectName) {
-		
 		Check.requireTrue(isVFSEnabled(), "VFS invalid state -> " + getVFS().getStatus().toString());
 		if (getServerSettings().isReadOnly() || getServerSettings().isWORM())
 			throw new IllegalStateException("Illegal operation for data storage mode -> " + getServerSettings().getDataStorage().getName() + " | b: " + bucketName + " o: " + objectName);
-			
 		getVFS().deleteObject(bucketName, objectName);
 		
 	}
