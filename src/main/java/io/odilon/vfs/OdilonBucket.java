@@ -17,7 +17,6 @@
 package io.odilon.vfs;
 
 import java.time.OffsetDateTime;
-import java.util.Optional;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

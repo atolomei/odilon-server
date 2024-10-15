@@ -531,10 +531,9 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	 *                      that is generating the pages for this query.
 	 *                      {@link BucketIteratorService} contains a cache of
 	 *                      {@link BucketIterator} for ongoing queries.
-	 *                      </p>
-	 * 
+	 *                      
 	 * @param prefix        of the objectname
-	 * 
+	 * </p>
 	 */
 	@Override
 	public DataList<Item<ObjectMetadata>> listObjects(ServerBucket bucket, Optional<Long> offset, Optional<Integer> pageSize, Optional<String> prefix, Optional<String> serverAgentId) {

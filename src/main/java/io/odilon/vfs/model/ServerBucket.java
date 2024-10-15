@@ -27,8 +27,10 @@ import io.odilon.model.BucketStatus;
  *  Every object contained by a bucket has a unique ObjectName in that bucket; therefore, 
  *  the pair <b>BucketName</b> + <b>ObjectName</b> is a Unique ID for each object in Odilon.</p>
  *  
- *@see {@link Bucket} JSON representation of a Bucket, used both by the server and SDK client
- *@see {@link OdilonBucket} implementation of this interface
+ *  <p>A ServerBucket is the Bucket on the Server side</p>
+ *  
+ *@see {@link Bucket} simplified JSON representation of a Bucket, used both by the server and SDK client
+ *@see {@link OdilonBucket} implementation of this interface on the Odilon Server
  *
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */

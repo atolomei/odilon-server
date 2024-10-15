@@ -76,21 +76,23 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 	protected void create(@NonNull ServerBucket bucket, @NonNull String objectName, @NonNull InputStream stream, String srcFileName, String contentType, Optional<List<String>> customTags) {
 	
 		Check.requireNonNullArgument(bucket, "bucket is null");
+		Check.requireNonNullArgument(bucket.getName(), "bucketName is null");
+		Check.requireNonNullArgument(bucket.getId(), "bucket id is null");
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 			
 		VFSOperation op = null;
 		boolean done = false;
 		boolean isMainException = false;
-				
+			
+		getLockService().getObjectLock(bucket.getId(), objectName).writeLock().lock();
+		
 		try {
 			
-			getLockService().getObjectLock(bucket.getId(), objectName).writeLock().lock();
+			getLockService().getBucketLock(bucket.getId()).readLock().lock();
 			
-				try (stream) {
+			try (stream) {
 					
-						getLockService().getBucketLock(bucket.getId()).readLock().lock();
-
-						if (getDriver().getWriteDrive(bucket, objectName).existsObjectMetadata(bucket.getId(), objectName))											
+									if (getDriver().getWriteDrive(bucket, objectName).existsObjectMetadata(bucket.getId(), objectName))											
 							throw new IllegalArgumentException("object already exist -> b:" + bucket.getName() + " o:"+(Optional.ofNullable(objectName).isPresent() ? (objectName) :"null"));
 						
 						int version = 0;
@@ -102,16 +104,16 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 
 						done = op.commit();
 					
-				} catch (InternalCriticalException e1) {
+			} catch (InternalCriticalException e1) {
 					done=false;
 					isMainException=true;
 					throw e1;
 					
-				} catch (Exception e) {
+			} catch (Exception e) {
 							done=false;
 							isMainException=true;
 							throw new InternalCriticalException(e, "b:" + bucket.getName() + " o:" 	+ objectName + ", f:" 	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null"));
-				} finally {
+			} finally {
 							try {
 									if ((!done) && (op!=null)) {
 										try {
@@ -134,7 +136,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 							finally {
 								getLockService().getBucketLock(bucket.getId()).readLock().unlock();
 							}
-				}
+			}
 		}
 		finally {
 			getLockService().getObjectLock(bucket.getId(), objectName).writeLock().unlock();

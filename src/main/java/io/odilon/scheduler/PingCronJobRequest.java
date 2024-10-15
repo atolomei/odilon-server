@@ -17,7 +17,7 @@
 package io.odilon.scheduler;
 
 
-import org.apache.logging.log4j.LogManager;
+
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 

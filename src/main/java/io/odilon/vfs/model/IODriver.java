@@ -42,8 +42,8 @@ public interface IODriver {
 	 */
 	public ServerBucket 	createBucket(String bucketName);
 	public ServerBucket 	renameBucket(ServerBucket bucket, String newBucketName);
-	public void 		deleteBucket(ServerBucket bucket);
-	public boolean 		isEmpty(ServerBucket bucket);
+	public void 			deleteBucket(ServerBucket bucket);
+	public boolean 			isEmpty(ServerBucket bucket);
 	
 	/**
 	 * Object get/ put / delete
