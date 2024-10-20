@@ -56,7 +56,6 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 		super(driver);
 	}
 	
-	
 	/**
 	 * @param bucket
 	 * @param objectName
@@ -369,7 +368,6 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 
 		Check.requireNonNullArgument(meta, "meta is null");
 
-		//String bucketName = meta.bucketName;
 		String objectName = meta.objectName;
 		Long bucketId=meta.bucketId;
 				

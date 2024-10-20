@@ -35,10 +35,8 @@ public class ParallelFileCoypAgent extends FileCopyAgent {
 	@JsonIgnore
 	final byte[][] source;
 	
-	
 	@JsonIgnore
 	final List<File> destination;
-	
 	
 	@JsonIgnore
 	final List<Drive> drives;
@@ -46,13 +44,11 @@ public class ParallelFileCoypAgent extends FileCopyAgent {
 	@JsonIgnore
 	private ExecutorService executor;
 	
-	
 	@JsonIgnore
 	private OffsetDateTime start;
 	
 	@JsonIgnore
 	private OffsetDateTime end;
-	
 	
 	public ParallelFileCoypAgent(List<Drive> drives, byte[][] source, List<File> destination) {
 		
@@ -60,7 +56,6 @@ public class ParallelFileCoypAgent extends FileCopyAgent {
 		Check.requireNonNull(destination);
 		Check.requireTrue(source.length==destination.size(), "source and destination must have the same number of elements. "
 				+ "source -> " + String.valueOf(source.length) + " | destination -> " + String.valueOf(destination.size()));
-		
 		
 		this.drives=drives;
 		this.source=source;
@@ -75,7 +70,6 @@ public class ParallelFileCoypAgent extends FileCopyAgent {
 		return  DateTimeUtil.dateTimeDifference(start, end, ChronoUnit.MILLIS);
 	}
 	
-	
 	@Override
 	public boolean execute() {
 	
@@ -87,7 +81,6 @@ public class ParallelFileCoypAgent extends FileCopyAgent {
 			
 			/** Thread pool */
 			this.executor = Executors.newFixedThreadPool(size);
-			
 			
 			List<Callable<Boolean>> tasks = new ArrayList<Callable<Boolean>>(size);
 			

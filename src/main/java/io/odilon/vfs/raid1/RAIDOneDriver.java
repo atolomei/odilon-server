@@ -171,11 +171,10 @@ public class RAIDOneDriver extends BaseIODriver  {
 				throw e;
 			}
 			catch (Exception e) {
-					throw new InternalCriticalException(e, "b:"   + (Optional.ofNullable( bucket).isPresent()    ? (bucket.getId()) :"null") + ", o:" + (Optional.ofNullable(objectName).isPresent() ? (objectName)       :"null") + " | v:" + String.valueOf(version));
+					throw new InternalCriticalException(e, "b:" + bucket.getId() + ", o:" + objectName + " | v:" + String.valueOf(version));
 			}
 			finally {
-				getLockService().getBucketLock(bucket.getId()).readLock().unlock();
-			
+				getLockService().getBucketLock(bucket.getId()).readLock().unlock();			
 			}
 		}
 		finally {
@@ -377,7 +376,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 			return getReadDrive(bucket).isEmpty(bucket.getId());
 		}
 		catch (Exception e) {
-				throw new InternalCriticalException(e, "b:" + (Optional.ofNullable( bucket).isPresent() ? (bucket.getId()) :"null"));
+				throw new InternalCriticalException(e, "b:" + bucket.getId());
 				 
 		} finally {						
 			getLockService().getBucketLock(bucket.getId()).readLock().unlock();
@@ -478,14 +477,14 @@ public class RAIDOneDriver extends BaseIODriver  {
 		Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie. enabled or archived) b:" + bucket.getId());
 		Check.requireNonNullArgument(objectName, "objectName can not be null | b:" + bucket.getId());
 		
+		getLockService().getObjectLock(bucket.getId(), objectName).readLock().lock();
 		
 		try {
 			
-			getLockService().getObjectLock(bucket.getId(), objectName).readLock().lock();
+			getLockService().getBucketLock(bucket.getId()).readLock().lock();
 			
 			try {
-
-				getLockService().getBucketLock(bucket.getId()).readLock().lock();
+				
 				
 				/** read is from only one of the drive (randomly selected) drive */
 				Drive readDrive = getReadDrive(bucket, objectName);
@@ -518,7 +517,6 @@ public class RAIDOneDriver extends BaseIODriver  {
 			}
 			finally {
 				getLockService().getBucketLock(bucket.getId()).readLock().unlock();
-				
 			}
 		} finally {
 			getLockService().getObjectLock(bucket.getId(), objectName).readLock().unlock();
@@ -665,7 +663,6 @@ public class RAIDOneDriver extends BaseIODriver  {
 			}
 			finally {
 				getLockService().getBucketLock(bucket.getId()).readLock().unlock();
-				
 			}
 		} finally {
 			getLockService().getObjectLock(bucket.getId(), objectName).readLock().unlock();
@@ -991,8 +988,6 @@ public class RAIDOneDriver extends BaseIODriver  {
 					
 					int total = iCheck.length;
 					
-					
-					
 					for (int p=0; p<total; p++) {
 						
 						if (!iCheck[p].booleanValue()) {
@@ -1046,9 +1041,6 @@ public class RAIDOneDriver extends BaseIODriver  {
 		
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
-		
-		
-		Check.requireNonNullArgument(bucket, "bucket does not exist -> b:" + bucket.getName());
 		Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie. " + BucketStatus.ARCHIVED.getName() +" or " + BucketStatus.ENABLED.getName() + ") | b:" + bucket.getName());
 
 		Drive readDrive = null;
@@ -1060,6 +1052,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 			getLockService().getBucketLock(bucket.getId()).readLock().lock();
 			
 			try {
+				
 				/** read is from only 1 drive */
 				readDrive = getReadDrive(bucket, objectName);
 				
@@ -1079,6 +1072,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 				}
 				
 				meta.setBucketName(bucket.getName());
+
 				return meta;
 				
 			}

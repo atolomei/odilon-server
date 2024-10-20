@@ -41,7 +41,6 @@ import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.ServerBucket;
 import io.odilon.vfs.model.BucketIterator;
 
-
 /**
  * <p>RAID 0. Bucket Iterator <br/>
  *  All Drives are enabled in RAID 0 because the Drive sync process is blocking 

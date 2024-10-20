@@ -709,11 +709,11 @@ public class OdilonDrive extends OdilonModelObject implements Drive {
 	 * @throws IOException
 	 */
 	protected void transferTo(InputStream stream, String destFileName) throws IOException {
- 		byte[] buf = new byte[ VirtualFileSystemService.BUFFER_SIZE ];
+ 		byte[] buf = new byte[ ServerConstant.BUFFER_SIZE ];
  		int bytesRead;
 		BufferedOutputStream out = null;
 		try {
-			out = new BufferedOutputStream(new FileOutputStream(destFileName), VirtualFileSystemService.BUFFER_SIZE);
+			out = new BufferedOutputStream(new FileOutputStream(destFileName), ServerConstant.BUFFER_SIZE);
 			while ((bytesRead = stream.read(buf, 0, buf.length)) >= 0)
 				  out.write(buf, 0, bytesRead);
 		} catch (IOException e) {

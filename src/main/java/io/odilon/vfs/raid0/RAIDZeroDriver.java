@@ -112,21 +112,16 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	@JsonIgnore
 	private ApplicationContext applicationContext;
 
-	
 	public RAIDZeroDriver(VirtualFileSystemService vfs, LockService vfsLockService) {
 		super(vfs, vfsLockService);
 	}
 
-	
 	@Override
 	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
 		this.applicationContext = applicationContext;
 	}
 	
-	
-	
 	/**
-	 * 
 	 * 
 	 */
 	@Override
@@ -213,10 +208,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		}
 	}
 	
-	
-	
 	/**
-	 * 
 	 * 
 	 */
 	@Override
@@ -226,7 +218,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 
 
 	/**
-	 * 
 	 * <p>
 	 * Delete all versions older than the current <b>head version</b>. <br/>
 	 * <b>IMPORTANT</b>. It does not delete the current head version. <br/>
@@ -440,13 +431,13 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie. must be " + ObjectStatus.ENABLED.getName() + " or " + ObjectStatus.ARCHIVED.getName() + " b:" + bucket.getName());
 		Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 
+		getLockService().getObjectLock(bucket.getId(), objectName).readLock().lock();
+		
 		try {
 			
-			getLockService().getObjectLock(bucket.getId(), objectName).readLock().lock();
+			getLockService().getBucketLock(bucket.getId()).readLock().lock();
 			
 			try {
-			
-				getLockService().getBucketLock(bucket.getId()).readLock().lock();
 	
 				/** read is from only 1 drive in RAID 0 */
 				Drive readDrive = getReadDrive(bucket, objectName);
@@ -544,7 +535,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		BucketIterator iterator = null;
 		
 		try {
-
 			/**
 			 * serverAgentId works as a cache of the object that is generating the pages of
 			 * the query
@@ -689,9 +679,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	public InputStream getObjectVersionInputStream(ServerBucket bucket, String objectName, int version) {
 
 		Check.requireNonNullArgument(bucket, "bucket is null");
-
-		//ODBucket bucket = getVFS().getBucketById(bucketId);
-
 		Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie. " + BucketStatus.ARCHIVED.getName() + " or " + BucketStatus.ENABLED.getName() + ") | b:" + bucket.getName());
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 
@@ -1007,9 +994,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	}
 
 
-	protected Drive getDrive(ServerBucket bucket, String objectName) {
-		return getDrivesEnabled().get(Math.abs(objectName.hashCode() % getDrivesEnabled().size()));
-	}
 
 	/**
 	 * 
@@ -1294,6 +1278,10 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		return getDrive(bucket, null);
 	}
 
+	protected Drive getDrive(ServerBucket bucket, String objectName) {
+		return getDrivesEnabled().get(Math.abs(objectName.hashCode() % getDrivesEnabled().size()));
+	}
+	
 	protected InputStream getInputStreamFromSelectedDrive(Drive readDrive, Long bucketId, String objectName) throws IOException {
 		return Files.newInputStream(Paths.get(readDrive.getRootDirPath() + File.separator + bucketId.toString() + File.separator + objectName));
 	}

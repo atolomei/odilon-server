@@ -101,16 +101,8 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 					op = getJournalService().createObject(bucketId, objectName);
 					
 					RAIDSixBlocks ei = saveObjectDataFile(bucketId, objectName, stream);
-					
-					
-					//Thread.sleep(1000);
-					
-					
 					saveObjectMetadata(bucket, objectName, ei, srcFileName, contentType, version, customTags);
-					
 					done = op.commit();
-					
-					
 			
 				} catch (InternalCriticalException e) {
 						done=false;
@@ -211,9 +203,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 	private RAIDSixBlocks saveObjectDataFile(Long bucketId, String objectName, InputStream stream) {
 		
 			try (InputStream sourceStream = isEncrypt() ? (getVFS().getEncryptionService().encryptStream(stream)) : stream) {
-				
 				return (new RAIDSixEncoder(getDriver())).encodeHead(sourceStream, bucketId, objectName);
-				
 			} catch (Exception e) {
 				throw new InternalCriticalException(e, "b:" + bucketId.toString() + " o:" + objectName);		
 			}
@@ -287,40 +277,6 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 		 }
 		 
 		 getDriver().saveObjectMetadataToDisk(drives, list, true);
-		 
-		 
-		
-		/**
-		for (Drive drive: getDriver().getDrivesAll()) {
-
-			try {
-				ObjectMetadata meta = new ObjectMetadata(bucket.getId(), objectName);
-				meta.fileName=srcFileName;
-				meta.appVersion=OdilonVersion.VERSION;
-				meta.contentType=contentType;
-				meta.creationDate = creationDate;
-				meta.version=version;
-				meta.versioncreationDate = meta.creationDate;
-				meta.length=ei.fileSize;
-				meta.sha256Blocks=shaBlocks;
-				meta.totalBlocks=ei.encodedBlocks.size();
-				meta.etag=etag;
-				meta.encrypt=getVFS().isEncrypt();
-				meta.integrityCheck=meta.creationDate;
-				meta.status=ObjectStatus.ENABLED;
-				meta.drive=drive.getName();
-				meta.raid=String.valueOf(getRedundancyLevel().getCode()).trim();
-				if (customTags.isPresent()) 
-					meta.customTags=customTags.get();
-				
-				drive.saveObjectMetadata(meta);
-	
-			} catch (Exception e) {
-				throw new InternalCriticalException(e, "b:"+ bucket.getName() + " o:" + objectName+", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null"));
-			}
-		}
-		**/
-		
 	}
 
 }

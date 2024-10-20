@@ -246,10 +246,10 @@ public class RAIDOneDriveSync implements Runnable {
 		
 																	try (InputStream is = new BufferedInputStream( new FileInputStream(dataFile))) {
 																	
-																		byte[] buf = new byte[ VirtualFileSystemService.BUFFER_SIZE ];
+																		byte[] buf = new byte[ ServerConstant.BUFFER_SIZE ];
 																		String sPath = ((SimpleDrive) drive).getObjectDataFilePath(bucket.getId(), item.getObject().objectName);
 																	
-																		try (BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(sPath), VirtualFileSystemService.BUFFER_SIZE)) {
+																		try (BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(sPath), ServerConstant.BUFFER_SIZE)) {
 																			int bytesRead;
 																			while ((bytesRead = is.read(buf, 0, buf.length)) >= 0) {
 																				out.write(buf, 0, bytesRead);

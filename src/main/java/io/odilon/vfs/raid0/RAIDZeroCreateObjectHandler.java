@@ -35,6 +35,7 @@ import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ObjectStatus;
+import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
 import io.odilon.util.OdilonFileUtils;
@@ -92,17 +93,17 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 			
 			try (stream) {
 					
-									if (getDriver().getWriteDrive(bucket, objectName).existsObjectMetadata(bucket.getId(), objectName))											
-							throw new IllegalArgumentException("object already exist -> b:" + bucket.getName() + " o:"+(Optional.ofNullable(objectName).isPresent() ? (objectName) :"null"));
+					if (getDriver().getWriteDrive(bucket, objectName).existsObjectMetadata(bucket.getId(), objectName))											
+						throw new IllegalArgumentException("object already exist -> b:" + bucket.getName() + " o:"+(Optional.ofNullable(objectName).isPresent() ? (objectName) :"null"));
 						
-						int version = 0;
+					int version = 0;
 						
-						op = getJournalService().createObject(bucket.getId(), objectName);
+					op = getJournalService().createObject(bucket.getId(), objectName);
 						
-						saveObjectDataFile(bucket,objectName, stream, srcFileName);
-						saveObjectMetadata(bucket,objectName, srcFileName, contentType, version, customTags);
+					saveObjectDataFile(bucket,objectName, stream, srcFileName);
+					saveObjectMetadata(bucket,objectName, srcFileName, contentType, version, customTags);
 
-						done = op.commit();
+					done = op.commit();
 					
 			} catch (InternalCriticalException e1) {
 					done=false;
@@ -198,14 +199,14 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 	 */
 	private void saveObjectDataFile(ServerBucket bucket, String objectName, InputStream stream, String srcFileName) {
 		
-		byte[] buf = new byte[VirtualFileSystemService.BUFFER_SIZE];
+		byte[] buf = new byte[ServerConstant.BUFFER_SIZE];
 
 		BufferedOutputStream out = null;
 		boolean isMainException = false;
 		
 		try (InputStream sourceStream = isEncrypt() ? getVFS().getEncryptionService().encryptStream(stream) : stream) {
 			
-				out = new BufferedOutputStream(new FileOutputStream(((SimpleDrive) getWriteDrive(bucket, objectName)).getObjectDataFilePath(bucket.getId(), objectName)), VirtualFileSystemService.BUFFER_SIZE);
+				out = new BufferedOutputStream(new FileOutputStream(((SimpleDrive) getWriteDrive(bucket, objectName)).getObjectDataFilePath(bucket.getId(), objectName)), ServerConstant.BUFFER_SIZE);
 				int bytesRead;
 				
 				while ((bytesRead = sourceStream.read(buf, 0, buf.length)) >= 0) {

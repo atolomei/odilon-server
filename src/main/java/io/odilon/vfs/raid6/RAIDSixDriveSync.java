@@ -297,7 +297,6 @@ public class RAIDSixDriveSync implements Runnable {
 			startuplogger.debug("Threads: " + String.valueOf(maxProcessingThread));
 			startuplogger.info("Total read: " + String.valueOf(this.counter.get()));
 			startuplogger.info("Total encoded: " + String.valueOf(this.encoded.get()));
-			//startuplogger.info("Total size: " + String.format("%14.4f", Double.valueOf(totalBytes.get()).doubleValue() / SharedConstant.d_gigabyte).trim() + " GB");
 
 			if (this.errors.get()>0)
 				startuplogger.info("Errors: " + String.valueOf(this.errors.get()));

@@ -35,6 +35,7 @@ import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ObjectStatus;
+import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
 import io.odilon.util.OdilonFileUtils;
@@ -194,7 +195,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 	private void saveObjectDataFile(Long bucketId, String objectName, InputStream stream, String srcFileName) {
 		
 		int total_drives = getDriver().getDrivesAll().size();
-		byte[] buf = new byte[ VirtualFileSystemService.BUFFER_SIZE ];
+		byte[] buf = new byte[ ServerConstant.BUFFER_SIZE ];
 
 		BufferedOutputStream out[] = new BufferedOutputStream[total_drives];
 		
@@ -206,7 +207,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 				int n_d=0;
 				for (Drive drive: getDriver().getDrivesAll()) { 
 					String sPath = ((SimpleDrive) drive).getObjectDataFilePath(bucketId, objectName);
-					out[n_d++] = new BufferedOutputStream(new FileOutputStream(sPath), VirtualFileSystemService.BUFFER_SIZE);
+					out[n_d++] = new BufferedOutputStream(new FileOutputStream(sPath), ServerConstant.BUFFER_SIZE);
 				}
 				int bytesRead;
 				
@@ -295,55 +296,8 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 				} catch (Exception e) {
 					throw new InternalCriticalException(e, "b:" + bucketId.toString() + " o:"+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null"));
 				}
-				 
-			 
 		 }
-		 
 		 getDriver().saveObjectMetadataToDisk(getDriver().getDrivesAll(), list, true);
-		 
-
-		 /**
-		 
-		for (Drive drive: getDriver().getDrivesAll()) {
-			
-			File file =((SimpleDrive) drive).getObjectDataFile(bucketId,  objectName);
-			
-			try {
-				String sha256 = OdilonFileUtils.calculateSHA256String(file);
-				if (sha==null) {
-					sha=sha256;
-					baseDrive=drive.getName();
-				}
-				else {
-					if (!sha256.equals(sha))											
-						throw new InternalCriticalException("SHA 256 are not equal for -> d:" + baseDrive+" ->" + sha + "  vs   d:" + drive.getName()+ " -> " + sha256);
-				}
-				
-				ObjectMetadata meta = new ObjectMetadata(bucketId, objectName);
-				meta.fileName=srcFileName;
-				meta.appVersion=OdilonVersion.VERSION;
-				meta.contentType=contentType;
-				meta.creationDate =  now;
-				meta.version=version;
-				meta.versioncreationDate = meta.creationDate;
-				meta.length=file.length();
-				meta.etag=sha256;
-				meta.encrypt=getVFS().isEncrypt();
-				meta.sha256=sha256;
-				meta.integrityCheck= now;
-				meta.status=ObjectStatus.ENABLED;
-				meta.drive=drive.getName();
-				meta.raid=String.valueOf(getRedundancyLevel().getCode()).trim();
-				if (customTags.isPresent()) 
-					meta.customTags=customTags.get();
-				
-				drive.saveObjectMetadata(meta);
-	
-			} catch (Exception e) {
-				throw new InternalCriticalException(e, "b:" + bucketId.toString() + " o:"+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null"));
-			}
-		}
-		*/
 	}
 
 }

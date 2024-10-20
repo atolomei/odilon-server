@@ -37,6 +37,7 @@ import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ObjectStatus;
+import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
 import io.odilon.util.OdilonFileUtils;
@@ -474,7 +475,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 	 */
 	private void saveObjectDataFile(ServerBucket bucket, String objectName, InputStream stream, String srcFileName, int newVersion) {
 		
-		byte[] buf = new byte[ VirtualFileSystemService.BUFFER_SIZE ];
+		byte[] buf = new byte[ ServerConstant.BUFFER_SIZE ];
 
 		BufferedOutputStream out = null;
 		
@@ -482,7 +483,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 		
 		try (InputStream sourceStream = isEncrypt() ? getVFS().getEncryptionService().encryptStream(stream) : stream) {
 			
-			out = new BufferedOutputStream(new FileOutputStream( ((SimpleDrive) getWriteDrive(bucket, objectName)).getObjectDataFilePath(bucket.getId(), objectName)), VirtualFileSystemService.BUFFER_SIZE);
+			out = new BufferedOutputStream(new FileOutputStream( ((SimpleDrive) getWriteDrive(bucket, objectName)).getObjectDataFilePath(bucket.getId(), objectName)), ServerConstant.BUFFER_SIZE);
 			int bytesRead;
 			while ((bytesRead = sourceStream.read(buf, 0, buf.length)) >= 0) {
 				out.write(buf, 0, bytesRead);

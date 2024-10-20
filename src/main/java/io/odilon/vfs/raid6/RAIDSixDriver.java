@@ -179,7 +179,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 				throw new OdilonObjectNotFoundException("b:" + bucket.getId() + " | o:" + objectName + " | class:" + this.getClass().getSimpleName());
 			
 			} catch (Exception e) {
-				throw new InternalCriticalException(e, "b:" + bucket.getId() + ", o:"	+ objectName);
+				throw new InternalCriticalException(e, "b:" + bucket.getId() + ", o:"	+ objectName + " | class:" + this.getClass().getSimpleName());
 				
 			} finally {
 				getLockService().getObjectLock(bucket.getId(), objectName).readLock().unlock();

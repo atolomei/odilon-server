@@ -530,43 +530,8 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 		}
 			
 		getDriver().saveObjectMetadataToDisk(getDriver().getDrivesAll(), list, true);
-		
-		
-		/**
-		for (Drive drive: getDriver().getDrivesAll()) {
-			
-			try {
-				ObjectMetadata meta = new ObjectMetadata(bucket.getId(), objectName);
-				
-				meta.fileName=srcFileName;
-				meta.appVersion=OdilonVersion.VERSION;
-				meta.contentType=contentType;
-				meta.creationDate = headCreationDate;
-				meta.version=version;
-				meta.versioncreationDate = versionCreationDate;
-				meta.length=ei.fileSize;
-				meta.totalBlocks=ei.encodedBlocks.size();
-				meta.sha256Blocks=shaBlocks;
-				meta.etag=etag;
-				meta.encrypt=getVFS().isEncrypt();
-				meta.integrityCheck=meta.creationDate;
-				meta.status=ObjectStatus.ENABLED;
-				meta.drive=drive.getName();
-				meta.raid=String.valueOf(getRedundancyLevel().getCode()).trim();
-				if (customTags.isPresent()) 
-					meta.customTags=customTags.get();
-
-				
-				drive.saveObjectMetadata(meta);
-	
-			} catch (Exception e) {
-				throw new InternalCriticalException(e, "saveObjectMetadata" + "b:" + bucket.getName() + " o:" 	+ objectName);
-			}
-		}
-		*/
 	}
 	
-
 	/**
 	 * @param bucket
 	 * @param objectName

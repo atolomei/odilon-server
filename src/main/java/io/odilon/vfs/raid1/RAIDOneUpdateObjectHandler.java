@@ -37,6 +37,7 @@ import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ObjectStatus;
+import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
 import io.odilon.util.OdilonFileUtils;
@@ -454,7 +455,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 	private void saveObjectDataFile(ServerBucket bucket, String objectName, InputStream stream, String srcFileName, int newVersion) {
 		
 		int total_drives = getDriver().getDrivesAll().size();
-		byte[] buf = new byte[ VirtualFileSystemService.BUFFER_SIZE ];
+		byte[] buf = new byte[ ServerConstant.BUFFER_SIZE ];
 
 		BufferedOutputStream out[] = new BufferedOutputStream[total_drives];
 		InputStream sourceStream = null;
@@ -468,7 +469,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 			int n_d=0;
 			for (Drive drive: getDriver().getDrivesAll()) { 
 				String sPath = ((SimpleDrive) drive).getObjectDataFilePath(bucket.getId(), objectName);
-				out[n_d++] = new BufferedOutputStream(new FileOutputStream(sPath), VirtualFileSystemService.BUFFER_SIZE);
+				out[n_d++] = new BufferedOutputStream(new FileOutputStream(sPath), ServerConstant.BUFFER_SIZE);
 			}
 			int bytesRead;
 			

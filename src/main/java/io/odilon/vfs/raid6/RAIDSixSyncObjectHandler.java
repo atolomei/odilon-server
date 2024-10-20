@@ -121,23 +121,6 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 					List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
 					getDrives().forEach( d->list.add(meta));
 					getDriver().saveObjectMetadataToDisk(getDrives(), list, true);
-					
-
-					
-					//for (Drive drive:getDrives()) {
-					//	drive.saveObjectMetadata(meta);
-					//}
-					
-					
-					
-
-					
-					
-					
-					
-					
-					
-					
 				}
 				
 				
@@ -171,9 +154,15 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 							/** Metadata (version) */
 							/** changes the date of sync in order to prevent this object's sync if the process is re run */ 
 							versionMeta.dateSynced=OffsetDateTime.now();
-							for (Drive drive:getDrives()) {
-								drive.saveObjectMetadataVersion(versionMeta);
-							}
+							
+							//for (Drive drive:getDrives()) {
+							//	drive.saveObjectMetadataVersion(versionMeta);
+							//}
+							
+							List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
+							getDrives().forEach( d->list.add(versionMeta));
+							getDriver().saveObjectMetadataToDisk(getDrives(), list, false);
+							
 						}
 						else {
 							logger.warn("previous version was deleted for Object -> " + String.valueOf(version) + " |  head b:" + meta.bucketName + "  o:" + meta.objectName + "  head version:" + String.valueOf(meta.version));
