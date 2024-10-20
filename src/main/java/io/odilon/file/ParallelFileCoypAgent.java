@@ -119,13 +119,13 @@ public class ParallelFileCoypAgent extends FileCopyAgent {
 
 				 List <Future<Boolean>>  future = this.executor.invokeAll(tasks, 6, TimeUnit.MINUTES);
 				 
-				 future.forEach( f -> {
+				 /**future.forEach( f -> {
 					try {
 							logger.debug(f.get());
 					} catch (InterruptedException | ExecutionException e) {
 						logger.error(e);
 					}
-				});
+				});**/
 				 
 				Iterator<Future<Boolean>> it = future.iterator();
 				 
@@ -146,7 +146,7 @@ public class ParallelFileCoypAgent extends FileCopyAgent {
 			
 		} finally {
 			this.end = OffsetDateTime.now();
-			logger.info("Duration: " +  DateTimeUtil.timeElapsed(this.start, this.end));
+			//logger.debug("Duration: " +  DateTimeUtil.timeElapsed(this.start, this.end));
 		}
 	}
 }
