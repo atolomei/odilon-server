@@ -49,6 +49,15 @@ This is the first release of Odilon Object Storage
 2024.05.05 rename bucket (drives store buckets by id and no longer by buckename)
 2024.06.16 Encryption now uses AES/GCM/NoPadding  
 
+==================  1.8 ==================
+
+2024.10.05 Support for HTTPS
+2024.10.10 RAID 6 parallel binary files encode, parallel object metadata save
+2024.10.20 RAID 1 parallel object metadata save
+
+
+
+
 
 
 
