@@ -118,9 +118,26 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 					/** MetaData (head) */
 					meta.dateSynced=OffsetDateTime.now();
 					
-					for (Drive drive:getDrives()) {
-						drive.saveObjectMetadata(meta);
-					}
+					List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
+					getDrives().forEach( d->list.add(meta));
+					getDriver().saveObjectMetadataToDisk(getDrives(), list, true);
+					
+
+					
+					//for (Drive drive:getDrives()) {
+					//	drive.saveObjectMetadata(meta);
+					//}
+					
+					
+					
+
+					
+					
+					
+					
+					
+					
+					
 				}
 				
 				

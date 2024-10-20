@@ -380,7 +380,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 				if (versionDiscarded < 0)
 					return;
 	
-				String bucketName = metaHeadRemoved.bucketName;
+				
 				String objectName = metaHeadRemoved.objectName;
 				Long bucketId  = metaHeadRemoved.bucketId;
 				
@@ -499,6 +499,40 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 		
 		OffsetDateTime versionCreationDate = OffsetDateTime.now(); 
 	
+		
+		final List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
+		for (Drive drive: getDriver().getDrivesAll()) {
+			
+			try {
+				ObjectMetadata meta = new ObjectMetadata(bucket.getId(), objectName);
+				meta.fileName=srcFileName;
+				meta.appVersion=OdilonVersion.VERSION;
+				meta.contentType=contentType;
+				meta.creationDate = headCreationDate;
+				meta.version=version;
+				meta.versioncreationDate = versionCreationDate;
+				meta.length=ei.fileSize;
+				meta.totalBlocks=ei.encodedBlocks.size();
+				meta.sha256Blocks=shaBlocks;
+				meta.etag=etag;
+				meta.encrypt=getVFS().isEncrypt();
+				meta.integrityCheck=meta.creationDate;
+				meta.status=ObjectStatus.ENABLED;
+				meta.drive=drive.getName();
+				meta.raid=String.valueOf(getRedundancyLevel().getCode()).trim();
+				if (customTags.isPresent()) 
+					meta.customTags=customTags.get();
+				list.add(meta);
+	
+			} catch (Exception e) {
+				throw new InternalCriticalException(e, "saveObjectMetadata" + "b:" + bucket.getName() + " o:" 	+ objectName);
+			}
+		}
+			
+		getDriver().saveObjectMetadataToDisk(getDriver().getDrivesAll(), list, true);
+		
+		
+		/**
 		for (Drive drive: getDriver().getDrivesAll()) {
 			
 			try {
@@ -529,6 +563,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 				throw new InternalCriticalException(e, "saveObjectMetadata" + "b:" + bucket.getName() + " o:" 	+ objectName);
 			}
 		}
+		*/
 	}
 	
 
@@ -669,13 +704,23 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 	
 	
 	private void saveObjectMetadata(ObjectMetadata meta, boolean isHead) {
+		
 		Check.requireNonNullArgument(meta, "meta is null");
+		
+		final List<Drive> drives = getDriver().getDrivesAll();
+		final List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
+		
+		getDriver().getDrivesAll().forEach( d -> list.add(meta));
+
+		getDriver().saveObjectMetadataToDisk(drives, list, isHead);
+		/**
 		for (Drive drive: getDriver().getDrivesAll()) {
 			if (isHead)
 				drive.saveObjectMetadata(meta);
 			else
 				drive.saveObjectMetadataVersion(meta);
 		}
+		**/
 	}
 	
 	/**
@@ -711,14 +756,14 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 
 	
 	
-	private boolean restoreVersionObjectDataFile(ObjectMetadata meta, int versiontoRestore) {
+	private boolean restoreVersionObjectDataFile(ObjectMetadata meta, int version) {
 
 		Check.requireNonNullArgument(meta.bucketName, "bucketName is null");
 		Check.requireNonNullArgument(meta.objectName, "objectName is null or empty | b:" + meta.bucketName);
 
 		try {
 	
-			Map<Drive, List<String>> versionToRestore = getDriver().getObjectDataFilesNames(meta, Optional.of(versiontoRestore));
+			Map<Drive, List<String>> versionToRestore = getDriver().getObjectDataFilesNames(meta, Optional.of(version));
 
 			for (Drive drive: versionToRestore.keySet()) {
 				for (String name: versionToRestore.get(drive)) {

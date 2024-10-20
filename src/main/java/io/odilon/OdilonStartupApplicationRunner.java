@@ -164,7 +164,7 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 	private boolean initGeneral() {
 		ServerSettings settingsService = getAppContext().getBean(ServerSettings.class);
 		
-		startupLogger.info("Https -> " + (settingsService.isHTTPS() ? "yes" : "no"));
+		startupLogger.info("Https -> " + (settingsService.isHTTPS() ? "true" : "false"));
 		
 		startupLogger.info("Port-> " + String.valueOf(settingsService.getPort()));
 		

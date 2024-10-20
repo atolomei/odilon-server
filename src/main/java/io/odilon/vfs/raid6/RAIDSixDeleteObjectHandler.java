@@ -19,6 +19,8 @@ package io.odilon.vfs.raid6;
 import java.io.File;
 import java.io.IOException;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import javax.annotation.concurrent.ThreadSafe;
@@ -207,11 +209,29 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 					/** update head metadata with the tag */
 					headMeta.addSystemTag("delete versions");
 					headMeta.lastModified = OffsetDateTime.now();
+					
+					
+					
+					
+					 final List<Drive> drives = getDriver().getDrivesAll();
+					 final List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
+					
+					 getDriver().getDrivesAll().forEach(d -> list.add(d.getObjectMetadata(bucketId, objectName)));
+					 
+					 getDriver().saveObjectMetadataToDisk(drives, list, true);
+					 
+
+					 
+					 
+					/**
 					for (Drive drive: getDriver().getDrivesAll()) {
 						ObjectMetadata metaDrive = drive.getObjectMetadata(bucketId, objectName);
 						headMeta.drive=drive.getName();	
 						drive.saveObjectMetadata(metaDrive);							
 					}
+					**/
+					
+					
 					
 					done=op.commit();
 				

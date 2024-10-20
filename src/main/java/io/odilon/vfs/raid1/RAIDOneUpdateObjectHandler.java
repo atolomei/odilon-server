@@ -271,12 +271,13 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 	protected void updateObjectMetadata(ObjectMetadata meta) {
 		
 		Check.requireNonNullArgument(meta, "meta is null");
+		Check.requireNonNullArgument(meta.bucketId, "meta.bucketId is null");
+		
 		VFSOperation op = null;
 		boolean done = false;
 		boolean isMainException = false;
 		
-		ServerBucket bucket = getVFS().getBucketById(op.getBucketId());
-		
+		ServerBucket bucket = getVFS().getBucketById(meta.bucketId);
 		
 		getLockService().getObjectLock(bucket.getId(), meta.objectName).writeLock().lock();
 		
@@ -339,6 +340,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 	
 	
 	protected void rollbackJournal(VFSOperation op, boolean recoveryMode) {
+		
 		Check.requireNonNullArgument(op, "op is null");
 		Check.requireTrue( (op.getOp()==VFSOp.UPDATE_OBJECT || 	op.getOp()==VFSOp.UPDATE_OBJECT_METADATA ||	op.getOp()==VFSOp.RESTORE_OBJECT_PREVIOUS_VERSION ), VFSOperation.class.getSimpleName() + " can not be  ->  op: " + op.getOp().getName());
 
@@ -516,6 +518,8 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 
 
 	private void saveObjectMetadata(ObjectMetadata meta) {
+		
+		
 		Check.requireNonNullArgument(meta, "meta is null");
 		for (Drive drive: getDriver().getDrivesAll()) {
 			drive.saveObjectMetadata(meta);

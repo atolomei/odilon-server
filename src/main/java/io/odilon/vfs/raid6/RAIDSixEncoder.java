@@ -24,10 +24,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 import io.odilon.errors.InternalCriticalException;
+import io.odilon.file.ParallelFileCoypAgent;
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ServerConstant;
@@ -208,6 +210,8 @@ public class RAIDSixEncoder {
          * zDrives is DrivesEnabled normally, or DrivesAll when it 
          * is called from an RaidSixDriveImporter (in the process to become "enabled")
          */
+        
+        /**
         for (int disk = 0; disk < total_shards; disk++) {
 
         	if (isWrite(disk)) {
@@ -226,6 +230,37 @@ public class RAIDSixEncoder {
         	}
         }
 		return eof;
+		
+		**/
+		
+		
+		
+		
+		
+        //
+        // Parallel copy
+        // 
+        List<File> destination = new ArrayList<File>();
+        for (int disk = 0; disk < total_shards; disk++) {
+        	if (isWrite(disk)) {
+	        	String dirPath = getDrives().get(disk).getBucketObjectDataDirPath(bucketId)      + ((o_version.isEmpty()) ? "" : (File.separator + VirtualFileSystemService.VERSION_DIR));
+	        	String name = objectName+ "." + String.valueOf(chunk) +"." + String.valueOf(disk)  + (o_version.isEmpty()   ? "" : "v." +  String.valueOf(o_version.get().intValue()));
+	        	File outputFile = new File(dirPath, name);
+	        	destination.add(outputFile);
+        	}
+        }        
+        ParallelFileCoypAgent agent = new ParallelFileCoypAgent(getDrives(), shards, destination);
+        
+        
+        
+        boolean isOk = agent.execute();
+        
+        destination.forEach( file -> this.encodedInfo.encodedBlocks.add(file));
+        
+        if (!isOk)
+        	throw new InternalCriticalException("Parallel copy error | b:" +bucketId.toString() + ", o:" + objectName );
+        
+        return eof;
     }
     
     

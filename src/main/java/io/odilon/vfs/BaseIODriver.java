@@ -31,9 +31,16 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.FileUtils;
 import org.springframework.beans.BeansException;
@@ -126,6 +133,49 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		this.vfsLockService=vfsLockService;
 	}
 
+	
+	
+	public void saveObjectMetadataToDisk(final List<Drive> drives, final List<ObjectMetadata> list, final boolean isHead) {
+		
+		final int size = drives.size();
+		
+		ExecutorService executor = Executors.newFixedThreadPool(size);
+		List<Callable<Boolean>> tasks = new ArrayList<Callable<Boolean>>(size);
+			
+		for (int index=0; index<size; index++) {
+				final int val=index;
+				tasks.add(() -> {
+					try {
+						ObjectMetadata meta = list.get(val);
+						if (isHead) {
+							drives.get(val).saveObjectMetadata(meta);
+						}
+						else {
+							drives.get(val).saveObjectMetadataVersion(meta);
+						}
+	   					return Boolean.valueOf(true);
+	   					
+					} catch (Exception e) {
+						logger.error(e, SharedConstant.NOT_THROWN);
+						return Boolean.valueOf(false);
+					} finally {
+						
+					}
+				});
+		}
+			
+		try {
+			 List <Future<Boolean>>  future = executor.invokeAll(tasks, 5, TimeUnit.MINUTES);
+			 Iterator<Future<Boolean>> it = future.iterator();
+				while (it.hasNext()) {
+					if (!it.next().get())
+						throw new InternalCriticalException("could not copy ObjectMetadata") ;
+				}	
+			} catch (InterruptedException | ExecutionException e) {
+				throw new InternalCriticalException(e);
+			}
+	}
+	
 	/**
 	 * <p>Shared by RAID 0, RAID 1, RAID 6</p>
 	 */

@@ -16,7 +16,7 @@
  */
 package io.odilon.service;
 
-import io.odilon.model.BaseObject;
+import io.odilon.model.JSONObject;
 
 
 /**
@@ -24,7 +24,7 @@ import io.odilon.model.BaseObject;
  * @author atolomei@novamens.com (Alejandro Tolomei)
  * 
  */
-public interface OdilonService extends BaseObject {
+public interface OdilonService extends JSONObject {
 	
 
 }

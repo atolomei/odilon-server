@@ -369,7 +369,6 @@ public class RAIDOneDriveSync implements Runnable {
 				info.setStatus(DriveStatus.ENABLED);
 				info.setOrder(drive.getConfigOrder());
 				drive.setDriveInfo(info);
-				//getDriver().getVFS().getMapDrivesEnabled().put(drive.getName(), drive);
 				getDriver().getVFS().updateDriveStatus(drive);
 				startuplogger.debug("drive synced -> " + drive.getRootDirPath());
 			}

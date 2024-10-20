@@ -101,9 +101,15 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 					op = getJournalService().createObject(bucketId, objectName);
 					
 					RAIDSixBlocks ei = saveObjectDataFile(bucketId, objectName, stream);
+					
+					
+					//Thread.sleep(1000);
+					
+					
 					saveObjectMetadata(bucket, objectName, ei, srcFileName, contentType, version, customTags);
 					
 					done = op.commit();
+					
 					
 			
 				} catch (InternalCriticalException e) {
@@ -248,6 +254,43 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 
 		OffsetDateTime creationDate=OffsetDateTime.now();
 		
+		 final List<Drive> drives = getDriver().getDrivesAll();
+		 final List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
+		 
+		 for (Drive drive: getDriver().getDrivesAll()) {
+
+				try {
+					ObjectMetadata meta = new ObjectMetadata(bucket.getId(), objectName);
+					meta.fileName=srcFileName;
+					meta.appVersion=OdilonVersion.VERSION;
+					meta.contentType=contentType;
+					meta.creationDate = creationDate;
+					meta.version=version;
+					meta.versioncreationDate = meta.creationDate;
+					meta.length=ei.fileSize;
+					meta.sha256Blocks=shaBlocks;
+					meta.totalBlocks=ei.encodedBlocks.size();
+					meta.etag=etag;
+					meta.encrypt=getVFS().isEncrypt();
+					meta.integrityCheck=meta.creationDate;
+					meta.status=ObjectStatus.ENABLED;
+					meta.drive=drive.getName();
+					meta.raid=String.valueOf(getRedundancyLevel().getCode()).trim();
+					if (customTags.isPresent()) 
+						meta.customTags=customTags.get();
+					
+					list.add(meta);
+		
+				} catch (Exception e) {
+					throw new InternalCriticalException(e, "b:"+ bucket.getName() + " o:" + objectName+", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null"));
+				}
+		 }
+		 
+		 getDriver().saveObjectMetadataToDisk(drives, list, true);
+		 
+		 
+		
+		/**
 		for (Drive drive: getDriver().getDrivesAll()) {
 
 			try {
@@ -276,6 +319,8 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 				throw new InternalCriticalException(e, "b:"+ bucket.getName() + " o:" + objectName+", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null"));
 			}
 		}
+		**/
+		
 	}
 
 }

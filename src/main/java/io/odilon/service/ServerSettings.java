@@ -40,7 +40,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.odilon.OdilonVersion;
 import io.odilon.encryption.EncryptionService;
 import io.odilon.log.Logger;
-import io.odilon.model.BaseObject;
+import io.odilon.model.JSONObject;
 import io.odilon.model.DataStorage;
 import io.odilon.model.OdilonServerInfo;
 import io.odilon.model.RedundancyLevel;
@@ -58,7 +58,7 @@ import io.odilon.vfs.model.VirtualFileSystemService;
  */
 @Configuration
 @PropertySource("classpath:odilon.properties")
-public class ServerSettings implements BaseObject {
+public class ServerSettings implements JSONObject {
 
 	static private Logger logger = Logger.getLogger(ServerSettings.class.getName());
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
@@ -591,8 +591,8 @@ public class ServerSettings implements BaseObject {
 		}
 		else if (this.redundancyLevel==RedundancyLevel.RAID_6) {
 		
-			if (!((this.rootDirs.size()==3) || (this.rootDirs.size()==6) || (this.rootDirs.size()==12) || (this.rootDirs.size()==24))) {
-				exit("DataStorage must have 3 or 6 or 12 or 24 or 48 entries for -> " +	redundancyLevel.getName());
+			if (!((this.rootDirs.size()==3) || (this.rootDirs.size()==6) || (this.rootDirs.size()==12) || (this.rootDirs.size()==24) || (this.rootDirs.size()==48) )) {
+				exit("DataStorage must have 3, 6, 12, 24, 48 entries for -> " +	redundancyLevel.getName() + " | value provided -> " + String.valueOf(this.rootDirs.size()));
 			}
 			
 				if (this.rootDirs.size()==3) {
@@ -630,8 +630,8 @@ public class ServerSettings implements BaseObject {
 				if ( !(( (this.rootDirs.size()==3) && (this.raid6DataDrives==2) && (this.raid6ParityDrives==1))   || 
 					   ( (this.rootDirs.size()==6) && (this.raid6DataDrives==4) && (this.raid6ParityDrives==2))   || 
 					   ( (this.rootDirs.size()==12)&& (this.raid6DataDrives==8) && (this.raid6ParityDrives==4))   ||
-					   ( (this.rootDirs.size()==48)&& (this.raid6DataDrives==32) && (this.raid6ParityDrives==16)) ||
-					   ( (this.rootDirs.size()==24)&& (this.raid6DataDrives==16) && (this.raid6ParityDrives==8))
+					   ( (this.rootDirs.size()==24)&& (this.raid6DataDrives==16) && (this.raid6ParityDrives==8))  ||
+					   ( (this.rootDirs.size()==48)&& (this.raid6DataDrives==32) && (this.raid6ParityDrives==16))
 					  )) { 
 					exit(RedundancyLevel.RAID_6.getName() +" configurations supported are -> "
 							+ " 3 dirs in DataStorage and raid6.dataDrives=2 and raid6.parityDrives=1  | "

@@ -22,6 +22,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -256,7 +257,53 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 			
 		OffsetDateTime now = OffsetDateTime.now();
 		
+		 final List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
+		 for (Drive drive: getDriver().getDrivesAll()) {
+			 File file =((SimpleDrive) drive).getObjectDataFile(bucketId,  objectName);
+				
+				try {
+					String sha256 = OdilonFileUtils.calculateSHA256String(file);
+					if (sha==null) {
+						sha=sha256;
+						baseDrive=drive.getName();
+					}
+					else {
+						if (!sha256.equals(sha))											
+							throw new InternalCriticalException("SHA 256 are not equal for -> d:" + baseDrive+" ->" + sha + "  vs   d:" + drive.getName()+ " -> " + sha256);
+					}
+					
+					ObjectMetadata meta = new ObjectMetadata(bucketId, objectName);
+					meta.fileName=srcFileName;
+					meta.appVersion=OdilonVersion.VERSION;
+					meta.contentType=contentType;
+					meta.creationDate =  now;
+					meta.version=version;
+					meta.versioncreationDate = meta.creationDate;
+					meta.length=file.length();
+					meta.etag=sha256;
+					meta.encrypt=getVFS().isEncrypt();
+					meta.sha256=sha256;
+					meta.integrityCheck= now;
+					meta.status=ObjectStatus.ENABLED;
+					meta.drive=drive.getName();
+					meta.raid=String.valueOf(getRedundancyLevel().getCode()).trim();
+					if (customTags.isPresent()) 
+						meta.customTags=customTags.get();
+					
+					list.add(meta);
 		
+				} catch (Exception e) {
+					throw new InternalCriticalException(e, "b:" + bucketId.toString() + " o:"+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null"));
+				}
+				 
+			 
+		 }
+		 
+		 getDriver().saveObjectMetadataToDisk(getDriver().getDrivesAll(), list, true);
+		 
+
+		 /**
+		 
 		for (Drive drive: getDriver().getDrivesAll()) {
 			
 			File file =((SimpleDrive) drive).getObjectDataFile(bucketId,  objectName);
@@ -296,6 +343,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 				throw new InternalCriticalException(e, "b:" + bucketId.toString() + " o:"+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null"));
 			}
 		}
+		*/
 	}
 
 }

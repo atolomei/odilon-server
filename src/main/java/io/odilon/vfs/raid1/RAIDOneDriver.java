@@ -1038,35 +1038,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 		return retValue;
 	}
 
-	/**
-	 * <p>Object must be locked (either for reading or writing) before calling this method</p>
 	 
-	protected ObjectMetadata getObjectMetadataInternal(Long bucketId, String objectName, boolean addToCacheIfmiss) {
-		
-		
-		if ((!getVFS().getServerSettings().isUseObjectCache()) || (getVFS().getObjectMetadataCacheService().size() >= MAX_CACHE_SIZE))  {
-			return getReadDrive(bucketId, objectName).getObjectMetadata(bucketId, objectName);
-		}
-		
-		if (getVFS().getObjectMetadataCacheService().containsKey(bucketId, objectName)) {
-			getVFS().getSystemMonitorService().getCacheObjectHitCounter().inc();
-			
-			return getVFS().getObjectMetadataCacheService().get(bucketId, objectName);
-			
-			
-		}
-		
-		ObjectMetadata meta = getReadDrive(bucketId, objectName).getObjectMetadata(bucketId, objectName);
-		getVFS().getSystemMonitorService().getCacheObjectMissCounter().inc();
-		
-		if (addToCacheIfmiss) {
-			getVFS().getObjectMetadataCacheService().put(bucketId, objectName, meta);
-		}
-		
-		return meta;
-		
-	}
-	*/
 	/**
 	 *<p> RAID 1. read is from only 1 drive, selected randomly from all drives</p>
 	 */
