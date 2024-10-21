@@ -96,7 +96,7 @@ and only supports very simple queries, ie. to retrieve an object and to list the
 <br/>
 </li>
 <li class="list-item"><b>Odilon API is not fully S3 compatible</b><br/>
-Alothugh it is simple to migrate from Odilon to S3, Odilon API is much simpler than S3. 
+Although it is simple to migrate from Odilon to S3, Odilon API is much simpler than S3. 
 The only thing it has in common with AWS S3 it that uses the bucket/object methafor to organize the object space.
 <br/>
 <br/>
@@ -160,7 +160,7 @@ More info in Odilon's website <br/>
 
 <h2>Download</h2>
 <p>
-Current version is 1.8
+Current version is Odilon 1.8
 <ul>
 <li><a href="https://odilon.io#download" target="_blank">Odilon Server</a></li>	
 <li><a href="https://odilon.io#download" target="_blank">Odilon Java SDK</a></li>	
