@@ -424,7 +424,7 @@ public class ServerSettings implements JSONObject {
 		
 		map.put("dataStorage", getDataStorage().getName());
 		
-		map.put("https", isHTTPS() ? "yes" : "no");
+		map.put("https", isHTTPS() ? "true" : "false");
 		
 		
 		map.put("keyAlgorithm", (Optional.ofNullable(keyAlgorithm).isPresent() ? (keyAlgorithm) :"null"));		
@@ -783,14 +783,6 @@ public class ServerSettings implements JSONObject {
 		}
 	}
 	
-	// public String getEncryptionAlgorithm() {
-	//	 return encryptionAlgorithm;
-	// }
-
-	// public void setEncryptionAlgorithm(String encryptionAlgorithm) {
-	//	 this.encryptionAlgorithm = encryptionAlgorithm;
-	// }
-
 	
 	public String getKeyAlgorithm() {
 		return keyAlgorithm;

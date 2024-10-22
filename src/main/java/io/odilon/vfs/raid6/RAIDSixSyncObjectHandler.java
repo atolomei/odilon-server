@@ -110,9 +110,9 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 					try (InputStream in = new BufferedInputStream(new FileInputStream(file.getAbsolutePath()))) {
 						driveInitEncoder.encodeHead(in, bucketId, objectName);
 					} catch (FileNotFoundException e) {
-			    		throw new InternalCriticalException(e, "b:" + meta.bucketName +  " | o:" + meta.objectName );
+			    		throw new InternalCriticalException(e, getDriver().objectInfo(meta.bucketName, meta.objectName));
 					} catch (IOException e) {
-						throw new InternalCriticalException(e, "b:" + meta.bucketName +  " | o:" + meta.objectName );
+						throw new InternalCriticalException(e, getDriver().objectInfo(meta.bucketName, meta.objectName));
 					}
 	
 					/** MetaData (head) */
@@ -146,18 +146,14 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 								driveEncoder.encodeVersion(in, bucketId, objectName, versionMeta.version);
 								
 							} catch (FileNotFoundException e) {
-					    		throw new InternalCriticalException(e, "b:" + meta.bucketName +  " | o:" + meta.objectName);
+					    		throw new InternalCriticalException(e, getDriver().objectInfo(meta.bucketName, meta.objectName));
 							} catch (IOException e) {
-								throw new InternalCriticalException(e, "b:" + meta.bucketName +  " | o:" + meta.objectName);
+								throw new InternalCriticalException(e, getDriver().objectInfo(meta.bucketName, meta.objectName));
 							}
 							
 							/** Metadata (version) */
 							/** changes the date of sync in order to prevent this object's sync if the process is re run */ 
 							versionMeta.dateSynced=OffsetDateTime.now();
-							
-							//for (Drive drive:getDrives()) {
-							//	drive.saveObjectMetadataVersion(versionMeta);
-							//}
 							
 							List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
 							getDrives().forEach( d->list.add(versionMeta));
@@ -165,7 +161,7 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 							
 						}
 						else {
-							logger.warn("previous version was deleted for Object -> " + String.valueOf(version) + " |  head b:" + meta.bucketName + "  o:" + meta.objectName + "  head version:" + String.valueOf(meta.version));
+							logger.warn("previous version was deleted for Object -> " + String.valueOf(version) + " |  head " + getDriver().objectInfo(meta.bucketName, meta.objectName) + "  head version:" + String.valueOf(meta.version));
 						}
 					}
 				}
@@ -179,7 +175,7 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 						try {
 							rollbackJournal(op, false);
 						} catch (Exception e) {
-							throw new InternalCriticalException(e, "b:"+ bucketName + " o:"  + objectName);
+							throw new InternalCriticalException(e, getDriver().objectInfo(meta.bucketName, meta.objectName));
 						}
 					}
 				}finally  {
@@ -246,7 +242,6 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 	
 		boolean done = false;
 		
-		String bucketName = op.getBucketName();
 		String objectName = op.getObjectName();
 		Long bucketId = op.getBucketId();
 	
@@ -319,10 +314,10 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 				if (src.exists())
 					FileUtils.copyDirectory(src, dest);
 				else
-					throw new InternalCriticalException("backup dir does not exist " + "b:"+ bucketId.toString() +" o:" + objectName + "dir:" + src.getAbsolutePath());
+					throw new InternalCriticalException("backup dir does not exist " + getDriver().objectInfo(bucketId, objectName) + "dir:" + src.getAbsolutePath());
 			}
 		} catch (IOException e) {
-			throw new InternalCriticalException(e, "b:"+ bucketId.toString() +" o:" + objectName);
+			throw new InternalCriticalException(e, getDriver().objectInfo(bucketId, objectName));
 		}
 	}
 	

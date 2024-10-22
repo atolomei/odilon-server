@@ -126,7 +126,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 				} catch (Exception e) {
 					done=false;
 					isMainException = true;
-					throw new InternalCriticalException(e, "b:"+ bucket.getName() + " o:"  + objectName +	 ", f:"	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName) :"null"));
+					throw new InternalCriticalException(e,  getDriver().objectInfo(bucketName, objectName, srcFileName));
 					
 				} finally {
 					
@@ -136,9 +136,9 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 								rollbackJournal(op, false);
 							} catch (Exception e) {
 								if (isMainException)
-									throw new InternalCriticalException(e, "b:"+ bucketName + " o:"  + objectName +	 ", f:"	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName) :"null"));
+									throw new InternalCriticalException(e, getDriver().objectInfo(bucketName, objectName, srcFileName));
 								else
-									logger.error("b:"+ bucketName + " o:"  + objectName +	 ", f:"	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName) :"null"), SharedConstant.NOT_THROWN);
+									logger.error(getDriver().objectInfo(bucketName, objectName, srcFileName), SharedConstant.NOT_THROWN);
 							}
 						}
 						else {
@@ -193,7 +193,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 						
 				} catch (Exception e) {
 						done=false;
-						throw new InternalCriticalException(e, "b:" + meta.bucketId + ", o:" + meta.objectName); 
+						throw new InternalCriticalException(e, getDriver().objectInfo(meta.bucketId, meta.objectName)); 
 						
 				} finally {
 						try {
@@ -201,7 +201,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 									try {
 										rollbackJournal(op, false);
 									} catch (Exception e) {
-										throw new InternalCriticalException(e, "b:" + (Optional.ofNullable(meta.bucketId).isPresent() ? (meta.bucketName) :"null")); 
+										throw new InternalCriticalException(e, getDriver().objectInfo(meta.bucketId, meta.objectName)); 
 									}
 							}
 							else {
@@ -257,7 +257,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 					metaHeadToRemove = getDriver().getObjectMetadataInternal(bucket, objectName, false);
 		
 					if (metaHeadToRemove.getVersion()==0)
-						throw new IllegalArgumentException(	"Object does not have any previous version | " + "b:" +	 bucketName + " o:" + objectName);
+						throw new IllegalArgumentException(	"Object does not have any previous version | " + getDriver().objectInfo(bucketName, objectName));
 					
 					
 					beforeHeadVersion = metaHeadToRemove.version;
@@ -312,13 +312,13 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 								if (isMainException)
 									throw new InternalCriticalException(e);
 								else
-									logger.error(e, "b:" + bucketName + " o:" + objectName, SharedConstant.NOT_THROWN);
+									logger.error(e, getDriver().objectInfo(bucketName, objectName), SharedConstant.NOT_THROWN);
 								
 							} catch (Exception e) {
 								if (isMainException)
-									throw new InternalCriticalException(e, "b:"   +  bucketName +  " o:" + objectName);
+									throw new InternalCriticalException(e, getDriver().objectInfo(bucketName, objectName));
 								else
-									logger.error(e, "b:" + bucketName + " o:" + objectName, SharedConstant.NOT_THROWN);	
+									logger.error(e, getDriver().objectInfo(bucketName, objectName), SharedConstant.NOT_THROWN);	
 							}
 						}
 						else {
@@ -428,7 +428,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 		} catch (InternalCriticalException e) {
 			throw e;
 		} catch (Exception e) {
-				throw new InternalCriticalException(e, "backupVersionObjectMetadata | b:" + bucketName + " o:" + objectName);
+				throw new InternalCriticalException(e, "backupVersionObjectMetadata | " + getDriver().objectInfo(bucketName, objectName));
 		}
 	}
 
@@ -475,6 +475,8 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 	 * @param headCreationDate
 	 */
 	private void saveObjectMetadata(ServerBucket bucket, String objectName, RAIDSixBlocks ei, String srcFileName, String contentType, int version, OffsetDateTime headCreationDate, Optional<List<String>> customTags) {
+		
+		Check.requireNonNullArgument(bucket, "bucket is null");
 		
 		List<String> shaBlocks = new ArrayList<String>();
 		StringBuilder etag_b = new StringBuilder();
@@ -525,7 +527,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 				list.add(meta);
 	
 			} catch (Exception e) {
-				throw new InternalCriticalException(e, "saveObjectMetadata" + "b:" + bucket.getName() + " o:" 	+ objectName);
+				throw new InternalCriticalException(e, "saveObjectMetadata" + " " + getDriver().objectInfo(bucket.getName(), objectName));
 			}
 		}
 			
@@ -539,6 +541,8 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 	 * @param srcFileName
 	 */
 	private RAIDSixBlocks saveObjectDataFile(ServerBucket bucket, String objectName, InputStream stream) {
+		
+		Check.requireNonNullArgument(bucket, "bucket is null");
 		
 		InputStream sourceStream = null;
 		boolean isMainException = false;
@@ -560,7 +564,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 						sourceStream.close();
 					
 				} catch (IOException e) {
-					logger.error(e, ("b:" + bucket.getName() + ", o:" + objectName) + (isMainException ? SharedConstant.NOT_THROWN :""));
+					logger.error(e, ( getDriver().objectInfo(bucket.getName(), objectName)) + (isMainException ? SharedConstant.NOT_THROWN :""));
 					secEx=e;
 				}
 				if (!isMainException && (secEx!=null)) 
@@ -676,16 +680,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 		final List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
 		
 		getDriver().getDrivesAll().forEach( d -> list.add(meta));
-
 		getDriver().saveObjectMetadataToDisk(drives, list, isHead);
-		/**
-		for (Drive drive: getDriver().getDrivesAll()) {
-			if (isHead)
-				drive.saveObjectMetadata(meta);
-			else
-				drive.saveObjectMetadataVersion(meta);
-		}
-		**/
 	}
 	
 	/**
@@ -752,7 +747,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 			throw e;
 			
 		} catch (Exception e) {
-				throw new InternalCriticalException(e, "b:"+ meta.bucketName +" o:" + meta.objectName);
+				throw new InternalCriticalException(e,  "b:"+ meta.bucketName +" o:" + meta.objectName);
 		}
 	}
 	

@@ -1025,6 +1025,32 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		return map;
 	}
 
+	
+	public String objectInfo(Long bucket_id, String objectName) {
+		return "b:" + (bucket_id!=null?bucket_id.toString():"null") + " o:" + (objectName!=null?objectName:"null");
+	}
+	
+	public String objectInfo(String bucketName, String objectName) {
+		return "b:" + (bucketName!=null?bucketName:"null") + " o:"+ (objectName!=null?objectName:"null");
+	}
+
+	public String objectInfo(ServerBucket bucket, String objectName) {
+		if (bucket==null)
+			return objectInfo("null", objectName);
+		return objectInfo(bucket.getName(), objectName);
+	}
+	
+	public String objectInfo(ServerBucket bucket, String objectName, String fileName) {
+		if (bucket==null)
+			return objectInfo("null", objectName, fileName);
+		return objectInfo(bucket.getName(), objectName, fileName); 
+	}
+	
+	public String objectInfo(String bucketName, String objectName, String fileName) {
+		return "b:" + (bucketName!=null?bucketName.toString():"null") + " o:"+ (objectName!=null?objectName:"null") + (fileName!=null?  (" f:" + fileName) :"" );
+	}
+	
+	
 
 	/**
 	 * @param serverInfo

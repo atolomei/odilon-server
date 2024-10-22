@@ -1,3 +1,19 @@
+/*
+ * Odilon Object Storage
+ * (C) Novamens 
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.odilon.file;
 
 
@@ -13,7 +29,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -28,6 +43,11 @@ import io.odilon.util.Check;
 import io.odilon.util.DateTimeUtil;
 import io.odilon.vfs.model.Drive;
 
+
+/**
+ * 
+ * 
+ */
 public class ParallelFileCoypAgent extends FileCopyAgent {
 
 	static private Logger logger = Logger.getLogger(ParallelFileCoypAgent.class.getName());
@@ -100,7 +120,7 @@ public class ParallelFileCoypAgent extends FileCopyAgent {
 	   						throw new InternalCriticalException(e, "f: " + outputFile.getName());
 	   					}
 	   					
-	   					logger.debug(outputFile.getName());
+	   					//logger.debug(outputFile.getName());
 						return Boolean.valueOf(true);
 						
 					} catch (Exception e) {

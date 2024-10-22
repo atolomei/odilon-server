@@ -109,7 +109,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 				
 			} catch (Exception e) {
 				done=false;
-				throw new InternalCriticalException(e, "op:" + op.getOp().getName() + ", b:"  + bucket.getName() +	", o:" 	+ objectName);
+				throw new InternalCriticalException(e, "op:" + op.getOp().getName() + ","  + getDriver().objectInfo(bucket, objectName));
 			}
 			finally {
 				
@@ -119,7 +119,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 						try {
 							rollbackJournal(op, false);
 						} catch (Exception e) {
-							throw new InternalCriticalException(e, "op:" + op.getOp().getName() + ", b:"  + bucket.getName()  +	", o:" 	+ objectName);
+							throw new InternalCriticalException(e, "op:" + op.getOp().getName() + ", "  + getDriver().objectInfo(bucket, objectName));
 						}
 					}
 					else if (done)
@@ -132,11 +132,10 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 					 */
 					
 				} catch (Exception e) {
-					logger.error(e, "op:" + op.getOp().getName() + ", b:"  + bucket.getName() + ", o:" 	+ objectName, SharedConstant.NOT_THROWN);
+					logger.error(e, "op:" + op.getOp().getName() + ", "  + getDriver().objectInfo(bucket, objectName), SharedConstant.NOT_THROWN);
 				}
 				finally {
 					getLockService().getBucketLock(bucket.getId()).readLock().unlock();
-				
 				}
 			}
 		} finally{
@@ -254,7 +253,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 								rollbackJournal(op, false);
 							} catch (Exception e) {
 								if (!isMainException)
-									throw new InternalCriticalException(e, "b:" + meta.bucketName + ", o:" + meta.objectName);
+									throw new InternalCriticalException(e, getDriver().objectInfo(meta.bucketName, meta.objectName));
 								else
 									logger.error(e, "b:" + meta.bucketName + ", o:" + meta.objectName, SharedConstant.NOT_THROWN);
 							}

@@ -94,7 +94,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 					getLockService().getBucketLock(bucket.getId()).readLock().lock();
 			
 					if (getDriver().getObjectMetadataReadDrive(bucket, objectName).existsObjectMetadata(bucket.getId(), objectName))											
-						throw new IllegalArgumentException("Object already exist -> b:" + bucket.getName() + " o:"+ objectName);
+						throw new IllegalArgumentException("Object already exist -> " + getDriver().objectInfo(bucket, objectName));
 					
 					int version = 0;
 					
@@ -111,7 +111,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 				} catch (Exception e) {
 						done=false;
 						isMainException=true;
-						throw new InternalCriticalException(e, "b:" + bucketId.toString() + " o:" 	+ objectName + ", f:" 	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null"));
+						throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName,srcFileName));
 				} finally {
 						try {
 								if ((!done) && (op!=null)) {
@@ -119,9 +119,9 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 										rollbackJournal(op, false);
 									} catch (Exception e) {
 										if (isMainException)
-											logger.error("b:" + bucketId.toString() + " o:" 	+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null"), SharedConstant.NOT_THROWN);
+											logger.error(getDriver().objectInfo(bucket, objectName, srcFileName), SharedConstant.NOT_THROWN);
 										else
-											throw new InternalCriticalException(e, 	"b:"+ bucketId.toString() + " o:"	+ objectName + ", f:" 	+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null"));
+											throw new InternalCriticalException(e, 	getDriver().objectInfo(bucket, objectName, srcFileName));
 									}
 								}
 						}
@@ -201,11 +201,11 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 	 * @param srcFileName
 	 */
 	private RAIDSixBlocks saveObjectDataFile(Long bucketId, String objectName, InputStream stream) {
-		
+			Check.requireNonNullArgument(bucketId, "bucketId is null");			
 			try (InputStream sourceStream = isEncrypt() ? (getVFS().getEncryptionService().encryptStream(stream)) : stream) {
 				return (new RAIDSixEncoder(getDriver())).encodeHead(sourceStream, bucketId, objectName);
 			} catch (Exception e) {
-				throw new InternalCriticalException(e, "b:" + bucketId.toString() + " o:" + objectName);		
+				throw new InternalCriticalException(e, getDriver().objectInfo(bucketId.toString(), objectName));		
 			}
 	}
 
@@ -228,7 +228,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 			try {
 				shaBlocks.add(OdilonFileUtils.calculateSHA256String(item));
 			} catch (Exception e) {
-				throw new InternalCriticalException(e, "b:"+ bucket.getName() + " o:" + objectName+ ", f:" + (Optional.ofNullable(item).isPresent() ? (item.getName()) : "null"));
+				throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName) + ", f:" + (Optional.ofNullable(item).isPresent() ? (item.getName()) : "null"));
 			}
 		});
 
@@ -239,7 +239,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 		try {
 			etag = OdilonFileUtils.calculateSHA256String(etag_b.toString());
 		} catch (NoSuchAlgorithmException | IOException e) {
-   			throw new InternalCriticalException(e, "b:"+ bucket.getName() + " o:" + objectName+ ", f:" + "| etag");
+   			throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName,srcFileName) + ", f:" + "| etag");
 		} 
 
 		OffsetDateTime creationDate=OffsetDateTime.now();
@@ -272,7 +272,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 					list.add(meta);
 		
 				} catch (Exception e) {
-					throw new InternalCriticalException(e, "b:"+ bucket.getName() + " o:" + objectName+", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null"));
+					throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName,srcFileName));
 				}
 		 }
 		 

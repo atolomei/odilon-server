@@ -72,9 +72,8 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 		 Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 		
 		if (!getDriver().exists(bucket, objectName))
-			throw new IllegalArgumentException("object does not exist -> b:" + bucket.getName()+ " o:"+(Optional.ofNullable(objectName).isPresent() ? (objectName) :"null"));
+			throw new IllegalArgumentException("object does not exist -> " + getDriver().objectInfo(bucket, objectName));
 		
-		String bucketName = bucket.getName();
 		Long bucketId = bucket.getId();
 		
 		VFSOperation op = null;
@@ -107,7 +106,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 			} catch (Exception e) {
 				done=false;
 				isMainException = true;
-				throw new InternalCriticalException(e, "op:" + op.getOp().getName() +	", b:"  + bucketName + ", o:" 	+ objectName);
+				throw new InternalCriticalException(e, "op:" + op.getOp().getName() +	getDriver().objectInfo(bucket, objectName));
 			}
 			finally {
 				
@@ -118,9 +117,9 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 							rollbackJournal(op, false);
 						} catch (Exception e) {
 							if (!isMainException)
-								throw new InternalCriticalException(e, "op:" + op.getOp().getName() +	", b:"  + bucketName + ", o:" 	+ objectName);
+								throw new InternalCriticalException(e, "op:" + op.getOp().getName() +	" , "  + getDriver().objectInfo(bucket, objectName));
 							else
-								logger.error(e, "op:" + op.getOp().getName() +	", b:"  + bucketName + ", o:" 	+ objectName, SharedConstant.NOT_THROWN);
+								logger.error(e, "op:" + op.getOp().getName() +	","  + getDriver().objectInfo(bucket, objectName), SharedConstant.NOT_THROWN);
 						}
 					}
 					else if (done) {
@@ -135,7 +134,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 					 */
 					
 				} catch (Exception e) {
-					logger.error(e, "op:" + op.getOp().getName() +	", b:"  + bucketName +", o:" + objectName, SharedConstant.NOT_THROWN);
+					logger.error(e, "op:" + op.getOp().getName() +	", "  + getDriver().objectInfo(bucket, objectName), SharedConstant.NOT_THROWN);
 				}
 				finally {
 					getLockService().getBucketLock(bucketId).readLock().unlock();
@@ -165,6 +164,8 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 	 */
 	protected void deleteObjectAllPreviousVersions(ObjectMetadata headMeta) {
 	
+	    Check.requireNonNullArgument(headMeta, "ObjectMetadata is null");
+		 
 		VFSOperation op = null;  
 		boolean done = false;
 		boolean isMainException = false;
@@ -187,7 +188,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 				try {
 				
 					if (!getDriver().getObjectMetadataReadDrive(bucket, objectName).existsObjectMetadata(bucketId, objectName))
-						throw new OdilonObjectNotFoundException("object does not exist -> b:" + bucketId.toString() + " o:"+(Optional.ofNullable(objectName).isPresent() ? (objectName) :"null"));
+						throw new OdilonObjectNotFoundException("object does not exist -> " + getDriver().objectInfo(bucketId, objectName));
 					
 					headVersion = headMeta.version;
 					
@@ -210,30 +211,14 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 					headMeta.addSystemTag("delete versions");
 					headMeta.lastModified = OffsetDateTime.now();
 					
-					
-					
-					
 					 final List<Drive> drives = getDriver().getDrivesAll();
 					 final List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
 					
 					 getDriver().getDrivesAll().forEach(d -> list.add(d.getObjectMetadata(bucketId, objectName)));
-					 
 					 getDriver().saveObjectMetadataToDisk(drives, list, true);
 					 
-
+					 done=op.commit();
 					 
-					 
-					/**
-					for (Drive drive: getDriver().getDrivesAll()) {
-						ObjectMetadata metaDrive = drive.getObjectMetadata(bucketId, objectName);
-						headMeta.drive=drive.getName();	
-						drive.saveObjectMetadata(metaDrive);							
-					}
-					**/
-					
-					
-					
-					done=op.commit();
 				
 				} catch (OdilonObjectNotFoundException e1) {
 					done=false;
@@ -243,7 +228,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 				} catch (Exception e) {
 					done=false;
 					isMainException = true;
-					throw new InternalCriticalException(e, "b:"  + bucketName +", o:" 	+ objectName);
+					throw new InternalCriticalException(e, getDriver().objectInfo(bucketId, objectName));
 				}
 				
 				finally {
@@ -255,9 +240,9 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 								rollbackJournal(op, false);
 							} catch (Exception e) {
 								if (!isMainException)
-									throw new InternalCriticalException(e, "b:" + bucketName + ", o:" + objectName);
+									throw new InternalCriticalException(e, getDriver().objectInfo(bucketName, objectName));
 								else
-									logger.error(e, "b:" + bucketName + ", o:" + objectName, SharedConstant.NOT_THROWN);
+									logger.error(e, getDriver().objectInfo(bucketName, objectName), SharedConstant.NOT_THROWN);
 							}
 						}
 						else if (done) {
@@ -327,7 +312,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 		String bucketName = op.getBucketName();
 		
 		
-		Check.requireNonNullStringArgument(bucketName, "bucket is null");
+		Check.requireNonNullStringArgument(bucketName, "bucketName is null");
 		Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucketName);
 		
 		boolean done = false;
@@ -420,7 +405,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 					FileUtils.copyDirectory(src, new File(objectMetadataBackupDirPath));
 			}
 		} catch (IOException e) {
-			throw new InternalCriticalException(e, "b:" + meta.bucketId.toString() + ", o:" + meta.objectName);
+			throw new InternalCriticalException(e, getDriver().objectInfo(meta.bucketId,meta.objectName));
 		}
 	}
 
@@ -450,7 +435,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 				if ((new File(objectMetadataBackupDirPath)).exists())
 					FileUtils.copyDirectory(new File(objectMetadataBackupDirPath), new File(objectMetadataDirPath));
 			} catch (IOException e) {
-				throw new InternalCriticalException(e, "b:" + bucket.getName() + ", o:" + objectName);
+				throw new InternalCriticalException(e, getDriver().objectInfo(bucket,objectName));
 			}
 		}
 	}
