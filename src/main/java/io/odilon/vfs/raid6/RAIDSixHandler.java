@@ -54,8 +54,6 @@ public abstract class RAIDSixHandler implements RAIDHandler {
 		return this.driver.getVFS();
 	}
 	
-	protected abstract void rollbackJournal(VFSOperation op, boolean recoveryMode);
-
 	public JournalService getJournalService() {
 		return this.driver.getJournalService();
 	}
@@ -63,14 +61,16 @@ public abstract class RAIDSixHandler implements RAIDHandler {
 	public LockService getLockService() {
 		return this.driver.getLockService();
 	}
-	
+		
+	public RedundancyLevel getRedundancyLevel() {
+		return this.driver.getRedundancyLevel(); 
+	}
+
 	protected boolean isEncrypt() {
 		return this.driver.isEncrypt();
 	}
 	
-	public RedundancyLevel getRedundancyLevel() {
-		return this.driver.getRedundancyLevel(); 
-	}
+	protected abstract void rollbackJournal(VFSOperation op, boolean recoveryMode);
 
 	
 }

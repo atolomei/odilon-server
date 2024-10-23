@@ -74,7 +74,7 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 		Check.requireNonNullStringArgument(meta.bucketName, "bucketName is null");
 		Check.requireNonNullStringArgument(meta.objectName, "objectName is null or empty | b:" + meta.bucketName);
 		
-		String bucketName = meta.bucketName;
+	
 		String objectName = meta.objectName;
 		Long bucketId = meta.bucketId;
 		

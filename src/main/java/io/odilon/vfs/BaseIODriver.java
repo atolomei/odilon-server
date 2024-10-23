@@ -209,7 +209,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 			meta.creationDate = now;
 			meta.lastModified = now;
 
-			for (Drive drive : getDrivesAll()) {
+			for (Drive drive: getDrivesAll()) {
 				try {
 					
 					drive.createBucket(meta);
@@ -255,7 +255,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		boolean done = false;
 		
 		OffsetDateTime now = OffsetDateTime.now();
-		
 		
 		getLockService().getBucketLock(bucket.getId()).writeLock().lock();
 		
@@ -305,9 +304,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 				getLockService().getBucketLock(bucket.getId()).writeLock().unlock();
 			}
 		}
-		
 	}
-
 	
 	/**
 	 * 
@@ -858,6 +855,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 			
 			
 			this.drivesAll = new ArrayList<Drive>();
+			
 			getVFS().getMapDrivesAll().forEach( (K,V) -> drivesAll.add(V));
 			
 			this.drivesAll.sort(new Comparator<Drive>() {
