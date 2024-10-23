@@ -1024,6 +1024,10 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 	}
 
 	
+	public String opInfo(VFSOperation op) {
+		return "op:" + (op!=null? op.toString() :"null"); 
+	}
+	
 	public String objectInfo(Long bucket_id, String objectName) {
 		return "b:" + (bucket_id!=null?bucket_id.toString():"null") + " o:" + (objectName!=null?objectName:"null");
 	}

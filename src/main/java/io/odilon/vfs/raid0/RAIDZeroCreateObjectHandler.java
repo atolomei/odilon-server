@@ -171,13 +171,13 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 			if (!recoveryMode)
 				throw(e);
 			else
-				logger.error(e, "Rollback: " + op.toString() + SharedConstant.NOT_THROWN);
+				logger.error(e, "Rollback " + getDriver().opInfo(op), SharedConstant.NOT_THROWN);
 			
 		} catch (Exception e) {
 			if (!recoveryMode)
-				throw new InternalCriticalException(e, "Rollback | " + op.toString());
+				throw new InternalCriticalException(e, "Rollback " + getDriver().opInfo(op));
 			else
-				logger.error(e, "Rollback: " + op.toString() + SharedConstant.NOT_THROWN);
+				logger.error(e, "Rollback " + getDriver().opInfo(op), SharedConstant.NOT_THROWN);
 		}
 		finally {
 			if (done || recoveryMode) 

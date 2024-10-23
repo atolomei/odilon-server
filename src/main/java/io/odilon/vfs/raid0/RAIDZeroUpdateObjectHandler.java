@@ -311,9 +311,9 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 							} catch (Exception e) {
 								
 								if (!isMainException)
-									throw new InternalCriticalException(e, "b:"  + meta.bucketId + ", o:" + meta.objectName);
+									throw new InternalCriticalException(e, getDriver().objectInfo(meta.bucketId, meta.objectName));
 								else
-									logger.error(e, " finally | b:" + meta.bucketId +	" o:" 	+ meta.objectName +  SharedConstant.NOT_THROWN);
+									logger.error(e, " finally " + getDriver().objectInfo(meta.bucketId, meta.objectName), SharedConstant.NOT_THROWN);
 							}
 					}
 					else {

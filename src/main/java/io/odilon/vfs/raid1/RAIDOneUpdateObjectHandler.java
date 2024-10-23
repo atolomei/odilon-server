@@ -376,15 +376,15 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 			done = true;
 			
 		} catch (InternalCriticalException e) {
-			logger.error("Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null"));
+			logger.error("Rollback " + getDriver().opInfo(op));
 			if (!recoveryMode)
 				throw(e);
 			
 		} catch (Exception e) {
 			if (!recoveryMode)
-				throw new InternalCriticalException(e, "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null"));
+				throw new InternalCriticalException(e, "Rollback " + getDriver().opInfo(op));
 			else
-				logger.error(e, "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null"), SharedConstant.NOT_THROWN);
+				logger.error(e, "Rollback " + getDriver().opInfo(op), SharedConstant.NOT_THROWN);
 		}
 		finally {
 			if (done || recoveryMode) {
@@ -410,13 +410,12 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 			done = true;
 		
 		} catch (InternalCriticalException e) {
-			String msg = "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null");
-			logger.error(msg);
+			logger.error("Rollback " + getDriver().opInfo(op));
 			if (!recoveryMode)
 				throw(e);
 			
 		} catch (Exception e) {
-			String msg = "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null");
+			String msg = "Rollback: " + getDriver().opInfo(op);
 			logger.error(msg);
 			if (!recoveryMode)
 				throw new InternalCriticalException(e, msg);
@@ -480,9 +479,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 				
 			} catch (Exception e) {
 				isMainException = true;
-				throw new InternalCriticalException(e,  "b:"   + (Optional.ofNullable(bucket).isPresent()    ? (bucket.getId())  :"null") + 
-														", o:" + (Optional.ofNullable(objectName).isPresent() ? (objectName)       :"null") +  
-														", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)     :"null"));		
+				throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName, srcFileName));		
 	
 			} finally {
 				IOException secEx = null;
@@ -494,10 +491,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 										out[n].close();
 								}
 							} catch (IOException e) {
-								String msg ="b:"   	+ (Optional.ofNullable(bucket).isPresent()    ? (bucket.getId()) :"null") + 
-										", o:" 		+ (Optional.ofNullable(objectName).isPresent() ? (objectName)       :"null") +  
-										", f:" 		+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)     :"null"); 
-								logger.error(e, msg + (isMainException ? SharedConstant.NOT_THROWN :""));
+								logger.error(e, getDriver().objectInfo(bucket, objectName, srcFileName) + (isMainException ? SharedConstant.NOT_THROWN :""));
 								secEx=e;
 							}	
 					}
@@ -506,10 +500,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 						if (sourceStream!=null) 
 							sourceStream.close();
 					} catch (IOException e) {
-						String msg ="b:" 		+ (Optional.ofNullable(bucket).isPresent()    ? (bucket.getId()) :"null") + 
-									", o:" 		+ (Optional.ofNullable(objectName).isPresent() ? (objectName)       :"null") +  
-									", f:" 		+ (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)     :"null");
-						logger.error(e, msg + (isMainException ? SharedConstant.NOT_THROWN :""));
+						logger.error(e, getDriver().objectInfo(bucket, objectName, srcFileName) + (isMainException ? SharedConstant.NOT_THROWN :""));
 						secEx=e;
 					}
 				if (!isMainException && (secEx!=null)) 
@@ -579,17 +570,14 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 						
 						drive.saveObjectMetadata(meta);
 					} catch (Exception e) {
-						String msg =  	"b:"   + (Optional.ofNullable(bucket).isPresent()    ? (bucket.getId()) :"null") + 
-										", o:" + (Optional.ofNullable(objectName).isPresent() ? (objectName)       :"null") +  
-										", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)     :"null");
-						
+						String msg = getDriver().objectInfo(bucket, objectName, srcFileName);
 						logger.error(e,msg);
 						throw new InternalCriticalException(e, msg);
 					}
 			}
 			
 		} catch (Exception e) {
-				throw new InternalCriticalException(e,"b:" + bucket.getName() + " o:"+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null"));
+				throw new InternalCriticalException(e,getDriver().objectInfo(bucket, objectName, srcFileName));
 		}
 	}
 	
@@ -608,7 +596,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 			}
 			return success;
 		} catch (Exception e) {
-				throw new InternalCriticalException(e, "b:" + bucket.getName() + " o:"+ objectName);
+				throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName));
 		}
 	}
 
@@ -710,7 +698,6 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 	
 	
 	private void cleanUpBackupMetadataDir(ServerBucket bucket, String objectName) {
-		
 		try {
 			/** delete backup Metadata */
 			for (Drive drive: getDriver().getDrivesAll()) {

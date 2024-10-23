@@ -297,13 +297,13 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 			if (!recoveryMode)
 				throw(e);
 			else
-				logger.error("Rollback: " +  op.toString(), SharedConstant.NOT_THROWN );
+				logger.error("Rollback " +  getDriver().opInfo(op), SharedConstant.NOT_THROWN );
 			
 		} catch (Exception e) {
 			if (!recoveryMode)
 				throw new InternalCriticalException(e, "Rollback: " + op.toString());
 			else
-				logger.error("Rollback: " +  op.toString(), SharedConstant.NOT_THROWN );
+				logger.error("Rollback " +  getDriver().opInfo(op), SharedConstant.NOT_THROWN );
 		}
 		finally {
 			if (done || recoveryMode) 
@@ -480,7 +480,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 				getVFS().getSchedulerService().enqueue(getVFS().getApplicationContext().getBean(AfterDeleteObjectServiceRequest.class, op.getOp(), meta, headVersion));
 			
 		} catch (Exception e) {
-			logger.error(e, " onAfterCommit | " + op.toString() + " | " + SharedConstant.NOT_THROWN);
+			logger.error(e, " onAfterCommit | " + getDriver().opInfo(op), SharedConstant.NOT_THROWN);
 		}
 	}
 
