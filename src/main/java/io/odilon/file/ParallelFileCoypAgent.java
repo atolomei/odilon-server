@@ -16,7 +16,6 @@
  */
 package io.odilon.file;
 
-
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -43,10 +42,10 @@ import io.odilon.util.Check;
 import io.odilon.util.DateTimeUtil;
 import io.odilon.vfs.model.Drive;
 
-
 /**
  * 
  * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public class ParallelFileCoypAgent extends FileCopyAgent {
 
@@ -80,7 +79,6 @@ public class ParallelFileCoypAgent extends FileCopyAgent {
 		this.drives=drives;
 		this.source=source;
 		this.destination=destination;
-		
 	}
 	
 	@Override
@@ -113,14 +111,11 @@ public class ParallelFileCoypAgent extends FileCopyAgent {
 						File outputFile = this.destination.get(val);
 	   					try  (OutputStream out = new BufferedOutputStream(new FileOutputStream(outputFile))) {
 	    						out.write(this.source[val]);
-	    						//out.flush();
 	   			        } catch (FileNotFoundException e) {
 	    						throw new InternalCriticalException(e, "f: " + outputFile.getName());
 	   					} catch (IOException e) {
 	   						throw new InternalCriticalException(e, "f: " + outputFile.getName());
 	   					}
-	   					
-	   					//logger.debug(outputFile.getName());
 						return Boolean.valueOf(true);
 						
 					} catch (Exception e) {
@@ -129,30 +124,16 @@ public class ParallelFileCoypAgent extends FileCopyAgent {
 					} finally {
 						
 					}
-					
 				});
 			}
-			
-			
 			/** process buffer in parallel */
 			try {
-
-				 List <Future<Boolean>>  future = this.executor.invokeAll(tasks, 6, TimeUnit.MINUTES);
-				 
-				 /**future.forEach( f -> {
-					try {
-							logger.debug(f.get());
-					} catch (InterruptedException | ExecutionException e) {
-						logger.error(e);
-					}
-				});**/
-				 
-				Iterator<Future<Boolean>> it = future.iterator();
-				 
-				while (it.hasNext()) {
+				 List <Future<Boolean>>  future = this.executor.invokeAll(tasks, 10, TimeUnit.MINUTES);
+				 Iterator<Future<Boolean>> it = future.iterator();
+				 while (it.hasNext()) {
 					if (!it.next().get())
 						return false;
-				}
+				 }
 				 
 			} catch (InterruptedException e) {
 				logger.error(e, SharedConstant.NOT_THROWN);

@@ -40,6 +40,11 @@ import io.odilon.model.SharedConstant;
 import io.odilon.util.DateTimeUtil;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
+/**
+ * NOT USED
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public class MulticastFileCopyAgent extends FileCopyAgent {
 
 	static private Logger logger = Logger.getLogger(MulticastFileCopyAgent.class.getName());

@@ -446,7 +446,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 					throw new IllegalArgumentException(" b:" + bucket.getName() + " does not exist for -> d:" + readDrive.getName() + " | raid -> " + this.getClass().getSimpleName());
 	
 				if (!exists(bucket, objectName))
-					throw new OdilonObjectNotFoundException("object does not exists for ->  b:" + bucket.getName() + " | o:" + objectName + " | class:" + this.getClass().getSimpleName());
+					throw new OdilonObjectNotFoundException("object does not exists for ->  " + objectInfo(bucket, objectName) + " | class:" + this.getClass().getSimpleName());
 	
 				ObjectMetadata meta = getObjectMetadataInternal(bucket, objectName, true);
 	
@@ -643,10 +643,10 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 				return list;
 	
 			} catch (OdilonObjectNotFoundException e) {
-				e.setErrorMessage((e.getMessage() != null ? (e.getMessage() + " | ") : "") + "b:" + bucket.getName() + ", o:" + objectName +", d:" + (Optional.ofNullable(readDrive).isPresent() ? (readDrive.getName()) : "null"));
+				e.setErrorMessage((e.getMessage() != null ? (e.getMessage() + " | ") : "") + objectInfo(bucket, objectName) +", d:" + (Optional.ofNullable(readDrive).isPresent() ? (readDrive.getName()) : "null"));
 				throw e;
 			} catch (Exception e) {
-				throw new InternalCriticalException(e, "b:" + bucket.getName() + ", o:" + objectName +", d:" + (Optional.ofNullable(readDrive).isPresent() ? (readDrive.getName()) : "null"));
+				throw new InternalCriticalException(e, objectInfo(bucket, objectName) + ", d:" + (Optional.ofNullable(readDrive).isPresent() ? (readDrive.getName()) : "null"));
 			} finally {
 				getLockService().getBucketLock(bucket.getId()).readLock().unlock();
 			}
@@ -705,15 +705,14 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 					else
 						return stream;
 				} else
-					throw new OdilonObjectNotFoundException("object version does not exist -> b:" + bucket.getName() + " | o:" + objectName + " | v:" + String.valueOf(version));
+					throw new OdilonObjectNotFoundException("object version does not exist -> " + objectInfo(bucket, objectName) + " | v:" + String.valueOf(version));
 	
 			} catch (OdilonObjectNotFoundException e) {
 				throw e;
 			} catch (Exception e) {
-				throw new InternalCriticalException(e, "b:" + (Optional.ofNullable(bucket).isPresent() ? (bucket.getName()) : "null") + ", o:"	+ (Optional.ofNullable(objectName).isPresent() ? (objectName) : "null"));
+				throw new InternalCriticalException(e, objectInfo(bucket, objectName));
 			} finally {
 				getLockService().getBucketLock(bucket.getId()).readLock().unlock();
-				
 			}
 		} finally {
 			getLockService().getObjectLock(bucket.getId(), objectName).readLock().unlock();
@@ -759,10 +758,10 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 					InputStream stream = getInputStreamFromSelectedDrive(readDrive, bucket.getId(), objectName);
 					return (meta.encrypt) ? getVFS().getEncryptionService().decryptStream(stream) : stream;
 				}
-				throw new OdilonObjectNotFoundException("object does not exists for -> b:" + bucket.getName() + " | o:" + objectName + " | class:" + this.getClass().getSimpleName());
+				throw new OdilonObjectNotFoundException("object does not exists for -> " +objectInfo(bucket, objectName) + " | class:" + this.getClass().getSimpleName());
 	
 			} catch (Exception e) {
-				throw new InternalCriticalException(e, "b:" + (Optional.ofNullable(bucket).isPresent() ? (bucket.getName()) : "null") + ", o:"	+ (Optional.ofNullable(objectName).isPresent() ? (objectName) : "null"));
+				throw new InternalCriticalException(e, objectInfo(bucket, objectName));
 			} finally {
 				getLockService().getBucketLock(bucket.getId()).readLock().unlock();
 			}
@@ -993,8 +992,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		return getDrive(bucket, objectName);
 	}
 
-
-
 	/**
 	 * 
 	 * 
@@ -1036,13 +1033,11 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 				return true;
 			}
 
-			// ---
-			//
-			// For RAID 0 the check is in the head version
-			// there is no way to fix a damaged file
-			// the goal of this process is to warn that a Object is damaged
-			//
-			//						
+			/**
+				 For RAID 0 the check is in the head version
+				 there is no way to fix a damaged file
+				 the goal of this process is to warn that a Object is damaged
+			**/						
 			readDrive = getReadDrive(bucket, objectName);
 			metadata = readDrive.getObjectMetadata(bucket.getId(), objectName);
 
@@ -1077,7 +1072,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 				readDrive.saveObjectMetadata(metadata);
 				return true;
 			} else {
-				logger.error("Integrity Check failed for -> d: " + readDrive.getName() + " | b:" + bucket.getName() + " | o:" + objectName + " | " + SharedConstant.NOT_THROWN);
+				logger.error("Integrity Check failed for -> d: " + readDrive.getName() + " | " + objectInfo(bucket, objectName) + " | " + SharedConstant.NOT_THROWN);
 			}
 			/**
 			 * it is not possible to fix the file if the integrity fails because there is no
@@ -1152,7 +1147,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		}
 	}
 
-	
 	/**
 	 * 
 	 */
@@ -1244,6 +1238,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		}
 
 		// any drive is ok because all have all the buckets
+		
 		Drive drive = getDrivesEnabled().get(0);
 		for (DriveBucket bucket : drive.getBuckets()) {
 			String name = bucket.getName();
@@ -1257,8 +1252,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		}
 		return map;
 	}
-
-	
 	
 	/**
 	 * <p>
@@ -1299,11 +1292,11 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 
 		boolean done = false;
 		VFSOperation op = null;
-
+		
+		getLockService().getServerLock().writeLock().lock();
+		
 		try {
 			
-			getLockService().getServerLock().writeLock().lock();
-
 			op = getJournalService().createServerMetadata();
 			String jsonString = getObjectMapper().writeValueAsString(serverInfo);
 			

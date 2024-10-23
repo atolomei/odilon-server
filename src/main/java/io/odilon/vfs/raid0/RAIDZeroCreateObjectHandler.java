@@ -90,9 +90,6 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 			
 			getLockService().getBucketLock(bucket.getId()).readLock().lock();
 			
-			
-			
-			
 			try (stream) {
 			
 				if (getDriver().getWriteDrive(bucket, objectName).existsObjectMetadata(bucket.getId(), objectName))											
@@ -200,6 +197,9 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 	 * 
 	 */
 	private void saveObjectDataFile(ServerBucket bucket, String objectName, InputStream stream, String srcFileName) {
+		
+		Check.requireNonNullArgument(bucket, "bucket is null");
+		Check.requireNonNullArgument(stream, "stream is null");
 		
 		byte[] buf = new byte[ ServerConstant.BUFFER_SIZE ];
 

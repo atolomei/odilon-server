@@ -16,7 +16,6 @@
  */
 package io.odilon.vfs.raid0;
 
-
 import java.io.File;
 import java.io.IOException;
 import java.time.OffsetDateTime;
@@ -39,7 +38,6 @@ import io.odilon.vfs.model.SimpleDrive;
 import io.odilon.vfs.model.ServerBucket;
 import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VFSOp;
-
 
 /**
  * <p>RAID 0. Delete Handler</p>
@@ -373,7 +371,6 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 		Check.requireNonNullArgument(bucketId, "bucketId is null");
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketId.toString());
 		
-		
 		ServerBucket bucket = getDriver().getVFS().getBucketById(bucketId);
 		
 		try {
@@ -433,11 +430,9 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 		
 		try {
-			
 			String objectMetadataDirPath = getDriver().getWriteDrive(bucket, objectName).getObjectMetadataDirPath(bucket.getId(), objectName);
 			String objectMetadataBackupDirPath = getDriver().getWriteDrive(bucket, objectName).getBucketWorkDirPath(bucket.getId()) + File.separator + objectName;
 			FileUtils.copyDirectory(new File(objectMetadataDirPath), new File(objectMetadataBackupDirPath));
-			
 		} catch (IOException e) {
 			throw new InternalCriticalException(e, "backupMetadata 	|  " + getDriver().objectInfo(bucket, objectName));
 		}

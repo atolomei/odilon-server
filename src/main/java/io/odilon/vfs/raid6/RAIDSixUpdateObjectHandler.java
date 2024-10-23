@@ -105,7 +105,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 				try (stream) {
 		
 					if (!getDriver().getObjectMetadataReadDrive(bucket, objectName).existsObjectMetadata(bucketId, objectName))
-						throw new IllegalArgumentException(" object not found -> b:" + bucketName + " o:"+ objectName);
+						throw new IllegalArgumentException(" object not found -> " + getDriver().objectInfo(bucket, objectName));
 					
 					meta = getDriver().getObjectMetadataInternal(bucket, objectName, false);
 					beforeHeadVersion = meta.version;							
@@ -289,7 +289,6 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 					if (!restoreVersionObjectMetadata(bucket, metaToRestore.objectName, metaToRestore.version))
 						throw new OdilonObjectNotFoundException(Optional.of(metaHeadToRemove.systemTags).orElse("previous versions deleted"));
 					
-					
 					done = op.commit();
 					
 					return metaToRestore;
@@ -299,7 +298,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 					done=false;
 					isMainException = true;
 					logger.error(e, SharedConstant.NOT_THROWN);
-					throw new InternalCriticalException(e, "b:" + bucketName + ", o:" + objectName);
+					throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName));
 					
 				} finally {
 					
@@ -405,15 +404,13 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 		}
 	}
 
-	
-	
 	/**
 	 * 
 	 * @param bucket
 	 * @param objectName
 	 * @param version
 	 */
-	private void backupVersionObjectMetadata(ServerBucket bucket, String objectName,	int version) {
+	private void backupVersionObjectMetadata(ServerBucket bucket, String objectName, int version) {
 		
 		String bucketName = bucket.getName();
 		Long bucketId = bucket.getId();
@@ -462,9 +459,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 		}
 	}
 	
-	
 	/**
-	 * 
 	 * 
 	 * @param bucket
 	 * @param objectName

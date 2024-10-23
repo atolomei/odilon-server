@@ -18,6 +18,10 @@ package io.odilon.file;
 
 import io.odilon.model.BaseObject;
 
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public abstract class FileCopyAgent extends BaseObject {
 	
 	public FileCopyAgent() {
