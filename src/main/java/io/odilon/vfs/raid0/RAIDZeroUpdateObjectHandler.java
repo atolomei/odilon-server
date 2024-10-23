@@ -57,7 +57,6 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 			
 	private static Logger logger = Logger.getLogger(RAIDZeroUpdateObjectHandler.class.getName());
 
-	
 	/**
 	 * <p>All {@link RAIDHandler} are used internally by the 
 	 * corresponding RAID Driver. in this case by {@code RAIDZeroDriver}</p>
@@ -402,13 +401,13 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 			if (!recoveryMode)
 				throw(e);
 			else
-				logger.error("Rollback: " + (Optional.ofNullable(op).isPresent() ? op.toString():"null"));
+				logger.error("Rollback " + getDriver().opInfo(op));
 			
 		} catch (Exception e) {
 			if (!recoveryMode)
-				throw new InternalCriticalException(e, "Rollback: | " + (Optional.ofNullable(op).isPresent()? op.toString() : "null"));
+				throw new InternalCriticalException(e, "Rollback | " + getDriver().opInfo(op));
 			else
-				logger.error("Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null"));
+				logger.error("Rollback " + getDriver().opInfo(op));
 		}
 		finally {
 			if (done || recoveryMode) {
@@ -445,10 +444,10 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 			if (!recoveryMode)
 				throw(e);
 			else
-				logger.error(e, "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null"));
+				logger.error(e, "Rollback " + getDriver().opInfo(op));
 			
 		} catch (Exception e) {
-			String msg = "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null");
+			String msg = "Rollback " + getDriver().opInfo(op);
 			if (!recoveryMode)
 				throw new InternalCriticalException(e, msg);
 			else

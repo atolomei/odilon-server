@@ -176,7 +176,6 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 			startuplogger.info("2. Copying -> " + VirtualFileSystemService.ENCRYPTION_KEY_FILE + " | file not exist. skipping");
 		}
 
-		
 		createBuckets();
 		
 		if (this.errors.get()>0 || this.notAvailable.get()>0) {
@@ -185,7 +184,6 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 			return false;
 		}
 		
-
 		copy();
 		
 		if (this.errors.get()>0 || this.notAvailable.get()>0) {
@@ -272,7 +270,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 			
 			executor = Executors.newFixedThreadPool(this.maxProcessingThread);
 			
-			for (ServerBucket bucket: this.driver.getVFS().listAllBuckets()) {
+			for (ServerBucket bucket: getDriver().getVFS().listAllBuckets()) {
 				
 				Integer pageSize = Integer.valueOf(ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE);
 				Long offset = Long.valueOf(0);
@@ -282,7 +280,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 				
 				while (!done) {
 					 
-					DataList<Item<ObjectMetadata>> bucketItems = this.driver.getVFS().listObjects(
+					DataList<Item<ObjectMetadata>> bucketItems = getDriver().getVFS().listObjects(
 							bucket.getName(), 
 							Optional.of(offset),
 							Optional.ofNullable(pageSize),
@@ -393,7 +391,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 			
 			executor = Executors.newFixedThreadPool(maxProcessingThread);
 			
-			for (ServerBucket bucket: this.driver.getVFS().listAllBuckets()) {
+			for (ServerBucket bucket: getDriver().getVFS().listAllBuckets()) {
 				
 				Integer pageSize = Integer.valueOf(ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE);
 				Long offset = Long.valueOf(0);
@@ -402,7 +400,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 				boolean done = false;
 				
 				while (!done) {
-					DataList<Item<ObjectMetadata>> data = this.driver.getVFS().listObjects(
+					DataList<Item<ObjectMetadata>> data = getDriver().getVFS().listObjects(
 							bucket.getName(), 
 							Optional.of(offset),
 							Optional.ofNullable(pageSize),
@@ -520,14 +518,12 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 		}
 	}
 
-	
 	/**
 	 * 
 	 */
 	private Drive getCurrentDrive(Long bucketId, String objectName) {
 		return this.listEnabledBefore.get(Math.abs(objectName.hashCode() % listEnabledBefore.size()));
 	}
-	
 	
 	/**
 	 * 

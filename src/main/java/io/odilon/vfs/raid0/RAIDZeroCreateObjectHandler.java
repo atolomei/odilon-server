@@ -93,7 +93,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 			try (stream) {
 			
 				if (getDriver().getWriteDrive(bucket, objectName).existsObjectMetadata(bucket.getId(), objectName))											
-					throw new IllegalArgumentException("object already exist ->  " + getDriver().objectInfo(bucket, objectName));
+					throw new IllegalArgumentException("Object already exist ->  " + getDriver().objectInfo(bucket, objectName));
 				
 				int version = 0;
 						
@@ -124,12 +124,12 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 											if (!isMainException) 
 												throw e;
 											else
-												logger.error(e, " finally | " + getDriver().objectInfo(bucket, objectName, srcFileName) +  SharedConstant.NOT_THROWN);
+												logger.error(e, " finally | " + getDriver().objectInfo(bucket, objectName, srcFileName), SharedConstant.NOT_THROWN);
 										} catch (Exception e) {
 											if (!isMainException) 
 												throw new InternalCriticalException(e, " finally | " + getDriver().objectInfo(bucket, objectName, srcFileName));
 											else
-												logger.error(e, " finally | " + getDriver().objectInfo(bucket, objectName, srcFileName) +  SharedConstant.NOT_THROWN);
+												logger.error(e, " finally | " + getDriver().objectInfo(bucket, objectName, srcFileName), SharedConstant.NOT_THROWN);
 										}
 									}
 							}
@@ -144,7 +144,9 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 	}
 
 	/**
-	 * <p>This method is <b>not</b> ThreadSafe, callers must ensure proper concurrency control</p>
+	 * <p>This method is <b>not</b> ThreadSafe, 
+	 * callers must ensure proper concurrency control
+	 * </p>
 	 * 
 	 */
 	@Override
