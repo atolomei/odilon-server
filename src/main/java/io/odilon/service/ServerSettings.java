@@ -182,13 +182,13 @@ public class ServerSettings implements JSONObject {
 	
 	// SCHEDULER -------------------------------------------
 	//
-	@Value("${schedulerThreads:0}")
+	@Value("${scheduler.standard.threads:0}")
 	protected int schedulerThreads;
 
-	@Value("${cronSchedulerThreads:0}")
+	@Value("${scheduler.cron.threads:0}")
 	protected int cronSchedulerThreads;
 		
-	@Value("${schedulerSiestaSecs:20}")
+	@Value("${scheduler.siestaSecs:20}")
 	protected long schedulerSiestaSecs;
 	
 	@Value("${scheduler.cronJobWorkDirCleanUp:15 5 * * * *}")
@@ -259,11 +259,9 @@ public class ServerSettings implements JSONObject {
 	
 	// TRAFFIC PASS --------------------------------------
 	
-	@JsonProperty("traffic.tokens:0")
+	@JsonProperty("traffic.tokens:12")
 	private int tokens;
 
-	@JsonProperty("numberofpasses:0")
-	private int numberofpasses;
 	
 	
 	// OBJECT CACHES --------------------------------------
@@ -271,8 +269,8 @@ public class ServerSettings implements JSONObject {
 	@Value("${objectMetadataCache.enabled:true}")
 	protected boolean useObjectCache;
 
-	@Value("${objectMetadataCache.capacity:2000000}")
-	protected int objectCacheCapacity;
+	@Value("${objectMetadataCache.maxCapacity:2000000}")
+	protected long objectCacheMaxCapacity;
 
 	@Value("${objectMetadataCache.expireDays:15}")
 	protected long objectExpireDays;
@@ -280,8 +278,8 @@ public class ServerSettings implements JSONObject {
 	
 	// FILE CACHE (USED BY RAID 6) -----------------------
 	
-	@Value("${fileCache.capacity:100000}")
-	protected long fileCacheCapacity;
+	@Value("${fileCache.maxCapacity:100000}")
+	protected long fileCacheMaxCapacity;
 
 	@Value("${fileCache.durationDays:15}")
 	protected int fileCacheDurationDays;	
@@ -389,11 +387,11 @@ public class ServerSettings implements JSONObject {
 		str.append(", \"versionControl\":\"" + (this.versioncontrol ? "true" : "false")+"\"");
 
 		
-		str.append("\"objectMetadataCache.capacity\":\"" + String.valueOf(objectCacheCapacity) + "\"");
+		str.append("\"objectMetadataCache.maxCapacity\":\"" + String.valueOf(objectCacheMaxCapacity) + "\"");
 		str.append("\"objectMetadataCache.durationDays\":\"" + String.valueOf(objectExpireDays) + "\"");
 
 		
-		str.append("\"fileCache.capacity\":\"" + String.valueOf(fileCacheCapacity) + "\"");
+		str.append("\"fileCache.maxCapacity\":\"" + String.valueOf(fileCacheMaxCapacity) + "\"");
 		str.append("\"fileCache.durationDays\":\"" + String.valueOf(fileCacheDurationDays) + "\"");
 		
 		return str.toString();
@@ -523,9 +521,6 @@ public class ServerSettings implements JSONObject {
 			}
 		}
 		
-		
-		if (tokens==0 && numberofpasses>0)
-			tokens = numberofpasses;
 		
 		if (tokens<1)
 			tokens = ServerConstant.TRAFFIC_TOKENS_DEFAULT;
@@ -678,7 +673,7 @@ public class ServerSettings implements JSONObject {
 			this.isStandByEnabled=false;
 		
 		
-		if (fileCacheCapacity==-1) {
+		if (fileCacheMaxCapacity==-1) {
 			
 		}
 		
@@ -986,8 +981,8 @@ public class ServerSettings implements JSONObject {
 		return false;
 	}
 
-	public int getObjectCacheCapacity() {
-		return this.objectCacheCapacity;
+	public long getObjectCacheCapacity() {
+		return this.objectCacheMaxCapacity;
 	}
 
 	
@@ -995,8 +990,8 @@ public class ServerSettings implements JSONObject {
 		return this.objectExpireDays;
 	}
 	
-	public long getFileCacheCapacity() {
-		return this.fileCacheCapacity;
+	public long getFileCacheMaxCapacity() {
+		return this.fileCacheMaxCapacity;
 	}
 	
 	public long getFileCacheDurationDays() {

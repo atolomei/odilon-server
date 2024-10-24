@@ -57,7 +57,7 @@ public class TrafficControlService extends BaseService {
 	private long waittimeout = 10000L; 
 
 	@JsonProperty("tokens")
-	private int tokens = ServerConstant.TRAFFIC_TOKENS_DEFAULT;
+	private  int tokens = ServerConstant.TRAFFIC_TOKENS_DEFAULT;
 		
 	
 	public TrafficControlService(ServerSettings serverSettings) {

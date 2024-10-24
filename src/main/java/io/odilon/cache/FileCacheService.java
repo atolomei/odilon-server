@@ -272,7 +272,7 @@ public class FileCacheService extends BaseService implements ApplicationListener
 		
 		this.cache = Caffeine.newBuilder()
 					.initialCapacity(this.serverSettings.getFileCacheInitialCapacity())    
-					.maximumSize(this.serverSettings.getFileCacheCapacity())
+					.maximumSize(this.serverSettings.getFileCacheMaxCapacity())
 				    .expireAfterWrite(this.serverSettings.getFileCacheDurationDays(), TimeUnit.DAYS)
 				    .evictionListener((key, value, cause) -> {
 		            	onRemoval(key, value, cause);

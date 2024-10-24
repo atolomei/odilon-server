@@ -401,9 +401,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		Check.requireTrue(existsBucketInDrives(bucket.getId()), "bucket does not exist in all drives -> b: " + bucket.getName());
 
 		getLockService().getBucketLock(bucket.getId()).readLock().lock();
-		
 		try {
-
 			for (Drive drive: getDrivesEnabled()) {
 				if (!drive.isEmpty(bucket.getId()))
 					return false;
@@ -432,11 +430,9 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 
 		getLockService().getObjectLock(bucket.getId(), objectName).readLock().lock();
-		
 		try {
 			
 			getLockService().getBucketLock(bucket.getId()).readLock().lock();
-			
 			try {
 	
 				/** read is from only 1 drive in RAID 0 */
@@ -488,11 +484,9 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 
 		getLockService().getObjectLock(bucket.getId(), objectName).readLock().lock();
-		
 		try {
 			
 			getLockService().getBucketLock(bucket.getId()).readLock().lock();
-			
 			try {
 				boolean exists = getDrive(bucket, objectName).existsObjectMetadata(bucket.getId(), objectName);
 				if (!exists)
@@ -555,10 +549,8 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 			while (iterator.hasNext() && (counter++ < size)) {
 				Item<ObjectMetadata> item;
 				try {
-
 					ObjectMetadata meta = getOM(bucket, iterator.next().toFile().getName(), Optional.empty(), false);
 					item = new Item<ObjectMetadata>(meta);
-					
 				} catch (Exception e) {
 					logger.error(e, SharedConstant.NOT_THROWN);
 					item = new Item<ObjectMetadata>(e);
@@ -608,11 +600,9 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		Drive readDrive = null;
 
 		getLockService().getObjectLock(bucket.getId(), objectName).readLock().lock();
-		
 		try {
 			
 			getLockService().getBucketLock(bucket.getId()).readLock().lock();
-			
 			try {
 				
 				/** read is from only 1 drive */
@@ -683,11 +673,9 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 
 		getLockService().getObjectLock(bucket.getId(), objectName).readLock().lock();
-		
 		try {
 		
 			getLockService().getBucketLock(bucket.getId()).readLock().lock();
-			
 			try {
 	
 				/** RAID 0: read is from only 1 drive */
@@ -739,11 +727,9 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 
 		getLockService().getObjectLock(bucket.getId(), objectName).readLock().lock();
-		
 		try {
 		
 			getLockService().getBucketLock(bucket.getId()).readLock().lock();
-			
 			try {
 	
 				/** RAID 0: read is from only 1 drive */
