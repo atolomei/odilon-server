@@ -24,8 +24,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import javax.annotation.concurrent.ThreadSafe;
 
@@ -123,7 +130,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 				} catch (Exception e) {
 					done=false;
 					isMainException = true;
-					throw new InternalCriticalException(e, "b:" +bucket.getId() + " o:"+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null"));
+					throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName, srcFileName));
 					
 				} finally {
 					
@@ -132,7 +139,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 							if (stream!=null) 
 								stream.close();
 						} catch (IOException e) {
-							logger.error(e, SharedConstant.NOT_THROWN);
+							logger.error(e, getDriver().objectInfo(bucket, objectName, srcFileName), SharedConstant.NOT_THROWN);
 						}
 
 						if (!done) {
@@ -140,7 +147,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 								rollbackJournal(op, false);
 								
 							} catch (Exception e) {
-								String msg = "b:" +bucket.getId() + " o:"+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName)	:"null");
+								String msg = getDriver().objectInfo(bucket, objectName, srcFileName);
 								if (!isMainException)
 									throw new InternalCriticalException(e, msg);
 								else
@@ -226,13 +233,13 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 				} catch (OdilonObjectNotFoundException e1) {
 					done=false;
 					isMainException=true;
-					 e1.setErrorMessage( e1.getErrorMessage() + " | " +  "b:" +bucket.getId() + " o:"+ objectName );
+					 e1.setErrorMessage( e1.getErrorMessage() + " | " + getDriver().objectInfo(bucket, objectName));
 					throw e1;
 					
 				} catch (Exception e) {
 					done=false;
 					isMainException=true;
-					throw new InternalCriticalException(e, "b:" + bucket.getName() + " o:"+ objectName);
+					throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName));
 					
 				} finally {
 					
@@ -242,7 +249,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 								rollbackJournal(op, false);
 								
 							} catch (Exception e) {
-								String msg = "b:" + bucket.getName() + " o:"+ objectName;						
+								String msg = getDriver().objectInfo(bucket, objectName);						
 								if (!isMainException)
 									throw new InternalCriticalException(e, msg);
 								else
@@ -309,7 +316,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 								rollbackJournal(op, false);
 							} catch (Exception e) {
 								if (!isMainException)
-									throw new InternalCriticalException(e,   "b:" + meta.bucketId.toString() + " o:"+ meta.objectName );
+									throw new InternalCriticalException(e,  getDriver().objectInfo(meta.bucketId, meta.objectName));
 								else
 									logger.error(e, "b:" + meta.bucketId.toString() + " o:"+ meta.objectName, SharedConstant.NOT_THROWN);
 							}
@@ -376,15 +383,15 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 			done = true;
 			
 		} catch (InternalCriticalException e) {
-			logger.error("Rollback " + getDriver().opInfo(op));
+			logger.error("Rollback | " + getDriver().opInfo(op));
 			if (!recoveryMode)
 				throw(e);
 			
 		} catch (Exception e) {
 			if (!recoveryMode)
-				throw new InternalCriticalException(e, "Rollback " + getDriver().opInfo(op));
+				throw new InternalCriticalException(e, "Rollback | " + getDriver().opInfo(op));
 			else
-				logger.error(e, "Rollback " + getDriver().opInfo(op), SharedConstant.NOT_THROWN);
+				logger.error(e, "Rollback | " + getDriver().opInfo(op), SharedConstant.NOT_THROWN);
 		}
 		finally {
 			if (done || recoveryMode) {
@@ -410,12 +417,12 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 			done = true;
 		
 		} catch (InternalCriticalException e) {
-			logger.error("Rollback " + getDriver().opInfo(op));
+			logger.error("Rollback | " + getDriver().opInfo(op));
 			if (!recoveryMode)
 				throw(e);
 			
 		} catch (Exception e) {
-			String msg = "Rollback: " + getDriver().opInfo(op);
+			String msg = "Rollback | " + getDriver().opInfo(op);
 			logger.error(msg);
 			if (!recoveryMode)
 				throw new InternalCriticalException(e, msg);
@@ -434,7 +441,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 				drive.putObjectMetadataVersionFile(bucket.getId(), objectName, version, drive.getObjectMetadataFile(bucket.getId(), objectName));
 			
 		} catch (Exception e) {
-				throw new InternalCriticalException(e);
+				throw new InternalCriticalException(e,  getDriver().objectInfo(bucket, objectName));
 		}
 		
 	}
@@ -447,7 +454,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 				((SimpleDrive) drive).putObjectDataVersionFile(bucket.getId(), objectName, version, file);
 			}
 		} catch (Exception e) {
-				throw new InternalCriticalException(e);
+				throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName));
 		}
 	}
 	
@@ -464,21 +471,62 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 		
 		try {
 
-			sourceStream = isEncrypt() ? getVFS().getEncryptionService().encryptStream(stream) : stream;
-			
-			int n_d=0;
-			for (Drive drive: getDriver().getDrivesAll()) { 
-				String sPath = ((SimpleDrive) drive).getObjectDataFilePath(bucket.getId(), objectName);
-				out[n_d++] = new BufferedOutputStream(new FileOutputStream(sPath), ServerConstant.BUFFER_SIZE);
-			}
-			int bytesRead;
-			
-			// TODO AT: parallel
-			
-			while ((bytesRead = sourceStream.read(buf, 0, buf.length)) >= 0)
-				for (int bytes=0; bytes<total_drives; bytes++) {
-					 out[bytes].write(buf, 0, bytesRead);
-				 }
+				sourceStream = isEncrypt() ? getVFS().getEncryptionService().encryptStream(stream) : stream;
+				
+				int n_d=0;
+				for (Drive drive: getDriver().getDrivesAll()) { 
+					String sPath = ((SimpleDrive) drive).getObjectDataFilePath(bucket.getId(), objectName);
+					out[n_d++] = new BufferedOutputStream(new FileOutputStream(sPath), ServerConstant.BUFFER_SIZE);
+				}
+				int bytes_read = 0;
+				
+				if (getDriver().getDrivesAll().size()<2) {
+					
+					while ((bytes_read = sourceStream.read(buf, 0, buf.length)) >= 0)
+						for (int bytes=0; bytes<total_drives; bytes++) {
+							 out[bytes].write(buf, 0, bytes_read);
+						 }
+				}
+				else {
+					
+					final int size = getDriver().getDrivesAll().size();
+					ExecutorService executor = Executors.newFixedThreadPool(size);
+					
+					while ((bytes_read = sourceStream.read(buf, 0, buf.length)) >= 0) {
+	
+						List<Callable<Boolean>> tasks = new ArrayList<Callable<Boolean>>(size);
+						
+						for (int index=0; index<total_drives; index++) {
+						
+							final int t_index=index;
+							final int t_bytes_read=bytes_read;
+							
+							tasks.add(() -> {
+								try {
+									out[t_index].write(buf, 0, t_bytes_read);
+									return Boolean.valueOf(true);
+									} catch (Exception e) {
+										logger.error(e, SharedConstant.NOT_THROWN);
+										return Boolean.valueOf(false);
+									}  
+								});
+							}
+							
+	
+						try {
+							 List <Future<Boolean>>  future = executor.invokeAll(tasks, 5, TimeUnit.MINUTES);
+							 Iterator<Future<Boolean>> it = future.iterator();
+								while (it.hasNext()) {
+									if (!it.next().get())
+										throw new InternalCriticalException(getDriver().objectInfo(bucket, objectName, srcFileName)); 
+								}	
+						} catch (InterruptedException | ExecutionException e) {
+									throw new InternalCriticalException(e);
+						}
+						 
+					}
+					
+				} // else
 				
 			} catch (Exception e) {
 				isMainException = true;
@@ -513,8 +561,6 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 
 
 	private void saveObjectMetadata(ObjectMetadata meta) {
-		
-		
 		Check.requireNonNullArgument(meta, "meta is null");
 		for (Drive drive: getDriver().getDrivesAll()) {
 			drive.saveObjectMetadata(meta);
@@ -529,15 +575,16 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 	 */
 	private void saveObjectMetadata(ServerBucket bucket, String objectName, String srcFileName, String contentType, int version, Optional<List<String>> customTags) {
 		
+		Check.requireNonNullArgument(bucket, "bucket is null");
+		
 		OffsetDateTime now =  OffsetDateTime.now();
 		String sha=null;
 		String basedrive=null;
 		
 		
+		final List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
 		
-		try {
-
-			// TODO AT: parallel
+		// try {
 			
 			for (Drive drive: getDriver().getDrivesAll()) {
 				
@@ -575,7 +622,10 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 						if (customTags.isPresent()) 
 							meta.customTags=customTags.get();
 						
-						drive.saveObjectMetadata(meta);
+						//drive.saveObjectMetadata(meta);
+						
+						list.add(meta);
+						
 					} catch (Exception e) {
 						String msg = getDriver().objectInfo(bucket, objectName, srcFileName);
 						logger.error(e,msg);
@@ -583,9 +633,14 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 					}
 			}
 			
-		} catch (Exception e) {
-				throw new InternalCriticalException(e,getDriver().objectInfo(bucket, objectName, srcFileName));
-		}
+		//} catch (Exception e) {
+		//		throw new InternalCriticalException(e,getDriver().objectInfo(bucket, objectName, srcFileName));
+		//}
+		
+		
+		 /** save in parallel */
+		 getDriver().saveObjectMetadataToDisk(getDriver().getDrivesAll(), list, true);
+		 
 	}
 	
 	private boolean restoreVersionObjectMetadata(ServerBucket bucket, String objectName, int version) {
@@ -622,7 +677,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 			}
 			return success;
 		} catch (Exception e) {
-				throw new InternalCriticalException(e);
+				throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName));
 		}
 	}
 	
@@ -711,7 +766,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 				FileUtils.deleteQuietly(new File(drive.getBucketWorkDirPath(bucket.getId()) + File.separator + objectName));
 			}
 		} catch (Exception e) {
-			logger.error(e, bucket.getName() +" o: " +objectName, SharedConstant.NOT_THROWN);
+			logger.error(e, getDriver().objectInfo(bucket, objectName), SharedConstant.NOT_THROWN);
 		}
 	}
 	

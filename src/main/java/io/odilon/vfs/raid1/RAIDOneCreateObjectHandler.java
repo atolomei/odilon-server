@@ -23,8 +23,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import javax.annotation.concurrent.ThreadSafe;
 
@@ -198,31 +205,72 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 	private void saveObjectDataFile(Long bucket_id, String objectName, InputStream stream, String srcFileName) {
 		
 		int total_drives = getDriver().getDrivesAll().size();
-		byte[] buf = new byte[ ServerConstant.BUFFER_SIZE ];
-
+		
+		byte[] buf = new byte[ServerConstant.BUFFER_SIZE];
+		
 		BufferedOutputStream out[] = new BufferedOutputStream[total_drives];
 		
 		boolean isMainException = false;
 		
 		try (InputStream sourceStream = isEncrypt() ? (getVFS().getEncryptionService().encryptStream(stream)) : stream) {
-				;
-				
 				int n_d=0;
 				for (Drive drive: getDriver().getDrivesAll()) { 
 					String sPath = ((SimpleDrive) drive).getObjectDataFilePath(bucket_id, objectName);
 					out[n_d++] = new BufferedOutputStream(new FileOutputStream(sPath), ServerConstant.BUFFER_SIZE);
 				}
-				int bytesRead;
 				
-				// TODO AT: parallel
-				/**	this step can be in parallel and/or using out of heap buffers */ 
-				while ((bytesRead = sourceStream.read(buf, 0, buf.length)) >= 0) {
-					for (int bytes=0; bytes<total_drives; bytes++) {
-						 out[bytes].write(buf, 0, bytesRead);
-					 }
+				int bytes_read = 0;
+				
+				if (getDriver().getDrivesAll().size()<2) {
+					while ((bytes_read = sourceStream.read(buf, 0, buf.length)) >= 0) {
+						for (int bytes=0; bytes<total_drives; bytes++) {
+							 out[bytes].write(buf, 0, bytes_read);
+						 }
+					}	
 				}
+				else {
+					final int size = getDriver().getDrivesAll().size();
+					ExecutorService executor = Executors.newFixedThreadPool(size);
+					
+					while ((bytes_read = sourceStream.read(buf, 0, buf.length)) >= 0) {
+
+						List<Callable<Boolean>> tasks = new ArrayList<Callable<Boolean>>(size);
+						
+						for (int index=0; index<total_drives; index++) {
+						
+							final int t_index=index;
+							final int t_bytes_read=bytes_read;
+							
+							tasks.add(() -> {
+								try {
+									out[t_index].write(buf, 0, t_bytes_read);
+									return Boolean.valueOf(true);
+									} catch (Exception e) {
+										logger.error(e, SharedConstant.NOT_THROWN);
+										return Boolean.valueOf(false);
+									} 
+								});
+							}
+
+						try {
+							 List <Future<Boolean>>  future = executor.invokeAll(tasks, 5, TimeUnit.MINUTES);
+							 Iterator<Future<Boolean>> it = future.iterator();
+								while (it.hasNext()) {
+									if (!it.next().get())
+										throw new InternalCriticalException(getDriver().objectInfo(bucket_id.toString(), objectName, srcFileName)); 
+								}	
+						} catch (InterruptedException | ExecutionException e) {
+									throw new InternalCriticalException(e);
+						}
+						 
+					}
+				} // else
 				
-			} catch (Exception e) {
+		} catch (InternalCriticalException e) {
+			isMainException = true;
+			throw e;
+		
+		} catch (Exception e) {
 				isMainException = true;
 				throw new InternalCriticalException(e, getDriver().objectInfo(bucket_id.toString(), objectName, srcFileName));		
 	
