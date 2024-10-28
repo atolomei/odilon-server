@@ -622,8 +622,6 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 						if (customTags.isPresent()) 
 							meta.customTags=customTags.get();
 						
-						//drive.saveObjectMetadata(meta);
-						
 						list.add(meta);
 						
 					} catch (Exception e) {
@@ -632,11 +630,6 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 						throw new InternalCriticalException(e, msg);
 					}
 			}
-			
-		//} catch (Exception e) {
-		//		throw new InternalCriticalException(e,getDriver().objectInfo(bucket, objectName, srcFileName));
-		//}
-		
 		
 		 /** save in parallel */
 		 getDriver().saveObjectMetadataToDisk(getDriver().getDrivesAll(), list, true);

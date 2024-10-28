@@ -174,7 +174,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 						throw new InternalCriticalException("could not copy "+ ObjectMetadata.class.getSimpleName()); 
 				}	
 			} catch (InterruptedException | ExecutionException e) {
-				throw new InternalCriticalException(e);
+				throw new InternalCriticalException(e, "could not copy "+ ObjectMetadata.class.getSimpleName());
 			}
 	}
 	
