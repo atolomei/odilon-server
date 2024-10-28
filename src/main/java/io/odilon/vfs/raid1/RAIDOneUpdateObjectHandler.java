@@ -428,8 +428,8 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 	}
 	
 	private void saveVersionObjectMetadata(ServerBucket bucket, String objectName,	int version) {
+		// TODO AT: parallel	
 		try {
-		
 			for (Drive drive: getDriver().getDrivesAll())
 				drive.putObjectMetadataVersionFile(bucket.getId(), objectName, version, drive.getObjectMetadataFile(bucket.getId(), objectName));
 			
@@ -440,6 +440,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 	}
 
 	private void saveVersionObjectDataFile(ServerBucket bucket, String objectName, int version) {
+		// TODO AT: parallel
 		try {
 			for (Drive drive: getDriver().getDrivesAll()) {
 				File file= ((SimpleDrive) drive).getObjectDataFile(bucket.getId(), objectName);
@@ -471,6 +472,8 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 				out[n_d++] = new BufferedOutputStream(new FileOutputStream(sPath), ServerConstant.BUFFER_SIZE);
 			}
 			int bytesRead;
+			
+			// TODO AT: parallel
 			
 			while ((bytesRead = sourceStream.read(buf, 0, buf.length)) >= 0)
 				for (int bytes=0; bytes<total_drives; bytes++) {
@@ -530,8 +533,12 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 		String sha=null;
 		String basedrive=null;
 		
+		
+		
 		try {
 
+			// TODO AT: parallel
+			
 			for (Drive drive: getDriver().getDrivesAll()) {
 				
 					File file = ((SimpleDrive) drive).getObjectDataFile(bucket.getId(),  objectName);

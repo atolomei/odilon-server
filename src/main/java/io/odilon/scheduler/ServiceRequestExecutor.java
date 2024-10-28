@@ -24,7 +24,7 @@ import io.odilon.model.SharedConstant;
 
 /**
  * <p>This is a Thread that executes a ServiceRequest</p>
- * <p>The Thread is one the Dispatcher's pool</p>
+ * <p>The Thread that executes the Request  is one of the threads from the Dispatcher's pool</p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */

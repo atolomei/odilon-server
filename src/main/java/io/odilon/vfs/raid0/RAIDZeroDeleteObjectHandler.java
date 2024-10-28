@@ -159,7 +159,6 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 		int headVersion = -1;		  
 		boolean done = false;
 		VFSOperation op = null;
-
 		
 		ServerBucket bucket = getDriver().getVFS().getBucketById(meta.bucketId);
 		
@@ -176,7 +175,8 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 					headVersion = meta.version;
 					
 					/** It does not delete the head version, 
-					 * only previous versions */
+					 *  only previous versions 
+					 * */
 					
 					if (meta.version==0)
 						return;
@@ -185,7 +185,10 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 					
 					backupMetadata(bucket, meta.objectName);
 		
-					/** remove all "objectmetadata.json.vn" Files, but keep -> "objectmetadata.json" **/  
+					
+					/** remove all "objectmetadata.json.vn" Files, 
+					 * but keep -> "objectmetadata.json" **/
+					
 					for (int version=0; version < headVersion; version++) 
 						FileUtils.deleteQuietly(getDriver().getReadDrive(bucket, meta.objectName).getObjectMetadataVersionFile(meta.bucketId, meta.objectName, version));
 		

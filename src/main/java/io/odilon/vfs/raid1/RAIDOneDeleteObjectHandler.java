@@ -98,6 +98,9 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 				
 				backupMetadata(meta);
 				
+				
+				// TODO AT: parallel
+				
 				for (Drive drive: getDriver().getDrivesAll()) 
 					((SimpleDrive)drive).deleteObjectMetadata(bucket.getId(), objectName);
 				

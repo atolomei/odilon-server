@@ -173,13 +173,13 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 			if (!recoveryMode)
 				throw(e);
 			else
-				logger.error(e, "Rollback " + getDriver().opInfo(op), SharedConstant.NOT_THROWN);
+				logger.error(e, "Rollback | " + getDriver().opInfo(op), SharedConstant.NOT_THROWN);
 			
 		} catch (Exception e) {
 			if (!recoveryMode)
 				throw new InternalCriticalException(e, "Rollback " + getDriver().opInfo(op));
 			else
-				logger.error(e, "Rollback " + getDriver().opInfo(op), SharedConstant.NOT_THROWN);
+				logger.error(e, "Rollback | " + getDriver().opInfo(op), SharedConstant.NOT_THROWN);
 		}
 		finally {
 			if (done || recoveryMode) 
@@ -239,6 +239,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 
 	/**
 	 * <p>This method is <b>not</b> ThreadSafe, callers must ensure proper concurrency control</p>
+	 * <p> note that sha256 (meta.etag) is calculated on the encrypted file</p>  
 	 * 
 	 * @param bucket			can not be null
 	 * @param objectName		can not be null
@@ -266,7 +267,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 				meta.version=version;
 				meta.versioncreationDate = meta.creationDate;
 				meta.length=file.length();
-				meta.etag=sha256; /** sha256 is calculated on the encrypted file  **/
+				meta.etag=sha256; /** note that  -> sha256 is calculated on the encrypted file  **/
 				meta.integrityCheck = now;
 				meta.sha256=sha256;
 				meta.status=ObjectStatus.ENABLED;

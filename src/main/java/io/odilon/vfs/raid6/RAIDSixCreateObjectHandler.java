@@ -276,6 +276,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 				}
 		 }
 		 
+		 /** save in parallel */
 		 getDriver().saveObjectMetadataToDisk(drives, list, true);
 	}
 

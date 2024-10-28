@@ -401,13 +401,13 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 			if (!recoveryMode)
 				throw(e);
 			else
-				logger.error("Rollback " + getDriver().opInfo(op));
+				logger.error("Rollback | " + getDriver().opInfo(op));
 			
 		} catch (Exception e) {
 			if (!recoveryMode)
 				throw new InternalCriticalException(e, "Rollback | " + getDriver().opInfo(op));
 			else
-				logger.error("Rollback " + getDriver().opInfo(op));
+				logger.error("Rollback | " + getDriver().opInfo(op));
 		}
 		finally {
 			if (done || recoveryMode) {
@@ -444,14 +444,14 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 			if (!recoveryMode)
 				throw(e);
 			else
-				logger.error(e, "Rollback " + getDriver().opInfo(op));
+				logger.error(e, "Rollback | " + getDriver().opInfo(op));
 			
 		} catch (Exception e) {
-			String msg = "Rollback " + getDriver().opInfo(op);
+			String msg = "Rollback | " + getDriver().opInfo(op);
 			if (!recoveryMode)
 				throw new InternalCriticalException(e, msg);
 			else
-				logger.error(e, msg);
+				logger.error(e, msg + SharedConstant.NOT_THROWN);
 		}
 		finally {
 			if (done || recoveryMode) {
@@ -507,6 +507,8 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 
 	
 	/**
+	 * 
+	 * <p>sha256 is calculated on the encrypted file</p>
 	 * @param bucket
 	 * @param objectName
 	 * @param stream

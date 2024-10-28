@@ -227,6 +227,8 @@ public class RAIDSixEncoder {
 	        	destination.add(new File(dirPath, name));
         	}
         }        
+        
+        /** save in parallel */
         ParallelFileCoypAgent agent = new ParallelFileCoypAgent(getDrives(), shards, destination);
         
         boolean isOk = agent.execute();

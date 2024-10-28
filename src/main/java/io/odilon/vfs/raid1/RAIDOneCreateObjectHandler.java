@@ -80,10 +80,12 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 	protected void create(ServerBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType, Optional<List<String>> customTags) {
 					
 		Check.requireNonNullArgument(bucket, "bucket is null");
-		Long bucket_id=bucket.getId();
 		
+		Long bucket_id=bucket.getId();
 		Check.requireNonNullArgument(bucket_id, "bucket_id is null");
 		Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucket_id.toString());
+		
+		Check.requireNonNullArgument(stream, "stream is null");
 		
 		VFSOperation op = null;
 		boolean done = false;
@@ -212,7 +214,8 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 				}
 				int bytesRead;
 				
-				/**	TODO AT -> this step can be in parallel and using out of heap buffers */ 
+				// TODO AT: parallel
+				/**	this step can be in parallel and/or using out of heap buffers */ 
 				while ((bytesRead = sourceStream.read(buf, 0, buf.length)) >= 0) {
 					for (int bytes=0; bytes<total_drives; bytes++) {
 						 out[bytes].write(buf, 0, bytesRead);
@@ -246,6 +249,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 
 	/**
 	 * <p>This method is not ThreadSafe. Locks must be applied by the caller </p>
+	 * <p>Note that metadata is saved in parallel to all available disks</p>
 	 * 
 	 * @param bucket
 	 * @param objectName
@@ -298,6 +302,8 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 					throw new InternalCriticalException(e, getDriver().objectInfo(bucket_id.toString(), objectName, srcFileName));
 				}
 		 }
+		 
+		 /** save in parallel */
 		 getDriver().saveObjectMetadataToDisk(getDriver().getDrivesAll(), list, true);
 	}
 

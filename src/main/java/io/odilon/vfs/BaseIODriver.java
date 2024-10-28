@@ -137,6 +137,10 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 	
 	public void saveObjectMetadataToDisk(final List<Drive> drives, final List<ObjectMetadata> list, final boolean isHead) {
 		
+		Check.requireNonNullArgument(drives, "drives is null");
+		Check.requireNonNullArgument(list, "list is null");
+		Check.requireTrue(drives.size()==list.size(), "drives ("+ String.valueOf(drives.size())+")  and list ("+ String.valueOf(list.size())+") must have the same number of elements");
+		
 		final int size = drives.size();
 		
 		ExecutorService executor = Executors.newFixedThreadPool(size);
@@ -147,13 +151,11 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 				tasks.add(() -> {
 					try {
 						ObjectMetadata meta = list.get(val);
-						if (isHead) {
+						if (isHead)
 							drives.get(val).saveObjectMetadata(meta);
-						}
-						else {
+						else 
 							drives.get(val).saveObjectMetadataVersion(meta);
-						}
-	   					return Boolean.valueOf(true);
+						return Boolean.valueOf(true);
 	   					
 					} catch (Exception e) {
 						logger.error(e, SharedConstant.NOT_THROWN);
@@ -169,7 +171,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 			 Iterator<Future<Boolean>> it = future.iterator();
 				while (it.hasNext()) {
 					if (!it.next().get())
-						throw new InternalCriticalException("could not copy ObjectMetadata") ;
+						throw new InternalCriticalException("could not copy "+ ObjectMetadata.class.getSimpleName()); 
 				}	
 			} catch (InterruptedException | ExecutionException e) {
 				throw new InternalCriticalException(e);
@@ -211,9 +213,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 
 			for (Drive drive: getDrivesAll()) {
 				try {
-					
 					drive.createBucket(meta);
-					
 				} catch (Exception e) {
 					done = false;
 					isMainException = true;
