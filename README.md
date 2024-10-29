@@ -31,7 +31,7 @@ Odilon also supports <b>version control</b> and <b>master - standby replication 
 				</p>
 
 <h2>Security</h2>
-<p>Odilon keeps objects encrypted (<i><b>Encryption at Rest</b></i>) using <a href="https://es.wikipedia.org/wiki/Advanced_Encryption_Standard" target="_blank">AES GCM-SIV</a>.  Encryption has the following benefits: <br/>	
+<p>Odilon keeps objects encrypted (<i>Encryption at Rest</i>) using <a href="https://es.wikipedia.org/wiki/Advanced_Encryption_Standard" target="_blank">AES GCM-SIV</a>.  Encryption has the following benefits: <br/>	
 <ul>
  <li>It simplifies data protection, applications dont need to worry about protecting the data or encryption keys.</li>
  <li>If data falls into the hands of an attacker, they cannot read it without also having access to the encryption keys. If attackers obtain the storage devices containing the data, they will not be able to understand or decrypt it.</li>
@@ -41,7 +41,7 @@ Odilon also supports <b>version control</b> and <b>master - standby replication 
 </ul>
 </p>
  
- Each object stored by Odilon has a unique encryption key. Odilon uses envelope encryption (i.e. encrypting a key with another key), every object is encrypted with its unique key and the key is encrypted by Odilon key management layer or by a Key Management Server (<a href="https://en.wikipedia.org/wiki/Key_management" target="_blank ">KMS</a>)</p>
+ Each object stored by Odilon has a unique encryption key. Odilon uses <i>envelope encryption</i> (i.e. encrypting a key with another key), every object is encrypted with its unique key and the key is encrypted by Odilon key management layer or by a Key Management Server (<a href="https://en.wikipedia.org/wiki/Key_management" target="_blank ">KMS</a>)</p>
 <p>A KMS is software for generating, distributing, and managing cryptographic keys. It includes back-end functionality for key generation, distribution, and replacement. Moving key management to KMS prevents application reverse engineering attacks, simplifies operational maintenance, and compliance with security policies and regulations.</p>
 <p>Odilon integrates with the KMS Open Source <a href="https://www.vaultproject.io/" target="_blank">Hashicorp Vault</a>.</p>
  
