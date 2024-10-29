@@ -174,7 +174,7 @@ Current version is Odilon 1.8
 <ul>
 <li><a href="https://odilon.io#download" target="_blank">Odilon Server</a></li>	
 <li><a href="https://odilon.io#download" target="_blank">Odilon Java SDK</a></li>
-<li><a href="https://mvnrepository.com/artifact/io.odilon/odilon-client" target="_blank">Odilon Java SDK. MVNn Repository</a></li>		
+<li><a href="https://mvnrepository.com/artifact/io.odilon/odilon-client" target="_blank">Odilon Java SDK. MVN Repository</a></li>		
 
 
 
