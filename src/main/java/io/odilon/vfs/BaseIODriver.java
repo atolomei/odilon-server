@@ -1029,7 +1029,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 	}
 	
 	public String objectInfo(Long bucket_id, String objectName) {
-		return "b:" + (bucket_id!=null?bucket_id.toString():"null") + " o:" + (objectName!=null?objectName:"null");
+		return "b_id:" + (bucket_id!=null?bucket_id.toString():"null") + " o:" + (objectName!=null?objectName:"null");
 	}
 	
 	public String objectInfo(String bucketName, String objectName) {
@@ -1046,6 +1046,16 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		if (bucket==null)
 			return objectInfo("null", objectName, fileName);
 		return objectInfo(bucket.getName(), objectName, fileName); 
+	}
+	
+	public String objectInfo(ObjectMetadata meta) {
+		if (meta==null)
+			return "om: null";
+		
+		if (meta.bucketName!=null)
+			return objectInfo(meta.bucketName, meta.objectName);
+		else
+			return objectInfo(meta.bucketId, meta.objectName);
 	}
 	
 	public String objectInfo(String bucketName, String objectName, String fileName) {

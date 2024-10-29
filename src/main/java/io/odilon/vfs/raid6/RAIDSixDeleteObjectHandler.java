@@ -405,7 +405,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 					FileUtils.copyDirectory(src, new File(objectMetadataBackupDirPath));
 			}
 		} catch (IOException e) {
-			throw new InternalCriticalException(e, getDriver().objectInfo(meta.bucketId,meta.objectName));
+			throw new InternalCriticalException(e, getDriver().objectInfo(meta));
 		}
 	}
 

@@ -111,6 +111,7 @@ import io.odilon.vfs.model.VirtualFileSystemService;
  * data shards = 4 + parity shards=2  ->  6 disks <br/>
  * data shards = 8 + parity shards=4  -> 12 disks <br/>
  * data shards = 16 + parity shards=8 -> 24 disks <br/>
+ * data shards = 32 + parity shards=16 -> 48 disks <br/>
  * </p>
  * <p>
  * All buckets <b>must</b> exist on all drives. If a bucket is not present on a
@@ -176,10 +177,13 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 					RAIDSixDecoder decoder = new RAIDSixDecoder(this);
 					return (meta.encrypt) ? getVFS().getEncryptionService().decryptStream(Files.newInputStream(decoder.decodeHead(meta).toPath())) : Files.newInputStream(decoder.decodeHead(meta).toPath());
 				}
-				throw new OdilonObjectNotFoundException("b:" + bucket.getId() + " | o:" + objectName + " | class:" + this.getClass().getSimpleName());
+				throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
 			
+			} catch (OdilonObjectNotFoundException e) {
+				throw e;
+				
 			} catch (Exception e) {
-				throw new InternalCriticalException(e, "b:" + bucket.getId() + ", o:"	+ objectName + " | class:" + this.getClass().getSimpleName());
+				throw new InternalCriticalException(e, objectInfo(bucket, objectName));
 				
 			} finally {
 				getLockService().getObjectLock(bucket.getId(), objectName).readLock().unlock();
@@ -218,7 +222,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 				ObjectMetadata meta = readDrive.getObjectMetadataVersion(bucket.getId(), objectName, version);
 				
 				if ((meta==null) || (!meta.isAccesible()))
-					throw new OdilonObjectNotFoundException("object version does not exists for -> b:" +  bucket.getName() +" | o:" + objectName + " | v:" + String.valueOf(version));
+					throw new OdilonObjectNotFoundException("object version does not exists for -> b:" + objectInfo(bucket, objectName) + " | v:" + String.valueOf(version));
 				
 				RAIDSixDecoder decoder = new RAIDSixDecoder(this);  
 				File file = decoder.decodeVersion(meta);
@@ -232,7 +236,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 				throw e;
 			}
 			catch (Exception e) {
-				throw new InternalCriticalException(e, "b:" + bucket.getName() + ", o:" + objectName + " | v:" + String.valueOf(version));
+				throw new InternalCriticalException(e, objectInfo(bucket, objectName) + " | v:" + String.valueOf(version));
 			}
 			finally {
 				getLockService().getBucketLock(bucket.getId()).readLock().unlock();
@@ -514,7 +518,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 				return getObjectMetadataReadDrive(bucket, objectName).existsObjectMetadata(bucketId, objectName);
 			}
 			catch (Exception e) {
-				throw new InternalCriticalException(e, "b:"   + bucketName + ", o:" + objectName);
+				throw new InternalCriticalException(e, objectInfo(bucket, objectName));
 			}
 			finally {
 				getLockService().getBucketLock(bucketId).readLock().unlock();
@@ -587,7 +591,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 					  throw new IllegalArgumentException("bucket control folder -> b:" +  bucket.getName() + " does not exist for drive -> d:" + readDrive.getName() +" | RAID -> " + this.getClass().getSimpleName());
 	
 				if (!exists(bucket, objectName))
-					  throw new IllegalArgumentException("object does not exists for ->  b:" +  bucket.getName() +" | o:" + objectName + " | " + this.getClass().getSimpleName());			
+					  throw new IllegalArgumentException("object does not exists for ->  " +  objectInfo(bucket, objectName) + " | " + this.getClass().getSimpleName());			
 	
 				ObjectMetadata meta = getObjectMetadataInternal(bucket, objectName, true);
 				
@@ -702,11 +706,11 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 				return list;
 			}
 			catch (OdilonObjectNotFoundException e) {
-				e.setErrorMessage((e.getMessage()!=null? (e.getMessage()+ " | ") : "") + "b:"   + bucket.getName() + ", o:" + objectName + ", d:" + (Optional.ofNullable(readDrive).isPresent()  ? (readDrive.getName())  	: "null"));
+				e.setErrorMessage((e.getMessage()!=null? (e.getMessage()+ " | ") : "") +objectInfo(bucket, objectName) + ", d:" + (Optional.ofNullable(readDrive).isPresent()  ? (readDrive.getName())  	: "null"));
 				throw e;
 			}
 			catch (Exception e) {
-				throw new InternalCriticalException(e, "b:"   + bucket.getName() + ", o:" + objectName + ", d:" + (Optional.ofNullable(readDrive).isPresent()  ? (readDrive.getName())  	: "null"));
+				throw new InternalCriticalException(e,objectInfo(bucket, objectName) + ", d:" + (Optional.ofNullable(readDrive).isPresent()  ? (readDrive.getName())  	: "null"));
 			}
 			finally {
 				getLockService().getBucketLock(bucket.getId()).readLock().unlock();
@@ -921,7 +925,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 					  throw new IllegalArgumentException("b:" +  bucket.getName() + " does not exist for -> d:" + readDrive.getName() +" | raid -> " + this.getClass().getSimpleName());
 	
 				if (!exists(bucket, objectName))
-					  throw new IllegalArgumentException("b:" +  bucket.getName() +" | o:" + objectName + " | class:" + this.getClass().getSimpleName());			
+					  throw new IllegalArgumentException(objectInfo(bucket, objectName) + " | class:" + this.getClass().getSimpleName());			
 	
 				ObjectMetadata meta;
 				
@@ -936,7 +940,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 				return meta;
 			}
 			catch (Exception e) {
-				throw new InternalCriticalException(e, "b:"  + bucket.getName() +	", o:" + objectName + ", d:" + readDrive.getName() + (o_version.isPresent()? (", v:" + String.valueOf(o_version.get())) :""));
+				throw new InternalCriticalException(e, objectInfo(bucket, objectName) + ", d:" + readDrive.getName() + (o_version.isPresent()? (", v:" + String.valueOf(o_version.get())) :""));
 			}
 			finally {
 				getLockService().getBucketLock(bucket.getId()).readLock().unlock();

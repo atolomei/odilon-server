@@ -142,7 +142,8 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 							}
 						}
 						else {
-							/** TODO AT -> Sync by the moment. see how to make it Async */
+							/** TODO AT -> Sync by the moment. 
+							 * see how to make it Async */
 							if ((op!=null) && (meta!=null))
 								cleanUpUpdate(meta, beforeHeadVersion, afterHeadVersion);
 						}
@@ -177,13 +178,11 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 		
 		boolean done = false;
 		
-		getLockService().getObjectLock( meta.bucketId, meta.objectName).writeLock().lock();		
-			
+		getLockService().getObjectLock(meta.bucketId, meta.objectName).writeLock().lock();		
 		try {
-				getLockService().getBucketLock( meta.bucketId).readLock().lock();
-				
+				getLockService().getBucketLock(meta.bucketId).readLock().lock();
 				try {
-						
+					
 					op = getJournalService().updateObjectMetadata(meta.bucketId, meta.objectName, meta.version);
 			
 					backupMetadata(meta);
@@ -193,7 +192,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 						
 				} catch (Exception e) {
 						done=false;
-						throw new InternalCriticalException(e, getDriver().objectInfo(meta.bucketId, meta.objectName)); 
+						throw new InternalCriticalException(e, getDriver().objectInfo(meta)); 
 						
 				} finally {
 						try {
@@ -201,11 +200,12 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 									try {
 										rollbackJournal(op, false);
 									} catch (Exception e) {
-										throw new InternalCriticalException(e, getDriver().objectInfo(meta.bucketId, meta.objectName)); 
+										throw new InternalCriticalException(e, getDriver().objectInfo(meta)); 
 									}
 							}
 							else {
-								/** TODO AT -> Sync by the moment. TODO see how to make it Async */
+								/** TODO AT -> Sync by the moment. 
+								 * TODO see how to make it Async */
 								cleanUpBackupMetadataDir(meta.bucketId, meta.objectName);
 							}
 						} finally {
@@ -262,7 +262,6 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 					
 					beforeHeadVersion = metaHeadToRemove.version;
 					
-					
 					List<ObjectMetadata> metaVersions = new ArrayList<ObjectMetadata>();
 					
 					for (int version=0; version<beforeHeadVersion; version++) {
@@ -276,7 +275,8 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 					
 					op = getJournalService().restoreObjectPreviousVersion(bucket.getId(), objectName, beforeHeadVersion);
 					
-					/** save current head version MetadataFile .vN  and data File vN - no need to additional backup */
+					/** save current head version MetadataFile .vN  
+					 * and data File vN - no need to additional backup */
 					backupVersionObjectDataFile(metaHeadToRemove,  metaHeadToRemove.version);
 					backupVersionObjectMetadata(bucket, objectName,  metaHeadToRemove.version);
 		
@@ -362,7 +362,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 						break;
 					}
 						default: {
-						throw new IllegalArgumentException(VFSOperation.class.getSimpleName() + " can not be  ->  op: " + op.getOp().getName());
+							throw new IllegalArgumentException(VFSOperation.class.getSimpleName() + " can not be  ->  op: " + op.getOp().getName());
 					}
 		}
 	}
@@ -379,11 +379,9 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 				if (versionDiscarded < 0)
 					return;
 	
-				
 				String objectName = metaHeadRemoved.objectName;
 				Long bucketId  = metaHeadRemoved.bucketId;
 				
-				// Metadata
 				for (Drive drive: getDriver().getDrivesAll()) {
 					FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(bucketId, objectName,  versionDiscarded));
 					FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(bucketId, objectName,  metaNewHeadRestored.version));
@@ -475,12 +473,13 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 		
 		List<String> shaBlocks = new ArrayList<String>();
 		StringBuilder etag_b = new StringBuilder();
+		final String bucketName = bucket.getName();
 		
 		ei.encodedBlocks.forEach(item -> {
 			try {
 				shaBlocks.add(OdilonFileUtils.calculateSHA256String(item));
 			} catch (Exception e) {
-				throw new InternalCriticalException(e, "saveObjectMetadata" + "b:" + bucket.getName() + " o:" 	+ objectName + ", f:" + (Optional.ofNullable(item).isPresent() ? (item.getName()):"null"));
+				throw new InternalCriticalException(e, "saveObjectMetadata" + getDriver().objectInfo(bucketName, objectName, item.getName()));
 			}
 		});
 		
@@ -490,9 +489,8 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 		try {
 			etag = OdilonFileUtils.calculateSHA256String(etag_b.toString());
 		} catch (NoSuchAlgorithmException | IOException e) {
-				throw new InternalCriticalException(e, "saveObjectMetadata etag" + "b:" + bucket.getName() + " o:" 	+ objectName + ", f:" + (Optional.ofNullable(srcFileName).isPresent() ? (srcFileName):"null"));
+				throw new InternalCriticalException(e, "saveObjectMetadata etag" + getDriver().objectInfo(bucketName, objectName, srcFileName));
 		} 
-		
 		
 		OffsetDateTime versionCreationDate = OffsetDateTime.now(); 
 	
@@ -559,7 +557,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 						sourceStream.close();
 					
 				} catch (IOException e) {
-					logger.error(e, ( getDriver().objectInfo(bucket.getName(), objectName)) + (isMainException ? SharedConstant.NOT_THROWN :""));
+					logger.error(e, (getDriver().objectInfo(bucket.getName(), objectName)) + (isMainException ? SharedConstant.NOT_THROWN :""));
 					secEx=e;
 				}
 				if (!isMainException && (secEx!=null)) 
@@ -624,7 +622,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 				
 			}
 		} catch (IOException e) {
-			throw new InternalCriticalException(e, "b:"+ meta.bucketName +" o:" + meta.objectName);
+			throw new InternalCriticalException(e, getDriver().objectInfo(meta));
 		}
 	}
 	
@@ -705,7 +703,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 		} catch (InternalCriticalException e) {
 			throw e;
 		} catch (Exception e) {
-			throw new InternalCriticalException(e, "b:"+ bucket.getName() +" o:" + objectName);
+			throw new InternalCriticalException(e, getDriver().objectInfo(bucket,objectName));
 		}
 	}
 
@@ -731,7 +729,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 									StandardCopyOption.REPLACE_EXISTING);
 						}
 					} catch (IOException e) {
-						throw new InternalCriticalException(e, "b:"+ meta.bucketName +" o:" + meta.objectName);
+						throw new InternalCriticalException(e, getDriver().objectInfo(meta));
 					}
 				}
 			
@@ -742,7 +740,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 			throw e;
 			
 		} catch (Exception e) {
-				throw new InternalCriticalException(e,  "b:"+ meta.bucketName +" o:" + meta.objectName);
+				throw new InternalCriticalException(e,  getDriver().objectInfo(meta));
 		}
 	}
 	
@@ -774,13 +772,13 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 			if (!recoveryMode)
 				throw(e);
 			else
-				logger.error(e, "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null"), SharedConstant.NOT_THROWN);
+				logger.error(e, "Rollback | " + (Optional.ofNullable(op).isPresent()? op.toString():"null"), SharedConstant.NOT_THROWN);
 			
 		} catch (Exception e) {
 			if (!recoveryMode)
-				throw new InternalCriticalException(e, "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null"));
+				throw new InternalCriticalException(e, "Rollback | " + (Optional.ofNullable(op).isPresent()? op.toString():"null"));
 			else
-				logger.error(e, "Rollback: " + (Optional.ofNullable(op).isPresent()? op.toString():"null"), SharedConstant.NOT_THROWN);	
+				logger.error(e, "Rollback | " + (Optional.ofNullable(op).isPresent()? op.toString():"null"), SharedConstant.NOT_THROWN);	
 		}
 		finally {
 			if (done || recoveryMode) {
