@@ -41,7 +41,8 @@ Odilon also supports <b>version control</b> and <b>master - standby replication 
 </ul>
 </p>
  
- Each object stored by Odilon has a unique encryption key. Odilon uses <i>envelope encryption</i> (i.e. encrypting a key with another key), every object is encrypted with its unique key and the key is encrypted by Odilon key management layer or by a Key Management Server (<a href="https://en.wikipedia.org/wiki/Key_management" target="_blank ">KMS</a>)</p>
+<p>Odilon uses <i>envelope encryption</i> (i.e. encrypting a key with another key), every object is encrypted with its unique key and the key is encrypted by Odilon key management layer or by a Key Management Server (<a href="https://en.wikipedia.org/wiki/Key_management" target="_blank ">KMS</a>)</p>
+
 <p>A KMS is software for generating, distributing, and managing cryptographic keys. It includes back-end functionality for key generation, distribution, and replacement. Moving key management to KMS prevents application reverse engineering attacks, simplifies operational maintenance, and compliance with security policies and regulations.</p>
 <p>Odilon integrates with the KMS Open Source <a href="https://www.vaultproject.io/" target="_blank">Hashicorp Vault</a>.</p>
  
