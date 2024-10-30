@@ -21,6 +21,7 @@ import java.time.OffsetDateTime;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import io.odilon.model.BaseObject;
 import io.odilon.model.OdilonModelObject;
 import io.odilon.vfs.model.DriveStatus;
 
@@ -30,7 +31,7 @@ import io.odilon.vfs.model.DriveStatus;
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
-public class DriveInfo extends OdilonModelObject implements Serializable {
+public class DriveInfo extends BaseObject implements Serializable {
 	
 	private static final long serialVersionUID = 1L;
 	

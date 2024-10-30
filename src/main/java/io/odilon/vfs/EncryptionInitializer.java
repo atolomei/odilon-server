@@ -30,6 +30,7 @@ import com.google.common.io.Files;
 import io.odilon.encryption.EncryptionService;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
+import io.odilon.model.BaseObject;
 import io.odilon.model.OdilonModelObject;
 import io.odilon.model.OdilonServerInfo;
 import io.odilon.model.ServerConstant;
@@ -59,7 +60,7 @@ import io.odilon.vfs.model.VirtualFileSystemService;
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
-public class EncryptionInitializer extends OdilonModelObject {
+public class EncryptionInitializer extends BaseObject {
 		
 	static private Logger logger = Logger.getLogger(EncryptionInitializer.class.getName());
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");

@@ -55,7 +55,7 @@ import io.odilon.util.OdilonFileUtils;
 import io.odilon.vfs.BaseIODriver;
 import io.odilon.vfs.OdilonDrive;
 import io.odilon.vfs.OdilonBucket;
-import io.odilon.vfs.OdilonVFSObject;
+import io.odilon.vfs.OdilonObject;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.ServerBucket;
 import io.odilon.vfs.model.VFSObject;
@@ -498,7 +498,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 				ObjectMetadata meta = getObjectMetadataInternal(bucket, objectName, true);
 				
 				if (meta.status==ObjectStatus.ENABLED || meta.status==ObjectStatus.ARCHIVED) {
-					return new OdilonVFSObject(bucket, objectName, getVFS());
+					return new OdilonObject(bucket, objectName, getVFS());
 				}
 				
 				/**

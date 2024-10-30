@@ -22,6 +22,7 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import io.odilon.model.BaseObject;
 import io.odilon.model.OdilonModelObject;
 
 
@@ -31,7 +32,7 @@ import io.odilon.model.OdilonModelObject;
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
-public class RAIDSixBlocks extends OdilonModelObject {
+public class RAIDSixBlocks extends BaseObject {
 
 	@JsonIgnore
 	public List<File> encodedBlocks = new ArrayList<File>();

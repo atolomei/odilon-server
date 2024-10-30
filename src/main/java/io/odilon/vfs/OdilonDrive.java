@@ -49,6 +49,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
+import io.odilon.model.BaseObject;
 import io.odilon.model.BucketMetadata;
 import io.odilon.model.BucketStatus;
 import io.odilon.model.ServerConstant;
@@ -93,7 +94,7 @@ import org.springframework.context.annotation.Scope;
  */
 @Component
 @Scope("prototype")
-public class OdilonDrive extends OdilonModelObject implements Drive {
+public class OdilonDrive extends BaseObject implements Drive {
 
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 	static private Logger logger = Logger.getLogger(OdilonDrive.class.getName());
