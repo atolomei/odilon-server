@@ -569,7 +569,7 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 		ServerBucket bucket = getBucketsByNameMap().get(bucketName);
 		
 		Check.requireNonNullArgument(bucket, "bucket does not exist | b: " + bucketName);
-		
+
 		return createVFSIODriver().listObjects(bucket, offset, pageSize, prefix, serverAgentId);
 	}
 	
@@ -749,17 +749,12 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 		return this.raid;
 	}
 
-	//@Override
-	//public Map<String, ODBucket> getBucketsCache() {
-	//	return getBucketsByNameMap();
-	//}
-	
 	@Override
 	public IODriver createVFSIODriver() {
 												
-		if (this.raid==RedundancyLevel.RAID_0) return getApplicationContext().getBean(RAIDZeroDriver.class, this, vfsLockService);
-		if (this.raid==RedundancyLevel.RAID_1) return getApplicationContext().getBean(RAIDOneDriver.class, this, vfsLockService);
-		if (this.raid==RedundancyLevel.RAID_6) return getApplicationContext().getBean(RAIDSixDriver.class, this, vfsLockService);
+		if (this.raid==RedundancyLevel.RAID_0) return getApplicationContext().getBean(RAIDZeroDriver.class, this, getLockService());
+		if (this.raid==RedundancyLevel.RAID_1) return getApplicationContext().getBean(RAIDOneDriver.class, this, getLockService());
+		if (this.raid==RedundancyLevel.RAID_6) return getApplicationContext().getBean(RAIDSixDriver.class, this, getLockService());
 
 		throw new IllegalStateException("RAID not supported -> " + this.raid.toString());
 	}

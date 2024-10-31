@@ -39,12 +39,13 @@ public class OdilonObject extends BaseObject implements VFSObject {
 	@SuppressWarnings("unused")
 	private static Logger logger = Logger.getLogger(OdilonObject.class.getName());
 
+	private ObjectMetadata objectMetadata;
 	
+	@JsonIgnore
 	private ServerBucket bucket;
 	
+	@JsonIgnore
 	private String objectName;
-	
-	private ObjectMetadata objectMetadata;
 	
 	@JsonIgnore
 	private VirtualFileSystemService vfs;

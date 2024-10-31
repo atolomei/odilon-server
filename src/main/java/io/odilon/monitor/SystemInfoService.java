@@ -93,7 +93,6 @@ public class SystemInfoService extends BaseService implements SystemService {
 	private String isVaultEnabled;
 	private String vaultUrl;
 	
-	
 	private String isVersionControl;
 	
 	
