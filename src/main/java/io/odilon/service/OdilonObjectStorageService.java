@@ -222,7 +222,6 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
 			
 			Check.requireTrue(isVFSEnabled(), "VFS invalid state -> " + getVFS().getStatus().toString());	
 			
-			
 			if (getServerSettings().isReadOnly())
 				throw new IllegalStateException("Illegal operation for data storage -> " + getServerSettings().getDataStorage().getName() + " | b: " + bucketName + " o: " + objectName);
 
@@ -244,10 +243,8 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
 			 } catch (IOException e) {
 					throw new OdilonInternalErrorException(e);
 			 }
-
 			putObject(bucketName, objectName, new BufferedInputStream(fis), file.getName(), contentType);	
 	}
-
 	
 	@Override
 	public void putObject(String bucketName, String objectName, InputStream stream, String fileName, String contentType) {
