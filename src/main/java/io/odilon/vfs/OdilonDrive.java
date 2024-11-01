@@ -53,7 +53,7 @@ import io.odilon.model.BaseObject;
 import io.odilon.model.BucketMetadata;
 import io.odilon.model.BucketStatus;
 import io.odilon.model.ServerConstant;
-import io.odilon.model.OdilonModelObject;
+
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ObjectStatus;
 import io.odilon.model.ServiceStatus;

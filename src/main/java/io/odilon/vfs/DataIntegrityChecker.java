@@ -62,7 +62,7 @@ import io.odilon.vfs.model.VirtualFileSystemService;
  */
 @Component
 @Scope("prototype")
-public class DataIntegrityChecker  implements Runnable, ApplicationContextAware  {
+public class DataIntegrityChecker implements Runnable, ApplicationContextAware  {
 
 	static private Logger logger = Logger.getLogger(DataIntegrityChecker.class.getName());
 	static private Logger checkerLogger = Logger.getLogger("dataIntegrityCheck");

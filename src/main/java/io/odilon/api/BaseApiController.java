@@ -16,7 +16,6 @@
  */
 package io.odilon.api;
 
-
 import jakarta.annotation.PostConstruct;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,15 +23,13 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import io.odilon.log.Logger;
-import io.odilon.model.JSONObject;
-import io.odilon.model.SharedConstant;
+import io.odilon.model.BaseObject;
 import io.odilon.monitor.SystemMonitorService;
 import io.odilon.service.ObjectStorageService;
 import io.odilon.traffic.TrafficControlService;
@@ -43,7 +40,7 @@ import io.odilon.vfs.model.VirtualFileSystemService;
  *  
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
-public abstract class BaseApiController implements ApplicationContextAware, JSONObject  {
+public abstract class BaseApiController extends BaseObject implements ApplicationContextAware  {
 
 	static private ObjectMapper mapper = new ObjectMapper();
 	
@@ -56,6 +53,7 @@ public abstract class BaseApiController implements ApplicationContextAware, JSON
 		mapper.registerModule(new Jdk8Module());
 	}
 
+	@SuppressWarnings("unused")
 	static private Logger logger = Logger.getLogger(BaseApiController.class.getName());
 
 	@JsonIgnore
@@ -137,14 +135,6 @@ public abstract class BaseApiController implements ApplicationContextAware, JSON
 		return str.toString();
 	}
 	
-  public String toJSON() {
-	   try {
-			return mapper.writeValueAsString(this);
-		} catch (JsonProcessingException e) {
-					logger.error(e, SharedConstant.NOT_THROWN);
-					return "\"error\":\"" + e.getClass().getName()+ " | " + e.getMessage()+"\""; 
-		}
-  }
 
   protected void mark() {
 		getSystemMonitorService().getAllAPICallMeter().mark();
@@ -152,6 +142,9 @@ public abstract class BaseApiController implements ApplicationContextAware, JSON
 	
   protected String getMessage(Throwable e) {
 		
+	  if (e==null)
+			return "null";
+	  
 		StringBuilder str = new StringBuilder();
 		
 		str.append(e.getClass().getName());

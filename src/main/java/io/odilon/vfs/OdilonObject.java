@@ -25,7 +25,7 @@ import io.odilon.log.Logger;
 import io.odilon.model.ServerConstant;
 import io.odilon.model.BaseObject;
 import io.odilon.model.ObjectMetadata;
-import io.odilon.model.OdilonModelObject;
+
 import io.odilon.vfs.model.ServerBucket;
 import io.odilon.vfs.model.VFSObject;
 import io.odilon.vfs.model.VirtualFileSystemService;

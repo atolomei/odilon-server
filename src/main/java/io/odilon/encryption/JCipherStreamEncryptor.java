@@ -43,8 +43,7 @@ public class JCipherStreamEncryptor implements StreamEncryptor {
 
 	@SuppressWarnings("unused")
 	private static Logger logger = Logger.getLogger(JCipherStreamEncryptor.class.getName());
-
-    /** Creating a SecureRandom object */
+  
 	@JsonIgnore
     static SecureRandom secRandom = new SecureRandom();
 

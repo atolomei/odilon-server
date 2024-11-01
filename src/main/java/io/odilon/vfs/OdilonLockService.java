@@ -123,7 +123,6 @@ public class OdilonLockService extends BaseService implements LockService {
 		return str.toString();
 	}
 
-
 	@PostConstruct
 	protected void onInitialize() {
 

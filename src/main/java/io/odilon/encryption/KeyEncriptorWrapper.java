@@ -32,7 +32,8 @@ import io.odilon.service.ServerSettings;
 
 /**
  * <p>Wrapper object that is Serialized with the binary object stored in disk</p>
- *    
+ * 
+ *   @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @Component
 public class KeyEncriptorWrapper implements KeyEncryptor, ApplicationContextAware {

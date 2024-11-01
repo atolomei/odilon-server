@@ -23,7 +23,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.odilon.model.BaseObject;
 import io.odilon.model.BucketMetadata;
 import io.odilon.model.BucketStatus;
-import io.odilon.model.OdilonModelObject;
 import io.odilon.vfs.model.DriveBucket;
 import io.odilon.vfs.model.ServerBucket;
 
