@@ -128,7 +128,7 @@ public class OdilonLockService extends BaseService implements LockService {
 
 		synchronized (this) {
 			setStatus(ServiceStatus.STARTING);
-			this.ratePerMillisec = this.serverSettings.getLockRateMillisecs();
+			this.ratePerMillisec = getServerSettings().getLockRateMillisecs();
 			
 			this.cleaner = new PoolCleaner() {
 
@@ -226,10 +226,16 @@ public class OdilonLockService extends BaseService implements LockService {
 		return (bucketId.toString() +  ServerConstant.BO_SEPARATOR + objectName +(version.isEmpty()?"":(ServerConstant.BO_SEPARATOR+String.valueOf(version.get().intValue()))));
 	}
 	
-	
+	private ServerSettings getServerSettings() {
+		return serverSettings;
+	}
+
 	@PreDestroy
 	private void preDestroy() {
 		this.cleaner.sendExitSignal();
 	}
+	
+	
+		
 }
 

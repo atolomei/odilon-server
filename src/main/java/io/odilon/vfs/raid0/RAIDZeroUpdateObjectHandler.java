@@ -103,13 +103,13 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 				op = getJournalService().updateObject(bucket_id, objectName, meta.version);
 				
 				/** backup current head version */
-				saveVersionObjectDataFile(bucket, objectName,  meta.version);
-				saveVersionObjectMetadata(bucket, objectName,  meta.version);
+				saveVersionObjectDataFile(bucket, objectName,  meta.getVersion());
+				saveVersionObjectMetadata(bucket, objectName,  meta.getVersion());
 				
 				/** copy new version  head version */
 				afterHeadVersion = meta.version+1;
-				saveObjectDataFile(bucket, objectName, stream, srcFileName, meta.version+1);
-				saveObjectMetadataHead(bucket, objectName, srcFileName, contentType, meta.version+1, customTags);
+				saveObjectDataFile(bucket, objectName, stream, srcFileName, meta.getVersion()+1);
+				saveObjectMetadataHead(bucket, objectName, srcFileName, contentType, meta.getVersion()+1, customTags);
 				
 				done = op.commit();
 			
@@ -134,7 +134,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 							if (!isMaixException)
 								throw new InternalCriticalException(getDriver().objectInfo(bucket, objectName, srcFileName));
 							else
-								logger.error(e, getDriver().objectInfo(bucket, objectName, srcFileName)  + SharedConstant.NOT_THROWN);
+								logger.error(e, getDriver().objectInfo(bucket, objectName, srcFileName) + SharedConstant.NOT_THROWN);
 						}
 					}
 					else {
@@ -167,28 +167,28 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucket.getName());
 		
-		Long bucketId = bucket.getId();
+		Long bucket_id = bucket.getId();
 
 		int beforeHeadVersion = -1;
 		
-		getLockService().getObjectLock(bucketId, objectName).writeLock().lock();
+		getLockService().getObjectLock(bucket_id, objectName).writeLock().lock();
 		
 		try {
 			
-			getLockService().getBucketLock(bucketId).readLock().lock();
+			getLockService().getBucketLock(bucket_id).readLock().lock();
 			
 			try {
 				
 				ObjectMetadata meta = getDriver().getObjectMetadataInternal(bucket, objectName, false);
 				
-				if (meta.version==0)
+				if (meta.getVersion()==0)
 					throw new IllegalArgumentException(	"Object does not have any previous version | " + getDriver().objectInfo(bucket, objectName));
 				
 				beforeHeadVersion = meta.version;
 				List<ObjectMetadata> metaVersions = new ArrayList<ObjectMetadata>();
 				
 				for (int version=0; version<beforeHeadVersion; version++) {
-					ObjectMetadata mv = getDriver().getReadDrive(bucket, objectName).getObjectMetadataVersion(bucketId, objectName, version);
+					ObjectMetadata mv = getDriver().getReadDrive(bucket, objectName).getObjectMetadataVersion(bucket_id, objectName, version);
 					if (mv!=null)
 						metaVersions.add(mv);
 				}
@@ -196,20 +196,20 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 				if (metaVersions.isEmpty()) 
 					throw new OdilonObjectNotFoundException(Optional.of(meta.systemTags).orElse("previous versions deleted"));
 				
-				op = getJournalService().restoreObjectPreviousVersion(bucketId, objectName, beforeHeadVersion);
+				op = getJournalService().restoreObjectPreviousVersion(bucket_id, objectName, beforeHeadVersion);
 				
 				/** save current head version MetadataFile .vN  and data File vN - no need to additional backup */
-				saveVersionObjectDataFile(bucket, objectName,  meta.version);
-				saveVersionObjectMetadata(bucket, objectName,  meta.version);
+				saveVersionObjectDataFile(bucket, objectName,  meta.getVersion());
+				saveVersionObjectMetadata(bucket, objectName,  meta.getVersion());
 	
 				/** save previous version as head */
 				ObjectMetadata metaToRestore = metaVersions.get(metaVersions.size()-1);
 				metaToRestore.setBucketName(bucket.getName());
 	
-				if (!restoreVersionObjectDataFile(bucket, metaToRestore.objectName, metaToRestore.version))
+				if (!restoreVersionObjectDataFile(bucket, metaToRestore.getObjectName(), metaToRestore.getVersion()))
 					throw new OdilonObjectNotFoundException(Optional.of(meta.systemTags).orElse("previous versions deleted"));
 				
-				if (!restoreVersionObjectMetadata(bucket, metaToRestore.objectName, metaToRestore.version))
+				if (!restoreVersionObjectMetadata(bucket, metaToRestore.getObjectName(), metaToRestore.getVersion()))
 					throw new OdilonObjectNotFoundException(Optional.of(meta.systemTags).orElse("previous versions deleted"));
 				
 				done = op.commit();
@@ -240,7 +240,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 							if (!isMainException)
 								throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName));
 							else
-								logger.error(e, " finally | " + getDriver().objectInfo(bucket, objectName) +  SharedConstant.NOT_THROWN);
+								logger.error(e, " finally | " + getDriver().objectInfo(bucket, objectName) + SharedConstant.NOT_THROWN);
 						}
 					}
 					else {
@@ -248,20 +248,22 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 						 TODO AT ->Sync by the moment see how to make it Async */
 						if ((op!=null) && ((beforeHeadVersion>=0))) {
 							try {
-									FileUtils.deleteQuietly(getDriver().getWriteDrive(bucket, objectName).getObjectMetadataVersionFile(bucket.getId(), objectName,  beforeHeadVersion));
-									FileUtils.deleteQuietly(((SimpleDrive) getDriver().getWriteDrive(bucket, objectName)).getObjectDataVersionFile(bucket.getId(), objectName,  beforeHeadVersion));
+									
+								FileUtils.deleteQuietly(getDriver().getWriteDrive(bucket, objectName).getObjectMetadataVersionFile(bucket.getId(), objectName,  beforeHeadVersion));
+								FileUtils.deleteQuietly(((SimpleDrive) getDriver().getWriteDrive(bucket, objectName)).getObjectDataVersionFile(bucket.getId(), objectName,  beforeHeadVersion));
+									
 							} catch (Exception e) {
 							logger.error(e, SharedConstant.NOT_THROWN);
 							}
 						}
 					}	
 				} finally {
-					getLockService().getBucketLock(bucketId).readLock().unlock();
+					getLockService().getBucketLock(bucket_id).readLock().unlock();
 				}
 			}
 		}
 		finally {
-			getLockService().getObjectLock(bucketId, objectName).writeLock().unlock();
+			getLockService().getObjectLock(bucket_id, objectName).writeLock().unlock();
 		}
 	}
 	
@@ -281,25 +283,25 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 		boolean done = false;
 		boolean isMainException = false;
 
-		ServerBucket bucket = getDriver().getVFS().getBucketById(meta.bucketId);
+		ServerBucket bucket = getDriver().getVFS().getBucketById(meta.getBucketId());
 		
-		getLockService().getObjectLock( meta.bucketId, meta.objectName).writeLock().lock();
+		getLockService().getObjectLock( meta.getBucketId(), meta.getObjectName()).writeLock().lock();
 		
 		try {
 
-			getLockService().getBucketLock( meta.bucketId).readLock().lock();
+			getLockService().getBucketLock( meta.getBucketId()).readLock().lock();
 
 			try {
 	
-				op = getJournalService().updateObjectMetadata(meta.bucketId, meta.objectName, meta.version);
+				op = getJournalService().updateObjectMetadata(meta.getBucketId(), meta.getObjectName(), meta.version);
 				backupMetadata(meta);
-				getWriteDrive(bucket, meta.objectName).saveObjectMetadata(meta);
+				getWriteDrive(bucket, meta.getObjectName()).saveObjectMetadata(meta);
 				done = op.commit();
 				
 			} catch (Exception e) {
 				isMainException = true;
 				done=false;
-				throw new InternalCriticalException(e, "b:"  + meta.bucketId + ", o:" + meta.objectName); 
+				throw new InternalCriticalException(e, "b:"  + meta.getBucketId() + ", o:" + meta.getObjectName()); 
 				
 			} finally {
 				
@@ -310,26 +312,26 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 							} catch (Exception e) {
 								
 								if (!isMainException)
-									throw new InternalCriticalException(e, getDriver().objectInfo(meta.bucketId, meta.objectName));
+									throw new InternalCriticalException(e, getDriver().objectInfo(meta.getBucketId(), meta.getObjectName()));
 								else
-									logger.error(e, " finally " + getDriver().objectInfo(meta.bucketId, meta.objectName), SharedConstant.NOT_THROWN);
+									logger.error(e, " finally " + getDriver().objectInfo(meta.getBucketId(), meta.getObjectName()), SharedConstant.NOT_THROWN);
 							}
 					}
 					else {
 						/** TODO AT ->  Delete backup Metadata. Sync by the moment see how to make it Async. */
 						try {
-							FileUtils.deleteQuietly(new File(getDriver().getWriteDrive(bucket, meta.objectName).getBucketWorkDirPath(meta.bucketId) + File.separator + meta.objectName));
+							FileUtils.deleteQuietly(new File(getDriver().getWriteDrive(bucket, meta.getObjectName()).getBucketWorkDirPath(meta.getBucketId()) + File.separator + meta.getObjectName()));
 						} catch (Exception e) {
 							logger.error(e, SharedConstant.NOT_THROWN);
 						}
 						
 					}
 				} finally {
-					getLockService().getBucketLock(meta.bucketId).readLock().unlock();
+					getLockService().getBucketLock(meta.getBucketId()).readLock().unlock();
 				}
 			}
 			} finally {
-				getLockService().getObjectLock(meta.bucketId, meta.objectName).writeLock().unlock();
+				getLockService().getObjectLock(meta.getBucketId(), meta.getObjectName()).writeLock().unlock();
 			}
 		}
 
@@ -530,7 +532,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 				meta.vault=getVFS().isUseVaultNewFiles();
 				meta.creationDate = now;
 				meta.version=version;
-				meta.versioncreationDate = meta.creationDate;
+				meta.versioncreationDate = meta.getCreationDate();
 				meta.length=file.length();
 				meta.etag=sha256; /** sha256 is calculated on the encrypted file */
 				meta.integrityCheck = now;
@@ -620,17 +622,17 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 	 */
 	private void backupMetadata(ObjectMetadata meta) {
 		
-		ServerBucket bucket = getDriver().getVFS().getBucketById(meta.bucketId);
+		ServerBucket bucket = getDriver().getVFS().getBucketById(meta.getBucketId());
 		
 		try {
-			String objectMetadataDirPath = getDriver().getWriteDrive(bucket, meta.objectName).getObjectMetadataDirPath(meta.bucketId, meta.objectName);
-			String objectMetadataBackupDirPath = getDriver().getWriteDrive(bucket, meta.objectName).getBucketWorkDirPath(meta.bucketId) + File.separator + meta.objectName;
+			String objectMetadataDirPath = getDriver().getWriteDrive(bucket, meta.getObjectName()).getObjectMetadataDirPath(meta.getBucketId(), meta.getObjectName());
+			String objectMetadataBackupDirPath = getDriver().getWriteDrive(bucket, meta.getObjectName()).getBucketWorkDirPath(meta.getBucketId()) + File.separator + meta.getObjectName();
 			File src=new File(objectMetadataDirPath);
 			if (src.exists())
 				FileUtils.copyDirectory(src, new File(objectMetadataBackupDirPath));
 			
 		} catch (IOException e) {
-			throw new InternalCriticalException(e, "backupMetadata | " + getDriver().objectInfo(bucket, meta.objectName));
+			throw new InternalCriticalException(e, "backupMetadata | " + getDriver().objectInfo(bucket, meta.getObjectName()));
 		}
 	}
 

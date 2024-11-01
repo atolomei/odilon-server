@@ -55,8 +55,6 @@ import io.odilon.vfs.model.ServerBucket;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
- *
- *
  *<p>Implementation of the Object Storage interface</p>
  *<p>The  Object Storage  is essentially an intermediary that downloads the requirements into the Virtual File System</p>
  *
@@ -110,11 +108,11 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
 	 * @param encrpytionService
 	 * @param vfs
 	 */
-	public OdilonObjectStorageService( 	ServerSettings serverSettings, 
-									SystemMonitorService montoringService,   
-									EncryptionService encrpytionService, 
-									VirtualFileSystemService vfs, 
-									SystemInfoService systemInfoService ) {
+	public OdilonObjectStorageService(	ServerSettings serverSettings, 
+										SystemMonitorService montoringService,   
+										EncryptionService encrpytionService, 
+										VirtualFileSystemService vfs, 
+										SystemInfoService systemInfoService ) {
 		
 		this.systemInfoService = systemInfoService;
 		this.serverSettings=serverSettings;
@@ -199,7 +197,6 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
 		if (getServerSettings().isReadOnly() || getServerSettings().isWORM())
 			throw new IllegalStateException("Illegal operation for data storage mode -> " + getServerSettings().getDataStorage().getName() + " | b: " + bucketName + " o: " + objectName);
 		getVFS().deleteObject(bucketName, objectName);
-		
 	}
 	
 	@Override
@@ -291,7 +288,6 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
 			throw new OdilonInternalErrorException(e);
 		} 
 	}
-
 	
 	/**
 	 * 
@@ -384,19 +380,15 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
 			throw new IllegalArgumentException( "bucketName must be >0 and <" + String.valueOf(SharedConstant.MAX_BUCKET_CHARS) +
 					" and must contain just lowercase letters and numbers, java regex = '" +
 					SharedConstant.bucket_valid_regex + "' | b:" + bucketName);
-
 		try {
-
 			return getVFS().createBucket(bucketName);
 			
 		} catch (Exception e) {
-			throw( new OdilonInternalErrorException(e));
+			throw(new OdilonInternalErrorException(e));
 		}
 	}
-
 	
 	/**
-	 * 
 	 * @param bucketName
 	 * @return
 	 */
