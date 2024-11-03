@@ -57,6 +57,7 @@ import io.odilon.OdilonVersion;
 import io.odilon.encryption.EncryptionService;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
+import io.odilon.model.Bucket;
 import io.odilon.model.BucketMetadata;
 import io.odilon.model.BucketStatus;
 import io.odilon.model.ObjectMetadata;
@@ -1028,12 +1029,27 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		return "op:" + (op!=null? op.toString() :"null"); 
 	}
 	
+	public String objectInfo(BucketMetadata bucket) {
+		if (bucket==null)
+			return "b: null";
+		return "b_id:" + (bucket.getId()!=null?bucket.getId().toString():"null") +
+				" bn:" + (bucket.getBucketName()!=null?bucket.getBucketName():"null");
+	}
+	
+	public String objectInfo(ServerBucket bucket) {
+		if (bucket==null)
+			return "b: null";
+		return "b_id:" + (bucket.getId()!=null?bucket.getId().toString():"null") +
+				" bn:" + (bucket.getName()!=null?bucket.getName():"null");
+	}
+	
+	
 	public String objectInfo(Long bucket_id, String objectName) {
 		return "b_id:" + (bucket_id!=null?bucket_id.toString():"null") + " o:" + (objectName!=null?objectName:"null");
 	}
 	
 	public String objectInfo(String bucketName, String objectName) {
-		return "b:" + (bucketName!=null?bucketName:"null") + " o:"+ (objectName!=null?objectName:"null");
+		return "bn:" + (bucketName!=null?bucketName:"null") + " o:"+ (objectName!=null?objectName:"null");
 	}
 
 	public String objectInfo(ServerBucket bucket, String objectName) {
@@ -1059,7 +1075,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 	}
 	
 	public String objectInfo(String bucketName, String objectName, String fileName) {
-		return "b:" + (bucketName!=null?bucketName.toString():"null") + " o:"+ (objectName!=null?objectName:"null") + (fileName!=null?  (" f:" + fileName) :"" );
+		return "bn:" + (bucketName!=null?bucketName.toString():"null") + " o:"+ (objectName!=null?objectName:"null") + (fileName!=null?  (" f:" + fileName) :"" );
 	}
 	
 	

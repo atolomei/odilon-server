@@ -309,7 +309,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 		
 		ServerBucket bucket = new OdilonBucket(meta);
 		
-		getLockService().getBucketLock(meta.id).writeLock().lock();
+		getLockService().getBucketLock(meta.getId()).writeLock().lock();
 		
 		try {
 		
@@ -347,7 +347,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 				logger.error(e, SharedConstant.NOT_THROWN);
 			}
 			finally {
-				getLockService().getBucketLock(meta.id).writeLock().unlock();
+				getLockService().getBucketLock(meta.getId()).writeLock().unlock();
 			}
 		}
 	}
@@ -376,7 +376,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 			return getReadDrive(bucket).isEmpty(bucket.getId());
 		}
 		catch (Exception e) {
-				throw new InternalCriticalException(e, "b:" + bucket.getId());
+				throw new InternalCriticalException(e, objectInfo(bucket));
 				 
 		} finally {						
 			getLockService().getBucketLock(bucket.getId()).readLock().unlock();
@@ -388,7 +388,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 	public List<ObjectMetadata> getObjectMetadataVersionAll(ServerBucket bucket, String objectName) {
 		
 		Check.requireNonNullArgument(bucket, "bucket is null");
-		Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
+		Check.requireNonNullStringArgument(objectName, "objectName is null or empty | " + objectInfo(bucket));
 		Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie. " + BucketStatus.ARCHIVED.getName() +" or " + BucketStatus.ENABLED.getName() + ") | b:" + bucket.getName());
 	
 		List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();

@@ -300,8 +300,8 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	public void deleteBucketAllPreviousVersions(ServerBucket bucket) {
 
 		Check.requireNonNullArgument(bucket, "bucket is null");
-		Check.requireNonNullArgument(bucket, "bucket does not exist -> b:" + bucket.getName());
-		Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie. " + BucketStatus.ARCHIVED.getName() + " or " + BucketStatus.ENABLED.getName() + ") | b:" + bucket.getName());
+		Check.requireNonNullArgument(bucket, "bucket does not exist ->" + objectInfo(bucket));
+		Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie. " + BucketStatus.ARCHIVED.getName() + " or " + BucketStatus.ENABLED.getName() + ") |" +  objectInfo(bucket));
 
 		RAIDZeroDeleteObjectHandler agent = new RAIDZeroDeleteObjectHandler(this);
 		agent.deleteBucketAllPreviousVersions(bucket);
@@ -315,7 +315,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName,	String contentType, Optional<List<String>> customTags) {
 
 		Check.requireNonNullArgument(bucket, "bucket is null");
-		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucket.getName());
+		Check.requireNonNullStringArgument(objectName, "objectName can not be null " + objectInfo(bucket));
 		Check.requireNonNullStringArgument(fileName, "fileName is null | b: " + bucket.getName() + " o:" + objectName);
 		Check.requireNonNullArgument(stream, "InpuStream can not null -> b:" + bucket.getName() + " | o:" + objectName);
 
@@ -408,7 +408,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 			}
 			return true;
 		} catch (Exception e) {
-			throw new InternalCriticalException(e, "b:" + bucket.getName());
+			throw new InternalCriticalException(e, objectInfo(bucket));
 		} finally {
 			getLockService().getBucketLock(bucket.getId()).readLock().unlock();
 		}
@@ -461,7 +461,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 			}
 	
 			catch (Exception e) {
-				throw new InternalCriticalException(e, "b:" + bucket.getName() +objectName);
+				throw new InternalCriticalException(e, objectInfo(bucket,objectName));
 			} finally {
 				getLockService().getBucketLock(bucket.getId()).readLock().unlock();
 			}
@@ -616,13 +616,12 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 				if ((meta == null) || (!meta.isAccesible()))
 					throw new OdilonObjectNotFoundException(ObjectMetadata.class.getSimpleName() + " does not exist");
 	
-				if (meta.version == 0)
+				if (meta.getVersion() == 0)
 					return list;
 	
-				for (int version = 0; version < meta.version; version++) {
+				for (int version = 0; version < meta.getVersion(); version++) {
 					
 					ObjectMetadata meta_version = readDrive.getObjectMetadataVersion(bucket.getId(), objectName, version);
-
 					
 					if (meta_version != null) {
 						/** bucketName is not stored on disk, only bucketId, we must set it explicitly */

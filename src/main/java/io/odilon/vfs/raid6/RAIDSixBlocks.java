@@ -23,7 +23,6 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import io.odilon.model.BaseObject;
-import io.odilon.model.OdilonModelObject;
 
 
 /**
@@ -55,6 +54,13 @@ public class RAIDSixBlocks extends BaseObject {
 		return str.toString();		
 	}
 
+	@Override
+	public String toString() {
+			StringBuilder str = new StringBuilder();
+			str.append(this.getClass().getSimpleName());
+			str.append(toJSON());
+			return str.toString();
+	}
 	
 	
 }
