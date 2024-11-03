@@ -27,14 +27,14 @@ import io.odilon.model.BaseObject;
 import io.odilon.model.ObjectMetadata;
 
 import io.odilon.vfs.model.ServerBucket;
-import io.odilon.vfs.model.VFSObject;
+import io.odilon.vfs.model.VirtualFileSystemObject;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
 *  
 * @author atolomei@novamens.com (Alejandro Tolomei)
 */
-public class OdilonObject extends BaseObject implements VFSObject {
+public class OdilonObject extends BaseObject implements VirtualFileSystemObject {
 			
 	@SuppressWarnings("unused")
 	private static Logger logger = Logger.getLogger(OdilonObject.class.getName());

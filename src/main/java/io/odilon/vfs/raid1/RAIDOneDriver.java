@@ -58,7 +58,7 @@ import io.odilon.vfs.OdilonBucket;
 import io.odilon.vfs.OdilonObject;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.ServerBucket;
-import io.odilon.vfs.model.VFSObject;
+import io.odilon.vfs.model.VirtualFileSystemObject;
 import io.odilon.vfs.model.LockService;
 import io.odilon.vfs.model.SimpleDrive;
 import io.odilon.vfs.model.VFSOperation;
@@ -460,7 +460,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 	/**
 	 * 
 	 */
-	public VFSObject getObject(Long bucketId, String objectName) {
+	public VirtualFileSystemObject getObject(Long bucketId, String objectName) {
 		Check.requireNonNullArgument(bucketId, "bucketId is null");
 		ServerBucket bucket = getVFS().getBucketById(bucketId);
 		Check.requireNonNullArgument(bucket, "bucket does not exist -> " + bucketId.toString());
@@ -470,7 +470,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 	/**
 	 * 
 	 */
-	public VFSObject getObject(ServerBucket bucket, String objectName) {
+	public VirtualFileSystemObject getObject(ServerBucket bucket, String objectName) {
 		
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		

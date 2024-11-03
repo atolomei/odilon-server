@@ -147,8 +147,8 @@ public interface VirtualFileSystemService extends SystemService {
 	public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName, String contentType, Optional<List<String>> customTags);
 	public void putObject(String bucketName, String objectName, InputStream is, String fileName, String contentType, Optional<List<String>> customTags);
 	
-	public VFSObject getObject(ServerBucket bucket, String objectName);
-	public VFSObject getObject(String bucketName, String objectName);
+	public VirtualFileSystemObject getObject(ServerBucket bucket, String objectName);
+	public VirtualFileSystemObject getObject(String bucketName, String objectName);
 	public ObjectMetadata getObjectMetadata(String bucketName, String objectName);
 	
 	public boolean existsObject(ServerBucket bucket, String objectName);

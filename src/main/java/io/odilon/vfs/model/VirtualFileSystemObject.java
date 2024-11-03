@@ -26,7 +26,7 @@ import io.odilon.model.ObjectMetadata;
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
-public interface VFSObject {
+public interface VirtualFileSystemObject {
 	
 	public String getObjectName();
 	public ServerBucket getBucket();

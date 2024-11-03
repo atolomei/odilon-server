@@ -68,7 +68,7 @@ import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.DriveBucket;
 import io.odilon.vfs.model.JournalService;
 import io.odilon.vfs.model.ServerBucket;
-import io.odilon.vfs.model.VFSObject;
+import io.odilon.vfs.model.VirtualFileSystemObject;
 import io.odilon.vfs.model.LockService;
 import io.odilon.vfs.model.SimpleDrive;
 import io.odilon.vfs.model.VFSOperation;
@@ -423,7 +423,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	 * </p>
 	 */
 	@Override
-	public VFSObject getObject(ServerBucket bucket, String objectName) {
+	public VirtualFileSystemObject getObject(ServerBucket bucket, String objectName) {
 
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie. must be " + ObjectStatus.ENABLED.getName() + " or " + ObjectStatus.ARCHIVED.getName() + " b:" + bucket.getName());

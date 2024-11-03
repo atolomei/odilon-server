@@ -61,7 +61,7 @@ import io.odilon.vfs.model.BucketIterator;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.LockService;
 import io.odilon.vfs.model.ServerBucket;
-import io.odilon.vfs.model.VFSObject;
+import io.odilon.vfs.model.VirtualFileSystemObject;
 import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VFSOp;
 import io.odilon.vfs.model.VirtualFileSystemService;
@@ -567,7 +567,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 	 * 
 	 */
 	@Override
-	public VFSObject getObject(ServerBucket bucket, String objectName) {
+	public VirtualFileSystemObject getObject(ServerBucket bucket, String objectName) {
 		
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie. " + BucketStatus.ENABLED.getName() +" or " + BucketStatus.ENABLED.getName() + "  | b:" +  bucket.getName());

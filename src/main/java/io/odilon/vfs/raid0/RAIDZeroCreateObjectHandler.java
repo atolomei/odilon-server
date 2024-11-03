@@ -78,7 +78,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullArgument(bucket.getName(), "bucketName is null");
 		Check.requireNonNullArgument(bucket.getId(), "bucket id is null");
-		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
+		Check.requireNonNullArgument(objectName, "objectName is null or empty " + getDriver().objectInfo(bucket));
 			
 		VFSOperation op = null;
 		boolean done = false;

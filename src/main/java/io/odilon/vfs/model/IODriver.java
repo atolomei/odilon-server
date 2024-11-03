@@ -53,7 +53,7 @@ public interface IODriver {
 	public void 			putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName, String contentType, Optional<List<String>> customTags);
 	public void 			putObject(ServerBucket bucket, String objectName, File file);
 	
-	public VFSObject 		getObject(ServerBucket bucket, String objectName);
+	public VirtualFileSystemObject 		getObject(ServerBucket bucket, String objectName);
 	public boolean 			exists(ServerBucket bucket, String objectName);
 	public InputStream 		getInputStream(ServerBucket bucket, String objectName) throws IOException;
 	public void 			delete(ServerBucket bucket, String objectName);

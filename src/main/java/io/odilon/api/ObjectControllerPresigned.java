@@ -44,7 +44,7 @@ import io.odilon.service.ServerSettings;
 import io.odilon.service.ObjectStorageService;
 import io.odilon.traffic.TrafficControlService;
 import io.odilon.traffic.TrafficPass;
-import io.odilon.vfs.model.VFSObject;
+import io.odilon.vfs.model.VirtualFileSystemObject;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
 /**
@@ -120,7 +120,7 @@ public class ObjectControllerPresigned extends BaseApiController {
 			String bucketName = authToken.bucketName; 
 			String objectName = authToken.objectName;
 			
-			VFSObject object = getObjectStorageService().getObject(bucketName, objectName);
+			VirtualFileSystemObject object = getObjectStorageService().getObject(bucketName, objectName);
 			
 			if (object==null)
 				throw new OdilonObjectNotFoundException(String.format("not found -> b: %s | o:%s",Optional.ofNullable(bucketName).orElse("null"),Optional.ofNullable(objectName).orElse("null")));

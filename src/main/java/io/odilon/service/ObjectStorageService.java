@@ -27,7 +27,7 @@ import io.odilon.model.SystemInfo;
 import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
 import io.odilon.vfs.model.ServerBucket;
-import io.odilon.vfs.model.VFSObject;
+import io.odilon.vfs.model.VirtualFileSystemObject;
 
 /**
  *
@@ -61,7 +61,7 @@ public interface ObjectStorageService extends SystemService {
 	public void putObject(String bucketName, String objectName, InputStream stream, String fileName, String contentType);
 	public void putObject(String bucketName, String objectName, InputStream stream, String fileName, String contentType, Optional<List<String>> customTags);
 	
-	public VFSObject getObject(String bucketName, String objectName);
+	public VirtualFileSystemObject getObject(String bucketName, String objectName);
 	public ObjectMetadata getObjectMetadata(String bucketName, String objectName);
 	
 	/** Object version - get */

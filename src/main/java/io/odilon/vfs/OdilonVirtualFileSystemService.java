@@ -79,7 +79,7 @@ import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.DriveBucket;
 import io.odilon.vfs.model.DriveStatus;
 import io.odilon.vfs.model.JournalService;
-import io.odilon.vfs.model.VFSObject;
+import io.odilon.vfs.model.VirtualFileSystemObject;
 import io.odilon.vfs.model.VFSOperation;
 
 import io.odilon.vfs.model.ServerBucket;
@@ -498,7 +498,7 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 	 * 
 	 */
 	@Override
-	public VFSObject getObject(ServerBucket bucket, String objectName) {
+	public VirtualFileSystemObject getObject(ServerBucket bucket, String objectName) {
 		Check.requireNonNullArgument(bucket, "bucket can not be null ");
 		Check.requireNonNullArgument(objectName, "objectName can not be null -> b:" + bucket.getName());
 		Check.requireTrue(getBucketsByNameMap().containsKey(bucket.getName()), "bucket does not exist | b: " + bucket.getName());
@@ -509,7 +509,7 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 	 * 
 	 */
 	@Override
-	public VFSObject getObject(String bucketName, String objectName) {
+	public VirtualFileSystemObject getObject(String bucketName, String objectName) {
 		
 		Check.requireNonNullArgument(bucketName, "bucketName can not be null");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null or empty | b:" + bucketName);

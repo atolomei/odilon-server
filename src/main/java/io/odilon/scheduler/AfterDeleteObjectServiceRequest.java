@@ -34,12 +34,12 @@ import io.odilon.vfs.model.VirtualFileSystemService;
  * {@code VFSop.DELETE_OBJECT} or {@code VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS}</p>  
  * 
  * <b>VFSop.DELETE_OBJECT</b>
- * <p>Cleans up all previous versions of an {@link VFSObject} (ObjectMetadata and Data).<br/>
+ * <p>Cleans up all previous versions of an {@link VirtualFileSystemObject} (ObjectMetadata and Data).<br/>
  * Delete backup directory. <br/>
  * This request is executed Async after the delete transaction commited.</p>
  *	 
  * <b>VFSop.DELETE_OBJECT_PREVIOUS_VERSIONS</b>
- * <p>Cleans up all previous versions of an {@link VFSObject} (ObjectMetadata and Data), but keeps the head version.<br/>
+ * <p>Cleans up all previous versions of an {@link VirtualFileSystemObject} (ObjectMetadata and Data), but keeps the head version.<br/>
  * Delete backup directory. <br/>
  * This request is executed Async after the delete transaction commited.</p>
  *

@@ -50,7 +50,7 @@ import io.odilon.model.list.Item;
 import io.odilon.monitor.SystemInfoService;
 import io.odilon.monitor.SystemMonitorService;
 import io.odilon.util.Check;
-import io.odilon.vfs.model.VFSObject;
+import io.odilon.vfs.model.VirtualFileSystemObject;
 import io.odilon.vfs.model.ServerBucket;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
@@ -320,7 +320,7 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
 	 * 
 	 */
 	@Override
-	public VFSObject getObject(String bucketName, String objectName) {
+	public VirtualFileSystemObject getObject(String bucketName, String objectName) {
 		Check.requireTrue(isVFSEnabled(), "VFS invalid state -> " + getVFS().getStatus().toString());	
 		return getVFS().getObject(bucketName, objectName);
 		
