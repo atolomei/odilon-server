@@ -85,6 +85,25 @@ public class RAIDOneDriver extends BaseIODriver  {
 
 	private static Logger logger = Logger.getLogger(RAIDOneDriver.class.getName());
 	
+	
+	private void readLock(ServerBucket bucket) {
+		getLockService().getBucketLock(bucket.getId()).readLock().lock();
+	}
+
+	private void readUnlock(ServerBucket bucket) {
+		getLockService().getBucketLock(bucket.getId()).readLock().unlock();
+	}
+
+	
+	private void writeLock(BucketMetadata meta) {
+		getLockService().getBucketLock(meta.getId()).writeLock().lock();
+	}
+	
+	private void writeUnlock(BucketMetadata meta) {
+		getLockService().getBucketLock(meta.getId()).writeLock().unlock();
+	}
+
+	
 	/**
 	 * <p>
 	 * @param vfs
@@ -146,7 +165,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 		
 		try {
 		
-			getLockService().getBucketLock(bucket.getId()).readLock().lock();
+			readLock(bucket);
 			
 			try {
 				
@@ -174,13 +193,19 @@ public class RAIDOneDriver extends BaseIODriver  {
 					throw new InternalCriticalException(e, "b:" + bucket.getId() + ", o:" + objectName + " | v:" + String.valueOf(version));
 			}
 			finally {
-				getLockService().getBucketLock(bucket.getId()).readLock().unlock();			
+				
+				readUnlock(bucket);
 			}
 		}
 		finally {
 			getLockService().getObjectLock(bucket.getId(), objectName).readLock().unlock();
 		}
 	}
+
+	
+
+
+
 
 	/**
 	 * 
@@ -309,7 +334,8 @@ public class RAIDOneDriver extends BaseIODriver  {
 		
 		ServerBucket bucket = new OdilonBucket(meta);
 		
-		getLockService().getBucketLock(meta.getId()).writeLock().lock();
+		// getLockService().getBucketLock(meta.getId()).writeLock().lock();
+		writeLock(meta);
 		
 		try {
 		
@@ -347,11 +373,15 @@ public class RAIDOneDriver extends BaseIODriver  {
 				logger.error(e, SharedConstant.NOT_THROWN);
 			}
 			finally {
-				getLockService().getBucketLock(meta.getId()).writeLock().unlock();
+				writeUnlock(meta);
+				//getLockService().getBucketLock(meta.getId()).writeLock().unlock();
 			}
 		}
 	}
 	
+
+	
+
 
 	/**
 	 * <p>@param bucket bucket must exist in the system</p> 
@@ -370,7 +400,8 @@ public class RAIDOneDriver extends BaseIODriver  {
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireTrue(existsBucketInDrives(bucket.getId()), "bucket does not exist -> b: " + bucket.getId());
 		
-		getLockService().getBucketLock(bucket.getId()).readLock().lock();
+		//getLockService().getBucketLock(bucket.getId()).readLock().lock();
+		readLock(bucket);
 		
 		try {
 			return getReadDrive(bucket).isEmpty(bucket.getId());
@@ -379,7 +410,8 @@ public class RAIDOneDriver extends BaseIODriver  {
 				throw new InternalCriticalException(e, objectInfo(bucket));
 				 
 		} finally {						
-			getLockService().getBucketLock(bucket.getId()).readLock().unlock();
+			//getLockService().getBucketLock(bucket.getId()).readLock().unlock();
+			readUnlock(bucket);
 		}
 	}
 

@@ -82,20 +82,6 @@ public class StandardSchedulerWorker extends SchedulerWorker {
 	}
 
 	@Override
-	protected synchronized void onInitialize() {
-
-		this.queue = getApplicationContext().getBean(ServiceRequestQueue.class, getId());
-		this.queue.setVFS(getVFS());
-	    this.queue.loadFSQueue();
-	    
-	    if (this.queue.size()>0) 
-	    	startuplogger.info(this.getClass().getSimpleName()+" Queue size -> " + String.valueOf(this.queue.size()) );
-	    
-	    this.executing = new ConcurrentHashMap<Serializable, ServiceRequest>(16, 0.9f, 1);
-	    this.failed = new ConcurrentSkipListMap<Serializable, ServiceRequest>();
-	}
-	
-	@Override
 	public void add(ServiceRequest request) {
 		Check.requireNonNullArgument( request, "request is null");
 		Check.requireTrue(request instanceof StandardServiceRequest, "must be instanceof -> " + StandardServiceRequest.class.getName() +" | request: " + request.getClass().getName());
@@ -162,41 +148,23 @@ public class StandardSchedulerWorker extends SchedulerWorker {
 		}
 	}
 
-	/**
-	 * <p>This  method determines if a {@link ServiceRequest} can be executed in parallel along with the 
-	 * other {@link ServiceRequest} in the Map
-	 * </p>
-	 * <p>Normally we should build a dependency graph to decide which operations can be parallelized, but
-	 * the (simple) criteria so far is: <br/>
-	 * if all requests are Object operations, allow if the Object id is not in the map. otherwise restrict
-	 * requests for {@link Bucket} and other classes are assumed to be infrequent and executed alone.
-	 * </p>
-	 * 
-	 * @param request
-	 * @param map
-	 * @return
-	 */
-	private boolean isCompatible(ServiceRequest request, Map<String, ServiceRequest> map) {
-		
-		if (!(request instanceof StandardServiceRequest)) {
-			logger.error("invalid class -> " + request.getClass().getName());
-			return false;
-		}
-		
-		if (map.isEmpty())
-			return true;
-		
-		StandardServiceRequest repRequest = (StandardServiceRequest) request;
-		
-		if (!repRequest.isObjectOperation()) 
-			return false;
-		
-		if (map.containsKey(repRequest.getUUID())) 
-				return false;	
-		
-		return true;
+
+	@Override
+	protected synchronized void onInitialize() {
+
+		this.queue = getApplicationContext().getBean(ServiceRequestQueue.class, getId());
+		this.queue.setVFS(getVFS());
+	    this.queue.loadFSQueue();
+	    
+	    if (this.queue.size()>0) 
+	    	startuplogger.info(this.getClass().getSimpleName()+" Queue size -> " + String.valueOf(this.queue.size()) );
+	    
+	    this.executing = new ConcurrentHashMap<Serializable, ServiceRequest>(16, 0.9f, 1);
+	    this.failed = new ConcurrentSkipListMap<Serializable, ServiceRequest>();
 	}
-	/**
+	
+
+		/**
 	 * 
 	 */
 	@Override
@@ -313,5 +281,41 @@ public class StandardSchedulerWorker extends SchedulerWorker {
 	protected Map<Serializable, ServiceRequest> getFailed() {
 		return this.failed;
 	}
+	
+	/**
+	 * <p>This  method determines if a {@link ServiceRequest} can be executed in parallel along with the 
+	 * other {@link ServiceRequest} in the Map
+	 * </p>
+	 * <p>Normally we should build a dependency graph to decide which operations can be parallelized, but
+	 * the (simple) criteria so far is: <br/>
+	 * if all requests are Object operations, allow if the Object id is not in the map. otherwise restrict
+	 * requests for {@link Bucket} and other classes are assumed to be infrequent and executed alone.
+	 * </p>
+	 * 
+	 * @param request
+	 * @param map
+	 * @return
+	 */
+	private boolean isCompatible(ServiceRequest request, Map<String, ServiceRequest> map) {
+		
+		if (!(request instanceof StandardServiceRequest)) {
+			logger.error("invalid class -> " + request.getClass().getName(), SharedConstant.NOT_THROWN);
+			return false;
+		}
+		
+		if (map.isEmpty())
+			return true;
+		
+		StandardServiceRequest repRequest = (StandardServiceRequest) request;
+		
+		if (!repRequest.isObjectOperation()) 
+			return false;
+		
+		if (map.containsKey(repRequest.getUUID())) 
+				return false;	
+		
+		return true;
+	}
+
 
 }

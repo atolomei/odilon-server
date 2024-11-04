@@ -624,7 +624,8 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 					ObjectMetadata meta_version = readDrive.getObjectMetadataVersion(bucket.getId(), objectName, version);
 					
 					if (meta_version != null) {
-						/** bucketName is not stored on disk, only bucketId, we must set it explicitly */
+						/** bucketName is not stored on disk, only bucketId, 
+						 *  we must set it explicitly */
 						meta_version.setBucketName(bucket.getName());
 						list.add(meta_version);
 					}
