@@ -68,6 +68,7 @@ public class DataIntegrityChecker implements Runnable, ApplicationContextAware  
 	static private Logger checkerLogger = Logger.getLogger("dataIntegrityCheck");
 
 	private boolean forceCheckAll = false;
+	
 	private int maxProcessingThread  = 1;
 	
 	@JsonIgnore
@@ -137,14 +138,14 @@ public class DataIntegrityChecker implements Runnable, ApplicationContextAware  
 		this.errors = new AtomicLong(0);
 		this.notAvailable = new AtomicLong(0);
 		this.checkOk = new AtomicLong(0);
-		this.maxProcessingThread  = settings.getIntegrityCheckThreads();
+		this.maxProcessingThread  = getServerSettings().getIntegrityCheckThreads();
 		this.start_ms = System.currentTimeMillis();
 	
 		ExecutorService executor = null;
 		
 		try {
 			
-			executor = Executors.newFixedThreadPool(this.maxProcessingThread);
+			executor = Executors.newFixedThreadPool(getMaxProcessingThread());
 			
 			for (ServerBucket bucket: getVirtualFileSystemService().listAllBuckets()) {
 				Integer pageSize = Integer.valueOf(ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE);
@@ -202,6 +203,8 @@ public class DataIntegrityChecker implements Runnable, ApplicationContextAware  
 		}
 	}
 
+	
+	
 	/**
 	 * 
 	 * 
@@ -247,6 +250,14 @@ public class DataIntegrityChecker implements Runnable, ApplicationContextAware  
 		return this.applicationContext;
 	}
 
+
+	public int getMaxProcessingThread() {
+		return maxProcessingThread;
+	}
+
+	public void setMaxProcessingThread(int maxProcessingThread) {
+		this.maxProcessingThread = maxProcessingThread;
+	}
 	
 	private void check(Item<ObjectMetadata> item) {
 		try {
@@ -270,7 +281,7 @@ public class DataIntegrityChecker implements Runnable, ApplicationContextAware  
 	}
 	
 	private void logResults(Logger lg) {
-		lg.info("Threads: " + String.valueOf(this.maxProcessingThread));
+		lg.info("Threads: " + String.valueOf(getMaxProcessingThread()));
 		lg.info("Total: " + String.valueOf(this.counter.get()));
 		lg.info("Total Size: " + String.format("%14.4f", Double.valueOf(totalBytes.get()).doubleValue() / ServerConstant.GB).trim() + " GB");
 		lg.info("Checked OK: " + String.valueOf(this.checkOk.get()));
@@ -279,6 +290,10 @@ public class DataIntegrityChecker implements Runnable, ApplicationContextAware  
 		lg.info("Duration: " + String.valueOf(Double.valueOf(System.currentTimeMillis() - this.start_ms) / Double.valueOf(1000)) + " secs");
 		lg.info("---------");
 		
+	}
+
+	private ServerSettings getServerSettings() {
+		return settings;
 	}
 
 }

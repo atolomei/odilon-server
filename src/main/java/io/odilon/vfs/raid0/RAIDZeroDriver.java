@@ -400,7 +400,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireTrue(existsBucketInDrives(bucket.getId()), "bucket does not exist in all drives -> b: " + bucket.getName());
 
-		getLockService().getBucketLock(bucket.getId()).readLock().lock();
+		getLockService().getBucketLock(bucket).readLock().lock();
 		try {
 			for (Drive drive: getDrivesEnabled()) {
 				if (!drive.isEmpty(bucket.getId()))
@@ -410,7 +410,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		} catch (Exception e) {
 			throw new InternalCriticalException(e, objectInfo(bucket));
 		} finally {
-			getLockService().getBucketLock(bucket.getId()).readLock().unlock();
+			getLockService().getBucketLock(bucket).readLock().unlock();
 		}
 	}
 
@@ -432,7 +432,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		getLockService().getObjectLock(bucket.getId(), objectName).readLock().lock();
 		try {
 			
-			getLockService().getBucketLock(bucket.getId()).readLock().lock();
+			getLockService().getBucketLock(bucket).readLock().lock();
 			try {
 	
 				/** read is from only 1 drive in RAID 0 */
@@ -463,7 +463,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 			catch (Exception e) {
 				throw new InternalCriticalException(e, objectInfo(bucket,objectName));
 			} finally {
-				getLockService().getBucketLock(bucket.getId()).readLock().unlock();
+				getLockService().getBucketLock(bucket).readLock().unlock();
 			}
 		}
 		finally {
@@ -486,7 +486,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		getLockService().getObjectLock(bucket.getId(), objectName).readLock().lock();
 		try {
 			
-			getLockService().getBucketLock(bucket.getId()).readLock().lock();
+			getLockService().getBucketLock(bucket).readLock().lock();
 			try {
 				boolean exists = getDrive(bucket, objectName).existsObjectMetadata(bucket.getId(), objectName);
 				if (!exists)
@@ -494,7 +494,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 				/** TBA chequear que no este "deleted" en el drive */
 				return true;
 			} finally {
-				getLockService().getBucketLock(bucket.getId()).readLock().unlock();
+				getLockService().getBucketLock(bucket).readLock().unlock();
 			}
 		}
 		finally {
@@ -602,7 +602,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		getLockService().getObjectLock(bucket.getId(), objectName).readLock().lock();
 		try {
 			
-			getLockService().getBucketLock(bucket.getId()).readLock().lock();
+			getLockService().getBucketLock(bucket).readLock().lock();
 			try {
 				
 				/** read is from only 1 drive */
@@ -638,7 +638,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 			} catch (Exception e) {
 				throw new InternalCriticalException(e, objectInfo(bucket, objectName) + ", d:" + (Optional.ofNullable(readDrive).isPresent() ? (readDrive.getName()) : "null"));
 			} finally {
-				getLockService().getBucketLock(bucket.getId()).readLock().unlock();
+				getLockService().getBucketLock(bucket).readLock().unlock();
 			}
 		}
 		finally {
@@ -675,7 +675,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		getLockService().getObjectLock(bucket.getId(), objectName).readLock().lock();
 		try {
 		
-			getLockService().getBucketLock(bucket.getId()).readLock().lock();
+			getLockService().getBucketLock(bucket).readLock().lock();
 			try {
 	
 				/** RAID 0: read is from only 1 drive */
@@ -700,7 +700,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 			} catch (Exception e) {
 				throw new InternalCriticalException(e, objectInfo(bucket, objectName));
 			} finally {
-				getLockService().getBucketLock(bucket.getId()).readLock().unlock();
+				getLockService().getBucketLock(bucket).readLock().unlock();
 			}
 		} finally {
 			getLockService().getObjectLock(bucket.getId(), objectName).readLock().unlock();
@@ -729,7 +729,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		getLockService().getObjectLock(bucket.getId(), objectName).readLock().lock();
 		try {
 		
-			getLockService().getBucketLock(bucket.getId()).readLock().lock();
+			getLockService().getBucketLock(bucket).readLock().lock();
 			try {
 	
 				/** RAID 0: read is from only 1 drive */
@@ -749,7 +749,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 			} catch (Exception e) {
 				throw new InternalCriticalException(e, objectInfo(bucket, objectName));
 			} finally {
-				getLockService().getBucketLock(bucket.getId()).readLock().unlock();
+				getLockService().getBucketLock(bucket).readLock().unlock();
 			}
 		} finally {
 			getLockService().getObjectLock(bucket.getId(), objectName).readLock().unlock();
@@ -1009,7 +1009,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 			}
 
 			try {
-				bucketLock = getLockService().getBucketLock(bucket.getId()).readLock().tryLock(20, TimeUnit.SECONDS);
+				bucketLock = getLockService().getBucketLock(bucket).readLock().tryLock(20, TimeUnit.SECONDS);
 				if (!bucketLock) {
 					logger.warn("Can not acquire read Lock for b: " + bucket.getName()+ ". Assumes -> check is ok");
 					return true;
@@ -1069,7 +1069,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 			
 			try {
 				if (bucketLock)
-					getLockService().getBucketLock(bucket.getId()).readLock().unlock();
+					getLockService().getBucketLock(bucket).readLock().unlock();
 			} catch (Exception e) {
 				logger.error(e, SharedConstant.NOT_THROWN);
 			}
@@ -1345,7 +1345,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		
 		try {
 		
-			getLockService().getBucketLock(bucket.getId()).readLock().lock();
+			getLockService().getBucketLock(bucket).readLock().lock();
 			
 			try {
 		
@@ -1374,9 +1374,9 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 				e.setErrorMessage("b:" + bucket.getName() + " "	+ (Optional.ofNullable(readDrive).isPresent() ? (readDrive.getName()) : "null")	+ (o_version.isPresent() ? (", v:" + String.valueOf(o_version.get())) : ""));
 				throw e;
 			} catch (Exception e) {
-				throw new InternalCriticalException(e, "b:" + bucket.getName() + ", o:" + objectName + ", d:"	+ (Optional.ofNullable(readDrive).isPresent() ? (readDrive.getName()) : "null")	+ (o_version.isPresent() ? (", v:" + String.valueOf(o_version.get())) : ""));
+				throw new InternalCriticalException(e, "b:" + bucket.getName() + ", o:" + objectName + ", d:"+(Optional.ofNullable(readDrive).isPresent() ? (readDrive.getName()) : "null")	+ (o_version.isPresent() ? (", v:" + String.valueOf(o_version.get())) : ""));
 			} finally {
-				getLockService().getBucketLock(bucket.getId()).readLock().unlock();
+				getLockService().getBucketLock(bucket).readLock().unlock();
 				
 			}
 		}finally {

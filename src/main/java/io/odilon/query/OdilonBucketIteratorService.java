@@ -192,7 +192,7 @@ public class OdilonBucketIteratorService extends BaseService implements BucketIt
 			 				});
 			 			
 			 			} finally {
-			 				if (logger.isDebugEnabled() && (startingSize-getWalkers().size() >0)) {
+			 				if (logger.isDebugEnabled() && (startingSize-getWalkers().size()>0)) {
 				 				logger.debug("Clean up " +
 				 						" | initial size -> " + String.format("%,6d", startingSize).trim() +  
 				 						" | new size ->  " + String.format("%,6d",getWalkers().size()).trim() + 

@@ -658,16 +658,16 @@ public class ServerSettings implements JSONObject {
 		if (this.integrityCheckDays<1)
 			this.integrityCheckDays = 180;
 		
-		if (this.integrityCheckThreads==0)
+		if (this.integrityCheckThreads<1)
 			this.integrityCheckThreads=Double.valueOf(Double.valueOf(Runtime.getRuntime().availableProcessors()-1) / 2.0 ).intValue() + 1;
 		
-		if (this.schedulerThreads==0)
+		if (this.schedulerThreads<1)
 			this.schedulerThreads=Double.valueOf(Double.valueOf(Runtime.getRuntime().availableProcessors()-1) / 2.0 ).intValue() + 1;
 		
 		if (this.schedulerThreads<2)
 			this.schedulerThreads=2;
 
-		if (this.cronSchedulerThreads==0)
+		if (this.cronSchedulerThreads<1)
 			this.cronSchedulerThreads=Double.valueOf(Double.valueOf(Runtime.getRuntime().availableProcessors()-1) / 2.5 ).intValue() + 1;
 		
 		if (this.cronSchedulerThreads<2)

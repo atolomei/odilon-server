@@ -41,7 +41,9 @@ import io.odilon.model.ServiceStatus;
 import io.odilon.service.BaseService;
 import io.odilon.service.PoolCleaner;
 import io.odilon.service.ServerSettings;
+import io.odilon.util.Check;
 import io.odilon.vfs.model.LockService;
+import io.odilon.vfs.model.ServerBucket;
 
 /**
  * <p>Implementation of the interface {@link OdilonLockService}. 
@@ -103,6 +105,12 @@ public class OdilonLockService extends BaseService implements LockService {
 	@Override
 	public ReadWriteLock getFileCacheLock(Long bucketId, String objectName, Optional<Integer> version) {
 		return fileCacheLocks.computeIfAbsent(getFileKey(bucketId, objectName, version), key -> new ReentrantReadWriteLock());
+	}
+	
+	@Override
+	public ReadWriteLock getBucketLock(ServerBucket bucket) {
+		Check.requireNonNullArgument(bucket, "bucket is null");
+		return bucketLocks.computeIfAbsent(bucket.getId().toString(), key -> new ReentrantReadWriteLock());
 	}
 	
 	@Override
