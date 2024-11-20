@@ -54,7 +54,6 @@ import io.odilon.vfs.model.LockService;
 import io.odilon.vfs.model.VFSOp;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
-
 /**
  * <p>{@link File} cache used by {@link RAIDSixDriver} (the other RAID configurations do not need it).</p> 
  * <p>It Uses {@link Caffeine} to keep references to entries in memory.
@@ -104,9 +103,12 @@ public class FileCacheService extends BaseService implements ApplicationListener
 	
 
     public boolean containsKey(Long bucketId, String objectName, Optional<Integer> version) {
+    	
     	Check.requireNonNullArgument(bucketId, "bucketId is null");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucketId.toString());
+		
 		getLockService().getFileCacheLock(bucketId, objectName, version).readLock().lock();
+		
 		try {
     		return (getCache().getIfPresent(getKey(bucketId, objectName, version))!=null);
     	} finally {
@@ -121,9 +123,12 @@ public class FileCacheService extends BaseService implements ApplicationListener
      * 
      */
     public File get(Long bucketId, String objectName, Optional<Integer> version) {
+    	
     	Check.requireNonNullArgument(bucketId, "bucketId is null");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucketId.toString());
+		
 		getLockService().getFileCacheLock(bucketId, objectName, version).readLock().lock();
+		
     	try {
     		return getCache().getIfPresent(getKey(bucketId, objectName, version));
     	} finally {
@@ -138,9 +143,11 @@ public class FileCacheService extends BaseService implements ApplicationListener
      * @param file
      */
     public void put(Long bucketId, String objectName, Optional<Integer> version, File file, boolean lockRequired) {
+    	
     	Check.requireNonNullArgument(bucketId, "bucketId is null");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucketId.toString());
 		Check.requireNonNullArgument(file, "file is null");
+		
 		if (lockRequired)
 			getLockService().getFileCacheLock(bucketId, objectName, version).writeLock().lock();
 		try {
@@ -186,10 +193,17 @@ public class FileCacheService extends BaseService implements ApplicationListener
 		return getDrivesAll().get(Math.abs(path.hashCode()) % getDrivesAll().size()).getCacheDirPath() + File.separator + path;
 	}
 	
+	/**
+	 * @return the approximate number of entries in this cache
+	 */
     public long size() {
    		return getCache().estimatedSize();
     }
     
+    
+    /**
+	 * @return the hard disk usage in bytes
+	 */
     public long hardDiskUsage() {
    		return this.cacheSizeBytes.get();
     }
@@ -271,9 +285,9 @@ public class FileCacheService extends BaseService implements ApplicationListener
 		setStatus(ServiceStatus.STARTING);
 		
 		this.cache = Caffeine.newBuilder()
-					.initialCapacity(this.serverSettings.getFileCacheInitialCapacity())    
-					.maximumSize(this.serverSettings.getFileCacheMaxCapacity())
-				    .expireAfterWrite(this.serverSettings.getFileCacheDurationDays(), TimeUnit.DAYS)
+					.initialCapacity(getServerSettings().getFileCacheInitialCapacity())    
+					.maximumSize(getServerSettings().getFileCacheMaxCapacity())
+				    .expireAfterWrite(getServerSettings().getFileCacheDurationDays(), TimeUnit.DAYS)
 				    .evictionListener((key, value, cause) -> {
 		            	onRemoval(key, value, cause);
 				    })
@@ -284,6 +298,7 @@ public class FileCacheService extends BaseService implements ApplicationListener
 	}
 
 	
+
 	/**
 	 * 
 	 * <p>Deletes the cached File from the File System</p>
@@ -357,6 +372,10 @@ public class FileCacheService extends BaseService implements ApplicationListener
 
 	private Cache<String, File> getCache() {
 		return this.cache;
+	}
+
+	private ServerSettings getServerSettings() {
+		return this.serverSettings;
 	}
 
 

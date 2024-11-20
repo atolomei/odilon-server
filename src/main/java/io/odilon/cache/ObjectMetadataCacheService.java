@@ -140,8 +140,8 @@ public class ObjectMetadataCacheService extends BaseService implements Applicati
 			
 			this.cache = Caffeine.newBuilder()
 						.initialCapacity(INITIAL_CAPACITY)    
-						.maximumSize(serverSettings.getObjectCacheCapacity())
-						.expireAfterWrite(serverSettings.getObjectCacheExpireDays(), TimeUnit.DAYS)
+						.maximumSize(getServerSettings().getObjectCacheCapacity())
+						.expireAfterWrite(getServerSettings().getObjectCacheExpireDays(), TimeUnit.DAYS)
 						.build();
 			
 		} finally {
@@ -164,7 +164,10 @@ public class ObjectMetadataCacheService extends BaseService implements Applicati
     private Cache<String, ObjectMetadata> getCache() {
 		return this.cache;
     }
-    
+
+	private ServerSettings getServerSettings() {
+		return this.serverSettings;
+	}
 }
 
 

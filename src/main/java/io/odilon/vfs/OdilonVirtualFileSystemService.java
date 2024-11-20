@@ -213,14 +213,6 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 	private Map<Long, ServerBucket> buckets_by_id = new ConcurrentHashMap<Long, ServerBucket>();
 	
 	
-	private Map<String, ServerBucket> getBucketsByNameMap() {
-		return buckets_by_name;
-	}
-	
-	private Map<Long, ServerBucket> getBucketsByIdMap() {
-		return buckets_by_id;
-	}
-	
 	
 	/**
 	 * 
@@ -1587,6 +1579,17 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 	private String getEnableEncryptionScriptName() {
 		return isLinux() ? ServerConstant.ENABLE_ENCRYPTION_SCRIPT_LINUX : ServerConstant.ENABLE_ENCRYPTION_SCRIPT_WINDOWS;
 	}
+	
+	
+	private Map<String, ServerBucket> getBucketsByNameMap() {
+		return buckets_by_name;
+	}
+	
+	private Map<Long, ServerBucket> getBucketsByIdMap() {
+		return buckets_by_id;
+	}
+	
+
 
 
 }
