@@ -45,15 +45,12 @@ import io.odilon.vfs.model.VFSOp;
  *  
  * @author atolomei@novamens.com (Alejandro Tolomei)
  * 
- * 
  */
 @Service
 public class ObjectMetadataCacheService extends BaseService implements ApplicationListener<CacheEvent>  {
 				
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 	static private Logger logger = Logger.getLogger(ObjectMetadataCacheService.class.getName());
-
-	static final int INITIAL_CAPACITY = 10000;
 
 	@JsonIgnore
 	@Autowired
@@ -139,7 +136,7 @@ public class ObjectMetadataCacheService extends BaseService implements Applicati
 			setStatus(ServiceStatus.STARTING);
 			
 			this.cache = Caffeine.newBuilder()
-						.initialCapacity(INITIAL_CAPACITY)    
+						.initialCapacity(getServerSettings().getObjectCacheInitialCapacity())    
 						.maximumSize(getServerSettings().getObjectCacheCapacity())
 						.expireAfterWrite(getServerSettings().getObjectCacheExpireDays(), TimeUnit.DAYS)
 						.build();

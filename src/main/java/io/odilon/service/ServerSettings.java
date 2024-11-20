@@ -266,6 +266,10 @@ public class ServerSettings implements JSONObject {
 	
 	// OBJECT CACHES --------------------------------------
 	
+	
+	@Value("${objectMetadataCacheInitialCapacity:10000}")
+	protected int objectCacheInitialCapacity;
+	
 	@Value("${objectMetadataCache.enabled:true}")
 	protected boolean useObjectCache;
 
@@ -679,6 +683,10 @@ public class ServerSettings implements JSONObject {
 		
 		if (fileCacheDurationDays<1)
 			fileCacheDurationDays=7;
+
+		
+		if (this.objectCacheInitialCapacity<1)
+			this.objectCacheInitialCapacity=10000;
 		
 		startuplogger.debug("Started -> " + ServerSettings.class.getSimpleName());
 		
@@ -1021,6 +1029,15 @@ public class ServerSettings implements JSONObject {
 		logger.error("check file ."+File.separator+"config"+File.separator+"odilon.properties");
 		logger.error(ServerConstant.SEPARATOR);
 		System.exit(1);
+	}
+
+
+	
+
+	
+	
+	public @NonNegative int getObjectCacheInitialCapacity() {
+		return objectCacheInitialCapacity;
 	}
 
 	

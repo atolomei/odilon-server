@@ -102,8 +102,6 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 		if(iStandby)
 			startupLogger.info(ServerConstant.SEPARATOR);
 		
-		
-		
 		startupLogger.info	("Startup at -> " + OffsetDateTime.now().toString());
 	}
 	
@@ -165,11 +163,9 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 		ServerSettings settingsService = getAppContext().getBean(ServerSettings.class);
 		
 		startupLogger.info("Https -> " + (settingsService.isHTTPS() ? "true" : "false"));
-		
 		startupLogger.info("Port-> " + String.valueOf(settingsService.getPort()));
 		
 		OdilonServerInfo info = getAppContext().getBean(VirtualFileSystemService.class).getOdilonServerInfo();
-		
 		
 		startupLogger.info("Encryption service initialized -> " + ( ((info!=null) && info.isEncryptionIntialized()) ? "true" :"false" ));
 		startupLogger.info("Encryption enabled -> " + String.valueOf(settingsService.isEncryptionEnabled()));

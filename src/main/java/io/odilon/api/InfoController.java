@@ -51,11 +51,11 @@ public class InfoController extends BaseApiController {
 	private ServerSettings settings;
 	
 	@Autowired
-	public InfoController(			ObjectStorageService objectStorageService, 
-									VirtualFileSystemService virtualFileSystemService,
-									SystemMonitorService monitoringService,
-									ServerSettings settings, 
-									TrafficControlService trafficControlService) {
+	public InfoController(	ObjectStorageService objectStorageService, 
+							VirtualFileSystemService virtualFileSystemService,
+							SystemMonitorService monitoringService,
+							ServerSettings settings, 
+							TrafficControlService trafficControlService) {
 
 		super(objectStorageService, virtualFileSystemService, monitoringService, trafficControlService);
 		this.settings = settings;

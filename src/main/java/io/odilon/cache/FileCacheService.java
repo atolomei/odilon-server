@@ -46,6 +46,7 @@ import com.github.benmanes.caffeine.cache.RemovalCause;
 import io.odilon.log.Logger;
 import io.odilon.model.ServerConstant;
 import io.odilon.model.ServiceStatus;
+import io.odilon.model.SharedConstant;
 import io.odilon.service.BaseService;
 import io.odilon.service.ServerSettings;
 import io.odilon.util.Check;
@@ -361,6 +362,7 @@ public class FileCacheService extends BaseService implements ApplicationListener
 						return 0;
 					}
 						catch (Exception e) {
+							logger.error(e, SharedConstant.NOT_THROWN);
 							return 0;		
 					}
 				}

@@ -181,7 +181,7 @@ public class SchedulerService extends BaseService implements SystemService, Appl
 	}
 
 	public void close(ServiceRequest request) {
-		 Check.requireNonNullArgument( request, " request is null");
+		 Check.requireNonNullArgument( request, "request is null");
 		 if (request instanceof StandByReplicaServiceRequest) 
 				getReplicaWorker().close(request);
 		 else if (request instanceof StandardServiceRequest)
@@ -222,10 +222,10 @@ public class SchedulerService extends BaseService implements SystemService, Appl
 	
 	public VirtualFileSystemService getVFS() {
 		 if (this.virtualFileSystemService==null) {
-			 String msg = "The " + VirtualFileSystemService.class.getName() + " must be setted during the @PostConstruct method of the " + 
-						VirtualFileSystemService.class.getName() + " instance. It can not be injected via AutoWired beacause of circular dependencies.";
-			 logger.error(msg);
-			throw new IllegalStateException(msg);
+			throw new IllegalStateException("The " + VirtualFileSystemService.class.getName() + 
+			 								" must be setted during the @PostConstruct method of the " + 
+			 								VirtualFileSystemService.class.getName() + " instance. " + 
+			 								"It can not be injected via @AutoWired because of circular dependencies.");
 		}
 		 return virtualFileSystemService;
 	}

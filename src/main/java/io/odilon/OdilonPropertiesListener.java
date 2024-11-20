@@ -42,28 +42,29 @@ public class OdilonPropertiesListener implements ApplicationListener<Application
 		    ConfigurableEnvironment environment = event.getEnvironment();
 		    Properties props = new Properties();
 		    props.put("app.name", "Odilon");
-		    props.put("spring.servlet.multipart.max-file-size", "200GB");
-		    props.put("spring.servlet.multipart.max-request-size", "200GB");
+		    props.put("spring.servlet.multipart.max-file-size", "300GB");
+		    props.put("spring.servlet.multipart.max-request-size", "300GB");
 		    props.put("spring.main.banner-mode", "off");
 		    props.put("spring.main.log-startup-info", "false");
 		    props.put("server.error.whitelabel.enabled", "false");
 		    props.put("spring.main.lazy-initialization", "false");
 		    props.put("spring.output.ansi.enabled", "DETECT");
 
-		    //props.put("spring.servlet.multipart.file-size-threshold", "12KB");
-		    //props.put("spring.resources.cache.cachecontrol.max-age", "120");
-		    //props.put("spring.resources.cache.cachecontrol.must-revalidate", "true");
-		    		
 		    environment.getPropertySources().addFirst(new PropertiesPropertySource("odilonProps", props));
-		    
-		    
-		     //environment.getPropertySources().forEach( item -> logger.debug(item.toString()));
-		     //logger.debug( environment.getProperty("server.ssl.enabled"));
-		     //.forEach( item -> logger.debug(item.toString()));
-		     
-		     
+
 		    Locale.setDefault(Locale.ENGLISH);
-		    
 	}
-	 
 }
+
+
+//props.put("spring.servlet.multipart.file-size-threshold", "12KB");
+//props.put("spring.resources.cache.cachecontrol.max-age", "120");
+//props.put("spring.resources.cache.cachecontrol.must-revalidate", "true");
+		
+
+ //environment.getPropertySources().forEach( item -> logger.debug(item.toString()));
+ //logger.debug( environment.getProperty("server.ssl.enabled"));
+ //.forEach( item -> logger.debug(item.toString()));
+ 
+ 
+

@@ -44,7 +44,7 @@ import io.odilon.vfs.model.VirtualFileSystemService;
 
 
 /**
- * <p>Keeps a HashMap of all open Iterators</p> 
+ * <p>Keeps a {@code HashMap} of all open Iterators</p> 
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
@@ -66,22 +66,21 @@ public class OdilonBucketIteratorService extends BaseService implements BucketIt
 	@JsonIgnore																	
 	private ConcurrentMap<String, OffsetDateTime> lastAccess = new ConcurrentHashMap<>();
 	
-	
 	public OdilonBucketIteratorService() {
 	}
 	
 	@Override
 	public boolean exists(String agentId) {
 		 Check.requireNonNullArgument(agentId, "agentId can not be null");
-		 return (this.walkers.keySet().contains(agentId));
+		 return (this.getWalkers().keySet().contains(agentId));
 	}
 	
 	@Override
 	public synchronized BucketIterator get(String agentId) {
 		Check.requireNonNullArgument(agentId, "agentId can not be null");
-			if (this.walkers.keySet().contains(agentId)) {
+			if (this.getWalkers().keySet().contains(agentId)) {
 				this.lastAccess.put(agentId, OffsetDateTime.now());
-				return this.walkers.get(agentId);
+				return getWalkers().get(agentId);
 			}
 			return null;
 	}
@@ -91,7 +90,7 @@ public class OdilonBucketIteratorService extends BaseService implements BucketIt
 		 Check.requireNonNullArgument(walker, "walker can not be null");
 		 String agentId = newAgentId();
 		 walker.setAgentId(agentId);
-		 this.walkers.put(agentId, walker);
+		 getWalkers().put(agentId, walker);
 		 this.lastAccess.put(agentId, OffsetDateTime.now());
 		 return agentId;
 	}
@@ -105,8 +104,8 @@ public class OdilonBucketIteratorService extends BaseService implements BucketIt
 		BucketIterator walker = null;
 		try {
 			this.lastAccess.remove(agentId);
-			walker=this.walkers.get(agentId);
-			this.walkers.remove(agentId);
+			walker=getWalkers().get(agentId);
+			getWalkers().remove(agentId);
 		}
 		finally {
 			if (walker!=null) {
@@ -130,6 +129,23 @@ public class OdilonBucketIteratorService extends BaseService implements BucketIt
 		this.virtualFileSystemService=virtualFileSystemService;
 	}
 	
+
+	public VirtualFileSystemService getVirtualFileSystemService() {
+		return virtualFileSystemService;
+	}
+
+	public void setVirtualFileSystemService(VirtualFileSystemService virtualFileSystemService) {
+		this.virtualFileSystemService = virtualFileSystemService;
+	}
+
+	public ConcurrentMap<String, BucketIterator> getWalkers() {
+		return walkers;
+	}
+
+	public void setWalkers(ConcurrentMap<String, BucketIterator> walkers) {
+		this.walkers = walkers;
+	}
+
 	
 	@PostConstruct
 	protected void onInitialize() {		
@@ -141,7 +157,7 @@ public class OdilonBucketIteratorService extends BaseService implements BucketIt
 					
 			 		@Override
 			 		public void cleanUp() {
-			 			int startingSize = walkers.size();
+			 			int startingSize = getWalkers().size();
 			 			
 			 			if (startingSize==0 || this.exit())
 			 				return;
@@ -149,7 +165,7 @@ public class OdilonBucketIteratorService extends BaseService implements BucketIt
 			 			long start = System.currentTimeMillis();
 						List<String> list = new  ArrayList<String>();
 						try {
-			 				for (Entry<String, BucketIterator> entry: walkers.entrySet()) {
+			 				for (Entry<String, BucketIterator> entry: getWalkers().entrySet()) {
 			 					if (lastAccess.containsKey(entry.getValue().getAgentId())) {
 			 						if (lastAccess.get(entry.getValue().getAgentId()).
 			 								plusSeconds(ServerConstant.MAX_CONNECTION_IDLE_TIME_SECS).
@@ -160,27 +176,27 @@ public class OdilonBucketIteratorService extends BaseService implements BucketIt
 			 				}
 			 				
 			 				list.forEach( item -> {
-			 						BucketIterator walker = walkers.get(item);
+			 						BucketIterator walker = getWalkers().get(item);
 			 						try {
 										walker.close();
 									} catch (IOException e) {
 										logger.error(e, SharedConstant.NOT_THROWN);
 									}
 			 						logger.debug( "closing -> " + 
-			 										walkers.get(item).toString() + 
+			 										getWalkers().get(item).toString() + 
 			 										" |  lastAccessed -> " + 
 			 										lastAccess.get(item).toString());
 			 						
-			 						walkers.remove(item);
+			 						getWalkers().remove(item);
 			 						lastAccess.remove(item);
 			 				});
 			 			
 			 			} finally {
-			 				if (logger.isDebugEnabled() && (startingSize-walkers.size() >0)) {
+			 				if (logger.isDebugEnabled() && (startingSize-getWalkers().size() >0)) {
 				 				logger.debug("Clean up " +
 				 						" | initial size -> " + String.format("%,6d", startingSize).trim() +  
-				 						" | new size ->  " + String.format("%,6d",walkers.size()).trim() + 
-				 						" | removed  -> " + String.format("%,6d",startingSize-walkers.size()).trim() +
+				 						" | new size ->  " + String.format("%,6d",getWalkers().size()).trim() + 
+				 						" | removed  -> " + String.format("%,6d",startingSize-getWalkers().size()).trim() +
 				 						" | duration -> " + String.format("%,12d",(System.currentTimeMillis() - start)).trim() +  " ms" 
 				 						);
 			 				}

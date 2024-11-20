@@ -49,8 +49,10 @@ public abstract class SchedulerWorker implements Runnable {
 	static public final long _SIESTA_SECS = 40;
 	static public final long _STARTUP_SIESTA_MILSECS = 15*1000;
 	
+
 	private String id;
 
+	
 	private int poolSize = 1;
 	
 	@JsonIgnore

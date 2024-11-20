@@ -170,7 +170,6 @@ public class BucketController extends BaseApiController  {
 			mark();
 		}
 	}
-
 		
 	/**
 	 * 
@@ -293,8 +292,6 @@ public class BucketController extends BaseApiController  {
 			mark();
 		}
 	}
-	
-
 	
 	/**
 	 * 

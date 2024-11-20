@@ -68,7 +68,7 @@ public class MetricsController extends BaseApiController {
 	private final ServerSettings serverSettings;
 	
 	@Autowired
-	public MetricsController	(ObjectStorageService objectStorageService, 
+	public MetricsController(	ObjectStorageService objectStorageService, 
 								VirtualFileSystemService virtualFileSystemService,
 								SystemMonitorService monitoringService,
 								ServerSettings settings ) {
