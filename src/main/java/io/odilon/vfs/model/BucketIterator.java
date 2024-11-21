@@ -16,6 +16,7 @@
  */
 package io.odilon.vfs.model;
 
+
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Iterator;
@@ -33,7 +34,6 @@ import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ObjectStatus;
 import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
-import io.odilon.vfs.raid1.RAIDOneDriver;
 
 /**
 *  <p>Bucket iterator</p>

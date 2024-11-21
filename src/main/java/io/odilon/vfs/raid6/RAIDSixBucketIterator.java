@@ -17,6 +17,7 @@
 
 package io.odilon.vfs.raid6;
 
+
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -33,9 +34,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
-import io.odilon.model.ObjectStatus;
 import io.odilon.model.ServerConstant;
-import io.odilon.util.Check;
 import io.odilon.vfs.model.BucketIterator;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.ServerBucket;
@@ -70,9 +69,6 @@ public class RAIDSixBucketIterator extends BucketIterator implements Closeable {
 	@JsonIgnore
 	private Stream<Path> stream;
 	
-	//@JsonIgnore
-	//RAIDSixDriver driver;
-
 	/**
 	 * 
 	 * @param driver		can not be null
@@ -89,49 +85,6 @@ public class RAIDSixBucketIterator extends BucketIterator implements Closeable {
 		/** must use DrivesEnabled */
 		this.drive  = driver.getDrivesEnabled().get(Double.valueOf(Math.abs(Math.random()*1000)).intValue() % getDriver().getDrivesEnabled().size());
 	}
-	
-	
-	/**
-	@Override
-	public boolean hasNext() {
-		
-		if(!isInitiated()) {
-			init();
-			return fetch();
-		}
-		
-		if (getRelativeIndex() < getBuffer().size())
-			return true;
-				
-		return fetch();
-	}**/
-
-	/**
-	@Override
-	public Path next() {
-		
-		if (getRelativeIndex() < getBuffer().size()) {
-			Path object = getBuffer().get(getRelativeIndex());
-			setRelativeIndex(getRelativeIndex()+1); 
-			this.cumulativeIndex++; 
-			return object;
-		}
-
-		boolean hasItems = fetch();
-		
-		if (!hasItems)
-			throw new IndexOutOfBoundsException( "No more items available. hasNext() should be called before this method. "
-												 + "[returned so far -> " + String.valueOf(cumulativeIndex)+"]" );
-		
-		Path object = getBuffer().get(getRelativeIndex());
-
-		incRelativeIndex();
-		this.cumulativeIndex++;
-		
-		return object;
-
-	}
-	*/
 	
 	@Override
 	public synchronized void close() throws IOException {
@@ -178,14 +131,10 @@ public class RAIDSixBucketIterator extends BucketIterator implements Closeable {
 		return !getBuffer().isEmpty();
 	}
 
-	 
-
 	private Drive getDrive() {
 		return this.drive;
 	}
 
- 
-	
 	private void skipOffset() {
 		if (getOffset()==0)
 			return;
@@ -201,7 +150,5 @@ public class RAIDSixBucketIterator extends BucketIterator implements Closeable {
 			}
 		}
 	}
-
-
 	
 }

@@ -60,7 +60,6 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
 	@JsonIgnore
 	private List<Drive> drives;
 	
-
 	public RAIDZeroBucketIterator(RAIDZeroDriver driver, ServerBucket bucket, Optional<Long> opOffset,  Optional<String> opPrefix) {
 			this(driver, bucket, opOffset, opPrefix, Optional.empty());
 	}
@@ -122,8 +121,6 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
 		setInitiated(true);
 	}
 
-	 
-	
 	/**
 	 * 
 	 */
@@ -204,50 +201,5 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
 		}
 		return  ( !getBuffer().isEmpty() );
 	}
-
 }
 
-
-/**
-@Override
-public synchronized boolean hasNext() {
-	
-	if(!isInitiated()) {
-		init();
-		return fetch();
-	}
-	if (getRelativeIndex() < getBuffer().size())
-		return true;
-			
-	return fetch();
-}
-**/
-
-/**
- * 
- * 
- 
-@Override
-public synchronized Path next() {
-	
-	// if the buffer still has items to return  
-	if (getRelativeIndex() < getBuffer().size()) {
-		Path object = getBuffer().get(getRelativeIndex());
-		setRelativeIndex( getRelativeIndex()+1 ); 
-		incCumulativeIndex(); 
-		return object;
-	}
-
-	boolean hasItems = fetch();
-	
-	if (!hasItems)
-		throw new IndexOutOfBoundsException("No more items available [returned so far -> " + String.valueOf(getCumulativeIndex())+"]");
-	
-	Path object = getBuffer().get(getRelativeIndex());
-
-	incRelativeIndex();
-	incCumulativeIndex();
-	
-	return object;
-}
-*/
