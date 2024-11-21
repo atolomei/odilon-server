@@ -104,7 +104,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 
 		try  {
 			
-				getLockService().getBucketLock(bucket.getId()).readLock().lock();
+				getLockService().getBucketLock(bucket).readLock().lock();
 			
 				try {
 							
@@ -159,7 +159,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 							cleanUpUpdate(op, bucket, objectName, beforeHeadVersion, afterHeadVersion);
 						}
 					} finally {
-						getLockService().getBucketLock(bucket.getId()).readLock().unlock();
+						getLockService().getBucketLock(bucket).readLock().unlock();
 					
 					}
 				}
@@ -184,7 +184,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 		
 		try {
 			
-				getLockService().getBucketLock(bucket.getId()).readLock().lock();
+				getLockService().getBucketLock(bucket).readLock().lock();
 			
 				try {
 					
@@ -261,7 +261,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 							cleanUpRestoreVersion(op, bucket, objectName, beforeHeadVersion);
 						}
 					} finally {
-						getLockService().getBucketLock(bucket.getId()).readLock().unlock();
+						getLockService().getBucketLock(bucket).readLock().unlock();
 					}
 				}
 		} finally {
@@ -291,7 +291,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 		
 		try {
 			
-			getLockService().getBucketLock(bucket.getId()).readLock().lock();
+			getLockService().getBucketLock(bucket).readLock().lock();
 			
 			try {
 			
@@ -329,7 +329,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 					}
 					
 				} finally {
-					getLockService().getBucketLock(bucket.getId()).readLock().unlock();
+					getLockService().getBucketLock(bucket).readLock().unlock();
 				}
 			} 
 		} 

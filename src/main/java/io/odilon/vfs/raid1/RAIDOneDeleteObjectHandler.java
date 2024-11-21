@@ -88,7 +88,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 		
 		try {
 				
-			getLockService().getBucketLock(bucket.getId()).readLock().lock();
+			getLockService().getBucketLock(bucket).readLock().lock();
 			
 			try {
 											
@@ -138,7 +138,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 					logger.error(e, "op:" + op.getOp().getName() + ", "  + getDriver().objectInfo(bucket, objectName), SharedConstant.NOT_THROWN);
 				}
 				finally {
-					getLockService().getBucketLock(bucket.getId()).readLock().unlock();
+					getLockService().getBucketLock(bucket).readLock().unlock();
 				}
 			}
 		} finally{

@@ -167,7 +167,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		
 		try {
 			
-			getLockService().getBucketLock(bucket.getId()).readLock().lock();
+			getLockService().getBucketLock(bucket).readLock().lock();
 			
 			try {
 				
@@ -192,7 +192,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 				getLockService().getObjectLock(bucket.getId(), objectName).readLock().unlock();
 			}
 		} finally {
-			getLockService().getBucketLock(bucket.getId()).readLock().unlock();
+			getLockService().getBucketLock(bucket).readLock().unlock();
 		}
 	}
 
@@ -212,7 +212,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		
 		try {
 			
-			getLockService().getBucketLock(bucket.getId()).readLock().lock();
+			getLockService().getBucketLock(bucket).readLock().lock();
 			
 			try {
 				
@@ -242,7 +242,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 				throw new InternalCriticalException(e, objectInfo(bucket, objectName) + " | v:" + String.valueOf(version));
 			}
 			finally {
-				getLockService().getBucketLock(bucket.getId()).readLock().unlock();
+				getLockService().getBucketLock(bucket).readLock().unlock();
 			}
 		} finally {
 			getLockService().getObjectLock(bucket.getId(), objectName).readLock().unlock();
@@ -285,7 +285,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 
 			try {
 				
-				bucketLock = getLockService().getBucketLock(bucket.getId()).readLock().tryLock(20, TimeUnit.SECONDS);
+				bucketLock = getLockService().getBucketLock(bucket).readLock().tryLock(20, TimeUnit.SECONDS);
 				
 				if (!bucketLock) {
 					logger.error("Can not acquire read Lock for b: " + bucket.getName() + ". Assumes -> check is ok");
@@ -347,7 +347,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 			
 			try {
 				if (bucketLock)
-					getLockService().getBucketLock(bucket.getId()).readLock().unlock();
+					getLockService().getBucketLock(bucket).readLock().unlock();
 			} catch (Exception e) {
 				logger.error(e, SharedConstant.NOT_THROWN);
 			}
@@ -582,7 +582,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		
 		try {
 			
-			getLockService().getBucketLock(bucket.getId()).readLock().lock();
+			getLockService().getBucketLock(bucket).readLock().lock();
 			
 			try {
 				
@@ -611,7 +611,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 				throw new InternalCriticalException(e, "b:" + bucketName +  ", o:" + objectName);
 			}
 			finally {
-				getLockService().getBucketLock(bucket.getId()).readLock().unlock();
+				getLockService().getBucketLock(bucket).readLock().unlock();
 				
 			}
 		} finally {
@@ -678,7 +678,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		
 		try {
 			
-			getLockService().getBucketLock(bucket.getId()).readLock().lock();
+			getLockService().getBucketLock(bucket).readLock().lock();
 			
 			try {
 				/** read is from only 1 drive */
@@ -715,7 +715,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 				throw new InternalCriticalException(e,objectInfo(bucket, objectName) + ", d:" + (Optional.ofNullable(readDrive).isPresent()  ? (readDrive.getName())  	: "null"));
 			}
 			finally {
-				getLockService().getBucketLock(bucket.getId()).readLock().unlock();
+				getLockService().getBucketLock(bucket).readLock().unlock();
 			}
 		} finally {
 			getLockService().getObjectLock(bucket.getId(), objectName).readLock().unlock();
@@ -916,7 +916,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		
 		try {
 			
-			getLockService().getBucketLock(bucket.getId()).readLock().lock();
+			getLockService().getBucketLock(bucket).readLock().lock();
 			
 			try {
 				
@@ -945,7 +945,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 				throw new InternalCriticalException(e, objectInfo(bucket, objectName) + ", d:" + readDrive.getName() + (o_version.isPresent()? (", v:" + String.valueOf(o_version.get())) :""));
 			}
 			finally {
-				getLockService().getBucketLock(bucket.getId()).readLock().unlock();
+				getLockService().getBucketLock(bucket).readLock().unlock();
 				
 			}
 		} finally {

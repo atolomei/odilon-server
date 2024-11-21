@@ -1225,7 +1225,7 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 		
 		try {
 			
-			getLockService().getBucketLock(bucket.getId()).writeLock().lock();
+			getLockService().getBucketLock(bucket).writeLock().lock();
 			
 			if (!existsBucket(bucket.getName()))
 				throw new IllegalArgumentException("bucket does not exist -> b:" +bucket.getName());
@@ -1281,7 +1281,7 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 					logger.error(e, SharedConstant.NOT_THROWN);
 			}
 			finally {
-					getLockService().getBucketLock(bucket.getId()).writeLock().unlock();
+					getLockService().getBucketLock(bucket).writeLock().unlock();
 			}
 		}
 	}

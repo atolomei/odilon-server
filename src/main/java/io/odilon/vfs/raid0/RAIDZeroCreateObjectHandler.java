@@ -88,7 +88,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 		
 		try {
 			
-			getLockService().getBucketLock(bucket.getId()).readLock().lock();
+			getLockService().getBucketLock(bucket).readLock().lock();
 			
 			try (stream) {
 			
@@ -134,7 +134,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 									}
 							}
 							finally {
-								getLockService().getBucketLock(bucket.getId()).readLock().unlock();
+								getLockService().getBucketLock(bucket).readLock().unlock();
 							}
 			}
 		}

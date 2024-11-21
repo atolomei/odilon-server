@@ -87,11 +87,11 @@ public class RAIDOneDriver extends BaseIODriver  {
 	
 	
 	private void readLock(ServerBucket bucket) {
-		getLockService().getBucketLock(bucket.getId()).readLock().lock();
+		getLockService().getBucketLock(bucket).readLock().lock();
 	}
 
 	private void readUnlock(ServerBucket bucket) {
-		getLockService().getBucketLock(bucket.getId()).readLock().unlock();
+		getLockService().getBucketLock(bucket).readLock().unlock();
 	}
 
 	
@@ -400,7 +400,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireTrue(existsBucketInDrives(bucket.getId()), "bucket does not exist -> b: " + bucket.getId());
 		
-		//getLockService().getBucketLock(bucket.getId()).readLock().lock();
+		//getLockService().getBucketLock(bucket).readLock().lock();
 		readLock(bucket);
 		
 		try {
@@ -410,7 +410,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 				throw new InternalCriticalException(e, objectInfo(bucket));
 				 
 		} finally {						
-			//getLockService().getBucketLock(bucket.getId()).readLock().unlock();
+			//getLockService().getBucketLock(bucket).readLock().unlock();
 			readUnlock(bucket);
 		}
 	}
@@ -431,7 +431,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 		
 		try {
 			
-				getLockService().getBucketLock(bucket.getId()).readLock().lock();
+				getLockService().getBucketLock(bucket).readLock().lock();
 				
 				try {
 							
@@ -471,7 +471,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 					throw new InternalCriticalException(e, "b:"  + bucket.getName() + ", o:" + objectName + ", d:" + (Optional.ofNullable(readDrive).isPresent()  ? (readDrive.getName()) : "null"));
 				}
 				finally {
-					getLockService().getBucketLock(bucket.getId()).readLock().unlock();
+					getLockService().getBucketLock(bucket).readLock().unlock();
 				}
 		} finally {
 			getLockService().getObjectLock(bucket.getId(), objectName).readLock().unlock();
@@ -513,7 +513,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 		
 		try {
 			
-			getLockService().getBucketLock(bucket.getId()).readLock().lock();
+			getLockService().getBucketLock(bucket).readLock().lock();
 			
 			try {
 				
@@ -548,7 +548,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 				throw new InternalCriticalException(e, "b:"   + (Optional.ofNullable( bucket).isPresent()    ? (bucket.getId()) :"null") + ", o:" + (Optional.ofNullable(objectName).isPresent() ? (objectName)       :"null"));
 			}
 			finally {
-				getLockService().getBucketLock(bucket.getId()).readLock().unlock();
+				getLockService().getBucketLock(bucket).readLock().unlock();
 			}
 		} finally {
 			getLockService().getObjectLock(bucket.getId(), objectName).readLock().unlock();
@@ -570,7 +570,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 		
 		try {
 
-			getLockService().getBucketLock(bucket.getId()).readLock().lock();
+			getLockService().getBucketLock(bucket).readLock().lock();
 			
 			try {
 				return getReadDrive( bucket, objectName).existsObjectMetadata(bucket.getId(), objectName);
@@ -579,7 +579,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 				throw new InternalCriticalException(e, "b:" + bucket.getId() + ", o:" + objectName);
 			}
 			finally {
-				getLockService().getBucketLock(bucket.getId()).readLock().unlock();
+				getLockService().getBucketLock(bucket).readLock().unlock();
 				
 			}
 		} finally {
@@ -670,7 +670,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 		
 		try {
 			
-			getLockService().getBucketLock(bucket.getId()).readLock().lock();
+			getLockService().getBucketLock(bucket).readLock().lock();
 			
 			try {
 			
@@ -694,7 +694,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 					throw new InternalCriticalException(e, "b:" + bucket.getId() + ", o:" + objectName);
 			}
 			finally {
-				getLockService().getBucketLock(bucket.getId()).readLock().unlock();
+				getLockService().getBucketLock(bucket).readLock().unlock();
 			}
 		} finally {
 			getLockService().getObjectLock(bucket.getId(), objectName).readLock().unlock();
@@ -745,7 +745,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 			}
 			
 			try {
-				bucketLock = getLockService().getBucketLock(bucket.getId()).readLock().tryLock(20, TimeUnit.SECONDS);
+				bucketLock = getLockService().getBucketLock(bucket).readLock().tryLock(20, TimeUnit.SECONDS);
 				if(!bucketLock) {
 					logger.warn("Can not acquire read Lock for Bucket. Assumes check is ok -> " + bucket.getName(), SharedConstant.NOT_THROWN);
 					return true;
@@ -818,7 +818,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 			
 			try {
 				if (bucketLock)
-					getLockService().getBucketLock(bucket.getId()).readLock().unlock();
+					getLockService().getBucketLock(bucket).readLock().unlock();
 			} catch (Exception e) {
 				logger.error(e, SharedConstant.NOT_THROWN);
 			}
@@ -1081,7 +1081,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 		
 		try {
 			
-			getLockService().getBucketLock(bucket.getId()).readLock().lock();
+			getLockService().getBucketLock(bucket).readLock().lock();
 			
 			try {
 				
@@ -1112,7 +1112,7 @@ public class RAIDOneDriver extends BaseIODriver  {
 				throw new InternalCriticalException(e, "b:" + bucket.getId()+ ", o:" + objectName + ", d:" + (Optional.ofNullable(readDrive).isPresent()  ? (readDrive.getName()) : "null") + (o_version.isPresent()? (", v:" + String.valueOf(o_version.get())) :""));
 			}
 			finally {
-				getLockService().getBucketLock(bucket.getId()).readLock().unlock();
+				getLockService().getBucketLock(bucket).readLock().unlock();
 				
 			}
 		} finally {

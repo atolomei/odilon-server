@@ -142,7 +142,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 						cleanUpUpdate(op, bucket, objectName, beforeHeadVersion, afterHeadVersion);
 					}
 				} finally {
-					getLockService().getBucketLock(bucket.getId()).readLock().unlock();
+					getLockService().getBucketLock(bucket).readLock().unlock();
 			
 				}
 			}

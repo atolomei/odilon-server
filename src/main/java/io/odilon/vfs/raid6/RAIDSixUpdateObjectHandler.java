@@ -100,7 +100,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 		
 		try {
 		
-				getLockService().getBucketLock(bucketId).readLock().lock();
+				getLockService().getBucketLock(bucket).readLock().lock();
 			
 				try (stream) {
 		
@@ -108,7 +108,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 						throw new IllegalArgumentException(" object not found -> " + getDriver().objectInfo(bucket, objectName));
 					
 					meta = getDriver().getObjectMetadataInternal(bucket, objectName, false);
-					beforeHeadVersion = meta.version;							
+					beforeHeadVersion = meta.getVersion();							
 																
 					op = getJournalService().updateObject(bucketId, objectName, beforeHeadVersion);
 					
@@ -117,7 +117,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 					backupVersionObjectMetadata(bucket, objectName,  meta.version);
 					
 					/** copy new version as head version */
-					afterHeadVersion = meta.version+1;
+					afterHeadVersion = meta.getVersion()+1;
 					RAIDSixBlocks ei = saveObjectDataFile(bucket,objectName, stream);
 					saveObjectMetadata(bucket, objectName, ei, srcFileName, contentType, afterHeadVersion, meta.creationDate, customTags);
 
@@ -148,7 +148,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 								cleanUpUpdate(meta, beforeHeadVersion, afterHeadVersion);
 						}
 					} finally {
-						getLockService().getBucketLock(bucketId).readLock().unlock();
+						getLockService().getBucketLock(bucket).readLock().unlock();
 					}
 				}
 		
@@ -250,7 +250,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 
 			try {
 				
-				getLockService().getBucketLock(bucket.getId()).readLock().lock();
+				getLockService().getBucketLock(bucket).readLock().lock();
 			
 				try {
 					
@@ -330,7 +330,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 								cleanUpRestoreVersion(metaHeadToRemove, beforeHeadVersion, metaToRestore);
 						}
 					} finally {
-						getLockService().getBucketLock(bucket.getId()).readLock().unlock();
+						getLockService().getBucketLock(bucket).readLock().unlock();
 					}
 				}
 			} finally {

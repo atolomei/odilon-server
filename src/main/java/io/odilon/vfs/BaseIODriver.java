@@ -257,7 +257,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		
 		OffsetDateTime now = OffsetDateTime.now();
 		
-		getLockService().getBucketLock(bucket.getId()).writeLock().lock();
+		getLockService().getBucketLock(bucket).writeLock().lock();
 		
 		BucketMetadata meta = null;
 		
@@ -302,7 +302,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 				logger.error(e, SharedConstant.NOT_THROWN);
 			}
 			finally {
-				getLockService().getBucketLock(bucket.getId()).writeLock().unlock();
+				getLockService().getBucketLock(bucket).writeLock().unlock();
 			}
 		}
 	}
@@ -358,7 +358,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		Check.requireTrue(existsBucketInDrives(bucket.getId()), "bucket does not exist in all drives -> b: " + bucket.getName());
 		
 		try {
-			getLockService().getBucketLock(bucket.getId()).readLock().lock();
+			getLockService().getBucketLock(bucket).readLock().lock();
 			for (Drive drive: getDrivesEnabled()) {
 				if (!drive.isEmpty(bucket.getId()))
 					return false;
@@ -370,7 +370,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 			throw new InternalCriticalException(e, msg);
 
 		} finally {
-			getLockService().getBucketLock(bucket.getId()).readLock().unlock();
+			getLockService().getBucketLock(bucket).readLock().unlock();
 		}
 	}
 	
@@ -400,7 +400,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		
 		try {
 			
-			getLockService().getBucketLock(bucket.getId()).readLock().lock();
+			getLockService().getBucketLock(bucket).readLock().lock();
 		
 			try {
 				List<ObjectMetadata> list = getObjectMetadataVersionAll(bucket, objectName);
@@ -413,7 +413,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 				throw new InternalCriticalException(e, "b:" + bucket.getName() + ", o:" +objectName);
 			}
 			finally {
-				getLockService().getBucketLock(bucket.getId()).readLock().unlock();
+				getLockService().getBucketLock(bucket).readLock().unlock();
 			}
 		}
 		finally { 

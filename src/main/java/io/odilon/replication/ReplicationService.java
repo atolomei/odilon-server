@@ -480,7 +480,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 			return;
 		}
 			
-		getLockService().getBucketLock(bucket.getId()).readLock().lock();
+		getLockService().getBucketLock(bucket).readLock().lock();
 
 		try {
 		
@@ -505,7 +505,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 					getLockService().getObjectLock(bucket.getId(), opx.getObjectName()).readLock().unlock();
 			}
 		} finally {
-			getLockService().getBucketLock(bucket.getId()).readLock().unlock();	
+			getLockService().getBucketLock(bucket).readLock().unlock();	
 		}
 	}
 
@@ -527,7 +527,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 			return;
 		}
 		
-		getLockService().getBucketLock(bucket.getId()).readLock().lock();
+		getLockService().getBucketLock(bucket).readLock().lock();
 		
 		try {
 				getLockService().getObjectLock(bucket.getId(), opx.getObjectName()).readLock().lock();
@@ -549,7 +549,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 					getLockService().getObjectLock(bucket.getId(), opx.getObjectName()).readLock().unlock();
 				}
 		} finally {
-			getLockService().getBucketLock(bucket.getId()).readLock().unlock();
+			getLockService().getBucketLock(bucket).readLock().unlock();
 		}
 	}
 
@@ -576,7 +576,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 		
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		
-		getLockService().getBucketLock(bucket.getId()).readLock().lock();
+		getLockService().getBucketLock(bucket).readLock().lock();
 
 		try {
 		
@@ -594,7 +594,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 					getLockService().getObjectLock(bucket.getId(), opx.getObjectName()).readLock().unlock();
 			}
 		} finally {
-			getLockService().getBucketLock(bucket.getId()).readLock().unlock();	
+			getLockService().getBucketLock(bucket).readLock().unlock();	
 		}
 	}
 	
@@ -620,7 +620,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 		
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		
-		getLockService().getBucketLock(bucket.getId()).readLock().lock();
+		getLockService().getBucketLock(bucket).readLock().lock();
 
 		try {
 		
@@ -638,7 +638,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 					getLockService().getObjectLock(bucket.getId(), opx.getObjectName()).readLock().unlock();
 			}
 		} finally {
-			getLockService().getBucketLock(bucket.getId()).readLock().unlock();	
+			getLockService().getBucketLock(bucket).readLock().unlock();	
 		}
 	}
 	
