@@ -30,13 +30,10 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.ServerConstant;
-import io.odilon.model.ObjectMetadata;
-import io.odilon.model.ObjectStatus;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.ServerBucket;
 import io.odilon.vfs.model.BucketIterator;
@@ -54,12 +51,6 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
 	@SuppressWarnings("unused")
 	private static final Logger logger = Logger.getLogger(RAIDZeroBucketIterator.class.getName());
 	
-	@JsonProperty("prefix")
-	private String prefix = null;
-	
-	@JsonProperty("cumulativeIndex")
-	private long cumulativeIndex = 0;
-	
 	@JsonIgnore
 	private Map<Drive, Iterator<Path>> itMap;
 	
@@ -67,84 +58,30 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
 	private Map<Drive, Stream<Path>> streamMap;
 	
 	@JsonIgnore
-	private List<Path> buffer;
-	
-	/** next item to return -> 0 to (buffer.size() - 1) */
-	@JsonIgnore
-	private int relativeIndex = 0;  
-	
-	@JsonIgnore
 	private List<Drive> drives;
 	
-	@JsonIgnore
-	RAIDZeroDriver driver;
-	
-	@JsonIgnore
-	private boolean initiated = false;
-
 
 	public RAIDZeroBucketIterator(RAIDZeroDriver driver, ServerBucket bucket, Optional<Long> opOffset,  Optional<String> opPrefix) {
 			this(driver, bucket, opOffset, opPrefix, Optional.empty());
 	}
 
 	public RAIDZeroBucketIterator(RAIDZeroDriver driver, ServerBucket bucket, Optional<Long> opOffset,  Optional<String> opPrefix, Optional<String> serverAgentId) {
-			super(bucket);
+			super(driver, bucket);
 
 		opOffset.ifPresent(x -> setOffset(x));
 		serverAgentId.ifPresent( x -> setAgentId(x));
-		opPrefix.ifPresent(x -> this.prefix=x);
-		this.driver = driver;
+		opPrefix.ifPresent(x -> setPrefix(x.toLowerCase().trim()));
 		
 		/** after the VirtualFileService starts up
 		 * all drives are in state {@link DriveStatus.ENABLED} in RAID 0 */
 		this.drives = new ArrayList<Drive>();
-		this.drives.addAll(driver.getDrivesEnabled());
+		this.drives.addAll(getDriver().getDrivesEnabled());
 		
 		this.streamMap = new HashMap<Drive, Stream<Path>>();
 		this.itMap = new HashMap<Drive, Iterator<Path>>();
 	}
+
 	
-	@Override
-	public synchronized boolean hasNext() {
-		
-		if(!this.initiated) {
-			init();
-			return fetch();
-		}
-		/** if the buffer still has items */
-		if (this.relativeIndex < this.buffer.size())
-			return true;
-				
-		return fetch();
-	}
-	
-	/**
-	 * 
-	 */
-	@Override
-	public synchronized Path next() {
-		
-		/** if the buffer still has items to return  */
-		if (this.relativeIndex < this.buffer.size()) {
-			Path object = this.buffer.get(this.relativeIndex);
-			this.relativeIndex++; 
-			this.cumulativeIndex++; 
-			return object;
-		}
-
-		boolean hasItems = fetch();
-		
-		if (!hasItems)
-			throw new IndexOutOfBoundsException("No more items available [returned so far -> " + String.valueOf(cumulativeIndex)+"]");
-		
-		Path object = this.buffer.get(this.relativeIndex);
-
-		this.relativeIndex++;
-		this.cumulativeIndex++;
-		
-		return object;
-	}
-
 	@Override
 	public synchronized void close() throws IOException {
 		if (this.streamMap==null)
@@ -163,10 +100,8 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
 		return this.drives;
 	}
 
-	/**
-	 * 
-	 */
-	private void init() {
+	@Override
+	protected void init() {
 		for (Drive drive: getDrives()) {
 			Path start = new File(drive.getBucketMetadataDirPath(getBucketId())).toPath();
 			Stream<Path> stream = null;
@@ -174,7 +109,7 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
 				stream = Files.walk(start, 1).
 						skip(1).
 						filter(file -> Files.isDirectory(file)).
-						filter(file -> (prefix==null) || (file.getFileName().toString().toLowerCase().startsWith(prefix)));
+						filter(file -> (getPrefix()==null) || (file.getFileName().toString().toLowerCase().trim().startsWith(getPrefix())));
 						//filter(file -> isObjectStateEnabled(file));
 				this.streamMap.put(drive, stream);		
 			} catch (IOException e) {
@@ -184,18 +119,10 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
 			this.itMap.put(drive, it);
 		}
 		skipOffset();
-		this.initiated = true;
+		setInitiated(true);
 	}
 
-	@SuppressWarnings("unused")
-	private boolean isObjectStateEnabled(Path path) {
-		ObjectMetadata meta = driver.getObjectMetadata(getBucket(), path.toFile().getName());
-		if (meta==null)
-			return false;
-		if (meta.status == ObjectStatus.ENABLED) 
-			return true;
-		return false;
-	}
+	 
 	
 	/**
 	 * 
@@ -214,7 +141,7 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
 					}
 				}
 			}
-			long skipped = this.cumulativeIndex;
+			long skipped = getCumulativeIndex();
 			
 			while (isItems && skipped<getOffset()) {
 				int d_index = 0;
@@ -238,10 +165,11 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
 	/**
 	 * @return
 	 */
-	private boolean fetch() {
+	@Override
+	protected boolean fetch() {
 
-		this.relativeIndex = 0;
-		this.buffer = new ArrayList<Path>();
+		setRelativeIndex(0);
+		setBuffer(new ArrayList<Path>());
 		
 		boolean isItems = false;
 
@@ -258,12 +186,12 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
 		}
 		{
 			int buffer_index = 0;
-			while (isItems && (this.buffer.size() < ServerConstant.BUCKET_ITERATOR_DEFAULT_BUFFER_SIZE)) {
+			while (isItems && (getBuffer().size() < ServerConstant.BUCKET_ITERATOR_DEFAULT_BUFFER_SIZE)) {
 				int dPoll = buffer_index++ % this.getDrives().size();
 				Drive drive = this.getDrives().get(dPoll);
 				Iterator<Path> iterator = this.itMap.get(drive);
 				if (iterator.hasNext()) {
-					this.buffer.add(iterator.next());		
+					getBuffer().add(iterator.next());		
 				}
 				else {
 					/** drive has no more items */
@@ -274,6 +202,52 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
 				}
 			}
 		}
-		return  ( !this.buffer.isEmpty() );
+		return  ( !getBuffer().isEmpty() );
 	}
+
 }
+
+
+/**
+@Override
+public synchronized boolean hasNext() {
+	
+	if(!isInitiated()) {
+		init();
+		return fetch();
+	}
+	if (getRelativeIndex() < getBuffer().size())
+		return true;
+			
+	return fetch();
+}
+**/
+
+/**
+ * 
+ * 
+ 
+@Override
+public synchronized Path next() {
+	
+	// if the buffer still has items to return  
+	if (getRelativeIndex() < getBuffer().size()) {
+		Path object = getBuffer().get(getRelativeIndex());
+		setRelativeIndex( getRelativeIndex()+1 ); 
+		incCumulativeIndex(); 
+		return object;
+	}
+
+	boolean hasItems = fetch();
+	
+	if (!hasItems)
+		throw new IndexOutOfBoundsException("No more items available [returned so far -> " + String.valueOf(getCumulativeIndex())+"]");
+	
+	Path object = getBuffer().get(getRelativeIndex());
+
+	incRelativeIndex();
+	incCumulativeIndex();
+	
+	return object;
+}
+*/

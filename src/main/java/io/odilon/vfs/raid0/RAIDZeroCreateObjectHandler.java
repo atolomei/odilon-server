@@ -99,8 +99,8 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 						
 				op = getJournalService().createObject(bucket.getId(), objectName);
 						
-				saveObjectDataFile(bucket,objectName, stream, srcFileName);
-				saveObjectMetadata(bucket,objectName, srcFileName, contentType, version, customTags);
+				saveObjectDataFile(bucket, objectName, stream, srcFileName);
+				saveObjectMetadata(bucket, objectName, srcFileName, contentType, version, customTags);
 
 				done = op.commit();
 					

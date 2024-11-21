@@ -78,6 +78,7 @@ public class OdilonLockService extends BaseService implements LockService {
 	@JsonIgnore
 	private ConcurrentMap<String, ReentrantReadWriteLock> objectLocks = new ConcurrentHashMap<>(1000);
 	
+
 	@JsonIgnore
 	private ConcurrentMap<String, ReentrantReadWriteLock> fileCacheLocks = new ConcurrentHashMap<>(1000);
 	
@@ -97,31 +98,68 @@ public class OdilonLockService extends BaseService implements LockService {
 		this.serverSettings=serverSettings;
 	}
 
+
+	@Override
+	public ReadWriteLock getObjectLock(ServerBucket bucket, String objectName) {
+		Check.requireNonNullArgument(bucket, "bucket is null");
+		return getObjectLocks().computeIfAbsent(getKey(bucket.getId(), objectName), key -> new ReentrantReadWriteLock());
+	}
+
 	@Override
 	public ReadWriteLock getObjectLock(Long bucketId, String objectName) {
-		return objectLocks.computeIfAbsent(getKey(bucketId, objectName), key -> new ReentrantReadWriteLock());
+		return getObjectLocks().computeIfAbsent(getKey(bucketId, objectName), key -> new ReentrantReadWriteLock());
 	}
 
 	@Override
 	public ReadWriteLock getFileCacheLock(Long bucketId, String objectName, Optional<Integer> version) {
-		return fileCacheLocks.computeIfAbsent(getFileKey(bucketId, objectName, version), key -> new ReentrantReadWriteLock());
+		return getFileCacheLocks().computeIfAbsent(getFileKey(bucketId, objectName, version), key -> new ReentrantReadWriteLock());
 	}
 	
 	@Override
 	public ReadWriteLock getBucketLock(ServerBucket bucket) {
 		Check.requireNonNullArgument(bucket, "bucket is null");
-		return bucketLocks.computeIfAbsent(bucket.getId().toString(), key -> new ReentrantReadWriteLock());
+		return getBucketLocks().computeIfAbsent(bucket.getId().toString(), key -> new ReentrantReadWriteLock());
 	}
 	
 	@Override
 	public ReadWriteLock getBucketLock(Long bucketId) {
-		return bucketLocks.computeIfAbsent(bucketId.toString(), key -> new ReentrantReadWriteLock());
+		return getBucketLocks().computeIfAbsent(bucketId.toString(), key -> new ReentrantReadWriteLock());
 	}
 
 	@Override
 	public ReadWriteLock getServerLock() {
 		return this.serverLock;
 	}
+
+	public ConcurrentMap<String, ReentrantReadWriteLock> getObjectLocks() {
+		return objectLocks;
+	}
+
+
+	public void setObjectLocks(ConcurrentMap<String, ReentrantReadWriteLock> objectLocks) {
+		this.objectLocks = objectLocks;
+	}
+
+
+	public ConcurrentMap<String, ReentrantReadWriteLock> getFileCacheLocks() {
+		return fileCacheLocks;
+	}
+
+
+	public void setFileCacheLocks(ConcurrentMap<String, ReentrantReadWriteLock> fileCacheLocks) {
+		this.fileCacheLocks = fileCacheLocks;
+	}
+
+
+	public ConcurrentMap<String, ReentrantReadWriteLock> getBucketLocks() {
+		return bucketLocks;
+	}
+
+
+	public void setBucketLocks(ConcurrentMap<String, ReentrantReadWriteLock> bucketLocks) {
+		this.bucketLocks = bucketLocks;
+	}
+
 	
 	@Override
 	public String toJSON() {
@@ -151,14 +189,14 @@ public class OdilonLockService extends BaseService implements LockService {
 		 			if (exit())
 		 				return;
 		 			
-		 			if (objectLocks.size() > 0) {
+		 			if (getObjectLocks().size() > 0) {
 			 		
 						long maxToPurge = Math.round(ratePerMillisec * maxTimeToSleepMillisec) + (long) (ratePerMillisec * 1000.0);
 						List<String> list = new  ArrayList<String>();
 						
 						try {
 			 				int counter = 0;
-			 				for (Entry<String, ReentrantReadWriteLock> entry: objectLocks.entrySet()) {
+			 				for (Entry<String, ReentrantReadWriteLock> entry: getObjectLocks().entrySet()) {
 			 								if (entry.getValue().writeLock().tryLock()) {
 			 									list.add(entry.getKey());
 			 									counter++;
@@ -169,11 +207,11 @@ public class OdilonLockService extends BaseService implements LockService {
 			 			 			}
 	
 			 				list.forEach( item -> {
-			 						ReentrantReadWriteLock lock = objectLocks.get(item);
-			 						objectLocks.remove(item);	
+			 						ReentrantReadWriteLock lock = getObjectLocks().get(item);
+			 						getObjectLocks().remove(item);	
 			 						lock.writeLock().unlock();
 			 				});
-			 				list.forEach(item -> objectLocks.remove(item));
+			 				list.forEach(item -> getObjectLocks().remove(item));
 			 			
 			 			} finally {
 			 			}
@@ -182,7 +220,7 @@ public class OdilonLockService extends BaseService implements LockService {
 		 			
 		 			{
 		 			
-	 				if (fileCacheLocks.size() > 0) { // FC>0
+	 				if (getFileCacheLocks().size() > 0) { // FC>0
 		 				
 						try {
 							
@@ -191,7 +229,7 @@ public class OdilonLockService extends BaseService implements LockService {
 							
 							
 							int counter = 0;
-			 				for (Entry<String, ReentrantReadWriteLock> entry: fileCacheLocks.entrySet()) {
+			 				for (Entry<String, ReentrantReadWriteLock> entry: getFileCacheLocks().entrySet()) {
 			 								if (entry.getValue().writeLock().tryLock()) {
 			 									list.add(entry.getKey());
 			 									counter++;
@@ -202,11 +240,11 @@ public class OdilonLockService extends BaseService implements LockService {
 			 			 			}
 	
 			 				list.forEach( item -> {
-			 						ReentrantReadWriteLock lock = fileCacheLocks.get(item);
-			 						fileCacheLocks.remove(item);	
+			 						ReentrantReadWriteLock lock = getFileCacheLocks().get(item);
+			 						getFileCacheLocks().remove(item);	
 			 						lock.writeLock().unlock();
 			 				});
-			 				list.forEach(item -> fileCacheLocks.remove(item));
+			 				list.forEach(item -> getFileCacheLocks().remove(item));
 			 			
 				 			} finally {
 				 			}

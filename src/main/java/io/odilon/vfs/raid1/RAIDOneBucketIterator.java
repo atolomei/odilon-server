@@ -16,6 +16,7 @@
  */
 package io.odilon.vfs.raid1;
 
+
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -23,7 +24,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -33,9 +33,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.ServerConstant;
-import io.odilon.model.SharedConstant;
-import io.odilon.model.ObjectMetadata;
-import io.odilon.model.ObjectStatus;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.ServerBucket;
 import io.odilon.vfs.model.BucketIterator;
@@ -53,20 +50,11 @@ import io.odilon.vfs.model.BucketIterator;
  */
 public class RAIDOneBucketIterator extends BucketIterator implements Closeable {
 		
+	@SuppressWarnings("unused")
 	private static final Logger logger = Logger.getLogger(RAIDOneBucketIterator.class.getName());
-	
-	@JsonProperty("prefix")
-	private String prefix;
 	
 	@JsonProperty("drive")
 	private final Drive drive;
-	
-	@JsonProperty("cumulativeIndex")		
-	private long cumulativeIndex = 0;
-	
-	/** next item to return -> 0 .. [ list.size()-1 ] */
-	@JsonIgnore
-	private int relativeIndex = 0;  
 	
 	@JsonIgnore
 	private Iterator<Path> it;
@@ -74,69 +62,15 @@ public class RAIDOneBucketIterator extends BucketIterator implements Closeable {
 	@JsonIgnore
 	private Stream<Path> stream;
 	
-	@JsonIgnore
-	private List<Path> buffer;
-	
-	@JsonIgnore
-	private boolean initiated = false;
-
-	@JsonIgnore
-	RAIDOneDriver driver;
-	
 	public RAIDOneBucketIterator(RAIDOneDriver driver, ServerBucket bucket, Optional<Long> opOffset,  Optional<String> opPrefix) {
-		super(bucket);
-		opPrefix.ifPresent( x -> this.prefix = x.toLowerCase().trim());
+		super(driver, bucket);
+		
+		opPrefix.ifPresent( x -> setPrefix(x.toLowerCase().trim()));
 		opOffset.ifPresent( x -> setOffset(x));
-		this.driver = driver;
-		this.drive  = driver.getDrivesEnabled().get(Double.valueOf(Math.abs(Math.random()*10000)).intValue() % driver.getDrivesEnabled().size());
+		
+		this.drive  = getDriver().getDrivesEnabled().get(Double.valueOf(Math.abs(Math.random()*10000)).intValue() % getDriver().getDrivesEnabled().size());
 	}
 	
-	@Override
-	public synchronized boolean hasNext() {
-		
-		if(!this.initiated) {
-			init();
-			return fetch();
-		}
-		/** 
-		 * if the buffer 
-		 *  still has items  
-		 * **/
-		if (this.relativeIndex < this.buffer.size())
-			return true;
-				
-		return fetch();
-	}
-	/**
-	 * 
-	 */
-	@Override
-	public synchronized Path next() {
-		
-		/**	
-		 * if the buffer still has items to return 
-		 * */
-		if (this.relativeIndex < this.buffer.size()) {
-			Path object = this.buffer.get(this.relativeIndex);
-			this.relativeIndex++; 
-			this.cumulativeIndex++; 
-			return object;
-		}
-
-		boolean hasItems = fetch();
-		
-		if (!hasItems)																							
-			throw new IndexOutOfBoundsException("No more items available. hasNext() should be called before this method. " + "[returned so far -> " + String.valueOf(cumulativeIndex)+"]");
-		
-		Path object = this.buffer.get(this.relativeIndex);
-
-		this.relativeIndex++;
-		this.cumulativeIndex++;
-		
-		return object;
-	}
-
-
 	/**
 	 * 
 	 * 
@@ -147,28 +81,42 @@ public class RAIDOneBucketIterator extends BucketIterator implements Closeable {
 			this.stream.close();
 	}
 	
-
-	private Drive getDrive() {
-		return this.drive;
+	/**
+	 * @return false if there are no more items
+	 */
+	protected boolean fetch() {
+		setRelativeIndex(0);
+		setBuffer(new ArrayList<Path>());
+		
+		boolean isItems = true;
+		while (isItems && getBuffer().size() < ServerConstant.BUCKET_ITERATOR_DEFAULT_BUFFER_SIZE) {
+			if (it.hasNext())
+				getBuffer().add(it.next());		
+			else 
+				isItems = false;
+		}
+		return !getBuffer().isEmpty();
 	}
-	private void init() {
+	
+	
+	
+	@Override
+	protected void init() {
 		
 			Path start = new File( getDrive().getBucketMetadataDirPath(getBucketId())).toPath();
 			try {
 				this.stream = Files.walk(start, 1).skip(1).
 						filter(file -> Files.isDirectory(file)).
-						filter(file -> this.prefix==null || file.getFileName().toString().toLowerCase().startsWith(this.prefix));
+						filter(file -> (getPrefix()==null) || file.getFileName().toString().toLowerCase().startsWith(getPrefix()));
 						//filter(file -> isObjectStateEnabled(file));
 				
 			} catch (IOException e) {
-				logger.error(e, SharedConstant.NOT_THROWN);
-				throw new InternalCriticalException(e);
+				throw new InternalCriticalException(e, "Files.walk ...");
 			}
 			this.it = this.stream.iterator();
 		skipOffset();
-		this.initiated = true;
+		setInitiated(true);
 	}
-	
 	
 	private void skipOffset() {
 		if (getOffset()==0)
@@ -186,40 +134,8 @@ public class RAIDOneBucketIterator extends BucketIterator implements Closeable {
 		}
 	}
 
-	/**
-	 * @return false if there are no more items
-	 */
-	private boolean fetch() {
-		this.relativeIndex = 0;
-		this.buffer = new ArrayList<Path>();
-		boolean isItems = true;
-		while (isItems && this.buffer.size() < ServerConstant.BUCKET_ITERATOR_DEFAULT_BUFFER_SIZE) {
-			if (it.hasNext())
-				this.buffer.add(it.next());		
-			else 
-				isItems = false;
-		}
-		return !this.buffer.isEmpty();
-	}
-	
-	private RAIDOneDriver getDriver() {
-		return driver;
-	}
-	
-	/**
-	 * <p>This method should be used when the delete 
-	 *  operation is logical (ObjectStatus.DELETED)</p>
-	 * @param path
-	 * @return
-	 */
-	@SuppressWarnings("unused")
-	private boolean isObjectStateEnabled(Path path) {
-		ObjectMetadata meta = getDriver().getObjectMetadata(getBucket(), path.toFile().getName());
-		if (meta==null)
-			return false;
-		if (meta.status == ObjectStatus.ENABLED) 
-			return true;
-		return false;
+	private Drive getDrive() {
+		return this.drive;
 	}
 
 }

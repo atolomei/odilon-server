@@ -96,7 +96,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 		int afterHeadVersion = -1;
 		ObjectMetadata meta = null;
 		
-		getLockService().getObjectLock(bucketId, objectName).writeLock().lock();
+		getLockService().getObjectLock(bucket, objectName).writeLock().lock();
 		
 		try {
 		
@@ -153,7 +153,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 				}
 		
 		} finally {
-			getLockService().getObjectLock(bucketId, objectName).writeLock().unlock();
+			getLockService().getObjectLock(bucket, objectName).writeLock().unlock();
 		}
 	}
 
@@ -178,9 +178,9 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 		
 		boolean done = false;
 		
-		getLockService().getObjectLock(meta.bucketId, meta.objectName).writeLock().lock();		
+		getLockService().getObjectLock(meta.getBucketId(), meta.getObjectName()).writeLock().lock();		
 		try {
-				getLockService().getBucketLock(meta.bucketId).readLock().lock();
+				getLockService().getBucketLock(meta.getBucketId()).readLock().lock();
 				try {
 					
 					op = getJournalService().updateObjectMetadata(meta.bucketId, meta.objectName, meta.version);
@@ -206,14 +206,14 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 							else {
 								/** TODO AT -> Sync by the moment. 
 								 * TODO see how to make it Async */
-								cleanUpBackupMetadataDir(meta.bucketId, meta.objectName);
+								cleanUpBackupMetadataDir(meta.getBucketId(), meta.getObjectName());
 							}
 						} finally {
-							getLockService().getBucketLock(meta.bucketId).readLock().unlock();
+							getLockService().getBucketLock(meta.getBucketId()).readLock().unlock();
 						}
 				}
 		} finally {
-				getLockService().getObjectLock(meta.bucketId, meta.objectName).writeLock().unlock();
+				getLockService().getObjectLock(meta.getBucketId(), meta.getObjectName()).writeLock().unlock();
 		}
 	}
 
@@ -246,7 +246,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 		ObjectMetadata metaHeadToRemove = null;
 		ObjectMetadata metaToRestore = null;
 		
-		getLockService().getObjectLock(bucket.getId(), objectName).writeLock().lock();
+		getLockService().getObjectLock(bucket, objectName).writeLock().lock();
 
 			try {
 				
@@ -334,7 +334,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 					}
 				}
 			} finally {
-				getLockService().getObjectLock(bucket.getId(), objectName).writeLock().unlock();
+				getLockService().getObjectLock(bucket, objectName).writeLock().unlock();
 			}
 	}
 

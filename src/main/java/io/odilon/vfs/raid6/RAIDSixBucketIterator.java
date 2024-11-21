@@ -24,7 +24,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -41,7 +40,6 @@ import io.odilon.vfs.model.BucketIterator;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.ServerBucket;
 
-
 /**
  * <p><b>RAID 6 Bucket iterator</b> <br/>
  * Data is partitioned into blocks encoded using RS Erasure code and stored on all drives.<br/> 
@@ -51,8 +49,6 @@ import io.odilon.vfs.model.ServerBucket;
  * return {@link ObjectMetata}instances. All Drives contain all {@link ObjectMetadata} in RAID 6.</p>
  * 
  *
-
- *
  * @author atolomei@novamens.com (Alejandro Tolomei)
  * 
  */
@@ -61,18 +57,12 @@ public class RAIDSixBucketIterator extends BucketIterator implements Closeable {
 	@SuppressWarnings("unused")
 	private static final Logger logger = Logger.getLogger(RAIDSixBucketIterator.class.getName());
 	
-	@JsonProperty("prefix")
-	private String prefix = null;
-	
 	@JsonProperty("drive")
 	private final Drive drive;
 	
 	@JsonProperty("cumulativeIndex")		
 	private long cumulativeIndex = 0;
 
-	/** next item to return -> 0 .. [ list.size()-1 ] */
-	@JsonIgnore
-	private int relativeIndex = 0;  
 	
 	@JsonIgnore
 	private Iterator<Path> it;
@@ -80,15 +70,8 @@ public class RAIDSixBucketIterator extends BucketIterator implements Closeable {
 	@JsonIgnore
 	private Stream<Path> stream;
 	
-	@JsonIgnore
-	private List<Path> buffer;
-	
-	@JsonIgnore
-	private boolean initiated = false;
-
-	@JsonIgnore
-	RAIDSixDriver driver;
-				
+	//@JsonIgnore
+	//RAIDSixDriver driver;
 
 	/**
 	 * 
@@ -98,46 +81,38 @@ public class RAIDSixBucketIterator extends BucketIterator implements Closeable {
 	 * @param opPrefix
 	 */
 	public RAIDSixBucketIterator(RAIDSixDriver driver, ServerBucket bucket, Optional<Long> opOffset,  Optional<String> opPrefix) {
-		super(bucket);
+		super(driver, bucket);
 		
-		Check.requireNonNull(driver);
-		
-		opPrefix.ifPresent( x -> this.prefix=x.toLowerCase().trim());
+		opPrefix.ifPresent( x -> setPrefix(x.toLowerCase().trim()));
 		opOffset.ifPresent( x -> setOffset(x));
 		
-		this.driver = driver;
-		
 		/** must use DrivesEnabled */
-		this.drive  = driver.getDrivesEnabled().get(Double.valueOf(Math.abs(Math.random()*1000)).intValue() % driver.getDrivesEnabled().size());
+		this.drive  = driver.getDrivesEnabled().get(Double.valueOf(Math.abs(Math.random()*1000)).intValue() % getDriver().getDrivesEnabled().size());
 	}
 	
 	
+	/**
 	@Override
 	public boolean hasNext() {
 		
-		if(!this.initiated) {
+		if(!isInitiated()) {
 			init();
 			return fetch();
 		}
-		/** 
-		 * if the buffer 
-		 *  still has items  
-		 * **/
-		if (this.relativeIndex < this.buffer.size())
+		
+		if (getRelativeIndex() < getBuffer().size())
 			return true;
 				
 		return fetch();
-	}
+	}**/
 
+	/**
 	@Override
 	public Path next() {
 		
-		/**	
-		 * if the buffer still has items to return 
-		 * */
-		if (this.relativeIndex < this.buffer.size()) {
-			Path object = this.buffer.get(this.relativeIndex);
-			this.relativeIndex++; 
+		if (getRelativeIndex() < getBuffer().size()) {
+			Path object = getBuffer().get(getRelativeIndex());
+			setRelativeIndex(getRelativeIndex()+1); 
 			this.cumulativeIndex++; 
 			return object;
 		}
@@ -148,39 +123,68 @@ public class RAIDSixBucketIterator extends BucketIterator implements Closeable {
 			throw new IndexOutOfBoundsException( "No more items available. hasNext() should be called before this method. "
 												 + "[returned so far -> " + String.valueOf(cumulativeIndex)+"]" );
 		
-		Path object = this.buffer.get(this.relativeIndex);
+		Path object = getBuffer().get(getRelativeIndex());
 
-		this.relativeIndex++;
+		incRelativeIndex();
 		this.cumulativeIndex++;
 		
 		return object;
 
 	}
+	*/
+	
 	@Override
 	public synchronized void close() throws IOException {
 		if (this.stream!=null)
 			this.stream.close();
 	}
 	
-	
-	
-	private void init() {
+	@Override
+	protected void init() {
 		
 		Path start = new File(getDrive().getBucketMetadataDirPath(getBucketId())).toPath();
 		try {
 			this.stream = Files.walk(start, 1).skip(1).
 					filter(file -> Files.isDirectory(file)).
-					filter(file -> this.prefix==null || file.getFileName().toString().toLowerCase().startsWith(this.prefix));
+					filter(file -> (getPrefix()==null) || file.getFileName().toString().toLowerCase().startsWith(getPrefix()));
 					//filter(file -> isObjectStateEnabled(file));
 			
 		} catch (IOException e) {
-			throw new InternalCriticalException(e, "init");
+			throw new InternalCriticalException(e, "Files.walk ...");
 		}
 		this.it = this.stream.iterator();
 		skipOffset();
-		this.initiated = true;
+		setInitiated(true);
 	}
 	
+	
+
+	/**
+	 * @return false if there are no more items
+	 */
+	@Override
+	protected boolean fetch() {
+
+		setRelativeIndex(0);
+		
+		setBuffer(new ArrayList<Path>());
+		boolean isItems = true;
+		while (isItems && getBuffer().size() < ServerConstant.BUCKET_ITERATOR_DEFAULT_BUFFER_SIZE) {
+			if (it.hasNext())
+				getBuffer().add(it.next());		
+			else 
+				isItems = false;
+		}
+		return !getBuffer().isEmpty();
+	}
+
+	 
+
+	private Drive getDrive() {
+		return this.drive;
+	}
+
+ 
 	
 	private void skipOffset() {
 		if (getOffset()==0)
@@ -198,46 +202,6 @@ public class RAIDSixBucketIterator extends BucketIterator implements Closeable {
 		}
 	}
 
-	
-	/**
-	 * <p>This method should be used when the delete operation is logical (ObjectStatus.DELETED)</p>
-	 * @param path
-	 * @return
-	 */
-	@SuppressWarnings("unused")
-	private boolean isObjectStateEnabled(Path path) {
-		ObjectMetadata meta = getDriver().getObjectMetadata(getBucket(), path.toFile().getName());
-		if (meta==null)
-			return false;
-		if (meta.status == ObjectStatus.ENABLED) 
-			return true;
-		return false;
-	}
-	
-	/**
-	 * @return false if there are no more items
-	 */
-	private boolean fetch() {
-
-		this.relativeIndex = 0;
-		this.buffer = new ArrayList<Path>();
-		boolean isItems = true;
-		while (isItems && this.buffer.size() < ServerConstant.BUCKET_ITERATOR_DEFAULT_BUFFER_SIZE) {
-			if (it.hasNext())
-				this.buffer.add(it.next());		
-			else 
-				isItems = false;
-		}
-		return !this.buffer.isEmpty();
-	}
-
-	private RAIDSixDriver getDriver() {
-		return driver;
-	}
-
-	private Drive getDrive() {
-		return this.drive;
-	}
 
 	
 }
