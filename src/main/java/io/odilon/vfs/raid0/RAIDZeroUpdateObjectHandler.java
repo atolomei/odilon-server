@@ -85,11 +85,11 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 		int beforeHeadVersion = -1;
 		int afterHeadVersion = -1;
 										
-		getLockService().getObjectLock(bucket_id, objectName).writeLock().lock();
+		getLockService().getObjectLock(bucket, objectName).writeLock().lock();
 		
 		try {
 			
-			getLockService().getBucketLock(bucket_id).readLock().lock();
+			getLockService().getBucketLock(bucket).readLock().lock();
 			
 			try (stream) {
 			
@@ -147,7 +147,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 				}
 			}
 		} finally {
-			getLockService().getObjectLock(bucket.getId(), objectName).writeLock().unlock();
+			getLockService().getObjectLock(bucket, objectName).writeLock().unlock();
 		}
 	}
 	
@@ -171,11 +171,11 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 
 		int beforeHeadVersion = -1;
 		
-		getLockService().getObjectLock(bucket_id, objectName).writeLock().lock();
+		getLockService().getObjectLock(bucket, objectName).writeLock().lock();
 		
 		try {
 			
-			getLockService().getBucketLock(bucket_id).readLock().lock();
+			getLockService().getBucketLock(bucket).readLock().lock();
 			
 			try {
 				
@@ -258,12 +258,12 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 						}
 					}	
 				} finally {
-					getLockService().getBucketLock(bucket_id).readLock().unlock();
+					getLockService().getBucketLock(bucket).readLock().unlock();
 				}
 			}
 		}
 		finally {
-			getLockService().getObjectLock(bucket_id, objectName).writeLock().unlock();
+			getLockService().getObjectLock(bucket, objectName).writeLock().unlock();
 		}
 	}
 	
@@ -285,11 +285,11 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 
 		ServerBucket bucket = getDriver().getVFS().getBucketById(meta.getBucketId());
 		
-		getLockService().getObjectLock( meta.getBucketId(), meta.getObjectName()).writeLock().lock();
+		getLockService().getObjectLock(bucket, meta.getObjectName()).writeLock().lock();
 		
 		try {
 
-			getLockService().getBucketLock( meta.getBucketId()).readLock().lock();
+			getLockService().getBucketLock(bucket).readLock().lock();
 
 			try {
 	
@@ -327,11 +327,11 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 						
 					}
 				} finally {
-					getLockService().getBucketLock(meta.getBucketId()).readLock().unlock();
+					getLockService().getBucketLock(bucket).readLock().unlock();
 				}
 			}
 			} finally {
-				getLockService().getObjectLock(meta.getBucketId(), meta.getObjectName()).writeLock().unlock();
+				getLockService().getObjectLock(bucket, meta.getObjectName()).writeLock().unlock();
 			}
 		}
 

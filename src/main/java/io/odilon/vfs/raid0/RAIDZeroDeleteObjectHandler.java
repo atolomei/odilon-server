@@ -74,7 +74,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 		int headVersion = -1;
 		ObjectMetadata meta = null;
 		
-		getLockService().getObjectLock(bucket.getId(), objectName).writeLock().lock();
+		getLockService().getObjectLock(bucket, objectName).writeLock().lock();
 		
 		try {
 			
@@ -87,12 +87,12 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 	
 				meta = getDriver().getObjectMetadataInternal(bucket, objectName, false);
 				
-				headVersion = meta.version;
+				headVersion = meta.getVersion();
 				
 				op = getJournalService().deleteObject(bucket.getId(), objectName,	headVersion);
 				
-				backupMetadata(bucket, meta.objectName);
-				
+				backupMetadata(bucket, meta.getObjectName());
+
 				drive.deleteObjectMetadata(bucket.getId(), objectName);
 				
 				done=op.commit();
@@ -133,7 +133,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 				}
 			}
 		} finally {
-			getLockService().getObjectLock(bucket.getId(), objectName).writeLock().unlock();
+			getLockService().getObjectLock(bucket, objectName).writeLock().unlock();
 		}
 
 		if(done)
@@ -155,47 +155,47 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 		Check.requireNonNullArgument(meta.bucketId, "bucketId is null");
 		Check.requireNonNullArgument(meta.objectName, "objectName is null or empty | b:" + meta.bucketId.toString());
 
+		ServerBucket bucket = getDriver().getVFS().getBucketById(meta.getBucketId());
+		Check.requireNonNullArgument(bucket, "bucket is null");
+		
 		boolean isMainExcetion = false;
 		int headVersion = -1;		  
 		boolean done = false;
 		VFSOperation op = null;
 		
-		ServerBucket bucket = getDriver().getVFS().getBucketById(meta.bucketId);
-		
-		getLockService().getObjectLock(meta.bucketId, meta.objectName).writeLock().lock();
+		getLockService().getObjectLock(bucket, meta.getObjectName()).writeLock().lock();
 		
 		try {
-				getLockService().getBucketLock(meta.bucketId).readLock().lock();
+				getLockService().getBucketLock(bucket).readLock().lock();
 			
 				try {
 						
-					if (!getDriver().getReadDrive(bucket, meta.objectName).existsObjectMetadata(meta.bucketId, meta.objectName))													
-						throw new OdilonObjectNotFoundException("object does not exist -> "+ getDriver().objectInfo(meta.bucketId.toString(), meta.objectName));
+					if (!getDriver().getReadDrive(bucket, meta.getObjectName()).existsObjectMetadata(meta.getBucketId(), meta.getObjectName()))													
+						throw new OdilonObjectNotFoundException("object does not exist -> "+ getDriver().objectInfo(meta));
 					
-					headVersion = meta.version;
+					headVersion = meta.getVersion();
 					
 					/** It does not delete the head version, 
 					 *  only previous versions 
 					 * */
 					
-					if (meta.version==0)
+					if (meta.getVersion()==0)
 						return;
 											
-					op = getJournalService().deleteObjectPreviousVersions(meta.bucketId, meta.objectName, headVersion);
+					op = getJournalService().deleteObjectPreviousVersions(meta.getBucketId(), meta.getObjectName(), headVersion);
 					
-					backupMetadata(bucket, meta.objectName);
+					backupMetadata(bucket, meta.getObjectName());
 		
-					
 					/** remove all "objectmetadata.json.vn" Files, 
 					 * but keep -> "objectmetadata.json" **/
 					
 					for (int version=0; version < headVersion; version++) 
-						FileUtils.deleteQuietly(getDriver().getReadDrive(bucket, meta.objectName).getObjectMetadataVersionFile(meta.bucketId, meta.objectName, version));
+						FileUtils.deleteQuietly(getDriver().getReadDrive(bucket, meta.getObjectName()).getObjectMetadataVersionFile(meta.bucketId, meta.objectName, version));
 		
 					meta.addSystemTag("delete versions");
-					meta.lastModified = OffsetDateTime.now();
+					meta.setLastModified(OffsetDateTime.now());
 		
-					getDriver().getWriteDrive(bucket, meta.objectName).saveObjectMetadata(meta);
+					getDriver().getWriteDrive(bucket, meta.getObjectName()).saveObjectMetadata(meta);
 					
 					done=op.commit();
 					
@@ -207,7 +207,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 				} catch (Exception e) {
 					done=false;
 					isMainExcetion=true;
-					throw new InternalCriticalException(e, getDriver().objectInfo(meta.bucketId.toString(), meta.objectName)); 
+					throw new InternalCriticalException(e, getDriver().objectInfo(meta)); 
 				}
 				finally {
 		
@@ -222,12 +222,12 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 								if (!isMainExcetion)
 									throw e;
 								else
-									logger.error(e, getDriver().objectInfo(meta.bucketId.toString(), meta.objectName), SharedConstant.NOT_THROWN );
+									logger.error(e, getDriver().objectInfo(meta), SharedConstant.NOT_THROWN );
 							} catch (Exception e) {
 								if (!isMainExcetion)
-									throw new InternalCriticalException(e, getDriver().objectInfo(meta.bucketId.toString(), meta.objectName));
+									throw new InternalCriticalException(e, getDriver().objectInfo(bucket, meta.objectName));
 								else
-									logger.error(e, getDriver().objectInfo(meta.bucketId.toString(), meta.objectName), SharedConstant.NOT_THROWN );
+									logger.error(e, getDriver().objectInfo(meta), SharedConstant.NOT_THROWN );
 							}
 						}
 						else if (done) {
@@ -236,16 +236,16 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 								postObjectPreviousVersionDeleteAllCommit(meta, headVersion);
 								
 							} catch (Exception e) {
-								logger.error(e, getDriver().objectInfo(meta.bucketId.toString(), meta.objectName), SharedConstant.NOT_THROWN);
+								logger.error(e, getDriver().objectInfo(bucket, meta.objectName), SharedConstant.NOT_THROWN);
 							}
 						}
 					}
 					finally {
-						getLockService().getBucketLock(meta.bucketId).readLock().unlock();
+						getLockService().getBucketLock(bucket).readLock().unlock();
 					}
 				}
 		} finally {
-				getLockService().getObjectLock(meta.bucketId, meta.objectName).writeLock().unlock();
+				getLockService().getObjectLock(bucket, meta.getObjectName()).writeLock().unlock();
 		}
 		
 		if(done)
@@ -274,7 +274,6 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 		
 		boolean done = false;
 
-		
 		ServerBucket bucket = getVFS().getBucketById(op.getBucketId());
 		
 		try {
@@ -369,7 +368,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 		Check.requireNonNullArgument(meta, "meta is null");
 
 		String objectName = meta.objectName;
-		Long bucketId=meta.bucketId;
+		Long bucketId=meta.getBucketId();
 				
 		Check.requireNonNullArgument(bucketId, "bucketId is null");
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketId.toString());
@@ -385,7 +384,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 			FileUtils.deleteQuietly(new File(getDriver().getWriteDrive(bucket, objectName).getBucketWorkDirPath(bucketId) + File.separator + objectName));
 			
 		} catch (Exception e) {
-			logger.error(e, SharedConstant.NOT_THROWN);
+			logger.error(e, getDriver().objectInfo(meta), SharedConstant.NOT_THROWN);
 		}
 	}
 
@@ -401,8 +400,8 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 		
 		Check.requireNonNullArgument(meta, "meta is null");
 		
-		Long bucketId=meta.bucketId;
-		String objectName = meta.objectName;
+		Long bucketId=meta.getBucketId();
+		String objectName = meta.getObjectName();
 		
 		ServerBucket bucket = getDriver().getVFS().getBucketById(bucketId);
 		

@@ -84,7 +84,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 		boolean done = false;
 		boolean isMainException = false;
 			
-		getLockService().getObjectLock(bucket.getId(), objectName).writeLock().lock();
+		getLockService().getObjectLock(bucket, objectName).writeLock().lock();
 		
 		try {
 			
@@ -139,7 +139,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler  {
 			}
 		}
 		finally {
-			getLockService().getObjectLock(bucket.getId(), objectName).writeLock().unlock();
+			getLockService().getObjectLock(bucket, objectName).writeLock().unlock();
 		}
 	}
 
