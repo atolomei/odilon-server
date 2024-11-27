@@ -315,6 +315,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
             String contentType, Optional<List<String>> customTags) {
 
         Check.requireNonNullArgument(bucket, "bucket is null");
+        Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible " + objectInfo(bucket));
         Check.requireNonNullStringArgument(objectName, "objectName can not be null " + objectInfo(bucket));
         Check.requireNonNullStringArgument(fileName, "fileName is null " + objectInfo(bucket, objectName));
         Check.requireNonNullArgument(stream, "InpuStream can not null " + objectInfo(bucket, objectName));
@@ -348,6 +349,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
     @Override
     public void delete(ServerBucket bucket, String objectName) {
         Check.requireNonNullArgument(bucket, "bucket is null");
+        Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible " + objectInfo(bucket));
         Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
         RAIDZeroDeleteObjectHandler agent = new RAIDZeroDeleteObjectHandler(this);
         agent.delete(bucket, objectName);
@@ -405,7 +407,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
      */
     @Override
     public boolean isEmpty(ServerBucket bucket) {
-
         Check.requireNonNullArgument(bucket, "bucket is null");
         Check.requireTrue(existsBucketInDrives(bucket.getId()),
                 "bucket does not exist in all drives -> b: " + bucket.getName());
@@ -604,8 +605,9 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
     public List<ObjectMetadata> getObjectMetadataVersionAll(ServerBucket bucket, String objectName) {
 
         Check.requireNonNullArgument(bucket, "bucket is null");
-        Check.requireNonNullStringArgument(objectName, "objectName is null or empty " + objectInfo(bucket));
         Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible " + objectInfo(bucket));
+
+        Check.requireNonNullStringArgument(objectName, "objectName is null or empty " + objectInfo(bucket));
 
         List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
 
@@ -887,7 +889,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
     @Override
     public void rollbackJournal(VFSOperation op, boolean recoveryMode) {
 
-        Check.requireNonNullArgument(op, "VFSOperation is null");
+        Check.requireNonNullArgument(op, VFSOperation.class.getSimpleName() + " is null");
 
         switch (op.getOp()) {
         case CREATE_OBJECT: {
@@ -1365,7 +1367,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
             boolean addToCacheifMiss) {
 
         Check.requireNonNullArgument(bucket, "bucket is null");
-        Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
+        Check.requireNonNullStringArgument(objectName, "objectName can not be null " + objectInfo(bucket));
 
         Drive readDrive = null;
 
