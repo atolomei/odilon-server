@@ -24,59 +24,67 @@ import io.odilon.model.ObjectMetadata;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.DriveStatus;
 
-/**<p>Encoder for Drive Sync process</p>
+/**
+ * <p>
+ * Encoder for Drive Sync process
+ * </p>
  * 
- * <p>The difference between {@code RSDriveInitializationEncoder} and the standard {@link RAIDSixEncoder} 
- * is that this one only saves the RS Blocks that go to the newly added disks (ie. blocks on enabled 
- * Drives are <b>not</b> touched).
+ * <p>
+ * The difference between {@code RSDriveInitializationEncoder} and the standard
+ * {@link RAIDSixEncoder} is that this one only saves the RS Blocks that go to
+ * the newly added disks (ie. blocks on enabled Drives are <b>not</b> touched).
  * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public class RAIDSixSDriveSyncEncoder extends RAIDSixEncoder {
-		
-	@SuppressWarnings("unused")	
-	static private Logger logger = Logger.getLogger(RAIDSixSDriveSyncEncoder.class.getName());
-	
-	/**
-	 * @param driver can not be null
-	 */
-	protected RAIDSixSDriveSyncEncoder(RAIDSixDriver driver) {
-    	super(driver);
+
+    @SuppressWarnings("unused")
+    static private Logger logger = Logger.getLogger(RAIDSixSDriveSyncEncoder.class.getName());
+
+    /**
+     * @param driver can not be null
+     */
+    protected RAIDSixSDriveSyncEncoder(RAIDSixDriver driver) {
+        super(driver);
     }
-	protected RAIDSixSDriveSyncEncoder(RAIDSixDriver driver, List<Drive> zDrives) {
-		super(driver, zDrives);
-	}
 
-	/**
-	 * <p> We can not use the {@link ObjectMetadata} here because it may 
-	 * not exist yet. The steps to upload objects are: <br/>
-	 * - upload binary data <br/>
-	 * - create ObjectMetadata <br/>
-	 * </p>
- 	 */
-	public RAIDSixBlocks encodeHead (InputStream is, Long bucketId, String objectName) {
-		return super.encodeHead(is, bucketId, objectName);
-	}
+    protected RAIDSixSDriveSyncEncoder(RAIDSixDriver driver, List<Drive> zDrives) {
+        super(driver, zDrives);
+    }
 
-	/**
-	 * <p> We can not use the {@link ObjectMetadata} here because it may 
-	 * not exist yet. The steps to upload objects are: <br/>
-	 * - upload binary data <br/>
-	 * - create ObjectMetadata <br/>
-	 * </p>
- 	 */
+    /**
+     * <p>
+     * We can not use the {@link ObjectMetadata} here because it may not exist yet.
+     * The steps to upload objects are: <br/>
+     * - upload binary data <br/>
+     * - create ObjectMetadata <br/>
+     * </p>
+     */
+    public RAIDSixBlocks encodeHead(InputStream is, Long bucketId, String objectName) {
+        return super.encodeHead(is, bucketId, objectName);
+    }
 
-	public RAIDSixBlocks encodeVersion (InputStream is, Long bucketId, String objectName, int version) {
-		return super.encodeVersion(is, bucketId, objectName, version);
-	}
-	
-	/**
-	 * <p>only write on Drives in status {@link DriveStatus.NOTSYNC}</p>
-	 */
-	protected boolean isWrite(int disk) {
-		return (getDrives().get(disk).getDriveInfo().getStatus()==DriveStatus.NOTSYNC);
-	}
-	
-	
+    /**
+     * <p>
+     * We can not use the {@link ObjectMetadata} here because it may not exist yet.
+     * The steps to upload objects are: <br/>
+     * - upload binary data <br/>
+     * - create ObjectMetadata <br/>
+     * </p>
+     */
+
+    public RAIDSixBlocks encodeVersion(InputStream is, Long bucketId, String objectName, int version) {
+        return super.encodeVersion(is, bucketId, objectName, version);
+    }
+
+    /**
+     * <p>
+     * only write on Drives in status {@link DriveStatus.NOTSYNC}
+     * </p>
+     */
+    protected boolean isWrite(int disk) {
+        return (getDrives().get(disk).getDriveInfo().getStatus() == DriveStatus.NOTSYNC);
+    }
+
 }

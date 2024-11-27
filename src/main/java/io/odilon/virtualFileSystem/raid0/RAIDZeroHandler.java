@@ -27,31 +27,33 @@ import io.odilon.virtualFileSystem.model.VFSOperation;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
- * <p>Base class for {@link RAIDZeroDriver} operations</p>
+ * <p>
+ * Base class for {@link RAIDZeroDriver} operations
+ * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @ThreadSafe
 public abstract class RAIDZeroHandler extends BaseRAIDHandler implements RAIDHandler {
 
-	private final RAIDZeroDriver driver;
-	
-	public RAIDZeroHandler(RAIDZeroDriver driver) {
-		this.driver=driver;
-	}
+    private final RAIDZeroDriver driver;
 
-	@Override
-	public RAIDZeroDriver getDriver() {
-		return this.driver;
-	}
-	
-	public VirtualFileSystemService getVirtualFileSystemService() {
-		return getDriver().getVirtualFileSystemService();
-	}
-	
-	public Drive getWriteDrive(ServerBucket bucket, String objectName) {
-		return getDriver().getWriteDrive(bucket, objectName);
-	}
-	
-	protected abstract void rollbackJournal(VFSOperation op, boolean recoveryMode);
+    public RAIDZeroHandler(RAIDZeroDriver driver) {
+        this.driver = driver;
+    }
+
+    @Override
+    public RAIDZeroDriver getDriver() {
+        return this.driver;
+    }
+
+    public VirtualFileSystemService getVirtualFileSystemService() {
+        return getDriver().getVirtualFileSystemService();
+    }
+
+    public Drive getWriteDrive(ServerBucket bucket, String objectName) {
+        return getDriver().getWriteDrive(bucket, objectName);
+    }
+
+    protected abstract void rollbackJournal(VFSOperation op, boolean recoveryMode);
 }

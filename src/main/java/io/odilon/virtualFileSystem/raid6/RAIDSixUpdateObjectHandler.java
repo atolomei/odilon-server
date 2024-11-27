@@ -583,19 +583,12 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
         }
     }
 
-    /**
-     * <p>
-     * </p>
-     * 
-     * @param op
-     * @param recoveryMode
-     */
+
     private void rollbackJournalUpdateMetadata(VFSOperation op, boolean recoveryMode) {
 
         boolean done = false;
 
         try {
-
             if (getVirtualFileSystemService().getServerSettings().isStandByEnabled())
                 getVirtualFileSystemService().getReplicationService().cancel(op);
 
@@ -773,10 +766,6 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
         }
     }
 
-    /**
-     * 
-     * 
-     */
     private void rollbackJournalUpdate(VFSOperation op, boolean recoveryMode) {
 
         boolean done = false;
