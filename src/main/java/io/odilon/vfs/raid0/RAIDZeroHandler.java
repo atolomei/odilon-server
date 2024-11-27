@@ -31,7 +31,6 @@ import io.odilon.vfs.model.VirtualFileSystemService;
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
-
 @ThreadSafe
 public abstract class RAIDZeroHandler extends BaseRAIDHandler implements RAIDHandler {
 
@@ -55,6 +54,4 @@ public abstract class RAIDZeroHandler extends BaseRAIDHandler implements RAIDHan
 	}
 	
 	protected abstract void rollbackJournal(VFSOperation op, boolean recoveryMode);
-
-
 }

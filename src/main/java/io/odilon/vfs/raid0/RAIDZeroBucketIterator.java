@@ -199,7 +199,7 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
 				}
 			}
 		}
-		return  ( !getBuffer().isEmpty() );
+		return  (!getBuffer().isEmpty());
 	}
 }
 
