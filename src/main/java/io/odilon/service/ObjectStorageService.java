@@ -26,8 +26,8 @@ import io.odilon.model.ObjectMetadata;
 import io.odilon.model.SystemInfo;
 import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
-import io.odilon.vfs.model.ServerBucket;
-import io.odilon.vfs.model.VirtualFileSystemObject;
+import io.odilon.virtualFileSystem.model.ServerBucket;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemObject;
 
 /**
  *

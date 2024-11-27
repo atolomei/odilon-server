@@ -51,8 +51,8 @@ import io.odilon.model.SystemInfo;
 import io.odilon.service.BaseService;
 import io.odilon.service.ServerSettings;
 import io.odilon.service.SystemService;
-import io.odilon.vfs.model.Drive;
-import io.odilon.vfs.model.VirtualFileSystemService;
+import io.odilon.virtualFileSystem.model.Drive;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
  * <p>System information, mainly hardware and base software info and Odilon settings. 

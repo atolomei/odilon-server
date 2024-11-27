@@ -39,8 +39,8 @@ import io.odilon.model.SharedConstant;
 import io.odilon.service.BaseService;
 import io.odilon.service.PoolCleaner;
 import io.odilon.util.Check;
-import io.odilon.vfs.model.BucketIterator;
-import io.odilon.vfs.model.VirtualFileSystemService;
+import io.odilon.virtualFileSystem.model.BucketIterator;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 
 /**

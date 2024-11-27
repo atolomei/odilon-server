@@ -30,7 +30,7 @@ import io.odilon.log.Logger;
 import io.odilon.monitor.SystemMonitorService;
 import io.odilon.service.ObjectStorageService;
 import io.odilon.traffic.TrafficControlService;
-import io.odilon.vfs.model.VirtualFileSystemService;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
  * <p>Executed when a shutdown command is received from the API </p>

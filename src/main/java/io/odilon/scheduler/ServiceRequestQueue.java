@@ -33,7 +33,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.odilon.log.Logger;
 import io.odilon.model.ServiceStatus;
 import io.odilon.service.BaseService;
-import io.odilon.vfs.model.VirtualFileSystemService;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
  * <p>The whole <{@link Queue} is stored in memory<br/>

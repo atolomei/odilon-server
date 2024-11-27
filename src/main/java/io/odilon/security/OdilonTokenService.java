@@ -51,7 +51,7 @@ import io.odilon.monitor.SystemMonitorService;
 import io.odilon.service.BaseService;
 import io.odilon.service.OdilonObjectStorageService;
 import io.odilon.service.ServerSettings;
-import io.odilon.vfs.model.VirtualFileSystemService;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
  * <p>This service is used to generate tokens for presigned urls</p>

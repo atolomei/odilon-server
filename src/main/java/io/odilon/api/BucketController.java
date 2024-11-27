@@ -47,8 +47,8 @@ import io.odilon.net.ODHttpStatus;
 import io.odilon.service.ObjectStorageService;
 import io.odilon.traffic.TrafficControlService;
 import io.odilon.traffic.TrafficPass;
-import io.odilon.vfs.model.ServerBucket;
-import io.odilon.vfs.model.VirtualFileSystemService;
+import io.odilon.virtualFileSystem.model.ServerBucket;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
  *  <p>Bucket API</p>

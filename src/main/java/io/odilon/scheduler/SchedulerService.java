@@ -35,8 +35,8 @@ import io.odilon.service.BaseService;
 import io.odilon.service.ServerSettings;
 import io.odilon.service.SystemService;
 import io.odilon.util.Check;
-import io.odilon.vfs.model.VFSOperation;
-import io.odilon.vfs.model.VirtualFileSystemService;
+import io.odilon.virtualFileSystem.model.VFSOperation;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
  * 

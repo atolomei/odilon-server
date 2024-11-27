@@ -56,7 +56,7 @@ import io.odilon.security.TokenService;
 import io.odilon.service.ObjectStorageService;
 import io.odilon.traffic.TrafficControlService;
 import io.odilon.traffic.TrafficPass;
-import io.odilon.vfs.model.VirtualFileSystemService;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 /**
  * 
  * <p>API endpoint for Object operations</p>

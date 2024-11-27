@@ -23,7 +23,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import io.odilon.cache.FileCacheService;
 import io.odilon.log.Logger;
-import io.odilon.vfs.model.LockService;
+import io.odilon.virtualFileSystem.model.LockService;
 
 /**
  * 

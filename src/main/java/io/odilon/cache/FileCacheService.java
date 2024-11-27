@@ -50,10 +50,10 @@ import io.odilon.model.SharedConstant;
 import io.odilon.service.BaseService;
 import io.odilon.service.ServerSettings;
 import io.odilon.util.Check;
-import io.odilon.vfs.model.Drive;
-import io.odilon.vfs.model.LockService;
-import io.odilon.vfs.model.VFSOp;
-import io.odilon.vfs.model.VirtualFileSystemService;
+import io.odilon.virtualFileSystem.model.Drive;
+import io.odilon.virtualFileSystem.model.LockService;
+import io.odilon.virtualFileSystem.model.VFSOp;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
  * <p>{@link File} cache used by {@link RAIDSixDriver} (the other RAID configurations do not need it).</p> 

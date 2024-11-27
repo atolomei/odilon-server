@@ -36,7 +36,7 @@ import io.odilon.monitor.SystemMonitorService;
 import io.odilon.service.ServerSettings;
 import io.odilon.service.ObjectStorageService;
 import io.odilon.traffic.TrafficPass;
-import io.odilon.vfs.model.VirtualFileSystemService;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
  * 

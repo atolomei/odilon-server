@@ -14,7 +14,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import io.odilon.OdilonApplication;
 import io.odilon.log.Logger;
 import io.odilon.service.ObjectStorageService;
-import io.odilon.vfs.model.VirtualFileSystemService;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 @RunWith(SpringRunner.class)
 //@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK, classes = OdilonApplication.class)

@@ -38,7 +38,7 @@ import io.odilon.log.Logger;
 import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
 import io.odilon.util.DateTimeUtil;
-import io.odilon.vfs.model.VirtualFileSystemService;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
  * NOT USED

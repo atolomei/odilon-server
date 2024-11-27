@@ -24,7 +24,7 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import io.odilon.log.Logger;
 import io.odilon.model.SharedConstant;
-import io.odilon.vfs.DataIntegrityChecker;
+import io.odilon.virtualFileSystem.DataIntegrityChecker;
 
 
 

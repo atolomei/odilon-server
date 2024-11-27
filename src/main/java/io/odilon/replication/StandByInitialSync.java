@@ -39,13 +39,13 @@ import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
 import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
-import io.odilon.vfs.OdilonVFSperation;
-import io.odilon.vfs.model.IODriver;
-import io.odilon.vfs.model.LockService;
-import io.odilon.vfs.model.ServerBucket;
-import io.odilon.vfs.model.VFSOperation;
-import io.odilon.vfs.model.VFSOp;
-import io.odilon.vfs.model.VirtualFileSystemService;
+import io.odilon.virtualFileSystem.OdilonVFSperation;
+import io.odilon.virtualFileSystem.model.IODriver;
+import io.odilon.virtualFileSystem.model.LockService;
+import io.odilon.virtualFileSystem.model.ServerBucket;
+import io.odilon.virtualFileSystem.model.VFSOp;
+import io.odilon.virtualFileSystem.model.VFSOperation;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 
 /**

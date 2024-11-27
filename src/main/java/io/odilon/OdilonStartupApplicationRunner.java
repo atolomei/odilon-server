@@ -40,7 +40,7 @@ import io.odilon.scheduler.PingCronJobRequest;
 import io.odilon.scheduler.SchedulerService;
 import io.odilon.security.VaultService;
 import io.odilon.service.ServerSettings;
-import io.odilon.vfs.model.VirtualFileSystemService;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
  * <p>This class is executed after {@link OdilonApplication} startup but <b>before</b> 

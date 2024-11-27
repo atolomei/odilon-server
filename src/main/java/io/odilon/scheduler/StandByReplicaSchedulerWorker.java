@@ -32,8 +32,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.odilon.log.Logger;
 import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
-import io.odilon.vfs.model.VFSOperation;
-import io.odilon.vfs.model.VirtualFileSystemService;
+import io.odilon.virtualFileSystem.model.VFSOperation;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 
 /**

@@ -48,7 +48,7 @@ import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
 import io.odilon.service.util.ByteToString;
 import io.odilon.util.RandomIDGenerator;
-import io.odilon.vfs.model.VirtualFileSystemService;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
  * <p>Server configuration defined in file {@code odilon.properties}</p>

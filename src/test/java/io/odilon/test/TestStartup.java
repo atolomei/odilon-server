@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import io.odilon.log.Logger;
 import io.odilon.service.ObjectStorageService;
-import io.odilon.vfs.model.VirtualFileSystemService;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 
 //@SpringBootTest

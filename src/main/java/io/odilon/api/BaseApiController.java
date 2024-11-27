@@ -33,7 +33,7 @@ import io.odilon.model.BaseObject;
 import io.odilon.monitor.SystemMonitorService;
 import io.odilon.service.ObjectStorageService;
 import io.odilon.traffic.TrafficControlService;
-import io.odilon.vfs.model.VirtualFileSystemService;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
  * <p>Base class for all API Controllers</p>

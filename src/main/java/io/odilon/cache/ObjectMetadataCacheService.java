@@ -35,7 +35,7 @@ import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ServiceStatus;
 import io.odilon.service.BaseService;
 import io.odilon.service.ServerSettings;
-import io.odilon.vfs.model.VFSOp;
+import io.odilon.virtualFileSystem.model.VFSOp;
 
 /**
  * <p>{@link ObjectMetadata} Cache. It only stores ObjectMetadata's <b>head version</b></p> 

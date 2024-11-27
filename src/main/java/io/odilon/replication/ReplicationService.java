@@ -48,12 +48,12 @@ import io.odilon.scheduler.StandByReplicaServiceRequest;
 import io.odilon.service.BaseService;
 import io.odilon.service.ServerSettings;
 import io.odilon.util.Check;
-import io.odilon.vfs.OdilonJournalService;
-import io.odilon.vfs.model.JournalService;
-import io.odilon.vfs.model.LockService;
-import io.odilon.vfs.model.ServerBucket;
-import io.odilon.vfs.model.VFSOperation;
-import io.odilon.vfs.model.VirtualFileSystemService;
+import io.odilon.virtualFileSystem.OdilonJournalService;
+import io.odilon.virtualFileSystem.model.JournalService;
+import io.odilon.virtualFileSystem.model.LockService;
+import io.odilon.virtualFileSystem.model.ServerBucket;
+import io.odilon.virtualFileSystem.model.VFSOperation;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
  * 

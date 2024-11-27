@@ -40,7 +40,7 @@ import io.odilon.log.Logger;
 import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
 import io.odilon.util.DateTimeUtil;
-import io.odilon.vfs.model.Drive;
+import io.odilon.virtualFileSystem.model.Drive;
 
 /**
  * 

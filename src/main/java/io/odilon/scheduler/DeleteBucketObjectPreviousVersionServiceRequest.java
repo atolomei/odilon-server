@@ -38,8 +38,8 @@ import io.odilon.model.SharedConstant;
 import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
 import io.odilon.service.ServerSettings;
-import io.odilon.vfs.model.ServerBucket;
-import io.odilon.vfs.model.VirtualFileSystemService;
+import io.odilon.virtualFileSystem.model.ServerBucket;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
  * 

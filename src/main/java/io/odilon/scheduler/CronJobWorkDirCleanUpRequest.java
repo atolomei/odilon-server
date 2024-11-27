@@ -33,9 +33,9 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import io.odilon.log.Logger;
 import io.odilon.model.SharedConstant;
-import io.odilon.vfs.model.Drive;
-import io.odilon.vfs.model.ServerBucket;
-import io.odilon.vfs.model.VirtualFileSystemService;
+import io.odilon.virtualFileSystem.model.Drive;
+import io.odilon.virtualFileSystem.model.ServerBucket;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 
 /**

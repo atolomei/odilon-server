@@ -17,7 +17,7 @@
 package io.odilon.query;
 
 import io.odilon.service.SystemService;
-import io.odilon.vfs.model.BucketIterator;
+import io.odilon.virtualFileSystem.model.BucketIterator;
 
 
 /**

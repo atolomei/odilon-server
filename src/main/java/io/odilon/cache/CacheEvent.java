@@ -28,7 +28,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.odilon.log.Logger;
 import io.odilon.model.SharedConstant;
 import io.odilon.util.RandomIDGenerator;
-import io.odilon.vfs.model.VFSOperation;
+import io.odilon.virtualFileSystem.model.VFSOperation;
 
 
 /**

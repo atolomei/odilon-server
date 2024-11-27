@@ -50,9 +50,9 @@ import io.odilon.model.list.Item;
 import io.odilon.monitor.SystemInfoService;
 import io.odilon.monitor.SystemMonitorService;
 import io.odilon.util.Check;
-import io.odilon.vfs.model.VirtualFileSystemObject;
-import io.odilon.vfs.model.ServerBucket;
-import io.odilon.vfs.model.VirtualFileSystemService;
+import io.odilon.virtualFileSystem.model.ServerBucket;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemObject;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
  *<p>Implementation of the Object Storage interface</p>

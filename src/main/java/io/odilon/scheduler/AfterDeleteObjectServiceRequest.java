@@ -26,8 +26,8 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.SharedConstant;
-import io.odilon.vfs.model.VFSOp;
-import io.odilon.vfs.model.VirtualFileSystemService;
+import io.odilon.virtualFileSystem.model.VFSOp;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
  * <p>ServiceRequest executed Async after a 

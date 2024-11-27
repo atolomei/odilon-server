@@ -42,7 +42,7 @@ import io.odilon.monitor.SystemMonitorService;
 import io.odilon.service.ObjectStorageService;
 import io.odilon.traffic.TrafficControlService;
 import io.odilon.util.RandomIDGenerator;
-import io.odilon.vfs.model.VirtualFileSystemService;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
  * @author atolomei@novamens.com (Alejandro Tolomei)
