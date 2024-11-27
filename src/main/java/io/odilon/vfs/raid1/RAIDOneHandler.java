@@ -45,7 +45,7 @@ public abstract class RAIDOneHandler implements RAIDHandler {
 	}
 	
 	public VirtualFileSystemService getVFS() {
-		return this.driver.getVFS();
+		return this.driver.getVirtualFileSystemService();
 	}
 	
 	protected abstract void rollbackJournal(VFSOperation op, boolean recoveryMode);

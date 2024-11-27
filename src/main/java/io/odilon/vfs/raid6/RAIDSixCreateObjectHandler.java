@@ -93,12 +93,12 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 				
 					getLockService().getBucketLock(bucket).readLock().lock();
 			
-					if (getDriver().getObjectMetadataReadDrive(bucket, objectName).existsObjectMetadata(bucket.getId(), objectName))											
+					if (getDriver().getObjectMetadataReadDrive(bucket, objectName).existsObjectMetadata(bucket, objectName))											
 						throw new IllegalArgumentException("Object already exist -> " + getDriver().objectInfo(bucket, objectName));
 					
 					int version = 0;
 					
-					op = getJournalService().createObject(bucketId, objectName);
+					op = getJournalService().createObject(bucket, objectName);
 					
 					RAIDSixBlocks ei = saveObjectDataFile(bucketId, objectName, stream);
 					saveObjectMetadata(bucket, objectName, ei, srcFileName, contentType, version, customTags);

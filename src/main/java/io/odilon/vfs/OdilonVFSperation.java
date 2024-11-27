@@ -161,6 +161,11 @@ public class OdilonVFSperation implements VFSOperation {
 	@Override
 	public boolean equals(Object o) {
 		
+		 if (o == this) {
+		     return true;
+		 }
+
+		 
 		if (o instanceof OdilonVFSperation) {
 			String oid =((OdilonVFSperation) o).getId();
 			if (this.id==null) 

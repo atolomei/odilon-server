@@ -243,7 +243,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 				info.setStatus(DriveStatus.ENABLED);
 				info.setOrder(drive.getConfigOrder());
 				drive.setDriveInfo(info);
-				getDriver().getVFS().updateDriveStatus(drive);
+				getDriver().getVirtualFileSystemService().updateDriveStatus(drive);
 				startuplogger.info("drive added -> " + drive.getRootDirPath());
 			}
 		}
@@ -270,7 +270,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 			
 			executor = Executors.newFixedThreadPool(this.maxProcessingThread);
 			
-			for (ServerBucket bucket: getDriver().getVFS().listAllBuckets()) {
+			for (ServerBucket bucket: getDriver().getVirtualFileSystemService().listAllBuckets()) {
 				
 				Integer pageSize = Integer.valueOf(ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE);
 				Long offset = Long.valueOf(0);
@@ -280,7 +280,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 				
 				while (!done) {
 					 
-					DataList<Item<ObjectMetadata>> bucketItems = getDriver().getVFS().listObjects(
+					DataList<Item<ObjectMetadata>> bucketItems = getDriver().getVirtualFileSystemService().listObjects(
 							bucket.getName(), 
 							Optional.of(offset),
 							Optional.ofNullable(pageSize),
@@ -316,7 +316,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 											FileUtils.deleteQuietly(new File (currentDrive.getRootDirPath(), item.getObject().bucketId + File.separator + item.getObject().objectName));
 
 											/** PREVIOUS VERSIONS ----------------------------------------------------- */
-											if (getDriver().getVFS().getServerSettings().isVersionControl()) {
+											if (getDriver().getVirtualFileSystemService().getServerSettings().isVersionControl()) {
 												for (int n=0; n<item.getObject().version; n++) {
 													File m=currentDrive.getObjectMetadataVersionFile(item.getObject().bucketId, item.getObject().objectName, n);
 													if (m.exists()) 
@@ -391,7 +391,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 			
 			executor = Executors.newFixedThreadPool(maxProcessingThread);
 			
-			for (ServerBucket bucket: getDriver().getVFS().listAllBuckets()) {
+			for (ServerBucket bucket: getDriver().getVirtualFileSystemService().listAllBuckets()) {
 				
 				Integer pageSize = Integer.valueOf(ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE);
 				Long offset = Long.valueOf(0);
@@ -400,7 +400,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 				boolean done = false;
 				
 				while (!done) {
-					DataList<Item<ObjectMetadata>> data = getDriver().getVFS().listObjects(
+					DataList<Item<ObjectMetadata>> data = getDriver().getVirtualFileSystemService().listObjects(
 							bucket.getName(), 
 							Optional.of(offset),
 							Optional.ofNullable(pageSize),
@@ -458,7 +458,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 												
 												/** PREVIOUS VERSIONS --------------------------------------------------------- */
 												
-												if (getDriver().getVFS().getServerSettings().isVersionControl()) {
+												if (getDriver().getVirtualFileSystemService().getServerSettings().isVersionControl()) {
 														for (int n=0; n<item.getObject().version; n++) {
 															// move Meta Version
 															File meta_version_n=currentDrive.getObjectMetadataVersionFile(item.getObject().bucketId, item.getObject().objectName, n);
@@ -537,7 +537,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 	 */
 	private void createBuckets() {
 		
-		List<ServerBucket> list = getDriver().getVFS().listAllBuckets();
+		List<ServerBucket> list = getDriver().getVirtualFileSystemService().listAllBuckets();
 		
 		startuplogger.info("3. Creating " + String.valueOf(list.size()) +" Buckets");
 

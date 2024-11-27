@@ -189,9 +189,9 @@ public class OdilonJournalService extends BaseService implements JournalService 
 	 * 
   	 */
 	@Override
-	public VFSOperation createObject(Long bucketId, String objectName) {
+	public VFSOperation createObject(ServerBucket bucket, String objectName) {
 		return createNew(VFSOp.CREATE_OBJECT, 
-						 Optional.of(bucketId),
+						 Optional.of(bucket.getId()),
 						 Optional.empty(),
 						 Optional.ofNullable(objectName), 
 						 Optional.of(Integer.valueOf(0)));
@@ -201,9 +201,9 @@ public class OdilonJournalService extends BaseService implements JournalService 
  	 *
 	 */
 	@Override
-	public VFSOperation updateObject(Long bucketId, String objectName, int version) {
+	public VFSOperation updateObject(ServerBucket bucket, String objectName, int version) {
 		return createNew(VFSOp.UPDATE_OBJECT, 
-						 Optional.of(bucketId),
+						 Optional.of(bucket.getId()),
 						 Optional.empty(),
 						 Optional.ofNullable(objectName), 
 						 Optional.of(Integer.valueOf(version)));
@@ -213,9 +213,9 @@ public class OdilonJournalService extends BaseService implements JournalService 
 	 * 
 	 */
 	@Override
-	public VFSOperation updateObjectMetadata(Long bucketId, String objectName, int version) {
+	public VFSOperation updateObjectMetadata(ServerBucket bucket, String objectName, int version) {
 		return createNew(VFSOp.UPDATE_OBJECT_METADATA, 
-						 Optional.of(bucketId),
+						 Optional.of(bucket.getId()),
 						 Optional.empty(),
 						 Optional.ofNullable(objectName), 
 						 Optional.of(Integer.valueOf(version)));

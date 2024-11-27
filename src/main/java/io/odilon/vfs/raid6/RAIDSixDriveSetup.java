@@ -205,7 +205,7 @@ public class RAIDSixDriveSetup implements IODriveSetup, ApplicationContextAware 
 	
 	private void createBuckets() {
 		
-		List<ServerBucket> list = getDriver().getVFS().listAllBuckets();
+		List<ServerBucket> list = getDriver().getVirtualFileSystemService().listAllBuckets();
 																			
 		startuplogger.info("3. Creating " + String.valueOf(list.size()) +" Buckets");
 		

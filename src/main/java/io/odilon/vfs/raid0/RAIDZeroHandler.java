@@ -19,11 +19,9 @@ package io.odilon.vfs.raid0;
 
 import javax.annotation.concurrent.ThreadSafe;
 
-import io.odilon.model.RedundancyLevel;
+import io.odilon.vfs.BaseRAIDHandler;
 import io.odilon.vfs.RAIDHandler;
 import io.odilon.vfs.model.Drive;
-import io.odilon.vfs.model.JournalService;
-import io.odilon.vfs.model.LockService;
 import io.odilon.vfs.model.ServerBucket;
 import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VirtualFileSystemService;
@@ -35,7 +33,7 @@ import io.odilon.vfs.model.VirtualFileSystemService;
  */
 
 @ThreadSafe
-public abstract class RAIDZeroHandler implements RAIDHandler {
+public abstract class RAIDZeroHandler extends BaseRAIDHandler implements RAIDHandler {
 
 	private final RAIDZeroDriver driver;
 	
@@ -43,35 +41,20 @@ public abstract class RAIDZeroHandler implements RAIDHandler {
 		this.driver=driver;
 	}
 
+	@Override
 	public RAIDZeroDriver getDriver() {
 		return this.driver;
 	}
 	
-	public VirtualFileSystemService getVFS() {
-		return this.driver.getVFS();
+	public VirtualFileSystemService getVirtualFileSystemService() {
+		return getDriver().getVirtualFileSystemService();
+	}
+	
+	public Drive getWriteDrive(ServerBucket bucket, String objectName) {
+		return getDriver().getWriteDrive(bucket, objectName);
 	}
 	
 	protected abstract void rollbackJournal(VFSOperation op, boolean recoveryMode);
 
-	public JournalService getJournalService() {
-		return this.driver.getJournalService();
-	}
-
-	public LockService getLockService() {
-		return this.driver.getLockService();
-	}
-	
-	protected boolean isEncrypt() {
-		return this.driver.isEncrypt();
-	}
-	
-	public RedundancyLevel getRedundancyLevel() {
-		return this.driver.getRedundancyLevel(); 
-	}
-	
-	public Drive getWriteDrive(ServerBucket bucket, String objectName) {
-		return this.driver.getWriteDrive(bucket, objectName);
-	}
-	
 
 }

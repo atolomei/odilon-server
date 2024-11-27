@@ -176,7 +176,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 				if ((meta != null) && meta.isAccesible()) {
 					RAIDSixDecoder decoder = new RAIDSixDecoder(this);
 					return ( 	meta.isEncrypt()) ?
-								getVFS().getEncryptionService().decryptStream(Files.newInputStream(decoder.decodeHead(meta).toPath())) : 
+								getVirtualFileSystemService().getEncryptionService().decryptStream(Files.newInputStream(decoder.decodeHead(meta).toPath())) : 
 								Files.newInputStream(decoder.decodeHead(meta).toPath()
 							);
 				}
@@ -231,7 +231,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 				File file = decoder.decodeVersion(meta);
 				
 				if (meta.isEncrypt())
-					return getVFS().getEncryptionService().decryptStream(Files.newInputStream(file.toPath()));
+					return getVirtualFileSystemService().getEncryptionService().decryptStream(Files.newInputStream(file.toPath()));
 				else
 					return Files.newInputStream(file.toPath());
 			}
@@ -261,7 +261,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullArgument(objectName, "objectName is null");
 
-		OffsetDateTime thresholdDate = OffsetDateTime.now().minusDays(getVFS().getServerSettings().getIntegrityCheckDays());
+		OffsetDateTime thresholdDate = OffsetDateTime.now().minusDays(getVirtualFileSystemService().getServerSettings().getIntegrityCheckDays());
 
 		Drive readDrive = null;
 		ObjectMetadata metadata = null;
@@ -415,8 +415,8 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 			
 			try {
 				
-				if (getVFS().getServerSettings().isStandByEnabled()) {
-					ReplicationService rs = getVFS().getReplicationService();
+				if (getVirtualFileSystemService().getServerSettings().isStandByEnabled()) {
+					ReplicationService rs = getVirtualFileSystemService().getReplicationService();
 					rs.cancel(op);
 				}
 				
@@ -434,7 +434,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 					done=true;
 				}
 				else if (op.getOp()==VFSOp.UPDATE_BUCKET) {
-					restoreBucketMetadata(getVFS().getBucketById(bucketId));
+					restoreBucketMetadata(getVirtualFileSystemService().getBucketById(bucketId));
 					done=true;
 				}
 				else if (op.getOp()==VFSOp.DELETE_BUCKET) {
@@ -464,7 +464,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 					op.cancel();
 				}
 				else {
-					if (getVFS().getServerSettings().isRecoverMode()) {
+					if (getVirtualFileSystemService().getServerSettings().isRecoverMode()) {
 						logger.error("---------------------------------------------------------------");
 						logger.error("Cancelling failed operation -> " + op.toString());
 						logger.error("---------------------------------------------------------------");
@@ -517,7 +517,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		try {
 			getLockService().getBucketLock(bucketId).readLock().lock();
 			try {
-				return getObjectMetadataReadDrive(bucket, objectName).existsObjectMetadata(bucketId, objectName);
+				return getObjectMetadataReadDrive(bucket, objectName).existsObjectMetadata(bucket, objectName);
 			}
 			catch (Exception e) {
 				throw new InternalCriticalException(e, objectInfo(bucket, objectName));
@@ -544,12 +544,12 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		if (exists(bucket, objectName)) {
 			RAIDSixUpdateObjectHandler updateAgent = new RAIDSixUpdateObjectHandler(this);
 			updateAgent.update(bucket, objectName, stream, fileName, contentType, customTags);
-			getVFS().getSystemMonitorService().getUpdateObjectCounter().inc();
+			getVirtualFileSystemService().getSystemMonitorService().getUpdateObjectCounter().inc();
 		}
 		else {
 			RAIDSixCreateObjectHandler createAgent = new RAIDSixCreateObjectHandler(this);
 			createAgent.create(bucket, objectName, stream, fileName, contentType, customTags);
-			getVFS().getSystemMonitorService().getCreateObjectCounter().inc();
+			getVirtualFileSystemService().getSystemMonitorService().getCreateObjectCounter().inc();
 		}
 	}
 
@@ -561,7 +561,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		Check.requireNonNullArgument(meta, "meta is null");
 		RAIDSixUpdateObjectHandler updateAgent = new RAIDSixUpdateObjectHandler(this);
 		updateAgent.updateObjectMetadataHeadVersion(meta);
-		getVFS().getSystemMonitorService().getUpdateObjectCounter().inc();
+		getVirtualFileSystemService().getSystemMonitorService().getUpdateObjectCounter().inc();
 	}
 
 
@@ -598,7 +598,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 				ObjectMetadata meta = getObjectMetadataInternal(bucket, objectName, true);
 				
 				if (meta.status==ObjectStatus.ENABLED || meta.status==ObjectStatus.ARCHIVED) {
-					return new OdilonObject(bucket, objectName, getVFS());
+					return new OdilonObject(bucket, objectName, getVirtualFileSystemService());
 				}
 				
 				/**
@@ -780,7 +780,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:"+ bucketName);
 		
 		Check.requireNonNullArgument(bucketId, "bucketId is null");
-		ServerBucket bucket = getVFS().getBucketById(bucketId);
+		ServerBucket bucket = getVirtualFileSystemService().getBucketById(bucketId);
 		
 		Check.requireNonNullArgument(bucket, "bucket does not exist -> b:" + bucketName);		
 		Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie. " + BucketStatus.ARCHIVED.getName() +" or " + BucketStatus.ENABLED.getName() + ") | b:" + bucketName);
@@ -844,7 +844,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		
 		
 		BucketIterator walker = null;
-		BucketIteratorService walkerService = getVFS().getBucketIteratorService();
+		BucketIteratorService walkerService = getVirtualFileSystemService().getBucketIteratorService();
 		
 		try {
 		
@@ -892,7 +892,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 			
 		} finally {
 			if (walker!=null && (!walker.hasNext()))
-				getVFS().getBucketIteratorService().remove(walker.getAgentId());  /** closes the stream upon removal */
+				getVirtualFileSystemService().getBucketIteratorService().remove(walker.getAgentId());  /** closes the stream upon removal */
 		}
 	}
  	
@@ -971,7 +971,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		 		
 		int totalBlocks = meta.getSha256Blocks().size();
 
-		int totalDisks = getVFS().getServerSettings().getRAID6DataDrives()+getVFS().getServerSettings().getRAID6ParityDrives();
+		int totalDisks = getVirtualFileSystemService().getServerSettings().getRAID6DataDrives()+getVirtualFileSystemService().getServerSettings().getRAID6ParityDrives();
 		Check.checkTrue(totalDisks>0, "total disks must be greater than zero" );
 		
 		int chunks = totalBlocks / totalDisks;
@@ -989,7 +989,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 	
 	
 	protected boolean isConfigurationValid(int dataShards, int parityShards) {
-	  return getVFS().getServerSettings().isRAID6ConfigurationValid(dataShards, parityShards);	
+	  return getVirtualFileSystemService().getServerSettings().isRAID6ConfigurationValid(dataShards, parityShards);	
 	}
 	
 	/**
@@ -1007,7 +1007,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		
 		int totalBlocks = meta.getSha256Blocks().size();
 
-		int totalDisks = getVFS().getServerSettings().getRAID6DataDrives()+getVFS().getServerSettings().getRAID6ParityDrives();
+		int totalDisks = getVirtualFileSystemService().getServerSettings().getRAID6DataDrives()+getVirtualFileSystemService().getServerSettings().getRAID6ParityDrives();
 		Check.checkTrue(totalDisks>0, "total disks must be greater than zero");
 		
 		int chunks = totalBlocks / totalDisks;

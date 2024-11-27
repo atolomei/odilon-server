@@ -98,20 +98,20 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 		boolean done = false;
 		boolean isMainException = false;
 		
-		getLockService().getObjectLock(bucket_id, objectName).writeLock().lock();
+		getLockService().getObjectLock(bucket, objectName).writeLock().lock();
 		
 		try  {
 		
-			getLockService().getBucketLock(bucket_id).readLock().lock();
+			getLockService().getBucketLock(bucket).readLock().lock();
 			
 			try (stream) {
 				
-					if (getDriver().getReadDrive(bucket, objectName).existsObjectMetadata(bucket_id, objectName))											
+					if (getDriver().getReadDrive(bucket, objectName).existsObjectMetadata(bucket, objectName))											
 						throw new IllegalArgumentException("object already exist -> b:" + getDriver().objectInfo(bucket, objectName));
 					
 					int version = 0;
 					
-					op = getJournalService().createObject(bucket.getId(), objectName);
+					op = getJournalService().createObject(bucket, objectName);
 					
 					saveObjectDataFile(bucket.getId(), objectName, stream, srcFileName);
 					saveObjectMetadata(bucket.getId(), objectName, srcFileName, contentType, version, customTags);
@@ -136,11 +136,11 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 								}
 						}
 						finally {
-							getLockService().getBucketLock(bucket_id).readLock().unlock();
+							getLockService().getBucketLock(bucket).readLock().unlock();
 						}
 				}
 		} finally {
-			getLockService().getObjectLock(bucket_id, objectName).writeLock().unlock();
+			getLockService().getObjectLock(bucket, objectName).writeLock().unlock();
 		}
 	}
 

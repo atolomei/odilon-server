@@ -187,7 +187,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 			
 				try {
 				
-					if (!getDriver().getObjectMetadataReadDrive(bucket, objectName).existsObjectMetadata(bucketId, objectName))
+					if (!getDriver().getObjectMetadataReadDrive(bucket, objectName).existsObjectMetadata(headMeta))
 						throw new OdilonObjectNotFoundException("object does not exist -> " + getDriver().objectInfo(bucketId, objectName));
 					
 					headVersion = headMeta.version;
@@ -317,7 +317,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 		
 		boolean done = false;
 	 
-		ServerBucket bucket = getDriver().getVFS().getBucketById(op.getBucketId());
+		ServerBucket bucket = getDriver().getVirtualFileSystemService().getBucketById(op.getBucketId());
 		
 		try {
 

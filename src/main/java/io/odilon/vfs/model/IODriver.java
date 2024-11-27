@@ -24,6 +24,7 @@ import java.util.Optional;
 
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.OdilonServerInfo;
+import io.odilon.model.RedundancyLevel;
 import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
 import io.odilon.scheduler.ServiceRequest;
@@ -77,7 +78,10 @@ public interface IODriver {
 	public void removeJournal(String id);
 	public void rollbackJournal(VFSOperation op, boolean recoveryMode);
 	public List<VFSOperation> getJournalPending(JournalService journalService);
+	public JournalService getJournalService();
+	
 
+	
 	/** 
 	 * Scheduler
 	 */
@@ -96,6 +100,9 @@ public interface IODriver {
 	 */
 	public OdilonServerInfo getServerInfo();
 	public void setServerInfo(OdilonServerInfo serverInfo);
+	public boolean isEncrypt();
+	public RedundancyLevel getRedundancyLevel();
+	
 	
 	
 	/**
@@ -108,7 +115,7 @@ public interface IODriver {
 	
 	
 	public LockService getLockService();
-	public VirtualFileSystemService getVFS();
+	public VirtualFileSystemService getVirtualFileSystemService();
 	public List<Drive> getDrivesEnabled();
 	public List<ServiceRequest> getSchedulerPendingRequests(String queueId);
 	
@@ -135,7 +142,10 @@ public interface IODriver {
 
 	
 	
-	
+	/**
+	 * ERROR 
+	 */
+	public String objectInfo(ServerBucket bucket);
 	
 	
  

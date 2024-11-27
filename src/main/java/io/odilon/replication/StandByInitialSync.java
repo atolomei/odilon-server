@@ -115,7 +115,7 @@ public class StandByInitialSync implements Runnable {
 	public StandByInitialSync(IODriver driver) {
 		this.driver=driver;
 		this.vfsLockService = this.driver.getLockService();
-		this.vfs=this.driver.getVFS();
+		this.vfs=this.driver.getVirtualFileSystemService();
 		this.replicationService=this.vfs.getReplicationService(); 
 	}	
 	
@@ -161,7 +161,7 @@ public class StandByInitialSync implements Runnable {
 		
 		this.start_ms = System.currentTimeMillis();
 		
-		OdilonServerInfo info = getDriver().getVFS().getOdilonServerInfo();
+		OdilonServerInfo info = getDriver().getVirtualFileSystemService().getOdilonServerInfo();
 		
 		if (info==null)
 			return;
@@ -190,7 +190,7 @@ public class StandByInitialSync implements Runnable {
 			
 			executor = Executors.newFixedThreadPool(maxProcessingThread);
 			
-			List<ServerBucket> buckets = this.driver.getVFS().listAllBuckets();
+			List<ServerBucket> buckets = this.driver.getVirtualFileSystemService().listAllBuckets();
 			boolean completed = buckets.isEmpty();
 			
 			for (ServerBucket bucket: buckets) {
@@ -203,7 +203,7 @@ public class StandByInitialSync implements Runnable {
 				
 				while ((!done) && (this.errors.get()<=10)) {
 					 
-					DataList<Item<ObjectMetadata>> data = this.driver.getVFS().listObjects(
+					DataList<Item<ObjectMetadata>> data = this.driver.getVirtualFileSystemService().listObjects(
 							bucket.getName(), 
 							Optional.of(offset),
 							Optional.ofNullable(pageSize),
@@ -245,14 +245,14 @@ public class StandByInitialSync implements Runnable {
 														
 														logger.debug(item.getObject().bucketId.toString()+"-"+item.getObject().objectName);
 														
-														VFSOperation op = new OdilonVFSperation(	getDriver().getVFS().getJournalService().newOperationId(), 
+														VFSOperation op = new OdilonVFSperation(	getDriver().getVirtualFileSystemService().getJournalService().newOperationId(), 
 																									VFSOp.CREATE_OBJECT,  
 																									Optional.of(item.getObject().bucketId),
-																									Optional.of(getDriver().getVFS().getBucketById(item.getObject().bucketId).getName()),
+																									Optional.of(getDriver().getVirtualFileSystemService().getBucketById(item.getObject().bucketId).getName()),
 																									Optional.of(item.getObject().objectName),
 																									Optional.of(Integer.valueOf(item.getObject().version)),
-																									getDriver().getVFS().getRedundancyLevel(), 
-																									getDriver().getVFS().getJournalService()
+																									getDriver().getVirtualFileSystemService().getRedundancyLevel(), 
+																									getDriver().getVirtualFileSystemService().getJournalService()
 																								);
 															
 															getReplicationService().replicate(op);

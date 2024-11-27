@@ -104,7 +104,12 @@ public interface Drive {
 	public List<DriveBucket> 	getBuckets();
 	public void 				markAsDeletedBucket(Long bucketId);
 	public void 				markAsEnabledBucket(Long bucketId);
-	public boolean 				isEmpty(Long bucketId); 												
+	
+	
+	
+	public boolean 				isEmpty(ServerBucket bucket);
+	//public boolean 				isEmpty(Long bucketId);
+	
 	public String 				getBucketMetadataDirPath(Long bucketId);
 	public String 				getBucketObjectDataDirPath(Long bucketId);
 	
@@ -112,7 +117,13 @@ public interface Drive {
 	/** ----------------------
 	 *  ObjectMetadata (head)
 		----------------------*/
-    public boolean existsObjectMetadata		(Long bucketId, String objectName);
+    //public boolean existsObjectMetadata		(Long bucketId, String objectName);
+	
+	public boolean existsObjectMetadata		(ServerBucket bucket, String objectName);
+	public boolean existsObjectMetadata		(ObjectMetadata meta);
+	
+	
+	
     public void markAsDeletedObject			(Long bucketId, String objectName);
     public String getObjectMetadataDirPath	(Long bucketId, String objectName); 
     public ObjectMetadata getObjectMetadata	(Long bucketId, String objectName);

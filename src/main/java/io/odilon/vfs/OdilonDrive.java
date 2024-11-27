@@ -63,6 +63,7 @@ import io.odilon.util.Check;
 import io.odilon.vfs.model.Drive;
 import io.odilon.vfs.model.DriveBucket;
 import io.odilon.vfs.model.DriveStatus;
+import io.odilon.vfs.model.ServerBucket;
 import io.odilon.vfs.model.VFSOperation;
 import io.odilon.vfs.model.VirtualFileSystemService;
 
@@ -281,19 +282,29 @@ public class OdilonDrive extends BaseObject implements Drive {
 		return new File(this.getBucketMetadataDirPath(bucketId)).exists();
 	}
 
+	
+	@Override
+	public boolean existsObjectMetadata(ObjectMetadata meta) {
+		Check.requireNonNullArgument(meta, "meta is null");
+		File objectMetadataDir = new File(this.getObjectMetadataDirPath(meta.getBucketId(), meta.getObjectName()));
+		if (!objectMetadataDir.exists())
+			return false;
+		return (getObjectMetadata(meta.getBucketId(), meta.getObjectName()).status != ObjectStatus.DELETED);
+	}
+	
 	/**
 	 * <p>Checks whether the File exists, regardless of the status of the object
 	 * It is on the upper layers to return false if the object owner of this file 
 	 * is in state DELETED</p>
 	 * */
 	@Override
-	public boolean existsObjectMetadata(Long bucketId, String objectName) {
-		Check.requireNonNullArgument(bucketId, "bucketId is null");
-		Check.requireNonNullStringArgument(objectName, "objectName can not be null -> b:" + bucketId.toString());
-		File objectMetadataDir = new File(this.getObjectMetadataDirPath(bucketId, objectName));
+	public boolean existsObjectMetadata(ServerBucket bucket, String objectName) {
+		Check.requireNonNullArgument(bucket, "bucket is null");
+		Check.requireNonNullStringArgument(objectName, "objectName can not be null -> b:" + bucket.getName());
+		File objectMetadataDir = new File(this.getObjectMetadataDirPath(bucket.getId(), objectName));
 		if (!objectMetadataDir.exists())
 			return false;
-		return (getObjectMetadata(bucketId, objectName).status != ObjectStatus.DELETED);
+		return (getObjectMetadata(bucket.getId(), objectName).status != ObjectStatus.DELETED);
 	 }
 
 	
@@ -653,7 +664,12 @@ public class OdilonDrive extends BaseObject implements Drive {
 
 	
 	@Override
-	public boolean isEmpty(Long bucketId) {
+	public boolean isEmpty(ServerBucket bucket) {
+		Check.requireNonNullArgument(bucket, "bucket is null");
+		return isEmpty(bucket.getId());
+	}
+	
+	private boolean isEmpty(Long bucketId) {
 		Check.requireNonNullArgument(bucketId, "bucketId is null");
 		File file = new File(this.getBucketMetadataDirPath(bucketId));
 		Path path = file.toPath();
@@ -685,6 +701,10 @@ public class OdilonDrive extends BaseObject implements Drive {
 	@Override
 	public boolean equals(Object o) {
 
+		 if (o == this) {
+		     return true;
+		 }
+		  
 		if (!(o instanceof Drive))
 			return false;
 		
@@ -710,7 +730,7 @@ public class OdilonDrive extends BaseObject implements Drive {
 	 * @throws IOException
 	 */
 	protected void transferTo(InputStream stream, String destFileName) throws IOException {
- 		byte[] buf = new byte[ ServerConstant.BUFFER_SIZE ];
+ 		byte[] buf = new byte[ServerConstant.BUFFER_SIZE ];
  		int bytesRead;
 		BufferedOutputStream out = null;
 		try {

@@ -152,7 +152,7 @@ public class RAIDSixDriveSync implements Runnable {
 		} catch (InterruptedException e) {
 		}
 		
-		while (getDriver().getVFS().getStatus()!=ServiceStatus.RUNNING) {
+		while (getDriver().getVirtualFileSystemService().getStatus()!=ServiceStatus.RUNNING) {
 			startuplogger.info("waiting for "+ VirtualFileSystemService.class.getSimpleName() + " to startup (" + String.valueOf(Double.valueOf(System.currentTimeMillis() - start) / Double.valueOf(1000.0)) + " secs)");
 
 			try {
@@ -211,7 +211,7 @@ public class RAIDSixDriveSync implements Runnable {
 		});
 		
 							
-		this.dateConnected = getDriver().getVFS().getMapDrivesAll().values().
+		this.dateConnected = getDriver().getVirtualFileSystemService().getMapDrivesAll().values().
 				stream().
 				filter(d -> d.getDriveInfo().getStatus()==DriveStatus.NOTSYNC).
 				map(v -> v.getDriveInfo().getDateConnected()).
@@ -228,7 +228,7 @@ public class RAIDSixDriveSync implements Runnable {
 			
 			executor = Executors.newFixedThreadPool(maxProcessingThread);
 			
-			for (ServerBucket bucket: this.driver.getVFS().listAllBuckets()) {
+			for (ServerBucket bucket: this.driver.getVirtualFileSystemService().listAllBuckets()) {
 				
 				Integer pageSize = Integer.valueOf(ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE);
 				Long offset = Long.valueOf(0);
@@ -238,7 +238,7 @@ public class RAIDSixDriveSync implements Runnable {
 				
 				while (!done) {
 					
-					DataList<Item<ObjectMetadata>> data = getDriver().getVFS().listObjects(	bucket.getName(),Optional.of(offset),Optional.ofNullable(pageSize),Optional.empty(),Optional.ofNullable(agentId)); 
+					DataList<Item<ObjectMetadata>> data = getDriver().getVirtualFileSystemService().listObjects(	bucket.getName(),Optional.of(offset),Optional.ofNullable(pageSize),Optional.empty(),Optional.ofNullable(agentId)); 
 					
 					if (agentId==null)
 						agentId = data.getAgentId();
@@ -330,7 +330,7 @@ public class RAIDSixDriveSync implements Runnable {
 				info.setStatus(DriveStatus.ENABLED);
 				info.setOrder(drive.getConfigOrder());
 				drive.setDriveInfo(info);
-				getDriver().getVFS().updateDriveStatus(drive);
+				getDriver().getVirtualFileSystemService().updateDriveStatus(drive);
 				startuplogger.debug("Drive synced -> " + drive.toString());
 			}
 		}

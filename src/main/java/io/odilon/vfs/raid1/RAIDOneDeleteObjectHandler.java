@@ -71,9 +71,8 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 	protected void delete(ServerBucket bucket, String objectName) {
 		
 		Check.requireNonNullArgument(bucket, "bucket is null");
-		
-		
 		Check.requireNonNullArgument(bucket.getId(), "bucketId is null");
+		
 		Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 		
 		if (!getDriver().exists(bucket, objectName))
@@ -84,7 +83,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 		int headVersion = -1;
 		ObjectMetadata meta = null;
 
-		getLockService().getObjectLock(bucket.getId(), objectName).writeLock().lock();
+		getLockService().getObjectLock(bucket, objectName).writeLock().lock();
 		
 		try {
 				
@@ -142,7 +141,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 				}
 			}
 		} finally{
-			getLockService().getObjectLock(bucket.getId(), objectName).writeLock().unlock();
+			getLockService().getObjectLock(bucket, objectName).writeLock().unlock();
 		}
 			
 			if(done) 
@@ -203,17 +202,17 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 		int headVersion = -1;
 		String objectName =  meta.objectName;
 		
-		getLockService().getObjectLock(meta.bucketId, objectName).writeLock().lock();
+		getLockService().getObjectLock(meta.getBucketId(), objectName).writeLock().lock();
 		
 		try {
 		
-			getLockService().getBucketLock(meta.bucketId).readLock().lock();
+			getLockService().getBucketLock(meta.getBucketId()).readLock().lock();
 
 			try {
 				
-					ServerBucket bucket = getDriver().getVFS().getBucketById(meta.bucketId);
+					ServerBucket bucket = getDriver().getVirtualFileSystemService().getBucketById(meta.bucketId);
 				
-					if (!getDriver().getReadDrive(bucket, objectName).existsObjectMetadata(meta.bucketId, objectName))
+					if (!getDriver().getReadDrive(bucket, objectName).existsObjectMetadata(meta))
 						throw new IllegalArgumentException("object does not exist -> b:" + meta.bucketId.toString() + " o:" + objectName);
 		
 					headVersion = meta.version;
@@ -266,12 +265,12 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 						}
 					}
 					finally {
-						getLockService().getBucketLock(meta.bucketId).readLock().unlock();
+						getLockService().getBucketLock(meta.getBucketId()).readLock().unlock();
 
 					}
 				}
 		} finally {
-			getLockService().getObjectLock(meta.bucketId,meta.objectName).writeLock().unlock();			
+			getLockService().getObjectLock(meta.getBucketId(), meta.objectName).writeLock().unlock();			
 		}
 
 		if(done)
@@ -287,8 +286,6 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 			
 		String objectName = op.getObjectName();
 		Long bucketId = op.getBucketId();
-		
-		//String bucketName = op.getBucketName();
 		
 		Check.requireNonNullArgument(bucketId, "bucketId is null");
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketId.toString());
@@ -446,8 +443,9 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 	}
 
 	/**
-	 * <p>This method is called after the TRX commit. It is used to clean temp files, if the system crashes those
-	 * temp files will be removed on system startup</p>
+	 * <p>This method is called after the TRX commit. 
+	 * It is used to clean temp files, if the system crashes 
+	 * those temp files will be removed on system startup</p>
 	 * 
 	 */
 	private void onAfterCommit(VFSOperation op, ObjectMetadata meta, int headVersion) {

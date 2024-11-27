@@ -89,7 +89,7 @@ public class RAIDSixDecoder extends BaseObject {
 	}
 	
 	public VirtualFileSystemService getVFS() {
-		return this.driver.getVFS();
+		return this.driver.getVirtualFileSystemService();
 	}
 	
     
@@ -108,10 +108,10 @@ public class RAIDSixDecoder extends BaseObject {
 	    	File file = getVFS().getFileCacheService().get(bucketId , objectName, ver); 
 
 	    	if (file!=null) {
-	    		getDriver().getVFS().getSystemMonitorService().getCacheFileHitCounter().inc();
+	    		getDriver().getVirtualFileSystemService().getSystemMonitorService().getCacheFileHitCounter().inc();
 	    		return file;
 	    	}
-	    	getDriver().getVFS().getSystemMonitorService().getCacheFileMissCounter().inc();
+	    	getDriver().getVirtualFileSystemService().getSystemMonitorService().getCacheFileMissCounter().inc();
 	    	
 	    	
 	    	getVFS().getFileCacheService().getLockService().getFileCacheLock(bucketId , objectName, ver).writeLock().lock();
@@ -222,7 +222,7 @@ public class RAIDSixDecoder extends BaseObject {
     }
     
     private final Map<Integer, Drive> getMapDrivesRSDecode() {
-    	return getDriver().getVFS().getMapDrivesRSDecode();
+    	return getDriver().getVirtualFileSystemService().getMapDrivesRSDecode();
     }
 
 

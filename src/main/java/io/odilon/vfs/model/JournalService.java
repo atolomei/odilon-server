@@ -57,10 +57,10 @@ public interface JournalService extends SystemService {
 	/** -----------------
 	 * OJBECT
 	 * ------------------*/		
-	public VFSOperation createObject(Long bucketId, String objectName);
-	public VFSOperation updateObject(Long bucketId, String objectName, int version);
+	public VFSOperation createObject(ServerBucket bucket, String objectName);
+	public VFSOperation updateObject(ServerBucket bucket, String objectName, int version);
 	
-	public VFSOperation updateObjectMetadata(Long bucketId, String objectName, int version);
+	public VFSOperation updateObjectMetadata(ServerBucket bucket, String objectName, int version);
 
 	/** Version control */
 	public VFSOperation restoreObjectPreviousVersion(Long bucketId, String objectName, int versionToRestore);

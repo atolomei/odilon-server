@@ -51,7 +51,7 @@ public abstract class RAIDSixHandler implements RAIDHandler {
 	}
 	
 	public VirtualFileSystemService getVFS() {
-		return this.driver.getVFS();
+		return this.driver.getVirtualFileSystemService();
 	}
 	
 	public JournalService getJournalService() {

@@ -126,7 +126,7 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 				
 				/** PREVIOUS VERSIONS ---------------------------------------------------- */ 
 				
-				if (getDriver().getVFS().getServerSettings().isVersionControl()) {
+				if (getDriver().getVirtualFileSystemService().getServerSettings().isVersionControl()) {
 					
 					for (int version=0; version < meta.version; version++) {
 						

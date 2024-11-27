@@ -73,7 +73,7 @@ public class RAIDSixEncoder {
 	}
 
 	public VirtualFileSystemService getVFS() {
-		return this.driver.getVFS();
+		return this.driver.getVirtualFileSystemService();
 	}
 
 	

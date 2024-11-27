@@ -108,13 +108,13 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 			
 				try {
 							
-					if (!getDriver().getReadDrive(bucket, objectName).existsObjectMetadata(bucket.getId(), objectName))
+					if (!getDriver().getReadDrive(bucket, objectName).existsObjectMetadata(bucket, objectName))
 						throw new IllegalArgumentException("object does not exist -> b:" +bucket.getId()+ " o:"+(Optional.ofNullable(objectName).isPresent() ? (objectName) :"null"));
 					
 					ObjectMetadata meta = getDriver().getObjectMetadataInternal(bucket, objectName, false);
 					beforeHeadVersion = meta.version;							
 					
-					op = getJournalService().updateObject(bucket.getId(), objectName, beforeHeadVersion);
+					op = getJournalService().updateObject(bucket, objectName, beforeHeadVersion);
 					
 					/** backup current head version */
 					saveVersionObjectDataFile(bucket, objectName,  meta.version);
@@ -295,7 +295,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 			
 			try {
 			
-				op = getJournalService().updateObjectMetadata(bucket.getId(), meta.objectName, meta.version);
+				op = getJournalService().updateObjectMetadata(bucket, meta.objectName, meta.version);
 				
 				backupMetadata(meta);
 				saveObjectMetadata(meta);

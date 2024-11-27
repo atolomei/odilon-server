@@ -86,7 +86,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 		Check.requireNonNullArgument(stream, "stream is null");
 
 		String bucketName = bucket.getName();
-		Long bucketId = bucket.getId();
+		
 				
 		VFSOperation op = null;
 		boolean done = false;
@@ -104,13 +104,13 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 			
 				try (stream) {
 		
-					if (!getDriver().getObjectMetadataReadDrive(bucket, objectName).existsObjectMetadata(bucketId, objectName))
+					if (!getDriver().getObjectMetadataReadDrive(bucket, objectName).existsObjectMetadata(bucket, objectName))
 						throw new IllegalArgumentException(" object not found -> " + getDriver().objectInfo(bucket, objectName));
 					
 					meta = getDriver().getObjectMetadataInternal(bucket, objectName, false);
 					beforeHeadVersion = meta.getVersion();							
 																
-					op = getJournalService().updateObject(bucketId, objectName, beforeHeadVersion);
+					op = getJournalService().updateObject(bucket, objectName, beforeHeadVersion);
 					
 					/** backup current head version */
 					backupVersionObjectDataFile(meta, meta.version);
@@ -178,12 +178,15 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 		
 		boolean done = false;
 		
+		ServerBucket bucket = getVFS().getBucketById(meta.getBucketId());
+		
+				
 		getLockService().getObjectLock(meta.getBucketId(), meta.getObjectName()).writeLock().lock();		
 		try {
 				getLockService().getBucketLock(meta.getBucketId()).readLock().lock();
 				try {
 					
-					op = getJournalService().updateObjectMetadata(meta.bucketId, meta.objectName, meta.version);
+					op = getJournalService().updateObjectMetadata(bucket, meta.objectName, meta.version);
 			
 					backupMetadata(meta);
 					saveObjectMetadata(meta, isHead);
