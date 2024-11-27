@@ -139,34 +139,23 @@ public abstract class SchedulerWorker implements Runnable {
 
     @Override
     public void run() {
-
         rest(_STARTUP_SIESTA_MILSECS);
-
         this.running = new AtomicBoolean(true);
-
         while (isRunning()) {
-
             try {
-
                 doJobs();
-
                 if (isFullCapacity())
                     restFullCapacity();
-
                 if (!isWork())
                     restNoWork();
-
             } catch (Throwable e) {
                 processError(e);
             }
         }
 
         rest(_STARTUP_SIESTA_MILSECS);
-
         logger.error("ending main loop");
-
         this.running = new AtomicBoolean(false);
-
     }
 
     public void stop() {
