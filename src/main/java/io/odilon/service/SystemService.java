@@ -19,13 +19,15 @@ package io.odilon.service;
 import io.odilon.model.ServiceStatus;
 
 /**
- * <p>Odilon System Services. There is only one instance of each one</p>
+ * <p>
+ * Odilon System Services. There is only one instance of each one
+ * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  * 
  */
 public interface SystemService extends OdilonService {
-	
-	public ServiceStatus getStatus();
+
+    public ServiceStatus getStatus();
 
 }

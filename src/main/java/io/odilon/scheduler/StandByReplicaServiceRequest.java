@@ -16,7 +16,6 @@
  */
 package io.odilon.scheduler;
 
-
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
@@ -31,8 +30,11 @@ import io.odilon.virtualFileSystem.OdilonVFSperation;
 import io.odilon.virtualFileSystem.model.VFSOperation;
 
 /**
- * <p>tServiceRequest must be {@link Serializable}<br/> 
- * It is executed by a Thread ({@link ServiceRequestExecutor}) of the Scheduler thread pool</p>
+ * <p>
+ * tServiceRequest must be {@link Serializable}<br/>
+ * It is executed by a Thread ({@link ServiceRequestExecutor}) of the Scheduler
+ * thread pool
+ * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
@@ -41,66 +43,66 @@ import io.odilon.virtualFileSystem.model.VFSOperation;
 @Scope("prototype")
 @JsonTypeName("standByReplica")
 public class StandByReplicaServiceRequest extends AbstractServiceRequest {
-				
-	static private Logger logger = Logger.getLogger(StandByReplicaServiceRequest.class.getName());
-	
-	private static final long serialVersionUID = 1L;
-	
-	@JsonIgnore
-	private boolean isSuccess = false;
-	
-	@JsonProperty("operation")
-	private OdilonVFSperation operation;
-	
-	protected StandByReplicaServiceRequest() {
-	}
 
-	
-	public StandByReplicaServiceRequest(VFSOperation operation) {
-		this.operation = (OdilonVFSperation) operation;
-	}
-	
-	/**
-	 *  <p>{@link ServiceRequestExecutor} will close/fail/cancel 
-	 *  he request after this method</p>
-	 */
-	@Override
-	public void execute() {
+    static private Logger logger = Logger.getLogger(StandByReplicaServiceRequest.class.getName());
 
-		try {
-			setStatus(ServiceRequestStatus.RUNNING);
-			ReplicationService rs = getApplicationContext().getBean(ReplicationService.class);
-			if (rs.isStandByEnabled()) {
-				rs.replicate(getVFSOperation());
-				 isSuccess = true;
-			}
-			else
-				 isSuccess=true;
-			setStatus(ServiceRequestStatus.COMPLETED);
-			
-		} catch (Exception e) {
-			 isSuccess=false;
-			 logger.error(e, SharedConstant.NOT_THROWN);
-		}
-	}
+    private static final long serialVersionUID = 1L;
 
-	@Override
-	public void stop() {
-		 this.isSuccess=true;
-	}
+    @JsonIgnore
+    private boolean isSuccess = false;
 
-	@Override
-	public String getUUID() {
-		return  getVFSOperation().getUUID();
-	}
-	
-	public VFSOperation getVFSOperation() {
-		return operation;
-	}
-	
-	@Override
-	public boolean isSuccess() {
-		return isSuccess;
-	}
+    @JsonProperty("operation")
+    private OdilonVFSperation operation;
+
+    protected StandByReplicaServiceRequest() {
+    }
+
+    public StandByReplicaServiceRequest(VFSOperation operation) {
+        this.operation = (OdilonVFSperation) operation;
+    }
+
+    /**
+     * <p>
+     * {@link ServiceRequestExecutor} will close/fail/cancel he request after this
+     * method
+     * </p>
+     */
+    @Override
+    public void execute() {
+
+        try {
+            setStatus(ServiceRequestStatus.RUNNING);
+            ReplicationService rs = getApplicationContext().getBean(ReplicationService.class);
+            if (rs.isStandByEnabled()) {
+                rs.replicate(getVFSOperation());
+                isSuccess = true;
+            } else
+                isSuccess = true;
+            setStatus(ServiceRequestStatus.COMPLETED);
+
+        } catch (Exception e) {
+            isSuccess = false;
+            logger.error(e, SharedConstant.NOT_THROWN);
+        }
+    }
+
+    @Override
+    public void stop() {
+        this.isSuccess = true;
+    }
+
+    @Override
+    public String getUUID() {
+        return getVFSOperation().getUUID();
+    }
+
+    public VFSOperation getVFSOperation() {
+        return operation;
+    }
+
+    @Override
+    public boolean isSuccess() {
+        return isSuccess;
+    }
 
 }

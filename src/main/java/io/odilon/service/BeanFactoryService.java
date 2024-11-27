@@ -28,43 +28,41 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.odilon.log.Logger;
 import io.odilon.model.ServiceStatus;
 
-
 /**
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @Service
-public class BeanFactoryService extends BaseService implements SystemService, ApplicationContextAware  {
-			
-	static private Logger startuplogger = Logger.getLogger("StartupLogger");
-	
-	@SuppressWarnings("unused")
-	static private Logger logger = Logger.getLogger(BeanFactoryService.class.getName());
-	
-	@JsonIgnore
-	private ApplicationContext applicationContext;
-	
-	@PostConstruct
-	public void onInitialize() {
-		
-			setStatus(ServiceStatus.STARTING);
-			startuplogger.debug("Started -> " +  ObjectStorageService.class.getSimpleName());
-			setStatus(ServiceStatus.RUNNING);
-		
-	}
-		
-	public <T extends Object> T create(Class<T> claz) {
-		applicationContext.getBean(claz);
-		return applicationContext.getBean(claz);
-	}
-	
-	public ApplicationContext getApplicationContext()  {
-		return applicationContext;
-	}
-	
-	@Override
-	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-        this.applicationContext = applicationContext;
-	}
-}
+public class BeanFactoryService extends BaseService implements SystemService, ApplicationContextAware {
 
+    static private Logger startuplogger = Logger.getLogger("StartupLogger");
+
+    @SuppressWarnings("unused")
+    static private Logger logger = Logger.getLogger(BeanFactoryService.class.getName());
+
+    @JsonIgnore
+    private ApplicationContext applicationContext;
+
+    @PostConstruct
+    public void onInitialize() {
+
+        setStatus(ServiceStatus.STARTING);
+        startuplogger.debug("Started -> " + ObjectStorageService.class.getSimpleName());
+        setStatus(ServiceStatus.RUNNING);
+
+    }
+
+    public <T extends Object> T create(Class<T> claz) {
+        applicationContext.getBean(claz);
+        return applicationContext.getBean(claz);
+    }
+
+    public ApplicationContext getApplicationContext() {
+        return applicationContext;
+    }
+
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        this.applicationContext = applicationContext;
+    }
+}

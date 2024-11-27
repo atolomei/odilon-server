@@ -28,21 +28,18 @@ import com.fasterxml.jackson.databind.ser.std.StdSerializer;
  */
 public class CronExpressionSerializer extends StdSerializer<CronExpressionJ8> {
 
-	private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;
 
-	protected CronExpressionSerializer() {
-		     super(CronExpressionJ8.class);
-	}
-		   
-	@Override
-	public void serialize(CronExpressionJ8 value, JsonGenerator gen,
-		                         SerializerProvider serializers) throws IOException {
+    protected CronExpressionSerializer() {
+        super(CronExpressionJ8.class);
+    }
 
-	   gen.writeStartObject();
-	   gen.writeStringField("expr", value.getExpression());
-	   gen.writeEndObject();
-	}
+    @Override
+    public void serialize(CronExpressionJ8 value, JsonGenerator gen, SerializerProvider serializers)
+            throws IOException {
+
+        gen.writeStartObject();
+        gen.writeStringField("expr", value.getExpression());
+        gen.writeEndObject();
+    }
 }
-
-
-

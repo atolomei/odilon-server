@@ -16,7 +16,6 @@
  */
 package io.odilon.scheduler;
 
-
 import java.io.Serializable;
 import java.time.OffsetDateTime;
 import java.util.Map;
@@ -42,245 +41,245 @@ import io.odilon.model.SharedConstant;
 
 @Component
 @Scope("prototype")
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, 
-include = As.PROPERTY, property = "type") @JsonSubTypes({
-@JsonSubTypes.Type(value = CronJobDataIntegrityCheckRequest.class, name = "dataIntegrity"),
-@JsonSubTypes.Type(value = PingCronJobRequest.class, name = "ping"),
-@JsonSubTypes.Type(value = CronJobWorkDirCleanUpRequest.class, name = "workDirCleanUp"),
-@JsonSubTypes.Type(value = StandByReplicaServiceRequest.class, name = "standByReplica"),
-@JsonSubTypes.Type(value = AfterUpdateObjectServiceRequest.class, name = "afterUpdateObject"),
-@JsonSubTypes.Type(value = AfterDeleteObjectServiceRequest.class, name = "afterDeleteObject"),
-@JsonSubTypes.Type(value = AfterDeleteObjectServiceRequest.class, name = "deleteBucketObjectPreviousVersion"),
-@JsonSubTypes.Type(value = TestServiceRequest.class, name = "test")
-})
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = As.PROPERTY, property = "type")
+@JsonSubTypes({ @JsonSubTypes.Type(value = CronJobDataIntegrityCheckRequest.class, name = "dataIntegrity"),
+        @JsonSubTypes.Type(value = PingCronJobRequest.class, name = "ping"),
+        @JsonSubTypes.Type(value = CronJobWorkDirCleanUpRequest.class, name = "workDirCleanUp"),
+        @JsonSubTypes.Type(value = StandByReplicaServiceRequest.class, name = "standByReplica"),
+        @JsonSubTypes.Type(value = AfterUpdateObjectServiceRequest.class, name = "afterUpdateObject"),
+        @JsonSubTypes.Type(value = AfterDeleteObjectServiceRequest.class, name = "afterDeleteObject"),
+        @JsonSubTypes.Type(value = AfterDeleteObjectServiceRequest.class, name = "deleteBucketObjectPreviousVersion"),
+        @JsonSubTypes.Type(value = TestServiceRequest.class, name = "test") })
 
 /**
- * <p>Base class of {@link ServiceRequest} executed async by the {@link SchedulerService}.
- * The {@link SchedulerService} has a persistent {@link Queue} in disk, for this reason 
- * all subclasses must be {@link Serializable}</p>
+ * <p>
+ * Base class of {@link ServiceRequest} executed async by the
+ * {@link SchedulerService}. The {@link SchedulerService} has a persistent
+ * {@link Queue} in disk, for this reason all subclasses must be
+ * {@link Serializable}
+ * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public abstract class AbstractServiceRequest implements ServiceRequest {
-					
-	static private Logger logger =	Logger.getLogger(AbstractServiceRequest.class.getName());
-	
-	private static final long serialVersionUID = 1L;
-	
-	@JsonIgnore 
-	static private final ObjectMapper mapper = new ObjectMapper();
-	
-	static  {
-		mapper.registerModule(new JavaTimeModule());
-		mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-		mapper.registerModule(new Jdk8Module());
-	}
 
-	@JsonProperty("timezone")
-	private String timezone;
-	
-	@JsonProperty("type")
-	private String type;
-	
-	@JsonProperty("clazz")
-	private String clazz = getClass().getName();
+    static private Logger logger = Logger.getLogger(AbstractServiceRequest.class.getName());
 
-	@JsonProperty("id")
-	private Long id;
-	
-	@JsonProperty("name")
-	private String name;
+    private static final long serialVersionUID = 1L;
 
-	@JsonProperty("description")
-	private String description;
-	
-	@JsonProperty("parameters")
-	private Map<String, String> parameters;
-	
-	@JsonProperty("retries")
-	private int retries = 0;
-	
-	@JsonIgnore 
-	private OffsetDateTime started;
-	
-	@JsonIgnore 
-	private OffsetDateTime ended;
+    @JsonIgnore
+    static private final ObjectMapper mapper = new ObjectMapper();
 
-	@JsonIgnore 
-	private OffsetDateTime executeAfter;
+    static {
+        mapper.registerModule(new JavaTimeModule());
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        mapper.registerModule(new Jdk8Module());
+    }
 
-	@JsonIgnore
-	private double progress = 0.0;
-	
-	@JsonIgnore
-	private ServiceRequestStatus status;
+    @JsonProperty("timezone")
+    private String timezone;
 
-	@JsonIgnore
-	private volatile ApplicationContext applicationContext;
-	
-	public  AbstractServiceRequest() {
-		setName(getClass().getSimpleName());
-	}
+    @JsonProperty("type")
+    private String type;
 
-	@Override
-	public abstract void execute();
+    @JsonProperty("clazz")
+    private String clazz = getClass().getName();
 
-	@Override
-	public abstract void stop();
-	
-	
-	@Override
-	public boolean equals(Object o) {
-		
-		if (o==null)
-			return false;
-		
-		if (o instanceof ServiceRequest) {
-			
-			if (!o.getClass().equals(this.getClass()))
-				return false;
-			
-			return (((ServiceRequest) o).getId().equals(getId()));
-		}
-		
-		return false;
-	}
-	
-	@Override
-	public void setStart(OffsetDateTime start) {
-			this.started=start;
-	}
+    @JsonProperty("id")
+    private Long id;
 
-	@Override
-	public void setEnd(OffsetDateTime end) {
-		this.ended=end;
-	}
+    @JsonProperty("name")
+    private String name;
 
- 	@Override
-	public double getProgress() {
-		return this.progress;
-	}
+    @JsonProperty("description")
+    private String description;
 
-	@Override
-	public OffsetDateTime started() {
-		return this.started;
-	}
+    @JsonProperty("parameters")
+    private Map<String, String> parameters;
 
-	@Override
-	public OffsetDateTime ended() {
-		return this.ended;
-	}
+    @JsonProperty("retries")
+    private int retries = 0;
 
-	@Override
-	public String getName() {
-		return this.name;
-	}
+    @JsonIgnore
+    private OffsetDateTime started;
 
-	@Override
-	public void setName(String name) {	
-		this.name=name;
-	}
+    @JsonIgnore
+    private OffsetDateTime ended;
 
-	@Override
-	public String getDescription() {
-		return this.description;
-	}
+    @JsonIgnore
+    private OffsetDateTime executeAfter;
 
-	@Override
-	public void setDescription(String des) {
-		this.description=des;
-	}
+    @JsonIgnore
+    private double progress = 0.0;
 
-	@Override
-	public void setParameters(Map<String, String> map) {
-		this.parameters = map;
-	}
+    @JsonIgnore
+    private ServiceRequestStatus status;
 
-	@Override
-	public Map<String, String> getParameters() {
-		return this.parameters;
-	}
+    @JsonIgnore
+    private volatile ApplicationContext applicationContext;
 
-	@Override
-	public void setExecuteAfter(OffsetDateTime d) {
-		this.executeAfter=d;
-	}
+    public AbstractServiceRequest() {
+        setName(getClass().getSimpleName());
+    }
 
-	@Override
-	public OffsetDateTime getExecuteAfter() {
-		return this.executeAfter;
-	}
+    @Override
+    public abstract void execute();
 
-	@Override
-	public boolean isExecuting() {
-		return getStatus()==ServiceRequestStatus.RUNNING;
-	}
+    @Override
+    public abstract void stop();
 
-	@Override
-	public boolean isCronJob() {
-		return false;
-	}
+    @Override
+    public boolean equals(Object o) {
 
-	@Override
-	public Serializable getId() {
-		return this.id;
-	}
-	
-	@Override
-	public void setId(Serializable id) {
-		this.id=(Long) id;
-	}
-	
-	public ServiceRequestStatus getStatus() {
-		return this.status;
-	}
+        if (o == null)
+            return false;
 
-	public void setStatus(ServiceRequestStatus status) {
-		this.status = status;
-	}
+        if (o instanceof ServiceRequest) {
 
-	public ObjectMapper getObjectMapper() {
-		return mapper;
-	}
-	
-	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-		this.applicationContext = applicationContext;
-	}
+            if (!o.getClass().equals(this.getClass()))
+                return false;
 
-	public ApplicationContext getApplicationContext() {
-		return this.applicationContext;
-	}
-	
-	@Override
-	public String toString() {
-			StringBuilder str = new StringBuilder();
-			str.append(this.getClass().getSimpleName());
-			str.append(toJSON());
-			return str.toString();
-	}
+            return (((ServiceRequest) o).getId().equals(getId()));
+        }
 
-	public int getRetries() {
-		return this.retries;
-	}
-	
-	public void setRetries(int retries) {
-		this.retries=retries;
-	}
+        return false;
+    }
 
-	public String toJSON() {
-	  try {
-			return mapper.writeValueAsString(this);
-		} catch (JsonProcessingException e) {
-					logger.error(e, SharedConstant.NOT_THROWN);
-					return "\"error\":\"" + e.getClass().getName()+ " | " + e.getMessage()+"\""; 
-		}
-	}
-	
-	public void setTimeZone(String timezoneid) {
-		this.timezone=timezoneid;
-	}
-	
-	public String getTimeZone() {
-		return this.timezone;
-	}
+    @Override
+    public void setStart(OffsetDateTime start) {
+        this.started = start;
+    }
+
+    @Override
+    public void setEnd(OffsetDateTime end) {
+        this.ended = end;
+    }
+
+    @Override
+    public double getProgress() {
+        return this.progress;
+    }
+
+    @Override
+    public OffsetDateTime started() {
+        return this.started;
+    }
+
+    @Override
+    public OffsetDateTime ended() {
+        return this.ended;
+    }
+
+    @Override
+    public String getName() {
+        return this.name;
+    }
+
+    @Override
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    @Override
+    public String getDescription() {
+        return this.description;
+    }
+
+    @Override
+    public void setDescription(String des) {
+        this.description = des;
+    }
+
+    @Override
+    public void setParameters(Map<String, String> map) {
+        this.parameters = map;
+    }
+
+    @Override
+    public Map<String, String> getParameters() {
+        return this.parameters;
+    }
+
+    @Override
+    public void setExecuteAfter(OffsetDateTime d) {
+        this.executeAfter = d;
+    }
+
+    @Override
+    public OffsetDateTime getExecuteAfter() {
+        return this.executeAfter;
+    }
+
+    @Override
+    public boolean isExecuting() {
+        return getStatus() == ServiceRequestStatus.RUNNING;
+    }
+
+    @Override
+    public boolean isCronJob() {
+        return false;
+    }
+
+    @Override
+    public Serializable getId() {
+        return this.id;
+    }
+
+    @Override
+    public void setId(Serializable id) {
+        this.id = (Long) id;
+    }
+
+    public ServiceRequestStatus getStatus() {
+        return this.status;
+    }
+
+    public void setStatus(ServiceRequestStatus status) {
+        this.status = status;
+    }
+
+    public ObjectMapper getObjectMapper() {
+        return mapper;
+    }
+
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        this.applicationContext = applicationContext;
+    }
+
+    public ApplicationContext getApplicationContext() {
+        return this.applicationContext;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder str = new StringBuilder();
+        str.append(this.getClass().getSimpleName());
+        str.append(toJSON());
+        return str.toString();
+    }
+
+    public int getRetries() {
+        return this.retries;
+    }
+
+    public void setRetries(int retries) {
+        this.retries = retries;
+    }
+
+    public String toJSON() {
+        try {
+            return mapper.writeValueAsString(this);
+        } catch (JsonProcessingException e) {
+            logger.error(e, SharedConstant.NOT_THROWN);
+            return "\"error\":\"" + e.getClass().getName() + " | " + e.getMessage() + "\"";
+        }
+    }
+
+    public void setTimeZone(String timezoneid) {
+        this.timezone = timezoneid;
+    }
+
+    public String getTimeZone() {
+        return this.timezone;
+    }
 }

@@ -24,34 +24,29 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 
-
 /**
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
-public class CronExpressionDeserializer extends StdDeserializer<CronExpressionJ8>  {
+public class CronExpressionDeserializer extends StdDeserializer<CronExpressionJ8> {
 
-	private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;
 
-	public CronExpressionDeserializer() {
-	     this(null);
-	   }
+    public CronExpressionDeserializer() {
+        this(null);
+    }
 
-	   public CronExpressionDeserializer(Class<?> vc) {
-	     super(vc);
-	   }
+    public CronExpressionDeserializer(Class<?> vc) {
+        super(vc);
+    }
 
-	   @Override
-	   public CronExpressionJ8 deserialize(JsonParser parser, DeserializationContext ctx)
-	       throws IOException, JacksonException {
+    @Override
+    public CronExpressionJ8 deserialize(JsonParser parser, DeserializationContext ctx)
+            throws IOException, JacksonException {
 
-		   JsonNode node = parser.getCodec().readTree(parser);
-		   String expr = node.get("expr").asText();
-		   
-		   return new CronExpressionJ8(expr, true);
-	   }
+        JsonNode node = parser.getCodec().readTree(parser);
+        String expr = node.get("expr").asText();
+
+        return new CronExpressionJ8(expr, true);
+    }
 }
-
-
-
-

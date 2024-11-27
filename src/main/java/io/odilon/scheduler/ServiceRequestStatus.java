@@ -29,128 +29,132 @@ import io.odilon.model.SharedConstant;
  */
 public enum ServiceRequestStatus {
 
+    STOPPED("stopped", 0), STARTING("starting", 1), RUNNING("running", 2), ERROR("error", 3), STOPPING("stopping", 4),
+    COMPLETED("completed", 5);
 
-	STOPPED 	("stopped", 0),
-	STARTING 	("starting", 1),
-	RUNNING 	("running", 2),
-	ERROR	 	("error", 3),
-	STOPPING 	("stopping", 4),
-	COMPLETED 	("completed", 5);
-		
-	private String name;
-	private int code;
+    private String name;
+    private int code;
 
-	static List<ServiceRequestStatus> ops;
+    static List<ServiceRequestStatus> ops;
 
-	static private Logger logger = Logger.getLogger(ServiceRequestStatus.class.getName());
+    static private Logger logger = Logger.getLogger(ServiceRequestStatus.class.getName());
 
-	
-	public static ServiceRequestStatus fromId(String id) {
-		
-	if (id==null)
-		throw new IllegalArgumentException("id is null");
-		
-		try {
-				int value = Integer.valueOf(id).intValue();
-				return fromCode(value);
-					
-		} catch (IllegalArgumentException e) {
-			throw (e);
-		}
-		catch (Exception e) {
-			throw new IllegalArgumentException("id not integer -> " + id);
-		}
-		
-	}
-	public static List<ServiceRequestStatus> getValues() {
-		
-		if (ops!=null)
-			return ops;
-		
-		ops = new ArrayList<ServiceRequestStatus>();
-		
-		ops.add( STOPPED);
-		ops.add( STARTING);
-		ops.add( RUNNING);
-		ops.add( STOPPING);
-		
-		return ops;
-	}
-	
-	/**
-	 * 
-	 * @param name
-	 * @return
-	 */
-	public static ServiceRequestStatus fromString(String name) {
-		
-		if (name==null)
-			throw new IllegalArgumentException ("name is null");
-		
-		String normalized = name.toUpperCase().trim();
-		
-		if (normalized.equals(STOPPED.getName())) return STOPPED;
-		if (normalized.equals(STARTING.getName())) return STARTING;
-		if (normalized.equals(RUNNING.getName())) return RUNNING;
-		if (normalized.equals(STOPPING.getName())) return STOPPING;
-		
-		throw new IllegalArgumentException ("unsuported name -> " + name);
-		
-	}
-	
-	public static ServiceRequestStatus  fromCode(int code) {
-		
-		if (code==STOPPED.getCode()) return STOPPED;
-		if (code==STARTING.getCode()) return STARTING;
-		if (code==RUNNING.getCode()) return RUNNING;
-		if (code==STOPPING.getCode()) return STOPPING;
-		
-		throw new IllegalArgumentException ("unsuported code -> " + String.valueOf(code));
-	}
-	
-	public String getDescription() {
-		return getDescription(Locale.getDefault());
-	}
-	
-	public String getDescription(Locale locale) {
-		//ResourceBundle res = ResourceBundle.getBundle(ServiceRequestStatus.this.getClass().getName(), locale);
-		//return res.getString(this.getName());
-		return this.getName();
-	}
-	
-	public String toJSON() {
-		   try {
-				StringBuilder str = new StringBuilder();
-				str.append("\"name\":\"" + name + "\"");
-				str.append(", \"code\":" + code );
-				str.append(", \"description\": \"" + getDescription() + "\"");
-				return str.toString();
-		   } catch (Exception e) {
-				logger.error(e, SharedConstant.NOT_THROWN);
-				return "\"error\":\"" + e.getClass().getName()+ " | " + e.getMessage()+"\""; 
-		   }
-	}
-	
-	@Override
-	public String toString() {
-		StringBuilder str = new StringBuilder();
-		str.append(this.getClass().getSimpleName() +"{");
-		str.append(toJSON());
-		str.append("}");
-		return str.toString();
-	}
-	
-	public String getName() {
-		return this.name;
-	}
-	
-	public int getCode() {
-		return this.code;
-	}
-	
-	private ServiceRequestStatus(String name, int code) {
-		this.name = name;
-		this.code = code;
-	}
+    public static ServiceRequestStatus fromId(String id) {
+
+        if (id == null)
+            throw new IllegalArgumentException("id is null");
+
+        try {
+            int value = Integer.valueOf(id).intValue();
+            return fromCode(value);
+
+        } catch (IllegalArgumentException e) {
+            throw (e);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("id not integer -> " + id);
+        }
+
+    }
+
+    public static List<ServiceRequestStatus> getValues() {
+
+        if (ops != null)
+            return ops;
+
+        ops = new ArrayList<ServiceRequestStatus>();
+
+        ops.add(STOPPED);
+        ops.add(STARTING);
+        ops.add(RUNNING);
+        ops.add(STOPPING);
+
+        return ops;
+    }
+
+    /**
+     * 
+     * @param name
+     * @return
+     */
+    public static ServiceRequestStatus fromString(String name) {
+
+        if (name == null)
+            throw new IllegalArgumentException("name is null");
+
+        String normalized = name.toUpperCase().trim();
+
+        if (normalized.equals(STOPPED.getName()))
+            return STOPPED;
+        if (normalized.equals(STARTING.getName()))
+            return STARTING;
+        if (normalized.equals(RUNNING.getName()))
+            return RUNNING;
+        if (normalized.equals(STOPPING.getName()))
+            return STOPPING;
+
+        throw new IllegalArgumentException("unsuported name -> " + name);
+
+    }
+
+    public static ServiceRequestStatus fromCode(int code) {
+
+        if (code == STOPPED.getCode())
+            return STOPPED;
+        if (code == STARTING.getCode())
+            return STARTING;
+        if (code == RUNNING.getCode())
+            return RUNNING;
+        if (code == STOPPING.getCode())
+            return STOPPING;
+
+        throw new IllegalArgumentException("unsuported code -> " + String.valueOf(code));
+    }
+
+    public String getDescription() {
+        return getDescription(Locale.getDefault());
+    }
+
+    public String getDescription(Locale locale) {
+        // ResourceBundle res =
+        // ResourceBundle.getBundle(ServiceRequestStatus.this.getClass().getName(),
+        // locale);
+        // return res.getString(this.getName());
+        return this.getName();
+    }
+
+    public String toJSON() {
+        try {
+            StringBuilder str = new StringBuilder();
+            str.append("\"name\":\"" + name + "\"");
+            str.append(", \"code\":" + code);
+            str.append(", \"description\": \"" + getDescription() + "\"");
+            return str.toString();
+        } catch (Exception e) {
+            logger.error(e, SharedConstant.NOT_THROWN);
+            return "\"error\":\"" + e.getClass().getName() + " | " + e.getMessage() + "\"";
+        }
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder str = new StringBuilder();
+        str.append(this.getClass().getSimpleName() + "{");
+        str.append(toJSON());
+        str.append("}");
+        return str.toString();
+    }
+
+    public String getName() {
+        return this.name;
+    }
+
+    public int getCode() {
+        return this.code;
+    }
+
+    private ServiceRequestStatus(String name, int code) {
+        this.name = name;
+        this.code = code;
+    }
 
 }

@@ -16,7 +16,6 @@
  */
 package io.odilon.service;
 
-
 /**
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
@@ -24,7 +23,7 @@ package io.odilon.service;
  */
 
 public interface ObjectService extends OdilonService {
-	
-	public Object getObject();
-	
+
+    public Object getObject();
+
 }

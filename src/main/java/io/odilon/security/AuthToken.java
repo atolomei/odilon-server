@@ -20,114 +20,110 @@ import java.io.Serializable;
 import java.time.OffsetDateTime;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-
-import io.odilon.log.Logger;
 import io.odilon.model.ServerConstant;
 import io.odilon.model.BaseObject;
 
-
 /**
- * <p>AuthToken are used to generate timed pre-signed urls to access objects without authentication</p>
+ * <p>
+ * AuthToken are used to generate timed pre-signed urls to access objects
+ * without authentication
+ * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
-public class AuthToken extends BaseObject implements Serializable  {
+public class AuthToken extends BaseObject implements Serializable {
 
-	static final int VERSION = 1;
-	
-	@SuppressWarnings("unused")
-	static private Logger logger =	Logger.getLogger(AuthToken.class.getName());
+    static final int VERSION = 1;
 
-	private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;
 
-	@JsonProperty("bucketName")  
-	public String bucketName;
-	  
-	@JsonProperty("objectName")
-	public String objectName;
-	
-	@JsonProperty("expirationDate")
-	public  OffsetDateTime expirationDate;
-	
-	@JsonProperty("keyVersion")
-	public int keyVersion;
-	
-	public AuthToken() {
-	}
-	
-	public AuthToken(String bucketName, String objectName) {
-		this(bucketName,objectName, OffsetDateTime.now().plusSeconds(ServerConstant.DEFAULT_EXPIRY_TIME), VERSION);
-	}
-	
-	public AuthToken(String bucketName, String objectName, int durationSeconds) {
-		this	(bucketName,
-				objectName, 
-				(durationSeconds>0) ?
-				OffsetDateTime.now().plusSeconds(durationSeconds) 
-				:OffsetDateTime.now().plusSeconds(ServerConstant.DEFAULT_EXPIRY_TIME), 
-				VERSION);
-	}
-	
-	public AuthToken(String bucketName, String objectName, OffsetDateTime expirationDate, int keyVersion) {
-		this.bucketName = bucketName;
-		this.objectName = objectName;
-		this.expirationDate = OffsetDateTime.now().plusDays(1);
-		this.keyVersion=keyVersion;
-	}
-	
-	
-	/**
-	 * <p>Returns bucket name</p>
-	 */
-	 public String bucketName() {
-	    return bucketName;
-	 }
+    @JsonProperty("bucketName")
+    public String bucketName;
 
-	 /**
-	  * <p>Returns object name</p>
-	  */
-	  public String name() {
-	    return objectName;
-	  }
+    @JsonProperty("objectName")
+    public String objectName;
 
-	  public OffsetDateTime expirationDate() {
-	    return expirationDate;
-	  }
-	  		
-	  public boolean isValid() {
-		    return expirationDate.isAfter(OffsetDateTime.now());
-	  }
+    @JsonProperty("expirationDate")
+    public OffsetDateTime expirationDate;
 
-	  public String getBucketName() {
-			return bucketName;
-	  }
+    @JsonProperty("keyVersion")
+    public int keyVersion;
 
-	  public void setBucketName(String bucketName) {
-			this.bucketName = bucketName;
-	  }
+    public AuthToken() {
+    }
 
-	  public String getObjectName() {
-			return objectName;
-	  }
+    public AuthToken(String bucketName, String objectName) {
+        this(bucketName, objectName, OffsetDateTime.now().plusSeconds(ServerConstant.DEFAULT_EXPIRY_TIME), VERSION);
+    }
 
-	  public void setObjectName(String objectName) {
-			this.objectName = objectName;
-	  }
+    public AuthToken(String bucketName, String objectName, int durationSeconds) {
+        this(bucketName, objectName, (durationSeconds > 0) ? OffsetDateTime.now().plusSeconds(durationSeconds)
+                : OffsetDateTime.now().plusSeconds(ServerConstant.DEFAULT_EXPIRY_TIME), VERSION);
+    }
 
-	  public OffsetDateTime getExpirationDate() {
-			return expirationDate;
-	  }
+    public AuthToken(String bucketName, String objectName, OffsetDateTime expirationDate, int keyVersion) {
+        this.bucketName = bucketName;
+        this.objectName = objectName;
+        this.expirationDate = OffsetDateTime.now().plusDays(1);
+        this.keyVersion = keyVersion;
+    }
 
-	  public void setExpirationDate(OffsetDateTime expirationDate) {
-			this.expirationDate = expirationDate;
-	  }
+    /**
+     * <p>
+     * Returns bucket name
+     * </p>
+     */
+    public String bucketName() {
+        return bucketName;
+    }
 
-	  public int getKeyVersion() {
-			return keyVersion;
-	  }
+    /**
+     * <p>
+     * Returns object name
+     * </p>
+     */
+    public String name() {
+        return objectName;
+    }
 
-	  public void setKeyVersion(int keyVersion) {
-			this.keyVersion = keyVersion;
-	  }
+    public OffsetDateTime expirationDate() {
+        return expirationDate;
+    }
+
+    public boolean isValid() {
+        return expirationDate.isAfter(OffsetDateTime.now());
+    }
+
+    public String getBucketName() {
+        return bucketName;
+    }
+
+    public void setBucketName(String bucketName) {
+        this.bucketName = bucketName;
+    }
+
+    public String getObjectName() {
+        return objectName;
+    }
+
+    public void setObjectName(String objectName) {
+        this.objectName = objectName;
+    }
+
+    public OffsetDateTime getExpirationDate() {
+        return expirationDate;
+    }
+
+    public void setExpirationDate(OffsetDateTime expirationDate) {
+        this.expirationDate = expirationDate;
+    }
+
+    public int getKeyVersion() {
+        return keyVersion;
+    }
+
+    public void setKeyVersion(int keyVersion) {
+        this.keyVersion = keyVersion;
+    }
 
 }

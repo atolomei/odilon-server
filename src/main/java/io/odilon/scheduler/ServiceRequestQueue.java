@@ -36,8 +36,11 @@ import io.odilon.service.BaseService;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
- * <p>The whole <{@link Queue} is stored in memory<br/>
- * The queue is also saved in disk via the {@link VirtualFileSystem} for fault recovery</p>
+ * <p>
+ * The whole <{@link Queue} is stored in memory<br/>
+ * The queue is also saved in disk via the {@link VirtualFileSystem} for fault
+ * recovery
+ * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  * 
@@ -45,214 +48,215 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 @Component
 @Scope("prototype")
 public class ServiceRequestQueue extends BaseService implements Queue<ServiceRequest> {
-			
-	@SuppressWarnings("unused")
-	static private Logger logger = Logger.getLogger(ServiceRequestQueue.class.getName());
 
-	private String id;
-	
-	@JsonIgnore
-	private Queue<ServiceRequest> queue;
-	
-	@JsonIgnore
-	private VirtualFileSystemService virtualFileSystemService;
+    @SuppressWarnings("unused")
+    static private Logger logger = Logger.getLogger(ServiceRequestQueue.class.getName());
 
-	public ServiceRequestQueue(String id) {
-		this.id=id;
-	}
+    private String id;
 
-	public String getId() {
-		return this.id;
-	}
-	
-	@Override
-	public int size() {
-		return getQueue().size();
-	}
+    @JsonIgnore
+    private Queue<ServiceRequest> queue;
 
-	@Override
-	public boolean isEmpty() {
-		return getQueue().isEmpty();
-	}
+    @JsonIgnore
+    private VirtualFileSystemService virtualFileSystemService;
 
-	@Override
-	public boolean contains(Object o) {
-		return getQueue().contains(o);
-	}
+    public ServiceRequestQueue(String id) {
+        this.id = id;
+    }
 
-	@Override
-	public Iterator<ServiceRequest> iterator() {
-		return getQueue().iterator();
-	}
+    public String getId() {
+        return this.id;
+    }
 
-	@Override
-	public Object[] toArray() {
-		return getQueue().toArray();
-	}
+    @Override
+    public int size() {
+        return getQueue().size();
+    }
 
-	@Override
-	public <T> T[] toArray(T[] a) {
-		return getQueue().toArray(a);
-	}
+    @Override
+    public boolean isEmpty() {
+        return getQueue().isEmpty();
+    }
 
-	/**
-	 * <p>Removes the {@link ServiceRequest} from the Queue and also from the disk</p>
-	 */
-	public boolean moveOut(Object o) {
-		boolean isRemoved = getQueue().remove( (ServiceRequest) o);
-		return isRemoved;
-	}
-	
-	@Override
-	public boolean remove(Object o) {
-		fsRemove((ServiceRequest) o);
-		boolean isRemoved = getQueue().remove( (ServiceRequest) o);
-		return isRemoved;
-	}
+    @Override
+    public boolean contains(Object o) {
+        return getQueue().contains(o);
+    }
 
-	public boolean removeById(Serializable id) {
-		Iterator<ServiceRequest> it = getQueue().iterator();
-		while (it.hasNext()) {
-			ServiceRequest req=it.next();
-			if (req.getId().equals(id)) {
-				return this.remove(req);
-			}
-		}
-		return false;
-	}
-	
-	@Override
-	public boolean containsAll(Collection<?> c) {
-		return getQueue().containsAll(c);
-	}
+    @Override
+    public Iterator<ServiceRequest> iterator() {
+        return getQueue().iterator();
+    }
 
-	@Override
-	public boolean addAll(Collection<? extends ServiceRequest> c) {
-		c.forEach(item ->	{
-								fsStore(item);
-								getQueue().add(item);
-							}
-		);
-		return true;
-	}
+    @Override
+    public Object[] toArray() {
+        return getQueue().toArray();
+    }
 
-	@Override
-	public boolean removeAll(Collection<?> c) {
-		c.forEach(item-> {
-			if (item instanceof ServiceRequest) {
-				fsRemove((ServiceRequest) item);
-				getQueue().remove((ServiceRequest) item);
-			}
-		});
-		return true;
-	}
+    @Override
+    public <T> T[] toArray(T[] a) {
+        return getQueue().toArray(a);
+    }
 
-	@Override
-	public boolean retainAll(Collection<?> c) {
-		throw new RuntimeException("not applicable");
-	}
+    /**
+     * <p>
+     * Removes the {@link ServiceRequest} from the Queue and also from the disk
+     * </p>
+     */
+    public boolean moveOut(Object o) {
+        boolean isRemoved = getQueue().remove((ServiceRequest) o);
+        return isRemoved;
+    }
 
-	@Override
-	public void clear() {
-		fsRemoveAll();
-		getQueue().clear();
-	}
-	
-	@Override
-	public boolean add(ServiceRequest srq) {
-		fsStore(srq);
-		return getQueue().add(srq); 
-	}
+    @Override
+    public boolean remove(Object o) {
+        fsRemove((ServiceRequest) o);
+        boolean isRemoved = getQueue().remove((ServiceRequest) o);
+        return isRemoved;
+    }
 
-	@Override
-	public boolean offer(ServiceRequest srq) {
-		fsStore(srq);
-		return getQueue().offer(srq);
-	}
+    public boolean removeById(Serializable id) {
+        Iterator<ServiceRequest> it = getQueue().iterator();
+        while (it.hasNext()) {
+            ServiceRequest req = it.next();
+            if (req.getId().equals(id)) {
+                return this.remove(req);
+            }
+        }
+        return false;
+    }
 
-	@Override
-	public ServiceRequest remove() {
-		fsRemove(peek());
-		return getQueue().remove();
-	}
+    @Override
+    public boolean containsAll(Collection<?> c) {
+        return getQueue().containsAll(c);
+    }
 
-	@Override
-	public ServiceRequest poll() {
-		return getQueue().poll();
-	}
+    @Override
+    public boolean addAll(Collection<? extends ServiceRequest> c) {
+        c.forEach(item -> {
+            fsStore(item);
+            getQueue().add(item);
+        });
+        return true;
+    }
 
-	@Override
-	public ServiceRequest element() {
-		return getQueue().element();
-	}
+    @Override
+    public boolean removeAll(Collection<?> c) {
+        c.forEach(item -> {
+            if (item instanceof ServiceRequest) {
+                fsRemove((ServiceRequest) item);
+                getQueue().remove((ServiceRequest) item);
+            }
+        });
+        return true;
+    }
 
-	@Override
-	public ServiceRequest peek() {
-		return getQueue().peek();
-	}
-	
-	public VirtualFileSystemService getVFS() {
-	
-		if (this.virtualFileSystemService!=null) 
-			return  virtualFileSystemService;	
-		
-		String msg = "The " + VirtualFileSystemService.class.getName() + " must be setted during the @PostConstruct method of the " + 
-					 VirtualFileSystemService.class.getName() + " instance. It can not be injected via @AutoWired due to circular dependencies.";
-		
-		throw new IllegalStateException(msg);
-		
-	}
-	
-	public synchronized void setVFS(VirtualFileSystemService virtualFileSystemService) {
-		this.virtualFileSystemService = virtualFileSystemService;
-	}
+    @Override
+    public boolean retainAll(Collection<?> c) {
+        throw new RuntimeException("not applicable");
+    }
 
-	@PostConstruct
-	protected synchronized void onInitialize() {
-		synchronized (this) {
-			try {
-				setStatus(ServiceStatus.STARTING);
-				this.queue = new ConcurrentLinkedQueue<ServiceRequest>();
-				setStatus(ServiceStatus.RUNNING);
-			}
-			catch (Exception e) {
-				setStatus(ServiceStatus.STOPPED);
-				throw(e);
-			}
-		}
-	}
-	
-	protected synchronized void loadFSQueue() {
-		List<ServiceRequest> list = getVFS().getSchedulerPendingRequests(getId());
-		list.sort(new Comparator<ServiceRequest>() {
-			@Override
-			public int compare(ServiceRequest o1, ServiceRequest o2) {
-				return o1.getId().toString().compareTo(o2.getId().toString());
-			}
-		});
-		for (ServiceRequest req: list) {
-			getQueue().add(req);
-		}
-	}
-	
-	private void fsRemoveAll() {
-		getQueue().forEach(item-> fsRemove(item));
-	}
-	
-	private void fsRemove(ServiceRequest srq) {
-		if (srq==null)
-			return;
-		getVFS().removeScheduler(srq, getId());
-	}
+    @Override
+    public void clear() {
+        fsRemoveAll();
+        getQueue().clear();
+    }
 
-	private void fsStore(ServiceRequest srq) {
-		if (srq==null)
-			return;
-		getVFS().saveScheduler(srq, getId());
-	}
-	
-	private Queue<ServiceRequest> getQueue() {
-		return this.queue;
-	}
-	
+    @Override
+    public boolean add(ServiceRequest srq) {
+        fsStore(srq);
+        return getQueue().add(srq);
+    }
+
+    @Override
+    public boolean offer(ServiceRequest srq) {
+        fsStore(srq);
+        return getQueue().offer(srq);
+    }
+
+    @Override
+    public ServiceRequest remove() {
+        fsRemove(peek());
+        return getQueue().remove();
+    }
+
+    @Override
+    public ServiceRequest poll() {
+        return getQueue().poll();
+    }
+
+    @Override
+    public ServiceRequest element() {
+        return getQueue().element();
+    }
+
+    @Override
+    public ServiceRequest peek() {
+        return getQueue().peek();
+    }
+
+    public VirtualFileSystemService getVFS() {
+
+        if (this.virtualFileSystemService != null)
+            return virtualFileSystemService;
+
+        String msg = "The " + VirtualFileSystemService.class.getName()
+                + " must be setted during the @PostConstruct method of the " + VirtualFileSystemService.class.getName()
+                + " instance. It can not be injected via @AutoWired due to circular dependencies.";
+
+        throw new IllegalStateException(msg);
+
+    }
+
+    public synchronized void setVFS(VirtualFileSystemService virtualFileSystemService) {
+        this.virtualFileSystemService = virtualFileSystemService;
+    }
+
+    @PostConstruct
+    protected synchronized void onInitialize() {
+        synchronized (this) {
+            try {
+                setStatus(ServiceStatus.STARTING);
+                this.queue = new ConcurrentLinkedQueue<ServiceRequest>();
+                setStatus(ServiceStatus.RUNNING);
+            } catch (Exception e) {
+                setStatus(ServiceStatus.STOPPED);
+                throw (e);
+            }
+        }
+    }
+
+    protected synchronized void loadFSQueue() {
+        List<ServiceRequest> list = getVFS().getSchedulerPendingRequests(getId());
+        list.sort(new Comparator<ServiceRequest>() {
+            @Override
+            public int compare(ServiceRequest o1, ServiceRequest o2) {
+                return o1.getId().toString().compareTo(o2.getId().toString());
+            }
+        });
+        for (ServiceRequest req : list) {
+            getQueue().add(req);
+        }
+    }
+
+    private void fsRemoveAll() {
+        getQueue().forEach(item -> fsRemove(item));
+    }
+
+    private void fsRemove(ServiceRequest srq) {
+        if (srq == null)
+            return;
+        getVFS().removeScheduler(srq, getId());
+    }
+
+    private void fsStore(ServiceRequest srq) {
+        if (srq == null)
+            return;
+        getVFS().saveScheduler(srq, getId());
+    }
+
+    private Queue<ServiceRequest> getQueue() {
+        return this.queue;
+    }
+
 }

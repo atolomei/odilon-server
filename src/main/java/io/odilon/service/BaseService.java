@@ -34,63 +34,60 @@ import io.odilon.util.RandomIDGenerator;
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public abstract class BaseService implements JSONObject {
-			
-	static private Logger logger = Logger.getLogger(BaseService.class.getName());
-	
-	@JsonIgnore
-	static final private RandomIDGenerator idGenerator = new RandomIDGenerator();
-	
-	@JsonIgnore
-	static final private ObjectMapper mapper = new ObjectMapper();
-	
-	static {
-		mapper.registerModule(new JavaTimeModule());
-		mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-		mapper.registerModule(new Jdk8Module());
-	}
 
-	static protected String randomString(final int size) {
-		return idGenerator.randomString(size);
-	}
-	
-	@JsonIgnore
-	private ServiceStatus status;
-	
-	public BaseService() {
-		this.status=ServiceStatus.STOPPED;
-	}
-	
-	public void setStatus(ServiceStatus status) {
-		this.status=status;
-	}
-	
-	public ServiceStatus getStatus() {
-		return this.status;
-	}
+    static private Logger logger = Logger.getLogger(BaseService.class.getName());
 
-	@Override
-	public String toString() {
-		StringBuilder str = new StringBuilder();
-		str.append(this.getClass().getSimpleName());
-		str.append(toJSON());
-		return str.toString();
-	}
+    @JsonIgnore
+    static final private RandomIDGenerator idGenerator = new RandomIDGenerator();
 
-	
-	@Override
-	public String toJSON() {
-	   try {
-			return mapper.writeValueAsString(this);
-		} catch (JsonProcessingException e) {
-					logger.error(e, SharedConstant.NOT_THROWN);
-					return "\"error\":\"" + e.getClass().getName()+ " | " + e.getMessage()+"\""; 
-		}
-	  }
-  
-	protected ObjectMapper getObjectMapper() {
-		return mapper;
-	}
-	
-	
-	
+    @JsonIgnore
+    static final private ObjectMapper mapper = new ObjectMapper();
+
+    static {
+        mapper.registerModule(new JavaTimeModule());
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        mapper.registerModule(new Jdk8Module());
+    }
+
+    static protected String randomString(final int size) {
+        return idGenerator.randomString(size);
+    }
+
+    @JsonIgnore
+    private ServiceStatus status;
+
+    public BaseService() {
+        this.status = ServiceStatus.STOPPED;
+    }
+
+    public void setStatus(ServiceStatus status) {
+        this.status = status;
+    }
+
+    public ServiceStatus getStatus() {
+        return this.status;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder str = new StringBuilder();
+        str.append(this.getClass().getSimpleName());
+        str.append(toJSON());
+        return str.toString();
+    }
+
+    @Override
+    public String toJSON() {
+        try {
+            return mapper.writeValueAsString(this);
+        } catch (JsonProcessingException e) {
+            logger.error(e, SharedConstant.NOT_THROWN);
+            return "\"error\":\"" + e.getClass().getName() + " | " + e.getMessage() + "\"";
+        }
+    }
+
+    protected ObjectMapper getObjectMapper() {
+        return mapper;
+    }
+
 }

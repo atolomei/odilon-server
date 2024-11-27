@@ -18,13 +18,11 @@ package io.odilon.service;
 
 import io.odilon.model.JSONObject;
 
-
 /**
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  * 
  */
 public interface OdilonService extends JSONObject {
-	
 
 }

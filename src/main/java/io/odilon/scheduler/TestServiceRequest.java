@@ -32,50 +32,50 @@ import io.odilon.model.SharedConstant;
 @Scope("prototype")
 @JsonTypeName("test")
 public class TestServiceRequest extends AbstractServiceRequest implements StandardServiceRequest {
-			
-	private static final long serialVersionUID = 1L;
-	
-	static private Logger logger =	Logger.getLogger(TestServiceRequest.class.getName());
-	
-	private boolean isSuccess = false;
-	
-	public TestServiceRequest() {
-	}
-	
-	/**
-	 * {link ServiceRequestExecutor} closes the Request
-	 */
-	@Override
-	public void execute() {
-		
-		try {
-			logger.debug("Testing " + getName());
-		} catch (Exception e) {
-			isSuccess=false;
-			logger.error(e, SharedConstant.NOT_THROWN);
-		} finally {
-			isSuccess=true;
-			setStatus(ServiceRequestStatus.COMPLETED);
-		}
-	}
-	
-	@Override
-	public void stop() {
-		setStatus(ServiceRequestStatus.STOPPED);
-	}
 
-	@Override
-	public boolean isSuccess() {
-		return isSuccess;
-	}
+    private static final long serialVersionUID = 1L;
 
-	public boolean isObjectOperation() {
-		return false;
-	}
-	
-	@Override
-	public String getUUID() {
-		return "t" + getId().toString();
-	}
+    static private Logger logger = Logger.getLogger(TestServiceRequest.class.getName());
+
+    private boolean isSuccess = false;
+
+    public TestServiceRequest() {
+    }
+
+    /**
+     * {link ServiceRequestExecutor} closes the Request
+     */
+    @Override
+    public void execute() {
+
+        try {
+            logger.debug("Testing " + getName());
+        } catch (Exception e) {
+            isSuccess = false;
+            logger.error(e, SharedConstant.NOT_THROWN);
+        } finally {
+            isSuccess = true;
+            setStatus(ServiceRequestStatus.COMPLETED);
+        }
+    }
+
+    @Override
+    public void stop() {
+        setStatus(ServiceRequestStatus.STOPPED);
+    }
+
+    @Override
+    public boolean isSuccess() {
+        return isSuccess;
+    }
+
+    public boolean isObjectOperation() {
+        return false;
+    }
+
+    @Override
+    public String getUUID() {
+        return "t" + getId().toString();
+    }
 
 }

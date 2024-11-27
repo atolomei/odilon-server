@@ -43,47 +43,46 @@ import io.odilon.service.ServerSettings;
 @EnableWebSecurity
 public class BasicAuthWebSecurityConfiguration {
 
-	@JsonIgnore
-	@Autowired
-	private final BasicAuthenticationEntryPoint authenticationEntryPoint;
+    @JsonIgnore
+    @Autowired
+    private final BasicAuthenticationEntryPoint authenticationEntryPoint;
 
-	@JsonIgnore
-	@Autowired
-	private final ServerSettings serverSettings;
-	
-	@Autowired
-	public BasicAuthWebSecurityConfiguration (ServerSettings serverSettings, BasicAuthenticationEntryPoint authenticationEntryPoint) {
-		
-		this.serverSettings=serverSettings;
-		this.authenticationEntryPoint=authenticationEntryPoint;
-	}
-	
-	@Bean
-	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-		
-		 //http.requiresChannel(channel -> channel.anyRequest().requiresSecure())
-		
-		 http.authorizeHttpRequests((authorize) -> authorize.requestMatchers("/presigned/", "/presigned/object", "/public/").permitAll())
-			 .authorizeHttpRequests(authorizeRequests -> authorizeRequests.anyRequest().authenticated())
-			 .httpBasic(Customizer.withDefaults())
-			 .formLogin(Customizer.withDefaults())  
-			 .csrf(AbstractHttpConfigurer::disable);
-			 
-		 return http.build();
-	}
+    @JsonIgnore
+    @Autowired
+    private final ServerSettings serverSettings;
 
-	@Bean
-	public InMemoryUserDetailsManager userDetailsService() {
-		
-		UserDetails user = User.withUsername(this.serverSettings.getAccessKey())
-	    .password(passwordEncoder().encode(this.serverSettings.getSecretKey()))
-	    .roles("USER")
-	    .build();
-		return new InMemoryUserDetailsManager(user);
-	  }
-	 
-	  @Bean
-	  public PasswordEncoder passwordEncoder() {
-	    return new BCryptPasswordEncoder();
-	  }
+    @Autowired
+    public BasicAuthWebSecurityConfiguration(ServerSettings serverSettings,
+            BasicAuthenticationEntryPoint authenticationEntryPoint) {
+
+        this.serverSettings = serverSettings;
+        this.authenticationEntryPoint = authenticationEntryPoint;
+    }
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+
+        // http.requiresChannel(channel -> channel.anyRequest().requiresSecure())
+
+        http.authorizeHttpRequests(
+                (authorize) -> authorize.requestMatchers("/presigned/", "/presigned/object", "/public/").permitAll())
+                .authorizeHttpRequests(authorizeRequests -> authorizeRequests.anyRequest().authenticated())
+                .httpBasic(Customizer.withDefaults()).formLogin(Customizer.withDefaults())
+                .csrf(AbstractHttpConfigurer::disable);
+
+        return http.build();
+    }
+
+    @Bean
+    public InMemoryUserDetailsManager userDetailsService() {
+
+        UserDetails user = User.withUsername(this.serverSettings.getAccessKey())
+                .password(passwordEncoder().encode(this.serverSettings.getSecretKey())).roles("USER").build();
+        return new InMemoryUserDetailsManager(user);
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
 }
