@@ -16,8 +16,6 @@
  */
 package io.odilon.api;
 
-
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.http.HttpStatus;
@@ -33,39 +31,39 @@ import io.odilon.traffic.TrafficControlService;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
- * <p>Executed when a shutdown command is received from the API </p>
+ * <p>
+ * Executed when a shutdown command is received from the API
+ * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @RestController
 public class ShutdownController extends BaseApiController {
-	
-static private Logger logger = Logger.getLogger(ShutdownController.class.getName());
-	
-	@Autowired
-	public ShutdownController(		ObjectStorageService objectStorageService, 
-									VirtualFileSystemService virtualFileSystemService,
-									SystemMonitorService monitoringService,
-									TrafficControlService trafficControlService) {
-		super(objectStorageService, virtualFileSystemService, monitoringService, trafficControlService);
-	}
 
-	@RequestMapping(value = "/shutdown",  produces = "application/json", method = RequestMethod.GET)
-	public  ResponseEntity<String> shutDown() {
-		try {
-			logger.error("Shutdown command received");
-			try {
-				Thread.sleep(2000);
-			} catch (InterruptedException e) {
-			}
-			((ConfigurableApplicationContext) this.getApplicationContext()).close();
-			System.exit(1);
-			
-			return new ResponseEntity<String>( new String("ok"),  HttpStatus.OK);
-		}
-		finally { 
-			mark();
-		}
-	}
-	
+    static private Logger logger = Logger.getLogger(ShutdownController.class.getName());
+
+    @Autowired
+    public ShutdownController(ObjectStorageService objectStorageService,
+            VirtualFileSystemService virtualFileSystemService, SystemMonitorService monitoringService,
+            TrafficControlService trafficControlService) {
+        super(objectStorageService, virtualFileSystemService, monitoringService, trafficControlService);
+    }
+
+    @RequestMapping(value = "/shutdown", produces = "application/json", method = RequestMethod.GET)
+    public ResponseEntity<String> shutDown() {
+        try {
+            logger.error("Shutdown command received");
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+            }
+            ((ConfigurableApplicationContext) this.getApplicationContext()).close();
+            System.exit(1);
+
+            return new ResponseEntity<String>(new String("ok"), HttpStatus.OK);
+        } finally {
+            mark();
+        }
+    }
+
 }

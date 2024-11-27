@@ -17,7 +17,6 @@
 
 package io.odilon;
 
-
 import java.util.Locale;
 import java.util.Properties;
 
@@ -33,38 +32,34 @@ import io.odilon.log.Logger;
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public class OdilonPropertiesListener implements ApplicationListener<ApplicationEnvironmentPreparedEvent> {
-			
-	@SuppressWarnings("unused")
-	static private Logger logger = Logger.getLogger(OdilonPropertiesListener.class.getName());
-	
-	@Override
-	public void onApplicationEvent(ApplicationEnvironmentPreparedEvent event) {
-		    ConfigurableEnvironment environment = event.getEnvironment();
-		    Properties props = new Properties();
-		    props.put("app.name", "Odilon");
-		    props.put("spring.servlet.multipart.max-file-size", "300GB");
-		    props.put("spring.servlet.multipart.max-request-size", "300GB");
-		    props.put("spring.main.banner-mode", "off");
-		    props.put("spring.main.log-startup-info", "false");
-		    props.put("server.error.whitelabel.enabled", "false");
-		    props.put("spring.main.lazy-initialization", "false");
-		    props.put("spring.output.ansi.enabled", "DETECT");
 
-		    environment.getPropertySources().addFirst(new PropertiesPropertySource("odilonProps", props));
+    @SuppressWarnings("unused")
+    static private Logger logger = Logger.getLogger(OdilonPropertiesListener.class.getName());
 
-		    Locale.setDefault(Locale.ENGLISH);
-	}
+    @Override
+    public void onApplicationEvent(ApplicationEnvironmentPreparedEvent event) {
+        ConfigurableEnvironment environment = event.getEnvironment();
+        Properties props = new Properties();
+        props.put("app.name", "Odilon");
+        props.put("spring.servlet.multipart.max-file-size", "300GB");
+        props.put("spring.servlet.multipart.max-request-size", "300GB");
+        props.put("spring.main.banner-mode", "off");
+        props.put("spring.main.log-startup-info", "false");
+        props.put("server.error.whitelabel.enabled", "false");
+        props.put("spring.main.lazy-initialization", "false");
+        props.put("spring.output.ansi.enabled", "DETECT");
+
+        environment.getPropertySources().addFirst(new PropertiesPropertySource("odilonProps", props));
+
+        Locale.setDefault(Locale.ENGLISH);
+    }
 }
-
 
 //props.put("spring.servlet.multipart.file-size-threshold", "12KB");
 //props.put("spring.resources.cache.cachecontrol.max-age", "120");
 //props.put("spring.resources.cache.cachecontrol.must-revalidate", "true");
-		
 
- //environment.getPropertySources().forEach( item -> logger.debug(item.toString()));
- //logger.debug( environment.getProperty("server.ssl.enabled"));
- //.forEach( item -> logger.debug(item.toString()));
- 
- 
-
+// environment.getPropertySources().forEach( item ->
+// logger.debug(item.toString()));
+// logger.debug( environment.getProperty("server.ssl.enabled"));
+// .forEach( item -> logger.debug(item.toString()));

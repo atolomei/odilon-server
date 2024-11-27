@@ -16,7 +16,6 @@
  */
 package io.odilon.api;
 
-
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,71 +35,69 @@ import io.odilon.traffic.TrafficPass;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
- *  <ul> 
- *  	<li>/info</li>
- *  </ul>
-
+ * <ul>
+ * <li>/info</li>
+ * </ul>
+ * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @RestController
 public class InfoController extends BaseApiController {
-			
-	@SuppressWarnings("unused")
-	static private Logger logger = Logger.getLogger(InfoController.class.getName());
-	
-	private ServerSettings settings;
-	
-	@Autowired
-	public InfoController(	ObjectStorageService objectStorageService, 
-							VirtualFileSystemService virtualFileSystemService,
-							SystemMonitorService monitoringService,
-							ServerSettings settings, 
-							TrafficControlService trafficControlService) {
 
-		super(objectStorageService, virtualFileSystemService, monitoringService, trafficControlService);
-		this.settings = settings;
-	}
-	
-	/**
-	 * <p>in JSON format</p>
-	 */						
-	@RequestMapping(value = "/info", produces = "application/json", method = RequestMethod.GET)
-	public ResponseEntity<String> getMetrics() {
-		
-		TrafficPass pass = null;
-		
-		try {
-			
-			pass = getTrafficControlService().getPass();
-			
-			StringBuilder str = new StringBuilder();
-			
-			SystemInfo info = getObjectStorageService().getSystemInfo();
-			
-			str.append("\n");
-			str.append("\n");
-			
-			for (String s : this.settings.getAppCharacterName())
-				str.append("    " + s+"\n");
-			
-			str.append("\n");
-			str.append("\n");
-			
-			Map<String, String> map = info.getColloquial();
+    @SuppressWarnings("unused")
+    static private Logger logger = Logger.getLogger(InfoController.class.getName());
 
-			map.forEach((k,v) -> str.append("    " + k + " -> " + v + "\n\n"));
-			
-			str.append("\n");
-			str.append("\n");
-					
-			return new ResponseEntity<String>(str.toString(), HttpStatus.OK);
-		
-		
-		} finally {
-			getTrafficControlService().release(pass);
-			mark();
-		}
-	}
+    private ServerSettings settings;
 
-	
+    @Autowired
+    public InfoController(ObjectStorageService objectStorageService, VirtualFileSystemService virtualFileSystemService,
+            SystemMonitorService monitoringService, ServerSettings settings,
+            TrafficControlService trafficControlService) {
+
+        super(objectStorageService, virtualFileSystemService, monitoringService, trafficControlService);
+        this.settings = settings;
+    }
+
+    /**
+     * <p>
+     * in JSON format
+     * </p>
+     */
+    @RequestMapping(value = "/info", produces = "application/json", method = RequestMethod.GET)
+    public ResponseEntity<String> getMetrics() {
+
+        TrafficPass pass = null;
+
+        try {
+
+            pass = getTrafficControlService().getPass();
+
+            StringBuilder str = new StringBuilder();
+
+            SystemInfo info = getObjectStorageService().getSystemInfo();
+
+            str.append("\n");
+            str.append("\n");
+
+            for (String s : this.settings.getAppCharacterName())
+                str.append("    " + s + "\n");
+
+            str.append("\n");
+            str.append("\n");
+
+            Map<String, String> map = info.getColloquial();
+
+            map.forEach((k, v) -> str.append("    " + k + " -> " + v + "\n\n"));
+
+            str.append("\n");
+            str.append("\n");
+
+            return new ResponseEntity<String>(str.toString(), HttpStatus.OK);
+
+        } finally {
+            getTrafficControlService().release(pass);
+            mark();
+        }
+    }
+
 }

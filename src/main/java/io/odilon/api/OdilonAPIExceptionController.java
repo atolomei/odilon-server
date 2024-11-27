@@ -21,24 +21,24 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.http.HttpStatus;
 
-
 /**
- * <p>API Exception controller</p>
+ * <p>
+ * API Exception controller
+ * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public class OdilonAPIExceptionController {
 
-	@ResponseBody
-	@ExceptionHandler(Exception.class)
-	@ResponseStatus(HttpStatus.NOT_FOUND)
-	String employeeNotFoundHandler(Exception ex) {
-	    return ex.getMessage();
-	}
+    @ResponseBody
+    @ExceptionHandler(Exception.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    String employeeNotFoundHandler(Exception ex) {
+        return ex.getMessage();
+    }
 }
 
 /**
  * final HttpHeaders httpHeaders= new HttpHeaders();
-    httpHeaders.setContentType(MediaType.APPLICATION_JSON);
+ * httpHeaders.setContentType(MediaType.APPLICATION_JSON);
  */
-

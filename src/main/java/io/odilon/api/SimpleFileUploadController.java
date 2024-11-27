@@ -16,7 +16,6 @@
  */
 package io.odilon.api;
 
-
 import java.io.IOException;
 
 import java.io.File;
@@ -51,89 +50,90 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 @RequestMapping(value = "/dev")
 public class SimpleFileUploadController extends BaseApiController {
 
-	@SuppressWarnings("unused")
-	static private Logger logger = Logger.getLogger(SimpleFileUploadController.class.getName());
+    @SuppressWarnings("unused")
+    static private Logger logger = Logger.getLogger(SimpleFileUploadController.class.getName());
 
-	
-	@JsonIgnore
-	RandomIDGenerator idGenerator = new RandomIDGenerator();
-	
-	public SimpleFileUploadController(		ObjectStorageService objectStorageService, 
-									VirtualFileSystemService virtualFileSystemService,
-									SystemMonitorService monitoringService, 
-									TrafficControlService trafficControlService) {
-		super(objectStorageService, virtualFileSystemService, monitoringService, trafficControlService);
-		
-	}
-	
-	public class FileUploadResponse {
-		
-	    private String fileName;
-	    private String downloadUri;
-	    private long size;
-	    
-		public String getFileName() {
-			return fileName;
-		}
-		public void setFileName(String fileName) {
-			this.fileName = fileName;
-		}
-		public String getDownloadUri() {
-			return downloadUri;
-		}
-		public void setDownloadUri(String downloadUri) {
-			this.downloadUri = downloadUri;
-		}
-		public long getSize() {
-			return size;
-		}
-		public void setSize(long size) {
-			this.size = size;
-		}
-	}
-	
-	 @RequestMapping(value = "/upload", produces = "application/json", method = RequestMethod.POST)
-	 public ResponseEntity<FileUploadResponse> uploadFile(@RequestParam("file") MultipartFile multipartFile) throws IOException {
-	         
-		 try {
-	        String fileName = StringUtils.cleanPath(multipartFile.getOriginalFilename());
-	        long size = multipartFile.getSize();
-	         
-	        String filecode =  saveFile(fileName, multipartFile);
-	         
-	        FileUploadResponse response = new FileUploadResponse();
-	        response.setFileName(fileName);
-	        response.setSize(size);
-	        response.setDownloadUri("/downloadFile/" + filecode);
-	        
-	        return new ResponseEntity<>(response, HttpStatus.OK);
-		 }
-	        finally {
-	        	mark();
-	        }
-	        
-	    }
-	 
-	 
-	 	
-	 private String saveFile(String fileName, MultipartFile multipartFile) throws IOException {
-		        
-			Path uploadPath = Paths.get("c:"+File.separator+"temp"+File.separator+"odilon-upload");
-		          
-		        if (!Files.exists(uploadPath)) {
-		            Files.createDirectories(uploadPath);
-		        }
-		 
-		        String fileCode = idGenerator.randomString(8);
-		         
-		        try (InputStream inputStream = multipartFile.getInputStream()) {
-		            Path filePath = uploadPath.resolve(fileCode + "-" + fileName);
-		            Files.copy(inputStream, filePath, StandardCopyOption.REPLACE_EXISTING);
-		        } catch (IOException ioe) {       
-		            throw new IOException("Could not save file: " + fileName, ioe);
-		        }
-		         
-		        return fileCode;
-	}
-	
+    @JsonIgnore
+    RandomIDGenerator idGenerator = new RandomIDGenerator();
+
+    public SimpleFileUploadController(ObjectStorageService objectStorageService,
+            VirtualFileSystemService virtualFileSystemService, SystemMonitorService monitoringService,
+            TrafficControlService trafficControlService) {
+        super(objectStorageService, virtualFileSystemService, monitoringService, trafficControlService);
+
+    }
+
+    public class FileUploadResponse {
+
+        private String fileName;
+        private String downloadUri;
+        private long size;
+
+        public String getFileName() {
+            return fileName;
+        }
+
+        public void setFileName(String fileName) {
+            this.fileName = fileName;
+        }
+
+        public String getDownloadUri() {
+            return downloadUri;
+        }
+
+        public void setDownloadUri(String downloadUri) {
+            this.downloadUri = downloadUri;
+        }
+
+        public long getSize() {
+            return size;
+        }
+
+        public void setSize(long size) {
+            this.size = size;
+        }
+    }
+
+    @RequestMapping(value = "/upload", produces = "application/json", method = RequestMethod.POST)
+    public ResponseEntity<FileUploadResponse> uploadFile(@RequestParam("file") MultipartFile multipartFile)
+            throws IOException {
+
+        try {
+            String fileName = StringUtils.cleanPath(multipartFile.getOriginalFilename());
+            long size = multipartFile.getSize();
+
+            String filecode = saveFile(fileName, multipartFile);
+
+            FileUploadResponse response = new FileUploadResponse();
+            response.setFileName(fileName);
+            response.setSize(size);
+            response.setDownloadUri("/downloadFile/" + filecode);
+
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        } finally {
+            mark();
+        }
+
+    }
+
+    private String saveFile(String fileName, MultipartFile multipartFile) throws IOException {
+
+        Path uploadPath = Paths.get("c:" + File.separator + "temp" + File.separator + "odilon-upload");
+
+        if (!Files.exists(uploadPath)) {
+            Files.createDirectories(uploadPath);
+        }
+
+        String fileCode = idGenerator.randomString(8);
+
+        try (InputStream inputStream = multipartFile.getInputStream()) {
+            Path filePath = uploadPath.resolve(fileCode + "-" + fileName);
+            Files.copy(inputStream, filePath, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException ioe) {
+            throw new IOException("Could not save file: " + fileName, ioe);
+        }
+
+        return fileCode;
+    }
+
 }

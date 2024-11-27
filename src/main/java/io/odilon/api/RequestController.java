@@ -16,8 +16,6 @@
  */
 package io.odilon.api;
 
-
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -40,7 +38,8 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
  * 
- * <p>{@link SchedulerService} Requests
+ * <p>
+ * {@link SchedulerService} Requests
  * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
@@ -48,64 +47,61 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 @RestController
 @RequestMapping(value = "/servicerequest")
 public class RequestController extends BaseApiController {
-			
-@SuppressWarnings("unused")
-static private Logger logger = Logger.getLogger(RequestController.class.getName());
-	
-	@Autowired
-	private SchedulerService schedulerService;
 
-	@Autowired
-	public RequestController(		ObjectStorageService objectStorageService, 
-									VirtualFileSystemService virtualFileSystemService,
-									SystemMonitorService monitoringService,
-									TrafficControlService trafficControlService,
-									SchedulerService schedulerService) {
-		super(objectStorageService, virtualFileSystemService, monitoringService, trafficControlService);
-		
-		this.schedulerService=schedulerService;
-	}
+    @SuppressWarnings("unused")
+    static private Logger logger = Logger.getLogger(RequestController.class.getName());
 
-	/**
-	 * @param name
-	 * @return
-	 */
-	@RequestMapping(value = "/add/{name}", produces = "application/json", method = RequestMethod.POST)
-	public void addRequest(@PathVariable("name") String name) {
-		
-		TrafficPass pass = null;
-		
-		try {
-			
-			pass = getTrafficControlService().getPass();
-			
-			if (name==null)															
-				throw new OdilonObjectNotFoundException( ErrorCode.INTERNAL_ERROR, String.format("parameter request is null"));
-			
-			name = TestServiceRequest.class.getName();
-			ServiceRequest request =(ServiceRequest) getApplicationContext().getBean(TestServiceRequest.class);
-			
-			if (request==null) {
-				throw new OdilonObjectNotFoundException( ErrorCode.OBJECT_NOT_FOUND, String.format("Request does not exist -> %s", name));
-			}
-			
-			getSchedulerService().enqueue(request);
-			
-		} catch (OdilonServerAPIException e) {
-			throw e;
-		} catch (Exception e) {
-			throw new OdilonInternalErrorException(getMessage(e));
-		}
-		finally { 
-			getTrafficControlService().release(pass);
-			mark();
-		}
-	}
-	
-	private SchedulerService getSchedulerService() {
-		return schedulerService;
-	}
-	
+    @Autowired
+    private SchedulerService schedulerService;
 
-	
+    @Autowired
+    public RequestController(ObjectStorageService objectStorageService,
+            VirtualFileSystemService virtualFileSystemService, SystemMonitorService monitoringService,
+            TrafficControlService trafficControlService, SchedulerService schedulerService) {
+        super(objectStorageService, virtualFileSystemService, monitoringService, trafficControlService);
+
+        this.schedulerService = schedulerService;
+    }
+
+    /**
+     * @param name
+     * @return
+     */
+    @RequestMapping(value = "/add/{name}", produces = "application/json", method = RequestMethod.POST)
+    public void addRequest(@PathVariable("name") String name) {
+
+        TrafficPass pass = null;
+
+        try {
+
+            pass = getTrafficControlService().getPass();
+
+            if (name == null)
+                throw new OdilonObjectNotFoundException(ErrorCode.INTERNAL_ERROR,
+                        String.format("parameter request is null"));
+
+            name = TestServiceRequest.class.getName();
+            ServiceRequest request = (ServiceRequest) getApplicationContext().getBean(TestServiceRequest.class);
+
+            if (request == null) {
+                throw new OdilonObjectNotFoundException(ErrorCode.OBJECT_NOT_FOUND,
+                        String.format("Request does not exist -> %s", name));
+            }
+
+            getSchedulerService().enqueue(request);
+
+        } catch (OdilonServerAPIException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new OdilonInternalErrorException(getMessage(e));
+        } finally {
+            getTrafficControlService().release(pass);
+            mark();
+        }
+    }
+
+    private SchedulerService getSchedulerService() {
+        return schedulerService;
+    }
+
 }

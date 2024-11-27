@@ -26,16 +26,15 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class IndexController implements ErrorController {
 
-	private static final String PATH = "/error";
+    private static final String PATH = "/error";
 
     @RequestMapping(value = PATH)
     public String error() {
         return "Error handling | " + this.getClass().getName();
     }
 
-    
     public String getErrorPath() {
         return PATH;
     }
-    
+
 }
