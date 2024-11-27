@@ -92,18 +92,15 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
 		boolean isMainException = false;
 
 		objectWriteLock(bucket, objectName);
-		// getLockService().getObjectLock(bucket, objectName).writeLock().lock();
 
 		try {
 
-			// getLockService().getBucketLock(bucket).readLock().lock();
-			bucketReadLock(bucket);
+		    bucketReadLock(bucket);
 
 			try (stream) {
 
 				if (getDriver().getWriteDrive(bucket, objectName).existsObjectMetadata(bucket, objectName))
-					throw new IllegalArgumentException(
-							"Object already exist ->  " + getDriver().objectInfo(bucket, objectName));
+					throw new IllegalArgumentException("Object already exist ->"+getDriver().objectInfo(bucket, objectName));
 
 				int version = 0;
 
@@ -127,37 +124,27 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
 				try {
 					if ((!done) && (op != null)) {
 						try {
-
 							rollbackJournal(op, false);
-
 						} catch (InternalCriticalException e) {
 							if (!isMainException)
 								throw e;
 							else
-								logger.error(e, " finally | " + getDriver().objectInfo(bucket, objectName, srcFileName),
-										SharedConstant.NOT_THROWN);
+								logger.error(e, getDriver().objectInfo(bucket, objectName, srcFileName),SharedConstant.NOT_THROWN);
 						} catch (Exception e) {
 							if (!isMainException)
-								throw new InternalCriticalException(e,
-										" finally | " + getDriver().objectInfo(bucket, objectName, srcFileName));
+								throw new InternalCriticalException(e,getDriver().objectInfo(bucket, objectName, srcFileName));
 							else
-								logger.error(e, " finally | " + getDriver().objectInfo(bucket, objectName, srcFileName),
-										SharedConstant.NOT_THROWN);
+								logger.error(e, getDriver().objectInfo(bucket, objectName, srcFileName),SharedConstant.NOT_THROWN);
 						}
 					}
 				} finally {
-					// getLockService().getBucketLock(bucket).readLock().unlock();
 					bucketReadUnlock(bucket);
 				}
 			}
 		} finally {
-			// getLockService().getObjectLock(bucket, objectName).writeLock().unlock();
 			objectWriteUnLock(bucket, objectName);
 		}
 	}
-
-	
-
 	/**
 	 * <p>
 	 * This method is <b>not</b> ThreadSafe, callers must ensure proper concurrency
@@ -176,29 +163,26 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
 		boolean done = false;
 
 		try {
-
 			if (getVirtualFileSystemService().getServerSettings().isStandByEnabled())
 				getVirtualFileSystemService().getReplicationService().cancel(op);
 
 			getWriteDrive(this.getVirtualFileSystemService().getBucketById(op.getBucketId()), objectName)
 					.deleteObjectMetadata(op.getBucketId(), objectName);
-			FileUtils.deleteQuietly(
-					new File(getWriteDrive(this.getVirtualFileSystemService().getBucketById(op.getBucketId()), objectName).getRootDirPath(),
+			FileUtils.deleteQuietly(new File(getWriteDrive(this.getVirtualFileSystemService().getBucketById(op.getBucketId()), objectName).getRootDirPath(),
 							op.getBucketId().toString() + File.separator + objectName));
-
 			done = true;
 
 		} catch (InternalCriticalException e) {
 			if (!recoveryMode)
 				throw (e);
 			else
-				logger.error(e, "Rollback | " + getDriver().opInfo(op), SharedConstant.NOT_THROWN);
+				logger.error(e,getDriver().opInfo(op), SharedConstant.NOT_THROWN);
 
 		} catch (Exception e) {
 			if (!recoveryMode)
 				throw new InternalCriticalException(e, "Rollback " + getDriver().opInfo(op));
 			else
-				logger.error(e, "Rollback | " + getDriver().opInfo(op), SharedConstant.NOT_THROWN);
+				logger.error(e,getDriver().opInfo(op), SharedConstant.NOT_THROWN);
 		} finally {
 			if (done || recoveryMode)
 				op.cancel();
@@ -215,8 +199,6 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
 	 * @param objectName  can not be null
 	 * @param stream      can not be null
 	 * @param srcFileName can not be null
-	 * 
-	 * 
 	 */
 	private void saveObjectDataFile(ServerBucket bucket, String objectName, InputStream stream, String srcFileName) {
 

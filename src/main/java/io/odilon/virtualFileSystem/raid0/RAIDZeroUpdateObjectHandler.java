@@ -79,8 +79,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
             String contentType, Optional<List<String>> customTags) {
 
         Check.requireNonNullArgument(bucket, "bucket is null");
-        Check.requireNonNullStringArgument(objectName,
-                "objectName can not be null | " + getDriver().objectInfo(bucket));
+        Check.requireNonNullStringArgument(objectName, "objectName is null | " + getDriver().objectInfo(bucket));
         Check.requireNonNullArgument(stream, "stream is null");
 
         VFSOperation op = null;
@@ -100,7 +99,6 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
             // getLockService().getBucketLock(bucket).readLock().lock();
 
             try (stream) {
-
                 if (!getDriver().getWriteDrive(bucket, objectName).existsObjectMetadata(bucket, objectName))
                     throw new IllegalArgumentException(
                             "object does not exist -> " + getDriver().objectInfo(bucket, objectName, srcFileName));
@@ -181,7 +179,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 
         int beforeHeadVersion = -1;
 
-        getLockService().getObjectLock(bucket, objectName).writeLock().lock();
+        objectWriteLock(bucket, objectName);
 
         try {
 
@@ -282,7 +280,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
                 }
             }
         } finally {
-            getLockService().getObjectLock(bucket, objectName).writeLock().unlock();
+            objectWriteUnLock(bucket, objectName);
         }
     }
 
@@ -305,32 +303,27 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 
         ServerBucket bucket = getDriver().getVirtualFileSystemService().getBucketById(meta.getBucketId());
 
-        getLockService().getObjectLock(bucket, meta.getObjectName()).writeLock().lock();
+        objectWriteLock(bucket, meta.getObjectName());
 
         try {
-
             getLockService().getBucketLock(bucket).readLock().lock();
 
             try {
-
                 op = getJournalService().updateObjectMetadata(bucket, meta.getObjectName(), meta.version);
                 backupMetadata(meta);
                 getWriteDrive(bucket, meta.getObjectName()).saveObjectMetadata(meta);
                 done = op.commit();
-
             } catch (Exception e) {
                 isMainException = true;
                 done = false;
                 throw new InternalCriticalException(e, "b:" + meta.getBucketId() + ", o:" + meta.getObjectName());
 
             } finally {
-
                 try {
                     if ((!done) && (op != null)) {
                         try {
                             rollbackJournal(op, false);
                         } catch (Exception e) {
-
                             if (!isMainException)
                                 throw new InternalCriticalException(e,
                                         getDriver().objectInfo(meta.getBucketId(), meta.getObjectName()));
@@ -355,7 +348,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
                 }
             }
         } finally {
-            getLockService().getObjectLock(bucket, meta.getObjectName()).writeLock().unlock();
+            objectWriteUnLock(bucket, meta.getObjectName());
         }
     }
 
@@ -383,17 +376,14 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
                 "VFSOperation can not be  ->  op: " + op.getOp().getName());
 
         switch (op.getOp()) {
-
         case UPDATE_OBJECT: {
             rollbackJournalUpdate(op, recoveryMode);
             break;
         }
-
         case UPDATE_OBJECT_METADATA: {
             rollbackJournalUpdateMetadata(op, recoveryMode);
             break;
         }
-
         case RESTORE_OBJECT_PREVIOUS_VERSION: {
             rollbackJournalUpdate(op, recoveryMode);
             break;
@@ -405,7 +395,6 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
     }
 
     /**
-     * 
      * @param op
      * @param recoveryMode
      */
@@ -414,7 +403,6 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
         boolean done = false;
 
         try {
-
             if (getVirtualFileSystemService().getServerSettings().isStandByEnabled())
                 getVirtualFileSystemService().getReplicationService().cancel(op);
 
@@ -429,13 +417,13 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
             if (!recoveryMode)
                 throw (e);
             else
-                logger.error("Rollback | " + getDriver().opInfo(op));
+                logger.error(getDriver().opInfo(op), SharedConstant.NOT_THROWN);
 
         } catch (Exception e) {
             if (!recoveryMode)
                 throw new InternalCriticalException(e, "Rollback | " + getDriver().opInfo(op));
             else
-                logger.error("Rollback | " + getDriver().opInfo(op));
+                logger.error(getDriver().opInfo(op), SharedConstant.NOT_THROWN);
         } finally {
             if (done || recoveryMode) {
                 op.cancel();
@@ -444,10 +432,6 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
     }
 
     /**
-     * <p>
-     * The
-     * </p>
-     * 
      * @param op
      * @param recoveryMode
      */
@@ -458,7 +442,6 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
         boolean done = false;
 
         try {
-
             ServerBucket bucket = getDriver().getVirtualFileSystemService().getBucketById(op.getBucketId());
 
             if (getVirtualFileSystemService().getServerSettings().isStandByEnabled())
@@ -473,14 +456,14 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
             if (!recoveryMode)
                 throw (e);
             else
-                logger.error(e, "Rollback | " + getDriver().opInfo(op));
+                logger.error(e, getDriver().opInfo(op), SharedConstant.NOT_THROWN);
 
         } catch (Exception e) {
             String msg = "Rollback | " + getDriver().opInfo(op);
             if (!recoveryMode)
                 throw new InternalCriticalException(e, msg);
             else
-                logger.error(e, msg + SharedConstant.NOT_THROWN);
+                logger.error(e, msg, SharedConstant.NOT_THROWN);
         } finally {
             if (done || recoveryMode) {
                 op.cancel();

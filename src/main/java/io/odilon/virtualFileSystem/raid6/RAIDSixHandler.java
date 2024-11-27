@@ -14,22 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-
 package io.odilon.virtualFileSystem.raid6;
 
 import javax.annotation.concurrent.ThreadSafe;
 
-import io.odilon.model.RedundancyLevel;
 import io.odilon.virtualFileSystem.BaseRAIDHandler;
 import io.odilon.virtualFileSystem.RAIDHandler;
-import io.odilon.virtualFileSystem.model.JournalService;
-import io.odilon.virtualFileSystem.model.LockService;
 import io.odilon.virtualFileSystem.model.VFSOperation;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
- * <p>Base class for all RAID 6 hadler </p>
+ * <p>
+ * Base class for all RAID 6 hadler
+ * </p>
+ * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  * 
  * @see {@link RAIDSixCreateObjectHandler}
@@ -37,45 +35,23 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  * @see {@link RAIDSixDeleteObjectHandler}
  * 
  */
-
 @ThreadSafe
 public abstract class RAIDSixHandler extends BaseRAIDHandler implements RAIDHandler {
 
-	private final RAIDSixDriver driver;
-	
-	public RAIDSixHandler(RAIDSixDriver driver) {
-		this.driver=driver;
-	}
+    private final RAIDSixDriver driver;
 
-	
-	@Override
-	public RAIDSixDriver getDriver() {
-		return this.driver;
-	}
-	
-	
-	public VirtualFileSystemService getVirtualFileSystemService() {
-		return getDriver().getVirtualFileSystemService();
-	}
-	
-	/**
-	public JournalService getJournalService() {
-		return this.driver.getJournalService();
-	}
+    public RAIDSixHandler(RAIDSixDriver driver) {
+        this.driver = driver;
+    }
 
-	public LockService getLockService() {
-		return this.driver.getLockService();
-	}
-		
-	public RedundancyLevel getRedundancyLevel() {
-		return this.driver.getRedundancyLevel(); 
-	}
+    @Override
+    public RAIDSixDriver getDriver() {
+        return this.driver;
+    }
 
-	protected boolean isEncrypt() {
-		return this.driver.isEncrypt();
-	}
-	**/
-	protected abstract void rollbackJournal(VFSOperation op, boolean recoveryMode);
+    public VirtualFileSystemService getVirtualFileSystemService() {
+        return getDriver().getVirtualFileSystemService();
+    }
 
-	
+    protected abstract void rollbackJournal(VFSOperation op, boolean recoveryMode);
 }
