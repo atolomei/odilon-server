@@ -276,7 +276,7 @@ private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class
 					if (metaVersions.isEmpty()) 
 						throw new OdilonObjectNotFoundException(Optional.of(metaHeadToRemove.systemTags).orElse("previous versions deleted"));
 					
-					op = getJournalService().restoreObjectPreviousVersion(bucket.getId(), objectName, beforeHeadVersion);
+					op = getJournalService().restoreObjectPreviousVersion(bucket, objectName, beforeHeadVersion);
 					
 					/** save current head version MetadataFile .vN  
 					 * and data File vN - no need to additional backup */

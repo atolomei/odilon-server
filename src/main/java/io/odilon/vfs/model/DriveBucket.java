@@ -16,7 +16,6 @@
  */
 package io.odilon.vfs.model;
 
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -31,79 +30,75 @@ import io.odilon.log.Logger;
 import io.odilon.model.BucketMetadata;
 import io.odilon.model.BucketStatus;
 
-
 /**
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public class DriveBucket {
-		
+
 	@SuppressWarnings("unused")
 	static private Logger logger = Logger.getLogger(DriveBucket.class.getName());
 	static private ObjectMapper objectMapper = new ObjectMapper();
-	
+
 	static {
 		objectMapper.registerModule(new JavaTimeModule());
-		objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);	
+		objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 	}
 
-	
 	private BucketMetadata meta;
-	
+
 	/** this field may cause infinite recursion if not ignored */
 
 	@JsonIgnore
 	private Drive drive;
-	
+
 	public DriveBucket(Drive drive, BucketMetadata vfs_meta) throws IOException {
 		this.drive = drive;
-		this.meta = vfs_meta.clone(); 
+		this.meta = vfs_meta.clone();
 	}
-	
+
 	@JsonIgnore
 	public Path getBucketControlDir() {
 		return Paths.get(getDrive().getBucketMetadataDirPath(meta.id));
 	}
-	
+
 	@JsonIgnore
 	public Drive getDrive() {
 		return drive;
 	}
-	
+
 	public String getName() {
 		return meta.bucketName;
 	}
-	
+
 	public Long getId() {
 		return meta.id;
 	}
-	
+
 	public OffsetDateTime getCreationDate() {
 		return meta.creationDate;
 	}
-	
-	
+
 	public BucketMetadata getBucketMetadata() {
 		return meta;
 	}
-	
-	
+
 	public BucketStatus getStatus() {
 		return meta.status;
 	}
 
 	@JsonIgnore
 	public boolean isDeleted() {
-		if (meta.status==null)
+		if (meta.status == null)
 			return false;
-		return meta.status==BucketStatus.DELETED; 
+		return meta.status == BucketStatus.DELETED;
 	}
 
 	@JsonIgnore
 	public boolean isAccesible() {
-		if (meta.status==null)
+		if (meta.status == null)
 			return false;
-		return meta.status==BucketStatus.ENABLED || meta.status==BucketStatus.ARCHIVED; 
+		return meta.status == BucketStatus.ENABLED || meta.status == BucketStatus.ARCHIVED;
 	}
-	
+
 }

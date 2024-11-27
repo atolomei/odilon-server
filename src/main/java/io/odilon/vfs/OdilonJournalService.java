@@ -149,37 +149,43 @@ public class OdilonJournalService extends BaseService implements JournalService 
 							Optional.empty());
 	}
 	
-	@Override								
-	public VFSOperation deleteObjectPreviousVersions(Long bucketId, String objectName, int currentHeadVersion) {
-		return createNew(VFSOp.DELETE_OBJECT_PREVIOUS_VERSIONS, 
-						 Optional.of(bucketId), 
-						 Optional.empty(),
-						 Optional.ofNullable(objectName), 
-						 Optional.of(Integer.valueOf(currentHeadVersion)));
+								
+	public VFSOperation deleteObjectPreviousVersions(ServerBucket bucket, String objectName, int currentHeadVersion) {
+	    Check.requireNonNullArgument(bucket, "bucket is null");
+	    return createNew(VFSOp.DELETE_OBJECT_PREVIOUS_VERSIONS, 
+                Optional.of(bucket.getId()), 
+                Optional.empty(),
+                Optional.ofNullable(objectName), 
+                Optional.of(Integer.valueOf(currentHeadVersion)));
+	    
 	}
 	
+		
 	@Override							
-	public VFSOperation syncObject(Long bucketId, String objectName) {
-		return createNew(VFSOp.SYNC_OBJECT_NEW_DRIVE, 
-						 Optional.of(bucketId),
+	public VFSOperation syncObject(ServerBucket bucket, String objectName) {
+	    Check.requireNonNullArgument(bucket, "bucket is null");
+	    return createNew(VFSOp.SYNC_OBJECT_NEW_DRIVE, 
+						 Optional.of(bucket.getId()),
 						 Optional.empty(),
 						 Optional.ofNullable(objectName), 
 						 Optional.empty());
 	}
 	
 	@Override			
-	public VFSOperation deleteObject(Long bucketId, String objectName, int currentHeadVersion) {
-		return createNew(VFSOp.DELETE_OBJECT, 
-						 Optional.of(bucketId),
+	public VFSOperation deleteObject(ServerBucket bucket, String objectName, int currentHeadVersion) {
+	    Check.requireNonNullArgument(bucket, "bucket is null");
+	    return createNew(VFSOp.DELETE_OBJECT, 
+						 Optional.of(bucket.getId()),
 						 Optional.empty(),
 						 Optional.ofNullable(objectName), 
 						 Optional.of(Integer.valueOf(currentHeadVersion)));
 	}
 	
 	@Override
-	public VFSOperation restoreObjectPreviousVersion(Long bucketId, String objectName, int currentHeadVersion) {
-		return createNew(VFSOp.RESTORE_OBJECT_PREVIOUS_VERSION, 
-						 Optional.of(bucketId),
+	public VFSOperation restoreObjectPreviousVersion(ServerBucket bucket, String objectName, int currentHeadVersion) {
+	    Check.requireNonNullArgument(bucket, "bucket is null");
+	    return createNew(VFSOp.RESTORE_OBJECT_PREVIOUS_VERSION, 
+						 Optional.of(bucket.getId()),
 						 Optional.empty(),
 						 Optional.ofNullable(objectName), 
 						 Optional.of(Integer.valueOf(currentHeadVersion)));

@@ -95,7 +95,7 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 				/** backup metadata, there is no need to backup data because existing data files are not touched. **/
 				backupMetadata(meta);
 				
-				op = getJournalService().syncObject(bucketId, objectName);
+				op = getJournalService().syncObject(bucket, objectName);
 				
 				
 				/** HEAD VERSION --------------------------------------------------------- */

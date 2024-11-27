@@ -22,26 +22,39 @@ import io.odilon.model.BucketMetadata;
 import io.odilon.model.BucketStatus;
 
 /**
- *<p>Odilon stores objects using a flat structure of containers called Buckets.
- * A bucket is like a folder, it just contains binary objects, potentially a very large number. 
- *  Every object contained by a bucket has a unique ObjectName in that bucket; therefore, 
- *  the pair <b>BucketName</b> + <b>ObjectName</b> is a Unique ID for each object in Odilon.</p>
- *  
- *  <p>A ServerBucket is the Bucket on the Server side</p>
- *  
- *@see {@link Bucket} simplified JSON representation of a Bucket, used both by the server and SDK client
- *@see {@link OdilonBucket} implementation of this interface on the Odilon Server
+ * <p>
+ * Odilon stores objects using a flat structure of containers called Buckets. A
+ * bucket is like a folder, it just contains binary objects, potentially a very
+ * large number. Every object contained by a bucket has a unique ObjectName in
+ * that bucket; therefore, the pair <b>BucketName</b> + <b>ObjectName</b> is a
+ * Unique ID for each object in Odilon.
+ * </p>
+ * 
+ * <p>
+ * A ServerBucket is the Bucket on the Server side
+ * </p>
+ * 
+ * @see {@link Bucket} simplified JSON representation of a Bucket, used both by
+ *      the server and SDK client
+ * @see {@link OdilonBucket} implementation of this interface on the Odilon
+ *      Server
  *
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public interface ServerBucket {
-	
+
 	public String getName();
+
 	public Long getId();
+
 	public OffsetDateTime getCreationDate();
+
 	public BucketStatus getStatus();
+
 	public BucketMetadata getBucketMetadata();
+
 	public boolean isAccesible();
+
 	public OffsetDateTime getLastModifiedDate();
-	
+
 }

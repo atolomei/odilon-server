@@ -9,33 +9,28 @@ import io.odilon.vfs.model.ServerBucket;
 
 public abstract class BaseRAIDHandler {
 
-	
 	public abstract IODriver getDriver();
-	
-	
+
 	public JournalService getJournalService() {
 		return getDriver().getJournalService();
 	}
 
-
 	public LockService getLockService() {
 		return getDriver().getLockService();
 	}
-	
+
 	protected boolean isEncrypt() {
 		return getDriver().isEncrypt();
 	}
-	
+
 	public RedundancyLevel getRedundancyLevel() {
-		return getDriver().getRedundancyLevel(); 
+		return getDriver().getRedundancyLevel();
 	}
-	
-	
-	
+
 	protected void objectReadLock(ServerBucket bucket, String objectName) {
 		getLockService().getObjectLock(bucket, objectName).readLock().lock();
 	}
-	
+
 	protected void objectReadUnLock(ServerBucket bucket, String objectName) {
 		getLockService().getObjectLock(bucket, objectName).readLock().unlock();
 	}
@@ -47,7 +42,7 @@ public abstract class BaseRAIDHandler {
 	protected void objectWriteUnLock(ServerBucket bucket, String objectName) {
 		getLockService().getObjectLock(bucket, objectName).writeLock().unlock();
 	}
-	
+
 	protected void bucketReadLock(ServerBucket bucket) {
 		getLockService().getBucketLock(bucket).readLock().lock();
 	}
@@ -59,7 +54,7 @@ public abstract class BaseRAIDHandler {
 	protected void bucketWriteLock(BucketMetadata meta) {
 		getLockService().getBucketLock(meta.getId()).writeLock().lock();
 	}
-	
+
 	protected void bucketWriteUnlock(BucketMetadata meta) {
 		getLockService().getBucketLock(meta.getId()).writeLock().unlock();
 	}

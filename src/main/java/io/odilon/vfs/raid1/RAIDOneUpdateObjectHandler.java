@@ -210,7 +210,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 					if (metaVersions.isEmpty()) 
 						throw new OdilonObjectNotFoundException(Optional.of(meta.systemTags).orElse("previous versions deleted"));
 					
-					op = getJournalService().restoreObjectPreviousVersion(bucket.getId(), objectName, beforeHeadVersion);
+					op = getJournalService().restoreObjectPreviousVersion(bucket, objectName, beforeHeadVersion);
 					
 					/** save current head version MetadataFile .vN  and data File vN - no need to additional backup */
 					saveVersionObjectDataFile(bucket, objectName,  meta.version);

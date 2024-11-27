@@ -90,7 +90,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 				
 				headVersion = meta.getVersion();
 				
-				op = getJournalService().deleteObject(bucket.getId(), objectName,	headVersion);
+				op = getJournalService().deleteObject(bucket, objectName,	headVersion);
 				
 				backupMetadata(bucket, meta.getObjectName());
 
@@ -187,7 +187,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements  RAI
 					if (meta.getVersion()==0)
 						return;
 											
-					op = getJournalService().deleteObjectPreviousVersions(meta.getBucketId(), meta.getObjectName(), headVersion);
+					op = getJournalService().deleteObjectPreviousVersions(bucket, meta.getObjectName(), headVersion);
 					
 					backupMetadata(bucket, meta.getObjectName());
 		

@@ -63,13 +63,13 @@ public interface JournalService extends SystemService {
 	public VFSOperation updateObjectMetadata(ServerBucket bucket, String objectName, int version);
 
 	/** Version control */
-	public VFSOperation restoreObjectPreviousVersion(Long bucketId, String objectName, int versionToRestore);
-	public VFSOperation deleteObject(Long bucketId, String objectName, int currentHeadVersion);
-	public VFSOperation deleteObjectPreviousVersions(Long bucketId, String objectName, int currentHeadVersion);
+	public VFSOperation restoreObjectPreviousVersion(ServerBucket bucket, String objectName, int versionToRestore);
+	public VFSOperation deleteObject(ServerBucket bucket, String objectName, int currentHeadVersion);
+	public VFSOperation deleteObjectPreviousVersions(ServerBucket bucket, String objectName, int currentHeadVersion);
 	
 
 	/** sync new drive */
-	public VFSOperation syncObject(Long bucketId, String objectName);
+	public VFSOperation syncObject(ServerBucket bucket, String objectName);
 	
 	
 	

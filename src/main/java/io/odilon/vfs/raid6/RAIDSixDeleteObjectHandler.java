@@ -94,7 +94,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 				
 				headVersion = meta.version;
 			
-				op = getJournalService().deleteObject(bucketId, objectName, headVersion);
+				op = getJournalService().deleteObject(bucket, objectName, headVersion);
 				
 				backupMetadata(meta);
 				
@@ -196,7 +196,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 					if (headVersion==0)
 						return;
 					
-					op = getJournalService().deleteObjectPreviousVersions(bucketId, objectName, headVersion);
+					op = getJournalService().deleteObjectPreviousVersions(bucket, objectName, headVersion);
 					
 					backupMetadata(headMeta);
 		

@@ -93,7 +93,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 											
 				meta = getDriver().getReadDrive(bucket, objectName).getObjectMetadata(bucket.getId(), objectName);
 				headVersion = meta.version;
-				op = getJournalService().deleteObject(bucket.getId(), objectName, headVersion);
+				op = getJournalService().deleteObject(bucket, objectName, headVersion);
 				
 				backupMetadata(meta);
 				
@@ -221,7 +221,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 					if (meta.version==0)
 						return;
 					
-					op = getJournalService().deleteObjectPreviousVersions(meta.bucketId,objectName, headVersion);
+					op = getJournalService().deleteObjectPreviousVersions(bucket, objectName, headVersion);
 					
 					backupMetadata(meta);
 		
