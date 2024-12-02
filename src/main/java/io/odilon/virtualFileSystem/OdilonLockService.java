@@ -36,6 +36,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.odilon.log.Logger;
+import io.odilon.model.BucketMetadata;
 import io.odilon.model.ServerConstant;
 import io.odilon.model.ServiceStatus;
 import io.odilon.service.BaseService;
@@ -44,6 +45,7 @@ import io.odilon.service.ServerSettings;
 import io.odilon.util.Check;
 import io.odilon.virtualFileSystem.model.LockService;
 import io.odilon.virtualFileSystem.model.ServerBucket;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
  * <p>Implementation of the interface {@link OdilonLockService}. 
@@ -92,12 +94,16 @@ public class OdilonLockService extends BaseService implements LockService {
 	@Autowired
 	private final ServerSettings serverSettings;
 
-
+	@JsonIgnore
+    @Autowired
+    private final VirtualFileSystemService vfs;
+	
+	
 	@Autowired		
-	public OdilonLockService(ServerSettings serverSettings) {
+	public OdilonLockService(ServerSettings serverSettings, VirtualFileSystemService vfs) {
 		this.serverSettings=serverSettings;
+		this.vfs=vfs;
 	}
-
 
 	@Override
 	public ReadWriteLock getObjectLock(ServerBucket bucket, String objectName) {
@@ -105,10 +111,10 @@ public class OdilonLockService extends BaseService implements LockService {
 		return getObjectLocks().computeIfAbsent(getKey(bucket.getId(), objectName), key -> new ReentrantReadWriteLock());
 	}
 
-	@Override
-	public ReadWriteLock getObjectLock(Long bucketId, String objectName) {
-		return getObjectLocks().computeIfAbsent(getKey(bucketId, objectName), key -> new ReentrantReadWriteLock());
-	}
+	//@Override
+	//public ReadWriteLock getObjectLock(Long bucketId, String objectName) {
+	//	return getObjectLocks().computeIfAbsent(getKey(bucketId, objectName), key -> new ReentrantReadWriteLock());
+	//}
 
 	@Override
 	public ReadWriteLock getFileCacheLock(Long bucketId, String objectName, Optional<Integer> version) {
@@ -122,9 +128,17 @@ public class OdilonLockService extends BaseService implements LockService {
 	}
 	
 	@Override
-	public ReadWriteLock getBucketLock(Long bucketId) {
-		return getBucketLocks().computeIfAbsent(bucketId.toString(), key -> new ReentrantReadWriteLock());
-	}
+    public ReadWriteLock getBucketLock(BucketMetadata meta) {
+	    Check.requireNonNullArgument(meta, "BucketMetadata is null");
+	    ServerBucket bucket=this.getVirtualFileSystemService().getBucketById(meta.getId());
+	    Check.requireNonNullArgument(bucket, "bucket is null");
+	    return getBucketLock(bucket);
+    }
+	
+	//@Override
+	//public ReadWriteLock getBucketLock(Long bucketId) {
+	//	return getBucketLocks().computeIfAbsent(bucketId.toString(), key -> new ReentrantReadWriteLock());
+	//}
 
 	@Override
 	public ReadWriteLock getServerLock() {
@@ -280,6 +294,10 @@ public class OdilonLockService extends BaseService implements LockService {
 	private void preDestroy() {
 		this.cleaner.sendExitSignal();
 	}
+
+	private VirtualFileSystemService getVirtualFileSystemService() {
+        return this.vfs;
+    }    
 	
 	
 		

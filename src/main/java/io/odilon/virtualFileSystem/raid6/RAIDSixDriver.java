@@ -173,7 +173,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
                 + " or " + BucketStatus.ENABLED.getName() + "  | b:" + bucket.getName());
         Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 
-        getLockService().getObjectLock(bucket.getId(), objectName).readLock().lock();
+        getLockService().getObjectLock(bucket, objectName).readLock().lock();
 
         try {
 
@@ -199,7 +199,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
                 throw new InternalCriticalException(e, objectInfo(bucket, objectName));
 
             } finally {
-                getLockService().getObjectLock(bucket.getId(), objectName).readLock().unlock();
+                getLockService().getObjectLock(bucket, objectName).readLock().unlock();
             }
         } finally {
             getLockService().getBucketLock(bucket).readLock().unlock();
@@ -218,7 +218,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
         Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie. " + BucketStatus.ARCHIVED.getName()
                 + " or " + BucketStatus.ENABLED.getName() + ") | b:" + bucket.getName());
 
-        getLockService().getObjectLock(bucket.getId(), objectName).readLock().lock();
+        getLockService().getObjectLock(bucket, objectName).readLock().lock();
 
         try {
 
@@ -256,7 +256,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
                 getLockService().getBucketLock(bucket).readLock().unlock();
             }
         } finally {
-            getLockService().getObjectLock(bucket.getId(), objectName).readLock().unlock();
+            getLockService().getObjectLock(bucket, objectName).readLock().unlock();
         }
     }
 
@@ -274,7 +274,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
         Check.requireNonNullArgument(objectName, "objectName is null");
 
         OffsetDateTime thresholdDate = OffsetDateTime.now()
-                .minusDays(getVirtualFileSystemService().getServerSettings().getIntegrityCheckDays());
+        .minusDays(getVirtualFileSystemService().getServerSettings().getIntegrityCheckDays());
 
         Drive readDrive = null;
         ObjectMetadata metadata = null;
@@ -286,7 +286,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 
             try {
 
-                objectLock = getLockService().getObjectLock(bucket.getId(), objectName).readLock().tryLock(20,
+                objectLock = getLockService().getObjectLock(bucket, objectName).readLock().tryLock(20,
                         TimeUnit.SECONDS);
 
                 if (!objectLock) {
@@ -370,7 +370,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 
             try {
                 if (objectLock)
-                    getLockService().getObjectLock(bucket.getId(), objectName).readLock().unlock();
+                    getLockService().getObjectLock(bucket, objectName).readLock().unlock();
             } catch (Exception e) {
                 logger.error(e, SharedConstant.NOT_THROWN);
             }
@@ -530,21 +530,21 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
                 + " or " + BucketStatus.ENABLED.getName() + "  | b:" + bucket.getName());
         Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 
-        Long bucketId = bucket.getId();
+        //Long bucketId = bucket.getId();
 
-        getLockService().getObjectLock(bucketId, objectName).readLock().lock();
+        getLockService().getObjectLock(bucket, objectName).readLock().lock();
 
         try {
-            getLockService().getBucketLock(bucketId).readLock().lock();
+            getLockService().getBucketLock(bucket).readLock().lock();
             try {
                 return getObjectMetadataReadDrive(bucket, objectName).existsObjectMetadata(bucket, objectName);
             } catch (Exception e) {
                 throw new InternalCriticalException(e, objectInfo(bucket, objectName));
             } finally {
-                getLockService().getBucketLock(bucketId).readLock().unlock();
+                getLockService().getBucketLock(bucket).readLock().unlock();
             }
         } finally {
-            getLockService().getObjectLock(bucketId, objectName).readLock().unlock();
+            getLockService().getObjectLock(bucket, objectName).readLock().unlock();
         }
     }
 
@@ -595,7 +595,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 
         String bucketName = bucket.getName();
 
-        getLockService().getObjectLock(bucket.getId(), objectName).readLock().lock();
+        getLockService().getObjectLock(bucket, objectName).readLock().lock();
 
         try {
 
@@ -637,7 +637,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 
             }
         } finally {
-            getLockService().getObjectLock(bucket.getId(), objectName).readLock().unlock();
+            getLockService().getObjectLock(bucket, objectName).readLock().unlock();
         }
     }
 
@@ -697,7 +697,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 
         Drive readDrive = null;
 
-        getLockService().getObjectLock(bucket.getId(), objectName).readLock().lock();
+        getLockService().getObjectLock(bucket, objectName).readLock().lock();
 
         try {
 
@@ -745,7 +745,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
                 getLockService().getBucketLock(bucket).readLock().unlock();
             }
         } finally {
-            getLockService().getObjectLock(bucket.getId(), objectName).readLock().unlock();
+            getLockService().getObjectLock(bucket, objectName).readLock().unlock();
         }
     }
 
@@ -951,7 +951,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 
         Drive readDrive = null;
 
-        getLockService().getObjectLock(bucket.getId(), objectName).readLock().lock();
+        getLockService().getObjectLock(bucket, objectName).readLock().lock();
 
         try {
 
@@ -988,7 +988,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 
             }
         } finally {
-            getLockService().getObjectLock(bucket.getId(), objectName).readLock().unlock();
+            getLockService().getObjectLock(bucket, objectName).readLock().unlock();
         }
     }
 

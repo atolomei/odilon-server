@@ -694,7 +694,7 @@ public class RAIDOneDriver extends BaseIODriver {
         try {
 
             try {
-                objectLock = getLockService().getObjectLock(bucket.getId(), objectName).readLock().tryLock(20,
+                objectLock = getLockService().getObjectLock(bucket, objectName).readLock().tryLock(20,
                         TimeUnit.SECONDS);
                 if (!objectLock) {
                     logger.warn("Can not acquire read Lock for Object. Assumes check is ok -> " + objectName);
@@ -784,7 +784,7 @@ public class RAIDOneDriver extends BaseIODriver {
 
             try {
                 if (objectLock)
-                    getLockService().getObjectLock(bucket.getId(), objectName).readLock().unlock();
+                    getLockService().getObjectLock(bucket, objectName).readLock().unlock();
             } catch (Exception e) {
                 logger.error(e, SharedConstant.NOT_THROWN);
             }
@@ -944,10 +944,10 @@ public class RAIDOneDriver extends BaseIODriver {
 
         boolean retValue = true;
 
-        getLockService().getObjectLock(bucketId, objectName).writeLock().lock();
+        getLockService().getObjectLock(getVirtualFileSystemService().getBucketById(bucketId), objectName).writeLock().lock();
 
         try {
-            getLockService().getBucketLock(bucketId).readLock().lock();
+            getLockService().getBucketLock(getVirtualFileSystemService().getBucketById(bucketId)).readLock().lock();
 
             try {
 
@@ -994,10 +994,10 @@ public class RAIDOneDriver extends BaseIODriver {
                 retValue = false;
             } finally {
 
-                getLockService().getBucketLock(bucketId).readLock().unlock();
+                getLockService().getBucketLock(getVirtualFileSystemService().getBucketById(bucketId)).readLock().unlock();
             }
         } finally {
-            getLockService().getObjectLock(bucketId, objectName).writeLock().unlock();
+            getLockService().getObjectLock(getVirtualFileSystemService().getBucketById(bucketId), objectName).writeLock().unlock();
         }
         return retValue;
     }

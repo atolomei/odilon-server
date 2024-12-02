@@ -98,7 +98,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 		int afterHeadVersion = -1;
 		boolean isMainException = false;
 		
-		getLockService().getObjectLock(bucket.getId(), objectName).writeLock().lock();
+		getLockService().getObjectLock(bucket, objectName).writeLock().lock();
 
 		try  {
 			
@@ -162,7 +162,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 					}
 				}
 		} finally {
-			getLockService().getObjectLock(bucket.getId(), objectName).writeLock().unlock();
+			getLockService().getObjectLock(bucket, objectName).writeLock().unlock();
 		}
 	}
 
@@ -178,7 +178,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 		
 		int beforeHeadVersion = -1;
 		
-		getLockService().getObjectLock(bucket.getId(), objectName).writeLock().lock();
+		getLockService().getObjectLock(bucket, objectName).writeLock().lock();
 		
 		try {
 			
@@ -263,7 +263,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 					}
 				}
 		} finally {
-			getLockService().getObjectLock(bucket.getId(), objectName).writeLock().unlock();
+			getLockService().getObjectLock(bucket, objectName).writeLock().unlock();
 		}
 	}
 		
@@ -285,7 +285,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 		
 		ServerBucket bucket = getVFS().getBucketById(meta.bucketId);
 		
-		getLockService().getObjectLock(bucket.getId(), meta.objectName).writeLock().lock();
+		getLockService().getObjectLock(bucket, meta.objectName).writeLock().lock();
 		
 		try {
 			
@@ -332,7 +332,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 			} 
 		} 
 		finally {
-			getLockService().getObjectLock(bucket.getId(), meta.objectName).writeLock().unlock();
+			getLockService().getObjectLock(bucket, meta.objectName).writeLock().unlock();
 		}
 
 	}
@@ -381,15 +381,15 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 			done = true;
 			
 		} catch (InternalCriticalException e) {
-			logger.error("Rollback | " + getDriver().opInfo(op));
+			logger.error(getDriver().opInfo(op));
 			if (!recoveryMode)
 				throw(e);
 			
 		} catch (Exception e) {
 			if (!recoveryMode)
-				throw new InternalCriticalException(e, "Rollback | " + getDriver().opInfo(op));
+				throw new InternalCriticalException(e, getDriver().opInfo(op));
 			else
-				logger.error(e, "Rollback | " + getDriver().opInfo(op), SharedConstant.NOT_THROWN);
+				logger.error(e, getDriver().opInfo(op), SharedConstant.NOT_THROWN);
 		}
 		finally {
 			if (done || recoveryMode) {
@@ -415,15 +415,16 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 			done = true;
 		
 		} catch (InternalCriticalException e) {
-			logger.error("Rollback | " + getDriver().opInfo(op));
+			logger.error(getDriver().opInfo(op));
 			if (!recoveryMode)
 				throw(e);
 			
 		} catch (Exception e) {
-			String msg = "Rollback | " + getDriver().opInfo(op);
-			logger.error(msg);
+			
 			if (!recoveryMode)
-				throw new InternalCriticalException(e, msg);
+				throw new InternalCriticalException(e, getDriver().opInfo(op));
+			else
+			    logger.error(getDriver().opInfo(op), SharedConstant.NOT_THROWN);
 		}
 		finally {
 			if (done || recoveryMode) {

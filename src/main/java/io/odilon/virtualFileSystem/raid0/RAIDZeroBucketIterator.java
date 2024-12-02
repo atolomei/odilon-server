@@ -71,7 +71,7 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
         opPrefix.ifPresent(x -> setPrefix(x.toLowerCase().trim()));
 
         /**
-         * after the VirtualFileService starts up all drives are in state
+         * after the {@link VirtualFileService} starts up all drives are in state
          * {@link DriveStatus.ENABLED} in RAID 0
          */
         this.drives = new ArrayList<Drive>();
@@ -100,7 +100,7 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
                 // filter(file -> isObjectStateEnabled(file));
                 this.getStreamMap().put(drive, stream);
             } catch (IOException e) {
-                throw new InternalCriticalException(e, "Files.walk ...");
+                throw new InternalCriticalException(e);
             }
             Iterator<Path> it = stream.iterator();
             this.getItMap().put(drive, it);
@@ -132,7 +132,7 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
             int d_index = 0;
             int d_poll = d_index++ % this.getDrives().size();
             Drive drive = this.getDrives().get(d_poll);
-            Iterator<Path> iterator = itMap.get(drive);
+            Iterator<Path> iterator = getItMap().get(drive);
             if (iterator.hasNext()) {
                 iterator.next();
                 skipped++;

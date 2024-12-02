@@ -185,9 +185,9 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
 
         ServerBucket bucket = getVirtualFileSystemService().getBucketById(meta.getBucketId());
 
-        getLockService().getObjectLock(meta.getBucketId(), meta.getObjectName()).writeLock().lock();
+        getLockService().getObjectLock(bucket, meta.getObjectName()).writeLock().lock();
         try {
-            getLockService().getBucketLock(meta.getBucketId()).readLock().lock();
+            getLockService().getBucketLock(bucket).readLock().lock();
             try {
 
                 op = getJournalService().updateObjectMetadata(bucket, meta.objectName, meta.version);
@@ -216,11 +216,11 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
                         cleanUpBackupMetadataDir(meta.getBucketId(), meta.getObjectName());
                     }
                 } finally {
-                    getLockService().getBucketLock(meta.getBucketId()).readLock().unlock();
+                    getLockService().getBucketLock(bucket).readLock().unlock();
                 }
             }
         } finally {
-            getLockService().getObjectLock(meta.getBucketId(), meta.getObjectName()).writeLock().unlock();
+            getLockService().getObjectLock(bucket, meta.getObjectName()).writeLock().unlock();
         }
     }
 

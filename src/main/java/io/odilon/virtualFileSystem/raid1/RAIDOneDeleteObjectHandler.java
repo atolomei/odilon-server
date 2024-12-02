@@ -202,15 +202,21 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 		int headVersion = -1;
 		String objectName =  meta.objectName;
 		
-		getLockService().getObjectLock(meta.getBucketId(), objectName).writeLock().lock();
+		ServerBucket bucket = getDriver().getVirtualFileSystemService().getBucketById(meta.bucketId);
+		
+		if (bucket==null)
+		    throw new IllegalArgumentException("bucket does not exist -> b:" + meta.bucketId.toString());
+		
+		
+		getLockService().getObjectLock(bucket, objectName).writeLock().lock();
 		
 		try {
 		
-			getLockService().getBucketLock(meta.getBucketId()).readLock().lock();
+			getLockService().getBucketLock(bucket).readLock().lock();
 
 			try {
 				
-					ServerBucket bucket = getDriver().getVirtualFileSystemService().getBucketById(meta.bucketId);
+					// ServerBucket bucket = getDriver().getVirtualFileSystemService().getBucketById(meta.bucketId);
 				
 					if (!getDriver().getReadDrive(bucket, objectName).existsObjectMetadata(meta))
 						throw new IllegalArgumentException("object does not exist -> b:" + meta.bucketId.toString() + " o:" + objectName);
@@ -265,12 +271,12 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 						}
 					}
 					finally {
-						getLockService().getBucketLock(meta.getBucketId()).readLock().unlock();
+						getLockService().getBucketLock(bucket).readLock().unlock();
 
 					}
 				}
 		} finally {
-			getLockService().getObjectLock(meta.getBucketId(), meta.objectName).writeLock().unlock();			
+			getLockService().getObjectLock(bucket, meta.objectName).writeLock().unlock();			
 		}
 
 		if(done)

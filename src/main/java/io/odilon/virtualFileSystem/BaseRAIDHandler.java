@@ -52,11 +52,11 @@ public abstract class BaseRAIDHandler {
 	}
 
 	protected void bucketWriteLock(BucketMetadata meta) {
-		getLockService().getBucketLock(meta.getId()).writeLock().lock();
+		getLockService().getBucketLock(meta).writeLock().lock();
 	}
 
 	protected void bucketWriteUnlock(BucketMetadata meta) {
-		getLockService().getBucketLock(meta.getId()).writeLock().unlock();
+		getLockService().getBucketLock(meta).writeLock().unlock();
 	}
 
 	protected String objectInfo(ServerBucket bucket) {

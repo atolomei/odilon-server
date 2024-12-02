@@ -227,12 +227,12 @@ public class RAIDOneDriveSync implements Runnable {
                                         if (drive.getDriveInfo().getStatus() == DriveStatus.NOTSYNC) {
 
                                             try {
-                                                getLockService().getObjectLock(item.getObject().bucketId,
+                                                getLockService().getObjectLock(getDriver().getVirtualFileSystemService().getBucketById(item.getObject().bucketId),
                                                         item.getObject().objectName).writeLock().lock();
 
                                                 try {
 
-                                                    getLockService().getBucketLock(item.getObject().bucketId).readLock()
+                                                    getLockService().getBucketLock(bucket).readLock()
                                                             .lock();
 
                                                     {
@@ -318,12 +318,14 @@ public class RAIDOneDriveSync implements Runnable {
                                                     logger.error(e, SharedConstant.NOT_THROWN);
                                                     this.errors.getAndIncrement();
                                                 } finally {
-                                                    getLockService().getBucketLock(item.getObject().bucketId).readLock()
+                                                    getLockService().getBucketLock(bucket).readLock()
                                                             .unlock();
                                                 }
                                             } finally {
-                                                getLockService().getObjectLock(item.getObject().bucketId,
+                                                
+                                                getLockService().getObjectLock(getDriver().getVirtualFileSystemService().getBucketById(item.getObject().bucketId),
                                                         item.getObject().objectName).writeLock().unlock();
+
                                             }
                                         }
                                     }

@@ -21,16 +21,18 @@ import java.io.InputStream;
 
 import io.odilon.model.ObjectMetadata;
 
-
 /**
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public interface VirtualFileSystemObject {
-	
-	public String getObjectName();
-	public ServerBucket getBucket();
-	public ObjectMetadata getObjectMetadata();
-	public InputStream getInputStream() throws IOException;
-	
+
+    public String getObjectName();
+
+    public ServerBucket getBucket();
+
+    public ObjectMetadata getObjectMetadata();
+
+    public InputStream getInputStream() throws IOException;
+
 }

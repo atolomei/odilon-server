@@ -234,6 +234,9 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
     @Override
     public void deleteObjectAllPreviousVersions(ObjectMetadata meta) {
         Check.requireNonNullArgument(meta, "meta is null");
+        Check.requireNonNullArgument(meta.bucketId, "bucketId is null");
+        Check.requireNonNullArgument(meta.objectName, "objectName is null or empty | b:" + meta.bucketId.toString());
+
         RAIDZeroDeleteObjectHandler agent = new RAIDZeroDeleteObjectHandler(this);
         agent.deleteObjectAllPreviousVersions(meta);
     }
@@ -252,8 +255,9 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
     @Override
     public ObjectMetadata restorePreviousVersion(ServerBucket bucket, String objectName) {
         Check.requireNonNullArgument(bucket, "bucket is null");
+        Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucket.getName());
         Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible " + objectInfo(bucket));
-
+        
         RAIDZeroUpdateObjectHandler agent = new RAIDZeroUpdateObjectHandler(this);
         return agent.restorePreviousVersion(bucket, objectName);
     }
@@ -478,7 +482,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
                 getLockService().getBucketLock(bucket).readLock().unlock();
             }
         } finally {
-            getLockService().getObjectLock(bucket.getId(), objectName).readLock().unlock();
+            getLockService().getObjectLock(bucket, objectName).readLock().unlock();
         }
     }
 
@@ -745,7 +749,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible " + objectInfo(bucket));
         Check.requireNonNullStringArgument(objectName, "objectName is null or empty " + objectInfo(bucket));
 
-        getLockService().getObjectLock(bucket.getId(), objectName).readLock().lock();
+        getLockService().getObjectLock(bucket, objectName).readLock().lock();
         try {
 
             getLockService().getBucketLock(bucket).readLock().lock();
@@ -773,7 +777,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
                 getLockService().getBucketLock(bucket).readLock().unlock();
             }
         } finally {
-            getLockService().getObjectLock(bucket.getId(), objectName).readLock().unlock();
+            getLockService().getObjectLock(bucket, objectName).readLock().unlock();
         }
     }
 
@@ -1019,7 +1023,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         try {
 
             try {
-                objectLock = getLockService().getObjectLock(bucket.getId(), objectName).readLock().tryLock(20,
+                objectLock = getLockService().getObjectLock(bucket, objectName).readLock().tryLock(20,
                         TimeUnit.SECONDS);
                 if (!objectLock) {
                     logger.warn("Can not acquire read Lock for o: " + objectName + ". Assumes -> check is ok");
@@ -1098,7 +1102,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 
             try {
                 if (objectLock)
-                    getLockService().getObjectLock(bucket.getId(), objectName).readLock().unlock();
+                    getLockService().getObjectLock(bucket, objectName).readLock().unlock();
             } catch (Exception e) {
                 logger.error(e, SharedConstant.NOT_THROWN);
             }

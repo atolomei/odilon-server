@@ -87,7 +87,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 		
 		try {
 			
-			getLockService().getObjectLock(bucket.getId(), objectName).writeLock().lock();
+			getLockService().getObjectLock(bucket, objectName).writeLock().lock();
 			
 			try (stream) {
 				
@@ -126,11 +126,11 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 								}
 						}
 						finally {
-							getLockService().getBucketLock(bucketId).readLock().unlock();
+							getLockService().getBucketLock(bucket).readLock().unlock();
 						}
 				}
 		} finally {
-			getLockService().getObjectLock(bucketId, objectName).writeLock().unlock();	
+			getLockService().getObjectLock(bucket, objectName).writeLock().unlock();	
 		}
 	}
 

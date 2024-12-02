@@ -82,11 +82,11 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 		int headVersion = -1;
 		ObjectMetadata meta = null;
 		
-		getLockService().getObjectLock(bucketId, objectName).writeLock().lock();
+		getLockService().getObjectLock(bucket, objectName).writeLock().lock();
 		
 		try {
 			
-			getLockService().getBucketLock(bucketId).readLock().lock();
+			getLockService().getBucketLock(bucket).readLock().lock();
 			
 			try {
 				
@@ -137,11 +137,11 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 					logger.error(e, "op:" + op.getOp().getName() +	", "  + getDriver().objectInfo(bucket, objectName), SharedConstant.NOT_THROWN);
 				}
 				finally {
-					getLockService().getBucketLock(bucketId).readLock().unlock();
+					getLockService().getBucketLock(bucket).readLock().unlock();
 				}
 			}
 		} finally {
-			getLockService().getObjectLock(bucketId, objectName).writeLock().unlock();
+			getLockService().getObjectLock(bucket, objectName).writeLock().unlock();
 		}
 		
 		if(done) {
@@ -180,10 +180,10 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 		final ServerBucket bucket = getVirtualFileSystemService().getBucketById(headMeta.bucketId);
 		
 		
-		getLockService().getObjectLock(bucketId, objectName).writeLock().lock();
+		getLockService().getObjectLock(bucket, objectName).writeLock().lock();
 		
 		try {
-				getLockService().getBucketLock(bucketId).readLock().lock();
+				getLockService().getBucketLock(bucket).readLock().lock();
 			
 				try {
 				
@@ -250,11 +250,11 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 						}
 					}
 					finally {
-						getLockService().getBucketLock(bucketId).readLock().unlock();
+						getLockService().getBucketLock(bucket).readLock().unlock();
 					}
 				}
 		} finally {
-			getLockService().getObjectLock(bucketId, objectName).writeLock().unlock();
+			getLockService().getObjectLock(bucket, objectName).writeLock().unlock();
 		}
 
 		if (done) {

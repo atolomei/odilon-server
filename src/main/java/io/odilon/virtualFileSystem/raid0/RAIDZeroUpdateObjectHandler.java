@@ -88,7 +88,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
         boolean isMaixException = false;
 
         int beforeHeadVersion = -1;
-        int afterHeadVersion = -1;
+        int afterHeadVersion  = -1;
 
         objectWriteLock(bucket, objectName);
         // getLockService().getObjectLock(bucket, objectName).writeLock().lock();
@@ -100,8 +100,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 
             try (stream) {
                 if (!getDriver().getWriteDrive(bucket, objectName).existsObjectMetadata(bucket, objectName))
-                    throw new IllegalArgumentException(
-                            "object does not exist -> " + getDriver().objectInfo(bucket, objectName, srcFileName));
+                    throw new IllegalArgumentException("object does not exist -> " + getDriver().objectInfo(bucket, objectName, srcFileName));
 
                 ObjectMetadata meta = getDriver().getObjectMetadataInternal(bucket, objectName, false);
 
@@ -138,11 +137,9 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
                             rollbackJournal(op, false);
                         } catch (Exception e) {
                             if (!isMaixException)
-                                throw new InternalCriticalException(
-                                        getDriver().objectInfo(bucket, objectName, srcFileName));
+                                throw new InternalCriticalException(getDriver().objectInfo(bucket, objectName, srcFileName));
                             else
-                                logger.error(e, getDriver().objectInfo(bucket, objectName, srcFileName)
-                                        + SharedConstant.NOT_THROWN);
+                                logger.error(e, getDriver().objectInfo(bucket, objectName, srcFileName), SharedConstant.NOT_THROWN);
                         }
                     } else {
                         /** TODO AT -> This is Sync by the moment, see how to make it Async */
@@ -172,9 +169,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
         boolean done = false;
         boolean isMainException = false;
 
-        Check.requireNonNullArgument(bucket, "bucket is null");
-        Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucket.getName());
-
+        
         Long bucket_id = bucket.getId();
 
         int beforeHeadVersion = -1;
@@ -316,7 +311,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
             } catch (Exception e) {
                 isMainException = true;
                 done = false;
-                throw new InternalCriticalException(e, "b:" + meta.getBucketId() + ", o:" + meta.getObjectName());
+                throw new InternalCriticalException(e, getDriver().objectInfo(meta));
 
             } finally {
                 try {
@@ -325,8 +320,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
                             rollbackJournal(op, false);
                         } catch (Exception e) {
                             if (!isMainException)
-                                throw new InternalCriticalException(e,
-                                        getDriver().objectInfo(meta.getBucketId(), meta.getObjectName()));
+                                throw new InternalCriticalException(e,getDriver().objectInfo(meta));
                             else
                                 logger.error(e, getDriver().objectInfo(meta), SharedConstant.NOT_THROWN);
                         }

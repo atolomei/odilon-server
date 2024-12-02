@@ -87,11 +87,11 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 
         try {
 
-            getLockService().getObjectLock(bucketId, objectName).writeLock().lock();
+            getLockService().getObjectLock(bucket, objectName).writeLock().lock();
 
             try {
 
-                getLockService().getBucketLock(bucketId).readLock().lock();
+                getLockService().getBucketLock(bucket).readLock().lock();
 
                 /**
                  * backup metadata, there is no need to backup data because existing data files
@@ -191,11 +191,11 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
                         }
                     }
                 } finally {
-                    getLockService().getBucketLock(bucketId).readLock().unlock();
+                    getLockService().getBucketLock(bucket).readLock().unlock();
                 }
             }
         } finally {
-            getLockService().getObjectLock(bucketId, objectName).writeLock().unlock();
+            getLockService().getObjectLock(bucket, objectName).writeLock().unlock();
 
         }
 
@@ -251,15 +251,17 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
         boolean done = false;
 
         String objectName = op.getObjectName();
-        Long bucketId = op.getBucketId();
-
-        getLockService().getObjectLock(bucketId, objectName).writeLock().lock();
+        
+        final ServerBucket bucket = getVirtualFileSystemService().getBucketById(op.getBucketId());
+        
+        
+        getLockService().getObjectLock(bucket, objectName).writeLock().lock();
 
         try {
-            getLockService().getBucketLock(bucketId).readLock().lock();
+            getLockService().getBucketLock(bucket).readLock().lock();
 
             try {
-                restoreMetadata(bucketId, objectName);
+                restoreMetadata(op.getBucketId(), objectName);
                 done = true;
 
             } catch (InternalCriticalException e) {
@@ -280,11 +282,11 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
                         op.cancel();
                     }
                 } finally {
-                    getLockService().getBucketLock(bucketId).readLock().unlock();
+                    getLockService().getBucketLock(bucket).readLock().unlock();
                 }
             }
         } finally {
-            getLockService().getObjectLock(bucketId, objectName).writeLock().unlock();
+            getLockService().getObjectLock(bucket, objectName).writeLock().unlock();
         }
     }
 

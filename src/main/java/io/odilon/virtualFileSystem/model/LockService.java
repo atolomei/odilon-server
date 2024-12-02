@@ -19,28 +19,30 @@ package io.odilon.virtualFileSystem.model;
 import java.util.Optional;
 import java.util.concurrent.locks.ReadWriteLock;
 
+import io.odilon.model.BucketMetadata;
 import io.odilon.service.SystemService;
 
-
 /**
- * <p>Lock Service for Object, FileCacheService, Bucket, ServerInfo. 
- * It maintains a Map of Object locks that is cleaned after the lock is released or regularly by a clean up process</p>
- *  
+ * <p>
+ * Lock Service for Object, FileCacheService, Bucket, ServerInfo. It maintains a
+ * Map of Object locks that is cleaned after the lock is released or regularly
+ * by a clean up process
+ * </p>
+ * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public interface LockService extends SystemService {
-	
-	public ReadWriteLock getObjectLock(Long bucketId, String objectName);
-	public ReadWriteLock getObjectLock(ServerBucket bucket, String objectName);
-	
-	public ReadWriteLock getBucketLock(Long bucketId);
-	public ReadWriteLock getBucketLock(ServerBucket bucket);
-	
-	public ReadWriteLock getServerLock();
-	
-	
-	public ReadWriteLock getFileCacheLock(Long bucketId, String objectName, Optional<Integer> version);
-	
-	
-	
+
+    // public ReadWriteLock getObjectLock(Long bucketId, String objectName);
+    // public ReadWriteLock getBucketLock(Long bucketId);
+    
+    public ReadWriteLock getObjectLock(ServerBucket bucket, String objectName);
+
+    public ReadWriteLock getBucketLock(ServerBucket bucket);
+    public ReadWriteLock getBucketLock(BucketMetadata meta);
+    
+    public ReadWriteLock getServerLock();
+
+    public ReadWriteLock getFileCacheLock(Long bucketId, String objectName, Optional<Integer> version);
+
 }

@@ -47,11 +47,10 @@ import io.odilon.virtualFileSystem.model.VFSOp;
 import io.odilon.virtualFileSystem.model.VFSOperation;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
-
 /**
  * <p>
- *	IMPORTANT. Initial Sync only syncs head version 
- *  It will not sync previous versions.
+ * IMPORTANT. Initial Sync only syncs head version It will not sync previous
+ * versions.
  * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
@@ -59,312 +58,330 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 @Component
 @Scope("prototype")
 public class StandByInitialSync implements Runnable {
-	
-	static private Logger logger = Logger.getLogger(StandByInitialSync.class.getName());
-	static private Logger startuplogger = Logger.getLogger("StartupLogger");
-	static private Logger intialSynclogger = Logger.getLogger("IntialSyncLogger");
-	
-	@JsonIgnore
-	private long start_ms;
-	
-	@JsonIgnore
-	private int maxProcessingThread = 1;
-	
-	@JsonIgnore
-	private AtomicLong errors = new AtomicLong(0);
-	
-	@JsonIgnore
-	private AtomicBoolean done =  new AtomicBoolean(false);
-	
-	@JsonIgnore
-	private AtomicLong checkOk = new AtomicLong(0);
-	
-	@JsonIgnore
-	private AtomicLong counter = new AtomicLong(0);
-	
-	@JsonIgnore			
-	private AtomicLong copied = new AtomicLong(0);
-	
-	@JsonIgnore
-	private AtomicLong totalBytes = new AtomicLong(0);
-	
-	@JsonIgnore			
-	private AtomicLong cleaned = new AtomicLong(0);
 
-	@JsonIgnore
-	private AtomicLong notAvailable = new AtomicLong(0);
-	
-	@JsonIgnore
-	private LockService vfsLockService;
-	
-	@JsonIgnore
-	VirtualFileSystemService vfs;
-	
-	@JsonIgnore
-	ReplicationService replicationService;
-	
-	@JsonIgnore
-	private Thread thread;
-	
-	@JsonIgnore
-	private IODriver driver;
+    static private Logger logger = Logger.getLogger(StandByInitialSync.class.getName());
+    static private Logger startuplogger = Logger.getLogger("StartupLogger");
+    static private Logger intialSynclogger = Logger.getLogger("IntialSyncLogger");
 
-	/**
-	 * 
-	 */
-	public StandByInitialSync(IODriver driver) {
-		this.driver=driver;
-		this.vfsLockService = this.driver.getLockService();
-		this.vfs=this.driver.getVirtualFileSystemService();
-		this.replicationService=this.vfs.getReplicationService(); 
-	}	
-	
-	public void start() {
-		this.thread = new Thread(this);
-		this.thread.setDaemon(true);
-		this.thread.setName(this.getClass().getSimpleName());
-		this.thread.start();
-	}
+    @JsonIgnore
+    private long start_ms;
 
-	@Override
-	public void run() {
-		try {
-			logger.debug("Starting -> " + getClass().getSimpleName());
-			sync();
-		} finally {
-			this.done = new AtomicBoolean(true);
-			getReplicationService().setInitialSync( new AtomicBoolean(false));
-		}
-	}
-	
-	public AtomicBoolean isDone() {
-		return this.done;
-	}
-	
-	protected IODriver getDriver() {
-		return driver;
-	}
-	
-	protected LockService getLockService() {
-		return this.vfsLockService;
-	}
-	
-	protected VirtualFileSystemService getVirtualFileSystemService() {
-		return this.vfs;
-	}
-	
-	protected ReplicationService getReplicationService() {
-		return this.replicationService;
-	}
-	
-	private void sync() {
-		
-		this.start_ms = System.currentTimeMillis();
-		
-		OdilonServerInfo info = getDriver().getVirtualFileSystemService().getOdilonServerInfo();
-		
-		if (info==null)
-			return;
-		
-		if (info.getStandByStartDate()==null)
-			return;
+    @JsonIgnore
+    private int maxProcessingThread = 1;
 
-		if (info.getCreationDate()==null)
-			return;
-		
-		getReplicationService().setInitialSync(new AtomicBoolean(true));
-		
-		this.maxProcessingThread = Double.valueOf(Double.valueOf(Runtime.getRuntime().availableProcessors()-1) / 2.0 ).intValue() + 1 - 2;
-		
-		if (this.maxProcessingThread<1)
-			this.maxProcessingThread=1;
-		
-		if (this.vfs.getServerSettings().getStandbySyncThreads()>0)
-			this.maxProcessingThread=this.vfs.getServerSettings().getStandbySyncThreads();
-		
-		ExecutorService executor = null;
-		
-		try {
-			
-			this.errors = new AtomicLong(0);
-			
-			executor = Executors.newFixedThreadPool(maxProcessingThread);
-			
-			List<ServerBucket> buckets = this.driver.getVirtualFileSystemService().listAllBuckets();
-			boolean completed = buckets.isEmpty();
-			
-			for (ServerBucket bucket: buckets) {
-				
-				Integer pageSize = Integer.valueOf(ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE);
-				Long offset = Long.valueOf(0);
-				String agentId = null;
-				
-				boolean done = false;
-				
-				while ((!done) && (this.errors.get()<=10)) {
-					 
-					DataList<Item<ObjectMetadata>> data = this.driver.getVirtualFileSystemService().listObjects(
-							bucket.getName(), 
-							Optional.of(offset),
-							Optional.ofNullable(pageSize),
-							Optional.empty(),
-							Optional.ofNullable(agentId)); 
-	
-					if (agentId==null)
-						agentId = data.getAgentId();
+    @JsonIgnore
+    private AtomicLong errors = new AtomicLong(0);
 
-					List<Callable<Object>> tasks = new ArrayList<>(data.getList().size());
-					
-					for (Item<ObjectMetadata> item: data.getList()) {
-						tasks.add(() -> {
-							try {
-								
-								if (this.errors.get()>10)
-									return null;
-								
-								this.counter.getAndIncrement();
-								
-								if (( (this.counter.get()+1) % 10) == 1)
-									logger.debug("synced so far -> " + String.valueOf(this.counter.get()));
-								
-								if (item.isOk()) {
-											
-											boolean objectSynced = false;
-											
-											getLockService().getObjectLock(item.getObject().bucketId, item.getObject().objectName).readLock().lock();
-											
-											try {
-												
-												getLockService().getBucketLock(item.getObject().bucketId).readLock().lock();
-												
-												try {
-											
-													if (	(item.getObject().dateSynced==null) ||
-															(item.getObject().dateSynced.isBefore(info.getStandByStartDate()))
-														) {
-														
-														logger.debug(item.getObject().bucketId.toString()+"-"+item.getObject().objectName);
-														
-														VFSOperation op = new OdilonVFSperation(	getDriver().getVirtualFileSystemService().getJournalService().newOperationId(), 
-																									VFSOp.CREATE_OBJECT,  
-																									Optional.of(item.getObject().bucketId),
-																									Optional.of(getDriver().getVirtualFileSystemService().getBucketById(item.getObject().bucketId).getName()),
-																									Optional.of(item.getObject().objectName),
-																									Optional.of(Integer.valueOf(item.getObject().version)),
-																									getDriver().getVirtualFileSystemService().getRedundancyLevel(), 
-																									getDriver().getVirtualFileSystemService().getJournalService()
-																								);
-															
-															getReplicationService().replicate(op);
-															objectSynced=true;
-															this.totalBytes.addAndGet(item.getObject().length());
-															this.copied.getAndIncrement();
-														
-														
-													}
-													
-												} catch (Exception e) {
-													logger.error(e, "can not sync -> " + item.getObject().bucketId.toString()+"-"+item.getObject().objectName, SharedConstant.NOT_THROWN);
-													intialSynclogger.error(e, "can not sync -> " + item.getObject().bucketId.toString()+"-"+item.getObject().objectName);
-													this.errors.getAndIncrement();
-												}
-												finally {
-													getLockService().getBucketLock(item.getObject().bucketId).readLock().unlock();
-													
-												}
-											} finally {
-												getLockService().getObjectLock(item.getObject().bucketId, item.getObject().objectName).readLock().unlock();
-											}
-											
-											if (objectSynced) {
-												try {
-													ObjectMetadata meta = item.getObject();
-													meta.dateSynced = OffsetDateTime.now();
-													meta.lastModified = OffsetDateTime.now();
-													getDriver().putObjectMetadata(meta);
-												
-												} catch (Exception e) {
-													logger.error("can not sync ObjectMetadata -> " + item.getObject().bucketId.toString()+"-"+item.getObject().objectName, SharedConstant.NOT_THROWN);
-													intialSynclogger.error("can not sync ObjectMetadata -> " + item.getObject().bucketId.toString()+"-"+item.getObject().objectName);
-													intialSynclogger.error(e, SharedConstant.NOT_THROWN);
-													this.errors.getAndIncrement();
-												}
-											}
-											
-								}
-								else {
-									this.notAvailable.getAndIncrement();
-								}
-							} catch (Exception e) {
-								logger.error(e, SharedConstant.NOT_THROWN);
-								intialSynclogger.error(e, SharedConstant.NOT_THROWN);
-								this.errors.getAndIncrement();
-							}
-							return null;
-						 });
-					}
-					
-					try {
-						executor.invokeAll(tasks, 10, TimeUnit.MINUTES);
-					} catch (InterruptedException e) {
-						logger.error(e, SharedConstant.NOT_THROWN);
-					}
-					
-					offset += Long.valueOf(Integer.valueOf(data.getList().size()).longValue());
-					done = (data.isEOD() || (this.errors.get()>0) || (this.notAvailable.get()>0));
-					
-					completed = done && (this.errors.get()==0) && (this.notAvailable.get()==0);
-					
-				}
-			}
-			try {
-				executor.shutdown();
-				executor.awaitTermination(10, TimeUnit.MINUTES);
-				
-				if (completed) {
-					info.setStandBySyncedDate(OffsetDateTime.now());
-					this.vfs.setOdilonServerInfo(info);
-					
-					logger.info(ServerConstant.SEPARATOR);
-					logger.info("Intial Sync completed");
-					intialSynclogger.info("Intial Sync completed");
-					startuplogger.info("Intial Sync completed");
-				}
-				else {
-					
-					logger.info(ServerConstant.SEPARATOR);
-					logger.error("The intial Sync process can not be completed. Please correct the issues and restart the Odilon Server in order for the Sync process to execute again");
-					intialSynclogger.error("Intial Sync can not be completed");
-					startuplogger.error("Intial Sync can not be completed");
-				}
-				
-			} catch (InterruptedException e) {
-			}
-			
-		} finally {
-			logResults(startuplogger);
-			logResults(intialSynclogger);
-		}
-	}
+    @JsonIgnore
+    private AtomicBoolean done = new AtomicBoolean(false);
 
-	 
-	/**
-	 * @param logger
-	 */
-	private void logResults(Logger logger) {
-		
-		logger.info(ServerConstant.SEPARATOR);
-		logger.debug("Threads: " + String.valueOf(maxProcessingThread));
-		logger.info("Total files scanned: " + String.valueOf(this.counter.get()));
-		logger.info("Total files synced: " + String.valueOf(this.copied.get()));
-		logger.info("Total size synced: " + String.format("%14.4f", Double.valueOf(totalBytes.get()).doubleValue() / SharedConstant.d_gigabyte).trim() + " GB");
-		if (this.errors.get()>0)
-			logger.info("Error files: " + String.valueOf(this.errors.get()));
-		if (this.notAvailable.get()>0)
-			logger.info("Not Available files: " + String.valueOf(this.notAvailable.get()));
-		logger.info("Duration: " + String.valueOf(Double.valueOf(System.currentTimeMillis() - start_ms) / Double.valueOf(1000)) + " secs");
-		logger.info(ServerConstant.SEPARATOR);
+    @JsonIgnore
+    private AtomicLong checkOk = new AtomicLong(0);
 
-	}
+    @JsonIgnore
+    private AtomicLong counter = new AtomicLong(0);
+
+    @JsonIgnore
+    private AtomicLong copied = new AtomicLong(0);
+
+    @JsonIgnore
+    private AtomicLong totalBytes = new AtomicLong(0);
+
+    @JsonIgnore
+    private AtomicLong cleaned = new AtomicLong(0);
+
+    @JsonIgnore
+    private AtomicLong notAvailable = new AtomicLong(0);
+
+    @JsonIgnore
+    private LockService vfsLockService;
+
+    @JsonIgnore
+    VirtualFileSystemService vfs;
+
+    @JsonIgnore
+    ReplicationService replicationService;
+
+    @JsonIgnore
+    private Thread thread;
+
+    @JsonIgnore
+    private IODriver driver;
+
+    /**
+     * 
+     */
+    public StandByInitialSync(IODriver driver) {
+        this.driver = driver;
+        this.vfsLockService = this.driver.getLockService();
+        this.vfs = this.driver.getVirtualFileSystemService();
+        this.replicationService = this.vfs.getReplicationService();
+    }
+
+    public void start() {
+        this.thread = new Thread(this);
+        this.thread.setDaemon(true);
+        this.thread.setName(this.getClass().getSimpleName());
+        this.thread.start();
+    }
+
+    @Override
+    public void run() {
+        try {
+            logger.debug("Starting -> " + getClass().getSimpleName());
+            sync();
+        } finally {
+            this.done = new AtomicBoolean(true);
+            getReplicationService().setInitialSync(new AtomicBoolean(false));
+        }
+    }
+
+    public AtomicBoolean isDone() {
+        return this.done;
+    }
+
+    protected IODriver getDriver() {
+        return driver;
+    }
+
+    protected LockService getLockService() {
+        return this.vfsLockService;
+    }
+
+    protected VirtualFileSystemService getVirtualFileSystemService() {
+        return this.vfs;
+    }
+
+    protected ReplicationService getReplicationService() {
+        return this.replicationService;
+    }
+
+    private void sync() {
+
+        this.start_ms = System.currentTimeMillis();
+
+        OdilonServerInfo info = getDriver().getVirtualFileSystemService().getOdilonServerInfo();
+
+        if (info == null)
+            return;
+
+        if (info.getStandByStartDate() == null)
+            return;
+
+        if (info.getCreationDate() == null)
+            return;
+
+        getReplicationService().setInitialSync(new AtomicBoolean(true));
+
+        this.maxProcessingThread = Double.valueOf(Double.valueOf(Runtime.getRuntime().availableProcessors() - 1) / 2.0)
+                .intValue() + 1 - 2;
+
+        if (this.maxProcessingThread < 1)
+            this.maxProcessingThread = 1;
+
+        if (this.vfs.getServerSettings().getStandbySyncThreads() > 0)
+            this.maxProcessingThread = this.vfs.getServerSettings().getStandbySyncThreads();
+
+        ExecutorService executor = null;
+
+        try {
+
+            this.errors = new AtomicLong(0);
+
+            executor = Executors.newFixedThreadPool(maxProcessingThread);
+
+            List<ServerBucket> buckets = this.driver.getVirtualFileSystemService().listAllBuckets();
+            boolean completed = buckets.isEmpty();
+
+            for (ServerBucket bucket : buckets) {
+
+                Integer pageSize = Integer.valueOf(ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE);
+                Long offset = Long.valueOf(0);
+                String agentId = null;
+
+                boolean done = false;
+
+                while ((!done) && (this.errors.get() <= 10)) {
+
+                    DataList<Item<ObjectMetadata>> data = this.driver.getVirtualFileSystemService().listObjects(
+                            bucket.getName(), Optional.of(offset), Optional.ofNullable(pageSize), Optional.empty(),
+                            Optional.ofNullable(agentId));
+
+                    if (agentId == null)
+                        agentId = data.getAgentId();
+
+                    List<Callable<Object>> tasks = new ArrayList<>(data.getList().size());
+
+                    for (Item<ObjectMetadata> item : data.getList()) {
+                        tasks.add(() -> {
+                            try {
+
+                                if (this.errors.get() > 10)
+                                    return null;
+
+                                this.counter.getAndIncrement();
+
+                                if (((this.counter.get() + 1) % 10) == 1)
+                                    logger.debug("synced so far -> " + String.valueOf(this.counter.get()));
+
+                                if (item.isOk()) {
+
+                                    boolean objectSynced = false;
+
+                                    getLockService()
+                                            .getObjectLock(getDriver().getVirtualFileSystemService().getBucketById(
+                                                    item.getObject().bucketId), item.getObject().objectName)
+                                            .readLock().lock();
+
+                                    try {
+
+                                        
+                                        
+                                        getLockService().getBucketLock(bucket).readLock().lock();
+
+                                        try {
+
+                                            if ((item.getObject().dateSynced == null) || (item.getObject().dateSynced
+                                                    .isBefore(info.getStandByStartDate()))) {
+
+                                                logger.debug(item.getObject().bucketId.toString() + "-"
+                                                        + item.getObject().objectName);
+
+                                                VFSOperation op = new OdilonVFSperation(
+                                                        getDriver().getVirtualFileSystemService().getJournalService()
+                                                                .newOperationId(),
+                                                        VFSOp.CREATE_OBJECT, Optional.of(item.getObject().bucketId),
+                                                        Optional.of(getDriver().getVirtualFileSystemService()
+                                                                .getBucketById(item.getObject().bucketId).getName()),
+                                                        Optional.of(item.getObject().objectName),
+                                                        Optional.of(Integer.valueOf(item.getObject().version)),
+                                                        getDriver().getVirtualFileSystemService().getRedundancyLevel(),
+                                                        getDriver().getVirtualFileSystemService().getJournalService());
+
+                                                getReplicationService().replicate(op);
+                                                objectSynced = true;
+                                                this.totalBytes.addAndGet(item.getObject().length());
+                                                this.copied.getAndIncrement();
+                                            }
+
+                                        } catch (Exception e) {
+                                            logger.error(e, "can not sync -> " + item.getObject().bucketId.toString()
+                                                    + "-" + item.getObject().objectName, SharedConstant.NOT_THROWN);
+                                            intialSynclogger.error(e,
+                                                    "can not sync -> " + item.getObject().bucketId.toString() + "-"
+                                                            + item.getObject().objectName);
+                                            this.errors.getAndIncrement();
+                                        } finally {
+                                            getLockService()
+                                                    .getBucketLock(getDriver().getVirtualFileSystemService()
+                                                            .getBucketById(item.getObject().bucketId))
+                                                    .readLock().unlock();
+
+                                        }
+                                    } finally {
+                                        getLockService()
+                                                .getObjectLock(getDriver().getVirtualFileSystemService().getBucketById(
+                                                        item.getObject().bucketId), item.getObject().objectName)
+                                                .readLock().unlock();
+                                    }
+
+                                    if (objectSynced) {
+                                        try {
+                                            ObjectMetadata meta = item.getObject();
+                                            meta.dateSynced = OffsetDateTime.now();
+                                            meta.lastModified = OffsetDateTime.now();
+                                            getDriver().putObjectMetadata(meta);
+
+                                        } catch (Exception e) {
+                                            logger.error("can not sync ObjectMetadata -> "
+                                                    + item.getObject().bucketId.toString() + "-"
+                                                    + item.getObject().objectName, SharedConstant.NOT_THROWN);
+                                            intialSynclogger.error("can not sync ObjectMetadata -> "
+                                                    + item.getObject().bucketId.toString() + "-"
+                                                    + item.getObject().objectName);
+                                            intialSynclogger.error(e, SharedConstant.NOT_THROWN);
+                                            this.errors.getAndIncrement();
+                                        }
+                                    }
+
+                                } else {
+                                    this.notAvailable.getAndIncrement();
+                                }
+                            } catch (Exception e) {
+                                logger.error(e, SharedConstant.NOT_THROWN);
+                                intialSynclogger.error(e, SharedConstant.NOT_THROWN);
+                                this.errors.getAndIncrement();
+                            }
+                            return null;
+                        });
+                    }
+
+                    try {
+                        executor.invokeAll(tasks, 10, TimeUnit.MINUTES);
+                    } catch (InterruptedException e) {
+                        logger.error(e, SharedConstant.NOT_THROWN);
+                    }
+
+                    offset += Long.valueOf(Integer.valueOf(data.getList().size()).longValue());
+                    done = (data.isEOD() || (this.errors.get() > 0) || (this.notAvailable.get() > 0));
+
+                    completed = done && (this.errors.get() == 0) && (this.notAvailable.get() == 0);
+
+                }
+            }
+            try {
+                executor.shutdown();
+                executor.awaitTermination(10, TimeUnit.MINUTES);
+
+                if (completed) {
+                    info.setStandBySyncedDate(OffsetDateTime.now());
+                    this.vfs.setOdilonServerInfo(info);
+
+                    logger.info(ServerConstant.SEPARATOR);
+                    logger.info("Intial Sync completed");
+                    intialSynclogger.info("Intial Sync completed");
+                    startuplogger.info("Intial Sync completed");
+                } else {
+
+                    logger.info(ServerConstant.SEPARATOR);
+                    logger.error(
+                            "The intial Sync process can not be completed. Please correct the issues and restart the Odilon Server in order for the Sync process to execute again");
+                    intialSynclogger.error("Intial Sync can not be completed");
+                    startuplogger.error("Intial Sync can not be completed");
+                }
+
+            } catch (InterruptedException e) {
+            }
+
+        } finally {
+            logResults(startuplogger);
+            logResults(intialSynclogger);
+        }
+    }
+
+    /**
+     * @param logger
+     */
+    private void logResults(Logger logger) {
+
+        logger.info(ServerConstant.SEPARATOR);
+        logger.debug("Threads: " + String.valueOf(maxProcessingThread));
+        logger.info("Total files scanned: " + String.valueOf(this.counter.get()));
+        logger.info("Total files synced: " + String.valueOf(this.copied.get()));
+        logger.info(
+                "Total size synced: "
+                        + String.format("%14.4f",
+                                Double.valueOf(totalBytes.get()).doubleValue() / SharedConstant.d_gigabyte).trim()
+                        + " GB");
+        if (this.errors.get() > 0)
+            logger.info("Error files: " + String.valueOf(this.errors.get()));
+        if (this.notAvailable.get() > 0)
+            logger.info("Not Available files: " + String.valueOf(this.notAvailable.get()));
+        logger.info("Duration: "
+                + String.valueOf(Double.valueOf(System.currentTimeMillis() - start_ms) / Double.valueOf(1000))
+                + " secs");
+        logger.info(ServerConstant.SEPARATOR);
+
+    }
 
 }

@@ -100,15 +100,13 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
 			try (stream) {
 
 				if (getDriver().getWriteDrive(bucket, objectName).existsObjectMetadata(bucket, objectName))
-					throw new IllegalArgumentException("Object already exist ->"+getDriver().objectInfo(bucket, objectName));
+					throw new IllegalArgumentException("Object already exist -> "+getDriver().objectInfo(bucket, objectName));
 
 				int version = 0;
-
+				
 				op = getJournalService().createObject(bucket, objectName);
-
 				saveObjectDataFile(bucket, objectName, stream, srcFileName);
 				saveObjectMetadata(bucket, objectName, srcFileName, contentType, version, customTags);
-
 				done = op.commit();
 
 			} catch (InternalCriticalException e1) {
@@ -180,7 +178,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
 
 		} catch (Exception e) {
 			if (!recoveryMode)
-				throw new InternalCriticalException(e, "Rollback " + getDriver().opInfo(op));
+				throw new InternalCriticalException(e, getDriver().opInfo(op));
 			else
 				logger.error(e,getDriver().opInfo(op), SharedConstant.NOT_THROWN);
 		} finally {

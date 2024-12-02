@@ -80,13 +80,14 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
 
         try {
 
-            getLockService().getBucketLock(bucket).readLock().lock();
-
+            //getLockService().getBucketLock(bucket).readLock().lock();
+            
+            bucketReadLock(bucket);
+            
             try {
 
                 if (!getDriver().exists(bucket, objectName))
-                    throw new OdilonObjectNotFoundException(
-                            "object does not exist -> " + getDriver().objectInfo(bucket, objectName));
+                    throw new OdilonObjectNotFoundException(getDriver().objectInfo(bucket, objectName));
 
                 meta = getDriver().getObjectMetadataInternal(bucket, objectName, false);
 
@@ -129,7 +130,8 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
                         }
                     }
                 } finally {
-                    getLockService().getBucketLock(bucket).readLock().unlock();
+                    //getLockService().getBucketLock(bucket).readLock().unlock();
+                    bucketReadUnlock(bucket);
                 }
             }
         } finally {
@@ -166,7 +168,9 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
         objectWriteLock(bucket, meta.getObjectName());
 
         try {
-            getLockService().getBucketLock(bucket).readLock().lock();
+            
+            bucketReadLock(bucket);
+            // getLockService().getBucketLock(bucket).readLock().lock();
 
             try {
 
@@ -240,7 +244,8 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
                         }
                     }
                 } finally {
-                    getLockService().getBucketLock(bucket).readLock().unlock();
+                    //getLockService().getBucketLock(bucket).readLock().unlock();
+                    bucketReadUnlock(bucket);
                 }
             }
         } finally {
