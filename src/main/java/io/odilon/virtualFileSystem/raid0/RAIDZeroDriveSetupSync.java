@@ -119,8 +119,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
      */
     public RAIDZeroDriveSetupSync(RAIDZeroDriver driver) {
         this.driver = driver;
-        this.maxProcessingThread = Double.valueOf(Double.valueOf(Runtime.getRuntime().availableProcessors() - 1) / 2.0)
-                .intValue() + 1;
+        this.maxProcessingThread = Double.valueOf(Double.valueOf(Runtime.getRuntime().availableProcessors() - 1) / 2.0).intValue() + 1;
     }
 
     /**
@@ -143,8 +142,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
         startuplogger.info("2. After completing the copy process, it will clean up duplicates");
 
         final OdilonServerInfo serverInfo = getDriver().getServerInfo();
-        final File keyFile = getDriver().getDrivesEnabled().get(0)
-                .getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE);
+        final File keyFile = getDriver().getDrivesEnabled().get(0).getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE);
         final String jsonString;
 
         try {
@@ -179,8 +177,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
                 }
             });
         } else {
-            startuplogger.info(
-                    "2. Copying -> " + VirtualFileSystemService.ENCRYPTION_KEY_FILE + " | file not exist. skipping");
+            startuplogger.info("2. Copying -> " + VirtualFileSystemService.ENCRYPTION_KEY_FILE + " | file not exist. skipping");
         }
 
         createBuckets();
@@ -205,8 +202,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
             cleanUp();
         } catch (Exception e) {
             startuplogger.debug(e);
-            startuplogger
-                    .info("Although the Cleanup process did not complete normally, the server can operate normally.");
+            startuplogger.info("Although the Cleanup process did not complete normally, the server can operate normally.");
             startuplogger.info("Cleanup will be executed again automatically in the future to release unused storage");
         }
 
@@ -219,8 +215,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
         startuplogger.info("Total objects processed: " + String.valueOf(this.counter.get()));
         startuplogger.info("Total objects required move to another disk: " + String.valueOf(this.moved.get()));
         startuplogger.info("Total storage moved: "
-                + String.format("%16.6f",
-                        Double.valueOf(totalBytesMoved.get()).doubleValue() / SharedConstant.d_gigabyte).trim()
+                + String.format("%16.6f", Double.valueOf(totalBytesMoved.get()).doubleValue() / SharedConstant.d_gigabyte).trim()
                 + " GB");
 
         if (this.errors.get() > 0)
@@ -230,15 +225,12 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
             startuplogger.debug("Not Available: " + String.valueOf(this.notAvailable.get()));
 
         startuplogger.debug("Duration copy: "
-                + String.valueOf(Double.valueOf(System.currentTimeMillis() - start_move) / Double.valueOf(1000))
-                + " secs");
+                + String.valueOf(Double.valueOf(System.currentTimeMillis() - start_move) / Double.valueOf(1000)) + " secs");
         startuplogger.debug("Duration clean up: "
-                + String.valueOf(Double.valueOf(System.currentTimeMillis() - start_cleanup) / Double.valueOf(1000))
-                + " secs");
+                + String.valueOf(Double.valueOf(System.currentTimeMillis() - start_cleanup) / Double.valueOf(1000)) + " secs");
 
         startuplogger.info("Duration Total: "
-                + String.valueOf(Double.valueOf(System.currentTimeMillis() - start_ms) / Double.valueOf(1000))
-                + " secs");
+                + String.valueOf(Double.valueOf(System.currentTimeMillis() - start_ms) / Double.valueOf(1000)) + " secs");
         startuplogger.info(ServerConstant.SEPARATOR);
 
         return true;
@@ -313,8 +305,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 
                                     Drive currentDrive = getCurrentDrive(item.getObject().getBucketId(),
                                             item.getObject().getObjectName());
-                                    Drive newDrive = getNewDrive(item.getObject().getBucketId(),
-                                            item.getObject().getObjectName());
+                                    Drive newDrive = getNewDrive(item.getObject().getBucketId(), item.getObject().getObjectName());
 
                                     if (!newDrive.equals(currentDrive)) {
                                         try {
@@ -325,24 +316,21 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 
                                             currentDrive.deleteObjectMetadata(item.getObject().getBucketId(),
                                                     item.getObject().getObjectName());
-                                            FileUtils.deleteQuietly(new File(currentDrive.getRootDirPath(),
-                                                    item.getObject().getBucketId() + File.separator
-                                                            + item.getObject().getObjectName()));
+                                            FileUtils.deleteQuietly(
+                                                    new File(currentDrive.getRootDirPath(), item.getObject().getBucketId()
+                                                            + File.separator + item.getObject().getObjectName()));
 
                                             /**
                                              * PREVIOUS VERSIONS -----------------------------------------------------
                                              */
-                                            if (getDriver().getVirtualFileSystemService().getServerSettings()
-                                                    .isVersionControl()) {
+                                            if (getDriver().getVirtualFileSystemService().getServerSettings().isVersionControl()) {
                                                 for (int n = 0; n < item.getObject().getVersion(); n++) {
                                                     File m = currentDrive.getObjectMetadataVersionFile(
-                                                            item.getObject().getBucketId(),
-                                                            item.getObject().getObjectName(), n);
+                                                            item.getObject().getBucketId(), item.getObject().getObjectName(), n);
                                                     if (m.exists())
                                                         FileUtils.deleteQuietly(m);
                                                     File d = ((SimpleDrive) currentDrive).getObjectDataVersionFile(
-                                                            item.getObject().getBucketId(),
-                                                            item.getObject().getObjectName(), n);
+                                                            item.getObject().getBucketId(), item.getObject().getObjectName(), n);
                                                     if (d.exists())
                                                         FileUtils.deleteQuietly(d);
                                                 }
@@ -382,8 +370,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
         } finally {
             logger.debug("scanned (clean up) so far -> " + String.valueOf(this.counter.get()));
             startuplogger.info("cleanup completed -> "
-                    + String.valueOf(Double.valueOf(System.currentTimeMillis() - start_cleanup) / Double.valueOf(1000))
-                    + " secs");
+                    + String.valueOf(Double.valueOf(System.currentTimeMillis() - start_cleanup) / Double.valueOf(1000)) + " secs");
         }
     }
 
@@ -409,9 +396,8 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
                 boolean done = false;
 
                 while (!done) {
-                    DataList<Item<ObjectMetadata>> data = getDriver().getVirtualFileSystemService().listObjects(
-                            bucket.getName(), Optional.of(offset), Optional.ofNullable(pageSize), Optional.empty(),
-                            Optional.ofNullable(agentId));
+                    DataList<Item<ObjectMetadata>> data = getDriver().getVirtualFileSystemService().listObjects(bucket.getName(),
+                            Optional.of(offset), Optional.ofNullable(pageSize), Optional.empty(), Optional.ofNullable(agentId));
 
                     if (agentId == null)
                         agentId = data.getAgentId();
@@ -430,14 +416,13 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 
                                     Drive currentDrive = getCurrentDrive(item.getObject().getBucketId(),
                                             item.getObject().getObjectName());
-                                    Drive newDrive = getNewDrive(item.getObject().getBucketId(),
-                                            item.getObject().getObjectName());
+                                    Drive newDrive = getNewDrive(item.getObject().getBucketId(), item.getObject().getObjectName());
 
                                     if (!newDrive.equals(currentDrive)) {
                                         try {
 
-                                            File newMetadata = newDrive.getObjectMetadataFile(
-                                                    item.getObject().getBucketId(), item.getObject().getObjectName());
+                                            File newMetadata = newDrive.getObjectMetadataFile(item.getObject().getBucketId(),
+                                                    item.getObject().getObjectName());
 
                                             /**
                                              * if newMetadata is not null, it means the file was already copied
@@ -446,17 +431,14 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
                                             if (!newMetadata.exists()) {
 
                                                 /**
-                                                 * HEAD VERSION
-                                                 * ---------------------------------------------------------
+                                                 * HEAD VERSION ---------------------------------------------------------
                                                  */
 
                                                 /** Data */
                                                 File data_head = ((SimpleDrive) currentDrive).getObjectDataFile(
-                                                        item.getObject().getBucketId(),
-                                                        item.getObject().getObjectName());
+                                                        item.getObject().getBucketId(), item.getObject().getObjectName());
                                                 if (data_head.exists()) {
-                                                    ((SimpleDrive) newDrive).putObjectDataFile(
-                                                            item.getObject().getBucketId(),
+                                                    ((SimpleDrive) newDrive).putObjectDataFile(item.getObject().getBucketId(),
                                                             item.getObject().getObjectName(), data_head);
                                                     totalBytesMoved.getAndAdd(data_head.length());
                                                 }
@@ -472,8 +454,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
                                                     totalBytesMoved.getAndAdd(f.length());
 
                                                 /**
-                                                 * PREVIOUS VERSIONS
-                                                 * ---------------------------------------------------------
+                                                 * PREVIOUS VERSIONS ---------------------------------------------------------
                                                  */
 
                                                 if (getDriver().getVirtualFileSystemService().getServerSettings()
@@ -481,20 +462,17 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
                                                     for (int n = 0; n < item.getObject().getVersion(); n++) {
                                                         // move Meta Version
                                                         File meta_version_n = currentDrive.getObjectMetadataVersionFile(
-                                                                item.getObject().getBucketId(),
-                                                                item.getObject().getObjectName(), n);
+                                                                item.getObject().getBucketId(), item.getObject().getObjectName(),
+                                                                n);
                                                         if (meta_version_n.exists()) {
-                                                            newDrive.putObjectMetadataVersionFile(
-                                                                    item.getObject().getBucketId(),
-                                                                    item.getObject().getObjectName(), n,
-                                                                    meta_version_n);
+                                                            newDrive.putObjectMetadataVersionFile(item.getObject().getBucketId(),
+                                                                    item.getObject().getObjectName(), n, meta_version_n);
                                                             totalBytesMoved.getAndAdd(meta_version_n.length());
                                                         }
                                                         // move Data Version
-                                                        File version_n = ((SimpleDrive) currentDrive)
-                                                                .getObjectDataVersionFile(
-                                                                        item.getObject().getBucketId(),
-                                                                        item.getObject().getObjectName(), n);
+                                                        File version_n = ((SimpleDrive) currentDrive).getObjectDataVersionFile(
+                                                                item.getObject().getBucketId(), item.getObject().getObjectName(),
+                                                                n);
                                                         if (version_n.exists()) {
                                                             ((SimpleDrive) newDrive).putObjectDataVersionFile(
                                                                     item.getObject().getBucketId(),
@@ -542,8 +520,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 
         } finally {
             startuplogger.info("move completed -> "
-                    + String.valueOf(Double.valueOf(System.currentTimeMillis() - start_move) / Double.valueOf(1000))
-                    + " secs");
+                    + String.valueOf(Double.valueOf(System.currentTimeMillis() - start_move) / Double.valueOf(1000)) + " secs");
         }
     }
 

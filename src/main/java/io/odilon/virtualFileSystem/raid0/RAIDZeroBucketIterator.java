@@ -96,8 +96,8 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
             try {
                 stream = Files.walk(start, 1).skip(1).filter(file -> Files.isDirectory(file))
                         .filter(file -> (getPrefix() == null)
-                                || (file.getFileName().toString().toLowerCase().trim().startsWith(getPrefix())));
-                // filter(file -> isObjectStateEnabled(file));
+                                || (file.getFileName().toString().toLowerCase().trim().startsWith(getPrefix()))).
+                                filter(file -> isValidState(file));
                 this.getStreamMap().put(drive, stream);
             } catch (IOException e) {
                 throw new InternalCriticalException(e);

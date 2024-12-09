@@ -206,6 +206,10 @@ public abstract class BucketIterator implements Iterator<Path> {
         return driver;
     }
 
+    
+    protected boolean isValidState(Path path) {
+        return true;
+    }
     /**
      * <p>
      * This method should be used when the delete operation is logical

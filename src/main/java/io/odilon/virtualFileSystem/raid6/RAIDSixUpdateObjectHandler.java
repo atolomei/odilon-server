@@ -73,7 +73,6 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
     }
 
     /**
-     * 
      * @param bucket      can not be null
      * @param objectName  can not be null
      * @param stream      can not be null
@@ -792,15 +791,14 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
             if (!recoveryMode)
                 throw (e);
             else
-                logger.error(e, "Rollback | " + (Optional.ofNullable(op).isPresent() ? op.toString() : "null"),
+                logger.error(e, (Optional.ofNullable(op).isPresent() ? op.toString() : "null"),
                         SharedConstant.NOT_THROWN);
 
         } catch (Exception e) {
             if (!recoveryMode)
-                throw new InternalCriticalException(e,
-                        "Rollback | " + (Optional.ofNullable(op).isPresent() ? op.toString() : "null"));
+                throw new InternalCriticalException(e, (Optional.ofNullable(op).isPresent() ? op.toString() : "null"));
             else
-                logger.error(e, "Rollback | " + (Optional.ofNullable(op).isPresent() ? op.toString() : "null"),
+                logger.error(e, (Optional.ofNullable(op).isPresent() ? op.toString() : "null"),
                         SharedConstant.NOT_THROWN);
         } finally {
             if (done || recoveryMode) {

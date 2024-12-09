@@ -24,10 +24,8 @@ import io.odilon.virtualFileSystem.RAIDHandler;
 import io.odilon.virtualFileSystem.model.JournalService;
 import io.odilon.virtualFileSystem.model.LockService;
 import io.odilon.virtualFileSystem.model.VFSOperation;
-import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
- * 
  * <p>Base class for all RAID 1 handlers</p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
@@ -37,6 +35,9 @@ public abstract class RAIDOneHandler extends BaseRAIDHandler implements RAIDHand
 	
 	private final RAIDOneDriver driver;
 	
+	protected abstract void rollbackJournal(VFSOperation op, boolean recoveryMode);
+	
+	
 	public RAIDOneHandler(RAIDOneDriver driver) {
 		this.driver=driver;
 	}
@@ -44,10 +45,6 @@ public abstract class RAIDOneHandler extends BaseRAIDHandler implements RAIDHand
 	public RAIDOneDriver getDriver() {
 		return this.driver;
 	}
-	
-	
-	
-	protected abstract void rollbackJournal(VFSOperation op, boolean recoveryMode);
 
 	public JournalService getJournalService() {
 		return this.driver.getJournalService();
@@ -64,5 +61,4 @@ public abstract class RAIDOneHandler extends BaseRAIDHandler implements RAIDHand
 	public RedundancyLevel getRedundancyLevel() {
 		return this.driver.getRedundancyLevel(); 
 	}
-	
 }

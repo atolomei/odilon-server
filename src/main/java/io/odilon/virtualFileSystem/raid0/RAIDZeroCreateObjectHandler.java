@@ -80,8 +80,8 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
      * @param contentType
      * @param customTags
      */
-    protected void create(@NonNull ServerBucket bucket, @NonNull String objectName, @NonNull InputStream stream,
-            String srcFileName, String contentType, Optional<List<String>> customTags) {
+    protected void create(@NonNull ServerBucket bucket, @NonNull String objectName, @NonNull InputStream stream, String srcFileName,
+            String contentType, Optional<List<String>> customTags) {
 
         Check.requireNonNullArgument(bucket, "bucket is null");
         Check.requireNonNullArgument(bucket.getName(), "bucketName is null");
@@ -104,8 +104,10 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
                 int version = 0;
 
                 op = getJournalService().createObject(bucket, objectName);
+                
                 saveObjectDataFile(bucket, objectName, stream, srcFileName);
                 saveObjectMetadata(bucket, objectName, srcFileName, contentType, version, customTags);
+                
                 done = op.commit();
 
             } catch (InternalCriticalException e1) {
@@ -129,8 +131,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
                                 logger.error(e, objectInfo(bucket, objectName, srcFileName), SharedConstant.NOT_THROWN);
                         } catch (Exception e) {
                             if (!isMainException)
-                                throw new InternalCriticalException(e,
-                                        getDriver().objectInfo(bucket, objectName, srcFileName));
+                                throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
                             else
                                 logger.error(e, objectInfo(bucket, objectName, srcFileName), SharedConstant.NOT_THROWN);
                         }
@@ -168,11 +169,9 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
             getWriteDrive(this.getVirtualFileSystemService().getBucketById(op.getBucketId()), objectName)
                     .deleteObjectMetadata(op.getBucketId(), objectName);
 
-            FileUtils
-                    .deleteQuietly(new File(
-                            getWriteDrive(this.getVirtualFileSystemService().getBucketById(op.getBucketId()),
-                                    objectName).getRootDirPath(),
-                            op.getBucketId().toString() + File.separator + objectName));
+            FileUtils.deleteQuietly(new File(
+                    getWriteDrive(this.getVirtualFileSystemService().getBucketById(op.getBucketId()), objectName).getRootDirPath(),
+                    op.getBucketId().toString() + File.separator + objectName));
             done = true;
 
         } catch (InternalCriticalException e) {
@@ -214,8 +213,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
 
         ObjectDataPathBuilder pathBuilder = new ObjectDataPathBuilder(drive, bucket, objectName);
 
-        try (InputStream sourceStream = isEncrypt()
-                ? getVirtualFileSystemService().getEncryptionService().encryptStream(stream)
+        try (InputStream sourceStream = isEncrypt() ? getVirtualFileSystemService().getEncryptionService().encryptStream(stream)
                 : stream) {
             out = new BufferedOutputStream(new FileOutputStream(pathBuilder.build()), ServerConstant.BUFFER_SIZE);
             int bytesRead;
@@ -233,8 +231,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
                     out.close();
             } catch (IOException e) {
                 if (isMainException)
-                    logger.error(e, objectInfo(bucket, objectName, srcFileName)
-                            + (isMainException ? SharedConstant.NOT_THROWN : ""));
+                    logger.error(e,objectInfo(bucket, objectName, srcFileName) + (isMainException ? SharedConstant.NOT_THROWN : ""));
                 secEx = e;
             }
             if ((!isMainException) && (secEx != null))
@@ -257,8 +254,8 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
      * @param srcFileName can not be null
      * @param customTags
      */
-    private void saveObjectMetadata(ServerBucket bucket, String objectName, String srcFileName, String contentType,
-            int version, Optional<List<String>> customTags) {
+    private void saveObjectMetadata(ServerBucket bucket, String objectName, String srcFileName, String contentType, int version,
+            Optional<List<String>> customTags) {
 
         Check.requireNonNullArgument(bucket, "bucket is null");
 

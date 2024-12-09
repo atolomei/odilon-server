@@ -137,8 +137,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 
         Check.requireNonNullArgument(drives, "drives is null");
         Check.requireNonNullArgument(list, "list is null");
-        Check.requireTrue(drives.size() == list.size(), "must have the same number of elements. " + " drives -> "
-                + String.valueOf(drives.size()) + " - list -> " + String.valueOf(list.size()));
+        Check.requireTrue(drives.size() == list.size(), "must have the same number of elements. " + " drives -> " + String.valueOf(drives.size()) + " - list -> " + String.valueOf(list.size()));
 
         final int size = drives.size();
 
@@ -170,10 +169,10 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
             Iterator<Future<Boolean>> it = future.iterator();
             while (it.hasNext()) {
                 if (!it.next().get())
-                    throw new InternalCriticalException("could not copy " + ObjectMetadata.class.getSimpleName());
+                    throw new InternalCriticalException(ObjectMetadata.class.getSimpleName());
             }
         } catch (InterruptedException | ExecutionException e) {
-            throw new InternalCriticalException(e, "could not copy " + ObjectMetadata.class.getSimpleName());
+            throw new InternalCriticalException(e, ObjectMetadata.class.getSimpleName());
         }
     }
 
@@ -205,8 +204,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
         try {
 
             if (getVirtualFileSystemService().existsBucket(bucketName))
-                throw new IllegalArgumentException(
-                        ServerBucket.class.getSimpleName() + " already exist | b: " + bucketName);
+                throw new IllegalArgumentException( "bucket already exist -> " + objectInfo(bucketName));
 
             op = getJournalService().createBucket(meta);
 
@@ -233,7 +231,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
                     getVirtualFileSystemService().addBucketCache(bucket);
                 } else
                     rollbackJournal(op);
-
             } catch (Exception e) {
                 if (!isMainException)
                     throw new InternalCriticalException(e, objectInfo(meta));
@@ -1031,16 +1028,41 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
                 + (objectName != null ? objectName : "null");
     }
 
+    public String objectInfo(String bucketName) {
+        return "bn:" + (bucketName != null ? bucketName : "null");
+    }
+    
     public String objectInfo(String bucketName, String objectName) {
         return "bn:" + (bucketName != null ? bucketName : "null") + " o:" + (objectName != null ? objectName : "null");
     }
 
+    public String objectInfo(ServerBucket bucket, String objectName, int version) {
+        if (bucket == null)
+            return objectInfo("null", objectName);
+        return objectInfo(bucket.getName(), objectName, version);
+    }
+    
+    public String objectInfo(String bucketName, String objectName, int version) {
+        return "bn:" + (bucketName != null ? bucketName : "null") + " o:" + (objectName != null ? objectName : "null") + "v:" + String.valueOf(version);
+    }
+    
+    public String objectInfo(ServerBucket bucket, String objectName, Drive drive) {
+        return  "bn:" + (bucket!= null ? bucket.getName() : "null") + 
+                " o:" + (objectName != null ? objectName : "null") +
+                " d:" + ( drive!=null ? drive.getName() : "null");
+    }
+    
+    public String objectInfo(ServerBucket bucket, Drive drive) {
+        return "bn:" + (bucket!= null ? bucket.getName() : "null") + " d:" + ( drive!=null ? drive.getName() : "null");
+    }
+    
     public String objectInfo(ServerBucket bucket, String objectName) {
         if (bucket == null)
             return objectInfo("null", objectName);
         return objectInfo(bucket.getName(), objectName);
     }
-
+    
+    
     public String objectInfo(ServerBucket bucket, String objectName, String fileName) {
         if (bucket == null)
             return objectInfo("null", objectName, fileName);
@@ -1102,51 +1124,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
         }
     }
 
-    protected void objectReadLock(ServerBucket bucket, String objectName) {
-        getLockService().getObjectLock(bucket, objectName).readLock().lock();
-    }
-
-    protected void objectReadUnLock(ServerBucket bucket, String objectName) {
-        getLockService().getObjectLock(bucket, objectName).readLock().unlock();
-    }
-
-    protected void objectWriteLock(ServerBucket bucket, String objectName) {
-        getLockService().getObjectLock(bucket, objectName).writeLock().lock();
-    }
-
-    protected void objectWriteUnLock(ServerBucket bucket, String objectName) {
-        getLockService().getObjectLock(bucket, objectName).writeLock().unlock();
-    }
-
-    protected void bucketReadLock(ServerBucket bucket) {
-        getLockService().getBucketLock(bucket).readLock().lock();
-    }
-
-    protected void bucketReadUnLock(ServerBucket bucket) {
-        getLockService().getBucketLock(bucket).readLock().unlock();
-    }
-
-    protected void bucketWriteLock(ServerBucket bucket) {
-        getLockService().getBucketLock(bucket).writeLock().lock();
-    }
-
-    protected void bucketWriteUnLock(ServerBucket bucket) {
-        getLockService().getBucketLock(bucket).writeLock().unlock();
-    }
-
-    protected void bucketWriteLock(BucketMetadata meta) {
-        ServerBucket bucket = getVirtualFileSystemService().getBucketById(meta.getId());
-        Check.requireNonNullArgument(bucket,
-                ServerBucket.class.getSimpleName() + " does not exist for id -> " + meta.getId().toString());
-        getLockService().getBucketLock(bucket).writeLock().lock();
-    }
-
-    protected void bucketWriteUnLock(BucketMetadata meta) {
-        ServerBucket bucket = getVirtualFileSystemService().getBucketById(meta.getId());
-        Check.requireNonNullArgument(bucket,
-                ServerBucket.class.getSimpleName() + " does not exist for id -> " + meta.getId().toString());
-        getLockService().getBucketLock(bucket).writeLock().unlock();
-    }
 
     /**
      * @param bucket
@@ -1154,9 +1131,14 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
     protected void restoreBucketMetadata(ServerBucket bucket) {
         try {
             for (Drive drive : getDrivesAll()) {
+                
+                
                 String path = drive.getBucketWorkDirPath(bucket.getId()) + File.separator + "bucketmetadata-"
                         + bucket.getId().toString() + ServerConstant.JSON;
+                
                 BucketMetadata meta = getObjectMapper().readValue(Paths.get(path).toFile(), BucketMetadata.class);
+                
+                
                 drive.updateBucket(meta);
             }
         } catch (Exception e) {
@@ -1231,6 +1213,53 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
                 getLockService().getServerLock().writeLock().unlock();
             }
         }
+    }
+
+    
+    protected void objectReadLock(ServerBucket bucket, String objectName) {
+        getLockService().getObjectLock(bucket, objectName).readLock().lock();
+    }
+
+    protected void objectReadUnLock(ServerBucket bucket, String objectName) {
+        getLockService().getObjectLock(bucket, objectName).readLock().unlock();
+    }
+
+    protected void objectWriteLock(ServerBucket bucket, String objectName) {
+        getLockService().getObjectLock(bucket, objectName).writeLock().lock();
+    }
+
+    protected void objectWriteUnLock(ServerBucket bucket, String objectName) {
+        getLockService().getObjectLock(bucket, objectName).writeLock().unlock();
+    }
+
+    protected void bucketReadLock(ServerBucket bucket) {
+        getLockService().getBucketLock(bucket).readLock().lock();
+    }
+
+    protected void bucketReadUnLock(ServerBucket bucket) {
+        getLockService().getBucketLock(bucket).readLock().unlock();
+    }
+
+    protected void bucketWriteLock(ServerBucket bucket) {
+        getLockService().getBucketLock(bucket).writeLock().lock();
+    }
+
+    protected void bucketWriteUnLock(ServerBucket bucket) {
+        getLockService().getBucketLock(bucket).writeLock().unlock();
+    }
+
+    protected void bucketWriteLock(BucketMetadata meta) {
+        ServerBucket bucket = getVirtualFileSystemService().getBucketById(meta.getId());
+        Check.requireNonNullArgument(bucket,
+                ServerBucket.class.getSimpleName() + " does not exist for id -> " + meta.getId().toString());
+        getLockService().getBucketLock(bucket).writeLock().lock();
+    }
+
+    protected void bucketWriteUnLock(BucketMetadata meta) {
+        ServerBucket bucket = getVirtualFileSystemService().getBucketById(meta.getId());
+        Check.requireNonNullArgument(bucket,
+                ServerBucket.class.getSimpleName() + " does not exist for id -> " + meta.getId().toString());
+        getLockService().getBucketLock(bucket).writeLock().unlock();
     }
 
 }

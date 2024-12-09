@@ -35,11 +35,9 @@ import org.apache.commons.io.FileUtils;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import io.odilon.OdilonVersion;
 import io.odilon.error.OdilonObjectNotFoundException;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
-import io.odilon.model.BucketMetadata;
 import io.odilon.model.BucketStatus;
 import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
