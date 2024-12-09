@@ -292,7 +292,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 
         ServerBucket bucket = getDriver().getVirtualFileSystemService().getBucketById(meta.getBucketId());
 
-        objectWriteLock(bucket, meta.getObjectName());
+        objectWriteLock(meta);
 
         try {
             getLockService().getBucketLock(bucket).readLock().lock();
@@ -336,7 +336,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
                 }
             }
         } finally {
-            objectWriteUnLock(bucket, meta.getObjectName());
+            objectWriteUnLock(meta);
         }
     }
 

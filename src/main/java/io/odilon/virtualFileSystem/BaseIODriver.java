@@ -240,7 +240,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
                 else
                     logger.error(e, SharedConstant.NOT_THROWN);
             } finally {
-                bucketWriteUnlock(meta);
+                bucketWriteUnLock(meta);
             }
         }
     }
@@ -1205,7 +1205,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
         getLockService().getBucketLock(bucket).readLock().lock();
     }
 
-    protected void bucketReadUnlock(ServerBucket bucket) {
+    protected void bucketReadUnLock(ServerBucket bucket) {
         getLockService().getBucketLock(bucket).readLock().unlock();
     }
 
@@ -1213,7 +1213,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
         getLockService().getBucketLock(getVirtualFileSystemService().getBucketById(meta.getId())).writeLock().lock();
     }
 
-    protected void bucketWriteUnlock(BucketMetadata meta) {
+    protected void bucketWriteUnLock(BucketMetadata meta) {
         getLockService().getBucketLock(getVirtualFileSystemService().getBucketById(meta.getId())).writeLock().unlock();
     }
 

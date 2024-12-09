@@ -174,7 +174,7 @@ public class RAIDOneDriver extends BaseIODriver {
                 throw new InternalCriticalException(e,
                         "b:" + bucket.getId() + ", o:" + objectName + " | v:" + String.valueOf(version));
             } finally {
-                bucketReadUnlock(bucket);
+                bucketReadUnLock(bucket);
             }
         } finally {
             objectReadUnLock(bucket, objectName);
@@ -374,7 +374,7 @@ public class RAIDOneDriver extends BaseIODriver {
             throw new InternalCriticalException(e, objectInfo(bucket));
 
         } finally {
-            bucketReadUnlock(bucket);
+            bucketReadUnLock(bucket);
         }
     }
 
@@ -435,7 +435,7 @@ public class RAIDOneDriver extends BaseIODriver {
                 throw new InternalCriticalException(e, "b:" + bucket.getName() + ", o:" + objectName + ", d:"
                         + (Optional.ofNullable(readDrive).isPresent() ? (readDrive.getName()) : "null"));
             } finally {
-                bucketReadUnlock(bucket);
+                bucketReadUnLock(bucket);
             }
         } finally {
             objectReadUnLock(bucket, objectName);
@@ -510,7 +510,7 @@ public class RAIDOneDriver extends BaseIODriver {
                         "b:" + (Optional.ofNullable(bucket).isPresent() ? (bucket.getId()) : "null") + ", o:"
                                 + (Optional.ofNullable(objectName).isPresent() ? (objectName) : "null"));
             } finally {
-                bucketReadUnlock(bucket);
+                bucketReadUnLock(bucket);
             }
         } finally {
             objectReadUnLock(bucket, objectName);

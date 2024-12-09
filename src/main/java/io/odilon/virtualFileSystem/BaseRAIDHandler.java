@@ -55,6 +55,14 @@ public abstract class BaseRAIDHandler {
 		getLockService().getObjectLock(bucket, objectName).writeLock().lock();
 	}
 
+	protected void objectWriteLock(ObjectMetadata meta) {
+        getLockService().getObjectLock(getDriver().getVirtualFileSystemService().getBucketById(meta.getBucketId()), meta.getObjectName()).writeLock().lock();
+    }
+	
+	protected void objectWriteUnLock(ObjectMetadata meta) {
+	    getLockService().getObjectLock(getDriver().getVirtualFileSystemService().getBucketById(meta.getBucketId()), meta.getObjectName()).writeLock().unlock();
+	}
+	   
 	protected void objectWriteUnLock(ServerBucket bucket, String objectName) {
 		getLockService().getObjectLock(bucket, objectName).writeLock().unlock();
 	}
