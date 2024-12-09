@@ -327,7 +327,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 
             // if (originalSha256 == null) {
             // metadata.integrityCheck = now;
-            // getVFS().getObjec tCacheService().rem ove(metadata.bucketName,
+            // getVirtualFileSystemService().getObjec tCacheService().rem ove(metadata.bucketName,
             // metadata.objectName);
             // readDrive.saveObjectMetadata(metadata);
             // return true;

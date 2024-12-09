@@ -195,7 +195,7 @@ public class ServiceRequestQueue extends BaseService implements Queue<ServiceReq
         return getQueue().peek();
     }
 
-    public VirtualFileSystemService getVFS() {
+    public VirtualFileSystemService getVirtualFileSystemService() {
 
         if (this.virtualFileSystemService != null)
             return virtualFileSystemService;
@@ -227,7 +227,7 @@ public class ServiceRequestQueue extends BaseService implements Queue<ServiceReq
     }
 
     protected synchronized void loadFSQueue() {
-        List<ServiceRequest> list = getVFS().getSchedulerPendingRequests(getId());
+        List<ServiceRequest> list = getVirtualFileSystemService().getSchedulerPendingRequests(getId());
         list.sort(new Comparator<ServiceRequest>() {
             @Override
             public int compare(ServiceRequest o1, ServiceRequest o2) {
@@ -246,13 +246,13 @@ public class ServiceRequestQueue extends BaseService implements Queue<ServiceReq
     private void fsRemove(ServiceRequest srq) {
         if (srq == null)
             return;
-        getVFS().removeScheduler(srq, getId());
+        getVirtualFileSystemService().removeScheduler(srq, getId());
     }
 
     private void fsStore(ServiceRequest srq) {
         if (srq == null)
             return;
-        getVFS().saveScheduler(srq, getId());
+        getVirtualFileSystemService().saveScheduler(srq, getId());
     }
 
     private Queue<ServiceRequest> getQueue() {

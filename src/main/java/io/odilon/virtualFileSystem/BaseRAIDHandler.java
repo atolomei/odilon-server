@@ -25,11 +25,18 @@ import io.odilon.virtualFileSystem.model.IODriver;
 import io.odilon.virtualFileSystem.model.JournalService;
 import io.odilon.virtualFileSystem.model.LockService;
 import io.odilon.virtualFileSystem.model.ServerBucket;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 public abstract class BaseRAIDHandler {
 
     public abstract IODriver getDriver();
 
+    
+    
+    public VirtualFileSystemService getVirtualFileSystemService() {
+        return getDriver().getVirtualFileSystemService();
+    }
+    
     public JournalService getJournalService() {
         return getDriver().getJournalService();
     }

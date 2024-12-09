@@ -228,7 +228,7 @@ public class StandByReplicaSchedulerWorker extends SchedulerWorker {
     protected synchronized void onInitialize() {
 
         this.queue = getApplicationContext().getBean(ServiceRequestQueue.class, getId());
-        this.queue.setVFS(getVFS());
+        this.queue.setVFS(getVirtualFileSystemService());
         this.queue.loadFSQueue();
 
         if (this.queue.size() > 0)
@@ -257,7 +257,7 @@ public class StandByReplicaSchedulerWorker extends SchedulerWorker {
     protected boolean isWork() {
 
         if (!getFailed().isEmpty()) {
-            if (this.lastFailedTry.plusSeconds(getVFS().getServerSettings().getRetryFailedSeconds())
+            if (this.lastFailedTry.plusSeconds(getVirtualFileSystemService().getServerSettings().getRetryFailedSeconds())
                     .isBefore(OffsetDateTime.now()))
                 return true;
             else

@@ -73,7 +73,7 @@ public class EncryptionInitializer extends BaseObject {
 		this.providedMasterKey=providedMasterKey;
 	}
 
-	public VirtualFileSystemService getVFS() {
+	public VirtualFileSystemService getVirtualFileSystemService() {
 		return this.vfs;
 	}
 
@@ -107,7 +107,7 @@ public class EncryptionInitializer extends BaseObject {
 			
 		} catch (InterruptedException e) {
 		}
-		((ConfigurableApplicationContext) getVFS().getApplicationContext()).close();
+		((ConfigurableApplicationContext) getVirtualFileSystemService().getApplicationContext()).close();
 		System.exit(1);
 	}
 	
@@ -118,11 +118,11 @@ public class EncryptionInitializer extends BaseObject {
 	 	startuplogger.info("Initializing Encryption Service");
 	 	startuplogger.info("");
 	 	
-		IODriver driver = getVFS().createVFSIODriver();
+		IODriver driver = getVirtualFileSystemService().createVFSIODriver();
 		OdilonServerInfo info = driver.getServerInfo();
 		
 		if (info==null)
-			info=getVFS().getServerSettings().getDefaultOdilonServerInfo();
+			info=getVirtualFileSystemService().getServerSettings().getDefaultOdilonServerInfo();
 
 		if (info.isEncryptionIntialized()) {
 
@@ -134,7 +134,7 @@ public class EncryptionInitializer extends BaseObject {
 				
 			} catch (InterruptedException e) {
 			}
-			((ConfigurableApplicationContext) this.getVFS().getApplicationContext()).close();
+			((ConfigurableApplicationContext) this.getVirtualFileSystemService().getApplicationContext()).close();
 			System.exit(1);
 		}
 		
@@ -160,13 +160,13 @@ public class EncryptionInitializer extends BaseObject {
 		try {
 			
 			/**	HMAC is   taken from -> enc key + IV (28 bytes) **/
-			hmac = getVFS().HMAC(encKeyIV, encKey);
+			hmac = getVirtualFileSystemService().HMAC(encKeyIV, encKey);
 			
 		} catch (InvalidKeyException | NoSuchAlgorithmException e) {
 			throw new InternalCriticalException(e);
 		}
 
-		getVFS().getMasterKeyEncryptorService().setKeyToEncryptMasterKey(encKey, iv);
+		getVirtualFileSystemService().getMasterKeyEncryptorService().setKeyToEncryptMasterKey(encKey, iv);
 				 
 		driver.saveServerMasterKey(masterKey, hmac, iv, salt);
 		
@@ -222,11 +222,11 @@ public class EncryptionInitializer extends BaseObject {
 		startuplogger.info("NEW ENCRYPTION KEY");
 		startuplogger.info("------------------");
 		
-		IODriver driver = getVFS().createVFSIODriver();
+		IODriver driver = getVirtualFileSystemService().createVFSIODriver();
 		OdilonServerInfo info = driver.getServerInfo();
 		
 		if (info==null)
-			info=getVFS().getServerSettings().getDefaultOdilonServerInfo();
+			info=getVirtualFileSystemService().getServerSettings().getDefaultOdilonServerInfo();
 
 		if (!info.isEncryptionIntialized()) {
 			rekeyNotIntializedError();
@@ -273,13 +273,13 @@ public class EncryptionInitializer extends BaseObject {
 		
 		try {
 			/** HMAC is   taken from -> enc key + IV (28 bytes) */
-			hmac = getVFS().HMAC(encKeyIV, encKey);
+			hmac = getVirtualFileSystemService().HMAC(encKeyIV, encKey);
 			
 		} catch (InvalidKeyException | NoSuchAlgorithmException e) {
 			throw new InternalCriticalException(e);
 		}
 
-		getVFS().getMasterKeyEncryptorService().setKeyToEncryptMasterKey(encKey, iv);
+		getVirtualFileSystemService().getMasterKeyEncryptorService().setKeyToEncryptMasterKey(encKey, iv);
 				 
 		driver.saveServerMasterKey(key, hmac, iv, salt);
 		
@@ -321,7 +321,7 @@ public class EncryptionInitializer extends BaseObject {
 			
 		} catch (InterruptedException e) {
 		}
-		((ConfigurableApplicationContext) getVFS().getApplicationContext()).close();
+		((ConfigurableApplicationContext) getVirtualFileSystemService().getApplicationContext()).close();
 		System.exit(1);
 	}
 	
@@ -337,7 +337,7 @@ public class EncryptionInitializer extends BaseObject {
 			
 		} catch (InterruptedException e) {
 		}
-		((ConfigurableApplicationContext) getVFS().getApplicationContext()).close();
+		((ConfigurableApplicationContext) getVirtualFileSystemService().getApplicationContext()).close();
 		System.exit(1);
 		
 	}
@@ -369,7 +369,7 @@ public class EncryptionInitializer extends BaseObject {
 			Thread.sleep(3000);
 		} catch (InterruptedException e) {
 		}
-		((ConfigurableApplicationContext) getVFS().getApplicationContext()).close();
+		((ConfigurableApplicationContext) getVirtualFileSystemService().getApplicationContext()).close();
 		System.exit(code);
 	}
 

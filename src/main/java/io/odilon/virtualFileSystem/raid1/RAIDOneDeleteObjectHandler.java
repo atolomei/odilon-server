@@ -162,7 +162,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 	 */
 	
 	protected void wipeAllPreviousVersions() {
-		getVFS().getSchedulerService().enqueue(getVFS().getApplicationContext().getBean(DeleteBucketObjectPreviousVersionServiceRequest.class));
+		getVirtualFileSystemService().getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext().getBean(DeleteBucketObjectPreviousVersionServiceRequest.class));
 	}
 
 	
@@ -180,7 +180,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 	 */
 	
 	protected void deleteBucketAllPreviousVersions(ServerBucket bucket) {
-		getVFS().getSchedulerService().enqueue(getVFS().getApplicationContext().getBean(DeleteBucketObjectPreviousVersionServiceRequest.class, bucket.getName(), bucket.getId()));
+		getVirtualFileSystemService().getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext().getBean(DeleteBucketObjectPreviousVersionServiceRequest.class, bucket.getName(), bucket.getId()));
 	}
 	
 	/**
@@ -298,8 +298,8 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 	 
 		try {
 
-			if (getVFS().getServerSettings().isStandByEnabled())
-				getVFS().getReplicationService().cancel(op);
+			if (getVirtualFileSystemService().getServerSettings().isStandByEnabled())
+				getVirtualFileSystemService().getReplicationService().cancel(op);
 			
 			/** rollback is the same for both operations */
 			if (op.getOp()==VFSOp.DELETE_OBJECT)
@@ -339,7 +339,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 	 */
 	private void postObjectPreviousVersionDeleteAllCommit(ObjectMetadata meta, int headVersion) {
 		
-		String bucketName = meta.bucketName;
+		String bucketName = meta.getBucketName();
 		String objectName = meta.objectName;
 		
 		Check.requireNonNullArgument(bucketName, "bucket is null");
@@ -384,7 +384,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 	
 	private void postObjectDeleteCommit(ObjectMetadata meta, int headVersion)  {
 		
-		String bucketName = meta.bucketName;
+		String bucketName = meta.getBucketName();
 		String objectName = meta.objectName;
 				
 		Check.requireNonNullArgument(bucketName, "bucket is null");
@@ -455,7 +455,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 	private void onAfterCommit(VFSOperation op, ObjectMetadata meta, int headVersion) {
 		try {
 			if (op.getOp()==VFSOp.DELETE_OBJECT || op.getOp()==VFSOp.DELETE_OBJECT_PREVIOUS_VERSIONS)
-				getVFS().getSchedulerService().enqueue(getVFS().getApplicationContext().getBean(AfterDeleteObjectServiceRequest.class, op.getOp(), meta, headVersion));
+				getVirtualFileSystemService().getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext().getBean(AfterDeleteObjectServiceRequest.class, op.getOp(), meta, headVersion));
 		} catch (Exception e) {
 			logger.error(e, " | " + SharedConstant.NOT_THROWN);
 		}

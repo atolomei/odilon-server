@@ -164,8 +164,8 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
         boolean done = false;
 
         try {
-            if (getVFS().getServerSettings().isStandByEnabled())
-                getVFS().getReplicationService().cancel(op);
+            if (getVirtualFileSystemService().getServerSettings().isStandByEnabled())
+                getVirtualFileSystemService().getReplicationService().cancel(op);
 
             for (Drive drive : getDriver().getDrivesAll()) {
                 drive.deleteObjectMetadata(bucket_id, objectName);
@@ -213,7 +213,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 
         boolean isMainException = false;
 
-        try (InputStream sourceStream = isEncrypt() ? (getVFS().getEncryptionService().encryptStream(stream))
+        try (InputStream sourceStream = isEncrypt() ? (getVirtualFileSystemService().getEncryptionService().encryptStream(stream))
                 : stream) {
             int n_d = 0;
             for (Drive drive : getDriver().getDrivesAll()) {
@@ -345,7 +345,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
                 meta.setVersioncreationDate(now);
                 meta.setLength(file.length());
                 meta.setEtag(sha256);
-                meta.setEncrypt(getVFS().isEncrypt());
+                meta.setEncrypt(getVirtualFileSystemService().isEncrypt());
                 meta.setSha256(sha256);
                 meta.setIntegrityCheck(now);
                 meta.setStatus(ObjectStatus.ENABLED);

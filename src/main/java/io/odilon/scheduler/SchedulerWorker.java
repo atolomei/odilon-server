@@ -118,7 +118,7 @@ public abstract class SchedulerWorker implements Runnable {
 
         this.poolSize = getPoolSize();
 
-        setSiestaMillisecs(getVFS().getServerSettings().getSchedulerSiestaSecs() * 1000);
+        setSiestaMillisecs(getVirtualFileSystemService().getServerSettings().getSchedulerSiestaSecs() * 1000);
 
         this.dispatcher = new Dispatcher(getId(), 1, this.poolSize);
         this.thread = new Thread(this);
@@ -134,7 +134,7 @@ public abstract class SchedulerWorker implements Runnable {
     }
 
     public int getPoolSize() {
-        return getVFS().getServerSettings().getDispatcherPoolSize();
+        return getVirtualFileSystemService().getServerSettings().getDispatcherPoolSize();
     }
 
     @Override
@@ -178,7 +178,7 @@ public abstract class SchedulerWorker implements Runnable {
         this.applicationContext = applicationContext;
     }
 
-    public VirtualFileSystemService getVFS() {
+    public VirtualFileSystemService getVirtualFileSystemService() {
         return this.virtualFileSystemService;
     }
 

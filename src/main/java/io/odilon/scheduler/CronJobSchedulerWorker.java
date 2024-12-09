@@ -59,7 +59,7 @@ public class CronJobSchedulerWorker extends SchedulerWorker {
 
 	@Override
 	public int getPoolSize() {
-		return getVFS().getServerSettings().getCronDispatcherPoolSize();
+		return getVirtualFileSystemService().getServerSettings().getCronDispatcherPoolSize();
 	}
 	
 	@Override
