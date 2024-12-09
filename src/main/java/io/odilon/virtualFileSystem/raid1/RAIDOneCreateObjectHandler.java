@@ -111,8 +111,8 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 
                 int version = 0;
                 op = getJournalService().createObject(bucket, objectName);
-                saveObjectDataFile(bucket.getId(), objectName, stream, srcFileName);
-                saveObjectMetadata(bucket.getId(), objectName, srcFileName, contentType, version, customTags);
+                saveObjectDataFile(bucket, objectName, stream, srcFileName);
+                saveObjectMetadata(bucket, objectName, srcFileName, contentType, version, customTags);
                 done = op.commit();
 
             } catch (Exception e) {
@@ -203,7 +203,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
      * @param stream
      * @param srcFileName
      */
-    private void saveObjectDataFile(Long bucket_id, String objectName, InputStream stream, String srcFileName) {
+    private void saveObjectDataFile(ServerBucket bucket, String objectName, InputStream stream, String srcFileName) {
 
         int total_drives = getDriver().getDrivesAll().size();
 
@@ -217,7 +217,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
                 : stream) {
             int n_d = 0;
             for (Drive drive : getDriver().getDrivesAll()) {
-                String sPath = ((SimpleDrive) drive).getObjectDataFilePath(bucket_id, objectName);
+                String sPath = ((SimpleDrive) drive).getObjectDataFilePath(bucket.getId(), objectName);
                 out[n_d++] = new BufferedOutputStream(new FileOutputStream(sPath), ServerConstant.BUFFER_SIZE);
             }
 
@@ -254,12 +254,11 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
                     }
 
                     try {
-                        List<Future<Boolean>> future = executor.invokeAll(tasks, 5, TimeUnit.MINUTES);
+                        List<Future<Boolean>> future = executor.invokeAll(tasks, 10, TimeUnit.MINUTES);
                         Iterator<Future<Boolean>> it = future.iterator();
                         while (it.hasNext()) {
                             if (!it.next().get())
-                                throw new InternalCriticalException(
-                                        getDriver().objectInfo(bucket_id.toString(), objectName, srcFileName));
+                                throw new InternalCriticalException(objectInfo(bucket, objectName, srcFileName));
                         }
                     } catch (InterruptedException | ExecutionException e) {
                         throw new InternalCriticalException(e);
@@ -275,7 +274,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
         } catch (Exception e) {
             isMainException = true;
             throw new InternalCriticalException(e,
-                    getDriver().objectInfo(bucket_id.toString(), objectName, srcFileName));
+                    getDriver().objectInfo(bucket, objectName, srcFileName));
 
         } finally {
             IOException secEx = null;
@@ -287,7 +286,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
                             out[n].close();
                     }
                 } catch (IOException e) {
-                    logger.error(e, getDriver().objectInfo(bucket_id.toString(), objectName, srcFileName)
+                    logger.error(e, getDriver().objectInfo(bucket, objectName, srcFileName)
                             + (isMainException ? SharedConstant.NOT_THROWN : ""));
                     secEx = e;
                 }
@@ -298,6 +297,9 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
         }
 
     }
+
+    
+
 
     /**
      * <p>
@@ -312,7 +314,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
      * @param stream
      * @param srcFileName
      */
-    private void saveObjectMetadata(Long bucket_id, String objectName, String srcFileName, String contentType,
+    private void saveObjectMetadata(ServerBucket bucket, String objectName, String srcFileName, String contentType,
             int version, Optional<List<String>> customTags) {
 
         String sha = null;
@@ -322,7 +324,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 
         final List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
         for (Drive drive : getDriver().getDrivesAll()) {
-            File file = ((SimpleDrive) drive).getObjectDataFile(bucket_id, objectName);
+            File file = ((SimpleDrive) drive).getObjectDataFile(bucket.getId(), objectName);
 
             try {
                 String sha256 = OdilonFileUtils.calculateSHA256String(file);
@@ -331,36 +333,34 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
                     baseDrive = drive.getName();
                 } else {
                     if (!sha256.equals(sha))
-                        throw new InternalCriticalException("SHA 256 are not equal for -> d:" + baseDrive + " ->" + sha
-                                + "  vs   d:" + drive.getName() + " -> " + sha256);
+                        throw new InternalCriticalException("SHA 256 are not equal for -> d:" + baseDrive + " ->" + sha + " vs d:" + drive.getName() + " -> " + sha256);
                 }
 
-                ObjectMetadata meta = new ObjectMetadata(bucket_id, objectName);
-                meta.fileName = srcFileName;
-                meta.appVersion = OdilonVersion.VERSION;
-                meta.contentType = contentType;
-                meta.creationDate = now;
-                meta.version = version;
-                meta.versioncreationDate = meta.creationDate;
-                meta.length = file.length();
-                meta.etag = sha256;
-                meta.encrypt = getVFS().isEncrypt();
-                meta.sha256 = sha256;
-                meta.integrityCheck = now;
-                meta.status = ObjectStatus.ENABLED;
-                meta.drive = drive.getName();
-                meta.raid = String.valueOf(getRedundancyLevel().getCode()).trim();
+                ObjectMetadata meta = new ObjectMetadata(bucket.getId(), objectName);
+                meta.setFileName(srcFileName);
+                meta.setAppVersion(OdilonVersion.VERSION);
+                meta.setContentType(contentType);
+                meta.setCreationDate(now);
+                meta.setVersion(version);
+                meta.setVersioncreationDate(now);
+                meta.setLength(file.length());
+                meta.setEtag(sha256);
+                meta.setEncrypt(getVFS().isEncrypt());
+                meta.setSha256(sha256);
+                meta.setIntegrityCheck(now);
+                meta.setStatus(ObjectStatus.ENABLED);
+                meta.setDrive(drive.getName());
+                meta.setRaid(String.valueOf(getRedundancyLevel().getCode()).trim());
                 if (customTags.isPresent())
-                    meta.customTags = customTags.get();
+                    meta.setCustomTags(customTags.get());
 
                 list.add(meta);
 
             } catch (Exception e) {
                 throw new InternalCriticalException(e,
-                        getDriver().objectInfo(bucket_id.toString(), objectName, srcFileName));
+                        getDriver().objectInfo(bucket, objectName, srcFileName));
             }
         }
-
         /** save in parallel */
         getDriver().saveObjectMetadataToDisk(getDriver().getDrivesAll(), list, true);
     }

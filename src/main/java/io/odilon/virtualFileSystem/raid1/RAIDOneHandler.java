@@ -19,6 +19,7 @@ package io.odilon.virtualFileSystem.raid1;
 import javax.annotation.concurrent.ThreadSafe;
 
 import io.odilon.model.RedundancyLevel;
+import io.odilon.virtualFileSystem.BaseRAIDHandler;
 import io.odilon.virtualFileSystem.RAIDHandler;
 import io.odilon.virtualFileSystem.model.JournalService;
 import io.odilon.virtualFileSystem.model.LockService;
@@ -32,7 +33,7 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @ThreadSafe
-public abstract class RAIDOneHandler implements RAIDHandler {
+public abstract class RAIDOneHandler extends BaseRAIDHandler implements RAIDHandler {
 	
 	private final RAIDOneDriver driver;
 	

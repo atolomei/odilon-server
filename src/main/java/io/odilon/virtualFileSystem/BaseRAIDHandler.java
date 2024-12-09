@@ -49,7 +49,11 @@ public abstract class BaseRAIDHandler {
     protected String objectInfo(ServerBucket bucket, String objectName, String srcFileName) {
         return getDriver().objectInfo(bucket, objectName, srcFileName);
     }
-
+                                                
+    protected String objectInfo(String bucketName, String objectName, String srcFileName) {
+        return getDriver().objectInfo(bucketName, objectName, srcFileName);
+    }
+    
     protected String objectInfo(ObjectMetadata meta) {
         return getDriver().objectInfo(meta);
     }
