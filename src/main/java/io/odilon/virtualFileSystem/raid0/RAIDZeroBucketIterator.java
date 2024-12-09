@@ -109,9 +109,6 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
         setInitiated(true);
     }
 
-    /**
-     * 
-     */
     private void skipOffset() {
 
         if (getOffset() == 0)
@@ -146,9 +143,6 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
         }
     }
 
-    /**
-     * @return
-     */
     @Override
     protected boolean fetch() {
 

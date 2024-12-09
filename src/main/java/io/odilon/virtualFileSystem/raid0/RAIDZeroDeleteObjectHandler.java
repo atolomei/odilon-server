@@ -160,7 +160,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
         boolean done = false;
         VFSOperation op = null;
 
-        objectWriteLock(bucket, meta.getObjectName());
+        objectWriteLock(meta);
 
         try {
             bucketReadLock(bucket);
@@ -175,7 +175,6 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
                 /**
                  * It does not delete the head version, only previous versions
                  */
-
                 if (meta.getVersion() == 0)
                     return;
 
@@ -241,7 +240,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
                 }
             }
         } finally {
-            objectWriteUnLock(bucket, meta.getObjectName());
+            objectWriteUnLock(meta);
         }
         if (done)
             onAfterCommit(op, meta, headVersion);

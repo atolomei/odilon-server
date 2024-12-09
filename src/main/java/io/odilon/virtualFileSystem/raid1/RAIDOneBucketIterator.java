@@ -77,10 +77,6 @@ public class RAIDOneBucketIterator extends BucketIterator implements Closeable {
                 Double.valueOf(Math.abs(Math.random() * 10000)).intValue() % getDriver().getDrivesEnabled().size());
     }
 
-    /**
-     * 
-     * 
-     */
     @Override
     public synchronized void close() throws IOException {
         if (this.stream != null)
@@ -93,7 +89,6 @@ public class RAIDOneBucketIterator extends BucketIterator implements Closeable {
     protected boolean fetch() {
         setRelativeIndex(0);
         setBuffer(new ArrayList<Path>());
-
         boolean isItems = true;
         while (isItems && getBuffer().size() < ServerConstant.BUCKET_ITERATOR_DEFAULT_BUFFER_SIZE) {
             if (it.hasNext())
@@ -106,7 +101,6 @@ public class RAIDOneBucketIterator extends BucketIterator implements Closeable {
 
     @Override
     protected void init() {
-
         Path start = new File(getDrive().getBucketMetadataDirPath(getBucketId())).toPath();
         try {
             this.stream = Files.walk(start, 1).skip(1).filter(file -> Files.isDirectory(file))
@@ -140,5 +134,4 @@ public class RAIDOneBucketIterator extends BucketIterator implements Closeable {
     private Drive getDrive() {
         return this.drive;
     }
-
 }

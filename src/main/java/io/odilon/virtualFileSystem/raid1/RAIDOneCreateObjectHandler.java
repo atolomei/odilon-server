@@ -53,7 +53,6 @@ import io.odilon.virtualFileSystem.model.VFSOp;
 import io.odilon.virtualFileSystem.model.VFSOperation;
 
 /**
- * 
  * <p>
  * RAID 1 Handler <br/>
  * Creates new Objects ({@link VFSOp.CREATE_OBJECT})
@@ -89,7 +88,6 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
             String contentType, Optional<List<String>> customTags) {
 
         Check.requireNonNullArgument(bucket, "bucket is null");
-
         Long bucket_id = bucket.getId();
         Check.requireNonNullArgument(bucket_id, "bucket_id is null");
         Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucket_id.toString());
@@ -107,18 +105,14 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
             getLockService().getBucketLock(bucket).readLock().lock();
 
             try (stream) {
-
                 if (getDriver().getReadDrive(bucket, objectName).existsObjectMetadata(bucket, objectName))
                     throw new IllegalArgumentException(
                             "object already exist -> b:" + getDriver().objectInfo(bucket, objectName));
 
                 int version = 0;
-
                 op = getJournalService().createObject(bucket, objectName);
-
                 saveObjectDataFile(bucket.getId(), objectName, stream, srcFileName);
                 saveObjectMetadata(bucket.getId(), objectName, srcFileName, contentType, version, customTags);
-
                 done = op.commit();
 
             } catch (Exception e) {
@@ -135,8 +129,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
                                 throw new InternalCriticalException(e,
                                         getDriver().objectInfo(bucket, objectName, srcFileName));
                             else
-                                logger.error(e, " finally | " + getDriver().objectInfo(bucket, objectName, srcFileName)
-                                        + SharedConstant.NOT_THROWN);
+                                logger.error(e, getDriver().objectInfo(bucket, objectName, srcFileName), SharedConstant.NOT_THROWN);
                         }
                     }
                 } finally {

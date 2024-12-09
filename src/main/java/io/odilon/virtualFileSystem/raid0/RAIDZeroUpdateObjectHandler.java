@@ -182,7 +182,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
                     throw new IllegalArgumentException(
                             "Object does not have any previous version | " + objectInfo(bucket, objectName));
 
-                beforeHeadVersion = meta.version;
+                beforeHeadVersion = meta.getVersion();
                 List<ObjectMetadata> metaVersions = new ArrayList<ObjectMetadata>();
 
                 for (int version = 0; version < beforeHeadVersion; version++) {

@@ -492,7 +492,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
             bucketReadLock(bucket);
             try {
                 /** TBA chequear que no este "deleted" en el drive */
-
                 return getDrive(bucket, objectName).existsObjectMetadata(bucket, objectName);
 
             } finally {
