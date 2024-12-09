@@ -136,7 +136,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
                         }
                     }
                 } finally {
-                    bucketReadUnlock(bucket);
+                    bucketReadUnLock(bucket);
                 }
             }
         } finally {
@@ -276,7 +276,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
             meta.setVault(getVirtualFileSystemService().isUseVaultNewFiles());
             meta.setCreationDate(now);
             meta.setVersion(version);
-            meta.setVersioncreationDate(meta.creationDate);
+            meta.setVersioncreationDate(meta.getCreationDate());
             meta.setLength(file.length());
             meta.setEtag(sha256); /** note that -> sha256 is calculated on the encrypted file **/
             meta.setIntegrityCheck(now);

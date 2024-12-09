@@ -16,7 +16,6 @@
  */
 package io.odilon.virtualFileSystem.model;
 
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Iterator;
@@ -36,245 +35,240 @@ import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
 
 /**
-*  <p>Bucket iterator</p>
-*  
-* @author atolomei@novamens.com (Alejandro Tolomei)
-*/
-public abstract class BucketIterator implements Iterator<Path>  {
-				
-	private static final Logger logger = Logger.getLogger(BucketIterator.class.getName());
+ * <p>
+ * Bucket iterator
+ * </p>
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
+public abstract class BucketIterator implements Iterator<Path> {
 
-	static private ObjectMapper mapper = new ObjectMapper();
-	
-	static  {
-		mapper.registerModule(new JavaTimeModule());
-		mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-	}
+    private static final Logger logger = Logger.getLogger(BucketIterator.class.getName());
 
-	
-	@JsonProperty("cumulativeIndex")
-	private long cumulativeIndex = 0;
-	
-	/** next item to return -> 0 .. [ list.size()-1 ] */
-	@JsonIgnore
-	private int relativeIndex = 0;  
-	
-	@JsonProperty("prefix")
-	private String prefix = null;
-	
+    static private ObjectMapper mapper = new ObjectMapper();
 
-	@JsonProperty("agentId")
-	private String agentId = null;
-	
-	@JsonProperty("offset")
-	private Long offset = Long.valueOf(0);
-	
-	@JsonIgnore
-	private final ServerBucket bucket;
+    static {
+        mapper.registerModule(new JavaTimeModule());
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    }
 
-	@JsonProperty("bucketId")
-	private final Long bucketId;
+    @JsonProperty("cumulativeIndex")
+    private long cumulativeIndex = 0;
 
-	@JsonProperty("bucketName")
-	private final String bucketName;
-	
-	@JsonIgnore
-	private boolean initiated = false;
+    /** next item to return -> 0 .. [ list.size()-1 ] */
+    @JsonIgnore
+    private int relativeIndex = 0;
 
+    @JsonProperty("prefix")
+    private String prefix = null;
 
-	@JsonIgnore
-	private List<Path> buffer;
-	
-	
-	/**
-	 * @param bucketName can not be null
-	 */
-	public BucketIterator(final IODriver driver, final ServerBucket bucket) {
+    @JsonProperty("agentId")
+    private String agentId = null;
 
-		Check.requireNonNullArgument(driver, "driver is null");
-		Check.requireNonNullArgument(bucket, "bucket is null");
-		
-		setDriver(driver);
-		
-		this.bucket=bucket;
-		this.bucketId=bucket.getId();
-		this.bucketName=bucket.getName();
-	}
+    @JsonProperty("offset")
+    private Long offset = Long.valueOf(0);
 
-	abstract protected boolean fetch();
-	abstract protected void init();
-	
-	
-	public String getAgentId() {
-		return agentId;
-	}
+    @JsonIgnore
+    private final ServerBucket bucket;
 
-	public void setAgentId(String agentId) {
-		this.agentId = agentId;
-	}
-	
-	
-	public ServerBucket getBucket() {
-		return this.bucket;
-	}
-	
-	public Long getBucketId() {
-		return bucket.getId();
-	}
+    @JsonProperty("bucketId")
+    private final Long bucketId;
 
-	public Long getOffset() {
-		return offset;
-	}
+    @JsonProperty("bucketName")
+    private final String bucketName;
 
-	public Long setOffset(Long offset) {
-		this.offset = offset;
-		return offset;
-	}
+    @JsonIgnore
+    private boolean initiated = false;
 
-	@Override
-	public synchronized boolean hasNext() {
-		
-		if(!isInitiated()) {
-			init();
-			return fetch();
-		}
-		/** 
-		 * if the buffer 
-		 *  still has items  
-		 * **/
-		if (getRelativeIndex() < getBuffer().size())
-			return true;
-				
-		return fetch();
-	}
-	
-	/**
-	 * 
-	 */
-	@Override
-	public synchronized Path next() {
-		
-		/**	
-		 * if the buffer still has items to return 
-		 * */
-		if (getRelativeIndex() < getBuffer().size()) {
-			Path object = getBuffer().get(getRelativeIndex());
-			setRelativeIndex( getRelativeIndex()+1 ); 
-			incCumulativeIndex(); 
-			return object;
-		}
+    @JsonIgnore
+    private List<Path> buffer;
 
-		boolean hasItems = fetch();
-		
-		if (!hasItems)																							
-			throw new IndexOutOfBoundsException("No more items available. hasNext() should be called before this method. " + "[returned so far -> " + String.valueOf(getCumulativeIndex())+"]");
-		
-		Path object = getBuffer().get(getRelativeIndex());
+    @JsonIgnore
+    private IODriver driver;
 
-		incRelativeIndex();
-		incCumulativeIndex();
-		
-		return object;
-	}
+    /**
+     * @param bucketName can not be null
+     */
+    public BucketIterator(final IODriver driver, final ServerBucket bucket) {
 
+        Check.requireNonNullArgument(driver, "driver is null");
+        Check.requireNonNullArgument(bucket, "bucket is null");
 
-	public void close() throws IOException  {
-	}
+        setDriver(driver);
 
-	@Override
-	public String toString() {
-			StringBuilder str = new StringBuilder();
-			str.append(this.getClass().getSimpleName() +"{");
-			str.append(toJSON());
-			str.append("}");
-			return str.toString();
-	}
-		
-	 public String toJSON() {
-	   try {
-			return mapper.writeValueAsString(this);
-		} catch (JsonProcessingException e) {
-					logger.error(e, SharedConstant.NOT_THROWN);
-					return "\"error\":\"" + e.getClass().getName()+ " | " + e.getMessage()+"\""; 
-		}
-	  }
-	
+        this.bucket = bucket;
+        this.bucketId = bucket.getId();
+        this.bucketName = bucket.getName();
+    }
 
-	 
-	 IODriver driver;
-	 
-	 
-	 protected void setDriver(IODriver driver) {
-		 this.driver=driver;
-	 }
-	 
-	protected IODriver getDriver() {
-			return driver;
-	}
-	
-		
-	 /**
-		 * <p>This method should be used when the delete 
-		 *  operation is logical (ObjectStatus.DELETED)</p>
-		 * @param path
-		 * @return
-		 */
-		@SuppressWarnings("unused")
-		protected boolean isObjectStateEnabled(Path path) {
-			ObjectMetadata meta = getDriver().getObjectMetadata(getBucket(), path.toFile().getName());
-			if (meta==null)
-				return false;
-			if (meta.status == ObjectStatus.ENABLED) 
-				return true;
-			return false;
-		}
-		
-	 protected boolean isInitiated() {
-			return initiated;
-	}
+    abstract protected boolean fetch();
 
-	protected void setInitiated(boolean initiated) {
-			this.initiated = initiated;
-	}
-	 
-	protected List<Path> getBuffer() {
-			return buffer;
-	}
+    abstract protected void init();
 
-	protected void setBuffer(List<Path> buffer) {
-		this.buffer = buffer;
-	}
+    public String getAgentId() {
+        return agentId;
+    }
 
-	protected String getPrefix() {
-		return prefix;
-	}
+    public void setAgentId(String agentId) {
+        this.agentId = agentId;
+    }
 
-	protected void setPrefix(String prefix) {
-		this.prefix = prefix;
-	}
+    public ServerBucket getBucket() {
+        return this.bucket;
+    }
 
-	protected int getRelativeIndex() {
-		return relativeIndex;
-	}
+    public Long getBucketId() {
+        return bucket.getId();
+    }
 
-	protected void incRelativeIndex() {
-		this.relativeIndex++;
-	}
-	
-	protected void setRelativeIndex(int relativeIndex) {
-		this.relativeIndex = relativeIndex;
-	}
+    public Long getOffset() {
+        return offset;
+    }
 
-	protected void incCumulativeIndex() {
-		this.cumulativeIndex++;
-	}
-	
-	protected long getCumulativeIndex() {
-		return cumulativeIndex;
-	}
+    public Long setOffset(Long offset) {
+        this.offset = offset;
+        return offset;
+    }
 
-	protected void setCumulativeIndex(long cumulativeIndex) {
-		this.cumulativeIndex = cumulativeIndex;
-	}
+    @Override
+    public synchronized boolean hasNext() {
 
+        if (!isInitiated()) {
+            init();
+            return fetch();
+        }
+        /**
+         * if the buffer still has items
+         **/
+        if (getRelativeIndex() < getBuffer().size())
+            return true;
+
+        return fetch();
+    }
+
+    /**
+     * 
+     */
+    @Override
+    public synchronized Path next() {
+
+        /**
+         * if the buffer still has items to return
+         */
+        if (getRelativeIndex() < getBuffer().size()) {
+            Path object = getBuffer().get(getRelativeIndex());
+            setRelativeIndex(getRelativeIndex() + 1);
+            incCumulativeIndex();
+            return object;
+        }
+
+        boolean hasItems = fetch();
+
+        if (!hasItems)
+            throw new IndexOutOfBoundsException(
+                    "No more items available. hasNext() should be called before this method. " + "[returned so far -> "
+                            + String.valueOf(getCumulativeIndex()) + "]");
+
+        Path object = getBuffer().get(getRelativeIndex());
+
+        incRelativeIndex();
+        incCumulativeIndex();
+
+        return object;
+    }
+
+    public void close() throws IOException {
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder str = new StringBuilder();
+        str.append(this.getClass().getSimpleName() + "{");
+        str.append(toJSON());
+        str.append("}");
+        return str.toString();
+    }
+
+    public String toJSON() {
+        try {
+            return mapper.writeValueAsString(this);
+        } catch (JsonProcessingException e) {
+            logger.error(e, SharedConstant.NOT_THROWN);
+            return "\"error\":\"" + e.getClass().getName() + " | " + e.getMessage() + "\"";
+        }
+    }
+
+    protected void setDriver(IODriver driver) {
+        this.driver = driver;
+    }
+
+    protected IODriver getDriver() {
+        return driver;
+    }
+
+    /**
+     * <p>
+     * This method should be used when the delete operation is logical
+     * (ObjectStatus.DELETED)
+     * </p>
+     * 
+     * @param path
+     * @return
+     */
+    protected boolean isObjectStateEnabled(Path path) {
+        ObjectMetadata meta = getDriver().getObjectMetadata(getBucket(), path.toFile().getName());
+        if (meta == null)
+            return false;
+        if (meta.getStatus() == ObjectStatus.ENABLED)
+            return true;
+        return false;
+    }
+
+    protected boolean isInitiated() {
+        return initiated;
+    }
+
+    protected void setInitiated(boolean initiated) {
+        this.initiated = initiated;
+    }
+
+    protected List<Path> getBuffer() {
+        return buffer;
+    }
+
+    protected void setBuffer(List<Path> buffer) {
+        this.buffer = buffer;
+    }
+
+    protected String getPrefix() {
+        return prefix;
+    }
+
+    protected void setPrefix(String prefix) {
+        this.prefix = prefix;
+    }
+
+    protected int getRelativeIndex() {
+        return relativeIndex;
+    }
+
+    protected void incRelativeIndex() {
+        this.relativeIndex++;
+    }
+
+    protected void setRelativeIndex(int relativeIndex) {
+        this.relativeIndex = relativeIndex;
+    }
+
+    protected void incCumulativeIndex() {
+        this.cumulativeIndex++;
+    }
+
+    protected long getCumulativeIndex() {
+        return cumulativeIndex;
+    }
+
+    protected void setCumulativeIndex(long cumulativeIndex) {
+        this.cumulativeIndex = cumulativeIndex;
+    }
 }

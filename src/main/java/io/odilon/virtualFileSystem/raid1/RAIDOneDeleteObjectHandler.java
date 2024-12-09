@@ -59,7 +59,6 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 	protected RAIDOneDeleteObjectHandler(RAIDOneDriver driver) {
 		super(driver);
 	}
-	
 
 	/**
 	 * @param bucket
@@ -72,7 +71,6 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 		
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullArgument(bucket.getId(), "bucketId is null");
-		
 		Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 		
 		if (!getDriver().exists(bucket, objectName))

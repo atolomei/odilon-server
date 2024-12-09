@@ -176,8 +176,8 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
     protected void updateObjectMetadata(ObjectMetadata meta, boolean isHead) {
 
         Check.requireNonNullArgument(meta, "meta is null");
-        Check.requireNonNullArgument(meta.bucketName, "bucketName is null");
-        Check.requireNonNullArgument(meta.objectName, "objectName is null or empty " + getDriver().objectInfo(meta));
+        Check.requireNonNullArgument(meta.getBucketName(), "bucketName is null");
+        Check.requireNonNullArgument(meta.getObjectName(), "objectName is null or empty " + getDriver().objectInfo(meta));
 
         VFSOperation op = null;
 
@@ -190,7 +190,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
             getLockService().getBucketLock(bucket).readLock().lock();
             try {
 
-                op = getJournalService().updateObjectMetadata(bucket, meta.objectName, meta.version);
+                op = getJournalService().updateObjectMetadata(bucket, meta.getObjectName(), meta.version);
 
                 backupMetadata(meta);
                 saveObjectMetadata(meta, isHead);
@@ -631,11 +631,11 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
     private void backupMetadata(ObjectMetadata meta) {
         try {
             for (Drive drive : getDriver().getDrivesAll()) {
-                String objectMetadataDirPath = drive.getObjectMetadataDirPath(meta.bucketId, meta.objectName);
+                String objectMetadataDirPath = drive.getObjectMetadataDirPath(meta.bucketId, meta.getObjectName());
                 File src = new File(objectMetadataDirPath);
                 if (src.exists())
                     FileUtils.copyDirectory(src,
-                            new File(drive.getBucketWorkDirPath(meta.bucketId) + File.separator + meta.objectName));
+                            new File(drive.getBucketWorkDirPath(meta.bucketId) + File.separator + meta.getObjectName()));
 
             }
         } catch (IOException e) {
@@ -674,7 +674,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
 
                 for (Drive drive : getDriver().getDrivesAll()) {
                     FileUtils.deleteQuietly(
-                            drive.getObjectMetadataVersionFile(meta.bucketId, meta.objectName, previousVersion));
+                            drive.getObjectMetadataVersionFile(meta.bucketId, meta.getObjectName(), previousVersion));
                     List<File> files = getDriver().getObjectDataFiles(meta, Optional.of(previousVersion));
                     files.forEach(file -> {
                         FileUtils.deleteQuietly(file);
@@ -730,8 +730,8 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
 
     private boolean restoreVersionObjectDataFile(ObjectMetadata meta, int version) {
 
-        Check.requireNonNullArgument(meta.bucketName, "bucketName is null");
-        Check.requireNonNullArgument(meta.objectName, "objectName is null or empty | b:" + meta.bucketName);
+        Check.requireNonNullArgument(meta.getBucketName(), "bucketName is null");
+        Check.requireNonNullArgument(meta.getObjectName(), "objectName is null or empty | b:" + meta.getBucketName());
 
         try {
 

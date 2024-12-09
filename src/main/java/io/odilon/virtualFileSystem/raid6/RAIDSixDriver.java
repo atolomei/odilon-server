@@ -648,8 +648,8 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
     public void postObjectDeleteTransaction(ObjectMetadata meta, int headVersion) {
 
         Check.requireNonNullArgument(meta, "meta is null");
-        String bucketName = meta.bucketName;
-        String objectName = meta.objectName;
+        String bucketName =meta.getBucketName();
+        String objectName = meta.getObjectName();
         Check.requireNonNullArgument(bucketName, "bucketName is null");
         Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketName);
 
@@ -664,8 +664,8 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
     public void postObjectPreviousVersionDeleteAllTransaction(ObjectMetadata meta, int headVersion) {
 
         Check.requireNonNullArgument(meta, "meta is null");
-        String bucketName = meta.bucketName;
-        String objectName = meta.objectName;
+        String bucketName =meta.getBucketName();
+        String objectName = meta.getObjectName();
         Check.requireNonNullArgument(bucketName, "bucket is null");
         Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketName);
 
@@ -800,8 +800,8 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 
         Check.requireNonNullArgument(meta, "meta is null");
 
-        String bucketName = meta.bucketName;
-        String objectName = meta.objectName;
+        String bucketName =meta.getBucketName();
+        String objectName = meta.getObjectName();
         Long bucketId = meta.getBucketId();
 
         Check.requireNonNullStringArgument(bucketName, "bucket is null");
@@ -1020,7 +1020,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
                 String suffix = "." + String.valueOf(chunk) + "." + String.valueOf(disk)
                         + (version.isEmpty() ? "" : (".v" + String.valueOf(version.get())));
                 Drive drive = getDrivesAll().get(disk);
-                map.get(drive).add(meta.objectName + suffix);
+                map.get(drive).add(meta.getObjectName() + suffix);
             }
         }
         return map;

@@ -126,7 +126,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
                         }
                     }
                 } finally {
-                    bucketReadUnlock(bucket);
+                    bucketReadUnLock(bucket);
                 }
             }
         } finally {
@@ -236,7 +236,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
                         }
                     }
                 } finally {
-                    bucketReadUnlock(bucket);
+                    bucketReadUnLock(bucket);
                 }
             }
         } finally {

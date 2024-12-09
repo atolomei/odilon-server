@@ -106,7 +106,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 			} catch (Exception e) {
 				done=false;
 				isMainException = true;
-				throw new InternalCriticalException(e, "op:" + op.getOp().getName() +	getDriver().objectInfo(bucket, objectName));
+				throw new InternalCriticalException(e, "op:" + op.getOp().getName() + objectInfo(bucket, objectName));
 			}
 			finally {
 				
@@ -117,9 +117,9 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 							rollbackJournal(op, false);
 						} catch (Exception e) {
 							if (!isMainException)
-								throw new InternalCriticalException(e, "op:" + op.getOp().getName() +	" , "  + getDriver().objectInfo(bucket, objectName));
+								throw new InternalCriticalException(e, "op:" + op.getOp().getName() +	" , "  +objectInfo(bucket, objectName));
 							else
-								logger.error(e, "op:" + op.getOp().getName() +	","  + getDriver().objectInfo(bucket, objectName), SharedConstant.NOT_THROWN);
+								logger.error(e, "op:" + op.getOp().getName() +	","  + objectInfo(bucket, objectName), SharedConstant.NOT_THROWN);
 						}
 					}
 					else if (done) {
@@ -134,7 +134,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 					 */
 					
 				} catch (Exception e) {
-					logger.error(e, "op:" + op.getOp().getName() +	", "  + getDriver().objectInfo(bucket, objectName), SharedConstant.NOT_THROWN);
+					logger.error(e, "op:" + op.getOp().getName() +	", "  + objectInfo(bucket, objectName), SharedConstant.NOT_THROWN);
 				}
 				finally {
 					getLockService().getBucketLock(bucket).readLock().unlock();
@@ -172,12 +172,12 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 		
 		int headVersion = -1;
 		
-		String bucketName = headMeta.bucketName;
-		String objectName = headMeta.objectName;
-		Long bucketId = headMeta.bucketId;
+		String bucketName = headMeta.getBucketName();
+		String objectName = headMeta.getObjectName();
+		Long bucketId = headMeta.getBucketId();
 		
 		
-		final ServerBucket bucket = getVirtualFileSystemService().getBucketById(headMeta.bucketId);
+		final ServerBucket bucket = getVirtualFileSystemService().getBucketById(headMeta.getBucketId());
 		
 		
 		getLockService().getObjectLock(bucket, objectName).writeLock().lock();
@@ -209,7 +209,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 
 					/** update head metadata with the tag */
 					headMeta.addSystemTag("delete versions");
-					headMeta.lastModified = OffsetDateTime.now();
+					headMeta.setLastModified(OffsetDateTime.now());
 					
 					 final List<Drive> drives = getDriver().getDrivesAll();
 					 final List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
@@ -272,8 +272,8 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 					
 		Check.requireNonNullArgument(meta, "meta is null");
 		
-		String bucketName = meta.bucketName;
-		String objectName = meta.objectName;
+		String bucketName =meta.getBucketName();
+		String objectName = meta.getObjectName();
 		Long bucketId = meta.bucketId;
 		
 		Check.requireNonNullArgument(bucketName, "bucket is null");
@@ -364,8 +364,8 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 	
 		Check.requireNonNullArgument(meta, "meta is null");
 
-		String bucketName = meta.bucketName;
-		String objectName = meta.objectName;
+		String bucketName =meta.getBucketName();
+		String objectName = meta.getObjectName();
 		
 		Check.requireNonNullArgument(bucketName, "bucket is null");
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketName);
@@ -398,8 +398,8 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 	
 		try {
 			for (Drive drive: getDriver().getDrivesAll()) {
-				String objectMetadataDirPath = drive.getObjectMetadataDirPath(meta.bucketId, meta.objectName);
-				String objectMetadataBackupDirPath = drive.getBucketWorkDirPath(meta.bucketId) + File.separator + meta.objectName;
+				String objectMetadataDirPath = drive.getObjectMetadataDirPath(meta.bucketId, meta.getObjectName());
+				String objectMetadataBackupDirPath = drive.getBucketWorkDirPath(meta.bucketId) + File.separator + meta.getObjectName();
 				File src = new File(objectMetadataDirPath);
 				if (src.exists())
 					FileUtils.copyDirectory(src, new File(objectMetadataBackupDirPath));

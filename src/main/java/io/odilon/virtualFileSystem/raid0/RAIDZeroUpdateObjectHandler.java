@@ -145,7 +145,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
                         cleanUpUpdate(op, bucket, objectName, beforeHeadVersion, afterHeadVersion);
                     }
                 } finally {
-                    bucketReadUnlock(bucket);
+                    bucketReadUnLock(bucket);
                 }
             }
         } finally {
@@ -266,7 +266,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
                         }
                     }
                 } finally {
-                    bucketReadUnlock(bucket);
+                    bucketReadUnLock(bucket);
                 }
             }
         } finally {

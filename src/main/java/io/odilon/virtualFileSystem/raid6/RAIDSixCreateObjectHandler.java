@@ -16,7 +16,6 @@
  */
 package io.odilon.virtualFileSystem.raid6;
 
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -44,8 +43,10 @@ import io.odilon.virtualFileSystem.model.VFSOp;
 import io.odilon.virtualFileSystem.model.VFSOperation;
 
 /**
- * <b>RAID 6 Object creation</b> 
- * <p>Auxiliary class used by {@link RaidSixHandler}</p>
+ * <b>RAID 6 Object creation</b>
+ * <p>
+ * Auxiliary class used by {@link RaidSixHandler}
+ * </p>
  * 
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
@@ -53,231 +54,239 @@ import io.odilon.virtualFileSystem.model.VFSOperation;
 
 @ThreadSafe
 public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
-																
-	private static Logger logger = Logger.getLogger(RAIDSixCreateObjectHandler.class.getName());
-	
-	/**
-	 * <p>Instances of this class are used
-	 * internally by {@link RAIDSixDriver}<p>
-	 * 
-	 * @param driver
-	 */
-	protected RAIDSixCreateObjectHandler(RAIDSixDriver driver) {
-		super(driver);
-	}
 
-	/**
-	 * @param bucket
-	 * @param objectName
-	 * @param stream
-	 * @param srcFileName
-	 * @param contentType
-	 * @param customTags 
-	 */
-	protected void create(ServerBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType, Optional<List<String>> customTags) {
-	
-		Check.requireNonNullArgument(bucket, "bucket is null");
-		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
+    private static Logger logger = Logger.getLogger(RAIDSixCreateObjectHandler.class.getName());
 
-		Long bucketId = bucket.getId();
-				
-		VFSOperation op = null;
-		boolean done = false;
-		boolean isMainException = false;
-		
-		try {
-			
-			getLockService().getObjectLock(bucket, objectName).writeLock().lock();
-			
-			try (stream) {
-				
-					getLockService().getBucketLock(bucket).readLock().lock();
-			
-					if (getDriver().getObjectMetadataReadDrive(bucket, objectName).existsObjectMetadata(bucket, objectName))											
-						throw new IllegalArgumentException("Object already exist -> " + getDriver().objectInfo(bucket, objectName));
-					
-					int version = 0;
-					
-					op = getJournalService().createObject(bucket, objectName);
-					
-					RAIDSixBlocks ei = saveObjectDataFile(bucketId, objectName, stream);
-					saveObjectMetadata(bucket, objectName, ei, srcFileName, contentType, version, customTags);
-					done = op.commit();
-			
-				} catch (InternalCriticalException e) {
-						done=false;
-						isMainException=true;
-						throw e;
-				} catch (Exception e) {
-						done=false;
-						isMainException=true;
-						throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName,srcFileName));
-				} finally {
-						try {
-								if ((!done) && (op!=null)) {
-									try {
-										rollbackJournal(op, false);
-									} catch (Exception e) {
-										if (isMainException)
-											logger.error(getDriver().objectInfo(bucket, objectName, srcFileName), SharedConstant.NOT_THROWN);
-										else
-											throw new InternalCriticalException(e, 	getDriver().objectInfo(bucket, objectName, srcFileName));
-									}
-								}
-						}
-						finally {
-							getLockService().getBucketLock(bucket).readLock().unlock();
-						}
-				}
-		} finally {
-			getLockService().getObjectLock(bucket, objectName).writeLock().unlock();	
-		}
-	}
+    /**
+     * <p>
+     * Instances of this class are used internally by {@link RAIDSixDriver}
+     * <p>
+     * 
+     * @param driver
+     */
+    protected RAIDSixCreateObjectHandler(RAIDSixDriver driver) {
+        super(driver);
+    }
 
-	/**
-	 * <p>VFSop.CREATE_OBJECT</p>
-	 * 
-	 */
-	@Override
-	protected void rollbackJournal(VFSOperation op, boolean recoveryMode) {
-		
-		Check.requireNonNullArgument(op, "op is null");
-		Check.checkTrue(op.getOp()==VFSOp.CREATE_OBJECT, "Invalid op ->  " + op.getOp().getName());
-		
-		String objectName = op.getObjectName();
-		Long bucketId = op.getBucketId();
-		
-		boolean done = false;
-				
-		try {
-			
-			if (getVirtualFileSystemService().getServerSettings().isStandByEnabled())
-			    getVirtualFileSystemService().getReplicationService().cancel(op);
-			
-			ObjectMetadata meta = null;
+    /**
+     * @param bucket
+     * @param objectName
+     * @param stream
+     * @param srcFileName
+     * @param contentType
+     * @param customTags
+     */
+    protected void create(ServerBucket bucket, String objectName, InputStream stream, String srcFileName,
+            String contentType, Optional<List<String>> customTags) {
 
-			/** remove metadata dir on all drives */
-			for (Drive drive: getDriver().getDrivesAll()) {
-				File f_meta = drive.getObjectMetadataFile(bucketId, objectName);
-				if ((meta==null) && (f_meta!=null)) {
-					try {
-						meta=drive.getObjectMetadata(bucketId, objectName);
-					} catch (Exception e) {
-						logger.warn("can not load meta -> d: " + drive.getName() + SharedConstant.NOT_THROWN);
-					}
-				}
-				FileUtils.deleteQuietly(new File(drive.getObjectMetadataDirPath(bucketId, objectName)));
-			}
-			
-			/** remove data dir on all drives */			
-			if (meta!=null)
-				getDriver().getObjectDataFiles(meta, Optional.empty()).forEach(file -> {FileUtils.deleteQuietly(file);});
-			
-			done=true;
-			
-		} catch (InternalCriticalException e) {
-			if (!recoveryMode)
-				throw(e);
-			else
-				logger.error(e, "Rollback: " + op.toString() + SharedConstant.NOT_THROWN);
-			
-		} catch (Exception e) {
-			if (!recoveryMode)
-				throw new InternalCriticalException(e, "Rollback: " + op.toString() + SharedConstant.NOT_THROWN);
-			else
-				logger.error(e, "Rollback: " + op.toString() + SharedConstant.NOT_THROWN);
-		}
-		finally {
-			if (done || recoveryMode) {
-				op.cancel();
-			}
-		}
-	}
-	
-	/**
-	 * @param bucket
-	 * @param objectName
-	 * @param stream
-	 * @param srcFileName
-	 */
-	private RAIDSixBlocks saveObjectDataFile(Long bucketId, String objectName, InputStream stream) {
-			Check.requireNonNullArgument(bucketId, "bucketId is null");			
-			try (InputStream sourceStream = isEncrypt() ? (getVirtualFileSystemService().getEncryptionService().encryptStream(stream)) : stream) {
-				return (new RAIDSixEncoder(getDriver())).encodeHead(sourceStream, bucketId, objectName);
-			} catch (Exception e) {
-				throw new InternalCriticalException(e, getDriver().objectInfo(bucketId.toString(), objectName));		
-			}
-	}
+        Check.requireNonNullArgument(bucket, "bucket is null");
+        Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 
-	/**
-	 * @param bucket
-	 * @param objectName
-	 * @param stream
-	 * @param srcFileName
-	 * 
-	 * 
-	 * todo en el object metadata o cada file por separado
-	 * 
-	 */
-	private void saveObjectMetadata(ServerBucket bucket, String objectName, RAIDSixBlocks ei, String srcFileName, String contentType, int version, Optional<List<String>> customTags) {
-		
-		List<String> shaBlocks = new ArrayList<String>();
-		StringBuilder etag_b = new StringBuilder();
-		
-		ei.getEncodedBlocks().forEach(item -> {
-			try {
-				shaBlocks.add(OdilonFileUtils.calculateSHA256String(item));
-			} catch (Exception e) {
-				throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName) + ", f:" + (Optional.ofNullable(item).isPresent() ? (item.getName()) : "null"));
-			}
-		});
+        Long bucketId = bucket.getId();
 
-		shaBlocks.forEach(item->etag_b.append(item));
-		 		
-		String etag = null;
-		
-		try {
-			etag = OdilonFileUtils.calculateSHA256String(etag_b.toString());
-		} catch (NoSuchAlgorithmException | IOException e) {
-   			throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName,srcFileName) + ", f:" + "| etag");
-		} 
+        VFSOperation op = null;
+        boolean done = false;
+        boolean isMainException = false;
 
-		OffsetDateTime creationDate=OffsetDateTime.now();
-		
-		 final List<Drive> drives = getDriver().getDrivesAll();
-		 final List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
-		 
-		 for (Drive drive: getDriver().getDrivesAll()) {
+        try {
 
-				try {
-					ObjectMetadata meta = new ObjectMetadata(bucket.getId(), objectName);
-					meta.fileName=srcFileName;
-					meta.appVersion=OdilonVersion.VERSION;
-					meta.contentType=contentType;
-					meta.creationDate = creationDate;
-					meta.version=version;
-					meta.versioncreationDate = meta.creationDate;
-					meta.length=ei.getFileSize();
-					meta.sha256Blocks=shaBlocks;
-					meta.totalBlocks=ei.getEncodedBlocks().size();
-					meta.etag=etag;
-					meta.encrypt=getVirtualFileSystemService().isEncrypt();
-					meta.integrityCheck=meta.creationDate;
-					meta.status=ObjectStatus.ENABLED;
-					meta.drive=drive.getName();
-					meta.raid=String.valueOf(getRedundancyLevel().getCode()).trim();
-					if (customTags.isPresent()) 
-						meta.customTags=customTags.get();
-					
-					list.add(meta);
-		
-				} catch (Exception e) {
-					throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName,srcFileName));
-				}
-		 }
-		 
-		 /** save in parallel */
-		 getDriver().saveObjectMetadataToDisk(drives, list, true);
-	}
+            // getLockService().getObjectLock(bucket, objectName).writeLock().lock();
+            objectWriteLock(bucket, objectName);
+
+            try (stream) {
+
+                // getLockService().getBucketLock(bucket).readLock().lock();
+                bucketReadLock(bucket);
+
+                if (getDriver().getObjectMetadataReadDrive(bucket, objectName).existsObjectMetadata(bucket, objectName))
+                    throw new IllegalArgumentException(
+                            "Object already exist -> " + getDriver().objectInfo(bucket, objectName));
+
+                int version = 0;
+
+                op = getJournalService().createObject(bucket, objectName);
+
+                RAIDSixBlocks raidSixBlocks = saveObjectDataFile(bucketId, objectName, stream);
+                saveObjectMetadata(bucket, objectName, raidSixBlocks, srcFileName, contentType, version, customTags);
+                done = op.commit();
+
+            } catch (InternalCriticalException e) {
+                done = false;
+                isMainException = true;
+                throw e;
+            } catch (Exception e) {
+                done = false;
+                isMainException = true;
+                throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName, srcFileName));
+            } finally {
+                try {
+                    if ((!done) && (op != null)) {
+                        try {
+                            rollbackJournal(op, false);
+                        } catch (Exception e) {
+                            if (isMainException)
+                                logger.error(objectInfo(bucket, objectName, srcFileName), SharedConstant.NOT_THROWN);
+                            else
+                                throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
+                        }
+                    }
+                } finally {
+                    // getLockService().getBucketLock(bucket).readLock().unlock();
+                    bucketReadUnLock(bucket);
+                }
+            }
+        } finally {
+            // getLockService().getObjectLock(bucket, objectName).writeLock().unlock();
+            objectWriteUnLock(bucket, objectName);
+        }
+    }
+
+    /**
+     * <p>
+     * VFSop.CREATE_OBJECT
+     * </p>
+     */
+    @Override
+    protected void rollbackJournal(VFSOperation op, boolean recoveryMode) {
+
+        Check.requireNonNullArgument(op, "op is null");
+        Check.checkTrue(op.getOp() == VFSOp.CREATE_OBJECT, "Invalid op ->  " + op.getOp().getName());
+
+        String objectName = op.getObjectName();
+        Long bucketId = op.getBucketId();
+
+        boolean done = false;
+
+        try {
+            if (getVirtualFileSystemService().getServerSettings().isStandByEnabled())
+                getVirtualFileSystemService().getReplicationService().cancel(op);
+
+            ObjectMetadata meta = null;
+
+            /** remove metadata dir on all drives */
+            for (Drive drive : getDriver().getDrivesAll()) {
+                File f_meta = drive.getObjectMetadataFile(bucketId, objectName);
+                if ((meta == null) && (f_meta != null)) {
+                    try {
+                        meta = drive.getObjectMetadata(bucketId, objectName);
+                    } catch (Exception e) {
+                        logger.warn("can not load meta -> d: " + drive.getName() + SharedConstant.NOT_THROWN);
+                    }
+                }
+                FileUtils.deleteQuietly(new File(drive.getObjectMetadataDirPath(bucketId, objectName)));
+            }
+
+            /** remove data dir on all drives */
+            if (meta != null)
+                getDriver().getObjectDataFiles(meta, Optional.empty()).forEach(file -> {
+                    FileUtils.deleteQuietly(file);
+                });
+
+            done = true;
+
+        } catch (InternalCriticalException e) {
+            if (!recoveryMode)
+                throw (e);
+            else
+                logger.error(e, op.toString() + SharedConstant.NOT_THROWN);
+
+        } catch (Exception e) {
+            if (!recoveryMode)
+                throw new InternalCriticalException(e, "Rollback: " + op.toString() + SharedConstant.NOT_THROWN);
+            else
+                logger.error(e, op.toString() + SharedConstant.NOT_THROWN);
+        } finally {
+            if (done || recoveryMode) {
+                op.cancel();
+            }
+        }
+    }
+
+    /**
+     * @param bucket
+     * @param objectName
+     * @param stream
+     * @param srcFileName
+     */
+    private RAIDSixBlocks saveObjectDataFile(Long bucketId, String objectName, InputStream stream) {
+        Check.requireNonNullArgument(bucketId, "bucketId is null");
+        try (InputStream sourceStream = isEncrypt()
+                ? (getVirtualFileSystemService().getEncryptionService().encryptStream(stream))
+                : stream) {
+            return (new RAIDSixEncoder(getDriver())).encodeHead(sourceStream, bucketId, objectName);
+        } catch (Exception e) {
+            throw new InternalCriticalException(e, getDriver().objectInfo(bucketId.toString(), objectName));
+        }
+    }
+
+    /**
+     * @param bucket
+     * @param objectName
+     * @param stream
+     * @param srcFileName
+     * 
+     * 
+     *                    todo en el object metadata o cada file por separado
+     * 
+     */
+    private void saveObjectMetadata(ServerBucket bucket, String objectName, RAIDSixBlocks ei, String srcFileName,
+            String contentType, int version, Optional<List<String>> customTags) {
+
+        List<String> shaBlocks = new ArrayList<String>();
+        StringBuilder etag_b = new StringBuilder();
+
+        ei.getEncodedBlocks().forEach(item -> {
+            try {
+                shaBlocks.add(OdilonFileUtils.calculateSHA256String(item));
+            } catch (Exception e) {
+                throw new InternalCriticalException(e, objectInfo(bucket, objectName) + ", f:"
+                        + (Optional.ofNullable(item).isPresent() ? (item.getName()) : "null"));
+            }
+        });
+
+        shaBlocks.forEach(item -> etag_b.append(item));
+
+        String etag = null;
+
+        try {
+            etag = OdilonFileUtils.calculateSHA256String(etag_b.toString());
+        } catch (NoSuchAlgorithmException | IOException e) {
+            throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
+        }
+
+        OffsetDateTime creationDate = OffsetDateTime.now();
+
+        final List<Drive> drives = getDriver().getDrivesAll();
+        final List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
+
+        for (Drive drive : getDriver().getDrivesAll()) {
+            try {
+                ObjectMetadata meta = new ObjectMetadata(bucket.getId(), objectName);
+                meta.setFileName(srcFileName);
+                meta.setAppVersion(OdilonVersion.VERSION);
+                meta.setContentType(contentType);
+                meta.setCreationDate(creationDate);
+                meta.setVersion(version);
+                meta.setVersioncreationDate(meta.getCreationDate());
+                meta.setLength(ei.getFileSize());
+                meta.setSha256Blocks(shaBlocks);
+                meta.setTotalBlocks(ei.getEncodedBlocks().size());
+                meta.setEtag(etag);
+                meta.setEncrypt(getVirtualFileSystemService().isEncrypt());
+                meta.setIntegrityCheck(meta.getCreationDate());
+                meta.setStatus(ObjectStatus.ENABLED);
+                meta.setDrive(drive.getName());
+                meta.setRaid(String.valueOf(getRedundancyLevel().getCode()).trim());
+                if (customTags.isPresent())
+                    meta.setCustomTags(customTags.get());
+                list.add(meta);
+            } catch (Exception e) {
+                throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName, srcFileName));
+            }
+        }
+
+        /** save in parallel */
+        getDriver().saveObjectMetadataToDisk(drives, list, true);
+    }
 
 }

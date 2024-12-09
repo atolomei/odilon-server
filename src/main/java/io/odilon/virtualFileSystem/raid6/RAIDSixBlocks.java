@@ -39,7 +39,7 @@ public class RAIDSixBlocks extends BaseObject {
 
     @JsonIgnore
     private long fileSize;
-    
+
     public RAIDSixBlocks() {
     }
 
@@ -58,8 +58,7 @@ public class RAIDSixBlocks extends BaseObject {
     public void setEncodedBlocks(List<File> encodedBlocks) {
         this.encodedBlocks = encodedBlocks;
     }
-    
-    
+
     @Override
     public String toJSON() {
         StringBuilder str = new StringBuilder();
@@ -68,7 +67,7 @@ public class RAIDSixBlocks extends BaseObject {
             getEncodedBlocks().forEach(f -> str.append("\"" + f.getName() + "\" "));
             str.append("]");
         }
-        str.append("\"fileSize\":" + String.valueOf( getFileSize()));
+        str.append("\"fileSize\":" + String.valueOf(getFileSize()));
         return str.toString();
     }
 
@@ -79,5 +78,4 @@ public class RAIDSixBlocks extends BaseObject {
         str.append(toJSON());
         return str.toString();
     }
-
 }

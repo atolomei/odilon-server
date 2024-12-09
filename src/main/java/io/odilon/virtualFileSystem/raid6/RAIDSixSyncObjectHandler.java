@@ -62,6 +62,7 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 
     @JsonIgnore
     private List<Drive> drivesToSync;
+
     /**
      * 
      * @param driver can not be null
@@ -77,10 +78,10 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
     public void sync(ObjectMetadata meta) {
 
         Check.requireNonNullArgument(meta, "meta is null");
-        Check.requireNonNullStringArgument(meta.bucketName, "bucketName is null");
-        Check.requireNonNullStringArgument(meta.objectName, "objectName is null or empty | b:" + meta.bucketName);
+        Check.requireNonNullStringArgument(meta.getBucketName(), "bucketName is null");
+        Check.requireNonNullStringArgument(meta.getObjectName(), "objectName is null or empty | b:" + meta.getBucketName());
 
-        String objectName = meta.objectName;
+        String objectName = meta.getObjectName();
         Long bucketId = meta.bucketId;
 
         VFSOperation op = null;
@@ -97,8 +98,8 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
                 getLockService().getBucketLock(bucket).readLock().lock();
 
                 /**
-                 * backup metadata, there is no need to backup data because 
-                 * existing data files are not touched.
+                 * backup metadata, there is no need to backup data because existing data files
+                 * are not touched.
                  **/
                 backupMetadata(meta);
 
@@ -127,10 +128,10 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
                     List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
                     // getDrives().forEach(d -> list.add(meta));
                     getDrivesToSync().forEach(d -> list.add(meta));
-                    
+
                     // getDriver().saveObjectMetadataToDisk(getDrives(), list, true);
                     getDriver().saveObjectMetadataToDisk(getDrivesToSync(), list, true);
-                    
+
                 }
 
                 /** PREVIOUS VERSIONS ---------------------------------------------------- */
@@ -155,8 +156,8 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
                                     new FileInputStream(file.getAbsolutePath()))) {
 
                                 /**
-                                 * encodes version without saving existing blocks, 
-                                 * only the ones that go to the new drive/s
+                                 * encodes version without saving existing blocks, only the ones that go to the
+                                 * new drive/s
                                  */
                                 driveEncoder.encodeVersion(in, bucketId, objectName, versionMeta.version);
 
@@ -225,20 +226,19 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
         }
     }
 
-    
     protected synchronized List<Drive> getDrivesToSync() {
         if (this.drivesToSync != null)
             return this.drivesToSync;
         drivesToSync = new ArrayList<Drive>();
-        getDrives().forEach( d -> {
-            if (d.getDriveInfo().getStatus()==DriveStatus.NOTSYNC)
+        getDrives().forEach(d -> {
+            if (d.getDriveInfo().getStatus() == DriveStatus.NOTSYNC)
                 drivesToSync.add(d);
         });
-        
-        
+
         return drivesToSync;
-            
+
     }
+
     protected synchronized List<Drive> getDrives() {
 
         if (this.drives != null)
@@ -272,10 +272,9 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
         boolean done = false;
 
         String objectName = op.getObjectName();
-        
+
         final ServerBucket bucket = getVirtualFileSystemService().getBucketById(op.getBucketId());
-        
-        
+
         getLockService().getObjectLock(bucket, objectName).writeLock().lock();
 
         try {
@@ -324,8 +323,8 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
         try {
             for (Drive drive : getDriver().getDrivesEnabled()) {
 
-                File src = new File(drive.getObjectMetadataDirPath(meta.bucketId, meta.objectName));
-                File dest = new File(drive.getBucketWorkDirPath(meta.bucketId) + File.separator + meta.objectName);
+                File src = new File(drive.getObjectMetadataDirPath(meta.bucketId, meta.getObjectName()));
+                File dest = new File(drive.getBucketWorkDirPath(meta.bucketId) + File.separator + meta.getObjectName());
 
                 if (src.exists())
                     FileUtils.copyDirectory(src, dest);

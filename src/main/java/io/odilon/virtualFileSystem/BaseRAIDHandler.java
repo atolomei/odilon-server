@@ -88,7 +88,7 @@ public abstract class BaseRAIDHandler {
         getLockService().getBucketLock(bucket).readLock().lock();
     }
 
-    protected void bucketReadUnlock(ServerBucket bucket) {
+    protected void bucketReadUnLock(ServerBucket bucket) {
         getLockService().getBucketLock(bucket).readLock().unlock();
     }
 
@@ -96,7 +96,7 @@ public abstract class BaseRAIDHandler {
         getLockService().getBucketLock(meta).writeLock().lock();
     }
 
-    protected void bucketWriteUnlock(BucketMetadata meta) {
+    protected void bucketWriteUnLock(BucketMetadata meta) {
         getLockService().getBucketLock(meta).writeLock().unlock();
     }
 
