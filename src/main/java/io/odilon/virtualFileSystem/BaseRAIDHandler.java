@@ -1,6 +1,9 @@
 package io.odilon.virtualFileSystem;
 
+import org.springframework.lang.NonNull;
+
 import io.odilon.model.BucketMetadata;
+import io.odilon.model.ObjectMetadata;
 import io.odilon.model.RedundancyLevel;
 import io.odilon.virtualFileSystem.model.IODriver;
 import io.odilon.virtualFileSystem.model.JournalService;
@@ -27,6 +30,19 @@ public abstract class BaseRAIDHandler {
 		return getDriver().getRedundancyLevel();
 	}
 
+	protected String objectInfo(ServerBucket bucket, String objectName, String srcFileName) {
+	       return getDriver().objectInfo(bucket, objectName, srcFileName);
+	}
+	
+    protected String objectInfo(ObjectMetadata meta) {
+        return getDriver().objectInfo(meta);
+    }
+
+	    
+	protected String objectInfo(@NonNull ServerBucket bucket, @NonNull String objectName) {
+	       return getDriver().objectInfo(bucket, objectName);
+	}
+	    
 	protected void objectReadLock(ServerBucket bucket, String objectName) {
 		getLockService().getObjectLock(bucket, objectName).readLock().lock();
 	}

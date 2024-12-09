@@ -186,30 +186,34 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 
         Check.requireNonNullArgument(bucketName, "bucketName is null");
 
+        
         BucketMetadata meta = new BucketMetadata(bucketName);
-        VFSOperation op = null;
-        boolean done = false;
-
-        meta.status = BucketStatus.ENABLED;
-        meta.appVersion = OdilonVersion.VERSION;
-        meta.id = getVirtualFileSystemService().getNextBucketId();
-
+        
+        meta.setStatus(BucketStatus.ENABLED);
+        meta.setAppVersion(OdilonVersion.VERSION);
+        meta.setId(getVirtualFileSystemService().getNextBucketId());
+        
         ServerBucket bucket = new OdilonBucket(meta);
+        
+        boolean done = false;
         boolean isMainException = false;
 
-        getLockService().getBucketLock(bucket).writeLock().lock();
-
+        VFSOperation op = null;
+        
+        //getLockService().getBucketLock(bucket).writeLock().lock();
+        bucketWriteLock(meta);
+        
         try {
 
             if (getVirtualFileSystemService().existsBucket(bucketName))
                 throw new IllegalArgumentException("bucket already exist | b: " + bucketName);
 
-            op = getJournalService().createBucket(meta.id, bucketName);
+            op = getJournalService().createBucket(meta);
 
             OffsetDateTime now = OffsetDateTime.now();
 
-            meta.creationDate = now;
-            meta.lastModified = now;
+            meta.setCreationDate(now);
+            meta.setLastModified(now);
 
             for (Drive drive : getDrivesAll()) {
                 try {
@@ -217,10 +221,9 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
                 } catch (Exception e) {
                     done = false;
                     isMainException = true;
-                    throw new InternalCriticalException(e, "Drive -> " + drive.getName());
+                    throw new InternalCriticalException(e, objectInfo(drive));
                 }
             }
-
             done = op.commit();
             return bucket;
 
@@ -233,15 +236,16 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 
             } catch (Exception e) {
                 if (!isMainException)
-                    throw new InternalCriticalException(e, "finally");
+                    throw new InternalCriticalException(e, objectInfo(meta));
                 else
                     logger.error(e, SharedConstant.NOT_THROWN);
             } finally {
-                getLockService().getBucketLock(bucket).writeLock().unlock();
+                bucketWriteUnlock(meta);
             }
         }
     }
 
+    
     /**
      * 
      */
@@ -270,15 +274,15 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
             backupBucketMetadata(bucket);
 
             meta = bucket.getBucketMetadata();
-            meta.lastModified = now;
-            meta.bucketName = newBucketName;
+            meta.setLastModified(now);
+            meta.setBucketName(newBucketName);
 
             for (Drive drive : getDrivesAll()) {
                 try {
                     drive.updateBucket(meta);
                 } catch (Exception e) {
                     done = false;
-                    throw new InternalCriticalException(e, "Drive -> " + drive.getName());
+                    throw new InternalCriticalException(e, objectInfo(drive));
                 }
             }
 
@@ -314,7 +318,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
                 drive.updateBucket(meta);
             }
         } catch (Exception e) {
-            throw new InternalCriticalException(e, "b:" + bucket.getName());
+            throw new InternalCriticalException(e, objectInfo(bucket));
         }
     }
 
@@ -330,7 +334,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
                 Files.writeString(Paths.get(path), getObjectMapper().writeValueAsString(meta));
             }
         } catch (Exception e) {
-            throw new InternalCriticalException(e, "b:" + bucket.getName());
+            throw new InternalCriticalException(e, objectInfo(bucket));
         }
     }
 
@@ -398,17 +402,15 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
         getLockService().getObjectLock(bucket, objectName).readLock().lock();
 
         try {
-
             getLockService().getBucketLock(bucket).readLock().lock();
 
             try {
                 List<ObjectMetadata> list = getObjectMetadataVersionAll(bucket, objectName);
                 if (list != null && !list.isEmpty())
                     return list.get(list.size() - 1);
-
                 return null;
             } catch (Exception e) {
-                throw new InternalCriticalException(e, "b:" + bucket.getName() + ", o:" + objectName);
+                throw new InternalCriticalException(e, objectInfo(bucket, objectName));
             } finally {
                 getLockService().getBucketLock(bucket).readLock().unlock();
             }
@@ -469,7 +471,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
         try {
             contentType = Files.probeContentType(filePath);
         } catch (IOException e) {
-            throw new InternalCriticalException(e, "b:" + bucket.getName() + ", o:" + objectName);
+            throw new InternalCriticalException(e, objectInfo(bucket, objectName));
         }
         try {
 
@@ -477,7 +479,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
                     contentType, Optional.empty());
 
         } catch (FileNotFoundException e) {
-            throw new InternalCriticalException(e, "b:" + bucket.getName() + ", o:" + objectName);
+            throw new InternalCriticalException(e, objectInfo(bucket, objectName));
         }
     }
 
@@ -666,9 +668,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
             byte[] b_hmacOriginal;
 
             try {
-
                 b_hmacOriginal = getVirtualFileSystemService().HMAC(b_encryptionKeyIV, b_encryptionKey);
-
             } catch (InvalidKeyException | NoSuchAlgorithmException e) {
                 throw new InternalCriticalException(e, "can not calculate HMAC for 'odilon.properties' encryption key");
             }
@@ -680,12 +680,8 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
             System.arraycopy(bdataDec, 0, b_hmacNew, 0, b_hmacNew.length);
 
             if (!Arrays.equals(b_hmacOriginal, b_hmacNew)) {
-                logger.error(
-                        "HMAC is not correct, HMAC of 'encryption.key' in 'odilon.properties' does not match with HMAC in 'key.enc'  -> encryption.key="
-                                + encryptionKey + encryptionIV);
-                throw new InternalCriticalException(
-                        "HMAC is not correct, HMAC of 'encryption.key' in 'odilon.properties' does not match with HMAC in 'key.enc'  -> encryption.key="
-                                + encryptionKey + encryptionIV);
+                logger.error("HMAC of 'encryption.key' in 'odilon.properties' does not match with HMAC in 'key.enc'  -> encryption.key="+ encryptionKey + encryptionIV);
+                throw new InternalCriticalException("HMAC of 'encryption.key' in 'odilon.properties' does not match with HMAC in 'key.enc'  -> encryption.key="+ encryptionKey + encryptionIV);
             }
 
             /** HMAC is correct */
@@ -762,7 +758,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
                     FileUtils.writeByteArrayToFile(file, dataEnc);
 
                 } catch (Exception e) {
-                    eThrow = new InternalCriticalException(e, "Drive -> " + drive.getName());
+                    eThrow = new InternalCriticalException(e, objectInfo(drive));
                     break;
                 }
             }
@@ -1047,6 +1043,12 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
                 + (bucket.getBucketName() != null ? bucket.getBucketName() : "null");
     }
 
+    public String objectInfo(Drive drive) {
+        if (drive == null)
+            return "d: null";
+        return "d:" + drive.getName();
+    }
+    
     public String objectInfo(ServerBucket bucket) {
         if (bucket == null)
             return "b: null";

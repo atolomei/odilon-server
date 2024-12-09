@@ -19,6 +19,7 @@ package io.odilon.virtualFileSystem.model;
 
 
 
+import io.odilon.model.BucketMetadata;
 import io.odilon.service.SystemService;
 
 /**
@@ -50,7 +51,8 @@ public interface JournalService extends SystemService {
 	 * BUCKET
 	 * ------------------*/
 
-	public VFSOperation createBucket(Long bucketId, String bucketName);
+	public VFSOperation createBucket(BucketMetadata meta); 
+	
 	public VFSOperation updateBucket(ServerBucket bucket);
 	public VFSOperation deleteBucket(ServerBucket bucket);
 	

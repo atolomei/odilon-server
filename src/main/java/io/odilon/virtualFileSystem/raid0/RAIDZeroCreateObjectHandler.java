@@ -16,6 +16,7 @@
  */
 package io.odilon.virtualFileSystem.raid0;
 
+
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -39,6 +40,7 @@ import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
 import io.odilon.util.OdilonFileUtils;
+import io.odilon.virtualFileSystem.ObjectDataPathBuilder;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.SimpleDrive;
@@ -59,18 +61,14 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
 	private static Logger logger = Logger.getLogger(RAIDZeroCreateObjectHandler.class.getName());
 
 	/**
-	 * <p>
-	 * Created and used only from {@link RAIDZeroDriver}
-	 * </p>
+	 * <p>Created and used only from {@link RAIDZeroDriver}</p>
 	 */
 	protected RAIDZeroCreateObjectHandler(RAIDZeroDriver driver) {
 		super(driver);
 	}
 
 	/**
-	 * <p>
-	 * The procedure is the same whether version control is enabled or not
-	 * </p>
+	 * <p>The procedure is the same whether version control is enabled or not</p>
 	 * 
 	 * @param bucket
 	 * @param objectName
@@ -82,10 +80,10 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
 	protected void create(@NonNull ServerBucket bucket, @NonNull String objectName, @NonNull InputStream stream,
 			String srcFileName, String contentType, Optional<List<String>> customTags) {
 
-		Check.requireNonNullArgument(bucket, "bucket is null");
-		Check.requireNonNullArgument(bucket.getName(), "bucketName is null");
-		Check.requireNonNullArgument(bucket.getId(), "bucket id is null");
-		Check.requireNonNullArgument(objectName, "objectName is null or empty " + objectInfo(bucket));
+		//Check.requireNonNullArgument(bucket, "bucket is null");
+		//Check.requireNonNullArgument(bucket.getName(), "bucketName is null");
+		//Check.requireNonNullArgument(bucket.getId(), "bucket id is null");
+		//Check.requireNonNullArgument(objectName, "objectName is null or empty " + objectInfo(bucket));
 
 		VFSOperation op = null;
 		boolean done = false;
@@ -100,7 +98,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
 			try (stream) {
 
 				if (getDriver().getWriteDrive(bucket, objectName).existsObjectMetadata(bucket, objectName))
-					throw new IllegalArgumentException("Object already exist -> "+getDriver().objectInfo(bucket, objectName));
+					throw new IllegalArgumentException("Object already exist -> "+ objectInfo(bucket, objectName));
 
 				int version = 0;
 				
@@ -117,7 +115,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
 			} catch (Exception e) {
 				done = false;
 				isMainException = true;
-				throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName, srcFileName));
+				throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
 			} finally {
 				try {
 					if ((!done) && (op != null)) {
@@ -127,12 +125,12 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
 							if (!isMainException)
 								throw e;
 							else
-								logger.error(e, getDriver().objectInfo(bucket, objectName, srcFileName),SharedConstant.NOT_THROWN);
+								logger.error(e, objectInfo(bucket, objectName, srcFileName),SharedConstant.NOT_THROWN);
 						} catch (Exception e) {
 							if (!isMainException)
 								throw new InternalCriticalException(e,getDriver().objectInfo(bucket, objectName, srcFileName));
 							else
-								logger.error(e, getDriver().objectInfo(bucket, objectName, srcFileName),SharedConstant.NOT_THROWN);
+								logger.error(e, objectInfo(bucket, objectName, srcFileName),SharedConstant.NOT_THROWN);
 						}
 					}
 				} finally {
@@ -143,11 +141,9 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
 			objectWriteUnLock(bucket, objectName);
 		}
 	}
-	/**
-	 * <p>
-	 * This method is <b>not</b> ThreadSafe, callers must ensure proper concurrency
-	 * control
-	 * </p>
+	
+    /**
+	 * <p>This method is <b>not</b> ThreadSafe, callers must ensure proper concurrency control</p>
 	 * 
 	 */
 	@Override
@@ -200,37 +196,33 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
 	 */
 	private void saveObjectDataFile(ServerBucket bucket, String objectName, InputStream stream, String srcFileName) {
 
-		Check.requireNonNullArgument(bucket, "bucket is null");
-		Check.requireNonNullArgument(stream, "stream is null");
-
 		byte[] buf = new byte[ServerConstant.BUFFER_SIZE];
 
 		BufferedOutputStream out = null;
 		boolean isMainException = false;
-
+		
+		SimpleDrive drive = (SimpleDrive) getWriteDrive(bucket, objectName);
+		
+		ObjectDataPathBuilder pathBuilder = new ObjectDataPathBuilder(drive, bucket, objectName);
+		
 		try (InputStream sourceStream = isEncrypt() ? getVirtualFileSystemService().getEncryptionService().encryptStream(stream) : stream) {
-
-			out = new BufferedOutputStream(new FileOutputStream(((SimpleDrive) getWriteDrive(bucket, objectName))
-					.getObjectDataFilePath(bucket.getId(), objectName)), ServerConstant.BUFFER_SIZE);
+			out = new BufferedOutputStream(new FileOutputStream(pathBuilder.build()), ServerConstant.BUFFER_SIZE);
 			int bytesRead;
-
 			while ((bytesRead = sourceStream.read(buf, 0, buf.length)) >= 0) {
 				out.write(buf, 0, bytesRead);
 			}
 		} catch (Exception e) {
 			isMainException = true;
-			throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName, srcFileName));
+			throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
 
 		} finally {
 			IOException secEx = null;
 			try {
-
 				if (out != null)
 					out.close();
-
 			} catch (IOException e) {
 				if (isMainException)
-					logger.error(e, getDriver().objectInfo(bucket, objectName, srcFileName)
+					logger.error(e, objectInfo(bucket, objectName, srcFileName)
 							+ (isMainException ? SharedConstant.NOT_THROWN : ""));
 				secEx = e;
 			}
@@ -287,7 +279,9 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
 			drive.saveObjectMetadata(meta);
 
 		} catch (Exception e) {
-			throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName, srcFileName));
+			throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
 		}
 	}
+
+
 }

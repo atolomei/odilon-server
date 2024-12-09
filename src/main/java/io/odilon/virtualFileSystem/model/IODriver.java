@@ -167,5 +167,10 @@ public interface IODriver {
      * ERROR
      */
     public String objectInfo(ServerBucket bucket);
+    public String objectInfo(ServerBucket bucket, String objectName);
+    public String objectInfo(ServerBucket bucket, String objectName, String fileName);
+    public String objectInfo(ObjectMetadata meta);
+    
+    
 
 }

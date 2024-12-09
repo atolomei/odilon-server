@@ -291,7 +291,9 @@ public class RAIDOneDriver extends BaseIODriver {
      */
     @Override
     public ServerBucket createBucket(String bucketName) {
-
+        return super.createBucket(bucketName);
+        
+        /**
         Check.requireNonNullArgument(bucketName, "bucketName is null");
 
         VFSOperation op = null;
@@ -311,7 +313,7 @@ public class RAIDOneDriver extends BaseIODriver {
             if (getVirtualFileSystemService().existsBucket(bucketName))
                 throw new IllegalArgumentException("bucket already exist | b: " + bucketName);
 
-            op = getJournalService().createBucket(bucket.getId(), bucketName);
+            op = getJournalService().createBucket(meta);
 
             meta.creationDate = now;
             meta.lastModified = now;
@@ -341,6 +343,7 @@ public class RAIDOneDriver extends BaseIODriver {
                 bucketWriteUnlock(meta);
             }
         }
+        **/
     }
 
     /**

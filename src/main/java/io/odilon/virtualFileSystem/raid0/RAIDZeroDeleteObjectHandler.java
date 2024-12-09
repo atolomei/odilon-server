@@ -79,13 +79,9 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
         objectWriteLock(bucket, objectName);
 
         try {
-
-            //getLockService().getBucketLock(bucket).readLock().lock();
-            
             bucketReadLock(bucket);
             
             try {
-
                 if (!getDriver().exists(bucket, objectName))
                     throw new OdilonObjectNotFoundException(getDriver().objectInfo(bucket, objectName));
 
@@ -130,7 +126,6 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
                         }
                     }
                 } finally {
-                    //getLockService().getBucketLock(bucket).readLock().unlock();
                     bucketReadUnlock(bucket);
                 }
             }
@@ -168,9 +163,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
         objectWriteLock(bucket, meta.getObjectName());
 
         try {
-            
             bucketReadLock(bucket);
-            // getLockService().getBucketLock(bucket).readLock().lock();
 
             try {
 
@@ -244,7 +237,6 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
                         }
                     }
                 } finally {
-                    //getLockService().getBucketLock(bucket).readLock().unlock();
                     bucketReadUnlock(bucket);
                 }
             }

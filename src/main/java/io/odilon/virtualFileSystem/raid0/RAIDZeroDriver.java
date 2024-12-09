@@ -96,7 +96,6 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  * 0. All new drives are synchronized before the
  * {@link VirtualFileSystemService} completes its initialization.
  * </p>
- * 
  * <p>
  * This Class is works as a
  * <a href="https://en.wikipedia.org/wiki/Facade_pattern">Facade pattern</a>
@@ -106,7 +105,6 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
- * 
  */
 @ThreadSafe
 @Component
@@ -175,7 +173,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
                 try {
                     File file = drive.getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE);
                     FileUtils.writeByteArrayToFile(file, dataEnc);
-
                 } catch (Exception e) {
                     eThrow = new InternalCriticalException(e, "Drive -> " + drive.getName());
                     break;
@@ -212,9 +209,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         }
     }
 
-    /**
-     * 
-     */
     @Override
     public boolean hasVersions(ServerBucket bucket, String objectName) {
         return !getObjectMetadataVersionAll(bucket, objectName).isEmpty();
@@ -228,7 +222,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
      * If the current <b>head version</b> does not have previous versions it does
      * nothing.
      * </p>
-     * 
      * @see {@link RAIDZeroUpdateObjectHandler}
      */
     @Override
@@ -249,7 +242,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
      * version is deleted.If the current <b>head version</b> does not have previous
      * version it does nothing.
      * </p>
-     * 
      * @see {@link RAIDZeroUpdateObjectHandler}
      */
     @Override
@@ -277,7 +269,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
      * Although the removal of all versions for every Object is Transactional, the
      * ServiceRequest itself is not Transactional, and it can not be Rollback
      * </p>
-     * 
      */
     @Override
     public void wipeAllPreviousVersions() {
@@ -337,9 +328,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
     }
 
     /**
-     * <p>
-     * This method is called only for Objects that already exist
-     * </p>
+     * <p>This method is called only for Objects that already exist</p>
      */
     @Override
     public void putObjectMetadata(ObjectMetadata meta) {
@@ -371,9 +360,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
     }
 
     /**
-     * <p>
-     * This method is executed Async by the {@link SchedulerService}
-     * </p>
+     * <p>This method is executed Async by the {@link SchedulerService}</p>
      */
     @Override
     public void postObjectPreviousVersionDeleteAllTransaction(ObjectMetadata meta, int headVersion) {
@@ -383,9 +370,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
     }
 
     /**
-     * <p>
-     * Set up a new drive
-     * </p>
+     * <p>Set up a new drive</p>
      * 
      * @see {@link RAIDZeroDriveSetupSync}
      */
@@ -402,10 +387,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
     }
 
     /**
-     * <p>
-     * RAID 0 -> Bucket must be empty on all Disks VFSBucket bucket must exist and
-     * be ENABLED
-     * </p>
+     * <p>RAID 0 -> Bucket must be empty on all Disks VFSBucket bucket must exist and be ENABLED</p>
      */
     @Override
     public boolean isEmpty(ServerBucket bucket) {
@@ -428,11 +410,9 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
     }
 
     /**
-     * <p>
-     * The object must be in status {@code BucketStatus.ENABLED} or
-     * {@code BucketStatus.ARCHIVED} if the object is DELETED -> it will be purged
-     * from the system at some point. The normal use case is to check {@link exists}
-     * before calling this method.
+     * <p>The object must be in status {@code BucketStatus.ENABLED} or {@code BucketStatus.ARCHIVED}. 
+     * If the object is {@code BucketStatus.DELETED} -> it will be purged from the system at some point. 
+     * The normal use case is to check {@code exists} before calling this method.
      * </p>
      */
     @Override

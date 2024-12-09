@@ -32,6 +32,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.odilon.cache.CacheEvent;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
+import io.odilon.model.BucketMetadata;
 import io.odilon.model.RedundancyLevel;
 import io.odilon.model.ServiceStatus;
 import io.odilon.model.SharedConstant;
@@ -126,10 +127,9 @@ public class OdilonJournalService extends BaseService implements JournalService 
 	}
 	
 	@Override											
-	public VFSOperation createBucket(Long bucketId, String bucketName) {
-		Check.requireNonNullArgument(bucketId, "bucketId is null");
-		Check.requireNonNullArgument(bucketName, "bucketName is null");
-		return createNew(VFSOp.CREATE_BUCKET, Optional.of(bucketId), Optional.of(bucketName), Optional.empty(), Optional.empty());
+	public VFSOperation createBucket(BucketMetadata meta) {
+		Check.requireNonNullArgument(meta, "meta is null");
+		return createNew(VFSOp.CREATE_BUCKET, Optional.of(meta.getId()), Optional.of(meta.getBucketName()), Optional.empty(), Optional.empty());
 	}
 	
 	@Override															

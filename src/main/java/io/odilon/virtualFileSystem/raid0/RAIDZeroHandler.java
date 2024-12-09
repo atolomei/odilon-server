@@ -19,6 +19,8 @@ package io.odilon.virtualFileSystem.raid0;
 
 import javax.annotation.concurrent.ThreadSafe;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import io.odilon.virtualFileSystem.BaseRAIDHandler;
 import io.odilon.virtualFileSystem.RAIDHandler;
 import io.odilon.virtualFileSystem.model.Drive;
@@ -36,6 +38,7 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 @ThreadSafe
 public abstract class RAIDZeroHandler extends BaseRAIDHandler implements RAIDHandler {
 
+    @JsonIgnore
     private final RAIDZeroDriver driver;
 
     public RAIDZeroHandler(RAIDZeroDriver driver) {
