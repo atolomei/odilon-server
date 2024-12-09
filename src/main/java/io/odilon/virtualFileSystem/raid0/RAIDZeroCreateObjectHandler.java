@@ -80,10 +80,10 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
 	protected void create(@NonNull ServerBucket bucket, @NonNull String objectName, @NonNull InputStream stream,
 			String srcFileName, String contentType, Optional<List<String>> customTags) {
 
-		//Check.requireNonNullArgument(bucket, "bucket is null");
-		//Check.requireNonNullArgument(bucket.getName(), "bucketName is null");
-		//Check.requireNonNullArgument(bucket.getId(), "bucket id is null");
-		//Check.requireNonNullArgument(objectName, "objectName is null or empty " + objectInfo(bucket));
+		Check.requireNonNullArgument(bucket, "bucket is null");
+		Check.requireNonNullArgument(bucket.getName(), "bucketName is null");
+		Check.requireNonNullArgument(bucket.getId(), "bucket id is null");
+		Check.requireNonNullArgument(objectName, "objectName is null or empty " + objectInfo(bucket));
 
 		VFSOperation op = null;
 		boolean done = false;
@@ -92,11 +92,9 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
 		objectWriteLock(bucket, objectName);
 
 		try {
-
 		    bucketReadLock(bucket);
 
 			try (stream) {
-
 				if (getDriver().getWriteDrive(bucket, objectName).existsObjectMetadata(bucket, objectName))
 					throw new IllegalArgumentException("Object already exist -> "+ objectInfo(bucket, objectName));
 
@@ -162,6 +160,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
 
 			getWriteDrive(this.getVirtualFileSystemService().getBucketById(op.getBucketId()), objectName)
 					.deleteObjectMetadata(op.getBucketId(), objectName);
+			
 			FileUtils.deleteQuietly(new File(getWriteDrive(this.getVirtualFileSystemService().getBucketById(op.getBucketId()), objectName).getRootDirPath(),
 							op.getBucketId().toString() + File.separator + objectName));
 			done = true;
@@ -176,7 +175,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
 			if (!recoveryMode)
 				throw new InternalCriticalException(e, getDriver().opInfo(op));
 			else
-				logger.error(e,getDriver().opInfo(op), SharedConstant.NOT_THROWN);
+				logger.error(e, getDriver().opInfo(op), SharedConstant.NOT_THROWN);
 		} finally {
 			if (done || recoveryMode)
 				op.cancel();

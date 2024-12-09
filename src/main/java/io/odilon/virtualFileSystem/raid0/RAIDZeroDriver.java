@@ -647,7 +647,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
             getLockService().getObjectLock(bucket, objectName).readLock().unlock();
         }
     }
-
     /**
      * 
      */
@@ -660,7 +659,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
     public ObjectMetadata getObjectMetadataVersion(ServerBucket bucket, String objectName, int version) {
         return getOM(bucket, objectName, Optional.of(Integer.valueOf(version)), true);
     }
-
     /**
      * <p>
      * If version does not exist -> throws OdilonObjectNotFoundException
@@ -833,7 +831,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         }
         return list;
     }
-
     /**
      * <p>
      * RAID 0. Journal Files go to drive 0
@@ -843,7 +840,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
     public void saveJournal(VFSOperation op) {
         getDrivesEnabled().get(0).saveJournal(op);
     }
-
     /**
      * <p>
      * RAID 0. Journal Files go to drive 0
@@ -857,7 +853,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
     public void rollbackJournal(VFSOperation op) {
         rollbackJournal(op, false);
     }
-
     /**
      * <p>
      * Rollback from Journal
@@ -906,14 +901,12 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
             break;
         }
 
-        // --
         String objectName = op.getObjectName();
         Long bucketId = op.getBucketId();
 
         boolean done = false;
 
         try {
-
             if (getVirtualFileSystemService().getServerSettings().isStandByEnabled()) {
                 getVirtualFileSystemService().getReplicationService().cancel(op);
             } else if (op.getOp() == VFSOp.CREATE_SERVER_MASTERKEY) {
@@ -977,7 +970,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
             }
         }
     }
-
     /**
      * RAID 0 -> read drive and write drive are the same
      */
@@ -1089,10 +1081,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         }
     }
 
-    /**
-     * 
-     */
-
     @Override
     public RedundancyLevel getRedundancyLevel() {
         return RedundancyLevel.RAID_0;
@@ -1106,9 +1094,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         getDrivesEnabled().get(0).saveScheduler(request, queueId);
     }
 
-    /**
-     * 
-     */
     @Override
     public void removeScheduler(ServiceRequest request, String queueId) {
         getDrivesEnabled().get(0).removeScheduler(request, queueId);
@@ -1118,9 +1103,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         return this.applicationContext;
     }
 
-    /**
-     * 
-     */
     @Override
     public OdilonServerInfo getServerInfo() {
         try {
@@ -1138,9 +1120,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         }
     }
 
-    /**
-     * 
-     */
     @Override
     public void setServerInfo(OdilonServerInfo serverInfo) {
 
@@ -1201,6 +1180,18 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         }
     }
 
+    @Override
+    public void syncObject(ObjectMetadata meta) {
+        Check.requireNonNullArgument(meta, "meta is null");
+        logger.error("not done", SharedConstant.NOT_THROWN);
+    }
+
+    @Override
+    protected Drive getObjectMetadataReadDrive(ServerBucket bucket, String objectName) {
+        return getReadDrive(bucket, objectName);
+    }
+
+    
     /**
      * <p>
      * RAID 0 -> all enabled Drives have all buckets
@@ -1278,9 +1269,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
                 + VirtualFileSystemService.VERSION_EXTENSION + String.valueOf(version)));
     }
 
-    /**
-     * 
-     */
     private void saveNewServerInfo(OdilonServerInfo serverInfo) {
 
         boolean done = false;
@@ -1322,16 +1310,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         }
     }
 
-    @Override
-    public void syncObject(ObjectMetadata meta) {
-        Check.requireNonNullArgument(meta, "meta is null");
-        logger.error("not done", SharedConstant.NOT_THROWN);
-    }
-
-    @Override
-    protected Drive getObjectMetadataReadDrive(ServerBucket bucket, String objectName) {
-        return getReadDrive(bucket, objectName);
-    }
 
     /**
      * <p>

@@ -159,7 +159,6 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
 
         if (this.getDrives().isEmpty())
             return false;
-
         {
             for (Drive drive : this.getDrives()) {
                 if (this.getItMap().get(drive).hasNext()) {
