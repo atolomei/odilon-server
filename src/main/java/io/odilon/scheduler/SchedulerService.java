@@ -169,15 +169,15 @@ public class SchedulerService extends BaseService implements SystemService, Appl
         try {
 
             /** Cron Jobs */
-            this.cronjobsWorker = new CronJobSchedulerWorker("cron", getVFS());
+            this.cronjobsWorker = new CronJobSchedulerWorker("cron", getVirtualFileSystemService());
             this.cronjobsWorker.setApplicationContext(getApplicationContext());
 
             /** Replica. It will not be started if there is no Standby */
-            this.replicaWorker = new StandByReplicaSchedulerWorker("replica", getVFS());
+            this.replicaWorker = new StandByReplicaSchedulerWorker("replica", getVirtualFileSystemService());
             this.replicaWorker.setApplicationContext(getApplicationContext());
 
             /** Standard local. CRUD operations after the TRX is commited */
-            this.standardSchedulerWorker = new StandardSchedulerWorker("standard", getVFS());
+            this.standardSchedulerWorker = new StandardSchedulerWorker("standard", getVirtualFileSystemService());
             this.standardSchedulerWorker.setApplicationContext(getApplicationContext());
 
             getCronjobsWorker().start();
@@ -204,6 +204,7 @@ public class SchedulerService extends BaseService implements SystemService, Appl
             logger.error("Class not supported -> " + request.getClass().getName());
         }
     }
+
     /**
      * Request could not complete successfully
      * 
@@ -230,11 +231,11 @@ public class SchedulerService extends BaseService implements SystemService, Appl
         this.applicationContext = applicationContext;
     }
 
-    public void setVFS(VirtualFileSystemService virtualFileSystemService) {
+    public void setVirtualFileSystemService(VirtualFileSystemService virtualFileSystemService) {
         this.virtualFileSystemService = virtualFileSystemService;
     }
 
-    public VirtualFileSystemService getVFS() {
+    public VirtualFileSystemService getVirtualFileSystemService() {
         if (this.virtualFileSystemService == null) {
             throw new IllegalStateException("The " + VirtualFileSystemService.class.getName()
                     + " must be setted during the @PostConstruct method of the "

@@ -274,7 +274,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
         Check.requireNonNullArgument(objectName, "objectName is null");
 
         OffsetDateTime thresholdDate = OffsetDateTime.now()
-        .minusDays(getVirtualFileSystemService().getServerSettings().getIntegrityCheckDays());
+                .minusDays(getVirtualFileSystemService().getServerSettings().getIntegrityCheckDays());
 
         Drive readDrive = null;
         ObjectMetadata metadata = null;
@@ -530,7 +530,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
                 + " or " + BucketStatus.ENABLED.getName() + "  | b:" + bucket.getName());
         Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 
-        //Long bucketId = bucket.getId();
+        // Long bucketId = bucket.getId();
 
         getLockService().getObjectLock(bucket, objectName).readLock().lock();
 

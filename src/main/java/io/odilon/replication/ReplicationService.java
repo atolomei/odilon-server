@@ -163,7 +163,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 			throw new InternalCriticalException(e, "checkStructure");
 		}
 		
-		List<ServerBucket> localBuckets = getVFS().listAllBuckets();
+		List<ServerBucket> localBuckets = getVirtualFileSystemService().listAllBuckets();
 		localBuckets.forEach(item -> localNames.add(item.getName()));
 		
 		List<String> localNotStandbyNames  = new ArrayList<String>();
@@ -291,7 +291,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 		Check.requireNonNullArgument(opx, "opx is null");
 		Check.requireTrue(this.client!=null, "There is no standby connection (" + url +":" + port+")");
 
-		OdilonJournalService odj = (OdilonJournalService) getVFS().getJournalService();
+		OdilonJournalService odj = (OdilonJournalService) getVirtualFileSystemService().getJournalService();
 		
 		
 		boolean journalExecuting	=  odj.isExecuting(opx.getId());
@@ -374,14 +374,14 @@ public class ReplicationService extends BaseService implements ApplicationContex
 		this.initialSync = initialSync;
 	}
 
-	public VirtualFileSystemService getVFS() {
+	public VirtualFileSystemService getVirtualFileSystemService() {
 		if (this.virtualFileSystemService==null) {
 			throw new IllegalStateException("The " + VirtualFileSystemService.class.getName() + " must be setted during the @PostConstruct method of the " + VirtualFileSystemService.class.getName() + " instance. It can not be injected via AutoWired beacause of circular dependencies.");
 		}
 		return this.virtualFileSystemService;
 	}
 	
-	public synchronized void setVFS(VirtualFileSystemService virtualFileSystemService) {
+	public synchronized void setVirtualFileSystemService(VirtualFileSystemService virtualFileSystemService) {
 		this.virtualFileSystemService=virtualFileSystemService;
 	}
 
@@ -424,12 +424,12 @@ public class ReplicationService extends BaseService implements ApplicationContex
 
 		Check.requireNonNullArgument(opx, "opx is null");
 		
-		ServerBucket bucket = getVFS().getBucketById(opx.getBucketId());
+		ServerBucket bucket = getVirtualFileSystemService().getBucketById(opx.getBucketId());
 		
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		
 		/** if the Object was not created for any reason, do nothing */
-		if (!getVFS().existsObject(bucket.getName(), opx.getObjectName())) {
+		if (!getVirtualFileSystemService().existsObject(bucket.getName(), opx.getObjectName())) {
 			return;
 		}
 			
@@ -441,9 +441,9 @@ public class ReplicationService extends BaseService implements ApplicationContex
 			getLockService().getObjectLock(bucket, opx.getObjectName()).readLock().lock();
 			
 			try {
-						ObjectMetadata meta = getVFS().getObjectMetadata(bucket.getName(), opx.getObjectName());
+						ObjectMetadata meta = getVirtualFileSystemService().getObjectMetadata(bucket.getName(), opx.getObjectName());
 						try {
-							getClient().putObjectStream(bucket.getName(), opx.getObjectName(), getVFS().getObjectStream(bucket.getName(), opx.getObjectName()), meta.fileName);
+							getClient().putObjectStream(bucket.getName(), opx.getObjectName(), getVirtualFileSystemService().getObjectStream(bucket.getName(), opx.getObjectName()), meta.fileName);
 							getMonitoringService().getReplicationObjectCreateCounter().inc();
 							
 						} catch (IOException e) {
@@ -470,12 +470,12 @@ public class ReplicationService extends BaseService implements ApplicationContex
 		
 		Check.requireNonNullArgument(opx,"opx is null");
 
-		ServerBucket bucket = getVFS().getBucketById(opx.getBucketId());
+		ServerBucket bucket = getVirtualFileSystemService().getBucketById(opx.getBucketId());
 		
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		
 		/** if the Object was not updated for any reason, do nothing */
-		ObjectMetadata m = getVFS().getObjectMetadata(bucket.getName(), opx.getObjectName());
+		ObjectMetadata m = getVirtualFileSystemService().getObjectMetadata(bucket.getName(), opx.getObjectName());
 		if ( (m==null) || (m.getVersion()<opx.getVersion())) {
 			return;
 		}
@@ -487,10 +487,10 @@ public class ReplicationService extends BaseService implements ApplicationContex
 			getLockService().getObjectLock(bucket, opx.getObjectName()).readLock().lock();
 				
 			try {
-					if (getVFS().existsObject(bucket.getId(), opx.getObjectName())) {
-							ObjectMetadata meta = getVFS().getObjectMetadata(bucket.getName(), opx.getObjectName());
+					if (getVirtualFileSystemService().existsObject(bucket.getId(), opx.getObjectName())) {
+							ObjectMetadata meta = getVirtualFileSystemService().getObjectMetadata(bucket.getName(), opx.getObjectName());
 							try {
-								getClient().putObjectStream(bucket.getName(), opx.getObjectName(), getVFS().getObjectStream(bucket.getName(), opx.getObjectName()), meta.fileName);
+								getClient().putObjectStream(bucket.getName(), opx.getObjectName(), getVirtualFileSystemService().getObjectStream(bucket.getName(), opx.getObjectName()), meta.fileName);
 								getMonitoringService().getReplicationObjectUpdateCounter().inc();
 								
 							} catch (IOException e) {
@@ -518,12 +518,12 @@ public class ReplicationService extends BaseService implements ApplicationContex
 		
 		Check.requireNonNullArgument(opx, "opx is null");
 
-		ServerBucket bucket = getVFS().getBucketById(opx.getBucketId());
+		ServerBucket bucket = getVirtualFileSystemService().getBucketById(opx.getBucketId());
 		
 		Check.requireNonNullArgument(bucket, "bucket is null");
 
 		/** if the Object was not deleted for any reason, do nothing	 */
-		if (getVFS().existsObject(bucket.getId(), opx.getObjectName())) {
+		if (getVirtualFileSystemService().existsObject(bucket.getId(), opx.getObjectName())) {
 			return;
 		}
 		
@@ -572,7 +572,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 		}
 		
 		
-		ServerBucket bucket = getVFS().getBucketById(opx.getBucketId());
+		ServerBucket bucket = getVirtualFileSystemService().getBucketById(opx.getBucketId());
 		
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		
@@ -616,7 +616,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 			throw new InternalCriticalException(e, "getClient().isVersionControl()");
 		}
 
-		ServerBucket bucket = getVFS().getBucketById(opx.getBucketId());
+		ServerBucket bucket = getVirtualFileSystemService().getBucketById(opx.getBucketId());
 		
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		
@@ -655,14 +655,14 @@ public class ReplicationService extends BaseService implements ApplicationContex
 
 		Check.requireNonNullArgument(opx, "opx is null");
 
-		ServerBucket bucket = getVFS().getBucketById(opx.getBucketId());
+		ServerBucket bucket = getVirtualFileSystemService().getBucketById(opx.getBucketId());
 		
 		
 		getLockService().getBucketLock(bucket).readLock().lock();
 			
 		try {
 		
-			if (!getVFS().existsBucket(opx.getBucketName())) {
+			if (!getVirtualFileSystemService().existsBucket(opx.getBucketName())) {
 				logger.error("bucket does not exist -> " + opx.getBucketName());
 				return;
 			}
@@ -689,11 +689,11 @@ public class ReplicationService extends BaseService implements ApplicationContex
 		
 			Check.requireNonNullArgument(opx, "opx is null");
 			
-			if (getVFS().existsBucket(opx.getBucketName())) {
+			if (getVirtualFileSystemService().existsBucket(opx.getBucketName())) {
 				return;
 			}
 			                                
-			ServerBucket bucket = getVFS().getBucketById(opx.getBucketId());
+			ServerBucket bucket = getVirtualFileSystemService().getBucketById(opx.getBucketId());
 			
 			getLockService().getBucketLock(bucket).readLock().lock();
 			
@@ -720,14 +720,14 @@ public class ReplicationService extends BaseService implements ApplicationContex
 			Check.requireNonNullArgument(opx, "opx is null");
 		
 			
-			ServerBucket bucket = getVFS().getBucketById(opx.getBucketId());
+			ServerBucket bucket = getVirtualFileSystemService().getBucketById(opx.getBucketId());
 			
 			getLockService().getBucketLock(bucket).readLock().lock();
 			
 			try {
 
 			
-				if (!getVFS().existsBucket(bucket.getName())) {
+				if (!getVirtualFileSystemService().existsBucket(bucket.getName())) {
 					return;
 				}
 				
@@ -795,7 +795,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 		if (getServerSettings().getServerMode().equals(ServerConstant.STANDBY_MODE))
 			return;
 		
-		OdilonServerInfo info = getVFS().getOdilonServerInfo();
+		OdilonServerInfo info = getVirtualFileSystemService().getOdilonServerInfo();
 
 		if (info.getStandByStartDate()==null)
 			return; 
@@ -815,7 +815,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 		 
 		 startuplogger.info("Starting sync up to -> " + info.getStandByStartDate().toString());
 			
-		StandByInitialSync syncer = new StandByInitialSync(this.getVFS().createVFSIODriver());
+		StandByInitialSync syncer = new StandByInitialSync(this.getVirtualFileSystemService().createVFSIODriver());
 		syncer.start();
 	}
 

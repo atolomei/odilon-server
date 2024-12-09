@@ -204,7 +204,7 @@ public class RAIDSixDriveSync implements Runnable {
 
         logger.debug("Starting Drive init: ");
         getDriver().getDrivesAll().stream().filter(d -> d.getDriveInfo().getStatus() == DriveStatus.NOTSYNC)
-                .forEach(v -> logger.debug(v.getName()));
+                .forEach(v -> logger.debug("d:" + v.getName() + "  dir:" + v.getRootDirPath()));
 
         long start_ms = System.currentTimeMillis();
 
@@ -212,6 +212,7 @@ public class RAIDSixDriveSync implements Runnable {
                 .valueOf(Double.valueOf(Runtime.getRuntime().availableProcessors() - 1) / 2.0).intValue() + 1;
 
         getDriver().getDrivesAll().forEach(d -> drives.add(d));
+
         this.drives.sort(new Comparator<Drive>() {
             @Override
             public int compare(Drive o1, Drive o2) {

@@ -210,7 +210,7 @@ public class FileCacheService extends BaseService implements ApplicationListener
     }
 
     
-    public synchronized void setVFS(VirtualFileSystemService virtualFileSystemService) {
+    public synchronized void setVirtualFileSystemService(VirtualFileSystemService virtualFileSystemService) {
 		try {
 	    	this.vfs=virtualFileSystemService;
     	} finally {
@@ -219,7 +219,7 @@ public class FileCacheService extends BaseService implements ApplicationListener
     	}
 	}
 	
-	public VirtualFileSystemService getVFS() {
+	public VirtualFileSystemService getVirtualFileSystemService() {
 		if (this.vfs==null) {
 			logger.error("The instance of " + VirtualFileSystemService.class.getSimpleName() + " must be setted during the @PostConstruct method of the " + this.getClass().getName() + " instance. It can not be injected via AutoWired beacause of circular dependencies.");
 			throw new IllegalStateException(VirtualFileSystemService.class.getSimpleName() + " instance is null. it must be setted during the @PostConstruct method of the " + this.getClass().getName() + " instance");
@@ -267,7 +267,7 @@ public class FileCacheService extends BaseService implements ApplicationListener
 		
 		if (event.getVFSOperation().getOp()==VFSOp.DELETE_OBJECT_PREVIOUS_VERSIONS) {
 			remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName(), Optional.empty());
-			if (getVFS().getServerSettings().isVersionControl()) { 
+			if (getVirtualFileSystemService().getServerSettings().isVersionControl()) { 
 				for (int version=0; version < event.getVFSOperation().getVersion(); version++) 
 					remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName(), Optional.of(version));
 			}
@@ -338,7 +338,7 @@ public class FileCacheService extends BaseService implements ApplicationListener
 	private synchronized List<Drive> getDrivesAll() {
 		
 		if (this.listDrives ==null)
-			this.listDrives = new ArrayList<Drive>(getVFS().getMapDrivesAll().values());
+			this.listDrives = new ArrayList<Drive>(getVirtualFileSystemService().getMapDrivesAll().values());
 		
 		this.listDrives.sort(new Comparator<Drive>() {
 			@Override

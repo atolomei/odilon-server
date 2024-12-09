@@ -244,7 +244,7 @@ public class RAIDSixEncoder {
         }
 
         /** save in parallel */
-        ParallelFileCoypAgent agent = new ParallelFileCoypAgent(getDrives(), shards, destination);
+        ParallelFileCoypAgent agent = new ParallelFileCoypAgent(shards, destination);
 
         boolean isOk = agent.execute();
 

@@ -39,6 +39,7 @@ import io.odilon.model.ObjectMetadata;
 import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
 import io.odilon.virtualFileSystem.model.Drive;
+import io.odilon.virtualFileSystem.model.DriveStatus;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VFSOp;
 import io.odilon.virtualFileSystem.model.VFSOperation;
@@ -59,6 +60,8 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
     @JsonIgnore
     private List<Drive> drives;
 
+    @JsonIgnore
+    private List<Drive> drivesToSync;
     /**
      * 
      * @param driver can not be null
@@ -83,7 +86,7 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
         VFSOperation op = null;
         boolean done = false;
 
-        final ServerBucket bucket = getVirtualFileSystemService().getBucketById(meta.bucketId);
+        final ServerBucket bucket = getVirtualFileSystemService().getBucketById(meta.getBucketId());
 
         try {
 
@@ -94,8 +97,8 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
                 getLockService().getBucketLock(bucket).readLock().lock();
 
                 /**
-                 * backup metadata, there is no need to backup data because existing data files
-                 * are not touched.
+                 * backup metadata, there is no need to backup data because 
+                 * existing data files are not touched.
                  **/
                 backupMetadata(meta);
 
@@ -122,8 +125,12 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
                     meta.dateSynced = OffsetDateTime.now();
 
                     List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
-                    getDrives().forEach(d -> list.add(meta));
-                    getDriver().saveObjectMetadataToDisk(getDrives(), list, true);
+                    // getDrives().forEach(d -> list.add(meta));
+                    getDrivesToSync().forEach(d -> list.add(meta));
+                    
+                    // getDriver().saveObjectMetadataToDisk(getDrives(), list, true);
+                    getDriver().saveObjectMetadataToDisk(getDrivesToSync(), list, true);
+                    
                 }
 
                 /** PREVIOUS VERSIONS ---------------------------------------------------- */
@@ -148,8 +155,8 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
                                     new FileInputStream(file.getAbsolutePath()))) {
 
                                 /**
-                                 * encodes version without saving existing blocks, only the ones that go to the
-                                 * new drive/s
+                                 * encodes version without saving existing blocks, 
+                                 * only the ones that go to the new drive/s
                                  */
                                 driveEncoder.encodeVersion(in, bucketId, objectName, versionMeta.version);
 
@@ -218,6 +225,20 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
         }
     }
 
+    
+    protected synchronized List<Drive> getDrivesToSync() {
+        if (this.drivesToSync != null)
+            return this.drivesToSync;
+        drivesToSync = new ArrayList<Drive>();
+        getDrives().forEach( d -> {
+            if (d.getDriveInfo().getStatus()==DriveStatus.NOTSYNC)
+                drivesToSync.add(d);
+        });
+        
+        
+        return drivesToSync;
+            
+    }
     protected synchronized List<Drive> getDrives() {
 
         if (this.drives != null)

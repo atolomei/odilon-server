@@ -16,7 +16,6 @@
  */
 package io.odilon.virtualFileSystem.model;
 
-
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
@@ -27,122 +26,146 @@ import io.odilon.scheduler.ServiceRequest;
 import io.odilon.virtualFileSystem.DriveInfo;
 
 /**
- * <p>A Drive or Volume is File System directory that acts 
- * as a storage unit</p>
+ * <p>
+ * A Drive or Volume is File System directory that acts as a storage unit
+ * </p>
  * 
- * <p>a Drive is <b>not</b> ThreadSafe, 
- * concurrency control is the responsibility of whoever uses its methods.</p> 
+ * <p>
+ * a Drive is <b>not</b> ThreadSafe, concurrency control is the responsibility
+ * of whoever uses its methods.
+ * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public interface Drive {
 
-	/** -----------------
-	* Drive Info  
-	------------------*/
-	public DriveInfo getDriveInfo();
-	public void setDriveInfo(DriveInfo info);
+    /**
+     * ----------------- Drive Info ------------------
+     */
+    public DriveInfo getDriveInfo();
 
-	 public void cleanUpWorkDir(Long bucketId);
-	 public void cleanUpCacheDir(Long bucketId);
-	 
+    public void setDriveInfo(DriveInfo info);
 
-	/** -----------------
-	 *  Journal 
-	------------------*/				
-	public void saveJournal(VFSOperation op);
-	public void removeJournal(String id);
+    public void cleanUpWorkDir(Long bucketId);
 
-	/** -----------------
-	 *  Sys 
-	 ------------------*/
-	 public void putSysFile(String fileName, String content);
-	 public File getSysFile(String fileName);
-	 public void removeSysFile(String fileName);
-	 
-	 /** -----------------
-	  *  Info
-	  ------------------*/
-	public String getRootDirPath();
-	public String getSysDirPath();
-	public String getBucketsDirPath();
-	public String getCacheDirPath();
-	public String getBucketCacheDirPath(Long bucketId);
-	
-	public String getWorkDirPath();
-	public String getBucketWorkDirPath(Long bucketId);
-	
-	String getJournalDirPath();
-	String getTempDirPath();
-	public String getSchedulerDirPath();
-	
-	public String ping();
-	public long getTotalSpace();
-	public long getAvailableSpace();
-	public String getName();
-	
-	/** order in the rootDirs variable in odilon.properties */
-	public int getConfigOrder();
-	
-	/** -----------------
-	  *  Scheduler
-   ------------------*/
-	public void saveScheduler(ServiceRequest serviceRequest, String queueId);
-	public void removeScheduler(ServiceRequest serviceRequest, String queueId);
-	public List<File> getSchedulerRequests(String queueId);
+    public void cleanUpCacheDir(Long bucketId);
 
-	
-	/** -----------------
-	 * Bucket
-	 ------------------*/
-	public File 				createBucket(BucketMetadata meta) throws IOException; 	
-	public void  				updateBucket(BucketMetadata meta) throws IOException;
-	public BucketMetadata 		getBucketMetadata(Long bucketId) throws IOException;
-	
-	public boolean 				existsBucket(Long bucketId);
-	public void 				deleteBucket(Long bucketId); 											
-	public List<DriveBucket> 	getBuckets();
-	public void 				markAsDeletedBucket(Long bucketId);
-	public void 				markAsEnabledBucket(Long bucketId);
-	
-	
-	
-	public boolean 				isEmpty(ServerBucket bucket);
-	//public boolean 				isEmpty(Long bucketId);
-	
-	public String 				getBucketMetadataDirPath(Long bucketId);
-	public String 				getBucketObjectDataDirPath(Long bucketId);
-	
+    /**
+     * ----------------- Journal ------------------
+     */
+    public void saveJournal(VFSOperation op);
 
-	/** ----------------------
-	 *  ObjectMetadata (head)
-		----------------------*/
-    //public boolean existsObjectMetadata		(Long bucketId, String objectName);
-	
-	public boolean existsObjectMetadata		(ServerBucket bucket, String objectName);
-	public boolean existsObjectMetadata		(ObjectMetadata meta);
-	
-	
-	
-    public void markAsDeletedObject			(Long bucketId, String objectName);
-    public String getObjectMetadataDirPath	(Long bucketId, String objectName); 
-    public ObjectMetadata getObjectMetadata	(Long bucketId, String objectName);
-	
-	public void deleteObjectMetadata		(Long bucketId, String objectName);
-	
-	public void saveObjectMetadata			(ObjectMetadata meta);
-	public File getObjectMetadataFile		(Long bucketId, String objectName);
-	public void putObjectMetadataFile		(Long bucketId, String objectName, File metaFile) throws IOException;;
-	 
-	/** ObjectMetadata. Version ---*/
-	public void saveObjectMetadataVersion			(ObjectMetadata meta);
-	public ObjectMetadata getObjectMetadataVersion	(Long bucketId, String objectName, int version);
-	public File getObjectMetadataVersionFile		(Long bucketId, String objectName, int version);
-	public void putObjectMetadataVersionFile		(Long bucketId, String objectName, int version, File metaFile) throws IOException;
-	 
-	 
-	
-	
-}	
-	
-	
+    public void removeJournal(String id);
+
+    /**
+     * ----------------- Sys ------------------
+     */
+    public void putSysFile(String fileName, String content);
+
+    public File getSysFile(String fileName);
+
+    public void removeSysFile(String fileName);
+
+    /**
+     * ----------------- Info ------------------
+     */
+    public String getRootDirPath();
+
+    public String getSysDirPath();
+
+    public String getBucketsDirPath();
+
+    public String getCacheDirPath();
+
+    public String getBucketCacheDirPath(Long bucketId);
+
+    public String getWorkDirPath();
+
+    public String getBucketWorkDirPath(Long bucketId);
+
+    String getJournalDirPath();
+
+    String getTempDirPath();
+
+    public String getSchedulerDirPath();
+
+    public String ping();
+
+    public long getTotalSpace();
+
+    public long getAvailableSpace();
+
+    public String getName();
+
+    /** order in the rootDirs variable in odilon.properties */
+    public int getConfigOrder();
+
+    /**
+     * ----------------- Scheduler ------------------
+     */
+    public void saveScheduler(ServiceRequest serviceRequest, String queueId);
+
+    public void removeScheduler(ServiceRequest serviceRequest, String queueId);
+
+    public List<File> getSchedulerRequests(String queueId);
+
+    /**
+     * ----------------- Bucket ------------------
+     */
+    public File createBucket(BucketMetadata meta) throws IOException;
+
+    public void updateBucket(BucketMetadata meta) throws IOException;
+
+    public BucketMetadata getBucketMetadata(Long bucketId) throws IOException;
+
+    public boolean existsBucket(Long bucketId);
+
+    public void deleteBucket(Long bucketId);
+
+    public List<DriveBucket> getBuckets();
+
+    public void markAsDeletedBucket(Long bucketId);
+
+    public void markAsEnabledBucket(Long bucketId);
+
+    public boolean isEmpty(ServerBucket bucket);
+    // public boolean isEmpty(Long bucketId);
+
+    public String getBucketMetadataDirPath(Long bucketId);
+
+    public String getBucketObjectDataDirPath(Long bucketId);
+
+    /**
+     * ---------------------- ObjectMetadata (head) ----------------------
+     */
+    // public boolean existsObjectMetadata (Long bucketId, String objectName);
+
+    public boolean existsObjectMetadata(ServerBucket bucket, String objectName);
+
+    public boolean existsObjectMetadata(ObjectMetadata meta);
+
+    public void markAsDeletedObject(Long bucketId, String objectName);
+
+    public String getObjectMetadataDirPath(Long bucketId, String objectName);
+
+    public ObjectMetadata getObjectMetadata(Long bucketId, String objectName);
+
+    public void deleteObjectMetadata(Long bucketId, String objectName);
+
+    public void saveObjectMetadata(ObjectMetadata meta);
+
+    public File getObjectMetadataFile(Long bucketId, String objectName);
+
+    public void putObjectMetadataFile(Long bucketId, String objectName, File metaFile) throws IOException;;
+
+    /** ObjectMetadata. Version --- */
+    public void saveObjectMetadataVersion(ObjectMetadata meta);
+
+    public ObjectMetadata getObjectMetadataVersion(Long bucketId, String objectName, int version);
+
+    public File getObjectMetadataVersionFile(Long bucketId, String objectName, int version);
+
+    public void putObjectMetadataVersionFile(Long bucketId, String objectName, int version, File metaFile)
+            throws IOException;
+
+}

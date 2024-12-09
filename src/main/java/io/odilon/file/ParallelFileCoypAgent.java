@@ -16,6 +16,7 @@
  */
 package io.odilon.file;
 
+
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -40,11 +41,8 @@ import io.odilon.log.Logger;
 import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
 import io.odilon.util.DateTimeUtil;
-import io.odilon.virtualFileSystem.model.Drive;
 
 /**
- * 
- * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public class ParallelFileCoypAgent extends FileCopyAgent {
@@ -58,9 +56,6 @@ public class ParallelFileCoypAgent extends FileCopyAgent {
 	final List<File> destination;
 	
 	@JsonIgnore
-	final List<Drive> drives;
-	
-	@JsonIgnore
 	private ExecutorService executor;
 	
 	@JsonIgnore
@@ -69,14 +64,11 @@ public class ParallelFileCoypAgent extends FileCopyAgent {
 	@JsonIgnore
 	private OffsetDateTime end;
 	
-	public ParallelFileCoypAgent(List<Drive> drives, byte[][] source, List<File> destination) {
+	public ParallelFileCoypAgent(byte[][] source, List<File> destination) {
 		
 		Check.requireNonNull(source);
 		Check.requireNonNull(destination);
-		Check.requireTrue(source.length==destination.size(), "source and destination must have the same number of elements. "
-				+ "source -> " + String.valueOf(source.length) + " | destination -> " + String.valueOf(destination.size()));
-		
-		this.drives=drives;
+
 		this.source=source;
 		this.destination=destination;
 	}
@@ -92,7 +84,6 @@ public class ParallelFileCoypAgent extends FileCopyAgent {
 	public boolean execute() {
 	
 		try {
-
 			this.start = OffsetDateTime.now();
 		
 			int size = this.destination.size();
@@ -147,7 +138,6 @@ public class ParallelFileCoypAgent extends FileCopyAgent {
 			
 		} finally {
 			this.end = OffsetDateTime.now();
-			//logger.debug("Duration: " +  DateTimeUtil.timeElapsed(this.start, this.end));
 		}
 	}
 }

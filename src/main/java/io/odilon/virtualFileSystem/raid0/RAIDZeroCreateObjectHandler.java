@@ -16,7 +16,6 @@
  */
 package io.odilon.virtualFileSystem.raid0;
 
-
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -58,229 +57,241 @@ import io.odilon.virtualFileSystem.model.VFSOperation;
 @ThreadSafe
 public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
 
-	private static Logger logger = Logger.getLogger(RAIDZeroCreateObjectHandler.class.getName());
+    private static Logger logger = Logger.getLogger(RAIDZeroCreateObjectHandler.class.getName());
 
-	/**
-	 * <p>Created and used only from {@link RAIDZeroDriver}</p>
-	 */
-	protected RAIDZeroCreateObjectHandler(RAIDZeroDriver driver) {
-		super(driver);
-	}
-
-	/**
-	 * <p>The procedure is the same whether version control is enabled or not</p>
-	 * 
-	 * @param bucket
-	 * @param objectName
-	 * @param stream
-	 * @param srcFileName
-	 * @param contentType
-	 * @param customTags
-	 */
-	protected void create(@NonNull ServerBucket bucket, @NonNull String objectName, @NonNull InputStream stream,
-			String srcFileName, String contentType, Optional<List<String>> customTags) {
-
-		Check.requireNonNullArgument(bucket, "bucket is null");
-		Check.requireNonNullArgument(bucket.getName(), "bucketName is null");
-		Check.requireNonNullArgument(bucket.getId(), "bucket id is null");
-		Check.requireNonNullArgument(objectName, "objectName is null or empty " + objectInfo(bucket));
-
-		VFSOperation op = null;
-		boolean done = false;
-		boolean isMainException = false;
-
-		objectWriteLock(bucket, objectName);
-
-		try {
-		    bucketReadLock(bucket);
-
-			try (stream) {
-				if (getDriver().getWriteDrive(bucket, objectName).existsObjectMetadata(bucket, objectName))
-					throw new IllegalArgumentException("Object already exist -> "+ objectInfo(bucket, objectName));
-
-				int version = 0;
-				
-				op = getJournalService().createObject(bucket, objectName);
-				saveObjectDataFile(bucket, objectName, stream, srcFileName);
-				saveObjectMetadata(bucket, objectName, srcFileName, contentType, version, customTags);
-				done = op.commit();
-
-			} catch (InternalCriticalException e1) {
-				done = false;
-				isMainException = true;
-				throw e1;
-
-			} catch (Exception e) {
-				done = false;
-				isMainException = true;
-				throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
-			} finally {
-				try {
-					if ((!done) && (op != null)) {
-						try {
-							rollbackJournal(op, false);
-						} catch (InternalCriticalException e) {
-							if (!isMainException)
-								throw e;
-							else
-								logger.error(e, objectInfo(bucket, objectName, srcFileName),SharedConstant.NOT_THROWN);
-						} catch (Exception e) {
-							if (!isMainException)
-								throw new InternalCriticalException(e,getDriver().objectInfo(bucket, objectName, srcFileName));
-							else
-								logger.error(e, objectInfo(bucket, objectName, srcFileName),SharedConstant.NOT_THROWN);
-						}
-					}
-				} finally {
-					bucketReadUnlock(bucket);
-				}
-			}
-		} finally {
-			objectWriteUnLock(bucket, objectName);
-		}
-	}
-	
     /**
-	 * <p>This method is <b>not</b> ThreadSafe, callers must ensure proper concurrency control</p>
-	 * 
-	 */
-	@Override
-	protected void rollbackJournal(VFSOperation op, boolean recoveryMode) {
+     * <p>
+     * Created and used only from {@link RAIDZeroDriver}
+     * </p>
+     */
+    protected RAIDZeroCreateObjectHandler(RAIDZeroDriver driver) {
+        super(driver);
+    }
 
-		Check.requireNonNullArgument(op, "op is null");
-		Check.checkTrue(op.getOp() == VFSOp.CREATE_OBJECT, "Invalid op ->  " + op.getOp().getName());
+    /**
+     * <p>
+     * The procedure is the same whether version control is enabled or not
+     * </p>
+     * 
+     * @param bucket
+     * @param objectName
+     * @param stream
+     * @param srcFileName
+     * @param contentType
+     * @param customTags
+     */
+    protected void create(@NonNull ServerBucket bucket, @NonNull String objectName, @NonNull InputStream stream,
+            String srcFileName, String contentType, Optional<List<String>> customTags) {
 
-		String objectName = op.getObjectName();
+        Check.requireNonNullArgument(bucket, "bucket is null");
+        Check.requireNonNullArgument(bucket.getName(), "bucketName is null");
+        Check.requireNonNullArgument(bucket.getId(), "bucket id is null");
+        Check.requireNonNullArgument(objectName, "objectName is null or empty " + objectInfo(bucket));
 
-		boolean done = false;
+        VFSOperation op = null;
+        boolean done = false;
+        boolean isMainException = false;
 
-		try {
-			if (getVirtualFileSystemService().getServerSettings().isStandByEnabled())
-				getVirtualFileSystemService().getReplicationService().cancel(op);
+        objectWriteLock(bucket, objectName);
 
-			getWriteDrive(this.getVirtualFileSystemService().getBucketById(op.getBucketId()), objectName)
-					.deleteObjectMetadata(op.getBucketId(), objectName);
-			
-			FileUtils.deleteQuietly(new File(getWriteDrive(this.getVirtualFileSystemService().getBucketById(op.getBucketId()), objectName).getRootDirPath(),
-							op.getBucketId().toString() + File.separator + objectName));
-			done = true;
+        try {
+            bucketReadLock(bucket);
 
-		} catch (InternalCriticalException e) {
-			if (!recoveryMode)
-				throw (e);
-			else
-				logger.error(e,getDriver().opInfo(op), SharedConstant.NOT_THROWN);
+            try (stream) {
+                if (getDriver().getWriteDrive(bucket, objectName).existsObjectMetadata(bucket, objectName))
+                    throw new IllegalArgumentException("Object already exist -> " + objectInfo(bucket, objectName));
 
-		} catch (Exception e) {
-			if (!recoveryMode)
-				throw new InternalCriticalException(e, getDriver().opInfo(op));
-			else
-				logger.error(e, getDriver().opInfo(op), SharedConstant.NOT_THROWN);
-		} finally {
-			if (done || recoveryMode)
-				op.cancel();
-		}
-	}
+                int version = 0;
 
-	/**
-	 * <p>
-	 * This method is <b>not</b> ThreadSafe, callers must ensure proper concurrency
-	 * control
-	 * </p>
-	 * 
-	 * @param bucket      can not be null
-	 * @param objectName  can not be null
-	 * @param stream      can not be null
-	 * @param srcFileName can not be null
-	 */
-	private void saveObjectDataFile(ServerBucket bucket, String objectName, InputStream stream, String srcFileName) {
+                op = getJournalService().createObject(bucket, objectName);
+                saveObjectDataFile(bucket, objectName, stream, srcFileName);
+                saveObjectMetadata(bucket, objectName, srcFileName, contentType, version, customTags);
+                done = op.commit();
 
-		byte[] buf = new byte[ServerConstant.BUFFER_SIZE];
+            } catch (InternalCriticalException e1) {
+                done = false;
+                isMainException = true;
+                throw e1;
 
-		BufferedOutputStream out = null;
-		boolean isMainException = false;
-		
-		SimpleDrive drive = (SimpleDrive) getWriteDrive(bucket, objectName);
-		
-		ObjectDataPathBuilder pathBuilder = new ObjectDataPathBuilder(drive, bucket, objectName);
-		
-		try (InputStream sourceStream = isEncrypt() ? getVirtualFileSystemService().getEncryptionService().encryptStream(stream) : stream) {
-			out = new BufferedOutputStream(new FileOutputStream(pathBuilder.build()), ServerConstant.BUFFER_SIZE);
-			int bytesRead;
-			while ((bytesRead = sourceStream.read(buf, 0, buf.length)) >= 0) {
-				out.write(buf, 0, bytesRead);
-			}
-		} catch (Exception e) {
-			isMainException = true;
-			throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
+            } catch (Exception e) {
+                done = false;
+                isMainException = true;
+                throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
+            } finally {
+                try {
+                    if ((!done) && (op != null)) {
+                        try {
+                            rollbackJournal(op, false);
+                        } catch (InternalCriticalException e) {
+                            if (!isMainException)
+                                throw e;
+                            else
+                                logger.error(e, objectInfo(bucket, objectName, srcFileName), SharedConstant.NOT_THROWN);
+                        } catch (Exception e) {
+                            if (!isMainException)
+                                throw new InternalCriticalException(e,
+                                        getDriver().objectInfo(bucket, objectName, srcFileName));
+                            else
+                                logger.error(e, objectInfo(bucket, objectName, srcFileName), SharedConstant.NOT_THROWN);
+                        }
+                    }
+                } finally {
+                    bucketReadUnlock(bucket);
+                }
+            }
+        } finally {
+            objectWriteUnLock(bucket, objectName);
+        }
+    }
 
-		} finally {
-			IOException secEx = null;
-			try {
-				if (out != null)
-					out.close();
-			} catch (IOException e) {
-				if (isMainException)
-					logger.error(e, objectInfo(bucket, objectName, srcFileName)
-							+ (isMainException ? SharedConstant.NOT_THROWN : ""));
-				secEx = e;
-			}
-			if ((!isMainException) && (secEx != null))
-				throw new InternalCriticalException(secEx);
-		}
-	}
+    /**
+     * <p>
+     * This method is <b>not</b> ThreadSafe, callers must ensure proper concurrency
+     * control
+     * </p>
+     * 
+     */
+    @Override
+    protected void rollbackJournal(VFSOperation op, boolean recoveryMode) {
 
-	/**
-	 * <p>
-	 * This method is <b>not</b> ThreadSafe, callers must ensure proper concurrency
-	 * control
-	 * </p>
-	 * <p>
-	 * note that sha256 (meta.etag) is calculated on the encrypted file
-	 * </p>
-	 * 
-	 * @param bucket      can not be null
-	 * @param objectName  can not be null
-	 * @param stream      can not be null
-	 * @param srcFileName can not be null
-	 * @param customTags
-	 */
-	private void saveObjectMetadata(ServerBucket bucket, String objectName, String srcFileName, String contentType,
-			int version, Optional<List<String>> customTags) {
+        Check.requireNonNullArgument(op, "op is null");
+        Check.checkTrue(op.getOp() == VFSOp.CREATE_OBJECT, "Invalid op ->  " + op.getOp().getName());
 
-		Check.requireNonNullArgument(bucket, "bucket is null");
+        String objectName = op.getObjectName();
 
-		OffsetDateTime now = OffsetDateTime.now();
-		Drive drive = getWriteDrive(bucket, objectName);
-		File file = ((SimpleDrive) drive).getObjectDataFile(bucket.getId(), objectName);
+        boolean done = false;
 
-		try {
-			String sha256 = OdilonFileUtils.calculateSHA256String(file);
-			ObjectMetadata meta = new ObjectMetadata(bucket.getId(), objectName);
-			meta.fileName = srcFileName;
-			meta.appVersion = OdilonVersion.VERSION;
-			meta.contentType = contentType;
-			meta.encrypt = getVirtualFileSystemService().isEncrypt();
-			meta.vault = getVirtualFileSystemService().isUseVaultNewFiles();
-			meta.creationDate = now;
-			meta.version = version;
-			meta.versioncreationDate = meta.creationDate;
-			meta.length = file.length();
-			meta.etag = sha256; /** note that -> sha256 is calculated on the encrypted file **/
-			meta.integrityCheck = now;
-			meta.sha256 = sha256;
-			meta.status = ObjectStatus.ENABLED;
-			meta.drive = drive.getName();
-			if (customTags.isPresent())
-				meta.customTags = customTags.get();
-			meta.raid = String.valueOf(getRedundancyLevel().getCode()).trim();
+        try {
+            if (getVirtualFileSystemService().getServerSettings().isStandByEnabled())
+                getVirtualFileSystemService().getReplicationService().cancel(op);
 
-			drive.saveObjectMetadata(meta);
+            getWriteDrive(this.getVirtualFileSystemService().getBucketById(op.getBucketId()), objectName)
+                    .deleteObjectMetadata(op.getBucketId(), objectName);
 
-		} catch (Exception e) {
-			throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
-		}
-	}
+            FileUtils
+                    .deleteQuietly(new File(
+                            getWriteDrive(this.getVirtualFileSystemService().getBucketById(op.getBucketId()),
+                                    objectName).getRootDirPath(),
+                            op.getBucketId().toString() + File.separator + objectName));
+            done = true;
 
+        } catch (InternalCriticalException e) {
+            if (!recoveryMode)
+                throw (e);
+            else
+                logger.error(e, getDriver().opInfo(op), SharedConstant.NOT_THROWN);
+
+        } catch (Exception e) {
+            if (!recoveryMode)
+                throw new InternalCriticalException(e, getDriver().opInfo(op));
+            else
+                logger.error(e, getDriver().opInfo(op), SharedConstant.NOT_THROWN);
+        } finally {
+            if (done || recoveryMode)
+                op.cancel();
+        }
+    }
+
+    /**
+     * <p>
+     * This method is <b>not</b> ThreadSafe, callers must ensure proper concurrency
+     * control
+     * </p>
+     * 
+     * @param bucket      can not be null
+     * @param objectName  can not be null
+     * @param stream      can not be null
+     * @param srcFileName can not be null
+     */
+    private void saveObjectDataFile(ServerBucket bucket, String objectName, InputStream stream, String srcFileName) {
+
+        byte[] buf = new byte[ServerConstant.BUFFER_SIZE];
+
+        BufferedOutputStream out = null;
+        boolean isMainException = false;
+
+        SimpleDrive drive = (SimpleDrive) getWriteDrive(bucket, objectName);
+
+        ObjectDataPathBuilder pathBuilder = new ObjectDataPathBuilder(drive, bucket, objectName);
+
+        try (InputStream sourceStream = isEncrypt()
+                ? getVirtualFileSystemService().getEncryptionService().encryptStream(stream)
+                : stream) {
+            out = new BufferedOutputStream(new FileOutputStream(pathBuilder.build()), ServerConstant.BUFFER_SIZE);
+            int bytesRead;
+            while ((bytesRead = sourceStream.read(buf, 0, buf.length)) >= 0) {
+                out.write(buf, 0, bytesRead);
+            }
+        } catch (Exception e) {
+            isMainException = true;
+            throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
+
+        } finally {
+            IOException secEx = null;
+            try {
+                if (out != null)
+                    out.close();
+            } catch (IOException e) {
+                if (isMainException)
+                    logger.error(e, objectInfo(bucket, objectName, srcFileName)
+                            + (isMainException ? SharedConstant.NOT_THROWN : ""));
+                secEx = e;
+            }
+            if ((!isMainException) && (secEx != null))
+                throw new InternalCriticalException(secEx);
+        }
+    }
+
+    /**
+     * <p>
+     * This method is <b>not</b> ThreadSafe, callers must ensure proper concurrency
+     * control
+     * </p>
+     * <p>
+     * note that sha256 (meta.etag) is calculated on the encrypted file
+     * </p>
+     * 
+     * @param bucket      can not be null
+     * @param objectName  can not be null
+     * @param stream      can not be null
+     * @param srcFileName can not be null
+     * @param customTags
+     */
+    private void saveObjectMetadata(ServerBucket bucket, String objectName, String srcFileName, String contentType,
+            int version, Optional<List<String>> customTags) {
+
+        Check.requireNonNullArgument(bucket, "bucket is null");
+
+        OffsetDateTime now = OffsetDateTime.now();
+        Drive drive = getWriteDrive(bucket, objectName);
+        File file = ((SimpleDrive) drive).getObjectDataFile(bucket.getId(), objectName);
+
+        try {
+            String sha256 = OdilonFileUtils.calculateSHA256String(file);
+            ObjectMetadata meta = new ObjectMetadata(bucket.getId(), objectName);
+            meta.setFileName(srcFileName);
+            meta.setAppVersion(OdilonVersion.VERSION);
+            meta.setContentType(contentType);
+            meta.setEncrypt(getVirtualFileSystemService().isEncrypt());
+            meta.setVault(getVirtualFileSystemService().isUseVaultNewFiles());
+            meta.setCreationDate(now);
+            meta.setVersion(version);
+            meta.setVersioncreationDate(meta.creationDate);
+            meta.setLength(file.length());
+            meta.setEtag(sha256); /** note that -> sha256 is calculated on the encrypted file **/
+            meta.setIntegrityCheck(now);
+            meta.setSha256(sha256);
+            meta.setStatus(ObjectStatus.ENABLED);
+            meta.setDrive(drive.getName());
+            if (customTags.isPresent())
+                meta.setCustomTags(customTags.get());
+            meta.setRaid(String.valueOf(getRedundancyLevel().getCode()).trim());
+
+            drive.saveObjectMetadata(meta);
+
+        } catch (Exception e) {
+            throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
+        }
+    }
 
 }

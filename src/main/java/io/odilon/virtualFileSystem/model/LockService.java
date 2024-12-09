@@ -21,6 +21,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 
 import io.odilon.model.BucketMetadata;
 import io.odilon.service.SystemService;
+import io.odilon.virtualFileSystem.OdilonVirtualFileSystemService;
 
 /**
  * <p>
@@ -33,16 +34,16 @@ import io.odilon.service.SystemService;
  */
 public interface LockService extends SystemService {
 
-    // public ReadWriteLock getObjectLock(Long bucketId, String objectName);
-    // public ReadWriteLock getBucketLock(Long bucketId);
-    
     public ReadWriteLock getObjectLock(ServerBucket bucket, String objectName);
 
     public ReadWriteLock getBucketLock(ServerBucket bucket);
+
     public ReadWriteLock getBucketLock(BucketMetadata meta);
-    
+
     public ReadWriteLock getServerLock();
 
     public ReadWriteLock getFileCacheLock(Long bucketId, String objectName, Optional<Integer> version);
+
+    public void setVirtualFileSystemService(OdilonVirtualFileSystemService odilonVirtualFileSystemService);
 
 }

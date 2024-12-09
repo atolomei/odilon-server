@@ -323,7 +323,7 @@ public class OdilonJournalService extends BaseService implements JournalService 
 		return this.virtualFileSystemService;
 	}
 	
-	public synchronized void setVFS(VirtualFileSystemService virtualFileSystemService) {
+	public synchronized void setVirtualFileSystemService(VirtualFileSystemService virtualFileSystemService) {
 		this.virtualFileSystemService=virtualFileSystemService;
 	}
 

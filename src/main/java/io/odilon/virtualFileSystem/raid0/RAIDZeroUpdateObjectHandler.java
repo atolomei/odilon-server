@@ -97,7 +97,8 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 
             try (stream) {
                 if (!getDriver().getWriteDrive(bucket, objectName).existsObjectMetadata(bucket, objectName))
-                    throw new IllegalArgumentException("Object does not exist -> " + objectInfo(bucket, objectName, srcFileName));
+                    throw new IllegalArgumentException(
+                            "Object does not exist -> " + objectInfo(bucket, objectName, srcFileName));
 
                 ObjectMetadata meta = getDriver().getObjectMetadataInternal(bucket, objectName, false);
 
@@ -110,7 +111,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 
                 /** copy new version head version */
                 afterHeadVersion = beforeHeadVersion + 1;
-                
+
                 saveObjectDataFile(bucket, objectName, stream, srcFileName, afterHeadVersion);
                 saveObjectMetadataHead(bucket, objectName, srcFileName, contentType, afterHeadVersion, customTags);
 
@@ -172,7 +173,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 
         try {
             bucketReadLock(bucket);
-            
+
             try {
 
                 ObjectMetadata meta = getDriver().getObjectMetadataInternal(bucket, objectName, false);
@@ -265,7 +266,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
                         }
                     }
                 } finally {
-                        bucketReadUnlock(bucket);
+                    bucketReadUnlock(bucket);
                 }
             }
         } finally {
@@ -681,13 +682,13 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 
         try {
             if (!getVirtualFileSystemService().getServerSettings().isVersionControl()) {
-                
+
                 FileUtils.deleteQuietly(getDriver().getWriteDrive(bucket, objectName)
                         .getObjectMetadataVersionFile(bucket.getId(), objectName, previousVersion));
-                
+
                 FileUtils.deleteQuietly(((SimpleDrive) getDriver().getWriteDrive(bucket, objectName))
                         .getObjectDataVersionFile(bucket.getId(), objectName, previousVersion));
-                
+
             }
         } catch (Exception e) {
             logger.error(e, SharedConstant.NOT_THROWN);

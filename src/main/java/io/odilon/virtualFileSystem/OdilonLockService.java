@@ -35,6 +35,7 @@ import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import io.odilon.cache.FileCacheService;
 import io.odilon.log.Logger;
 import io.odilon.model.BucketMetadata;
 import io.odilon.model.ServerConstant;
@@ -95,16 +96,23 @@ public class OdilonLockService extends BaseService implements LockService {
 	private final ServerSettings serverSettings;
 
 	@JsonIgnore
-    @Autowired
-    private final VirtualFileSystemService vfs;
+    private VirtualFileSystemService virtualFileSystemService;
 	
 	
 	@Autowired		
-	public OdilonLockService(ServerSettings serverSettings, VirtualFileSystemService vfs) {
+	public OdilonLockService(ServerSettings serverSettings) {
 		this.serverSettings=serverSettings;
-		this.vfs=vfs;
 	}
 
+	public void setVirtualFileSystemService(OdilonVirtualFileSystemService virtualFileSystemService) {
+	    try {
+            this.virtualFileSystemService=virtualFileSystemService;
+        } finally {
+            setStatus(ServiceStatus.RUNNING);
+            startuplogger.debug("Started -> " + FileCacheService.class.getSimpleName());
+        }   
+	}
+	
 	@Override
 	public ReadWriteLock getObjectLock(ServerBucket bucket, String objectName) {
 		Check.requireNonNullArgument(bucket, "bucket is null");
@@ -295,8 +303,12 @@ public class OdilonLockService extends BaseService implements LockService {
 		this.cleaner.sendExitSignal();
 	}
 
-	private VirtualFileSystemService getVirtualFileSystemService() {
-        return this.vfs;
+	public VirtualFileSystemService getVirtualFileSystemService() {
+        if (this.virtualFileSystemService==null) {
+            logger.error("The instance of " + VirtualFileSystemService.class.getSimpleName() + " must be setted during the @PostConstruct method of the " + this.getClass().getName() + " instance. It can not be injected via AutoWired beacause of circular dependencies.");
+            throw new IllegalStateException(VirtualFileSystemService.class.getSimpleName() + " instance is null. it must be asigned during the @PostConstruct method of the " + this.getClass().getName() + " instance");
+        }
+        return this.virtualFileSystemService;
     }    
 	
 	
