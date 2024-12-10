@@ -244,8 +244,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
                             if (!isMainException)
                                 throw new InternalCriticalException(e, objectInfo(bucket, objectName));
                             else
-                                logger.error(e,
-                                        " finally | " + objectInfo(bucket, objectName) + SharedConstant.NOT_THROWN);
+                                logger.error(e, objectInfo(bucket, objectName) + SharedConstant.NOT_THROWN);
                         }
                     } else {
                         /**
@@ -296,7 +295,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
         objectWriteLock(meta);
 
         try {
-            getLockService().getBucketLock(bucket).readLock().lock();
+            bucketReadLock(bucket);
 
             try {
                 op = getJournalService().updateObjectMetadata(bucket, meta.getObjectName(), meta.version);
@@ -333,7 +332,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 
                     }
                 } finally {
-                    getLockService().getBucketLock(bucket).readLock().unlock();
+                    bucketReadUnLock(bucket);
                 }
             }
         } finally {
@@ -360,9 +359,10 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 
         Check.requireNonNullArgument(op, "op is null");
         Check.requireTrue(
-                (op.getOp() == VFSOp.UPDATE_OBJECT || op.getOp() == VFSOp.UPDATE_OBJECT_METADATA
-                        || op.getOp() == VFSOp.RESTORE_OBJECT_PREVIOUS_VERSION),
-                "VFSOperation can not be  ->  op: " + op.getOp().getName());
+                (   op.getOp() == VFSOp.UPDATE_OBJECT || 
+                    op.getOp() == VFSOp.UPDATE_OBJECT_METADATA || 
+                    op.getOp() == VFSOp.RESTORE_OBJECT_PREVIOUS_VERSION),
+                "invalid state ->  op: " + opInfo(op));
 
         switch (op.getOp()) {
         case UPDATE_OBJECT: {
@@ -381,6 +381,10 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
             break;
         }
         }
+    }
+
+    private String opInfo(VFSOperation op) {
+        return getDriver().opInfo(op);
     }
 
     /**

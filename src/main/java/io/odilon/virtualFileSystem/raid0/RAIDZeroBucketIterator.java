@@ -29,6 +29,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import javax.annotation.concurrent.ThreadSafe;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import io.odilon.errors.InternalCriticalException;
@@ -46,6 +48,8 @@ import io.odilon.virtualFileSystem.model.ServerBucket;
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
+
+@ThreadSafe
 public class RAIDZeroBucketIterator extends BucketIterator implements Closeable {
 
     @JsonIgnore
@@ -57,13 +61,12 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
     @JsonIgnore
     private List<Drive> drives;
 
-    public RAIDZeroBucketIterator(RAIDZeroDriver driver, ServerBucket bucket, Optional<Long> opOffset,
-            Optional<String> opPrefix) {
+    public RAIDZeroBucketIterator(RAIDZeroDriver driver, ServerBucket bucket, Optional<Long> opOffset, Optional<String> opPrefix) {
         this(driver, bucket, opOffset, opPrefix, Optional.empty());
     }
 
-    public RAIDZeroBucketIterator(RAIDZeroDriver driver, ServerBucket bucket, Optional<Long> opOffset,
-            Optional<String> opPrefix, Optional<String> serverAgentId) {
+    public RAIDZeroBucketIterator(RAIDZeroDriver driver, ServerBucket bucket, Optional<Long> opOffset, Optional<String> opPrefix,
+            Optional<String> serverAgentId) {
         super(driver, bucket);
 
         opOffset.ifPresent(x -> setOffset(x));
@@ -88,6 +91,12 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
         this.getStreamMap().forEach((k, v) -> v.close());
     }
 
+    /**
+     * <p>
+     * No need to synchronize because it is called from the synchronized method
+     * {@link BucketIterator#hasNext}
+     * </p>
+     */
     @Override
     protected void init() {
         for (Drive drive : getDrives()) {
@@ -96,8 +105,8 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
             try {
                 stream = Files.walk(start, 1).skip(1).filter(file -> Files.isDirectory(file))
                         .filter(file -> (getPrefix() == null)
-                                || (file.getFileName().toString().toLowerCase().trim().startsWith(getPrefix()))).
-                                filter(file -> isValidState(file));
+                                || (file.getFileName().toString().toLowerCase().trim().startsWith(getPrefix())))
+                        .filter(file -> isValidState(file));
                 this.getStreamMap().put(drive, stream);
             } catch (IOException e) {
                 throw new InternalCriticalException(e);
@@ -109,40 +118,12 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
         setInitiated(true);
     }
 
-    private void skipOffset() {
-
-        if (getOffset() == 0)
-            return;
-
-        boolean isItems = false;
-        {
-            for (Drive drive : this.getDrives()) {
-                if (this.getItMap().get(drive).hasNext()) {
-                    isItems = true;
-                    break;
-                }
-            }
-        }
-        long skipped = getCumulativeIndex();
-
-        while (isItems && skipped < getOffset()) {
-            int d_index = 0;
-            int d_poll = d_index++ % this.getDrives().size();
-            Drive drive = this.getDrives().get(d_poll);
-            Iterator<Path> iterator = getItMap().get(drive);
-            if (iterator.hasNext()) {
-                iterator.next();
-                skipped++;
-            } else {
-                /** drive has no more items */
-                this.getStreamMap().get(drive).close();
-                this.getItMap().remove(drive);
-                this.getDrives().remove(d_poll);
-                isItems = !this.getDrives().isEmpty();
-            }
-        }
-    }
-
+    /**
+     * <p>
+     * No need to synchronize because it is called from the synchronized method
+     * {@link BucketIterator#hasNext}
+     * </p>
+     */
     @Override
     protected boolean fetch() {
 
@@ -181,24 +162,46 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
         return (!getBuffer().isEmpty());
     }
 
-    protected Map<Drive, Iterator<Path>> getItMap() {
+    private void skipOffset() {
+
+        if (getOffset() == 0)
+            return;
+
+        boolean isItems = false;
+        {
+            for (Drive drive : this.getDrives()) {
+                if (this.getItMap().get(drive).hasNext()) {
+                    isItems = true;
+                    break;
+                }
+            }
+        }
+        long skipped = getCumulativeIndex();
+
+        while (isItems && skipped < getOffset()) {
+            int d_index = 0;
+            int d_poll = d_index++ % this.getDrives().size();
+            Drive drive = this.getDrives().get(d_poll);
+            Iterator<Path> iterator = getItMap().get(drive);
+            if (iterator.hasNext()) {
+                iterator.next();
+                skipped++;
+            } else {
+                /** drive has no more items */
+                this.getStreamMap().get(drive).close();
+                this.getItMap().remove(drive);
+                this.getDrives().remove(d_poll);
+                isItems = !this.getDrives().isEmpty();
+            }
+        }
+    }
+
+    private Map<Drive, Iterator<Path>> getItMap() {
         return itMap;
     }
 
-    protected void setItMap(Map<Drive, Iterator<Path>> itMap) {
-        this.itMap = itMap;
-    }
-
-    protected Map<Drive, Stream<Path>> getStreamMap() {
+    private Map<Drive, Stream<Path>> getStreamMap() {
         return streamMap;
-    }
-
-    protected void setStreamMap(Map<Drive, Stream<Path>> streamMap) {
-        this.streamMap = streamMap;
-    }
-
-    protected void setDrives(List<Drive> drives) {
-        this.drives = drives;
     }
 
     /**
@@ -210,7 +213,7 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
      * 
      * @return
      */
-    protected List<Drive> getDrives() {
+    private List<Drive> getDrives() {
         return this.drives;
     }
 

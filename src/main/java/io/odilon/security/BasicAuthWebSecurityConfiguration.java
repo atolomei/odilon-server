@@ -67,8 +67,7 @@ public class BasicAuthWebSecurityConfiguration {
         http.authorizeHttpRequests(
                 (authorize) -> authorize.requestMatchers("/presigned/", "/presigned/object", "/public/").permitAll())
                 .authorizeHttpRequests(authorizeRequests -> authorizeRequests.anyRequest().authenticated())
-                .httpBasic(Customizer.withDefaults()).formLogin(Customizer.withDefaults())
-                .csrf(AbstractHttpConfigurer::disable);
+                .httpBasic(Customizer.withDefaults()).formLogin(Customizer.withDefaults()).csrf(AbstractHttpConfigurer::disable);
 
         return http.build();
     }

@@ -41,8 +41,7 @@ public class CronExpressionDeserializer extends StdDeserializer<CronExpressionJ8
     }
 
     @Override
-    public CronExpressionJ8 deserialize(JsonParser parser, DeserializationContext ctx)
-            throws IOException, JacksonException {
+    public CronExpressionJ8 deserialize(JsonParser parser, DeserializationContext ctx) throws IOException, JacksonException {
 
         JsonNode node = parser.getCodec().readTree(parser);
         String expr = node.get("expr").asText();

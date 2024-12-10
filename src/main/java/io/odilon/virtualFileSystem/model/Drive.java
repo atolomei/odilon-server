@@ -138,7 +138,6 @@ public interface Drive {
     /**
      * ---------------------- ObjectMetadata (head) ----------------------
      */
-    // public boolean existsObjectMetadata (Long bucketId, String objectName);
 
     public boolean existsObjectMetadata(ServerBucket bucket, String objectName);
 
@@ -165,7 +164,6 @@ public interface Drive {
 
     public File getObjectMetadataVersionFile(Long bucketId, String objectName, int version);
 
-    public void putObjectMetadataVersionFile(Long bucketId, String objectName, int version, File metaFile)
-            throws IOException;
+    public void putObjectMetadataVersionFile(Long bucketId, String objectName, int version, File metaFile) throws IOException;
 
 }

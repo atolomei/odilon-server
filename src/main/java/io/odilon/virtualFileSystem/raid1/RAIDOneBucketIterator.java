@@ -26,6 +26,8 @@ import java.util.Iterator;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import javax.annotation.concurrent.ThreadSafe;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -52,6 +54,8 @@ import io.odilon.virtualFileSystem.model.ServerBucket;
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
+
+@ThreadSafe
 public class RAIDOneBucketIterator extends BucketIterator implements Closeable {
 
     @SuppressWarnings("unused")
@@ -66,54 +70,65 @@ public class RAIDOneBucketIterator extends BucketIterator implements Closeable {
     @JsonIgnore
     private Stream<Path> stream;
 
-    public RAIDOneBucketIterator(RAIDOneDriver driver, ServerBucket bucket, Optional<Long> opOffset,
-            Optional<String> opPrefix) {
+    public RAIDOneBucketIterator(RAIDOneDriver driver, ServerBucket bucket, Optional<Long> opOffset, Optional<String> opPrefix) {
         super(driver, bucket);
 
         opPrefix.ifPresent(x -> setPrefix(x.toLowerCase().trim()));
         opOffset.ifPresent(x -> setOffset(x));
 
-        this.drive = getDriver().getDrivesEnabled().get(
-                Double.valueOf(Math.abs(Math.random() * 10000)).intValue() % getDriver().getDrivesEnabled().size());
+        this.drive = getDriver().getDrivesEnabled()
+                .get(Double.valueOf(Math.abs(Math.random() * 10000)).intValue() % getDriver().getDrivesEnabled().size());
     }
 
     @Override
     public synchronized void close() throws IOException {
-        if (this.stream != null)
-            this.stream.close();
+        if (getStream() != null)
+            getStream().close();
     }
 
     /**
-     * @return false if there are no more items
+     * <p>
+     * No need to synchronize because it is called from the synchronized method
+     * {@link BucketIterator#hasNext}
+     * </p>
      */
-    protected boolean fetch() {
-        setRelativeIndex(0);
-        setBuffer(new ArrayList<Path>());
-        boolean isItems = true;
-        while (isItems && getBuffer().size() < ServerConstant.BUCKET_ITERATOR_DEFAULT_BUFFER_SIZE) {
-            if (it.hasNext())
-                getBuffer().add(it.next());
-            else
-                isItems = false;
-        }
-        return !getBuffer().isEmpty();
-    }
 
     @Override
     protected void init() {
         Path start = new File(getDrive().getBucketMetadataDirPath(getBucketId())).toPath();
         try {
             this.stream = Files.walk(start, 1).skip(1).filter(file -> Files.isDirectory(file))
-                    .filter(file -> (getPrefix() == null)
-                            || file.getFileName().toString().toLowerCase().startsWith(getPrefix()));
-            // filter(file -> isObjectStateEnabled(file));
+                    .filter(file -> (getPrefix() == null) || file.getFileName().toString().toLowerCase().startsWith(getPrefix()))
+                    .filter(file -> isValidState(file));
 
         } catch (IOException e) {
-            throw new InternalCriticalException(e, "Files.walk ...");
+            throw new InternalCriticalException(e);
         }
         this.it = this.stream.iterator();
         skipOffset();
         setInitiated(true);
+    }
+
+    /**
+     * <p>
+     * No need to synchronize because it is called from the synchronized method
+     * {@link BucketIterator#hasNext}
+     * </p>
+     * 
+     * @return false if there are no more items
+     */
+    @Override
+    protected boolean fetch() {
+        setRelativeIndex(0);
+        setBuffer(new ArrayList<Path>());
+        boolean isItems = true;
+        while (isItems && getBuffer().size() < ServerConstant.BUCKET_ITERATOR_DEFAULT_BUFFER_SIZE) {
+            if (getIt().hasNext())
+                getBuffer().add(getIt().next());
+            else
+                isItems = false;
+        }
+        return !getBuffer().isEmpty();
     }
 
     private void skipOffset() {
@@ -122,8 +137,8 @@ public class RAIDOneBucketIterator extends BucketIterator implements Closeable {
         boolean isItems = true;
         int skipped = 0;
         while (isItems && skipped < getOffset()) {
-            if (this.it.hasNext()) {
-                this.it.next();
+            if (getIt().hasNext()) {
+                getIt().next();
                 skipped++;
             } else {
                 break;
@@ -134,4 +149,13 @@ public class RAIDOneBucketIterator extends BucketIterator implements Closeable {
     private Drive getDrive() {
         return this.drive;
     }
+
+    private Iterator<Path> getIt() {
+        return it;
+    }
+
+    private Stream<Path> getStream() {
+        return stream;
+    }
+
 }

@@ -189,13 +189,8 @@ public class StandByReplicaSchedulerWorker extends SchedulerWorker {
                     done = true;
             }
             this.lastFailedTry = OffsetDateTime.now();
-        }
-
-        else
-
-        {
+        } else {
             /** New Requests ------------ */
-
             int n = 0;
             Iterator<ServiceRequest> it = getServiceRequestQueue().iterator();
             boolean done = false;

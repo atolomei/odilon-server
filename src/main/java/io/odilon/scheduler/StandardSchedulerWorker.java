@@ -173,9 +173,6 @@ public class StandardSchedulerWorker extends SchedulerWorker {
         this.failed = new ConcurrentSkipListMap<Serializable, ServiceRequest>();
     }
 
-    /**
-    * 
-    */
     @Override
     protected void doJobs() {
 

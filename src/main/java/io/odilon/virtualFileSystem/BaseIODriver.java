@@ -64,6 +64,7 @@ import io.odilon.model.OdilonServerInfo;
 import io.odilon.model.RedundancyLevel;
 import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
+import io.odilon.monitor.SystemMonitorService;
 import io.odilon.scheduler.AbstractServiceRequest;
 import io.odilon.scheduler.SchedulerService;
 import io.odilon.scheduler.ServiceRequest;
@@ -1215,6 +1216,10 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
         }
     }
 
+
+    protected SystemMonitorService getSystemMonitorService() {
+        return getVirtualFileSystemService().getSystemMonitorService();
+    }
     
     protected void objectReadLock(ServerBucket bucket, String objectName) {
         getLockService().getObjectLock(bucket, objectName).readLock().lock();

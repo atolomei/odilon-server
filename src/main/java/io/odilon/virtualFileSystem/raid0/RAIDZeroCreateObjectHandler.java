@@ -39,7 +39,9 @@ import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
 import io.odilon.util.OdilonFileUtils;
+import io.odilon.virtualFileSystem.Context;
 import io.odilon.virtualFileSystem.ObjectDataPathBuilder;
+import io.odilon.virtualFileSystem.ObjectMetadataPathBuilder;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.SimpleDrive;
@@ -284,6 +286,11 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
                 meta.setCustomTags(customTags.get());
             meta.setRaid(String.valueOf(getRedundancyLevel().getCode()).trim());
 
+            ObjectMetadataPathBuilder pathBuilder = new ObjectMetadataPathBuilder((SimpleDrive) drive, bucket, objectName, Context.STORAGE);
+            String path=pathBuilder.build();
+            logger.debug(path);
+            
+            
             drive.saveObjectMetadata(meta);
 
         } catch (Exception e) {

@@ -107,7 +107,6 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
                 isMainException = true;
                 throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName));
             } finally {
-
                 try {
                     if ((!done) && (op != null)) {
                         try {
@@ -508,7 +507,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
                                 .getBean(AfterDeleteObjectServiceRequest.class, op.getOp(), meta, headVersion));
 
         } catch (Exception e) {
-            logger.error(e, " onAfterCommit | " + getDriver().opInfo(op), SharedConstant.NOT_THROWN);
+            logger.error(e, getDriver().opInfo(op), SharedConstant.NOT_THROWN);
         }
     }
 }

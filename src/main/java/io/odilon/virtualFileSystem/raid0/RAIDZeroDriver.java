@@ -223,14 +223,13 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         if (exists(bucket, objectName)) {
             RAIDZeroUpdateObjectHandler updateAgent = new RAIDZeroUpdateObjectHandler(this);
             updateAgent.update(bucket, objectName, stream, fileName, contentType, customTags);
-            getVirtualFileSystemService().getSystemMonitorService().getUpdateObjectCounter().inc();
+            getSystemMonitorService().getUpdateObjectCounter().inc();
         } else {
             RAIDZeroCreateObjectHandler createAgent = new RAIDZeroCreateObjectHandler(this);
             createAgent.create(bucket, objectName, stream, fileName, contentType, customTags);
-            getVirtualFileSystemService().getSystemMonitorService().getCreateObjectCounter().inc();
+            getSystemMonitorService().getCreateObjectCounter().inc();
         }
     }
-
     /**
      * <p>
      * This method is called only for Objects that already exist
@@ -276,7 +275,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         RAIDZeroDeleteObjectHandler createAgent = new RAIDZeroDeleteObjectHandler(this);
         createAgent.postObjectPreviousVersionDeleteAll(meta, headVersion);
     }
-
     /**
      * <p>
      * Set up a new drive
@@ -432,12 +430,9 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
                 iterator = new RAIDZeroBucketIterator(this, bucket, offset, prefix);
                 getVirtualFileSystemService().getBucketIteratorService().register(iterator);
             }
-
             List<Item<ObjectMetadata>> list = new ArrayList<Item<ObjectMetadata>>();
-
             int size = pageSize.orElseGet(() -> ServerConstant.DEFAULT_PAGE_SIZE);
             int counter = 0;
-
             while (iterator.hasNext() && (counter++ < size)) {
                 Item<ObjectMetadata> item;
                 try {
@@ -450,7 +445,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
                 list.add(item);
             }
             DataList<Item<ObjectMetadata>> result = new DataList<Item<ObjectMetadata>>(list);
-
             /**
              * EOD (End of Data) is used to prevent the client to send a new Request after
              * returning the last page of the result
@@ -461,11 +455,8 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
             result.setOffset(iterator.getOffset());
             result.setPageSize(size);
             result.setAgentId(iterator.getAgentId());
-
             return result;
-
         } finally {
-
             if (iterator != null && (!iterator.hasNext())) {
                 /** removing from IteratorService closes the stream */
                 getVirtualFileSystemService().getBucketIteratorService().remove(iterator.getAgentId());
@@ -486,6 +477,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         Check.requireNonNullStringArgument(objectName, "objectName is null or empty " + objectInfo(bucket));
         List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
         Drive readDrive = null;
+        
         objectReadLock(bucket, objectName);
         try {
             bucketReadLock(bucket);
@@ -1236,14 +1228,10 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
     }
 
     private void saveNewServerInfo(OdilonServerInfo serverInfo) {
-
         boolean done = false;
         VFSOperation op = null;
-
         getLockService().getServerLock().writeLock().lock();
-
         try {
-
             op = getJournalService().createServerMetadata();
             String jsonString = getObjectMapper().writeValueAsString(serverInfo);
 
@@ -1289,18 +1277,18 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 
         Drive readDrive = null;
 
-        getLockService().getObjectLock(bucket, objectName).readLock().lock();
-
+        objectReadLock(bucket, objectName);
+        
         try {
+    
             bucketReadLock(bucket);
+            
             try {
-
                 /** read is from only 1 drive */
                 readDrive = getReadDrive(bucket, objectName);
 
                 if (!readDrive.existsBucket(bucket.getId()))
-                    throw new IllegalStateException("bucket -> b:" + bucket.getName() + " does not exist for -> d:"
-                            + readDrive.getName() + " | raid -> " + this.getClass().getSimpleName());
+                    throw new IllegalStateException("bucket does not exist -> " + objectInfo(bucket, objectName, readDrive));
 
                 ObjectMetadata meta = null;
 
@@ -1314,7 +1302,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
                 if ((meta != null) && meta.isAccesible())
                     return meta;
                 else
-                    throw new OdilonObjectNotFoundException(ObjectMetadata.class.getSimpleName() + " does not exist");
+                    throw new OdilonObjectNotFoundException(ObjectMetadata.class.getSimpleName() + " does not exist for -> " + objectInfo(bucket, objectName));
 
             } catch (OdilonObjectNotFoundException e) {
                 e.setErrorMessage(objectInfo(bucket, objectName));
@@ -1325,7 +1313,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
                 bucketReadUnLock(bucket);
             }
         } finally {
-            getLockService().getObjectLock(bucket, objectName).readLock().unlock();
+            objectReadUnLock(bucket, objectName);
         }
     }
 

@@ -240,9 +240,6 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
         return driver;
     }
 
-    /**
-     * 
-     */
     private void updateDrives() {
         for (Drive drive : getDriver().getDrivesAll()) {
             if (drive.getDriveInfo().getStatus() == DriveStatus.NOTSYNC) {
@@ -313,7 +310,6 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
                                             /**
                                              * HEAD VERSION ---------------------------------------------------------
                                              */
-
                                             currentDrive.deleteObjectMetadata(item.getObject().getBucketId(),
                                                     item.getObject().getObjectName());
                                             FileUtils.deleteQuietly(
@@ -519,8 +515,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
             }
 
         } finally {
-            startuplogger.info("move completed -> "
-                    + String.valueOf(Double.valueOf(System.currentTimeMillis() - start_move) / Double.valueOf(1000)) + " secs");
+            startuplogger.info("move completed -> " + String.valueOf(Double.valueOf(System.currentTimeMillis() - start_move) / Double.valueOf(1000)) + " secs");
         }
     }
 
@@ -533,11 +528,8 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
     }
 
     private void createBuckets() {
-
         List<ServerBucket> list = getDriver().getVirtualFileSystemService().listAllBuckets();
-
-        startuplogger.info("3. Creating " + String.valueOf(list.size()) + " Buckets");
-
+        startuplogger.info("3. Creating " + String.valueOf(list.size()) + " Bucket" + (list.size()>1?"s":""));
         for (ServerBucket bucket : list) {
             for (Drive drive : getDriver().getDrivesAll()) {
                 if (drive.getDriveInfo().getStatus() == DriveStatus.NOTSYNC) {

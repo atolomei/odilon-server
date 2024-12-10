@@ -27,11 +27,12 @@ import java.util.Iterator;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import javax.annotation.concurrent.ThreadSafe;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.odilon.errors.InternalCriticalException;
-import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ServerConstant;
 import io.odilon.virtualFileSystem.model.BucketIterator;
@@ -55,8 +56,10 @@ import io.odilon.virtualFileSystem.model.ServerBucket;
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
+@ThreadSafe
 public class RAIDSixBucketIterator extends BucketIterator implements Closeable {
 
+    /** must be from  DrivesEnabled */
     @JsonProperty("drive")
     private final Drive drive;
 
@@ -75,12 +78,10 @@ public class RAIDSixBucketIterator extends BucketIterator implements Closeable {
      * @param opOffset
      * @param opPrefix
      */
-    public RAIDSixBucketIterator(RAIDSixDriver driver, ServerBucket bucket, Optional<Long> opOffset,
-            Optional<String> opPrefix) {
+    public RAIDSixBucketIterator(RAIDSixDriver driver, ServerBucket bucket, Optional<Long> opOffset, Optional<String> opPrefix) {
         super(driver, bucket);
         opPrefix.ifPresent(x -> setPrefix(x.toLowerCase().trim()));
         opOffset.ifPresent(x -> setOffset(x));
-        /** must use DrivesEnabled */
         this.drive = driver.getDrivesEnabled()
                 .get(Double.valueOf(Math.abs(Math.random() * 1000)).intValue() % getDriver().getDrivesEnabled().size());
     }
@@ -91,17 +92,22 @@ public class RAIDSixBucketIterator extends BucketIterator implements Closeable {
             getStream().close();
     }
 
+    /**
+     * <p>
+     * No need to synchronize because it is called from the synchronized method
+     * {@link BucketIterator#hasNext}
+     * </p>
+     */
     @Override
     protected void init() {
         Path start = new File(getDrive().getBucketMetadataDirPath(getBucketId())).toPath();
         try {
             this.stream = Files.walk(start, 1).skip(1).filter(file -> Files.isDirectory(file))
-                    .filter(file -> (getPrefix() == null)
-                            || file.getFileName().toString().toLowerCase().startsWith(getPrefix()));
-                            // filter(file -> isObjectStateEnabled(file));
+                    .filter(file -> (getPrefix() == null) || file.getFileName().toString().toLowerCase().startsWith(getPrefix()))
+                    .filter(file -> isValidState(file));
 
         } catch (IOException e) {
-            throw new InternalCriticalException(e, "b:" + getBucket().getName());
+            throw new InternalCriticalException(e);
         }
         this.it = this.stream.iterator();
         skipOffset();
@@ -109,6 +115,11 @@ public class RAIDSixBucketIterator extends BucketIterator implements Closeable {
     }
 
     /**
+     * <p>
+     * No need to synchronize because it is called from the synchronized method
+     * {@link BucketIterator#hasNext}
+     * </p>
+     * 
      * @return false if there are no more items
      */
     @Override
@@ -124,6 +135,7 @@ public class RAIDSixBucketIterator extends BucketIterator implements Closeable {
         }
         return !getBuffer().isEmpty();
     }
+
     private void skipOffset() {
         if (getOffset() == 0)
             return;
@@ -138,12 +150,15 @@ public class RAIDSixBucketIterator extends BucketIterator implements Closeable {
             }
         }
     }
+
     private Stream<Path> getStream() {
         return this.stream;
     }
+
     private Drive getDrive() {
         return this.drive;
     }
+
     private Iterator<Path> getIterator() {
         return this.it;
     }

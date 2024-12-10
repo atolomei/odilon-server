@@ -153,8 +153,8 @@ public class SchedulerService extends BaseService implements SystemService, Appl
                 getStandardSchedulerWorker().notify();
             }
         } else
-            logger.error("invalid " + ServiceRequest.class.getSimpleName() + " of class -> "
-                    + request.getClass().getName() + SharedConstant.NOT_THROWN);
+            logger.error("invalid " + ServiceRequest.class.getSimpleName() + " of class -> " + request.getClass().getName()
+                    + SharedConstant.NOT_THROWN);
 
         return request.getId();
     }
@@ -201,7 +201,7 @@ public class SchedulerService extends BaseService implements SystemService, Appl
         else if (request instanceof StandardServiceRequest)
             this.getStandardSchedulerWorker().close(request);
         else {
-            logger.error("Class not supported -> " + request.getClass().getName());
+            logger.error("Class not supported -> " + request.getClass().getName(), SharedConstant.NOT_THROWN);
         }
     }
 
@@ -238,9 +238,8 @@ public class SchedulerService extends BaseService implements SystemService, Appl
     public VirtualFileSystemService getVirtualFileSystemService() {
         if (this.virtualFileSystemService == null) {
             throw new IllegalStateException("The " + VirtualFileSystemService.class.getName()
-                    + " must be setted during the @PostConstruct method of the "
-                    + VirtualFileSystemService.class.getName() + " instance. "
-                    + "It can not be injected via @AutoWired because of circular dependencies.");
+                    + " must be setted during the @PostConstruct method of the " + VirtualFileSystemService.class.getName()
+                    + " instance. " + "It can not be injected via @AutoWired because of circular dependencies.");
         }
         return virtualFileSystemService;
     }

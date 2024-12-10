@@ -105,8 +105,8 @@ public class AfterUpdateObjectServiceRequest extends AbstractServiceRequest impl
     }
 
     private void clean() {
-        logger.debug(this.getClass().getName()
-                + " -> not used yet. Clean up process for Updates is still Sync with the transaction");
+        logger.debug(
+                this.getClass().getName() + " -> not used yet. Clean up process for Updates is still Sync with the transaction");
     }
 
 }

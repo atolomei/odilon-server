@@ -68,9 +68,6 @@ public abstract class BucketIterator implements Iterator<Path> {
     @JsonProperty("offset")
     private Long offset = Long.valueOf(0);
 
-    @JsonIgnore
-    private final ServerBucket bucket;
-
     @JsonProperty("bucketId")
     private final Long bucketId;
 
@@ -85,6 +82,9 @@ public abstract class BucketIterator implements Iterator<Path> {
 
     @JsonIgnore
     private IODriver driver;
+
+    @JsonIgnore
+    private final ServerBucket bucket;
 
     /**
      * @param bucketName can not be null
@@ -104,6 +104,46 @@ public abstract class BucketIterator implements Iterator<Path> {
     abstract protected boolean fetch();
 
     abstract protected void init();
+
+    @Override
+    public synchronized boolean hasNext() {
+
+        if (!isInitiated()) {
+            init();
+            return fetch();
+        }
+        /**
+         * if the buffer still has items
+         **/
+        if (getRelativeIndex() < getBuffer().size())
+            return true;
+
+        return fetch();
+    }
+
+    @Override
+    public synchronized Path next() {
+        /**
+         * if the buffer still has items to return
+         */
+        if (getRelativeIndex() < getBuffer().size()) {
+            Path object = getBuffer().get(getRelativeIndex());
+            setRelativeIndex(getRelativeIndex() + 1);
+            incCumulativeIndex();
+            return object;
+        }
+        boolean hasItems = fetch();
+        if (!hasItems)
+            throw new IndexOutOfBoundsException("No more items available. hasNext() should be called before this method."
+                    + "[returned so far -> " + String.valueOf(getCumulativeIndex()) + "]");
+        Path object = getBuffer().get(getRelativeIndex());
+        incRelativeIndex();
+        incCumulativeIndex();
+        return object;
+    }
+
+    public void close() throws IOException {
+    }
 
     public String getAgentId() {
         return agentId;
@@ -128,56 +168,6 @@ public abstract class BucketIterator implements Iterator<Path> {
     public Long setOffset(Long offset) {
         this.offset = offset;
         return offset;
-    }
-
-    @Override
-    public synchronized boolean hasNext() {
-
-        if (!isInitiated()) {
-            init();
-            return fetch();
-        }
-        /**
-         * if the buffer still has items
-         **/
-        if (getRelativeIndex() < getBuffer().size())
-            return true;
-
-        return fetch();
-    }
-
-    /**
-     * 
-     */
-    @Override
-    public synchronized Path next() {
-
-        /**
-         * if the buffer still has items to return
-         */
-        if (getRelativeIndex() < getBuffer().size()) {
-            Path object = getBuffer().get(getRelativeIndex());
-            setRelativeIndex(getRelativeIndex() + 1);
-            incCumulativeIndex();
-            return object;
-        }
-
-        boolean hasItems = fetch();
-
-        if (!hasItems)
-            throw new IndexOutOfBoundsException(
-                    "No more items available. hasNext() should be called before this method. " + "[returned so far -> "
-                            + String.valueOf(getCumulativeIndex()) + "]");
-
-        Path object = getBuffer().get(getRelativeIndex());
-
-        incRelativeIndex();
-        incCumulativeIndex();
-
-        return object;
-    }
-
-    public void close() throws IOException {
     }
 
     @Override
@@ -206,10 +196,16 @@ public abstract class BucketIterator implements Iterator<Path> {
         return driver;
     }
 
-    
+    /**
+     * We are not using this filter (normally ObjectState.ENABLED)
+     * 
+     * @param path
+     * @return
+     */
     protected boolean isValidState(Path path) {
         return true;
     }
+
     /**
      * <p>
      * This method should be used when the delete operation is logical

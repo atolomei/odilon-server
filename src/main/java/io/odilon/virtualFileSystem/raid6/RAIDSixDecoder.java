@@ -32,6 +32,7 @@ import java.util.Optional;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import io.odilon.cache.FileCacheService;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.BaseObject;
@@ -40,10 +41,10 @@ import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
 import io.odilon.virtualFileSystem.model.Drive;
+import io.odilon.virtualFileSystem.model.LockService;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
- * 
  * <p>
  * Reed Solomon erasure coding decoder for {@link RAIDSixDriver}.<br/>
  * Files decoded are stored in {@link FileCacheService}. <br/>
@@ -94,10 +95,6 @@ public class RAIDSixDecoder extends BaseObject {
         return this.driver;
     }
 
-    public VirtualFileSystemService getVirtualFileSystemService() {
-        return this.driver.getVirtualFileSystemService();
-    }
-
     private File decode(ObjectMetadata meta, boolean isHead) {
 
         Long bucketId = meta.getBucketId();
@@ -109,19 +106,17 @@ public class RAIDSixDecoder extends BaseObject {
         Optional<Integer> ver = isHead ? Optional.empty() : Optional.of(Integer.valueOf(meta.getVersion()));
         int chunk = 0;
 
-        File file = getVirtualFileSystemService().getFileCacheService().get(bucketId, objectName, ver);
+        File file = getFileCacheService().get(bucketId, objectName, ver);
 
         if (file != null) {
             getDriver().getVirtualFileSystemService().getSystemMonitorService().getCacheFileHitCounter().inc();
             return file;
         }
         getDriver().getVirtualFileSystemService().getSystemMonitorService().getCacheFileMissCounter().inc();
-        getVirtualFileSystemService().getFileCacheService().getLockService().getFileCacheLock(bucketId, objectName, ver)
-                .writeLock().lock();
+        getFileCacheService().getLockService().getFileCacheLock(bucketId, objectName, ver).writeLock().lock();
 
         try {
-            String tempPath = getVirtualFileSystemService().getFileCacheService().getFileCachePath(bucketId, objectName,
-                    ver);
+            String tempPath = getFileCacheService().getFileCachePath(bucketId, objectName, ver);
 
             try (OutputStream out = new BufferedOutputStream(new FileOutputStream(tempPath))) {
                 while (chunk < totalChunks) {
@@ -133,22 +128,18 @@ public class RAIDSixDecoder extends BaseObject {
                 throw new InternalCriticalException(e, getDriver().objectInfo(bucketName, objectName, tempPath));
             }
             File decodedFile = new File(tempPath);
-            getVirtualFileSystemService().getFileCacheService().put(bucketId, objectName, ver, decodedFile, false);
+            getFileCacheService().put(bucketId, objectName, ver, decodedFile, false);
             return decodedFile;
 
         } finally {
-            getVirtualFileSystemService().getFileCacheService().getLockService()
-                    .getFileCacheLock(bucketId, objectName, ver).writeLock().unlock();
+            getLockService().getFileCacheLock(bucketId, objectName, ver).writeLock().unlock();
         }
     }
 
-    /**
-     * @param bucketName
-     * @param objectName
-     * @param chunk
-     * @param out
-     * @return
-     */
+    private LockService getLockService() {
+        return getFileCacheService().getLockService();
+    }
+
     private boolean decodeChunk(ObjectMetadata meta, int chunk, OutputStream out, boolean isHead) {
 
         // Read in any of the shards that are present.
@@ -164,8 +155,7 @@ public class RAIDSixDecoder extends BaseObject {
         for (int disk = 0; disk < this.total_shards; disk++) {
 
             /**
-             * encode -> DrivesAll, 
-             * decode -> DrivesEnabled
+             * encode -> DrivesAll, decode -> DrivesEnabled
              */
 
             File shardFile = null;
@@ -190,16 +180,12 @@ public class RAIDSixDecoder extends BaseObject {
                 try (InputStream in = new BufferedInputStream(new FileInputStream(shardFile))) {
                     in.read(shards[disk], 0, shardSize);
                 } catch (FileNotFoundException e) {
-                    logger.error(
-                            getDriver().objectInfo(meta) + " | f:" + shardFile.getName()
-                                    + (isHead ? "" : (" v:" + String.valueOf(meta.getVersion()))),
-                            SharedConstant.NOT_THROWN);
+                    logger.error(getDriver().objectInfo(meta) + " | f:" + shardFile.getName()
+                            + (isHead ? "" : (" v:" + String.valueOf(meta.getVersion()))), SharedConstant.NOT_THROWN);
                     shardPresent[disk] = false;
                 } catch (IOException e) {
-                    logger.error(
-                            getDriver().objectInfo(meta) + " | f:" + shardFile.getName()
-                                    + (isHead ? "" : (" v:" + String.valueOf(meta.getVersion()))),
-                            SharedConstant.NOT_THROWN);
+                    logger.error(objectInfo(meta) + " | f:" + shardFile.getName()
+                            + (isHead ? "" : (" v:" + String.valueOf(meta.getVersion()))), SharedConstant.NOT_THROWN);
                     shardPresent[disk] = false;
                 }
             }
@@ -209,8 +195,7 @@ public class RAIDSixDecoder extends BaseObject {
         if (shardCount < this.data_shards) {
             throw new InternalCriticalException("We need at least " + String.valueOf(this.data_shards)
                     + " shards to be able to reconstruct the data file | " + objectInfo(meta) + " | f:"
-                    + (isHead ? "" : (" v:" + String.valueOf(meta.version))) + " | shardCount: "
-                    + String.valueOf(shardCount));
+                    + (isHead ? "" : (" v:" + String.valueOf(meta.version))) + " | shardCount: " + String.valueOf(shardCount));
         }
 
         /** Make empty buffers for the missing shards */
@@ -238,7 +223,7 @@ public class RAIDSixDecoder extends BaseObject {
         try {
             out.write(allBytes, ServerConstant.BYTES_IN_INT, fileSize);
         } catch (IOException e) {
-            throw new InternalCriticalException(e, "decodeChunk | " + objectInfo(meta));
+            throw new InternalCriticalException(e, objectInfo(meta));
         }
         return true;
     }
@@ -254,5 +239,14 @@ public class RAIDSixDecoder extends BaseObject {
     private String objectInfo(ObjectMetadata meta) {
         return getDriver().objectInfo(meta);
     }
+
+    private VirtualFileSystemService getVirtualFileSystemService() {
+        return getDriver().getVirtualFileSystemService();
+    }
+    
+    private FileCacheService getFileCacheService() {
+        return getVirtualFileSystemService().getFileCacheService();
+    }
+    
 
 }
