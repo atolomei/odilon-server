@@ -16,7 +16,6 @@
  */
 package io.odilon.virtualFileSystem;
 
-
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -136,12 +135,13 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
     }
 
     public abstract RedundancyLevel getRedundancyLevel();
-    
+
     public void saveObjectMetadataToDisk(final List<Drive> drives, final List<ObjectMetadata> list, final boolean isHead) {
 
         Check.requireNonNullArgument(drives, "drives is null");
         Check.requireNonNullArgument(list, "list is null");
-        Check.requireTrue(drives.size() == list.size(), "must have the same number of elements." + " Drives -> " + String.valueOf(drives.size()) + " - ObjectMetadata -> " + String.valueOf(list.size()));
+        Check.requireTrue(drives.size() == list.size(), "must have the same number of elements." + " Drives -> "
+                + String.valueOf(drives.size()) + " - ObjectMetadata -> " + String.valueOf(list.size()));
 
         final int size = drives.size();
 
@@ -155,8 +155,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
                     ObjectMetadata meta = list.get(val);
                     if (isHead) {
                         drives.get(val).saveObjectMetadata(meta);
-                    }
-                    else {
+                    } else {
                         drives.get(val).saveObjectMetadataVersion(meta);
                     }
                     return Boolean.valueOf(true);
@@ -210,7 +209,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
         try {
 
             if (getVirtualFileSystemService().existsBucket(bucketName))
-                throw new IllegalArgumentException( "bucket already exist -> " + objectInfo(bucketName));
+                throw new IllegalArgumentException("bucket already exist -> " + objectInfo(bucketName));
 
             op = getJournalService().createBucket(meta);
 
@@ -261,13 +260,13 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
         BucketMetadata meta = null;
 
         OffsetDateTime now = OffsetDateTime.now();
-        
+
         String oldName = bucket.getName();
-        
+
         bucketWriteLock(bucket);
-        
+
         try {
-            
+
             if (getVirtualFileSystemService().existsBucket(newBucketName))
                 throw new IllegalArgumentException("bucketName already used -> " + newBucketName);
 
@@ -330,9 +329,9 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
         Check.requireTrue(existsBucketInDrives(bucket.getId()), "bucket does not exist in all drives -> b: " + bucket.getName());
 
         bucketReadLock(bucket);
-        
+
         try {
-            
+
             for (Drive drive : getDrivesEnabled()) {
                 if (!drive.isEmpty(bucket))
                     return false;
@@ -416,8 +415,8 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
         }
         try {
 
-            putObject(bucket, objectName, new BufferedInputStream(new FileInputStream(file)), file.getName(),
-                    contentType, Optional.empty());
+            putObject(bucket, objectName, new BufferedInputStream(new FileInputStream(file)), file.getName(), contentType,
+                    Optional.empty());
 
         } catch (FileNotFoundException e) {
             throw new InternalCriticalException(e, objectInfo(bucket, objectName));
@@ -892,19 +891,18 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
      */
     public ObjectMetadata getObjectMetadataInternal(ServerBucket bucket, String objectName, boolean addToCacheIfmiss) {
 
-        if ((   !getServerSettings().isUseObjectCache()) || (getObjectMetadataCacheService().size() >= MAX_CACHE_SIZE))
+        if ((!getServerSettings().isUseObjectCache()) || (getObjectMetadataCacheService().size() >= MAX_CACHE_SIZE))
             return getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucket, objectName);
 
         if (getObjectMetadataCacheService().containsKey(bucket, objectName)) {
-                getSystemMonitorService().getCacheObjectHitCounter().inc();
+            getSystemMonitorService().getCacheObjectHitCounter().inc();
 
-                ObjectMetadata meta = getObjectMetadataCacheService().get(bucket,objectName);
-                meta.setBucketName(bucket.getName());
-                return meta;
+            ObjectMetadata meta = getObjectMetadataCacheService().get(bucket, objectName);
+            meta.setBucketName(bucket.getName());
+            return meta;
         }
 
-        ObjectMetadata meta = getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucket,
-                objectName);
+        ObjectMetadata meta = getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucket, objectName);
         meta.setBucketName(bucket.getName());
 
         getVirtualFileSystemService().getSystemMonitorService().getCacheObjectMissCounter().inc();
@@ -915,7 +913,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
         return meta;
     }
 
-    
     public ObjectMapper getObjectMapper() {
         return mapper;
     }
@@ -927,7 +924,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
     protected ObjectMetadataCacheService getObjectMetadataCacheService() {
         return getVirtualFileSystemService().getObjectMetadataCacheService();
     }
-    
+
     public JournalService getJournalService() {
         return getVirtualFileSystemService().getJournalService();
     }
@@ -943,7 +940,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
     public void setVirtualFileSystemService(VirtualFileSystemService virtualFileSystemService) {
         this.virtualFileSystem = virtualFileSystemService;
     }
-
 
     public String opInfo(VFSOperation op) {
         return "op:" + (op != null ? op.toString() : "null");
@@ -970,14 +966,13 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
     }
 
     public String objectInfo(Long bucket_id, String objectName) {
-        return "b_id:" + (bucket_id != null ? bucket_id.toString() : "null") + " o:"
-                + (objectName != null ? objectName : "null");
+        return "b_id:" + (bucket_id != null ? bucket_id.toString() : "null") + " o:" + (objectName != null ? objectName : "null");
     }
 
     public String objectInfo(String bucketName) {
         return "bn:" + (bucketName != null ? bucketName : "null");
     }
-    
+
     public String objectInfo(String bucketName, String objectName) {
         return "bn:" + (bucketName != null ? bucketName : "null") + " o:" + (objectName != null ? objectName : "null");
     }
@@ -987,28 +982,27 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
             return objectInfo("null", objectName);
         return objectInfo(bucket.getName(), objectName, version);
     }
-    
+
     public String objectInfo(String bucketName, String objectName, int version) {
-        return "bn:" + (bucketName != null ? bucketName : "null") + " o:" + (objectName != null ? objectName : "null") + "v:" + String.valueOf(version);
+        return "bn:" + (bucketName != null ? bucketName : "null") + " o:" + (objectName != null ? objectName : "null") + "v:"
+                + String.valueOf(version);
     }
-    
+
     public String objectInfo(ServerBucket bucket, String objectName, Drive drive) {
-        return  "bn:" + (bucket!= null ? bucket.getName() : "null") + 
-                " o:" + (objectName != null ? objectName : "null") +
-                " d:" + ( drive!=null ? drive.getName() : "null");
+        return "bn:" + (bucket != null ? bucket.getName() : "null") + " o:" + (objectName != null ? objectName : "null") + " d:"
+                + (drive != null ? drive.getName() : "null");
     }
-    
+
     public String objectInfo(ServerBucket bucket, Drive drive) {
-        return "bn:" + (bucket!= null ? bucket.getName() : "null") + " d:" + ( drive!=null ? drive.getName() : "null");
+        return "bn:" + (bucket != null ? bucket.getName() : "null") + " d:" + (drive != null ? drive.getName() : "null");
     }
-    
+
     public String objectInfo(ServerBucket bucket, String objectName) {
         if (bucket == null)
             return objectInfo("null", objectName);
         return objectInfo(bucket.getName(), objectName);
     }
-    
-    
+
     public String objectInfo(ServerBucket bucket, String objectName, String fileName) {
         if (bucket == null)
             return objectInfo("null", objectName, fileName);
@@ -1026,10 +1020,9 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
     }
 
     public String objectInfo(String bucketName, String objectName, String fileName) {
-        return "bn:" + (bucketName != null ? bucketName.toString() : "null") + " o:"
-                + (objectName != null ? objectName : "null") + (fileName != null ? (" f:" + fileName) : "");
+        return "bn:" + (bucketName != null ? bucketName.toString() : "null") + " o:" + (objectName != null ? objectName : "null")
+                + (fileName != null ? (" f:" + fileName) : "");
     }
-
 
     /**
      * 
@@ -1038,8 +1031,8 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 
         for (Drive drive : getDrivesEnabled()) {
             if (!drive.existsBucketById(bucketId)) {
-                logger.error(("b: " + (Optional.of(bucketId).isPresent() ? bucketId.toString() : "null"))
-                        + " -> not in d:" + drive.getName());
+                logger.error(("b: " + (Optional.of(bucketId).isPresent() ? bucketId.toString() : "null")) + " -> not in d:"
+                        + drive.getName());
                 return false;
             }
         }
@@ -1089,19 +1082,18 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
         return map;
     }
 
-    
-
     /**
      * @param bucket
      */
     protected void restoreBucketMetadata(ServerBucket bucket) {
         try {
             for (Drive drive : getDrivesAll()) {
-                
-                
-                //String s_path = drive.getBucketWorkDirPath(bucket) + File.separator + "bucketmetadata-" + bucket.getId().toString() + ServerConstant.JSON;
-                //BucketMetadata meta = getObjectMapper().readValue(Paths.get(s_path).toFile(), BucketMetadata.class);
-                
+
+                // String s_path = drive.getBucketWorkDirPath(bucket) + File.separator +
+                // "bucketmetadata-" + bucket.getId().toString() + ServerConstant.JSON;
+                // BucketMetadata meta = getObjectMapper().readValue(Paths.get(s_path).toFile(),
+                // BucketMetadata.class);
+
                 BucketPath b_path = new BucketPath(drive, bucket);
                 Path backup = b_path.bucketMetadata(Context.BACKUP);
                 BucketMetadata meta = getObjectMapper().readValue(backup.toFile(), BucketMetadata.class);
@@ -1118,37 +1110,37 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
     protected void backupBucketMetadata(ServerBucket bucket) {
         try {
             for (Drive drive : getDrivesAll()) {
-             
-                //BucketMetadata meta = drive.getBucketMetadata(bucket);
-                //String path = drive.getBucketWorkDirPath(bucket) + File.separator + "bucketmetadata-" + bucket.getId().toString() + ServerConstant.JSON;
-                //Files.writeString(Paths.get(path, "bucketmetadata-" + bucket.getId().toString() + ServerConstant.JSON), getObjectMapper().writeValueAsString(meta));
-                
+
+                // BucketMetadata meta = drive.getBucketMetadata(bucket);
+                // String path = drive.getBucketWorkDirPath(bucket) + File.separator +
+                // "bucketmetadata-" + bucket.getId().toString() + ServerConstant.JSON;
+                // Files.writeString(Paths.get(path, "bucketmetadata-" +
+                // bucket.getId().toString() + ServerConstant.JSON),
+                // getObjectMapper().writeValueAsString(meta));
+
                 BucketMetadata meta = drive.getBucketMetadata(bucket);
                 BucketPath b_path = new BucketPath(drive, bucket);
                 Path backup = b_path.bucketMetadata(Context.BACKUP);
                 Files.writeString(backup, getObjectMapper().writeValueAsString(meta));
-                
+
             }
         } catch (Exception e) {
             throw new InternalCriticalException(e, objectInfo(bucket));
         }
     }
 
-
-    
     protected ServerBucket getBucketById(Long id) {
         return getVirtualFileSystemService().getBucketById(id);
     }
 
-    
     protected EncryptionService getEncryptionService() {
         return getVirtualFileSystemService().getEncryptionService();
     }
-    
+
     protected BucketIteratorService getBucketIteratorService() {
         return getVirtualFileSystemService().getBucketIteratorService();
     }
-    
+
     protected ServerSettings getServerSettings() {
         return getVirtualFileSystemService().getServerSettings();
     }
@@ -1156,7 +1148,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
     protected SystemMonitorService getSystemMonitorService() {
         return getVirtualFileSystemService().getSystemMonitorService();
     }
-    
+
     protected void objectReadLock(ServerBucket bucket, String objectName) {
         getLockService().getObjectLock(bucket, objectName).readLock().lock();
     }
@@ -1200,7 +1192,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
         Check.requireNonNullArgument(bucket, "bucket does not exist for id -> " + meta.getId().toString());
         getLockService().getBucketLock(bucket).writeLock().unlock();
     }
-    
+
     /**
      * @param serverInfo
      */
@@ -1240,7 +1232,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
             }
         }
     }
-
 
     private void updateServerInfo(OdilonServerInfo serverInfo) {
 

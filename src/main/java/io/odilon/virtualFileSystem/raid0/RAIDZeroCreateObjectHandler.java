@@ -16,6 +16,7 @@
  */
 package io.odilon.virtualFileSystem.raid0;
 
+
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -98,16 +99,16 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
 
             try (stream) {
 
-                if (getDriver().getWriteDrive(bucket, objectName).existsObjectMetadata(bucket, objectName))
-                        throw new IllegalArgumentException("Object already exist -> " + objectInfo(bucket, objectName));
+                if (existsMetadata(bucket, objectName))
+                    throw new IllegalArgumentException("Object already exist -> " + objectInfo(bucket, objectName));
 
                 int version = 0;
 
                 op = getJournalService().createObject(bucket, objectName);
-                
-                saveObjectDataFile(bucket, objectName, stream, srcFileName);
-                saveObjectMetadata(bucket, objectName, srcFileName, contentType, version, customTags);
-                
+
+                saveFile(bucket, objectName, stream, srcFileName);
+                saveMetadata(bucket, objectName, srcFileName, contentType, version, customTags);
+
                 done = op.commit();
 
             } catch (InternalCriticalException e1) {
@@ -158,19 +159,18 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
         Check.requireNonNullArgument(op, "op is null");
         Check.checkTrue(op.getOp() == VFSOp.CREATE_OBJECT, "Invalid op ->  " + op.getOp().getName());
 
-        String objectName = op.getObjectName();
-
         boolean done = false;
+
+        ServerBucket bucket = getBucketById(op.getBucketId());
+        String objectName = op.getObjectName();
 
         try {
             if (isStandByEnabled())
                 getReplicationService().cancel(op);
 
-            getWriteDrive(getBucketById(op.getBucketId()), objectName)
-                    .deleteObjectMetadata(getVirtualFileSystemService().getBucketById(op.getBucketId()), objectName);
+            getWriteDrive(bucket, objectName).deleteObjectMetadata(bucket, objectName);
 
-            FileUtils.deleteQuietly(new File(
-                    getWriteDrive(getBucketById(op.getBucketId()), objectName).getRootDirPath(),
+            FileUtils.deleteQuietly(new File(getWriteDrive(bucket, objectName).getRootDirPath(),
                     op.getBucketId().toString() + File.separator + objectName));
             done = true;
 
@@ -178,11 +178,11 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
             if (!recoveryMode)
                 throw (e);
             else
-                logger.error(e, getDriver().opInfo(op), SharedConstant.NOT_THROWN);
+                logger.error(e, opInfo(op), SharedConstant.NOT_THROWN);
 
         } catch (Exception e) {
             if (!recoveryMode)
-                throw new InternalCriticalException(e, getDriver().opInfo(op));
+                throw new InternalCriticalException(e, opInfo(op));
             else
                 logger.error(e, opInfo(op), SharedConstant.NOT_THROWN);
         } finally {
@@ -191,9 +191,6 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
         }
     }
 
-    
-    
-    
     /**
      * <p>
      * This method is <b>not</b> ThreadSafe, callers must ensure proper concurrency
@@ -205,43 +202,22 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
      * @param stream      can not be null
      * @param srcFileName can not be null
      */
-    private void saveObjectDataFile(ServerBucket bucket, String objectName, InputStream stream, String srcFileName) {
+    private void saveFile(ServerBucket bucket, String objectName, InputStream stream, String srcFileName) {
 
         byte[] buf = new byte[ServerConstant.BUFFER_SIZE];
 
-        //BufferedOutputStream out = null;
-        //boolean isMainException = false;
-        //SimpleDrive drive = (SimpleDrive) getWriteDrive(bucket, objectName);
-
-        try (InputStream sourceStream = isEncrypt() ? getVirtualFileSystemService().getEncryptionService().encryptStream(stream) : stream) {
-        
+        try (InputStream sourceStream = isEncrypt() ? getEncryptionService().encryptStream(stream) : stream) {
             ObjectPath path = new ObjectPath(getWriteDrive(bucket, objectName), bucket, objectName);
-            
-                try (BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(path.dataFilePath(Context.STORAGE).toFile()), ServerConstant.BUFFER_SIZE)) {
-                    int bytesRead;
-                    while ((bytesRead = sourceStream.read(buf, 0, buf.length)) >= 0)
-                        out.write(buf, 0, bytesRead);
-                }
-                
+            try (BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(path.dataFilePath().toFile()),
+                    ServerConstant.BUFFER_SIZE)) {
+                int bytesRead;
+                while ((bytesRead = sourceStream.read(buf, 0, buf.length)) >= 0)
+                    out.write(buf, 0, bytesRead);
+            }
         } catch (Exception e) {
-            //isMainException = true;
             throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
-
-        } //finally {
-            //IOException secEx = null;
-            //try {
-                //if (out != null)
-                //    out.close();
-            //} catch (IOException e) {
-             //   if (isMainException)
-              //      logger.error(e,objectInfo(bucket, objectName, srcFileName) + (isMainException ? SharedConstant.NOT_THROWN : ""));
-               // secEx = e;
-            //}
-            //if ((!isMainException) && (secEx != null))
-             //   throw new InternalCriticalException(secEx);
-        //}
+        }
     }
-    
 
     /**
      * <p>
@@ -258,27 +234,22 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
      * @param srcFileName can not be null
      * @param customTags
      */
-    private void saveObjectMetadata(ServerBucket bucket, String objectName, String srcFileName, String contentType, int version, Optional<List<String>> customTags) {
+    private void saveMetadata(ServerBucket bucket, String objectName, String srcFileName, String contentType, int version,
+            Optional<List<String>> customTags) {
 
         Check.requireNonNullArgument(bucket, "bucket is null");
-
         OffsetDateTime now = OffsetDateTime.now();
-        
         Drive drive = getWriteDrive(bucket, objectName);
-        
         ObjectPath path = new ObjectPath(drive, bucket, objectName);
-        //File file = ((SimpleDrive) drive).getObjectDataFile(bucket.getId(), objectName);
-        
         File file = path.dataFilePath(Context.STORAGE).toFile();
-        
         try {
             String sha256 = OdilonFileUtils.calculateSHA256String(file);
             ObjectMetadata meta = new ObjectMetadata(bucket.getId(), objectName);
             meta.setFileName(srcFileName);
             meta.setAppVersion(OdilonVersion.VERSION);
             meta.setContentType(contentType);
-            meta.setEncrypt(getVirtualFileSystemService().isEncrypt());
-            meta.setVault(getVirtualFileSystemService().isUseVaultNewFiles());
+            meta.setEncrypt(isEncrypt());
+            meta.setVault(isUseVaultNewFiles());
             meta.setCreationDate(now);
             meta.setVersion(version);
             meta.setVersioncreationDate(meta.getCreationDate());
@@ -291,13 +262,14 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
             if (customTags.isPresent())
                 meta.setCustomTags(customTags.get());
             meta.setRaid(String.valueOf(getRedundancyLevel().getCode()).trim());
-
             drive.saveObjectMetadata(meta);
-            
-
         } catch (Exception e) {
             throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
         }
+    }
+
+    private boolean existsMetadata(ServerBucket bucket, String objectName) {
+        return getDriver().getWriteDrive(bucket, objectName).existsObjectMetadata(bucket, objectName);
     }
 
 }

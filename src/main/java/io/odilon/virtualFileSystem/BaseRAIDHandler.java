@@ -18,6 +18,7 @@ package io.odilon.virtualFileSystem;
 
 import org.springframework.lang.NonNull;
 
+import io.odilon.encryption.EncryptionService;
 import io.odilon.model.BucketMetadata;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.RedundancyLevel;
@@ -45,6 +46,10 @@ public abstract class BaseRAIDHandler {
     
     protected ServerBucket getBucketById(Long id) {
         return getVirtualFileSystemService().getBucketById(id);
+    }
+    
+    protected EncryptionService getEncryptionService() {
+        return getVirtualFileSystemService().getEncryptionService();
     }
     
     public JournalService getJournalService() {
@@ -138,5 +143,9 @@ public abstract class BaseRAIDHandler {
 
     protected String objectInfo(ServerBucket bucket) {
         return getDriver().objectInfo(bucket);
+    }
+    
+    protected boolean isUseVaultNewFiles() {
+        return getVirtualFileSystemService().isUseVaultNewFiles();
     }
 }

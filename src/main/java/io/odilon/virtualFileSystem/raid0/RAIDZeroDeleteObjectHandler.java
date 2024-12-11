@@ -83,7 +83,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
             
             try {
                 if (!getDriver().exists(bucket, objectName))
-                    throw new OdilonObjectNotFoundException(getDriver().objectInfo(bucket, objectName));
+                    throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
 
                 meta = getDriver().getObjectMetadataInternal(bucket, objectName, false);
 
@@ -265,7 +265,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
         ServerBucket bucket = getBucketById(op.getBucketId());
 
         try {
-            if (getServerSettings().isStandByEnabled())
+            if (isStandByEnabled())
                 getReplicationService().cancel(op);
 
             /**
@@ -286,13 +286,13 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
             if (!recoveryMode)
                 throw (e);
             else
-                logger.error(getDriver().opInfo(op), SharedConstant.NOT_THROWN);
+                logger.error(opInfo(op), SharedConstant.NOT_THROWN);
 
         } catch (Exception e) {
             if (!recoveryMode)
-                throw new InternalCriticalException(e, op.toString());
+                throw new InternalCriticalException(e, opInfo(op));
             else
-                logger.error(getDriver().opInfo(op), SharedConstant.NOT_THROWN);
+                logger.error(opInfo(op), SharedConstant.NOT_THROWN);
         } finally {
             if (done || recoveryMode)
                 op.cancel();
@@ -381,7 +381,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
         Check.requireNonNullArgument(bucketId, "bucketId is null");
         Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketId.toString());
 
-        ServerBucket bucket = getDriver().getVirtualFileSystemService().getBucketById(bucketId);
+        ServerBucket bucket = getBucketById(bucketId);
 
         try {
             /** delete data versions(1..n-1). keep headVersion **/
@@ -416,7 +416,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
         Long bucketId = meta.getBucketId();
         String objectName = meta.getObjectName();
 
-        ServerBucket bucket = getDriver().getVirtualFileSystemService().getBucketById(bucketId);
+        ServerBucket bucket = getBucketById(bucketId);
 
         /** delete data versions(1..n-1) **/
         for (int n = 0; n <= headVersion; n++)
@@ -479,7 +479,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
             throw e;
 
         } catch (IOException e) {
-            throw new InternalCriticalException(e, "restoreMetadata | " + getDriver().objectInfo(bucket, objectName));
+            throw new InternalCriticalException(e, objectInfo(bucket, objectName));
         }
     }
 
@@ -503,7 +503,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
                                 .getBean(AfterDeleteObjectServiceRequest.class, op.getOp(), meta, headVersion));
 
         } catch (Exception e) {
-            logger.error(e, getDriver().opInfo(op), SharedConstant.NOT_THROWN);
+            logger.error(e, opInfo(op), SharedConstant.NOT_THROWN);
         }
     }
 }

@@ -76,6 +76,11 @@ public class ObjectPath extends PathBuilder {
      * @param isHead
      * @return
      */
+    
+    public Path dataFilePath() {
+        return dataFilePath(Context.STORAGE);
+    }
+    
     public Path dataFilePath(Context context) {
         if (context==Context.STORAGE)
             return Paths.get(getDrive().getRootDirPath(), getBucketId().toString() + File.separator + getObjectName());       

@@ -39,116 +39,115 @@ import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VFSOp;
 
 /**
- * <p>{@link ObjectMetadata} Cache. It only stores ObjectMetadata's <b>head version</b></p> 
- * <p>It Uses {@link Caffeine} to keep references to entries in memory
+ * <p>
+ * {@link ObjectMetadata} Cache. It only stores ObjectMetadata's <b>head
+ * version</b>
+ * </p>
+ * <p>
+ * It Uses {@link Caffeine} to keep references to entries in memory
  * (<a href="https://github.com/ben-manes/caffeine">Caffeine on GitHub).</a>
- * </p> 
- *  
+ * </p>
+ * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  * 
  */
 @Service
-public class ObjectMetadataCacheService extends BaseService implements ApplicationListener<CacheEvent>  {
-				
-	static private Logger startuplogger = Logger.getLogger("StartupLogger");
-	static private Logger logger = Logger.getLogger(ObjectMetadataCacheService.class.getName());
+public class ObjectMetadataCacheService extends BaseService implements ApplicationListener<CacheEvent> {
 
-	@JsonIgnore
-	@Autowired
-	private final ServerSettings serverSettings;
+    static private Logger startuplogger = Logger.getLogger("StartupLogger");
+    static private Logger logger = Logger.getLogger(ObjectMetadataCacheService.class.getName());
 
-	@JsonIgnore
-	private Cache<String, ObjectMetadata> cache;
+    @JsonIgnore
+    @Autowired
+    private final ServerSettings serverSettings;
 
-	
-	public ObjectMetadataCacheService(ServerSettings serverSettings) {
-		this.serverSettings=serverSettings;
-	}
-	
+    @JsonIgnore
+    private Cache<String, ObjectMetadata> cache;
+
+    public ObjectMetadataCacheService(ServerSettings serverSettings) {
+        this.serverSettings = serverSettings;
+    }
+
     public long size() {
-        return getCache().estimatedSize(); 	
+        return getCache().estimatedSize();
     }
-    
+
     public boolean containsKey(ServerBucket bucket, String objectName) {
-        return (getCache().getIfPresent(getKey(bucket.getId(), objectName))!=null);
+        return (getCache().getIfPresent(getKey(bucket.getId(), objectName)) != null);
     }
-    
 
     public ObjectMetadata get(ServerBucket bucket, String objectName) {
-    	return getCache().getIfPresent(getKey(bucket.getId(), objectName));
+        return getCache().getIfPresent(getKey(bucket.getId(), objectName));
     }
 
     public void put(ServerBucket bucket, String objectName, ObjectMetadata value) {
-    	getCache().put(getKey(bucket.getId(), objectName), value);
+        getCache().put(getKey(bucket.getId(), objectName), value);
     }
 
     public void remove(Long bucketId, String objectName) {
-    	getCache().invalidate(getKey(bucketId, objectName));
-    }
-    
-    
-    /**
-     * <p>fired by {@link JournalService} on commit or cance</p>
-     */
-    @Override
-	public void onApplicationEvent(CacheEvent event) {
-		
-    	if (event.getVFSOperation()==null) {
-    		logger.error("event Operation is null ");
-    		return;
-    	}
-    	if (event.getVFSOperation().getOp()==null) {
-    		logger.debug("op is null -> "  + event.toString());
-    		return;
-    	}
-    	
-    	
-		if (event.getVFSOperation().getOp()==VFSOp.CREATE_OBJECT) {
-			remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName());
-			return;
-		}
-		if (event.getVFSOperation().getOp()==VFSOp.UPDATE_OBJECT) {
-			remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName());
-			return;
-		}
-		if (event.getVFSOperation().getOp()==VFSOp.RESTORE_OBJECT_PREVIOUS_VERSION) {
-			remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName());
-			return;
-		}
-		if (event.getVFSOperation().getOp()==VFSOp.DELETE_OBJECT) {
-			remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName());
-			return;
-		}
-		
-		if (event.getVFSOperation().getOp()==VFSOp.DELETE_OBJECT_PREVIOUS_VERSIONS) {
-			remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName());
-			return;
-		}
-		
-		if (event.getVFSOperation().getOp()==VFSOp.SYNC_OBJECT_NEW_DRIVE) {
-			remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName());
-			return;
-		}
+        getCache().invalidate(getKey(bucketId, objectName));
     }
 
-		
+    /**
+     * <p>
+     * fired by {@link JournalService} on commit or cance
+     * </p>
+     */
+    @Override
+    public void onApplicationEvent(CacheEvent event) {
+
+        if (event.getVFSOperation() == null) {
+            logger.error("event Operation is null ");
+            return;
+        }
+        if (event.getVFSOperation().getOp() == null) {
+            logger.debug("op is null -> " + event.toString());
+            return;
+        }
+
+        if (event.getVFSOperation().getOp() == VFSOp.CREATE_OBJECT) {
+            remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName());
+            return;
+        }
+        if (event.getVFSOperation().getOp() == VFSOp.UPDATE_OBJECT) {
+            remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName());
+            return;
+        }
+        if (event.getVFSOperation().getOp() == VFSOp.RESTORE_OBJECT_PREVIOUS_VERSION) {
+            remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName());
+            return;
+        }
+        if (event.getVFSOperation().getOp() == VFSOp.DELETE_OBJECT) {
+            remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName());
+            return;
+        }
+
+        if (event.getVFSOperation().getOp() == VFSOp.DELETE_OBJECT_PREVIOUS_VERSIONS) {
+            remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName());
+            return;
+        }
+
+        if (event.getVFSOperation().getOp() == VFSOp.SYNC_OBJECT_NEW_DRIVE) {
+            remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName());
+            return;
+        }
+    }
+
     @PostConstruct
-	protected void onInitialize() {
-		try {
-			setStatus(ServiceStatus.STARTING);
-			
-			this.cache = Caffeine.newBuilder()
-						.initialCapacity(getServerSettings().getObjectCacheInitialCapacity())    
-						.maximumSize(getServerSettings().getObjectCacheCapacity())
-						.expireAfterWrite(getServerSettings().getObjectCacheExpireDays(), TimeUnit.DAYS)
-						.build();
-			
-		} finally {
-			setStatus(ServiceStatus.RUNNING);
-	 		startuplogger.debug("Started -> " + ObjectMetadataCacheService.class.getSimpleName());
-		}
-	}
-	
+    protected void onInitialize() {
+        try {
+            setStatus(ServiceStatus.STARTING);
+
+            this.cache = Caffeine.newBuilder().initialCapacity(getServerSettings().getObjectCacheInitialCapacity())
+                    .maximumSize(getServerSettings().getObjectCacheCapacity())
+                    .expireAfterWrite(getServerSettings().getObjectCacheExpireDays(), TimeUnit.DAYS).build();
+
+        } finally {
+            setStatus(ServiceStatus.RUNNING);
+            startuplogger.debug("Started -> " + ObjectMetadataCacheService.class.getSimpleName());
+        }
+    }
+
     /**
      * File.separator is not a valid bucket or object name
      * 
@@ -157,16 +156,14 @@ public class ObjectMetadataCacheService extends BaseService implements Applicati
      * @return
      */
     private String getKey(Long bucketId, String objectName) {
-    	return bucketId.toString() + File.separator + objectName;
+        return bucketId.toString() + File.separator + objectName;
     }
-    
+
     private Cache<String, ObjectMetadata> getCache() {
-		return this.cache;
+        return this.cache;
     }
 
-	private ServerSettings getServerSettings() {
-		return this.serverSettings;
-	}
+    private ServerSettings getServerSettings() {
+        return this.serverSettings;
+    }
 }
-
-

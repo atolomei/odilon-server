@@ -269,7 +269,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         RAIDZeroDeleteObjectHandler createAgent = new RAIDZeroDeleteObjectHandler(this);
         createAgent.postObjectDelete(meta, headVersion);
     }
-
     /**
      * <p>
      * This method is executed Async by the {@link SchedulerService}
@@ -281,7 +280,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         RAIDZeroDeleteObjectHandler createAgent = new RAIDZeroDeleteObjectHandler(this);
         createAgent.postObjectPreviousVersionDeleteAll(meta, headVersion);
     }
-
     /**
      * <p>
      * Set up a new drive
@@ -293,14 +291,12 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
     public boolean setUpDrives() {
         return getApplicationContext().getBean(RAIDZeroDriveSetupSync.class, this).setup();
     }
-
     /**
      * @param bucket must exist in the system
      */
     public void deleteBucket(ServerBucket bucket) {
         getVirtualFileSystemService().removeBucket(bucket);
     }
-
     /**
      * <p>
      * RAID 0 -> Bucket must be empty on all Disks VFSBucket bucket must exist and

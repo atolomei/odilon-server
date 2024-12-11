@@ -154,11 +154,10 @@ public interface VirtualFileSystemService extends SystemService {
      */
     public void putObject(ServerBucket bucket, String objectName, File file);
 
-    public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName,
-            String contentType);
+    public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName, String contentType);
 
-    public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName,
-            String contentType, Optional<List<String>> customTags);
+    public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName, String contentType,
+            Optional<List<String>> customTags);
 
     public void putObject(String bucketName, String objectName, InputStream is, String fileName, String contentType,
             Optional<List<String>> customTags);
@@ -207,8 +206,8 @@ public interface VirtualFileSystemService extends SystemService {
     /**
      * Query
      */
-    public DataList<Item<ObjectMetadata>> listObjects(String bucketName, Optional<Long> offset,
-            Optional<Integer> pageSize, Optional<String> prefix, Optional<String> serverAgentId);
+    public DataList<Item<ObjectMetadata>> listObjects(String bucketName, Optional<Long> offset, Optional<Integer> pageSize,
+            Optional<String> prefix, Optional<String> serverAgentId);
 
     public DataList<Item<ObjectMetadata>> listObjects(String bucketName);
 

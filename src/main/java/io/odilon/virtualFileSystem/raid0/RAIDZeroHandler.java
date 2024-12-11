@@ -49,8 +49,6 @@ public abstract class RAIDZeroHandler extends BaseRAIDHandler implements RAIDHan
         return this.driver;
     }
 
-    
-
     public Drive getWriteDrive(ServerBucket bucket, String objectName) {
         return getDriver().getWriteDrive(bucket, objectName);
     }
