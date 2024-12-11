@@ -71,10 +71,10 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
         VFSOperation op = null;
         boolean done = false;
         boolean isMainException = false;
-
-        Drive drive = getDriver().getDrive(bucket, objectName);
         int headVersion = -1;
         ObjectMetadata meta = null;
+        
+        Drive drive = getDriver().getDrive(bucket, objectName);
 
         objectWriteLock(bucket, objectName);
 
@@ -187,7 +187,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
 
                 for (int version = 0; version < headVersion; version++)
                     FileUtils.deleteQuietly(getDriver().getReadDrive(bucket, meta.getObjectName())
-                            .getObjectMetadataVersionFile(bucket, meta.objectName, version));
+                            .getObjectMetadataVersionFile(bucket, meta.getObjectName(), version));
 
                 meta.addSystemTag("delete versions");
                 meta.setLastModified(OffsetDateTime.now());
@@ -218,20 +218,18 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
                             if (!isMainExcetion)
                                 throw e;
                             else
-                                logger.error(e, getDriver().objectInfo(meta), SharedConstant.NOT_THROWN);
+                                logger.error(e, objectInfo(meta), SharedConstant.NOT_THROWN);
                         } catch (Exception e) {
                             if (!isMainExcetion)
-                                throw new InternalCriticalException(e, getDriver().objectInfo(bucket, meta.objectName));
+                                throw new InternalCriticalException(e, objectInfo(bucket, meta.getObjectName()));
                             else
-                                logger.error(e, getDriver().objectInfo(meta), SharedConstant.NOT_THROWN);
+                                logger.error(e, objectInfo(meta), SharedConstant.NOT_THROWN);
                         }
                     } else if (done) {
                         try {
-
                             postObjectPreviousVersionDeleteAllCommit(meta, headVersion);
-
                         } catch (Exception e) {
-                            logger.error(e, getDriver().objectInfo(bucket, meta.objectName), SharedConstant.NOT_THROWN);
+                            logger.error(e, objectInfo(bucket, meta.getObjectName()), SharedConstant.NOT_THROWN);
                         }
                     }
                 } finally {
@@ -259,18 +257,16 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
 
         String objectName = op.getObjectName();
 
-        Long bucketId = op.getBucketId();
-
-        Check.requireNonNullArgument(bucketId, "bucketId is null");
-        Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketId.toString());
+        Check.requireNonNullArgument(op.getBucketId(), "bucketId is null");
+        Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + op.getBucketId().toString());
 
         boolean done = false;
 
-        ServerBucket bucket = getVirtualFileSystemService().getBucketById(op.getBucketId());
+        ServerBucket bucket = getBucketById(op.getBucketId());
 
         try {
-            if (getVirtualFileSystemService().getServerSettings().isStandByEnabled())
-                getVirtualFileSystemService().getReplicationService().cancel(op);
+            if (getServerSettings().isStandByEnabled())
+                getReplicationService().cancel(op);
 
             /**
              * Rollback is the same for both operations ->
@@ -290,13 +286,13 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
             if (!recoveryMode)
                 throw (e);
             else
-                logger.error("Rollback " + getDriver().opInfo(op), SharedConstant.NOT_THROWN);
+                logger.error(getDriver().opInfo(op), SharedConstant.NOT_THROWN);
 
         } catch (Exception e) {
             if (!recoveryMode)
-                throw new InternalCriticalException(e, "Rollback: " + op.toString());
+                throw new InternalCriticalException(e, op.toString());
             else
-                logger.error("Rollback " + getDriver().opInfo(op), SharedConstant.NOT_THROWN);
+                logger.error(getDriver().opInfo(op), SharedConstant.NOT_THROWN);
         } finally {
             if (done || recoveryMode)
                 op.cancel();

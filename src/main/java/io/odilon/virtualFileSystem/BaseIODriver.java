@@ -16,6 +16,7 @@
  */
 package io.odilon.virtualFileSystem;
 
+
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -54,6 +55,7 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import io.odilon.OdilonVersion;
+import io.odilon.cache.ObjectMetadataCacheService;
 import io.odilon.encryption.EncryptionService;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
@@ -62,7 +64,6 @@ import io.odilon.model.BucketStatus;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.OdilonServerInfo;
 import io.odilon.model.RedundancyLevel;
-import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
 import io.odilon.monitor.SystemMonitorService;
 import io.odilon.query.BucketIteratorService;
@@ -387,11 +388,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 
     }
 
-    
-
-
     /**
-     * 
      * Save metadata Save stream
      * 
      * @param folderName
@@ -895,17 +892,15 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
      */
     public ObjectMetadata getObjectMetadataInternal(ServerBucket bucket, String objectName, boolean addToCacheIfmiss) {
 
-        if ((!getVirtualFileSystemService().getServerSettings().isUseObjectCache())
-                || (getVirtualFileSystemService().getObjectMetadataCacheService().size() >= MAX_CACHE_SIZE))
+        if ((   !getServerSettings().isUseObjectCache()) || (getObjectMetadataCacheService().size() >= MAX_CACHE_SIZE))
             return getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucket, objectName);
 
-        if (getVirtualFileSystemService().getObjectMetadataCacheService().containsKey(bucket.getId(), objectName)) {
-            getVirtualFileSystemService().getSystemMonitorService().getCacheObjectHitCounter().inc();
+        if (getObjectMetadataCacheService().containsKey(bucket, objectName)) {
+                getSystemMonitorService().getCacheObjectHitCounter().inc();
 
-            ObjectMetadata meta = getVirtualFileSystemService().getObjectMetadataCacheService().get(bucket.getId(),
-                    objectName);
-            meta.setBucketName(bucket.getName());
-            return meta;
+                ObjectMetadata meta = getObjectMetadataCacheService().get(bucket,objectName);
+                meta.setBucketName(bucket.getName());
+                return meta;
         }
 
         ObjectMetadata meta = getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucket,
@@ -915,11 +910,12 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
         getVirtualFileSystemService().getSystemMonitorService().getCacheObjectMissCounter().inc();
 
         if (addToCacheIfmiss) {
-            getVirtualFileSystemService().getObjectMetadataCacheService().put(bucket.getId(), objectName, meta);
+            getObjectMetadataCacheService().put(bucket, objectName, meta);
         }
         return meta;
     }
 
+    
     public ObjectMapper getObjectMapper() {
         return mapper;
     }
@@ -928,6 +924,10 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
         return this.lockService;
     }
 
+    protected ObjectMetadataCacheService getObjectMetadataCacheService() {
+        return getVirtualFileSystemService().getObjectMetadataCacheService();
+    }
+    
     public JournalService getJournalService() {
         return getVirtualFileSystemService().getJournalService();
     }

@@ -26,7 +26,6 @@ import io.odilon.virtualFileSystem.RAIDHandler;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VFSOperation;
-import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
  * <p>
@@ -50,9 +49,7 @@ public abstract class RAIDZeroHandler extends BaseRAIDHandler implements RAIDHan
         return this.driver;
     }
 
-    public VirtualFileSystemService getVirtualFileSystemService() {
-        return getDriver().getVirtualFileSystemService();
-    }
+    
 
     public Drive getWriteDrive(ServerBucket bucket, String objectName) {
         return getDriver().getWriteDrive(bucket, objectName);

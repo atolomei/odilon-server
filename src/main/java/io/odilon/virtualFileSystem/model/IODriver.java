@@ -173,6 +173,7 @@ public interface IODriver {
     public String objectInfo(ServerBucket bucket, String objectName, String fileName);
     public String objectInfo(String bucketId, String objectName, String fileName);
     public String objectInfo(ObjectMetadata meta);
+    public String opInfo(VFSOperation op);
     
     
 

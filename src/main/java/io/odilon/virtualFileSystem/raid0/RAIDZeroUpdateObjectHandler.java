@@ -16,6 +16,7 @@
  */
 package io.odilon.virtualFileSystem.raid0;
 
+
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -82,14 +83,14 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
         Check.requireNonNullStringArgument(objectName, "objectName is null | " + objectInfo(bucket));
         Check.requireNonNullArgument(stream, "stream is null");
 
-        VFSOperation op = null;
-        boolean done = false;
-
+        
         boolean isMaixException = false;
-
+        boolean done = false;
         int beforeHeadVersion = -1;
         int afterHeadVersion = -1;
-
+        
+        VFSOperation op = null;
+        
         objectWriteLock(bucket, objectName);
 
         try {
@@ -97,8 +98,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 
             try (stream) {
                 if (!getDriver().getWriteDrive(bucket, objectName).existsObjectMetadata(bucket, objectName))
-                    throw new IllegalArgumentException(
-                            "Object does not exist -> " + objectInfo(bucket, objectName, srcFileName));
+                    throw new IllegalArgumentException("Object does not exist -> " + objectInfo(bucket, objectName, srcFileName));
 
                 ObjectMetadata meta = getDriver().getObjectMetadataInternal(bucket, objectName, false);
 
@@ -161,14 +161,13 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
      */
     protected ObjectMetadata restorePreviousVersion(ServerBucket bucket, String objectName) {
 
-        VFSOperation op = null;
+        
         boolean done = false;
         boolean isMainException = false;
-
-        Long bucket_id = bucket.getId();
-
         int beforeHeadVersion = -1;
-
+        
+        VFSOperation op = null;
+        
         objectWriteLock(bucket, objectName);
 
         try {
@@ -179,22 +178,20 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
                 ObjectMetadata meta = getDriver().getObjectMetadataInternal(bucket, objectName, false);
 
                 if (meta.getVersion() == 0)
-                    throw new IllegalArgumentException(
-                            "Object does not have any previous version | " + objectInfo(bucket, objectName));
+                    throw new IllegalArgumentException("no previous version | " + objectInfo(bucket, objectName));
 
                 beforeHeadVersion = meta.getVersion();
+                
                 List<ObjectMetadata> metaVersions = new ArrayList<ObjectMetadata>();
 
                 for (int version = 0; version < beforeHeadVersion; version++) {
-                    ObjectMetadata mv = getDriver().getReadDrive(bucket, objectName).getObjectMetadataVersion(bucket,
-                            objectName, version);
+                    ObjectMetadata mv = getDriver().getReadDrive(bucket, objectName).getObjectMetadataVersion(bucket,objectName, version);
                     if (mv != null)
                         metaVersions.add(mv);
                 }
 
                 if (metaVersions.isEmpty())
-                    throw new OdilonObjectNotFoundException(
-                            Optional.of(meta.systemTags).orElse("previous versions deleted"));
+                    throw new OdilonObjectNotFoundException(Optional.of(meta.getSystemTags()).orElse("previous versions deleted"));
 
                 op = getJournalService().restoreObjectPreviousVersion(bucket, objectName, beforeHeadVersion);
 
@@ -210,12 +207,10 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
                 metaToRestore.setBucketName(bucket.getName());
 
                 if (!restoreVersionObjectDataFile(bucket, metaToRestore.getObjectName(), metaToRestore.getVersion()))
-                    throw new OdilonObjectNotFoundException(
-                            Optional.of(meta.systemTags).orElse("previous versions deleted"));
+                    throw new OdilonObjectNotFoundException(Optional.of(meta.getSystemTags()).orElse("previous versions deleted"));
 
                 if (!restoreVersionObjectMetadata(bucket, metaToRestore.getObjectName(), metaToRestore.getVersion()))
-                    throw new OdilonObjectNotFoundException(
-                            Optional.of(meta.systemTags).orElse("previous versions deleted"));
+                    throw new OdilonObjectNotFoundException(Optional.of(meta.getSystemTags()).orElse("previous versions deleted"));
 
                 done = op.commit();
 
@@ -290,7 +285,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
         boolean done = false;
         boolean isMainException = false;
 
-        ServerBucket bucket = getDriver().getVirtualFileSystemService().getBucketById(meta.getBucketId());
+        ServerBucket bucket = getBucketById(meta.getBucketId());
 
         objectWriteLock(meta);
 
@@ -383,10 +378,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
         }
     }
 
-    private String opInfo(VFSOperation op) {
-        return getDriver().opInfo(op);
-    }
-
+    
     /**
      * @param op
      * @param recoveryMode
@@ -396,10 +388,10 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
         boolean done = false;
 
         try {
-            if (getVirtualFileSystemService().getServerSettings().isStandByEnabled())
-                getVirtualFileSystemService().getReplicationService().cancel(op);
+            if (isStandByEnabled())
+                getReplicationService().cancel(op);
 
-            ServerBucket bucket = getDriver().getVirtualFileSystemService().getBucketById(op.getBucketId());
+            ServerBucket bucket = getBucketById(op.getBucketId());
 
             restoreVersionObjectDataFile(bucket, op.getObjectName(), op.getVersion());
             restoreVersionObjectMetadata(bucket, op.getObjectName(), op.getVersion());
@@ -435,7 +427,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
         boolean done = false;
 
         try {
-            ServerBucket bucket = getDriver().getVirtualFileSystemService().getBucketById(op.getBucketId());
+            ServerBucket bucket = getBucketById(op.getBucketId());
 
             if (getVirtualFileSystemService().getServerSettings().isStandByEnabled())
                 getVirtualFileSystemService().getReplicationService().cancel(op);

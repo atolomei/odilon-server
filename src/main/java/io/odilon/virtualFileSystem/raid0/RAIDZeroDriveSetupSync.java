@@ -312,13 +312,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
                                              * HEAD VERSION ---------------------------------------------------------
                                              */
                                             currentDrive.deleteObjectMetadata(bucket, item.getObject().getObjectName());
-                                            
-                                            FileUtils.deleteQuietly(
-                                                    new File(currentDrive.getRootDirPath(), item.getObject().getBucketId()
-                                                            + File.separator + item.getObject().getObjectName()));
-                                            
-                                            
-                                            
+                                            FileUtils.deleteQuietly( new File(currentDrive.getRootDirPath(), item.getObject().getBucketId() + File.separator + item.getObject().getObjectName()));
                                             //currentDrive.getRootDirPath(), item.getObject().getBucketId() + File.separator + item.getObject().getObjectName()
                                             
 
@@ -331,10 +325,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
                                                             bucket, item.getObject().getObjectName(), n);
                                                     if (m.exists())
                                                         FileUtils.deleteQuietly(m);
-
-                                                    File d = ((SimpleDrive) currentDrive).getObjectDataVersionFile(
-                                                            item.getObject().getBucketId(), item.getObject().getObjectName(), n);
-                                                    
+                                                    File d = ((SimpleDrive) currentDrive).getObjectDataVersionFile(item.getObject().getBucketId(), item.getObject().getObjectName(), n);
                                                     if (d.exists())
                                                         FileUtils.deleteQuietly(d);
                                                     
@@ -419,8 +410,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 
                                 if (item.isOk()) {
 
-                                    Drive currentDrive = getCurrentDrive(item.getObject().getBucketId(),
-                                            item.getObject().getObjectName());
+                                    Drive currentDrive = getCurrentDrive(item.getObject().getBucketId(),item.getObject().getObjectName());
                                     Drive newDrive = getNewDrive(item.getObject().getBucketId(), item.getObject().getObjectName());
 
                                     if (!newDrive.equals(currentDrive)) {

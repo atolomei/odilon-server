@@ -21,10 +21,13 @@ import org.springframework.lang.NonNull;
 import io.odilon.model.BucketMetadata;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.RedundancyLevel;
+import io.odilon.replication.ReplicationService;
+import io.odilon.service.ServerSettings;
 import io.odilon.virtualFileSystem.model.IODriver;
 import io.odilon.virtualFileSystem.model.JournalService;
 import io.odilon.virtualFileSystem.model.LockService;
 import io.odilon.virtualFileSystem.model.ServerBucket;
+import io.odilon.virtualFileSystem.model.VFSOperation;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 public abstract class BaseRAIDHandler {
@@ -32,11 +35,14 @@ public abstract class BaseRAIDHandler {
     public abstract IODriver getDriver();
 
     
-    
     public VirtualFileSystemService getVirtualFileSystemService() {
         return getDriver().getVirtualFileSystemService();
     }
 
+    protected ServerSettings getServerSettings() {
+        return getVirtualFileSystemService().getServerSettings();
+    }
+    
     protected ServerBucket getBucketById(Long id) {
         return getVirtualFileSystemService().getBucketById(id);
     }
@@ -53,10 +59,25 @@ public abstract class BaseRAIDHandler {
         return getDriver().isEncrypt();
     }
 
+    protected ReplicationService getReplicationService() {
+        return getVirtualFileSystemService().getReplicationService();
+    }
+    
+    protected boolean isStandByEnabled() {
+        return getVirtualFileSystemService().getServerSettings().isStandByEnabled();
+    }
+
+    
     public RedundancyLevel getRedundancyLevel() {
         return getDriver().getRedundancyLevel();
     }
 
+
+    protected String opInfo(VFSOperation op) {
+        return getDriver().opInfo(op);
+    }
+
+    
     protected String objectInfo(ServerBucket bucket, String objectName, String srcFileName) {
         return getDriver().objectInfo(bucket, objectName, srcFileName);
     }

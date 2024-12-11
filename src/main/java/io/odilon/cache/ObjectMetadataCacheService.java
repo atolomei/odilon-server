@@ -35,6 +35,7 @@ import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ServiceStatus;
 import io.odilon.service.BaseService;
 import io.odilon.service.ServerSettings;
+import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VFSOp;
 
 /**
@@ -68,16 +69,17 @@ public class ObjectMetadataCacheService extends BaseService implements Applicati
         return getCache().estimatedSize(); 	
     }
     
-    public boolean containsKey(Long bucketId, String objectName) {
-    	return (getCache().getIfPresent(getKey(bucketId, objectName))!=null);
+    public boolean containsKey(ServerBucket bucket, String objectName) {
+        return (getCache().getIfPresent(getKey(bucket.getId(), objectName))!=null);
+    }
+    
+
+    public ObjectMetadata get(ServerBucket bucket, String objectName) {
+    	return getCache().getIfPresent(getKey(bucket.getId(), objectName));
     }
 
-    public ObjectMetadata get(Long bucketId, String objectName) {
-    	return getCache().getIfPresent(getKey(bucketId, objectName));
-    }
-
-    public void put(Long bucketId, String objectName, ObjectMetadata value) {
-    	getCache().put(getKey(bucketId, objectName), value);
+    public void put(ServerBucket bucket, String objectName, ObjectMetadata value) {
+    	getCache().put(getKey(bucket.getId(), objectName), value);
     }
 
     public void remove(Long bucketId, String objectName) {

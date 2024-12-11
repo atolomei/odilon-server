@@ -16,11 +16,9 @@
  */
 package io.odilon.virtualFileSystem.raid0;
 
-
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -44,7 +42,6 @@ import io.odilon.virtualFileSystem.Context;
 import io.odilon.virtualFileSystem.ObjectPath;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
-import io.odilon.virtualFileSystem.model.SimpleDrive;
 import io.odilon.virtualFileSystem.model.VFSOp;
 import io.odilon.virtualFileSystem.model.VFSOperation;
 
@@ -100,8 +97,9 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
             bucketReadLock(bucket);
 
             try (stream) {
+
                 if (getDriver().getWriteDrive(bucket, objectName).existsObjectMetadata(bucket, objectName))
-                    throw new IllegalArgumentException("Object already exist -> " + objectInfo(bucket, objectName));
+                        throw new IllegalArgumentException("Object already exist -> " + objectInfo(bucket, objectName));
 
                 int version = 0;
 
@@ -165,14 +163,14 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
         boolean done = false;
 
         try {
-            if (getVirtualFileSystemService().getServerSettings().isStandByEnabled())
-                getVirtualFileSystemService().getReplicationService().cancel(op);
+            if (isStandByEnabled())
+                getReplicationService().cancel(op);
 
-            getWriteDrive(getVirtualFileSystemService().getBucketById(op.getBucketId()), objectName)
+            getWriteDrive(getBucketById(op.getBucketId()), objectName)
                     .deleteObjectMetadata(getVirtualFileSystemService().getBucketById(op.getBucketId()), objectName);
 
             FileUtils.deleteQuietly(new File(
-                    getWriteDrive(this.getVirtualFileSystemService().getBucketById(op.getBucketId()), objectName).getRootDirPath(),
+                    getWriteDrive(getBucketById(op.getBucketId()), objectName).getRootDirPath(),
                     op.getBucketId().toString() + File.separator + objectName));
             done = true;
 
@@ -186,7 +184,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
             if (!recoveryMode)
                 throw new InternalCriticalException(e, getDriver().opInfo(op));
             else
-                logger.error(e, getDriver().opInfo(op), SharedConstant.NOT_THROWN);
+                logger.error(e, opInfo(op), SharedConstant.NOT_THROWN);
         } finally {
             if (done || recoveryMode)
                 op.cancel();
@@ -211,41 +209,39 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
 
         byte[] buf = new byte[ServerConstant.BUFFER_SIZE];
 
-        BufferedOutputStream out = null;
-        boolean isMainException = false;
+        //BufferedOutputStream out = null;
+        //boolean isMainException = false;
+        //SimpleDrive drive = (SimpleDrive) getWriteDrive(bucket, objectName);
 
-        SimpleDrive drive = (SimpleDrive) getWriteDrive(bucket, objectName);
-
-        //ObjectDataPathBuilder pathBuilder = new ObjectDataPathBuilder(drive, bucket, objectName);
-
-        ObjectPath path = new ObjectPath(drive, bucket, objectName);
+        try (InputStream sourceStream = isEncrypt() ? getVirtualFileSystemService().getEncryptionService().encryptStream(stream) : stream) {
         
-        try (InputStream sourceStream = isEncrypt() ? getVirtualFileSystemService().getEncryptionService().encryptStream(stream)
-                : stream) {
-            //out = new BufferedOutputStream(new FileOutputStream(pathBuilder.build()), ServerConstant.BUFFER_SIZE);
-            out = new BufferedOutputStream(new FileOutputStream(path.dataFilePath(Context.STORAGE).toFile()), ServerConstant.BUFFER_SIZE);
-            int bytesRead;
-            while ((bytesRead = sourceStream.read(buf, 0, buf.length)) >= 0) {
-                out.write(buf, 0, bytesRead);
-            }
+            ObjectPath path = new ObjectPath(getWriteDrive(bucket, objectName), bucket, objectName);
+            
+                try (BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(path.dataFilePath(Context.STORAGE).toFile()), ServerConstant.BUFFER_SIZE)) {
+                    int bytesRead;
+                    while ((bytesRead = sourceStream.read(buf, 0, buf.length)) >= 0)
+                        out.write(buf, 0, bytesRead);
+                }
+                
         } catch (Exception e) {
-            isMainException = true;
+            //isMainException = true;
             throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
 
-        } finally {
-            IOException secEx = null;
-            try {
-                if (out != null)
-                    out.close();
-            } catch (IOException e) {
-                if (isMainException)
-                    logger.error(e,objectInfo(bucket, objectName, srcFileName) + (isMainException ? SharedConstant.NOT_THROWN : ""));
-                secEx = e;
-            }
-            if ((!isMainException) && (secEx != null))
-                throw new InternalCriticalException(secEx);
-        }
+        } //finally {
+            //IOException secEx = null;
+            //try {
+                //if (out != null)
+                //    out.close();
+            //} catch (IOException e) {
+             //   if (isMainException)
+              //      logger.error(e,objectInfo(bucket, objectName, srcFileName) + (isMainException ? SharedConstant.NOT_THROWN : ""));
+               // secEx = e;
+            //}
+            //if ((!isMainException) && (secEx != null))
+             //   throw new InternalCriticalException(secEx);
+        //}
     }
+    
 
     /**
      * <p>
@@ -267,9 +263,14 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
         Check.requireNonNullArgument(bucket, "bucket is null");
 
         OffsetDateTime now = OffsetDateTime.now();
+        
         Drive drive = getWriteDrive(bucket, objectName);
-        File file = ((SimpleDrive) drive).getObjectDataFile(bucket.getId(), objectName);
-
+        
+        ObjectPath path = new ObjectPath(drive, bucket, objectName);
+        //File file = ((SimpleDrive) drive).getObjectDataFile(bucket.getId(), objectName);
+        
+        File file = path.dataFilePath(Context.STORAGE).toFile();
+        
         try {
             String sha256 = OdilonFileUtils.calculateSHA256String(file);
             ObjectMetadata meta = new ObjectMetadata(bucket.getId(), objectName);
