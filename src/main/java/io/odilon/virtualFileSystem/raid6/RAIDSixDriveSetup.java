@@ -216,7 +216,7 @@ public class RAIDSixDriveSetup implements IODriveSetup, ApplicationContextAware 
             for (Drive drive : getDriver().getDrivesAll()) {
                 if (drive.getDriveInfo().getStatus() == DriveStatus.NOTSYNC) {
                     try {
-                        if (!drive.existsBucket(bucket.getId())) {
+                        if (!drive.existsBucketById(bucket.getId())) {
                             drive.createBucket(bucket.getBucketMetadata());
                         }
                     } catch (Exception e) {

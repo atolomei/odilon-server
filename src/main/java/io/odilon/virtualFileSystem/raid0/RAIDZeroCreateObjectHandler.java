@@ -16,6 +16,7 @@
  */
 package io.odilon.virtualFileSystem.raid0;
 
+
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -40,8 +41,7 @@ import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
 import io.odilon.util.OdilonFileUtils;
 import io.odilon.virtualFileSystem.Context;
-import io.odilon.virtualFileSystem.ObjectDataPathBuilder;
-import io.odilon.virtualFileSystem.ObjectMetadataPathBuilder;
+import io.odilon.virtualFileSystem.ObjectPath;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.SimpleDrive;
@@ -168,8 +168,8 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
             if (getVirtualFileSystemService().getServerSettings().isStandByEnabled())
                 getVirtualFileSystemService().getReplicationService().cancel(op);
 
-            getWriteDrive(this.getVirtualFileSystemService().getBucketById(op.getBucketId()), objectName)
-                    .deleteObjectMetadata(op.getBucketId(), objectName);
+            getWriteDrive(getVirtualFileSystemService().getBucketById(op.getBucketId()), objectName)
+                    .deleteObjectMetadata(getVirtualFileSystemService().getBucketById(op.getBucketId()), objectName);
 
             FileUtils.deleteQuietly(new File(
                     getWriteDrive(this.getVirtualFileSystemService().getBucketById(op.getBucketId()), objectName).getRootDirPath(),
@@ -193,6 +193,9 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
         }
     }
 
+    
+    
+    
     /**
      * <p>
      * This method is <b>not</b> ThreadSafe, callers must ensure proper concurrency
@@ -213,11 +216,14 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
 
         SimpleDrive drive = (SimpleDrive) getWriteDrive(bucket, objectName);
 
-        ObjectDataPathBuilder pathBuilder = new ObjectDataPathBuilder(drive, bucket, objectName);
+        //ObjectDataPathBuilder pathBuilder = new ObjectDataPathBuilder(drive, bucket, objectName);
 
+        ObjectPath path = new ObjectPath(drive, bucket, objectName);
+        
         try (InputStream sourceStream = isEncrypt() ? getVirtualFileSystemService().getEncryptionService().encryptStream(stream)
                 : stream) {
-            out = new BufferedOutputStream(new FileOutputStream(pathBuilder.build()), ServerConstant.BUFFER_SIZE);
+            //out = new BufferedOutputStream(new FileOutputStream(pathBuilder.build()), ServerConstant.BUFFER_SIZE);
+            out = new BufferedOutputStream(new FileOutputStream(path.dataFilePath(Context.STORAGE).toFile()), ServerConstant.BUFFER_SIZE);
             int bytesRead;
             while ((bytesRead = sourceStream.read(buf, 0, buf.length)) >= 0) {
                 out.write(buf, 0, bytesRead);
@@ -256,8 +262,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
      * @param srcFileName can not be null
      * @param customTags
      */
-    private void saveObjectMetadata(ServerBucket bucket, String objectName, String srcFileName, String contentType, int version,
-            Optional<List<String>> customTags) {
+    private void saveObjectMetadata(ServerBucket bucket, String objectName, String srcFileName, String contentType, int version, Optional<List<String>> customTags) {
 
         Check.requireNonNullArgument(bucket, "bucket is null");
 
@@ -286,12 +291,8 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
                 meta.setCustomTags(customTags.get());
             meta.setRaid(String.valueOf(getRedundancyLevel().getCode()).trim());
 
-            ObjectMetadataPathBuilder pathBuilder = new ObjectMetadataPathBuilder((SimpleDrive) drive, bucket, objectName, Context.STORAGE);
-            String path=pathBuilder.build();
-            logger.debug(path);
-            
-            
             drive.saveObjectMetadata(meta);
+            
 
         } catch (Exception e) {
             throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));

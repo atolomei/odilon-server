@@ -60,7 +60,6 @@ public class OdilonSimpleDrive extends OdilonDrive implements SimpleDrive {
 	}
 
 	/**
-	 * 
 	 * <p>Constructor explicit
 	 * 
 	 * @param driveNanme
@@ -85,7 +84,6 @@ public class OdilonSimpleDrive extends OdilonDrive implements SimpleDrive {
 	
 	/**
 	 * <b>Object Data</b>
-	 * 
 	 * <p>This method is not ThreadSafe</p>
 	 */
 	@Override
@@ -115,8 +113,8 @@ public class OdilonSimpleDrive extends OdilonDrive implements SimpleDrive {
 		Check.requireNonNullArgument(bucketId, "bucketId is null");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null -> b:" + bucketId.toString());
 
-		if (!super.existBucketMetadataDir(bucketId))
-			  throw new IllegalStateException("Bucket Metadata Directory must exist -> d:" + getName() + " | b:" + bucketId.toString());
+		//if (!super.existBucketMetadataDir(bucketId))
+		//	  throw new IllegalStateException("Bucket Metadata Directory must exist -> d:" + getName() + " | b:" + bucketId.toString());
 		
 		/** data Bucket created on demand */
 		createDataBucketDirIfNotExists(bucketId);
@@ -176,5 +174,6 @@ public class OdilonSimpleDrive extends OdilonDrive implements SimpleDrive {
 				throw (e);
 		}
 	}
+
 	
 }

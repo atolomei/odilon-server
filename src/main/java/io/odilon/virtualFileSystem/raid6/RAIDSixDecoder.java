@@ -42,6 +42,7 @@ import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.LockService;
+import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
@@ -53,13 +54,11 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
-public class RAIDSixDecoder extends BaseObject {
+public class RAIDSixDecoder extends RAIDSixCoder {
 
     static private Logger logger = Logger.getLogger(RAIDSixEncoder.class.getName());
 
-    @JsonIgnore
-    private RAIDSixDriver driver;
-
+    
     private final int data_shards;
 
     private final int parity_shards;
@@ -67,8 +66,8 @@ public class RAIDSixDecoder extends BaseObject {
     private final int total_shards;
 
     protected RAIDSixDecoder(RAIDSixDriver driver) {
-        Check.requireNonNull(driver);
-        this.driver = driver;
+        super(driver);
+        
         this.data_shards = getVirtualFileSystemService().getServerSettings().getRAID6DataDrives();
         this.parity_shards = getVirtualFileSystemService().getServerSettings().getRAID6ParityDrives();
         this.total_shards = data_shards + parity_shards;
@@ -91,10 +90,7 @@ public class RAIDSixDecoder extends BaseObject {
         return decode(meta, false);
     }
 
-    public RAIDSixDriver getDriver() {
-        return this.driver;
-    }
-
+    
     private File decode(ObjectMetadata meta, boolean isHead) {
 
         Long bucketId = meta.getBucketId();
@@ -163,10 +159,10 @@ public class RAIDSixDecoder extends BaseObject {
 
             if (drive != null) {
                 shardFile = (isHead)
-                        ? (new File(drive.getBucketObjectDataDirPath(meta.getBucketId()),
+                        ? (new File(drive.getBucketObjectDataDirPath(getBucketById(meta.getBucketId())),
                                 meta.getObjectName() + "." + String.valueOf(chunk) + "." + String.valueOf(disk)))
                         : (new File(
-                                drive.getBucketObjectDataDirPath(meta.getBucketId()) + File.separator
+                                drive.getBucketObjectDataDirPath(getBucketById(meta.getBucketId())) + File.separator
                                         + VirtualFileSystemService.VERSION_DIR,
                                 meta.getObjectName() + "." + String.valueOf(chunk) + "." + String.valueOf(disk) + ".v"
                                         + String.valueOf(meta.getVersion())));
@@ -236,17 +232,5 @@ public class RAIDSixDecoder extends BaseObject {
         return this.total_shards;
     }
 
-    private String objectInfo(ObjectMetadata meta) {
-        return getDriver().objectInfo(meta);
-    }
-
-    private VirtualFileSystemService getVirtualFileSystemService() {
-        return getDriver().getVirtualFileSystemService();
-    }
-    
-    private FileCacheService getFileCacheService() {
-        return getVirtualFileSystemService().getFileCacheService();
-    }
-    
 
 }

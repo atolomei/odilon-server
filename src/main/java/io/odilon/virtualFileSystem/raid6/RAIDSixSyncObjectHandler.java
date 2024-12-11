@@ -101,7 +101,7 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
                  * backup metadata, there is no need to backup data because existing data files
                  * are not touched.
                  **/
-                backupMetadata(meta);
+                backupMetadata(bucket, meta);
 
                 op = getJournalService().syncObject(bucket, objectName);
 
@@ -141,7 +141,7 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
                     for (int version = 0; version < meta.version; version++) {
 
                         ObjectMetadata versionMeta = getDriver().getObjectMetadataReadDrive(bucket, objectName)
-                                .getObjectMetadataVersion(bucketId, objectName, version);
+                                .getObjectMetadataVersion(bucket, objectName, version);
 
                         if (versionMeta != null) {
 
@@ -281,7 +281,7 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
             getLockService().getBucketLock(bucket).readLock().lock();
 
             try {
-                restoreMetadata(op.getBucketId(), objectName);
+                restoreMetadata(bucket, objectName);
                 done = true;
 
             } catch (InternalCriticalException e) {
@@ -319,12 +319,14 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
      * @param bucket
      * @param objectName
      */
-    private void backupMetadata(ObjectMetadata meta) {
+    private void backupMetadata(ServerBucket bucket, ObjectMetadata meta) {
         try {
+            
+            
             for (Drive drive : getDriver().getDrivesEnabled()) {
 
-                File src = new File(drive.getObjectMetadataDirPath(meta.bucketId, meta.getObjectName()));
-                File dest = new File(drive.getBucketWorkDirPath(meta.bucketId) + File.separator + meta.getObjectName());
+                File src = new File(drive.getObjectMetadataDirPath(bucket, meta.getObjectName()));
+                File dest = new File(drive.getBucketWorkDirPath(bucket) + File.separator + meta.getObjectName());
 
                 if (src.exists())
                     FileUtils.copyDirectory(src, dest);
@@ -334,21 +336,21 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
         }
     }
 
-    private void restoreMetadata(Long bucketId, String objectName) {
+    private void restoreMetadata(ServerBucket bucket, String objectName) {
         try {
             for (Drive drive : getDriver().getDrivesEnabled()) {
 
-                File dest = new File(drive.getObjectMetadataDirPath(bucketId, objectName));
-                File src = new File(drive.getBucketWorkDirPath(bucketId) + File.separator + objectName);
+                File dest = new File(drive.getObjectMetadataDirPath(bucket, objectName));
+                File src = new File(drive.getBucketWorkDirPath(bucket) + File.separator + objectName);
 
                 if (src.exists())
                     FileUtils.copyDirectory(src, dest);
                 else
                     throw new InternalCriticalException("backup dir does not exist "
-                            + getDriver().objectInfo(bucketId, objectName) + "dir:" + src.getAbsolutePath());
+                            + getDriver().objectInfo(bucket, objectName) + "dir:" + src.getAbsolutePath());
             }
         } catch (IOException e) {
-            throw new InternalCriticalException(e, getDriver().objectInfo(bucketId, objectName));
+            throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName));
         }
     }
 

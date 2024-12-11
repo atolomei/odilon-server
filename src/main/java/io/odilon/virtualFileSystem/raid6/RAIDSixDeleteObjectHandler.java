@@ -90,7 +90,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 			
 			try {
 				
-				meta = getDriver().getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucketId, objectName);
+				meta = getDriver().getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucket, objectName);
 				
 				headVersion = meta.version;
 			
@@ -99,7 +99,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 				backupMetadata(meta);
 				
 				for (Drive drive: getDriver().getDrivesAll()) 
-					drive.deleteObjectMetadata(bucket.getId(), objectName);
+					drive.deleteObjectMetadata(bucket, objectName);
 				
 				done = op.commit();
 				
@@ -203,7 +203,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 					/** remove all "objectmetadata.json.vn" Files, but keep -> "objectmetadata.json" **/  
 					for (int version=0; version < headVersion; version++) { 
 						for (Drive drive: getDriver().getDrivesAll()) {
-							FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(bucketId, objectName, version));
+							FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(bucket, objectName, version));
 						}
 					}
 
@@ -214,7 +214,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 					 final List<Drive> drives = getDriver().getDrivesAll();
 					 final List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
 					
-					 getDriver().getDrivesAll().forEach(d -> list.add(d.getObjectMetadata(bucketId, objectName)));
+					 getDriver().getDrivesAll().forEach(d -> list.add(d.getObjectMetadata(bucket, objectName)));
 					 getDriver().saveObjectMetadataToDisk(drives, list, true);
 					 
 					 done=op.commit();
@@ -228,7 +228,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 				} catch (Exception e) {
 					done=false;
 					isMainException = true;
-					throw new InternalCriticalException(e, getDriver().objectInfo(bucketId, objectName));
+					throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName));
 				}
 				
 				finally {
@@ -274,7 +274,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 		
 		String bucketName =meta.getBucketName();
 		String objectName = meta.getObjectName();
-		Long bucketId = meta.bucketId;
+		Long bucketId = meta.getBucketId();
 		
 		Check.requireNonNullArgument(bucketName, "bucket is null");
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketName);
@@ -290,7 +290,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 
 			/** delete backup Metadata */
 			for (Drive drive:getDriver().getDrivesAll())
-				FileUtils.deleteQuietly(new File(drive.getBucketWorkDirPath(bucketId), objectName));
+				FileUtils.deleteQuietly(new File(drive.getBucketWorkDirPath(getBucketById(bucketId)), objectName));
 			
 		} catch (Exception e) {
 			logger.error(e, SharedConstant.NOT_THROWN);
@@ -380,7 +380,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 			
 			/** delete backup Metadata */
 			for (Drive drive:getDriver().getDrivesAll())
-				FileUtils.deleteQuietly(new File(drive.getBucketWorkDirPath(meta.bucketId), objectName));
+				FileUtils.deleteQuietly(new File(drive.getBucketWorkDirPath(getBucketById(meta.bucketId)), objectName));
 			}
 		catch (Exception e) {
 			logger.error(e, SharedConstant.NOT_THROWN);
@@ -398,8 +398,8 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 	
 		try {
 			for (Drive drive: getDriver().getDrivesAll()) {
-				String objectMetadataDirPath = drive.getObjectMetadataDirPath(meta.bucketId, meta.getObjectName());
-				String objectMetadataBackupDirPath = drive.getBucketWorkDirPath(meta.bucketId) + File.separator + meta.getObjectName();
+				String objectMetadataDirPath = drive.getObjectMetadataDirPath(getBucketById(meta.bucketId), meta.getObjectName());
+				String objectMetadataBackupDirPath = drive.getBucketWorkDirPath(getBucketById(meta.bucketId)) + File.separator + meta.getObjectName();
 				File src = new File(objectMetadataDirPath);
 				if (src.exists())
 					FileUtils.copyDirectory(src, new File(objectMetadataBackupDirPath));
@@ -429,8 +429,8 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 	 * */
 	private void restoreMetadata(ServerBucket bucket, String objectName) {
 		for (Drive drive: getDriver().getDrivesAll()) {
-			String objectMetadataBackupDirPath = drive.getBucketWorkDirPath(bucket.getId()) + File.separator + objectName;
-			String objectMetadataDirPath = drive.getObjectMetadataDirPath(bucket.getId(), objectName);
+			String objectMetadataBackupDirPath = drive.getBucketWorkDirPath(bucket) + File.separator + objectName;
+			String objectMetadataDirPath = drive.getObjectMetadataDirPath(bucket, objectName);
 			try {
 				if ((new File(objectMetadataBackupDirPath)).exists())
 					FileUtils.copyDirectory(new File(objectMetadataBackupDirPath), new File(objectMetadataDirPath));

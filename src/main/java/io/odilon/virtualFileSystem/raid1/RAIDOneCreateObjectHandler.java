@@ -158,6 +158,8 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
         String objectName = op.getObjectName();
         Long bucket_id = op.getBucketId();
 
+        ServerBucket bucket = getVirtualFileSystemService().getBucketById(bucket_id);
+
         Check.requireNonNullArgument(bucket_id, "bucket_id is null");
         Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucket_id.toString());
 
@@ -168,7 +170,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
                 getVirtualFileSystemService().getReplicationService().cancel(op);
 
             for (Drive drive : getDriver().getDrivesAll()) {
-                drive.deleteObjectMetadata(bucket_id, objectName);
+                drive.deleteObjectMetadata(bucket, objectName);
                 FileUtils.deleteQuietly(
                         new File(drive.getRootDirPath(), bucket_id.toString() + File.separator + objectName));
             }
@@ -178,15 +180,13 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
             if (!recoveryMode)
                 throw (e);
             else
-                logger.error(e, "Rollback: " + (Optional.ofNullable(op).isPresent() ? op.toString() : "null"),
-                        SharedConstant.NOT_THROWN);
+                logger.error(e, getDriver().opInfo(op), SharedConstant.NOT_THROWN);
 
         } catch (Exception e) {
-            String msg = "Rollback: " + (Optional.ofNullable(op).isPresent() ? op.toString() : "null");
             if (!recoveryMode)
-                throw new InternalCriticalException(e, msg);
+                throw new InternalCriticalException(e, getDriver().opInfo(op));
             else
-                logger.error(e, msg + SharedConstant.NOT_THROWN);
+                logger.error(e, getDriver().opInfo(op), SharedConstant.NOT_THROWN);
         } finally {
             if (done || recoveryMode)
                 op.cancel();

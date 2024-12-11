@@ -193,7 +193,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
                 for (int version = 0; version < beforeHeadVersion; version++) {
 
                     ObjectMetadata mv = getDriver().getReadDrive(bucket, objectName)
-                            .getObjectMetadataVersion(bucket.getId(), objectName, version);
+                            .getObjectMetadataVersion(bucket, objectName, version);
 
                     if (mv != null)
                         metaVersions.add(mv);
@@ -426,8 +426,8 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
         // TODO AT: parallel
         try {
             for (Drive drive : getDriver().getDrivesAll())
-                drive.putObjectMetadataVersionFile(bucket.getId(), objectName, version,
-                        drive.getObjectMetadataFile(bucket.getId(), objectName));
+                drive.putObjectMetadataVersionFile(bucket, objectName, version,
+                        drive.getObjectMetadataFile(bucket, objectName));
 
         } catch (Exception e) {
             throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName));
@@ -631,9 +631,9 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 
             boolean success = true;
             for (Drive drive : getDriver().getDrivesAll()) {
-                File file = drive.getObjectMetadataVersionFile(bucket.getId(), objectName, version);
+                File file = drive.getObjectMetadataVersionFile(bucket, objectName, version);
                 if (file.exists()) {
-                    drive.putObjectMetadataFile(bucket.getId(), objectName, file);
+                    drive.putObjectMetadataFile(bucket, objectName, file);
                     FileUtils.deleteQuietly(file);
                 } else
                     success = false;
@@ -677,7 +677,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
         try {
             for (Drive drive : getDriver().getDrivesAll()) {
                 FileUtils.deleteQuietly(
-                        drive.getObjectMetadataVersionFile(bucket.getId(), objectName, versionDiscarded));
+                        drive.getObjectMetadataVersionFile(bucket, objectName, versionDiscarded));
                 FileUtils.deleteQuietly(
                         ((SimpleDrive) drive).getObjectDataVersionFile(bucket.getId(), objectName, versionDiscarded));
             }
@@ -696,8 +696,8 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
         Check.requireNonNullArgument(meta, "meta is null");
         try {
             for (Drive drive : getDriver().getDrivesAll()) {
-                String objectMetadataDirPath = drive.getObjectMetadataDirPath(meta.bucketId, meta.objectName);
-                String objectMetadataBackupDirPath = drive.getBucketWorkDirPath(meta.bucketId) + File.separator
+                String objectMetadataDirPath = drive.getObjectMetadataDirPath( getBucketById(meta.bucketId), meta.objectName);
+                String objectMetadataBackupDirPath = drive.getBucketWorkDirPath(getBucketById(meta.bucketId)) + File.separator
                         + meta.objectName;
                 File src = new File(objectMetadataDirPath);
                 if (src.exists())
@@ -730,7 +730,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
             if (!getVirtualFileSystemService().getServerSettings().isVersionControl()) {
                 for (Drive drive : getDriver().getDrivesAll()) {
                     FileUtils.deleteQuietly(
-                            drive.getObjectMetadataVersionFile(bucket.getId(), objectName, previousVersion));
+                            drive.getObjectMetadataVersionFile(bucket, objectName, previousVersion));
                     FileUtils.deleteQuietly(((SimpleDrive) drive).getObjectDataVersionFile(bucket.getId(), objectName,
                             previousVersion));
                 }
@@ -745,7 +745,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
             /** delete backup Metadata */
             for (Drive drive : getDriver().getDrivesAll()) {
                 FileUtils.deleteQuietly(
-                        new File(drive.getBucketWorkDirPath(bucket.getId()) + File.separator + objectName));
+                        new File(drive.getBucketWorkDirPath(bucket) + File.separator + objectName));
             }
         } catch (Exception e) {
             logger.error(e, getDriver().objectInfo(bucket, objectName), SharedConstant.NOT_THROWN);

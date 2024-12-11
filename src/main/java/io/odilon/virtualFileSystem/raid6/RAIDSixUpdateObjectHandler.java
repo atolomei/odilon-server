@@ -269,7 +269,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
 
                 for (int version = 0; version < beforeHeadVersion; version++) {
                     ObjectMetadata mv = getDriver().getObjectMetadataReadDrive(bucket, objectName)
-                            .getObjectMetadataVersion(bucket.getId(), objectName, version);
+                            .getObjectMetadataVersion(bucket, objectName, version);
                     if (mv != null)
                         metaVersions.add(mv);
                 }
@@ -391,9 +391,9 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
             Long bucketId = metaHeadRemoved.bucketId;
 
             for (Drive drive : getDriver().getDrivesAll()) {
-                FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(bucketId, objectName, versionDiscarded));
+                FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(getBucketById(bucketId), objectName, versionDiscarded));
                 FileUtils.deleteQuietly(
-                        drive.getObjectMetadataVersionFile(bucketId, objectName, metaNewHeadRestored.version));
+                        drive.getObjectMetadataVersionFile(getBucketById(bucketId), objectName, metaNewHeadRestored.getVersion()));
             }
 
             {
@@ -425,16 +425,15 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
 
         try {
             for (Drive drive : getDriver().getDrivesAll()) {
-                File file = drive.getObjectMetadataFile(bucketId, objectName);
+                File file = drive.getObjectMetadataFile(bucket, objectName);
                 if (file.exists())
-                    drive.putObjectMetadataVersionFile(bucketId, objectName, version, file);
+                    drive.putObjectMetadataVersionFile(bucket, objectName, version, file);
             }
 
         } catch (InternalCriticalException e) {
             throw e;
         } catch (Exception e) {
-            throw new InternalCriticalException(e,
-                    "backupVersionObjectMetadata | " + getDriver().objectInfo(bucketName, objectName));
+            throw new InternalCriticalException(e, objectInfo(bucket, objectName));
         }
     }
 
@@ -452,9 +451,9 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
 
         for (Drive drive : map.keySet()) {
             for (String filename : map.get(drive)) {
-                File current = new File(drive.getBucketObjectDataDirPath(meta.bucketId), filename);
+                File current = new File(drive.getBucketObjectDataDirPath(getBucketById(meta.bucketId)), filename);
                 String suffix = ".v" + String.valueOf(headVersion);
-                File backupFile = new File(drive.getBucketObjectDataDirPath(meta.bucketId) + File.separator
+                File backupFile = new File(drive.getBucketObjectDataDirPath(getBucketById(meta.bucketId)) + File.separator
                         + VirtualFileSystemService.VERSION_DIR, filename + suffix);
                 try {
 
@@ -630,11 +629,11 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
     private void backupMetadata(ObjectMetadata meta) {
         try {
             for (Drive drive : getDriver().getDrivesAll()) {
-                String objectMetadataDirPath = drive.getObjectMetadataDirPath(meta.bucketId, meta.getObjectName());
+                String objectMetadataDirPath = drive.getObjectMetadataDirPath(getBucketById(meta.bucketId), meta.getObjectName());
                 File src = new File(objectMetadataDirPath);
                 if (src.exists())
                     FileUtils.copyDirectory(src,
-                            new File(drive.getBucketWorkDirPath(meta.bucketId) + File.separator + meta.getObjectName()));
+                            new File(drive.getBucketWorkDirPath(getBucketById(meta.bucketId)) + File.separator + meta.getObjectName()));
 
             }
         } catch (IOException e) {
@@ -654,7 +653,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
 
         try {
             for (Drive drive : getDriver().getDrivesAll()) {
-                FileUtils.deleteQuietly(new File(drive.getBucketWorkDirPath(bucketId) + File.separator + objectName));
+                FileUtils.deleteQuietly(new File(drive.getBucketWorkDirPath(getBucketById(bucketId)) + File.separator + objectName));
             }
         } catch (Exception e) {
             logger.error(e, SharedConstant.NOT_THROWN);
@@ -673,7 +672,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
 
                 for (Drive drive : getDriver().getDrivesAll()) {
                     FileUtils.deleteQuietly(
-                            drive.getObjectMetadataVersionFile(meta.bucketId, meta.getObjectName(), previousVersion));
+                            drive.getObjectMetadataVersionFile(getBucketById(meta.bucketId), meta.getObjectName(), previousVersion));
                     List<File> files = getDriver().getObjectDataFiles(meta, Optional.of(previousVersion));
                     files.forEach(file -> {
                         FileUtils.deleteQuietly(file);
@@ -741,12 +740,12 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
                     String arr[] = name.split(".v");
                     String headFileName = arr[0];
                     try {
-                        if (new File(drive.getBucketObjectDataDirPath(meta.bucketId) + File.separator
+                        if (new File(drive.getBucketObjectDataDirPath(getBucketById(meta.bucketId)) + File.separator
                                 + VirtualFileSystemService.VERSION_DIR, name).exists()) {
                             Files.copy(
-                                    (new File(drive.getBucketObjectDataDirPath(meta.bucketId) + File.separator
+                                    (new File(drive.getBucketObjectDataDirPath(getBucketById(meta.bucketId)) + File.separator
                                             + VirtualFileSystemService.VERSION_DIR, name)).toPath(),
-                                    (new File(drive.getBucketObjectDataDirPath(meta.bucketId), headFileName)).toPath(),
+                                    (new File(drive.getBucketObjectDataDirPath(getBucketById(meta.bucketId)), headFileName)).toPath(),
                                     StandardCopyOption.REPLACE_EXISTING);
                         }
                     } catch (IOException e) {
@@ -777,7 +776,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
                 getVirtualFileSystemService().getReplicationService().cancel(op);
 
             ObjectMetadata meta = getDriver().getObjectMetadataReadDrive(bucket, op.getObjectName())
-                    .getObjectMetadata(op.getBucketId(), op.getObjectName());
+                    .getObjectMetadata(getBucketById(op.getBucketId()), op.getObjectName());
 
             if (meta != null) {
                 restoreVersionObjectDataFile(meta, op.getVersion());

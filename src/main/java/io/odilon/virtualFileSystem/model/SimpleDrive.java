@@ -22,17 +22,17 @@ import java.io.InputStream;
 
 
 /**
- * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public interface SimpleDrive extends Drive {
 	
 	public InputStream getObjectInputStream(Long bucketId, String objectName);
+	
 	public File putObjectStream(Long bucketId, String objectName, InputStream stream) throws IOException;
 	public void putObjectDataFile(Long bucketId, String objectName, File objectFile) throws IOException;
 	public void putObjectDataVersionFile(Long bucketId, String objectName, int version, File objectFile) throws IOException;
 
-	public void deleteObjectMetadata(Long bucketId, String objectName);
+	public void deleteObjectMetadata(ServerBucket bucket, String objectName);
 	
 	public File getObjectDataFile(Long bucketId, String objectName);
 	public File getObjectDataVersionFile(Long bucketId, String objectName, int version);

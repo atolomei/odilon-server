@@ -150,7 +150,7 @@ public class RAIDOneDriver extends BaseIODriver {
                 /** RAID 1: read is from any of the drives */
                 Drive readDrive = getReadDrive(bucket, objectName);
 
-                if (!readDrive.existsBucket(bucket.getId()))
+                if (!readDrive.existsBucketById(bucket.getId()))
                     throw new IllegalStateException("bucket -> b:" + bucket.getId() + " does not exist for -> d:"
                             + readDrive.getName() + " | v:" + String.valueOf(version));
 
@@ -397,7 +397,7 @@ public class RAIDOneDriver extends BaseIODriver {
                 /** read is from only 1 drive */
                 readDrive = getReadDrive(bucket, objectName);
 
-                if (!readDrive.existsBucket(bucket.getId()))
+                if (!readDrive.existsBucketById(bucket.getId()))
                     throw new IllegalStateException("bucket -> b:" + bucket.getId() + " does not exist for -> d:"
                             + readDrive.getName() + " | raid -> " + this.getClass().getSimpleName());
 
@@ -412,7 +412,7 @@ public class RAIDOneDriver extends BaseIODriver {
                     return list;
 
                 for (int version = 0; version < meta.version; version++) {
-                    ObjectMetadata meta_version = readDrive.getObjectMetadataVersion(bucket.getId(), objectName,
+                    ObjectMetadata meta_version = readDrive.getObjectMetadataVersion(bucket, objectName,
                             version);
 
                     /**
@@ -479,7 +479,7 @@ public class RAIDOneDriver extends BaseIODriver {
                 /** read is from only one of the drive (randomly selected) drive */
                 Drive readDrive = getReadDrive(bucket, objectName);
 
-                if (!readDrive.existsBucket(bucket.getId()))
+                if (!readDrive.existsBucketById(bucket.getId()))
                     throw new IllegalArgumentException(
                             "bucket control folder -> b:" + bucket.getId() + " does not exist for drive -> d:"
                                     + readDrive.getName() + " | Raid -> " + this.getClass().getSimpleName());
@@ -637,7 +637,7 @@ public class RAIDOneDriver extends BaseIODriver {
                 /** read is from only 1 drive, randomly selected */
                 Drive readDrive = getReadDrive(bucket, objectName);
 
-                if (!readDrive.existsBucket(bucket.getId()))
+                if (!readDrive.existsBucketById(bucket.getId()))
                     throw new IllegalStateException("bucket -> b:" + bucket.getId() + " does not exist for drive -> d:"
                             + readDrive.getName() + " | class -> " + this.getClass().getSimpleName());
 
@@ -721,7 +721,7 @@ public class RAIDOneDriver extends BaseIODriver {
 
             for (Drive drive : getDrivesEnabled()) {
 
-                ObjectMetadata meta = drive.getObjectMetadata(bucket.getId(), objectName);
+                ObjectMetadata meta = drive.getObjectMetadata(bucket, objectName);
 
                 if ((forceCheck) || (meta.integrityCheck == null) || (meta.integrityCheck.isBefore(thresholdDate))) {
 
@@ -770,7 +770,7 @@ public class RAIDOneDriver extends BaseIODriver {
                 if (!iCheck[p].booleanValue()) {
                     retValue = false;
                     if (goodDrive != null)
-                        goodDriveMeta = goodDrive.getObjectMetadata(bucket.getId(), objectName);
+                        goodDriveMeta = goodDrive.getObjectMetadata(bucket, objectName);
                     break;
                 }
             }
@@ -795,7 +795,7 @@ public class RAIDOneDriver extends BaseIODriver {
         if (bucketLock && objectLock && (!retValue)) {
             if (goodDrive != null) {
                 if (goodDriveMeta == null)
-                    goodDriveMeta = goodDrive.getObjectMetadata(bucket.getId(), objectName);
+                    goodDriveMeta = goodDrive.getObjectMetadata(bucket, objectName);
                 retValue = fix(bucket.getId(), objectName, goodDriveMeta, iCheck, goodDrive);
             }
         }
@@ -860,14 +860,14 @@ public class RAIDOneDriver extends BaseIODriver {
                 done = true;
             } else if (op.getOp() == VFSOp.CREATE_BUCKET) {
                 for (Drive drive : getDrivesAll())
-                    ((OdilonDrive) drive).forceDeleteBucket(bucketId);
+                    ((OdilonDrive) drive).forceDeleteBucketById(bucketId);
                 done = true;
             } else if (op.getOp() == VFSOp.UPDATE_BUCKET) {
                 restoreBucketMetadata(getVirtualFileSystemService().getBucketById(bucketId));
                 done = true;
             } else if (op.getOp() == VFSOp.DELETE_BUCKET) {
                 for (Drive drive : getDrivesAll())
-                    drive.markAsEnabledBucket(bucketId);
+                    drive.markAsEnabledBucket(getVirtualFileSystemService().getBucketById(bucketId));
                 done = true;
             } else if (op.getOp() == VFSOp.CREATE_SERVER_METADATA) {
                 if (objectName != null) {
@@ -952,7 +952,7 @@ public class RAIDOneDriver extends BaseIODriver {
 
             try {
 
-                ObjectMetadata currentMeta = goodDrive.getObjectMetadata(bucketId, objectName);
+                ObjectMetadata currentMeta = goodDrive.getObjectMetadata(getVirtualFileSystemService().getBucketById(bucketId), objectName);
 
                 if (!currentMeta.lastModified.equals(goodDriveMeta.lastModified))
                     return true;
@@ -1027,7 +1027,7 @@ public class RAIDOneDriver extends BaseIODriver {
                 /** read is from only 1 drive */
                 readDrive = getReadDrive(bucket, objectName);
 
-                if (!readDrive.existsBucket(bucket.getId()))
+                if (!readDrive.existsBucketById(bucket.getId()))
                     throw new IllegalArgumentException("bucket -> b:" + bucket.getName() + " does not exist for -> d:"
                             + readDrive.getName() + " | raid -> " + this.getClass().getSimpleName());
 
@@ -1038,7 +1038,7 @@ public class RAIDOneDriver extends BaseIODriver {
                 ObjectMetadata meta;
 
                 if (o_version.isPresent())
-                    meta = readDrive.getObjectMetadataVersion(bucket.getId(), objectName, o_version.get());
+                    meta = readDrive.getObjectMetadataVersion(bucket, objectName, o_version.get());
                 else
                     meta = getObjectMetadataInternal(bucket, objectName, addToCacheifMiss);
 

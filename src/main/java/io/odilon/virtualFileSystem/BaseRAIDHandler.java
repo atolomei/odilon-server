@@ -36,6 +36,10 @@ public abstract class BaseRAIDHandler {
     public VirtualFileSystemService getVirtualFileSystemService() {
         return getDriver().getVirtualFileSystemService();
     }
+
+    protected ServerBucket getBucketById(Long id) {
+        return getVirtualFileSystemService().getBucketById(id);
+    }
     
     public JournalService getJournalService() {
         return getDriver().getJournalService();

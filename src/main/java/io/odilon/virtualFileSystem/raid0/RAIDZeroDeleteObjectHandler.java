@@ -93,7 +93,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
 
                 backupMetadata(bucket, meta.getObjectName());
 
-                drive.deleteObjectMetadata(bucket.getId(), objectName);
+                drive.deleteObjectMetadata(bucket, objectName);
 
                 done = op.commit();
 
@@ -105,7 +105,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
             } catch (Exception e) {
                 done = false;
                 isMainException = true;
-                throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName));
+                throw new InternalCriticalException(e, objectInfo(bucket, objectName));
             } finally {
                 try {
                     if ((!done) && (op != null)) {
@@ -113,15 +113,15 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
                             rollbackJournal(op, false);
                         } catch (Exception e) {
                             if (!isMainException)
-                                throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName));
+                                throw new InternalCriticalException(e, objectInfo(bucket, objectName));
                             else
-                                logger.error(e, getDriver().objectInfo(bucket, objectName), SharedConstant.NOT_THROWN);
+                                logger.error(e, objectInfo(bucket, objectName), SharedConstant.NOT_THROWN);
                         }
                     } else if (done) {
                         try {
                             postObjectDeleteCommit(meta, headVersion);
                         } catch (Exception e) {
-                            logger.error(e, getDriver().objectInfo(bucket, objectName), SharedConstant.NOT_THROWN);
+                            logger.error(e, objectInfo(bucket, objectName), SharedConstant.NOT_THROWN);
                         }
                     }
                 } finally {
@@ -187,7 +187,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
 
                 for (int version = 0; version < headVersion; version++)
                     FileUtils.deleteQuietly(getDriver().getReadDrive(bucket, meta.getObjectName())
-                            .getObjectMetadataVersionFile(meta.bucketId, meta.objectName, version));
+                            .getObjectMetadataVersionFile(bucket, meta.objectName, version));
 
                 meta.addSystemTag("delete versions");
                 meta.setLastModified(OffsetDateTime.now());
@@ -395,7 +395,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
 
             /** delete backup Metadata */
             FileUtils
-                    .deleteQuietly(new File(getDriver().getWriteDrive(bucket, objectName).getBucketWorkDirPath(bucketId)
+                    .deleteQuietly(new File(getDriver().getWriteDrive(bucket, objectName).getBucketWorkDirPath(bucket)
                             + File.separator + objectName));
 
         } catch (Exception e) {
@@ -435,7 +435,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
                 ((SimpleDrive) getWriteDrive(bucket, objectName)).getObjectDataFile(bucketId, objectName));
 
         /** delete backup Metadata */
-        FileUtils.deleteQuietly(new File(getDriver().getWriteDrive(bucket, objectName).getBucketWorkDirPath(bucketId)
+        FileUtils.deleteQuietly(new File(getDriver().getWriteDrive(bucket, objectName).getBucketWorkDirPath(bucket)
                 + File.separator + objectName));
     }
 
@@ -452,12 +452,12 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
 
         try {
             String objectMetadataDirPath = getDriver().getWriteDrive(bucket, objectName)
-                    .getObjectMetadataDirPath(bucket.getId(), objectName);
+                    .getObjectMetadataDirPath(bucket, objectName);
             String objectMetadataBackupDirPath = getDriver().getWriteDrive(bucket, objectName)
-                    .getBucketWorkDirPath(bucket.getId()) + File.separator + objectName;
+                    .getBucketWorkDirPath(bucket) + File.separator + objectName;
             FileUtils.copyDirectory(new File(objectMetadataDirPath), new File(objectMetadataBackupDirPath));
         } catch (IOException e) {
-            throw new InternalCriticalException(e, "backupMetadata 	|  " + getDriver().objectInfo(bucket, objectName));
+            throw new InternalCriticalException(e, objectInfo(bucket, objectName));
         }
     }
 
@@ -474,9 +474,9 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
         Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 
         String objectMetadataBackupDirPath = getDriver().getWriteDrive(bucket, objectName)
-                .getBucketWorkDirPath(bucket.getId()) + File.separator + objectName;
+                .getBucketWorkDirPath(bucket) + File.separator + objectName;
         String objectMetadataDirPath = getDriver().getWriteDrive(bucket, objectName)
-                .getObjectMetadataDirPath(bucket.getId(), objectName);
+                .getObjectMetadataDirPath(bucket, objectName);
         try {
             FileUtils.copyDirectory(new File(objectMetadataBackupDirPath), new File(objectMetadataDirPath));
         } catch (InternalCriticalException e) {

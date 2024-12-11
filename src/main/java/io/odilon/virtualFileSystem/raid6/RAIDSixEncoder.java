@@ -24,6 +24,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.file.ParallelFileCoypAgent;
 import io.odilon.log.Logger;
@@ -44,22 +46,30 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
-public class RAIDSixEncoder {
+public class RAIDSixEncoder extends RAIDSixCoder {
 
     @SuppressWarnings("unused")
     static private Logger logger = Logger.getLogger(RAIDSixEncoder.class.getName());
 
-    private RAIDSixDriver driver;
-
+    @JsonIgnore
     private long fileSize = 0;
+    
+    @JsonIgnore
     private int chunk = 0;
 
+    @JsonIgnore
     private final int data_shards;
+    
+    @JsonIgnore
     private final int partiy_shards;
+    
+    @JsonIgnore
     private final int total_shards;
 
+    @JsonIgnore
     private RAIDSixBlocks encodedInfo;
 
+    @JsonIgnore
     private List<Drive> zDrives;
 
     /**
@@ -70,14 +80,6 @@ public class RAIDSixEncoder {
 
     protected RAIDSixEncoder(RAIDSixDriver driver) {
         this(driver, null);
-    }
-
-    public RAIDSixDriver getDriver() {
-        return this.driver;
-    }
-
-    public VirtualFileSystemService getVFS() {
-        return this.driver.getVirtualFileSystemService();
     }
 
     /**
@@ -92,14 +94,12 @@ public class RAIDSixEncoder {
      * </p>
      */
     protected RAIDSixEncoder(RAIDSixDriver driver, List<Drive> udrives) {
-
-        Check.requireNonNull(driver);
-
-        this.driver = driver;
+            super(driver);
+            
         this.zDrives = (udrives != null) ? udrives : driver.getDrivesAll();
 
-        this.data_shards = getVFS().getServerSettings().getRAID6DataDrives();
-        this.partiy_shards = getVFS().getServerSettings().getRAID6ParityDrives();
+        this.data_shards = getVirtualFileSystemService().getServerSettings().getRAID6DataDrives();
+        this.partiy_shards = getVirtualFileSystemService().getServerSettings().getRAID6ParityDrives();
         this.total_shards = data_shards + partiy_shards;
     }
 
@@ -146,7 +146,7 @@ public class RAIDSixEncoder {
         Check.requireNonNull(objectName);
         Check.requireNonNull(bucketId);
 
-        if (!driver.isConfigurationValid(data_shards, partiy_shards))
+        if (!getDriver().isConfigurationValid(data_shards, partiy_shards))
             throw new InternalCriticalException("Incorrect configuration for RAID 6 -> data: "
                     + String.valueOf(data_shards) + " | parity:" + String.valueOf(partiy_shards));
 
@@ -235,7 +235,7 @@ public class RAIDSixEncoder {
         List<File> destination = new ArrayList<File>();
         for (int disk = 0; disk < total_shards; disk++) {
             if (isWrite(disk)) {
-                String dirPath = getDrives().get(disk).getBucketObjectDataDirPath(bucketId)
+                String dirPath = getDrives().get(disk).getBucketObjectDataDirPath(getBucketById(bucketId))
                         + ((o_version.isEmpty()) ? "" : (File.separator + VirtualFileSystemService.VERSION_DIR));
                 String name = objectName + "." + String.valueOf(chunk) + "." + String.valueOf(disk)
                         + (o_version.isEmpty() ? "" : "v." + String.valueOf(o_version.get().intValue()));
@@ -251,8 +251,7 @@ public class RAIDSixEncoder {
         destination.forEach(file -> this.encodedInfo.getEncodedBlocks().add(file));
 
         if (!isOk)
-            throw new InternalCriticalException(
-                    "Parallel copy error | " + getDriver().objectInfo(bucketId, objectName));
+            throw new InternalCriticalException(getDriver().objectInfo(bucketId, objectName));
 
         return eof;
     }

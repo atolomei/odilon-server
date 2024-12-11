@@ -1074,7 +1074,7 @@ public class OdilonVirtualFileSystemService extends BaseService
             for (DriveBucket driveBucket : buckets) {
                 if (driveBucket.isDeleted()) {
                     logger.debug("Deleting ghost bucket -> b:" + driveBucket.getName() + " d:" + drive.getName());
-                    ((OdilonDrive) drive).forceDeleteBucket(driveBucket.getId());
+                    ((OdilonDrive) drive).forceDeleteBucketById(driveBucket.getId());
                 }
             }
         }
@@ -1267,7 +1267,7 @@ public class OdilonVirtualFileSystemService extends BaseService
 
             for (Drive drive : listDrives) {
                 try {
-                    drive.markAsDeletedBucket(bucket.getId());
+                    drive.markAsDeletedBucket(bucket);
                 } catch (Exception e) {
                     done = false;
                     throw new InternalCriticalException(e);
@@ -1294,7 +1294,7 @@ public class OdilonVirtualFileSystemService extends BaseService
 
                     if (listDrives != null) {
                         for (Drive drive : listDrives) {
-                            ((OdilonDrive) drive).forceDeleteBucket(bucket.getId());
+                            ((OdilonDrive) drive).forceDeleteBucketById(bucket.getId());
                         }
                     }
                 } else {
@@ -1482,8 +1482,8 @@ public class OdilonVirtualFileSystemService extends BaseService
         try {
             getMapDrivesAll().values().forEach(item -> {
                 for (ServerBucket bucket : listAllBuckets()) {
-                    item.cleanUpWorkDir(bucket.getId());
-                    item.cleanUpCacheDir(bucket.getId());
+                    item.cleanUpWorkDir(bucket);
+                    item.cleanUpCacheDir(bucket);
                 }
 
             });

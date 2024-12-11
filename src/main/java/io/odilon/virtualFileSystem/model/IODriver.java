@@ -40,6 +40,8 @@ import io.odilon.scheduler.ServiceRequest;
  */
 public interface IODriver {
 
+    static final boolean IS_HEAD = true;
+    
     /**
      * Bucket
      */

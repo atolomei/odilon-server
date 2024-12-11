@@ -86,9 +86,8 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
 
     @Override
     public synchronized void close() throws IOException {
-        if (this.getStreamMap() == null)
-            return;
-        this.getStreamMap().forEach((k, v) -> v.close());
+        if (getStreamMap() != null)
+            getStreamMap().forEach((k, v) -> v.close());
     }
 
     /**
@@ -100,7 +99,7 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
     @Override
     protected void init() {
         for (Drive drive : getDrives()) {
-            Path start = new File(drive.getBucketMetadataDirPath(getBucketId())).toPath();
+            Path start = new File(drive.getBucketMetadataDirPath(getBucket())).toPath();
             Stream<Path> stream = null;
             try {
                 stream = Files.walk(start, 1).skip(1).filter(file -> Files.isDirectory(file))

@@ -100,7 +100,7 @@ public class RAIDSixBucketIterator extends BucketIterator implements Closeable {
      */
     @Override
     protected void init() {
-        Path start = new File(getDrive().getBucketMetadataDirPath(getBucketId())).toPath();
+        Path start = new File(getDrive().getBucketMetadataDirPath(getBucket())).toPath();
         try {
             this.stream = Files.walk(start, 1).skip(1).filter(file -> Files.isDirectory(file))
                     .filter(file -> (getPrefix() == null) || file.getFileName().toString().toLowerCase().startsWith(getPrefix()))

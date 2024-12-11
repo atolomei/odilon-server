@@ -53,6 +53,7 @@ import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
 import io.odilon.query.BucketIteratorService;
 import io.odilon.replication.ReplicationService;
+import io.odilon.service.ServerSettings;
 import io.odilon.util.Check;
 import io.odilon.virtualFileSystem.BaseIODriver;
 import io.odilon.virtualFileSystem.OdilonDrive;
@@ -229,11 +230,11 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
                 /** RAID 6: read is from any of the drives */
                 Drive readDrive = getObjectMetadataReadDrive(bucket, objectName);
 
-                if (!readDrive.existsBucket(bucket.getId()))
+                if (!readDrive.existsBucketById(bucket.getId()))
                     throw new IllegalStateException("bucket -> b:" + bucket.getName() + " does not exist for -> d:"
                             + readDrive.getName() + " | v:" + String.valueOf(version));
 
-                ObjectMetadata meta = readDrive.getObjectMetadataVersion(bucket.getId(), objectName, version);
+                ObjectMetadata meta = readDrive.getObjectMetadataVersion(bucket, objectName, version);
 
                 if ((meta == null) || (!meta.isAccesible()))
                     throw new OdilonObjectNotFoundException("object version does not exists for -> b:"
@@ -314,7 +315,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
              * file the goal of this process is to warn that a Object is damaged
              */
             readDrive = getObjectMetadataReadDrive(bucket, objectName);
-            metadata = readDrive.getObjectMetadata(bucket.getId(), objectName);
+            metadata = readDrive.getObjectMetadata(bucket, objectName);
 
             if ((forceCheck) || (metadata.integrityCheck != null) && (metadata.integrityCheck.isAfter(thresholdDate)))
                 return true;
@@ -445,14 +446,14 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
                 done = true;
             } else if (op.getOp() == VFSOp.CREATE_BUCKET) {
                 for (Drive drive : getDrivesAll())
-                    ((OdilonDrive) drive).forceDeleteBucket(bucketId);
+                    ((OdilonDrive) drive).forceDeleteBucketById(bucketId);
                 done = true;
             } else if (op.getOp() == VFSOp.UPDATE_BUCKET) {
                 restoreBucketMetadata(getVirtualFileSystemService().getBucketById(bucketId));
                 done = true;
             } else if (op.getOp() == VFSOp.DELETE_BUCKET) {
                 for (Drive drive : getDrivesAll())
-                    drive.markAsEnabledBucket(bucketId);
+                    drive.markAsEnabledBucket(getVirtualFileSystemService().getBucketById(bucketId));
                 done = true;
             } else if (op.getOp() == VFSOp.CREATE_SERVER_METADATA) {
                 if (objectName != null) {
@@ -606,7 +607,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
                 /** read is from only one of the drive (randomly selected) drive */
                 Drive readDrive = getObjectMetadataReadDrive(bucket, objectName);
 
-                if (!readDrive.existsBucket(bucket.getId()))
+                if (!readDrive.existsBucketById(bucket.getId()))
                     throw new IllegalArgumentException(
                             "bucket control folder -> b:" + bucket.getName() + " does not exist for drive -> d:"
                                     + readDrive.getName() + " | RAID -> " + this.getClass().getSimpleName());
@@ -707,7 +708,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
                 /** read is from only 1 drive */
                 readDrive = getObjectMetadataReadDrive(bucket, objectName);
 
-                if (!readDrive.existsBucket(bucket.getId()))
+                if (!readDrive.existsBucketById(bucket.getId()))
                     throw new IllegalStateException("bucket -> b:" + bucket.getName() + " does not exist for -> d:"
                             + readDrive.getName() + " | raid -> " + this.getClass().getSimpleName());
 
@@ -721,7 +722,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
                     return list;
 
                 for (int version = 0; version < meta.version; version++) {
-                    ObjectMetadata meta_version = readDrive.getObjectMetadataVersion(bucket.getId(), objectName,
+                    ObjectMetadata meta_version = readDrive.getObjectMetadataVersion(bucket, objectName,
                             version);
                     if (meta_version != null) {
 
@@ -962,7 +963,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
                 /** read is from only 1 drive */
                 readDrive = getObjectMetadataReadDrive(bucket, objectName);
 
-                if (!readDrive.existsBucket(bucket.getId()))
+                if (!readDrive.existsBucketById(bucket.getId()))
                     throw new IllegalArgumentException("b:" + bucket.getName() + " does not exist for -> d:"
                             + readDrive.getName() + " | raid -> " + this.getClass().getSimpleName());
 
@@ -973,7 +974,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
                 ObjectMetadata meta;
 
                 if (o_version.isPresent()) {
-                    meta = readDrive.getObjectMetadataVersion(bucket.getId(), objectName, o_version.get());
+                    meta = readDrive.getObjectMetadataVersion(bucket, objectName, o_version.get());
                 } else {
                     meta = getObjectMetadataInternal(bucket, objectName, addToCacheifMiss);
                 }
@@ -1045,7 +1046,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 
         int totalBlocks = meta.getSha256Blocks().size();
 
-        int totalDisks = getVirtualFileSystemService().getServerSettings().getRAID6DataDrives()
+        int totalDisks = getServerSettings().getRAID6DataDrives()
                 + getVirtualFileSystemService().getServerSettings().getRAID6ParityDrives();
         Check.checkTrue(totalDisks > 0, "total disks must be greater than zero");
 
@@ -1058,14 +1059,16 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
                         + (version.isEmpty() ? "" : (".v" + String.valueOf(version.get())));
                 Drive drive = getDrivesAll().get(disk);
                 if (version.isEmpty())
-                    files.add(new File(drive.getBucketObjectDataDirPath(meta.getBucketId()),
+                    files.add(new File(drive.getBucketObjectDataDirPath( getBucketById(meta.getBucketId())),
                             meta.getObjectName() + suffix));
                 else
-                    files.add(new File(drive.getBucketObjectDataDirPath(meta.getBucketId()) + File.separator
+                    files.add(new File(drive.getBucketObjectDataDirPath(getBucketById(meta.getBucketId())) + File.separator
                             + VirtualFileSystemService.VERSION_DIR, meta.getObjectName() + suffix));
             }
         }
         return files;
     }
+
+
 
 }

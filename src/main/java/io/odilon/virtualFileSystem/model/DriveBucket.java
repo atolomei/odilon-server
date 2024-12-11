@@ -57,10 +57,10 @@ public class DriveBucket {
 		this.meta = vfs_meta.clone();
 	}
 
-	@JsonIgnore
-	public Path getBucketControlDir() {
-		return Paths.get(getDrive().getBucketMetadataDirPath(meta.id));
-	}
+	//@JsonIgnore
+	//public Path getBucketControlDir() {
+	//	return Paths.get(getDrive().getBucketMetadataDirPath(meta.id));
+	//}
 
 	@JsonIgnore
 	public Drive getDrive() {

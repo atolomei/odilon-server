@@ -22,4 +22,5 @@ package io.odilon.virtualFileSystem;
 */
 public interface RAIDHandler {
 
+    static final boolean IS_HEAD = true;
 }

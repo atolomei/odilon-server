@@ -22,8 +22,7 @@ import io.odilon.virtualFileSystem.model.SimpleDrive;
 
 /**
  * @author atolomei@novamens.com (Alejandro Tolomei)
- */
-public class ObjectDataPathBuilder extends PathBuilder {
+ */public class ObjectDataPathBuilder extends PathBuilder {
 
     private final SimpleDrive drive;
     private final String objectName;

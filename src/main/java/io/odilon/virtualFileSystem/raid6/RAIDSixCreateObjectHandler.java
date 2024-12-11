@@ -165,15 +165,15 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 
             /** remove metadata dir on all drives */
             for (Drive drive : getDriver().getDrivesAll()) {
-                File f_meta = drive.getObjectMetadataFile(bucketId, objectName);
+                File f_meta = drive.getObjectMetadataFile( getBucketById(bucketId), objectName);
                 if ((meta == null) && (f_meta != null)) {
                     try {
-                        meta = drive.getObjectMetadata(bucketId, objectName);
+                        meta = drive.getObjectMetadata(getBucketById(bucketId), objectName);
                     } catch (Exception e) {
                         logger.warn("can not load meta -> d: " + drive.getName() + SharedConstant.NOT_THROWN);
                     }
                 }
-                FileUtils.deleteQuietly(new File(drive.getObjectMetadataDirPath(bucketId, objectName)));
+                FileUtils.deleteQuietly(new File(drive.getObjectMetadataDirPath(getBucketById(bucketId), objectName)));
             }
 
             /** remove data dir on all drives */

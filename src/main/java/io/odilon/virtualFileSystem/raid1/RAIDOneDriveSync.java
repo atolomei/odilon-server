@@ -242,7 +242,7 @@ public class RAIDOneDriveSync implements Runnable {
                                                          */
 
                                                         File newmeta = drive.getObjectMetadataFile(
-                                                                item.getObject().bucketId, item.getObject().objectName);
+                                                                getBucketById(item.getObject().bucketId), item.getObject().objectName);
 
                                                         // If ObjectMetadata exists -> the file was already synced, skip
 
@@ -293,11 +293,11 @@ public class RAIDOneDriveSync implements Runnable {
                                                             // copy Meta Version
                                                             File meta_version_n = enabledDrive
                                                                     .getObjectMetadataVersionFile(
-                                                                            item.getObject().bucketId,
+                                                                            getBucketById(item.getObject().bucketId),
                                                                             item.getObject().objectName, version);
                                                             if (meta_version_n.exists()) {
                                                                 drive.putObjectMetadataVersionFile(
-                                                                        item.getObject().bucketId,
+                                                                        getBucketById(item.getObject().bucketId),
                                                                         item.getObject().objectName, version,
                                                                         meta_version_n);
                                                             }
@@ -392,6 +392,11 @@ public class RAIDOneDriveSync implements Runnable {
         return this.vfsLockService;
     }
 
+    protected ServerBucket getBucketById(Long id) {
+        return getDriver().getVirtualFileSystemService().getBucketById(id);
+    }
+    
+    
     private void updateDrives() {
         for (Drive drive : getDriver().getDrivesAll()) {
             if (drive.getDriveInfo().getStatus() == DriveStatus.NOTSYNC) {
