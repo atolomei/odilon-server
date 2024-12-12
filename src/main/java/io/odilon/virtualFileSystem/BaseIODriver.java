@@ -896,7 +896,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 
         if (getObjectMetadataCacheService().containsKey(bucket, objectName)) {
             getSystemMonitorService().getCacheObjectHitCounter().inc();
-
             ObjectMetadata meta = getObjectMetadataCacheService().get(bucket, objectName);
             meta.setBucketName(bucket.getName());
             return meta;
@@ -907,9 +906,9 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 
         getVirtualFileSystemService().getSystemMonitorService().getCacheObjectMissCounter().inc();
 
-        if (addToCacheIfmiss) {
+        if (addToCacheIfmiss)
             getObjectMetadataCacheService().put(bucket, objectName, meta);
-        }
+        
         return meta;
     }
 
@@ -919,10 +918,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 
     public LockService getLockService() {
         return this.lockService;
-    }
-
-    protected ObjectMetadataCacheService getObjectMetadataCacheService() {
-        return getVirtualFileSystemService().getObjectMetadataCacheService();
     }
 
     public JournalService getJournalService() {
@@ -1191,6 +1186,10 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
         ServerBucket bucket = getVirtualFileSystemService().getBucketById(meta.getId());
         Check.requireNonNullArgument(bucket, "bucket does not exist for id -> " + meta.getId().toString());
         getLockService().getBucketLock(bucket).writeLock().unlock();
+    }
+
+    protected ObjectMetadataCacheService getObjectMetadataCacheService() {
+        return getVirtualFileSystemService().getObjectMetadataCacheService();
     }
 
     /**

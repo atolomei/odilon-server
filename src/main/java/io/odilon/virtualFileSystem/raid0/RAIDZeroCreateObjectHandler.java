@@ -39,7 +39,6 @@ import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
 import io.odilon.util.OdilonFileUtils;
-import io.odilon.virtualFileSystem.Context;
 import io.odilon.virtualFileSystem.ObjectPath;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
@@ -93,22 +92,21 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
         boolean isMainException = false;
 
         objectWriteLock(bucket, objectName);
-
+        
         try {
+
+            if (existsMetadata(bucket, objectName))
+                throw new IllegalArgumentException("Object already exist -> " + objectInfo(bucket, objectName));
+            
             bucketReadLock(bucket);
 
             try (stream) {
 
-                if (existsMetadata(bucket, objectName))
-                    throw new IllegalArgumentException("Object already exist -> " + objectInfo(bucket, objectName));
-
                 int version = 0;
 
                 op = getJournalService().createObject(bucket, objectName);
-
                 saveFile(bucket, objectName, stream, srcFileName);
                 saveMetadata(bucket, objectName, srcFileName, contentType, version, customTags);
-
                 done = op.commit();
 
             } catch (InternalCriticalException e1) {
@@ -168,10 +166,17 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
             if (isStandByEnabled())
                 getReplicationService().cancel(op);
 
+            ObjectPath path = new ObjectPath(getWriteDrive(bucket, objectName), bucket, objectName); 
+            
+            path.metadataFilePath();
+            path.dataFilePath();
+            
             getWriteDrive(bucket, objectName).deleteObjectMetadata(bucket, objectName);
 
-            FileUtils.deleteQuietly(new File(getWriteDrive(bucket, objectName).getRootDirPath(),
-                    op.getBucketId().toString() + File.separator + objectName));
+            // TODO VER AT
+            logger.debug(path.dataFilePath().toString() + " - " + getWriteDrive(bucket, objectName).getRootDirPath()+File.separator+op.getBucketId().toString() + File.separator + objectName);
+            
+            FileUtils.deleteQuietly(new File(getWriteDrive(bucket, objectName).getRootDirPath(), op.getBucketId().toString() + File.separator + objectName));
             done = true;
 
         } catch (InternalCriticalException e) {
@@ -204,7 +209,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
      */
     private void saveFile(ServerBucket bucket, String objectName, InputStream stream, String srcFileName) {
 
-        byte[] buf = new byte[ServerConstant.BUFFER_SIZE];
+        byte[] buf = new byte[ ServerConstant.BUFFER_SIZE ];
 
         try (InputStream sourceStream = isEncrypt() ? getEncryptionService().encryptStream(stream) : stream) {
             ObjectPath path = new ObjectPath(getWriteDrive(bucket, objectName), bucket, objectName);
@@ -241,7 +246,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
         OffsetDateTime now = OffsetDateTime.now();
         Drive drive = getWriteDrive(bucket, objectName);
         ObjectPath path = new ObjectPath(drive, bucket, objectName);
-        File file = path.dataFilePath(Context.STORAGE).toFile();
+        File file = path.dataFilePath().toFile();
         try {
             String sha256 = OdilonFileUtils.calculateSHA256String(file);
             ObjectMetadata meta = new ObjectMetadata(bucket.getId(), objectName);
@@ -263,6 +268,8 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
                 meta.setCustomTags(customTags.get());
             meta.setRaid(String.valueOf(getRedundancyLevel().getCode()).trim());
             drive.saveObjectMetadata(meta);
+            
+            
         } catch (Exception e) {
             throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
         }

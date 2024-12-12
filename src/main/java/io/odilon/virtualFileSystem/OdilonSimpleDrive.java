@@ -37,7 +37,11 @@ import io.odilon.virtualFileSystem.model.SimpleDrive;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
- * <p>Used by {@link RAIDZeroDriver} and {@link RAIDOneDriver}. This class is not used by {@link RAIDSixDriver}</p>
+ * <p>Used by: <br/>
+ *  RAID 0 {@link RAIDZeroDriver} <br/>  
+ *  RAID 1 {@link RAIDOneDriver}. <br/>
+ *  <br/>
+ * This class is not used by RAID 6 {@link RAIDSixDriver}</p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
@@ -113,17 +117,12 @@ public class OdilonSimpleDrive extends OdilonDrive implements SimpleDrive {
 		Check.requireNonNullArgument(bucketId, "bucketId is null");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null -> b:" + bucketId.toString());
 
-		//if (!super.existBucketMetadataDir(bucketId))
-		//	  throw new IllegalStateException("Bucket Metadata Directory must exist -> d:" + getName() + " | b:" + bucketId.toString());
-		
 		/** data Bucket created on demand */
 		createDataBucketDirIfNotExists(bucketId);
 		
 		try {
-
 			String dataFilePath = this.getObjectDataFilePath(bucketId, objectName); 
 			transferTo(stream, dataFilePath);
-			
 			return new File(dataFilePath);
 		}
 		 catch (IOException e) {

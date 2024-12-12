@@ -43,20 +43,13 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 public class ObjectPath extends PathBuilder {
 
     private final Drive drive;
-    //private final ObjectMetadata meta;
-    
-    
-    
     private final String objectName;
     private final Long bucketId;
-    
-    //private final ServerBucket bucket;
     
     
     public ObjectPath(Drive drive, ServerBucket bucket, String objectName) {
 
         this.drive=drive;
-        //this.bucket=bucket;
         this.objectName=objectName;
         this.bucketId=bucket.getId();
     }
@@ -65,9 +58,28 @@ public class ObjectPath extends PathBuilder {
         this.drive=drive;
         this.objectName=meta.getObjectName();
         this.bucketId=meta.getBucketId();
-        //this.bucket=null;
     }
     
+    
+    public Path metadataDirPath() {
+            return metadataDirPath( Context.STORAGE);
+    }
+    
+    public Path metadataDirPath(Context context) {
+        return Paths.get(getBucketsDirPath()).resolve(getBucketId().toString() + File.separator + getObjectName());    
+    }
+
+    public Path metadataFilePath() {
+            return metadataFilePath(Context.STORAGE);
+    }
+    
+    public Path metadataFilePath(Context context) {
+        return metadataDirPath(context).resolve(getObjectName() + ServerConstant.JSON);
+    }
+    
+    public String getBucketsDirPath() {
+        return getDrive().getBucketsDirPath();
+    }
     
     /**
      * this works for RAID 1 and RAID 0
@@ -90,7 +102,7 @@ public class ObjectPath extends PathBuilder {
     
     public Path dataFilePath(Context context, int version) {
         if (context==Context.STORAGE) 
-            return Paths.get( getDrive().getRootDirPath() + File.separator + bucketId.toString() + File.separator + VirtualFileSystemService.VERSION_DIR, getObjectName() + VirtualFileSystemService.VERSION_EXTENSION + String.valueOf(version));
+            return Paths.get( getDrive().getRootDirPath() + File.separator + getBucketId().toString() + File.separator + VirtualFileSystemService.VERSION_DIR, getObjectName() + VirtualFileSystemService.VERSION_EXTENSION + String.valueOf(version));
         else
             throw new RuntimeException("not done");
     }
@@ -104,17 +116,13 @@ public class ObjectPath extends PathBuilder {
     }
     
 
-    public Path metadataFilePath(Context context) {
-        return null;
-    }
+    
     
     public Path dataDirPath(Context context) {
-        return null;
+        throw new RuntimeException("not done");
     }
     
-    public Path metadataDirPath(Context context) {
-        return null;
-    }
+    
     
     
     
