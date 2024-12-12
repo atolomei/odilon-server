@@ -166,17 +166,10 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
             if (isStandByEnabled())
                 getReplicationService().cancel(op);
 
-            ObjectPath path = new ObjectPath(getWriteDrive(bucket, objectName), bucket, objectName); 
-            
-            path.metadataFilePath();
-            path.dataFilePath();
-            
             getWriteDrive(bucket, objectName).deleteObjectMetadata(bucket, objectName);
-
-            // TODO VER AT
-            logger.debug(path.dataFilePath().toString() + " - " + getWriteDrive(bucket, objectName).getRootDirPath()+File.separator+op.getBucketId().toString() + File.separator + objectName);
             
-            FileUtils.deleteQuietly(new File(getWriteDrive(bucket, objectName).getRootDirPath(), op.getBucketId().toString() + File.separator + objectName));
+            ObjectPath path = new ObjectPath(getWriteDrive(bucket, objectName), bucket, objectName);
+            FileUtils.deleteQuietly(path.dataFilePath().toFile());
             done = true;
 
         } catch (InternalCriticalException e) {
@@ -239,6 +232,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
      * @param srcFileName can not be null
      * @param customTags
      */
+    
     private void saveMetadata(ServerBucket bucket, String objectName, String srcFileName, String contentType, int version,
             Optional<List<String>> customTags) {
 
@@ -268,7 +262,6 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
                 meta.setCustomTags(customTags.get());
             meta.setRaid(String.valueOf(getRedundancyLevel().getCode()).trim());
             drive.saveObjectMetadata(meta);
-            
             
         } catch (Exception e) {
             throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));

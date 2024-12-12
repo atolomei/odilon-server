@@ -181,7 +181,7 @@ public class OdilonVirtualFileSystemService extends BaseService
     private final FileCacheService fileCacheService;
 
     @JsonIgnore
-    ReentrantReadWriteLock bucketCacheLock = new ReentrantReadWriteLock();
+    private ReentrantReadWriteLock bucketCacheLock = new ReentrantReadWriteLock();
 
     @JsonIgnore
     private AtomicLong bucket_id;
@@ -959,6 +959,7 @@ public class OdilonVirtualFileSystemService extends BaseService
 
                 lazyInjection();
                 loadDrives();
+                loadBuckets();
 
                 startuplogger.info(ServerConstant.SEPARATOR);
 
@@ -976,7 +977,6 @@ public class OdilonVirtualFileSystemService extends BaseService
                  * "marked as deleted" on a drive, must be purged from that drive
                  **/
                 deleteGhostsBuckets();
-                loadBuckets();
                 checkDriveBuckets();
                 setUpNewDrives();
                 checkServerInfo();
@@ -1152,16 +1152,10 @@ public class OdilonVirtualFileSystemService extends BaseService
                 bucket.getBucketMetadata().id = getNextBucketId();
                 // save bucket !
                 //
-
                 logger.debug("save bucket -> " + bucket.getName());
                 // createIODriver()
             }
         });
-
-        // map.values().forEach( bucket -> {
-        // logger.debug( bucket.getBucketMetadata().bucketName +" -> " +
-        // bucket.getBucketMetadata().getId().longValue());
-        // });
     }
 
     /**
@@ -1171,8 +1165,7 @@ public class OdilonVirtualFileSystemService extends BaseService
      */
     private void removeBucket(ServerBucket bucket, boolean forceDelete) {
         Check.requireNonNullArgument(bucket, "bucket can not be null");
-        Check.requireTrue(getBucketsByNameMap().containsKey(bucket.getName()),
-                "bucket does not exist -> b:" + bucket.getName());
+        Check.requireTrue(getBucketsByNameMap().containsKey(bucket.getName()), "bucket does not exist -> b:" + bucket.getName());
         deleteBucketInternal(bucket, forceDelete);
     }
 

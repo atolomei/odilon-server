@@ -42,7 +42,6 @@ import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import io.odilon.encryption.EncryptionService;
 import io.odilon.error.OdilonObjectNotFoundException;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
@@ -269,6 +268,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         RAIDZeroDeleteObjectHandler createAgent = new RAIDZeroDeleteObjectHandler(this);
         createAgent.postObjectDelete(meta, headVersion);
     }
+
     /**
      * <p>
      * This method is executed Async by the {@link SchedulerService}
@@ -280,6 +280,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         RAIDZeroDeleteObjectHandler createAgent = new RAIDZeroDeleteObjectHandler(this);
         createAgent.postObjectPreviousVersionDeleteAll(meta, headVersion);
     }
+
     /**
      * <p>
      * Set up a new drive
@@ -291,12 +292,14 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
     public boolean setUpDrives() {
         return getApplicationContext().getBean(RAIDZeroDriveSetupSync.class, this).setup();
     }
+
     /**
      * @param bucket must exist in the system
      */
     public void deleteBucket(ServerBucket bucket) {
         getVirtualFileSystemService().removeBucket(bucket);
     }
+
     /**
      * <p>
      * RAID 0 -> Bucket must be empty on all Disks VFSBucket bucket must exist and
@@ -334,10 +337,10 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         Check.requireNonNullArgument(bucket, "bucket is null");
         Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible " + objectInfo(bucket));
         Check.requireNonNullStringArgument(objectName, "objectName is null or empty " + objectInfo(bucket));
-        
+
         objectReadLock(bucket, objectName);
         try {
-        
+
             bucketReadLock(bucket);
             try {
                 /** read is from only 1 drive in RAID 0 */
@@ -385,10 +388,10 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         Check.requireNonNullArgument(bucket, "bucket is null");
         Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible " + objectInfo(bucket));
         Check.requireNonNullStringArgument(objectName, "objectName is null or empty " + objectInfo(bucket));
-        
+
         objectReadLock(bucket, objectName);
         try {
-        
+
             bucketReadLock(bucket);
             try {
                 /** TBA chequear que no este "deleted" en el drive */
@@ -487,7 +490,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 
         objectReadLock(bucket, objectName);
         try {
-        
+
             bucketReadLock(bucket);
             try {
                 /** read is from only 1 drive */
@@ -508,7 +511,9 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
                 for (int version = 0; version < meta.getVersion(); version++) {
                     ObjectMetadata meta_version = readDrive.getObjectMetadataVersion(bucket, objectName, version);
                     if (meta_version != null) {
-                        /** bucketName is not stored on disk, only bucketId, we must set it explicitly */
+                        /**
+                         * bucketName is not stored on disk, only bucketId, we must set it explicitly
+                         */
                         meta_version.setBucketName(bucket.getName());
                         list.add(meta_version);
                     }
