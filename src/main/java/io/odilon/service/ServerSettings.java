@@ -139,7 +139,7 @@ public class ServerSettings implements JSONObject {
     @Value("${recoveryMode:false}")
     protected boolean isRecoverMode = false;
 
-    @Value("${server.ssl.enabled}")
+    @Value("${server.ssl.enabled:false}")
     protected String ishttps;
 
     // ENCRYPTION -----------------------------------------------

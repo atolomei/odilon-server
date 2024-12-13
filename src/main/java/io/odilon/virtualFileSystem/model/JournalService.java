@@ -53,7 +53,7 @@ public interface JournalService extends SystemService {
 
 	public VFSOperation createBucket(BucketMetadata meta); 
 	
-	public VFSOperation updateBucket(ServerBucket bucket);
+	public VFSOperation updateBucket(ServerBucket bucket, String newBucketName);
 	public VFSOperation deleteBucket(ServerBucket bucket);
 	
 	/** -----------------

@@ -43,7 +43,9 @@ import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
 import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
+import io.odilon.virtualFileSystem.Context;
 import io.odilon.virtualFileSystem.DriveInfo;
+import io.odilon.virtualFileSystem.ObjectPath;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.DriveStatus;
 import io.odilon.virtualFileSystem.model.IODriveSetup;
@@ -239,6 +241,10 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
     protected RAIDZeroDriver getDriver() {
         return driver;
     }
+    
+    protected List<ServerBucket> listAllBuckets() {
+        return getDriver().getVirtualFileSystemService().listAllBuckets();
+    }
 
     private void updateDrives() {
         for (Drive drive : getDriver().getDrivesAll()) {
@@ -253,6 +259,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
         }
     }
 
+    
     private void cleanUp() {
 
         ExecutorService executor = null;
@@ -270,7 +277,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 
             executor = Executors.newFixedThreadPool(this.maxProcessingThread);
 
-            for (ServerBucket bucket : getDriver().getVirtualFileSystemService().listAllBuckets()) {
+            for (ServerBucket bucket : listAllBuckets()) {
 
                 Integer pageSize = Integer.valueOf(ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE);
                 Long offset = Long.valueOf(0);
@@ -279,7 +286,6 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
                 boolean done = false;
 
                 while (!done) {
-
                     DataList<Item<ObjectMetadata>> bucketItems = getDriver().getVirtualFileSystemService().listObjects(
                             bucket.getName(), Optional.of(offset), Optional.ofNullable(pageSize), Optional.empty(),
                             Optional.ofNullable(agentId));
@@ -312,23 +318,27 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
                                              * HEAD VERSION ---------------------------------------------------------
                                              */
                                             currentDrive.deleteObjectMetadata(bucket, item.getObject().getObjectName());
-                                            FileUtils.deleteQuietly( new File(currentDrive.getRootDirPath(), item.getObject().getBucketId() + File.separator + item.getObject().getObjectName()));
-                                            //currentDrive.getRootDirPath(), item.getObject().getBucketId() + File.separator + item.getObject().getObjectName()
-                                            
 
+                                            
+                                            ObjectPath path = new ObjectPath(currentDrive, item.getObject());
+                                            FileUtils.deleteQuietly(path.dataFilePath().toFile());
+                                            
+                                            // FileUtils.deleteQuietly(new File(currentDrive.getRootDirPath(), item.getObject().getBucketId() + File.separator + item.getObject().getObjectName()));
+                                            //currentDrive.getRootDirPath(), item.getObject().getBucketId() + File.separator + item.getObject().getObjectName()
                                             /**
                                              * PREVIOUS VERSIONS -----------------------------------------------------
                                              */
                                             if (getDriver().getVirtualFileSystemService().getServerSettings().isVersionControl()) {
-                                                for (int n = 0; n < item.getObject().getVersion(); n++) {
-                                                    File m = currentDrive.getObjectMetadataVersionFile(
-                                                            bucket, item.getObject().getObjectName(), n);
-                                                    if (m.exists())
-                                                        FileUtils.deleteQuietly(m);
-                                                    File d = ((SimpleDrive) currentDrive).getObjectDataVersionFile(item.getObject().getBucketId(), item.getObject().getObjectName(), n);
-                                                    if (d.exists())
-                                                        FileUtils.deleteQuietly(d);
+                                                for (int version = 0; version < item.getObject().getVersion(); version++) {
                                                     
+                                                    File m = currentDrive.getObjectMetadataVersionFile(bucket, item.getObject().getObjectName(), version);
+                                                    //if (m.exists())
+                                                    FileUtils.deleteQuietly(m);
+                                                    
+                                                    FileUtils.deleteQuietly(path.dataFilePath(Context.STORAGE, version).toFile());
+                                                    // File data = ((SimpleDrive) currentDrive).getObjectDataVersionFile(item.getObject().getBucketId(), item.getObject().getObjectName(), n);
+                                                    //if (data.exists())
+                                                       // FileUtils.deleteQuietly(data);
                                                 }
                                             }
                                             this.cleaned.getAndIncrement();
@@ -349,7 +359,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
                         });
                     }
                     try {
-                        executor.invokeAll(tasks, 15, TimeUnit.MINUTES);
+                        executor.invokeAll(tasks, 10, TimeUnit.MINUTES);
                     } catch (InterruptedException e) {
                         logger.error(e, SharedConstant.NOT_THROWN);
                     }
@@ -360,7 +370,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
             }
             try {
                 executor.shutdown();
-                executor.awaitTermination(5, TimeUnit.MINUTES);
+                executor.awaitTermination(10, TimeUnit.MINUTES);
             } catch (InterruptedException e) {
             }
         } finally {
@@ -369,6 +379,9 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
                     + String.valueOf(Double.valueOf(System.currentTimeMillis() - start_cleanup) / Double.valueOf(1000)) + " secs");
         }
     }
+
+    
+    
 
     private void copy() {
 

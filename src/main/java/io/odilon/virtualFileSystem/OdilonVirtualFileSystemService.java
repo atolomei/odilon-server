@@ -184,8 +184,9 @@ public class OdilonVirtualFileSystemService extends BaseService
     private ReentrantReadWriteLock bucketCacheLock = new ReentrantReadWriteLock();
 
     @JsonIgnore
-    private AtomicLong bucket_id;
+    private AtomicLong bucketIdGenerator;
 
+    
     /**
      * All Drives, either {@link DriveStatus.ENABLED} or
      * {@link DriveStatus.NOT_SYNC}(ie. in the sync process to become
@@ -262,7 +263,7 @@ public class OdilonVirtualFileSystemService extends BaseService
 
     @Override
     public Long getNextBucketId() {
-        return Long.valueOf(bucket_id.addAndGet(1));
+        return Long.valueOf(getBucketIdGenerator().addAndGet(1));
     }
 
     @Override
@@ -338,7 +339,9 @@ public class OdilonVirtualFileSystemService extends BaseService
 
     @Override
     public void wipeAllPreviousVersions() {
+        
         createVFSIODriver().wipeAllPreviousVersions();
+        
     }
 
     @Override
@@ -348,7 +351,7 @@ public class OdilonVirtualFileSystemService extends BaseService
 
         ServerBucket bucket = getBucketsByNameMap().get(bucketName);
         Check.requireNonNullArgument(bucket, "bucket can not be null or empty");
-
+        
         return createVFSIODriver().restorePreviousVersion(bucket, objectName);
     }
 
@@ -366,14 +369,7 @@ public class OdilonVirtualFileSystemService extends BaseService
      */
     @Override
     public ServerBucket createBucket(String bucketName) throws IOException {
-
-        Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
-        Check.requireTrue(!getBucketsByNameMap().containsKey(bucketName), "bucket already exist | b: " + bucketName);
-
-        if (!bucketName.matches(SharedConstant.bucket_valid_regex))
-            throw new IllegalArgumentException("bucketName contains invalid character | regular expression is -> "
-                    + SharedConstant.bucket_valid_regex + " |  b:" + bucketName);
-
+        // Check.requireTrue(!getBucketsByNameMap().containsKey(bucketName), "bucket already exist | b: " + bucketName);
         return createVFSIODriver().createBucket(bucketName);
     }
 
@@ -388,8 +384,8 @@ public class OdilonVirtualFileSystemService extends BaseService
             throw new IllegalArgumentException("bucketName contains invalid character | regular expression is -> "
                     + SharedConstant.bucket_valid_regex + " |  b:" + newBucketName);
 
-        if (this.existsBucket(newBucketName))
-            throw new IllegalArgumentException("bucketName already used " + newBucketName);
+        // if (this.existsBucket(newBucketName))
+        //    throw new IllegalArgumentException("bucketName already used " + newBucketName);
 
         return createVFSIODriver().renameBucket(getBucketByName(bucketName), newBucketName);
     }
@@ -438,8 +434,7 @@ public class OdilonVirtualFileSystemService extends BaseService
     @Override
     public boolean isEmptyBucket(String bucketName) {
         Check.requireNonNullArgument(bucketName, "bucketName can not be null or empty");
-        Check.requireTrue(getBucketsByNameMap().containsKey(bucketName),
-                "bucket does not exist or is not Accesible | b: " + bucketName);
+        Check.requireTrue(getBucketsByNameMap().containsKey(bucketName), "bucket does not exist | b: " + bucketName);
         return isEmpty(getBucketsByNameMap().get(bucketName));
     }
 
@@ -540,8 +535,7 @@ public class OdilonVirtualFileSystemService extends BaseService
         Check.requireNonNullArgument(bucket, "bucket can not be null ");
         Check.requireNonNullStringArgument(objectName, "objectName can not be null or empty | b:" + bucket.getName());
 
-        Check.requireTrue(getBucketsByNameMap().containsKey(bucket.getName()),
-                "bucket does not exist | b: " + bucket.getName());
+        Check.requireTrue(getBucketsByNameMap().containsKey(bucket.getName()), "bucket does not exist | b: " + bucket.getName());
 
         return createVFSIODriver().getInputStream(bucket, objectName);
     }
@@ -593,19 +587,16 @@ public class OdilonVirtualFileSystemService extends BaseService
      * if the object does not exist or is in state DELETED -> not found
      * </p>
      */
+    
     @Override
-    public ObjectMetadata getObjectMetadata(String bucketName, String objectName) {
-
-        Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
-        Check.requireNonNullStringArgument(objectName, "objectName can not be null or empty | b:" + bucketName);
-
-        ServerBucket bucket = getBucketsByNameMap().get(bucketName);
-        Check.requireNonNullArgument(bucket, "bucket does not exist | b: " + bucketName);
-
+    public ObjectMetadata getObjectMetadata(ServerBucket bucket, String objectName) {
+        Check.requireNonNullArgument(bucket, "bucket can not be null");
+        Check.requireNonNullStringArgument(objectName, "objectName can not be null or empty | b:" + bucket.getName());
         return createVFSIODriver().getObjectMetadata(bucket, objectName);
 
     }
-
+ 
+    
     /**
      * 
      * 
@@ -668,15 +659,16 @@ public class OdilonVirtualFileSystemService extends BaseService
 
     /**
      * 
-     */
-    @Override
+    
+    
     public void deleteObject(String bucketName, String objectName) {
         Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
         Check.requireTrue(getBucketsByNameMap().containsKey(bucketName), "bucket does not exist | b: " + bucketName);
         Check.requireNonNullStringArgument(objectName, "objectName can not be null or empty | b:" + bucketName);
         createVFSIODriver().delete(getBucketsByNameMap().get(bucketName), objectName);
     }
-
+ */
+    
     /**
      * 
      */
@@ -1106,12 +1098,16 @@ public class OdilonVirtualFileSystemService extends BaseService
         }
     }
 
-    private void removeBucketCache(ServerBucket bucket) {
+    
+    @Override
+    public void removeBucketCacheById(Long id) {
 
         this.bucketCacheLock.writeLock().lock();
         try {
-            this.getBucketsByIdMap().remove(bucket.getId());
-            this.getBucketsByNameMap().remove(bucket.getName());
+            if (this.getBucketsByIdMap().containsKey(id)) {
+                this.getBucketsByNameMap().remove(this.getBucketsByIdMap().get(id).getName());    
+                this.getBucketsByIdMap().remove(this.getBucketsByIdMap().get(id).getId());    
+            }
         } finally {
             this.bucketCacheLock.writeLock().unlock();
         }
@@ -1141,11 +1137,11 @@ public class OdilonVirtualFileSystemService extends BaseService
         });
 
         if (map.size() > 0)
-            bucket_id = new AtomicLong(map.values().stream().mapToLong(value -> value.getId()).max()
+            bucketIdGenerator = new AtomicLong(map.values().stream().mapToLong(value -> value.getId()).max()
                     .orElseThrow(IllegalStateException::new));
 
-        if ((bucket_id == null) || (bucket_id.get() < 1))
-            bucket_id = new AtomicLong(0);
+        if ((bucketIdGenerator == null) || (getBucketIdGenerator().get() < 1))
+            bucketIdGenerator = new AtomicLong(0);
 
         map.values().forEach(bucket -> {
             if (bucket.getId().longValue() == 0) {
@@ -1165,7 +1161,7 @@ public class OdilonVirtualFileSystemService extends BaseService
      */
     private void removeBucket(ServerBucket bucket, boolean forceDelete) {
         Check.requireNonNullArgument(bucket, "bucket can not be null");
-        Check.requireTrue(getBucketsByNameMap().containsKey(bucket.getName()), "bucket does not exist -> b:" + bucket.getName());
+        //Check.requireTrue(getBucketsByNameMap().containsKey(bucket.getName()), "bucket does not exist -> b:" + bucket.getName());
         deleteBucketInternal(bucket, forceDelete);
     }
 
@@ -1248,14 +1244,23 @@ public class OdilonVirtualFileSystemService extends BaseService
 
             getLockService().getBucketLock(bucket).writeLock().lock();
 
-            if (!existsBucket(bucket.getName()))
-                throw new IllegalArgumentException("bucket does not exist -> b:" + bucket.getName());
+            if (!existsBucket(bucket.getName())) {
+                logger.debug("bucket does not exist -> b:" + bucket.getName());
+                //throw new IllegalArgumentException("bucket does not exist -> b:" + bucket.getName());
+                return;
+            }
 
-            if ((!forceDelete) && (!isEmpty(bucket)))
+            if ((!forceDelete) && (!isEmpty(bucket))) {
+                logger.debug("bucket must be empty to be deleted -> b:" + bucket.getName());
                 throw new OdilonServerAPIException("bucket must be empty to be deleted -> b:" + bucket.getName());
+            }
 
+            logger.debug("delete bucket -> " + bucket.getName() +  " | id: " + bucket.getId().toString());
+            
             op = getJournalService().deleteBucket(bucket);
 
+            removeBucketCacheById(bucket.getId());
+            
             listDrives = new ArrayList<Drive>(getMapDrivesAll().values());
 
             for (Drive drive : listDrives) {
@@ -1282,9 +1287,7 @@ public class OdilonVirtualFileSystemService extends BaseService
                      * once the TRX is completed buckets -> all marked as "deleted" or all marked as
                      * "enabled". TBA this step can be Async
                      */
-
-                    removeBucketCache(bucket);
-
+                    
                     if (listDrives != null) {
                         for (Drive drive : listDrives) {
                             ((OdilonDrive) drive).forceDeleteBucketById(bucket.getId());
@@ -1293,7 +1296,6 @@ public class OdilonVirtualFileSystemService extends BaseService
                 } else {
                     /** rollback restores all buckets */
                     createVFSIODriver().rollbackJournal(op, false);
-                    addBucketCache(bucket);
                 }
 
             } catch (Exception e) {
@@ -1598,4 +1600,7 @@ public class OdilonVirtualFileSystemService extends BaseService
         return buckets_by_id;
     }
 
+    private AtomicLong getBucketIdGenerator() {
+        return this.bucketIdGenerator;
+    }
 }

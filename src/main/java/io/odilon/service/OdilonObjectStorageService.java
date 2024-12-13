@@ -194,7 +194,7 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
         Check.requireTrue(isVFSEnabled(), invalidStateMsg());
         if (getServerSettings().isReadOnly() || getServerSettings().isWORM())
             throw new IllegalStateException(dataStorageModeMsg(bucketName, objectName));
-        getVirtualFileSystemService().deleteObject(bucketName, objectName);
+        getVirtualFileSystemService().deleteObject(getVirtualFileSystemService().getBucketByName(bucketName), objectName);
     }
 
     @Override
@@ -303,7 +303,7 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
     @Override
     public ObjectMetadata getObjectMetadata(String bucketName, String objectName) {
         Check.requireTrue(isVFSEnabled(), invalidStateMsg());
-        return getVirtualFileSystemService().getObjectMetadata(bucketName, objectName);
+        return getVirtualFileSystemService().getObjectMetadata(getVirtualFileSystemService().getBucketByName(bucketName), objectName);
     }
 
     @Override
@@ -394,10 +394,14 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
 
         if (getServerSettings().isReadOnly())
             throw new IllegalStateException(dataStorageModeMsg(bucketName));
+        
         if (getServerSettings().isWORM()) {
             if (existsBucket(bucketName))
                 throw new IllegalStateException(dataStorageModeMsg(bucketName));
+            else 
+                return;
         }
+        
         getVirtualFileSystemService().removeBucket(bucketName);
     }
 
@@ -409,6 +413,8 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
         if (getServerSettings().isWORM()) {
             if (existsBucket(bucketName))
                 throw new IllegalStateException(dataStorageModeMsg(bucketName));
+            else 
+                return;
         }
         getVirtualFileSystemService().forceRemoveBucket(bucketName);
     }

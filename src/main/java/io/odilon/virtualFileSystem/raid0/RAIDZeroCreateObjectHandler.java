@@ -16,7 +16,6 @@
  */
 package io.odilon.virtualFileSystem.raid0;
 
-
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -92,12 +91,14 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
         boolean isMainException = false;
 
         objectWriteLock(bucket, objectName);
-        
+
         try {
 
-            if (existsMetadata(bucket, objectName))
+            if (existsMetadata(bucket, objectName)) {
+                logger.debug("Object already exist -> " + objectInfo(bucket, objectName));
                 throw new IllegalArgumentException("Object already exist -> " + objectInfo(bucket, objectName));
-            
+            }
+
             bucketReadLock(bucket);
 
             try (stream) {
@@ -117,6 +118,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
             } catch (Exception e) {
                 done = false;
                 isMainException = true;
+                logger.debug(e, objectInfo(bucket, objectName, srcFileName));
                 throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
             } finally {
                 try {
@@ -124,8 +126,10 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
                         try {
                             rollbackJournal(op, false);
                         } catch (InternalCriticalException e) {
-                            if (!isMainException)
+                            if (!isMainException) {
+                                logger.debug(e, objectInfo(bucket, objectName, srcFileName));
                                 throw e;
+                            }
                             else
                                 logger.error(e, objectInfo(bucket, objectName, srcFileName), SharedConstant.NOT_THROWN);
                         } catch (Exception e) {
@@ -157,6 +161,8 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
         Check.requireNonNullArgument(op, "op is null");
         Check.checkTrue(op.getOp() == VFSOp.CREATE_OBJECT, "Invalid op ->  " + op.getOp().getName());
 
+        logger.debug(opInfo(op));
+        
         boolean done = false;
 
         ServerBucket bucket = getBucketById(op.getBucketId());
@@ -167,12 +173,13 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
                 getReplicationService().cancel(op);
 
             getWriteDrive(bucket, objectName).deleteObjectMetadata(bucket, objectName);
-            
+
             ObjectPath path = new ObjectPath(getWriteDrive(bucket, objectName), bucket, objectName);
             FileUtils.deleteQuietly(path.dataFilePath().toFile());
             done = true;
 
         } catch (InternalCriticalException e) {
+            logger.debug(e, opInfo(op));
             if (!recoveryMode)
                 throw (e);
             else
@@ -202,7 +209,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
      */
     private void saveFile(ServerBucket bucket, String objectName, InputStream stream, String srcFileName) {
 
-        byte[] buf = new byte[ ServerConstant.BUFFER_SIZE ];
+        byte[] buf = new byte[ServerConstant.BUFFER_SIZE];
 
         try (InputStream sourceStream = isEncrypt() ? getEncryptionService().encryptStream(stream) : stream) {
             ObjectPath path = new ObjectPath(getWriteDrive(bucket, objectName), bucket, objectName);
@@ -232,7 +239,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
      * @param srcFileName can not be null
      * @param customTags
      */
-    
+
     private void saveMetadata(ServerBucket bucket, String objectName, String srcFileName, String contentType, int version,
             Optional<List<String>> customTags) {
 
@@ -262,7 +269,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
                 meta.setCustomTags(customTags.get());
             meta.setRaid(String.valueOf(getRedundancyLevel().getCode()).trim());
             drive.saveObjectMetadata(meta);
-            
+
         } catch (Exception e) {
             throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
         }

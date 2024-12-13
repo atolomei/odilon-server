@@ -163,20 +163,18 @@ public interface VirtualFileSystemService extends SystemService {
             Optional<List<String>> customTags);
 
     public VirtualFileSystemObject getObject(ServerBucket bucket, String objectName);
-
     public VirtualFileSystemObject getObject(String bucketName, String objectName);
 
-    public ObjectMetadata getObjectMetadata(String bucketName, String objectName);
+    public ObjectMetadata getObjectMetadata(ServerBucket bucket, String objectName);
 
     public boolean existsObject(ServerBucket bucket, String objectName);
-
     public boolean existsObject(String bucketName, String objectName);
-
     public boolean existsObject(Long bucketId, String objectName);
+    
 
     public void deleteObject(ServerBucket bucket, String objectName);
 
-    public void deleteObject(String bucketName, String objectName);
+    //public void deleteObject(String bucketName, String objectName);
 
     public InputStream getObjectStream(ServerBucket bucket, String objectName) throws IOException;
 
@@ -278,7 +276,8 @@ public interface VirtualFileSystemService extends SystemService {
     public ApplicationContext getApplicationContext();
 
     public void addBucketCache(ServerBucket bucket);
-
     public void updateBucketCache(String oldBucketName, ServerBucket bucket);
+    public void removeBucketCacheById(Long id);
+    
 
 }

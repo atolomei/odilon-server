@@ -64,7 +64,7 @@ public class OdilonObject extends BaseObject implements VirtualFileSystemObject 
 	@Override
 	public ObjectMetadata getObjectMetadata() {
 		if (this.objectMetadata==null) 
-			this.objectMetadata=this.vfs.getObjectMetadata(bucket.getName(), objectName);
+			this.objectMetadata=this.vfs.getObjectMetadata(bucket, objectName);
 		return this.objectMetadata;
 	}
 	

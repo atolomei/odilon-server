@@ -143,7 +143,7 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
         }
         {
             int buffer_index = 0;
-            while (isItems && (getBuffer().size() < ServerConstant.BUCKET_ITERATOR_DEFAULT_BUFFER_SIZE)) {
+            while (isItems && getBuffer().size()<defaultBufferSize()) {
                 int dPoll = buffer_index++ % this.getDrives().size();
                 Drive drive = this.getDrives().get(dPoll);
                 Iterator<Path> iterator = this.getItMap().get(drive);

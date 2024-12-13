@@ -17,6 +17,7 @@
 package io.odilon.replication;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -338,7 +339,9 @@ public class ReplicationService extends BaseService implements ApplicationContex
 			throw new InternalCriticalException(JournalService.class.getName() + " still executing on opx after " + (System.currentTimeMillis()-start) + " ms -> " + opx.toString());
 		
 
-		logger.debug("Replicate -> " + opx.getOp().getName() + " " +( (opx.getBucketId()!=null) ? (" b:"+opx.getBucketId()):"" ) + ( (opx.getObjectName()!=null) ? (" o:"+opx.getObjectName()):""));
+		logger.debug("Replicate -> " + opx.getOp().getName() + " " + ( (opx.getBucketId()!=null) ? (" b:"+opx.getBucketId()):"" ) +
+		        ( (opx.getBucketName()!=null) ? (" bn:"+opx.getBucketName()):"" ) +
+		        ( (opx.getObjectName()!=null) ? (" o:"+opx.getObjectName()):""));
 		
 		switch (opx.getOp()) {
 		
@@ -441,9 +444,17 @@ public class ReplicationService extends BaseService implements ApplicationContex
 			getLockService().getObjectLock(bucket, opx.getObjectName()).readLock().lock();
 			
 			try {
-						ObjectMetadata meta = getVirtualFileSystemService().getObjectMetadata(bucket.getName(), opx.getObjectName());
+						ObjectMetadata meta = getVirtualFileSystemService().getObjectMetadata(bucket, opx.getObjectName());
 						try {
-							getClient().putObjectStream(bucket.getName(), opx.getObjectName(), getVirtualFileSystemService().getObjectStream(bucket.getName(), opx.getObjectName()), meta.fileName);
+			
+						    
+						    
+						    InputStream is = getVirtualFileSystemService().getObjectStream(bucket.getName(), opx.getObjectName());
+						    
+						    if (is==null)
+						        logger.error("is is null");
+						    
+						    getClient().putObjectStream(bucket.getName(), opx.getObjectName(), is, meta.getFileName());
 							getMonitoringService().getReplicationObjectCreateCounter().inc();
 							
 						} catch (IOException e) {
@@ -451,6 +462,10 @@ public class ReplicationService extends BaseService implements ApplicationContex
 						}
 						
 				} catch (ODClientException e) {
+				    
+                    logger.debug(opx.toString());
+				    logger.error(e);
+				    
 					throw new InternalCriticalException(e, opx.toString());
 				}			
 				finally {
@@ -475,7 +490,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		
 		/** if the Object was not updated for any reason, do nothing */
-		ObjectMetadata m = getVirtualFileSystemService().getObjectMetadata(bucket.getName(), opx.getObjectName());
+		ObjectMetadata m = getVirtualFileSystemService().getObjectMetadata(bucket, opx.getObjectName());
 		if ( (m==null) || (m.getVersion()<opx.getVersion())) {
 			return;
 		}
@@ -488,7 +503,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 				
 			try {
 					if (getVirtualFileSystemService().existsObject(bucket.getId(), opx.getObjectName())) {
-							ObjectMetadata meta = getVirtualFileSystemService().getObjectMetadata(bucket.getName(), opx.getObjectName());
+							ObjectMetadata meta = getVirtualFileSystemService().getObjectMetadata(bucket, opx.getObjectName());
 							try {
 								getClient().putObjectStream(bucket.getName(), opx.getObjectName(), getVirtualFileSystemService().getObjectStream(bucket.getName(), opx.getObjectName()), meta.fileName);
 								getMonitoringService().getReplicationObjectUpdateCounter().inc();
@@ -499,7 +514,11 @@ public class ReplicationService extends BaseService implements ApplicationContex
 					}
 					
 			} catch (ODClientException e) {
-				throw new InternalCriticalException(e, "replicateUpdateObject");
+			    
+			    logger.error(e);
+                
+                throw new InternalCriticalException(e, opx.toString());
+                
 			}			
 			finally {
 					getLockService().getObjectLock(bucket, opx.getObjectName()).readLock().unlock();
@@ -642,42 +661,24 @@ public class ReplicationService extends BaseService implements ApplicationContex
 		}
 	}
 	
-	
-	
-	
-	
-	
 	/**
-	 * 
 	 * @param opx
 	 */
 	private void replicateCreateBucket(VFSOperation opx) {
 
 		Check.requireNonNullArgument(opx, "opx is null");
-
-		ServerBucket bucket = getVirtualFileSystemService().getBucketById(opx.getBucketId());
 		
-		
-		getLockService().getBucketLock(bucket).readLock().lock();
-			
 		try {
-		
-			if (!getVirtualFileSystemService().existsBucket(opx.getBucketName())) {
-				logger.error("bucket does not exist -> " + opx.getBucketName());
-				return;
+			if (!getClient().existsBucket(opx.getBucketName())) {
+					getClient().createBucket(opx.getBucketName());
+					// getMonitoringService().getRe .getReplicationObjectDeleteCounter().inc();
+					
 			}
-			
-			
-
-			if (!getClient().existsBucket(bucket.getName()))
-					getClient().createBucket(bucket.getName());
 				
 		} catch (ODClientException e) {
 				throw new InternalCriticalException(e, opx.toString());
 		}			
-		finally {
-				getLockService().getBucketLock(bucket).readLock().unlock();
-		}
+
 	}
 
 	
@@ -689,25 +690,29 @@ public class ReplicationService extends BaseService implements ApplicationContex
 		
 			Check.requireNonNullArgument(opx, "opx is null");
 			
-			if (getVirtualFileSystemService().existsBucket(opx.getBucketName())) {
-				return;
-			}
-			                                
-			ServerBucket bucket = getVirtualFileSystemService().getBucketById(opx.getBucketId());
+			//if (!getVirtualFileSystemService().existsBucket(opx.getBucketName())) {
+			 //   logger.debug("bucket does not exist -> " + opx.getBucketName());
+			  //  return;
+			//}
 			
-			getLockService().getBucketLock(bucket).readLock().lock();
+			//ServerBucket bucket = getVirtualFileSystemService().getBucketById(opx.getBucketId());
+
+			//getLockService().getBucketLock(bucket).readLock().lock();
 			
 			try {
-				if (getClient().existsBucket(opx.getBucketName())) {
+				//if (getClient().existsBucket(opx.getBucketName())) {
 					getClient().deleteBucket(opx.getBucketName());
-				}
-				
+					// getMonitoringService().getRe .getReplicationObjectDeleteCounter().inc();
+				//}
+				//else {
+				 //   logger.error("remote bucket does not exist -> " + opx.toString());
+				//}
 			} catch (ODClientException e) {
 				throw new InternalCriticalException(e, opx.toString());
 			}			
-			finally {
-				getLockService().getBucketLock(bucket).readLock().unlock();
-			}
+			//finally {
+				//getLockService().getBucketLock(bucket).readLock().unlock();
+			//}
 	}
 
 	
@@ -719,32 +724,29 @@ public class ReplicationService extends BaseService implements ApplicationContex
 		
 			Check.requireNonNullArgument(opx, "opx is null");
 		
-			
-			ServerBucket bucket = getVirtualFileSystemService().getBucketById(opx.getBucketId());
-			
-			getLockService().getBucketLock(bucket).readLock().lock();
+            //if (!getVirtualFileSystemService().existsBucket(opx.getBucketName())) {
+            //    logger.debug("bucket does not exist -> " + opx.getBucketName());
+             //   return;
+            //}
+			//ServerBucket bucket = getVirtualFileSystemService().getBucketById(opx.getBucketId());
+			//getLockService().getBucketLock(bucket).readLock().lock();
 			
 			try {
-
-			
-				if (!getVirtualFileSystemService().existsBucket(bucket.getName())) {
-					return;
-				}
 				
 				if (!getClient().existsBucket(opx.getBucketName()))
 					throw new InternalCriticalException("bucket does not exist in Standby -> " + this.client.getUrl());
 		
-				logger.debug("rename " + opx.getBucketName() + " -> " +  bucket.getName());
-				getClient().renameBucket(opx.getBucketName(), bucket.getName());
-					
-				
+				logger.debug("rename " + opx.getBucketName() + " -> " +  opx.getObjectName());
+				getClient().renameBucket(opx.getBucketName(), opx.getObjectName());
+                // getMonitoringService().getRe .getReplicationObjectDeleteCounter().inc();
+
 				
 			} catch (ODClientException e) {
 				throw new InternalCriticalException(e, opx.toString());
 			}			
-			finally {
-				getLockService().getBucketLock(bucket).readLock().unlock();
-			}
+			//finally {
+			//	getLockService().getBucketLock(bucket).readLock().unlock();
+			//}
 	}
 	
 	

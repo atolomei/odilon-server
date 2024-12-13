@@ -1,5 +1,4 @@
 /*
- * Odilon Object Storage
  * (C) Novamens 
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -78,6 +77,7 @@ import io.odilon.virtualFileSystem.model.IODriver;
 import io.odilon.virtualFileSystem.model.JournalService;
 import io.odilon.virtualFileSystem.model.LockService;
 import io.odilon.virtualFileSystem.model.ServerBucket;
+import io.odilon.virtualFileSystem.model.VFSOp;
 import io.odilon.virtualFileSystem.model.VFSOperation;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
@@ -189,8 +189,12 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
     @Override
     public ServerBucket createBucket(String bucketName) {
 
-        Check.requireNonNullArgument(bucketName, "bucketName is null");
-
+        Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
+        
+        if (!bucketName.matches(SharedConstant.bucket_valid_regex))
+            throw new IllegalArgumentException("bucketName contains invalid character | regular expression is -> "
+                    + SharedConstant.bucket_valid_regex + " |  b:" + bucketName);
+        
         BucketMetadata meta = new BucketMetadata(bucketName);
 
         meta.setStatus(BucketStatus.ENABLED);
@@ -211,6 +215,8 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
             if (getVirtualFileSystemService().existsBucket(bucketName))
                 throw new IllegalArgumentException("bucket already exist -> " + objectInfo(bucketName));
 
+            logger.debug("Creating bucket -> " + objectInfo(meta));
+            
             op = getJournalService().createBucket(meta);
 
             OffsetDateTime now = OffsetDateTime.now();
@@ -227,14 +233,13 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
                     throw new InternalCriticalException(e, objectInfo(drive));
                 }
             }
+            getVirtualFileSystemService().addBucketCache(bucket);
             done = op.commit();
             return bucket;
 
         } finally {
             try {
-                if (done) {
-                    getVirtualFileSystemService().addBucketCache(bucket);
-                } else
+                if (!done && op != null)
                     rollbackJournal(op);
             } catch (Exception e) {
                 if (!isMainException)
@@ -270,7 +275,9 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
             if (getVirtualFileSystemService().existsBucket(newBucketName))
                 throw new IllegalArgumentException("bucketName already used -> " + newBucketName);
 
-            op = getJournalService().updateBucket(bucket);
+            logger.debug("Rename bucket -> " + bucket.getName() + " to -> " + newBucketName);
+            
+            op = getJournalService().updateBucket(bucket, newBucketName);
 
             backupBucketMetadata(bucket);
 
@@ -287,17 +294,14 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
                 }
             }
 
+            getVirtualFileSystemService().updateBucketCache(oldName, new OdilonBucket(meta));
             done = op.commit();
             return bucket;
         } finally {
             try {
-                if (done) {
-                    getVirtualFileSystemService().updateBucketCache(oldName, new OdilonBucket(meta));
-                } else {
-                    if (op != null)
+                if ( (!done) && (op != null)) {
                         rollbackJournal(op);
                 }
-
             } catch (Exception e) {
                 logger.error(e, SharedConstant.NOT_THROWN);
             } finally {
@@ -352,6 +356,80 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
      */
     public void rollbackJournal(VFSOperation op) {
         rollbackJournal(op, false);
+    }
+
+    protected boolean generalRollbackJournal(VFSOperation op) {
+
+        Long bucketId = op.getBucketId();
+
+        try {
+
+            if (op.getOp() == VFSOp.CREATE_BUCKET) {
+                getVirtualFileSystemService().removeBucketCacheById(bucketId);
+                for (Drive drive : getDrivesAll()) {
+                    ((OdilonDrive) drive).forceDeleteBucketById(bucketId);
+                }
+                return true;
+
+            } else if (op.getOp() == VFSOp.DELETE_BUCKET) {
+                BucketMetadata meta = null;
+                for (Drive drive : getDrivesAll()) {
+                    drive.markAsEnabledBucket(getVirtualFileSystemService().getBucketById(bucketId));
+                    if (meta == null) {
+                        meta = drive.getBucketMetadataById(bucketId);
+                        break;
+                    }
+                }
+                if (meta != null) {
+                    ServerBucket bucket = new OdilonBucket(meta);
+                    getVirtualFileSystemService().addBucketCache(bucket);
+                }
+                return true;
+
+            } else if (op.getOp() == VFSOp.UPDATE_BUCKET) {
+                restoreBucketMetadata(getVirtualFileSystemService().getBucketById(bucketId));
+                BucketMetadata meta = null;
+                for (Drive drive : getDrivesAll()) {
+                    if (meta == null) {
+                        meta = drive.getBucketMetadataById(bucketId);
+                        break;
+                    }
+                }
+                if (meta != null) {
+                    ServerBucket bucket = new OdilonBucket(meta);
+                    getVirtualFileSystemService().addBucketCache(bucket);
+                }
+                return true;
+            }
+            if (op.getOp() == VFSOp.CREATE_SERVER_MASTERKEY) {
+                for (Drive drive : getDrivesAll()) {
+                    File file = drive.getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE);
+                    if ((file != null) && file.exists())
+                        FileUtils.forceDelete(file);
+                }
+                return true;
+            }
+            else if (op.getOp() == VFSOp.CREATE_SERVER_METADATA) {
+                if (op.getObjectName() != null) {
+                    for (Drive drive : getDrivesAll()) {
+                        drive.removeSysFile(op.getObjectName());
+                    }
+                }
+                return true;
+            } else  if (op.getOp() == VFSOp.UPDATE_SERVER_METADATA) {
+                    logger.debug("no action yet, rollback -> " + VFSOp.UPDATE_SERVER_METADATA.getName());
+                    return true;
+            }
+
+        } catch (InternalCriticalException e) {
+            throw (e);
+
+        } catch (IOException e) {
+            throw new InternalCriticalException(e);
+        }
+
+        return false;
+
     }
 
     /**
@@ -908,7 +986,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 
         if (addToCacheIfmiss)
             getObjectMetadataCacheService().put(bucket, objectName, meta);
-        
+
         return meta;
     }
 

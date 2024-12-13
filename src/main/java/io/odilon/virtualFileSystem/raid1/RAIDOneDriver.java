@@ -841,52 +841,51 @@ public class RAIDOneDriver extends BaseIODriver {
             return;
         }
 
-        String objectName = op.getObjectName();
-        String bucketName = op.getBucketName();
-        Long bucketId = op.getBucketId();
-
         boolean done = false;
 
         try {
-            if (getVirtualFileSystemService().getServerSettings().isStandByEnabled()) {
-                ReplicationService rs = getVirtualFileSystemService().getReplicationService();
-                rs.cancel(op);
-            } else if (op.getOp() == VFSOp.CREATE_SERVER_MASTERKEY) {
-                for (Drive drive : getDrivesAll()) {
-                    File file = drive.getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE);
-                    if ((file != null) && file.exists())
-                        FileUtils.forceDelete(file);
-                }
-                done = true;
-            } else if (op.getOp() == VFSOp.CREATE_BUCKET) {
-                for (Drive drive : getDrivesAll())
-                    ((OdilonDrive) drive).forceDeleteBucketById(bucketId);
-                done = true;
-            } else if (op.getOp() == VFSOp.UPDATE_BUCKET) {
-                restoreBucketMetadata(getVirtualFileSystemService().getBucketById(bucketId));
-                done = true;
+
+            if (getServerSettings().isStandByEnabled())
+                getVirtualFileSystemService().getReplicationService().cancel(op);
+
+            if (op.getOp() == VFSOp.CREATE_BUCKET) {
+
+                done = generalRollbackJournal(op);
+
             } else if (op.getOp() == VFSOp.DELETE_BUCKET) {
-                for (Drive drive : getDrivesAll())
-                    drive.markAsEnabledBucket(getVirtualFileSystemService().getBucketById(bucketId));
-                done = true;
+
+                done = generalRollbackJournal(op);
+
+            } else if (op.getOp() == VFSOp.UPDATE_BUCKET) {
+
+                done = generalRollbackJournal(op);
+            }
+            if (op.getOp() == VFSOp.CREATE_SERVER_MASTERKEY) {
+
+                done = generalRollbackJournal(op);
+
             } else if (op.getOp() == VFSOp.CREATE_SERVER_METADATA) {
-                if (objectName != null) {
-                    for (Drive drive : getDrivesAll()) {
-                        drive.removeSysFile(op.getObjectName());
-                    }
-                }
-                done = true;
+                
+                done = generalRollbackJournal(op);
+
             } else if (op.getOp() == VFSOp.UPDATE_SERVER_METADATA) {
-                if (objectName != null) {
-                    logger.error("not done -> " + op.getOp() + " | " + bucketName, SharedConstant.NOT_THROWN);
-                }
-                done = true;
+                
+                done = generalRollbackJournal(op);
             }
 
+        } catch (InternalCriticalException e) {
+            String msg = "Rollback: " + (Optional.ofNullable(op).isPresent() ? op.toString() : "null");
+            logger.error(msg);
+            if (!recoveryMode)
+                throw (e);
+
         } catch (Exception e) {
-            throw new InternalCriticalException(e, opInfo(op));
+            String msg = "Rollback:" + (Optional.ofNullable(op).isPresent() ? op.toString() : "null");
+            logger.error(msg);
+            if (!recoveryMode)
+                throw new InternalCriticalException(e, msg);
         } finally {
-            if (done) {
+            if (done || recoveryMode) {
                 op.cancel();
             } else {
                 if (getVirtualFileSystemService().getServerSettings().isRecoverMode()) {

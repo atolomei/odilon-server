@@ -34,7 +34,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.model.ObjectMetadata;
-import io.odilon.model.ServerConstant;
 import io.odilon.virtualFileSystem.model.BucketIterator;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
@@ -59,7 +58,7 @@ import io.odilon.virtualFileSystem.model.ServerBucket;
 @ThreadSafe
 public class RAIDSixBucketIterator extends BucketIterator implements Closeable {
 
-    /** must be from  DrivesEnabled */
+    /** must be from DrivesEnabled */
     @JsonProperty("drive")
     private final Drive drive;
 
@@ -127,7 +126,7 @@ public class RAIDSixBucketIterator extends BucketIterator implements Closeable {
         setRelativeIndex(0);
         setBuffer(new ArrayList<Path>());
         boolean isItems = true;
-        while (isItems && getBuffer().size() < ServerConstant.BUCKET_ITERATOR_DEFAULT_BUFFER_SIZE) {
+        while (isItems && getBuffer().size() < defaultBufferSize()) {
             if (getIterator().hasNext())
                 getBuffer().add(getIterator().next());
             else

@@ -568,15 +568,18 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
                 Drive readDrive = getReadDrive(bucket, objectName);
 
                 if (!readDrive.existsBucketById(bucket.getId()))
-                    throw new IllegalStateException("bucket -> b:" + bucket.getName() + " does not exist for -> d:"
-                            + readDrive.getName() + " | v:" + String.valueOf(version));
+                    throw new IllegalStateException("bucket does not exist ->" + objectInfo(bucket));
 
                 ObjectMetadata meta = getObjectMetadataVersion(bucket, objectName, version);
 
                 if ((meta != null) && meta.isAccesible()) {
-                    InputStream stream = getInputStreamFromSelectedDrive(readDrive, bucket.getId(), objectName, version);
+                    ObjectPath path = new ObjectPath(readDrive, bucket, objectName);
+                    InputStream stream = Files.newInputStream(path.dataFilePath(Context.STORAGE, version));
+                    // getInputStreamFromSelectedDrive(readDrive, bucket.getId(), objectName,
+                    // version);
+
                     if (meta.isEncrypt())
-                        return getVirtualFileSystemService().getEncryptionService().decryptStream(stream);
+                        return getEncryptionService().decryptStream(stream);
                     else
                         return stream;
                 } else
@@ -627,7 +630,13 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
                 ObjectMetadata meta = getObjectMetadataInternal(bucket, objectName, true);
 
                 if ((meta != null) && meta.isAccesible()) {
-                    InputStream stream = getInputStreamFromSelectedDrive(readDrive, bucket, objectName);
+
+                    ObjectPath path = new ObjectPath(readDrive, bucket, objectName);
+                    InputStream stream = Files.newInputStream(path.dataFilePath(Context.STORAGE));
+
+                    // InputStream stream = getInputStreamFromSelectedDrive(readDrive, bucket,
+                    // objectName);
+
                     return (meta.isEncrypt()) ? getEncryptionService().decryptStream(stream) : stream;
                 }
                 throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
@@ -685,14 +694,8 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
                 }
             }
         }
-        std_logger.info("Transactions that will Rollback -> " + String.valueOf(list.size()));
+        std_logger.info("Rollback -> " + String.valueOf(list.size()) + " transactions");
         return list;
-    }
-
-    private String fileInfo(File file) {
-        if (file == null)
-            return "f:null";
-        return "f:" + file.getName();
     }
 
     /**
@@ -794,58 +797,48 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         }
 
         String objectName = op.getObjectName();
-        Long bucketId = op.getBucketId();
+        // Long bucketId = op.getBucketId();
 
         boolean done = false;
 
         try {
-            if (getVirtualFileSystemService().getServerSettings().isStandByEnabled()) {
+
+            if (getServerSettings().isStandByEnabled())
                 getVirtualFileSystemService().getReplicationService().cancel(op);
-            } else if (op.getOp() == VFSOp.CREATE_SERVER_MASTERKEY) {
-                for (Drive drive : getDrivesAll()) {
-                    File file = drive.getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE);
-                    if ((file != null) && file.exists())
-                        FileUtils.forceDelete(file);
-                }
-                done = true;
-            } else if (op.getOp() == VFSOp.CREATE_BUCKET) {
-                for (Drive drive : getDrivesAll())
-                    ((OdilonDrive) drive).forceDeleteBucketById(bucketId);
-                done = true;
+
+            if (op.getOp() == VFSOp.CREATE_BUCKET) {
+
+                done = generalRollbackJournal(op);
+
             } else if (op.getOp() == VFSOp.DELETE_BUCKET) {
-                for (Drive drive : getDrivesAll())
-                    drive.markAsEnabledBucket(getVirtualFileSystemService().getBucketById(bucketId));
-                done = true;
+
+                done = generalRollbackJournal(op);
+
             } else if (op.getOp() == VFSOp.UPDATE_BUCKET) {
-                restoreBucketMetadata(getVirtualFileSystemService().getBucketById(bucketId));
-                done = true;
+
+                done = generalRollbackJournal(op);
+            }
+            if (op.getOp() == VFSOp.CREATE_SERVER_MASTERKEY) {
+
+                done = generalRollbackJournal(op);
+
             } else if (op.getOp() == VFSOp.CREATE_SERVER_METADATA) {
-                if (objectName != null) {
-                    for (Drive drive : getDrivesAll()) {
-                        drive.removeSysFile(op.getObjectName());
-                    }
-                }
-                done = true;
+                
+                done = generalRollbackJournal(op);
+
             } else if (op.getOp() == VFSOp.UPDATE_SERVER_METADATA) {
-                if (objectName != null) {
-                    logger.debug("no action yet, rollback -> " + VFSOp.UPDATE_SERVER_METADATA.getName());
-                }
-                done = true;
-            } else if (op.getOp() == VFSOp.UPDATE_BUCKET) {
-                logger.debug("no action yet, rollback -> " + VFSOp.UPDATE_BUCKET.getName());
-                done = true;
+                
+                done = generalRollbackJournal(op);
             }
 
         } catch (InternalCriticalException e) {
-            String msg = "The following Operation can not be Rollback: \n"
-                    + (Optional.ofNullable(op).isPresent() ? op.toString() : "null");
+            String msg = "Rollback: " + (Optional.ofNullable(op).isPresent() ? op.toString() : "null");
             logger.error(msg);
             if (!recoveryMode)
                 throw (e);
 
         } catch (Exception e) {
-            String msg = "The following Operation can not be Rollback: \n"
-                    + (Optional.ofNullable(op).isPresent() ? op.toString() : "null");
+            String msg = "Rollback:" + (Optional.ofNullable(op).isPresent() ? op.toString() : "null");
             logger.error(msg);
             if (!recoveryMode)
                 throw new InternalCriticalException(e, msg);
@@ -1234,21 +1227,32 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         return getDrivesEnabled().get(Math.abs(objectName.hashCode() % getDrivesEnabled().size()));
     }
 
-    protected InputStream getInputStreamFromSelectedDrive(Drive drive, ServerBucket bucket, String objectName) throws IOException {
-
-        ObjectPath path = new ObjectPath(drive, bucket, objectName);
-        return Files.newInputStream(path.dataFilePath(Context.STORAGE));
-
-        // return Files.newInputStream(Paths.get(drive.getRootDirPath() + File.separator
-        // + bucket.getId().toString() + File.separator + objectName));
+    protected String fileInfo(File file) {
+        if (file == null)
+            return "f:null";
+        return "f:" + file.getName();
     }
 
-    protected InputStream getInputStreamFromSelectedDrive(Drive readDrive, Long bucketId, String objectName, int version)
-            throws IOException {
-        return Files.newInputStream(Paths.get(readDrive.getRootDirPath() + File.separator + bucketId.toString() + File.separator
-                + VirtualFileSystemService.VERSION_DIR + File.separator + objectName + VirtualFileSystemService.VERSION_EXTENSION
-                + String.valueOf(version)));
-    }
+    /**
+     * protected InputStream getInputStreamFromSelectedDrive(Drive drive,
+     * ServerBucket bucket, String objectName) throws IOException {
+     * 
+     * ObjectPath path = new ObjectPath(drive, bucket, objectName); return
+     * Files.newInputStream(path.dataFilePath(Context.STORAGE));
+     * 
+     * // return Files.newInputStream(Paths.get(drive.getRootDirPath() +
+     * File.separator // + bucket.getId().toString() + File.separator +
+     * objectName)); }
+     **/
+
+    /**
+     * protected InputStream getInputStreamFromSelectedDrive(Drive readDrive, Long
+     * bucketId, String objectName, int version) throws IOException { return
+     * Files.newInputStream( Paths.get(readDrive.getRootDirPath() + File.separator +
+     * bucketId.toString() + File.separator + VirtualFileSystemService.VERSION_DIR +
+     * File.separator + objectName + VirtualFileSystemService.VERSION_EXTENSION +
+     * String.valueOf(version))); }
+     **/
 
     private void saveNewServerInfo(OdilonServerInfo serverInfo) {
         boolean done = false;
@@ -1325,8 +1329,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
                 if ((meta != null) && meta.isAccesible())
                     return meta;
                 else
-                    throw new OdilonObjectNotFoundException(
-                            ObjectMetadata.class.getSimpleName() + " does not exist for -> " + objectInfo(bucket, objectName));
+                    throw new OdilonObjectNotFoundException("Object does not exist -> " + objectInfo(bucket, objectName));
 
             } catch (OdilonObjectNotFoundException e) {
                 e.setErrorMessage(objectInfo(bucket, objectName));

@@ -31,6 +31,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ObjectStatus;
+import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
 
@@ -186,6 +187,10 @@ public abstract class BucketIterator implements Iterator<Path> {
             logger.error(e, SharedConstant.NOT_THROWN);
             return "\"error\":\"" + e.getClass().getName() + " | " + e.getMessage() + "\"";
         }
+    }
+
+    protected int defaultBufferSize() {
+        return ServerConstant.BUCKET_ITERATOR_DEFAULT_BUFFER_SIZE;
     }
 
     protected void setDriver(IODriver driver) {
