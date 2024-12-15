@@ -33,9 +33,9 @@ public class RAIDSixCoder extends BaseObject {
         return getVirtualFileSystemService().getFileCacheService();
     }
 
-    protected ServerBucket getBucketById(Long id) {
-        return getVirtualFileSystemService().getBucketById(id);
-    }
+    //protected ServerBucket getBucketById(Long id) {
+    //    return getVirtualFileSystemService().getBucketById(id);
+    //}
     
     public RAIDSixDriver getDriver() {
         return this.driver;

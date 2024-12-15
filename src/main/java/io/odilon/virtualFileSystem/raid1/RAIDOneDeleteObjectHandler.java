@@ -90,10 +90,12 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 			try {
 											
 				meta = getDriver().getReadDrive(bucket, objectName).getObjectMetadata(bucket, objectName);
-				headVersion = meta.version;
+				
+				headVersion = meta.getVersion();
+				
 				op = getJournalService().deleteObject(bucket, objectName, headVersion);
 				
-				backupMetadata(meta);
+				backupMetadata(meta, bucket);
 				
 				
 				// TODO AT: parallel
@@ -123,7 +125,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 						}
 					}
 					else if (done)
-						postObjectDeleteCommit(meta, headVersion);
+						postObjectDeleteCommit(meta, bucket, headVersion);
 	
 					/**  DATA CONSISTENCY
 					 *   ----------------
@@ -200,22 +202,21 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 		int headVersion = -1;
 		String objectName =  meta.objectName;
 		
-		ServerBucket bucket = getDriver().getVirtualFileSystemService().getBucketById(meta.bucketId);
+        ServerBucket bucket  = null;		
 		
-		if (bucket==null)
-		    throw new IllegalArgumentException("bucket does not exist -> b:" + meta.bucketId.toString());
-		
-		
-		getLockService().getObjectLock(bucket, objectName).writeLock().lock();
+		getLockService().getObjectLock(meta.getBucketId(), objectName).writeLock().lock();
 		
 		try {
 		
-			getLockService().getBucketLock(bucket).readLock().lock();
+			getLockService().getBucketLock(meta.getBucketId()).readLock().lock();
 
 			try {
 				
-					// ServerBucket bucket = getDriver().getVirtualFileSystemService().getBucketById(meta.bucketId);
-				
+	            if (!getBucketCache().contains(meta.getBucketId()))
+	                throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
+	            
+			        bucket = getBucketCache().get(meta.getBucketId());  
+			        
 					if (!getDriver().getReadDrive(bucket, objectName).existsObjectMetadata(meta))
 						throw new IllegalArgumentException("object does not exist -> b:" + meta.bucketId.toString() + " o:" + objectName);
 		
@@ -227,12 +228,12 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 					
 					op = getJournalService().deleteObjectPreviousVersions(bucket, objectName, headVersion);
 					
-					backupMetadata(meta);
+					backupMetadata(meta, bucket);
 		
 					/** remove all "objectmetadata.json.vn" Files, but keep -> "objectmetadata.json" **/  
 					for (int version=0; version < headVersion; version++) { 
 						for (Drive drive: getDriver().getDrivesAll()) {
-							FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(getVirtualFileSystemService().getBucketById(meta.bucketId), objectName, version));
+							FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(bucket, objectName, version));
 						}
 					}
 		
@@ -240,7 +241,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 					meta.addSystemTag("delete versions");
 					meta.lastModified = OffsetDateTime.now();
 					for (Drive drive: getDriver().getDrivesAll()) {
-						ObjectMetadata metaDrive = drive.getObjectMetadata(getVirtualFileSystemService().getBucketById(meta.bucketId), objectName);
+						ObjectMetadata metaDrive = drive.getObjectMetadata(bucket, objectName);
 						meta.drive=drive.getName();	
 						drive.saveObjectMetadata(metaDrive);							
 					}
@@ -259,22 +260,22 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 								rollbackJournal(op, false);
 							} catch (Exception e) {
 								if (!isMainException)
-									throw new InternalCriticalException(e, getDriver().objectInfo(meta));
+									throw new InternalCriticalException(e, objectInfo(meta));
 								else
 									logger.error(e, objectInfo(meta), SharedConstant.NOT_THROWN);
 							}
 						}
 						else if (done) {
-							postObjectPreviousVersionDeleteAllCommit(meta, headVersion);
+							postObjectPreviousVersionDeleteAllCommit(meta, bucket, headVersion);
 						}
 					}
 					finally {
-						getLockService().getBucketLock(bucket).readLock().unlock();
+						getLockService().getBucketLock(meta.getBucketId()).readLock().unlock();
 
 					}
 				}
 		} finally {
-			getLockService().getObjectLock(bucket, meta.objectName).writeLock().unlock();			
+			getLockService().getObjectLock(meta.getBucketId(), meta.objectName).writeLock().unlock();			
 		}
 
 		if(done)
@@ -301,12 +302,14 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 			if (getVirtualFileSystemService().getServerSettings().isStandByEnabled())
 				getVirtualFileSystemService().getReplicationService().cancel(op);
 			
+            ServerBucket bucket = getBucketCache().get(op.getBucketId());
+            
 			/** rollback is the same for both operations */
 			if (op.getOp()==VFSOp.DELETE_OBJECT)
-				restoreMetadata(bucketId,objectName);
+				restoreMetadata(bucket, objectName);
 			
 			else if (op.getOp()==VFSOp.DELETE_OBJECT_PREVIOUS_VERSIONS)
-				restoreMetadata(bucketId,objectName);
+				restoreMetadata(bucket, objectName);
 			
 			done=true;
 			
@@ -337,7 +340,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 	 * 
 	 * 
 	 */
-	private void postObjectPreviousVersionDeleteAllCommit(ObjectMetadata meta, int headVersion) {
+	private void postObjectPreviousVersionDeleteAllCommit(ObjectMetadata meta, ServerBucket bucket, int headVersion) {
 		
 		String bucketName = meta.getBucketName();
 		String objectName = meta.objectName;
@@ -353,7 +356,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 			
 			/** delete backup Metadata */
 			for (Drive drive: getDriver().getDrivesAll()) {
-				FileUtils.deleteQuietly(new File(drive.getBucketWorkDirPath(getVirtualFileSystemService().getBucketById(meta.bucketId)) + File.separator + objectName));
+				FileUtils.deleteQuietly(new File(drive.getBucketWorkDirPath(bucket) + File.separator + objectName));
 			}
 			
 		} catch (Exception e) {
@@ -382,29 +385,26 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 	 * @param headVersion newest version of the Object just deleted
 	 */
 	
-	private void postObjectDeleteCommit(ObjectMetadata meta, int headVersion)  {
+	private void postObjectDeleteCommit(ObjectMetadata meta, ServerBucket bucket, int headVersion)  {
 		
-		String bucketName = meta.getBucketName();
-		String objectName = meta.objectName;
+
+		String objectName = meta.getObjectName();
 				
-		Check.requireNonNullArgument(bucketName, "bucket is null");
-		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketName);
-		
 		try {
 			
 					/** delete data versions(1..n-1) */
 					for (int n=0; n<=headVersion; n++)	{
 						for (Drive drive: getDriver().getDrivesAll())
-							FileUtils.deleteQuietly(((SimpleDrive) drive).getObjectDataVersionFile(meta.bucketId, objectName, n));
+							FileUtils.deleteQuietly(((SimpleDrive) drive).getObjectDataVersionFile(meta.getBucketId(), objectName, n));
 					}
 					
 					/** delete data (head) */
 					for (Drive drive:getDriver().getDrivesAll())
-						FileUtils.deleteQuietly(((SimpleDrive) drive).getObjectDataFile(meta.bucketId, objectName));
+						FileUtils.deleteQuietly(((SimpleDrive) drive).getObjectDataFile(meta.getBucketId(), objectName));
 					
 					/** delete backup Metadata */
 					for (Drive drive:getDriver().getDrivesAll()) 
-						FileUtils.deleteQuietly(new File(drive.getBucketWorkDirPath(getBucketById(meta.bucketId)) + File.separator + objectName));
+						FileUtils.deleteQuietly(new File(drive.getBucketWorkDirPath( bucket) + File.separator + objectName));
 		} catch (Exception e) {
 			logger.error(e, SharedConstant.NOT_THROWN);
 		}
@@ -414,34 +414,34 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 	 * @param bucket
 	 * @param objectName
 	 */
-	private void backupMetadata(ObjectMetadata meta) {
+	private void backupMetadata(ObjectMetadata meta,  ServerBucket bucket) {
 	
 		/** copy metadata directory */
 		try {
 			for (Drive drive: getDriver().getDrivesAll()) {
-				String objectMetadataDirPath = drive.getObjectMetadataDirPath(getBucketById(meta.bucketId), meta.objectName);
-				String objectMetadataBackupDirPath = drive.getBucketWorkDirPath(getBucketById(meta.bucketId)) + File.separator +  meta.objectName;
+				String objectMetadataDirPath = drive.getObjectMetadataDirPath(bucket, meta.objectName);
+				String objectMetadataBackupDirPath = drive.getBucketWorkDirPath(bucket) + File.separator +  meta.objectName;
 				File src = new File(objectMetadataDirPath);
 				if (src.exists())
 					FileUtils.copyDirectory(src, new File(objectMetadataBackupDirPath));
 			}
 			
 		} catch (IOException e) {
-			throw new InternalCriticalException(e, "b:"   + (Optional.ofNullable(meta.bucketId).isPresent()    ? (meta.bucketName) :"null") +", o:" + (Optional.ofNullable(meta.objectName).isPresent() ? 	(meta.objectName) :"null"));
+			throw new InternalCriticalException(e, objectInfo(meta));
 		}
 	}
 	
 	
-	private void restoreMetadata(Long bucketId, String objectName) {
+	private void restoreMetadata(ServerBucket bucket, String objectName) {
 		
 		/** restore metadata directory */
 		for (Drive drive: getDriver().getDrivesAll()) {
-			String objectMetadataBackupDirPath = drive.getBucketWorkDirPath(getBucketById(bucketId)) + File.separator + objectName;
-			String objectMetadataDirPath = drive.getObjectMetadataDirPath(getBucketById(bucketId), objectName);
+			String objectMetadataBackupDirPath = drive.getBucketWorkDirPath(bucket) + File.separator + objectName;
+			String objectMetadataDirPath = drive.getObjectMetadataDirPath(bucket, objectName);
 			try {
 				FileUtils.copyDirectory(new File(objectMetadataBackupDirPath), new File(objectMetadataDirPath));
 			} catch (IOException e) {
-				throw new InternalCriticalException(e, "b:"   + (Optional.ofNullable(bucketId).isPresent()    ? (bucketId.toString()) :"null") + ", o:" + (Optional.ofNullable(objectName).isPresent() ? (objectName)       :"null"));
+				throw new InternalCriticalException(e, objectInfo(bucket, objectName));
 			}
 		}
 	}
@@ -457,7 +457,7 @@ private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class
 			if (op.getOp()==VFSOp.DELETE_OBJECT || op.getOp()==VFSOp.DELETE_OBJECT_PREVIOUS_VERSIONS)
 				getVirtualFileSystemService().getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext().getBean(AfterDeleteObjectServiceRequest.class, op.getOp(), meta, headVersion));
 		} catch (Exception e) {
-			logger.error(e, " | " + SharedConstant.NOT_THROWN);
+			logger.error(e, SharedConstant.NOT_THROWN);
 		}
 	}
 

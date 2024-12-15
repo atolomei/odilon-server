@@ -86,17 +86,16 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 
         VFSOperation op = null;
         boolean done = false;
+        ServerBucket bucket;
 
-        final ServerBucket bucket = getVirtualFileSystemService().getBucketById(meta.getBucketId());
-
+        getLockService().getObjectLock(meta.bucketId, objectName).writeLock().lock();
         try {
-
-            getLockService().getObjectLock(bucket, objectName).writeLock().lock();
-
+            
+            getLockService().getBucketLock(meta.bucketId).readLock().lock();
             try {
 
-                getLockService().getBucketLock(bucket).readLock().lock();
-
+                bucket = getBucketCache().get(meta.getBucketId());
+                
                 /**
                  * backup metadata, there is no need to backup data because existing data files
                  * are not touched.
@@ -110,12 +109,12 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
                 {
                     /** Data (head) */
                     RAIDSixDecoder decoder = new RAIDSixDecoder(getDriver());
-                    File file = decoder.decodeHead(meta);
+                    File file = decoder.decodeHead(meta, bucket);
 
                     RAIDSixSDriveSyncEncoder driveInitEncoder = new RAIDSixSDriveSyncEncoder(getDriver(), getDrives());
 
                     try (InputStream in = new BufferedInputStream(new FileInputStream(file.getAbsolutePath()))) {
-                        driveInitEncoder.encodeHead(in, bucketId, objectName);
+                        driveInitEncoder.encodeHead(in, bucket, objectName);
                     } catch (FileNotFoundException e) {
                         throw new InternalCriticalException(e, getDriver().objectInfo(meta));
                     } catch (IOException e) {
@@ -147,7 +146,7 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 
                             /** Data (version) */
                             RAIDSixDecoder decoder = new RAIDSixDecoder(getDriver());
-                            File file = decoder.decodeVersion(versionMeta);
+                            File file = decoder.decodeVersion(versionMeta, bucket);
 
                             RAIDSixSDriveSyncEncoder driveEncoder = new RAIDSixSDriveSyncEncoder(getDriver(),
                                     getDrives());
@@ -159,7 +158,7 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
                                  * encodes version without saving existing blocks, only the ones that go to the
                                  * new drive/s
                                  */
-                                driveEncoder.encodeVersion(in, bucketId, objectName, versionMeta.version);
+                                driveEncoder.encodeVersion(in, bucket, objectName, versionMeta.version);
 
                             } catch (FileNotFoundException e) {
                                 throw new InternalCriticalException(e, getDriver().objectInfo(meta));
@@ -199,11 +198,11 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
                         }
                     }
                 } finally {
-                    getLockService().getBucketLock(bucket).readLock().unlock();
+                    getLockService().getBucketLock(meta.bucketId).readLock().unlock();
                 }
             }
         } finally {
-            getLockService().getObjectLock(bucket, objectName).writeLock().unlock();
+            getLockService().getObjectLock(meta.bucketId, objectName).writeLock().unlock();
 
         }
 
@@ -273,14 +272,15 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 
         String objectName = op.getObjectName();
 
-        final ServerBucket bucket = getVirtualFileSystemService().getBucketById(op.getBucketId());
-
-        getLockService().getObjectLock(bucket, objectName).writeLock().lock();
-
+        
+        ServerBucket bucket = null;
+        
+        getLockService().getObjectLock(op.getBucketId(), objectName).writeLock().lock();
         try {
-            getLockService().getBucketLock(bucket).readLock().lock();
-
+            
+            getLockService().getBucketLock(op.getBucketId()).readLock().lock();
             try {
+                bucket = getBucketCache().get(op.getBucketId());
                 restoreMetadata(bucket, objectName);
                 done = true;
 
@@ -291,11 +291,10 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
                     logger.error("Rollback -> " + op.toString(), SharedConstant.NOT_THROWN);
 
             } catch (Exception e) {
-                String msg = "Rollback -> " + op.toString();
                 if (!recoveryMode)
-                    throw new InternalCriticalException(e, msg);
+                    throw new InternalCriticalException(e,  op.toString());
                 else
-                    logger.error(e, msg + SharedConstant.NOT_THROWN);
+                    logger.error(e, op.toString(), SharedConstant.NOT_THROWN);
             } finally {
                 try {
                     if (done || recoveryMode) {

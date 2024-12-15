@@ -318,13 +318,10 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
                                              * HEAD VERSION ---------------------------------------------------------
                                              */
                                             currentDrive.deleteObjectMetadata(bucket, item.getObject().getObjectName());
-
                                             
                                             ObjectPath path = new ObjectPath(currentDrive, item.getObject());
                                             FileUtils.deleteQuietly(path.dataFilePath().toFile());
-                                            
-                                            // FileUtils.deleteQuietly(new File(currentDrive.getRootDirPath(), item.getObject().getBucketId() + File.separator + item.getObject().getObjectName()));
-                                            //currentDrive.getRootDirPath(), item.getObject().getBucketId() + File.separator + item.getObject().getObjectName()
+                                         
                                             /**
                                              * PREVIOUS VERSIONS -----------------------------------------------------
                                              */
@@ -332,13 +329,10 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
                                                 for (int version = 0; version < item.getObject().getVersion(); version++) {
                                                     
                                                     File m = currentDrive.getObjectMetadataVersionFile(bucket, item.getObject().getObjectName(), version);
-                                                    //if (m.exists())
+                                            
                                                     FileUtils.deleteQuietly(m);
-                                                    
                                                     FileUtils.deleteQuietly(path.dataFilePath(Context.STORAGE, version).toFile());
-                                                    // File data = ((SimpleDrive) currentDrive).getObjectDataVersionFile(item.getObject().getBucketId(), item.getObject().getObjectName(), n);
-                                                    //if (data.exists())
-                                                       // FileUtils.deleteQuietly(data);
+                                            
                                                 }
                                             }
                                             this.cleaned.getAndIncrement();

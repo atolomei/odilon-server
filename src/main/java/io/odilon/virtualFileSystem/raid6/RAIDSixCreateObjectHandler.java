@@ -82,8 +82,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
         Check.requireNonNullArgument(bucket, "bucket is null");
         Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 
-        Long bucketId = bucket.getId();
-
+        
         VFSOperation op = null;
         boolean done = false;
         boolean isMainException = false;
@@ -106,7 +105,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 
                 op = getJournalService().createObject(bucket, objectName);
 
-                RAIDSixBlocks raidSixBlocks = saveObjectDataFile(bucketId, objectName, stream);
+                RAIDSixBlocks raidSixBlocks = saveObjectDataFile(bucket, objectName, stream);
                 saveObjectMetadata(bucket, objectName, raidSixBlocks, srcFileName, contentType, version, customTags);
                 done = op.commit();
 
@@ -153,8 +152,9 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
         Check.checkTrue(op.getOp() == VFSOp.CREATE_OBJECT, "Invalid op ->  " + op.getOp().getName());
 
         String objectName = op.getObjectName();
-        Long bucketId = op.getBucketId();
-
+        
+        ServerBucket bucket = getBucketCache().get(op.getBucketId());
+        
         boolean done = false;
 
         try {
@@ -165,20 +165,20 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 
             /** remove metadata dir on all drives */
             for (Drive drive : getDriver().getDrivesAll()) {
-                File f_meta = drive.getObjectMetadataFile( getBucketById(bucketId), objectName);
+                File f_meta = drive.getObjectMetadataFile( bucket, objectName);
                 if ((meta == null) && (f_meta != null)) {
                     try {
-                        meta = drive.getObjectMetadata(getBucketById(bucketId), objectName);
+                        meta = drive.getObjectMetadata(bucket, objectName);
                     } catch (Exception e) {
                         logger.warn("can not load meta -> d: " + drive.getName() + SharedConstant.NOT_THROWN);
                     }
                 }
-                FileUtils.deleteQuietly(new File(drive.getObjectMetadataDirPath(getBucketById(bucketId), objectName)));
+                FileUtils.deleteQuietly(new File(drive.getObjectMetadataDirPath(bucket, objectName)));
             }
 
             /** remove data dir on all drives */
             if (meta != null)
-                getDriver().getObjectDataFiles(meta, Optional.empty()).forEach(file -> {
+                getDriver().getObjectDataFiles(meta, bucket, Optional.empty()).forEach(file -> {
                     FileUtils.deleteQuietly(file);
                 });
 
@@ -208,14 +208,14 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
      * @param stream
      * @param srcFileName
      */
-    private RAIDSixBlocks saveObjectDataFile(Long bucketId, String objectName, InputStream stream) {
-        Check.requireNonNullArgument(bucketId, "bucketId is null");
+    private RAIDSixBlocks saveObjectDataFile(ServerBucket bucket, String objectName, InputStream stream) {
+        Check.requireNonNullArgument(bucket, "bucket is null");
         try (InputStream sourceStream = isEncrypt()
                 ? (getVirtualFileSystemService().getEncryptionService().encryptStream(stream))
                 : stream) {
-            return (new RAIDSixEncoder(getDriver())).encodeHead(sourceStream, bucketId, objectName);
+            return (new RAIDSixEncoder(getDriver())).encodeHead(sourceStream, bucket, objectName);
         } catch (Exception e) {
-            throw new InternalCriticalException(e, getDriver().objectInfo(bucketId.toString(), objectName));
+            throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName));
         }
     }
 

@@ -58,7 +58,6 @@ public class RAIDSixDecoder extends RAIDSixCoder {
 
     static private Logger logger = Logger.getLogger(RAIDSixEncoder.class.getName());
 
-    
     private final int data_shards;
 
     private final int parity_shards;
@@ -67,7 +66,7 @@ public class RAIDSixDecoder extends RAIDSixCoder {
 
     protected RAIDSixDecoder(RAIDSixDriver driver) {
         super(driver);
-        
+
         this.data_shards = getVirtualFileSystemService().getServerSettings().getRAID6DataDrives();
         this.parity_shards = getVirtualFileSystemService().getServerSettings().getRAID6ParityDrives();
         this.total_shards = data_shards + parity_shards;
@@ -76,8 +75,8 @@ public class RAIDSixDecoder extends RAIDSixCoder {
             throw new InternalCriticalException("Invalid configuration -> " + this.toString());
     }
 
-    public File decodeHead(ObjectMetadata meta) {
-        return decode(meta, true);
+    public File decodeHead(ObjectMetadata meta, ServerBucket bucket) {
+        return decode(meta, bucket, true);
     }
 
     /**
@@ -86,14 +85,13 @@ public class RAIDSixDecoder extends RAIDSixCoder {
      * </p>
      * 
      */
-    public File decodeVersion(ObjectMetadata meta) {
-        return decode(meta, false);
+    public File decodeVersion(ObjectMetadata meta, ServerBucket bucket) {
+        return decode(meta, bucket, false);
     }
 
-    
-    private File decode(ObjectMetadata meta, boolean isHead) {
+    private File decode(ObjectMetadata meta, ServerBucket bucket, boolean isHead) {
 
-        Long bucketId = meta.getBucketId();
+        // Long bucketId = meta.getBucketId();
         String bucketName = meta.getBucketName();
         String objectName = meta.getObjectName();
 
@@ -102,21 +100,21 @@ public class RAIDSixDecoder extends RAIDSixCoder {
         Optional<Integer> ver = isHead ? Optional.empty() : Optional.of(Integer.valueOf(meta.getVersion()));
         int chunk = 0;
 
-        File file = getFileCacheService().get(bucketId, objectName, ver);
+        File file = getFileCacheService().get(bucket.getId(), objectName, ver);
 
         if (file != null) {
             getDriver().getVirtualFileSystemService().getSystemMonitorService().getCacheFileHitCounter().inc();
             return file;
         }
         getDriver().getVirtualFileSystemService().getSystemMonitorService().getCacheFileMissCounter().inc();
-        getFileCacheService().getLockService().getFileCacheLock(bucketId, objectName, ver).writeLock().lock();
+        getFileCacheService().getLockService().getFileCacheLock(bucket.getId(), objectName, ver).writeLock().lock();
 
         try {
-            String tempPath = getFileCacheService().getFileCachePath(bucketId, objectName, ver);
+            String tempPath = getFileCacheService().getFileCachePath(bucket.getId(), objectName, ver);
 
             try (OutputStream out = new BufferedOutputStream(new FileOutputStream(tempPath))) {
                 while (chunk < totalChunks) {
-                    decodeChunk(meta, chunk++, out, isHead);
+                    decodeChunk(meta, bucket, chunk++, out, isHead);
                 }
             } catch (FileNotFoundException e) {
                 throw new InternalCriticalException(e, getDriver().objectInfo(bucketName, objectName, tempPath));
@@ -124,11 +122,11 @@ public class RAIDSixDecoder extends RAIDSixCoder {
                 throw new InternalCriticalException(e, getDriver().objectInfo(bucketName, objectName, tempPath));
             }
             File decodedFile = new File(tempPath);
-            getFileCacheService().put(bucketId, objectName, ver, decodedFile, false);
+            getFileCacheService().put(bucket.getId(), objectName, ver, decodedFile, false);
             return decodedFile;
 
         } finally {
-            getLockService().getFileCacheLock(bucketId, objectName, ver).writeLock().unlock();
+            getLockService().getFileCacheLock(bucket.getId(), objectName, ver).writeLock().unlock();
         }
     }
 
@@ -136,7 +134,7 @@ public class RAIDSixDecoder extends RAIDSixCoder {
         return getFileCacheService().getLockService();
     }
 
-    private boolean decodeChunk(ObjectMetadata meta, int chunk, OutputStream out, boolean isHead) {
+    private boolean decodeChunk(ObjectMetadata meta, ServerBucket bucket, int chunk, OutputStream out, boolean isHead) {
 
         // Read in any of the shards that are present.
         // (There should be checking here to make sure the input
@@ -159,11 +157,10 @@ public class RAIDSixDecoder extends RAIDSixCoder {
 
             if (drive != null) {
                 shardFile = (isHead)
-                        ? (new File(drive.getBucketObjectDataDirPath(getBucketById(meta.getBucketId())),
+                        ? (new File(drive.getBucketObjectDataDirPath(bucket),
                                 meta.getObjectName() + "." + String.valueOf(chunk) + "." + String.valueOf(disk)))
                         : (new File(
-                                drive.getBucketObjectDataDirPath(getBucketById(meta.getBucketId())) + File.separator
-                                        + VirtualFileSystemService.VERSION_DIR,
+                                drive.getBucketObjectDataDirPath(bucket) + File.separator + VirtualFileSystemService.VERSION_DIR,
                                 meta.getObjectName() + "." + String.valueOf(chunk) + "." + String.valueOf(disk) + ".v"
                                         + String.valueOf(meta.getVersion())));
             }
@@ -231,6 +228,4 @@ public class RAIDSixDecoder extends RAIDSixCoder {
     private int getTotalShards() {
         return this.total_shards;
     }
-
-
 }

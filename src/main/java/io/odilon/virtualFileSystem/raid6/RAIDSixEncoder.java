@@ -33,6 +33,7 @@ import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ServerConstant;
 import io.odilon.util.Check;
 import io.odilon.virtualFileSystem.model.Drive;
+import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
@@ -130,21 +131,21 @@ public class RAIDSixEncoder extends RAIDSixCoder {
      *         every shard multiple of 4)
      */
 
-    public RAIDSixBlocks encodeHead(InputStream is, Long bucketId, String objectName) {
-        return encode(is, bucketId, objectName, Optional.empty());
+    public RAIDSixBlocks encodeHead(InputStream is, ServerBucket bucket, String objectName) {
+        return encode(is, bucket, objectName, Optional.empty());
     }
 
-    public RAIDSixBlocks encodeVersion(InputStream is, Long bucketId, String objectName, int version) {
-        return encode(is, bucketId, objectName, Optional.of(version));
+    public RAIDSixBlocks encodeVersion(InputStream is, ServerBucket bucket, String objectName, int version) {
+        return encode(is, bucket, objectName, Optional.of(version));
 
     }
 
-    protected RAIDSixBlocks encode(InputStream is, Long bucketId, String objectName, Optional<Integer> version) {
+    protected RAIDSixBlocks encode(InputStream is, ServerBucket bucket, String objectName, Optional<Integer> version) {
 
         Check.requireNonNull(is);
 
         Check.requireNonNull(objectName);
-        Check.requireNonNull(bucketId);
+        Check.requireNonNull(bucket);
 
         if (!getDriver().isConfigurationValid(data_shards, partiy_shards))
             throw new InternalCriticalException("Incorrect configuration for RAID 6 -> data: "
@@ -163,7 +164,7 @@ public class RAIDSixEncoder extends RAIDSixCoder {
         try (is) {
 
             while (!done)
-                done = encodeChunk(is, bucketId, objectName, chunk++, version);
+                done = encodeChunk(is, bucket, objectName, chunk++, version);
 
         } catch (Exception e) {
             throw new InternalCriticalException(e, "o:" + objectName);
@@ -177,7 +178,7 @@ public class RAIDSixEncoder extends RAIDSixCoder {
      * 
      * @param is
      */
-    public boolean encodeChunk(InputStream is, Long bucketId, String objectName, int chunk,
+    public boolean encodeChunk(InputStream is, ServerBucket bucket, String objectName, int chunk,
             Optional<Integer> o_version) {
 
         // BUFFER 1
@@ -199,7 +200,7 @@ public class RAIDSixEncoder extends RAIDSixCoder {
             }
         } catch (IOException e) {
             throw new InternalCriticalException(e,
-                    " reading inputStream | " + getDriver().objectInfo(bucketId, objectName));
+                    " reading inputStream | " + getDriver().objectInfo(bucket, objectName));
         }
 
         if (totalBytesRead == 0)
@@ -235,7 +236,7 @@ public class RAIDSixEncoder extends RAIDSixCoder {
         List<File> destination = new ArrayList<File>();
         for (int disk = 0; disk < total_shards; disk++) {
             if (isWrite(disk)) {
-                String dirPath = getDrives().get(disk).getBucketObjectDataDirPath(getBucketById(bucketId))
+                String dirPath = getDrives().get(disk).getBucketObjectDataDirPath(bucket)
                         + ((o_version.isEmpty()) ? "" : (File.separator + VirtualFileSystemService.VERSION_DIR));
                 String name = objectName + "." + String.valueOf(chunk) + "." + String.valueOf(disk)
                         + (o_version.isEmpty() ? "" : "v." + String.valueOf(o_version.get().intValue()));
@@ -251,7 +252,7 @@ public class RAIDSixEncoder extends RAIDSixCoder {
         destination.forEach(file -> this.encodedInfo.getEncodedBlocks().add(file));
 
         if (!isOk)
-            throw new InternalCriticalException(getDriver().objectInfo(bucketId, objectName));
+            throw new InternalCriticalException(getDriver().objectInfo(bucket, objectName));
 
         return eof;
     }

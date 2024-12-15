@@ -256,12 +256,13 @@ public class OdilonJournalService extends BaseService implements JournalService 
 			try {
 				
 				if (isStandBy()) {
-				    if (opx.getBucketId()!=null && opx.getBucketName()==null) {
-				        logger.error("horror !!!");
-				        
-				    }
+				    //if (opx.getBucketId()!=null && opx.getBucketName()==null) {
+				     //   logger.error("horror !!!");
+				    //}
 				    getReplicationService().enqueue(opx);
 				}
+				
+				
 				
 				getVirtualFileSystemService().removeJournal(opx.getId());
 				getOps().remove(opx.getId());

@@ -45,14 +45,17 @@ public interface IODriver {
     /**
      * Bucket
      */
+    
+    public boolean existsBucket(String bucketName);
     public ServerBucket createBucket(String bucketName);
+    
+    public void removeBucket(ServerBucket bucket);
+    public void removeBucket(ServerBucket bucket, boolean b);
 
     public ServerBucket renameBucket(ServerBucket bucket, String newBucketName);
-
-    public void deleteBucket(ServerBucket bucket);
-
     public boolean isEmpty(ServerBucket bucket);
 
+    
     /**
      * Object get/ put / delete
      */
@@ -68,11 +71,12 @@ public interface IODriver {
     public VirtualFileSystemObject getObject(ServerBucket bucket, String objectName);
 
     public boolean exists(ServerBucket bucket, String objectName);
-
+    public void delete(ServerBucket bucket, String objectName);
+    
     public InputStream getInputStream(ServerBucket bucket, String objectName) throws IOException;
 
-    public void delete(ServerBucket bucket, String objectName);
-
+    
+    
     /**
      * Object List
      */
@@ -174,6 +178,22 @@ public interface IODriver {
     public String objectInfo(String bucketId, String objectName, String fileName);
     public String objectInfo(ObjectMetadata meta);
     public String opInfo(VFSOperation op);
+    /**
+     * 
+     */
+    public ServerBucket getBucket(String bucketName);
+    //public ServerBucket getBucket(Long id);
+
+
+
+    /**
+     * <p>
+     * Shared by RAID 1 and RAID 6
+     * </p>
+     */
+    
+
+    
     
     
 

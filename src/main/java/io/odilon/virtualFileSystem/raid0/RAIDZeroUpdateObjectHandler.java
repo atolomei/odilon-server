@@ -95,8 +95,11 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 
             bucketReadLock(bucket);
 
+            if (!getBucketCache().contains(bucket.getId()))
+                throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
+            
             try (stream) {
-
+                
                 if (!existsMetadata(bucket, objectName))
                     throw new IllegalArgumentException("Object does not exist -> " + objectInfo(bucket, objectName, srcFileName));
 
@@ -173,6 +176,9 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
             bucketReadLock(bucket);
 
             try {
+
+                if (!getBucketCache().contains(bucket.getId()))
+                    throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
 
                 ObjectMetadata meta = getDriver().getObjectMetadataInternal(bucket, objectName, false);
 
@@ -284,18 +290,25 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
         VFSOperation op = null;
         boolean done = false;
         boolean isMainException = false;
-
-        ServerBucket bucket = getBucketById(meta.getBucketId());
-
+        
         objectWriteLock(meta);
-
         try {
-            bucketReadLock(bucket);
 
+            bucketReadLock(meta.getBucketId());
+            
+            ServerBucket bucket = null;            
             try {
+                
+                if (!getBucketCache().contains(meta.getBucketId()))
+                    throw new IllegalArgumentException("bucket does not exist -> " + meta.getBucketName());
+                
+                bucket = getBucketCache().get(meta.getBucketId());
+                
                 op = getJournalService().updateObjectMetadata(bucket, meta.getObjectName(), meta.getVersion());
-                backupMetadata(meta);
+                
+                backupMetadata(meta, bucket);
                 getWriteDrive(bucket, meta.getObjectName()).saveObjectMetadata(meta);
+                
                 done = op.commit();
             } catch (Exception e) {
                 isMainException = true;
@@ -319,16 +332,15 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
                          * Async.
                          */
                         try {
-                            FileUtils.deleteQuietly(
-                                    new File(getDriver().getWriteDrive(bucket, meta.getObjectName()).getBucketWorkDirPath(bucket)
-                                            + File.separator + meta.getObjectName()));
+                            if (bucket!=null)
+                                FileUtils.deleteQuietly( new File(getDriver().getWriteDrive(bucket, meta.getObjectName()).getBucketWorkDirPath(bucket) + File.separator + meta.getObjectName()));
                         } catch (Exception e) {
                             logger.error(e, SharedConstant.NOT_THROWN);
                         }
 
                     }
                 } finally {
-                    bucketReadUnLock(bucket);
+                    bucketReadUnLock(meta.getBucketId());
                 }
             }
         } finally {
@@ -388,7 +400,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
             if (isStandByEnabled())
                 getReplicationService().cancel(op);
 
-            ServerBucket bucket = getBucketById(op.getBucketId());
+            ServerBucket bucket = getBucketCache().get(op.getBucketId());
 
             restoreVersionDataFile(bucket, op.getObjectName(), op.getVersion());
             restoreVersionMetadata(bucket, op.getObjectName(), op.getVersion());
@@ -424,10 +436,11 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
         boolean done = false;
 
         try {
-            ServerBucket bucket = getBucketById(op.getBucketId());
+            
+            ServerBucket bucket = getBucketCache().get(op.getBucketId());
 
-            if (getVirtualFileSystemService().getServerSettings().isStandByEnabled())
-                getVirtualFileSystemService().getReplicationService().cancel(op);
+            if (getServerSettings().isStandByEnabled())
+                getReplicationService().cancel(op);
 
             if (op.getOp() == VFSOp.UPDATE_OBJECT_METADATA)
                 restoreMetadata(bucket, op.getObjectName());
@@ -605,13 +618,11 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
      * 
      * copy metadata directory
      */
-    private void backupMetadata(ObjectMetadata meta) {
+    private void backupMetadata(ObjectMetadata meta, ServerBucket bucket) {
 
-        ServerBucket bucket = getBucketById(meta.getBucketId());
-
+        
         try {
-            String objectMetadataDirPath = getDriver().getWriteDrive(bucket, meta.getObjectName()).getObjectMetadataDirPath(bucket,
-                    meta.getObjectName());
+            String objectMetadataDirPath = getDriver().getWriteDrive(bucket, meta.getObjectName()).getObjectMetadataDirPath(bucket, meta.getObjectName());
             String objectMetadataBackupDirPath = getDriver().getWriteDrive(bucket, meta.getObjectName())
                     .getBucketWorkDirPath(bucket) + File.separator + meta.getObjectName();
             File src = new File(objectMetadataDirPath);

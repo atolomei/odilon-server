@@ -45,6 +45,7 @@ import io.odilon.scheduler.SchedulerService;
 import io.odilon.scheduler.ServiceRequest;
 import io.odilon.service.ServerSettings;
 import io.odilon.service.SystemService;
+import io.odilon.virtualFileSystem.BucketCache;
 
 /**
  * <p>
@@ -128,21 +129,20 @@ public interface VirtualFileSystemService extends SystemService {
      * Bucket
      */
     public ServerBucket createBucket(String bucketName) throws IOException;
-
+    
+    public void removeBucket(String bucketName);
+    
     public ServerBucket renameBucketName(String currentBucketName, String newBucketName);
 
     public ServerBucket getBucketByName(String bucketName);
 
-    public ServerBucket getBucketById(Long bucketId);
+    //public ServerBucket getBucketById(Long bucketId);
 
     public boolean existsBucket(String bucketName);
 
     public boolean isEmpty(ServerBucket bucket);
 
-    public void removeBucket(ServerBucket bucket);
-
-    public void removeBucket(String bucketName);
-
+    
     public void forceRemoveBucket(String bucketName);
 
     public Long getNextBucketId();
@@ -169,7 +169,8 @@ public interface VirtualFileSystemService extends SystemService {
 
     public boolean existsObject(ServerBucket bucket, String objectName);
     public boolean existsObject(String bucketName, String objectName);
-    public boolean existsObject(Long bucketId, String objectName);
+    
+    //public boolean existsObject(Long bucketId, String objectName);
     
 
     public void deleteObject(ServerBucket bucket, String objectName);
@@ -275,9 +276,12 @@ public interface VirtualFileSystemService extends SystemService {
 
     public ApplicationContext getApplicationContext();
 
-    public void addBucketCache(ServerBucket bucket);
-    public void updateBucketCache(String oldBucketName, ServerBucket bucket);
-    public void removeBucketCacheById(Long id);
+    public BucketCache getBucketCache();
+    
+    //public void addBucketCache(ServerBucket bucket);
+    //public void updateBucketCache(String oldBucketName, ServerBucket bucket);
+    //public void removeBucketCacheById(Long id);
+    //boolean isBucketCache(String bucketName);
     
 
 }

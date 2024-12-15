@@ -23,6 +23,7 @@ import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.DriveStatus;
+import io.odilon.virtualFileSystem.model.ServerBucket;
 
 /**
  * <p>
@@ -39,8 +40,6 @@ import io.odilon.virtualFileSystem.model.DriveStatus;
  */
 public class RAIDSixSDriveSyncEncoder extends RAIDSixEncoder {
 
-    @SuppressWarnings("unused")
-    static private Logger logger = Logger.getLogger(RAIDSixSDriveSyncEncoder.class.getName());
 
     /**
      * @param driver can not be null
@@ -61,8 +60,8 @@ public class RAIDSixSDriveSyncEncoder extends RAIDSixEncoder {
      * - create ObjectMetadata <br/>
      * </p>
      */
-    public RAIDSixBlocks encodeHead(InputStream is, Long bucketId, String objectName) {
-        return super.encodeHead(is, bucketId, objectName);
+    public RAIDSixBlocks encodeHead(InputStream is, ServerBucket bucket, String objectName) {
+        return super.encodeHead(is, bucket, objectName);
     }
 
     /**
@@ -74,8 +73,8 @@ public class RAIDSixSDriveSyncEncoder extends RAIDSixEncoder {
      * </p>
      */
 
-    public RAIDSixBlocks encodeVersion(InputStream is, Long bucketId, String objectName, int version) {
-        return super.encodeVersion(is, bucketId, objectName, version);
+    public RAIDSixBlocks encodeVersion(InputStream is, ServerBucket bucket, String objectName, int version) {
+        return super.encodeVersion(is, bucket, objectName, version);
     }
 
     /**

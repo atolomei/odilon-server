@@ -158,7 +158,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
         String objectName = op.getObjectName();
         Long bucket_id = op.getBucketId();
 
-        ServerBucket bucket = getVirtualFileSystemService().getBucketById(bucket_id);
+        ServerBucket bucket = getBucketCache().get(op.getBucketId());
 
         Check.requireNonNullArgument(bucket_id, "bucket_id is null");
         Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucket_id.toString());

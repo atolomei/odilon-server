@@ -43,10 +43,15 @@ public abstract class BaseRAIDHandler {
     protected ServerSettings getServerSettings() {
         return getVirtualFileSystemService().getServerSettings();
     }
+
     
-    protected ServerBucket getBucketById(Long id) {
-        return getVirtualFileSystemService().getBucketById(id);
+    protected BucketCache getBucketCache() {
+        return getVirtualFileSystemService().getBucketCache();
     }
+    
+    //protected ServerBucket getBucketById(Long id) {
+     //   return getVirtualFileSystemService().getBucketById(id);
+    //}
     
     protected EncryptionService getEncryptionService() {
         return getVirtualFileSystemService().getEncryptionService();
@@ -111,20 +116,37 @@ public abstract class BaseRAIDHandler {
         getLockService().getObjectLock(bucket, objectName).writeLock().lock();
     }
 
+
     protected void objectWriteLock(ObjectMetadata meta) {
-        getLockService().getObjectLock(getDriver().getVirtualFileSystemService().getBucketById(meta.getBucketId()),
-                meta.getObjectName()).writeLock().lock();
+        getLockService().getObjectLock(meta.getBucketId(),meta.getObjectName()).writeLock().lock();
     }
 
     protected void objectWriteUnLock(ObjectMetadata meta) {
-        getLockService().getObjectLock(getDriver().getVirtualFileSystemService().getBucketById(meta.getBucketId()),
-                meta.getObjectName()).writeLock().unlock();
+        getLockService().getObjectLock(meta.getBucketId(), meta.getObjectName()).writeLock().unlock();
     }
 
     protected void objectWriteUnLock(ServerBucket bucket, String objectName) {
         getLockService().getObjectLock(bucket, objectName).writeLock().unlock();
     }
 
+    protected void bucketReadLock(String bucketName) {
+        getLockService().getBucketLock(bucketName).readLock().lock();
+    }
+    
+    protected void bucketReadLock(Long bucketId) {
+        getLockService().getBucketLock(bucketId).readLock().lock();
+    }
+    
+    protected void bucketReadUnLock(Long bucketId) {
+        getLockService().getBucketLock(bucketId).readLock().unlock();
+    }
+    
+    
+    protected void bucketReadUnLock(String bucketName) {
+        getLockService().getBucketLock(bucketName).readLock().lock();
+    }
+    
+    
     protected void bucketReadLock(ServerBucket bucket) {
         getLockService().getBucketLock(bucket).readLock().lock();
     }

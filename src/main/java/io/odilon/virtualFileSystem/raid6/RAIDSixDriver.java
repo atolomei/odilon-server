@@ -66,6 +66,7 @@ import io.odilon.virtualFileSystem.model.VFSOp;
 import io.odilon.virtualFileSystem.model.VFSOperation;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemObject;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
+import io.odilon.virtualFileSystem.raid0.RAIDZeroDeleteObjectHandler;
 
 /**
  * <p>
@@ -188,8 +189,8 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
                     RAIDSixDecoder decoder = new RAIDSixDecoder(this);
                     return (meta.isEncrypt())
                             ? getVirtualFileSystemService().getEncryptionService()
-                                    .decryptStream(Files.newInputStream(decoder.decodeHead(meta).toPath()))
-                            : Files.newInputStream(decoder.decodeHead(meta).toPath());
+                                    .decryptStream(Files.newInputStream(decoder.decodeHead(meta, bucket).toPath()))
+                            : Files.newInputStream(decoder.decodeHead(meta, bucket).toPath());
                 }
                 throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
 
@@ -241,7 +242,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
                             + objectInfo(bucket, objectName) + " | v:" + String.valueOf(version));
 
                 RAIDSixDecoder decoder = new RAIDSixDecoder(this);
-                File file = decoder.decodeVersion(meta);
+                File file = decoder.decodeVersion(meta, bucket);
 
                 if (meta.isEncrypt())
                     return getVirtualFileSystemService().getEncryptionService()
@@ -492,26 +493,6 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 
     public ApplicationContext getApplicationContext() {
         return this.applicationContext;
-    }
-
-    @Override
-    public ServerBucket createBucket(String bucketName) {
-        return super.createBucket(bucketName);
-    }
-
-    @Override
-    public ServerBucket renameBucket(ServerBucket bucket, String bucketName) {
-        return super.renameBucket(bucket, bucketName);
-    }
-
-    @Override
-    public void deleteBucket(ServerBucket bucket) {
-        super.deleteBucket(bucket);
-    }
-
-    @Override
-    public boolean isEmpty(ServerBucket bucket) {
-        return super.isEmpty(bucket);
     }
 
     @Override
@@ -801,25 +782,9 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
     public void deleteObjectAllPreviousVersions(ObjectMetadata meta) {
 
         Check.requireNonNullArgument(meta, "meta is null");
-
-        String bucketName =meta.getBucketName();
-        String objectName = meta.getObjectName();
-        Long bucketId = meta.getBucketId();
-
-        Check.requireNonNullStringArgument(bucketName, "bucket is null");
-        Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucketName);
-
-        Check.requireNonNullArgument(bucketId, "bucketId is null");
-        ServerBucket bucket = getVirtualFileSystemService().getBucketById(bucketId);
-
-        Check.requireNonNullArgument(bucket, "bucket does not exist -> b:" + bucketName);
-        Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie. " + BucketStatus.ARCHIVED.getName()
-                + " or " + BucketStatus.ENABLED.getName() + ") | b:" + bucketName);
-
-        if (!exists(bucket, objectName))
-            throw new OdilonObjectNotFoundException("object does not exist -> b:" + bucket.getName() + " o:"
-                    + (Optional.ofNullable(objectName).isPresent() ? (objectName) : "null"));
-
+        Check.requireNonNullArgument(meta.bucketId, "bucketId is null");
+        Check.requireNonNullArgument(meta.objectName, "objectName is null or empty | b:" + meta.bucketId.toString());
+        
         RAIDSixDeleteObjectHandler agent = new RAIDSixDeleteObjectHandler(this);
         agent.deleteObjectAllPreviousVersions(meta);
     }
@@ -1038,7 +1003,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
      * @param version
      * @return
      */
-    protected List<File> getObjectDataFiles(ObjectMetadata meta, Optional<Integer> version) {
+    protected List<File> getObjectDataFiles(ObjectMetadata meta, ServerBucket bucket, Optional<Integer> version) {
 
         List<File> files = new ArrayList<File>();
 
@@ -1060,10 +1025,9 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
                         + (version.isEmpty() ? "" : (".v" + String.valueOf(version.get())));
                 Drive drive = getDrivesAll().get(disk);
                 if (version.isEmpty())
-                    files.add(new File(drive.getBucketObjectDataDirPath( getBucketById(meta.getBucketId())),
-                            meta.getObjectName() + suffix));
+                    files.add(new File(drive.getBucketObjectDataDirPath(bucket), meta.getObjectName() + suffix));
                 else
-                    files.add(new File(drive.getBucketObjectDataDirPath(getBucketById(meta.getBucketId())) + File.separator
+                    files.add(new File(drive.getBucketObjectDataDirPath(bucket) + File.separator
                             + VirtualFileSystemService.VERSION_DIR, meta.getObjectName() + suffix));
             }
         }

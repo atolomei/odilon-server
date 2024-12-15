@@ -227,10 +227,7 @@ public class StandByInitialSync implements Runnable {
 
                                     boolean objectSynced = false;
 
-                                    getLockService()
-                                            .getObjectLock(getDriver().getVirtualFileSystemService()
-                                                    .getBucketById(item.getObject().bucketId), item.getObject().getObjectName())
-                                            .readLock().lock();
+                                    getLockService().getObjectLock(item.getObject().getBucketId(), item.getObject().getObjectName()).readLock().lock();
 
                                     try {
 
@@ -246,11 +243,11 @@ public class StandByInitialSync implements Runnable {
                                                 VFSOperation op = new OdilonVFSperation(
                                                         getDriver().getVirtualFileSystemService().getJournalService()
                                                                 .newOperationId(),
-                                                        VFSOp.CREATE_OBJECT, Optional.of(item.getObject().bucketId),
-                                                        Optional.of(getDriver().getVirtualFileSystemService()
-                                                                .getBucketById(item.getObject().bucketId).getName()),
-                                                        Optional.of(item.getObject().objectName),
-                                                        Optional.of(Integer.valueOf(item.getObject().version)),
+                                                        VFSOp.CREATE_OBJECT, 
+                                                        Optional.of(item.getObject().getBucketId()),
+                                                        Optional.of(item.getObject().getBucketName()), // TODO AT VER
+                                                        Optional.of(item.getObject().getObjectName()),
+                                                        Optional.of(Integer.valueOf(item.getObject().getVersion())),
                                                         getDriver().getVirtualFileSystemService().getRedundancyLevel(),
                                                         getDriver().getVirtualFileSystemService().getJournalService());
 
@@ -267,15 +264,11 @@ public class StandByInitialSync implements Runnable {
                                                     + "-" + item.getObject().objectName);
                                             this.errors.getAndIncrement();
                                         } finally {
-                                            getLockService().getBucketLock(getDriver().getVirtualFileSystemService()
-                                                    .getBucketById(item.getObject().bucketId)).readLock().unlock();
+                                            getLockService().getBucketLock(item.getObject().getBucketId()).readLock().unlock();
 
                                         }
                                     } finally {
-                                        getLockService()
-                                                .getObjectLock(getDriver().getVirtualFileSystemService()
-                                                        .getBucketById(item.getObject().bucketId), item.getObject().objectName)
-                                                .readLock().unlock();
+                                        getLockService().getObjectLock(item.getObject().getBucketId(), item.getObject().getObjectName()).readLock().unlock();
                                     }
 
                                     if (objectSynced) {

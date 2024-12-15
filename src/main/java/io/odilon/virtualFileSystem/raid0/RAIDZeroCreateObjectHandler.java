@@ -129,8 +129,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
                             if (!isMainException) {
                                 logger.debug(e, objectInfo(bucket, objectName, srcFileName));
                                 throw e;
-                            }
-                            else
+                            } else
                                 logger.error(e, objectInfo(bucket, objectName, srcFileName), SharedConstant.NOT_THROWN);
                         } catch (Exception e) {
                             if (!isMainException)
@@ -162,10 +161,10 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
         Check.checkTrue(op.getOp() == VFSOp.CREATE_OBJECT, "Invalid op ->  " + op.getOp().getName());
 
         logger.debug(opInfo(op));
-        
+
         boolean done = false;
 
-        ServerBucket bucket = getBucketById(op.getBucketId());
+        ServerBucket bucket = getBucketCache().get(op.getBucketId());
         String objectName = op.getObjectName();
 
         try {
