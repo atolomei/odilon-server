@@ -127,7 +127,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
     public boolean hasVersions(ServerBucket bucket, String objectName) {
         return !getObjectMetadataVersionAll(bucket, objectName).isEmpty();
     }
-
     /**
      * <p>
      * Delete all versions older than the current <b>head version</b>. <br/>
@@ -147,7 +146,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         RAIDZeroDeleteObjectHandler agent = new RAIDZeroDeleteObjectHandler(this);
         agent.deleteObjectAllPreviousVersions(meta);
     }
-
     /**
      * <p>
      * Restores the version that is previous to the current <b>head
@@ -167,7 +165,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         RAIDZeroUpdateObjectHandler agent = new RAIDZeroUpdateObjectHandler(this);
         return agent.restorePreviousVersion(bucket, objectName);
     }
-
     /**
      * <p>
      * Creates a ServiceRequest to walk through all objects and delete versions.
@@ -189,7 +186,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         RAIDZeroDeleteObjectHandler agent = new RAIDZeroDeleteObjectHandler(this);
         agent.wipeAllPreviousVersions();
     }
-
     /**
      * <p>
      * Creates a ServiceRequest to walk through all objects and delete versions.
@@ -1285,26 +1281,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         return "f:" + file.getName();
     }
 
-    /**
-     * protected InputStream getInputStreamFromSelectedDrive(Drive drive,
-     * ServerBucket bucket, String objectName) throws IOException {
-     * 
-     * ObjectPath path = new ObjectPath(drive, bucket, objectName); return
-     * Files.newInputStream(path.dataFilePath(Context.STORAGE));
-     * 
-     * // return Files.newInputStream(Paths.get(drive.getRootDirPath() +
-     * File.separator // + bucket.getId().toString() + File.separator +
-     * objectName)); }
-     **/
-
-    /**
-     * protected InputStream getInputStreamFromSelectedDrive(Drive readDrive, Long
-     * bucketId, String objectName, int version) throws IOException { return
-     * Files.newInputStream( Paths.get(readDrive.getRootDirPath() + File.separator +
-     * bucketId.toString() + File.separator + VirtualFileSystemService.VERSION_DIR +
-     * File.separator + objectName + VirtualFileSystemService.VERSION_EXTENSION +
-     * String.valueOf(version))); }
-     **/
 
     private void saveNewServerInfo(OdilonServerInfo serverInfo) {
         boolean done = false;
@@ -1407,3 +1383,30 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
     }
 
 }
+
+
+
+
+
+
+
+/**
+ * protected InputStream getInputStreamFromSelectedDrive(Drive drive,
+ * ServerBucket bucket, String objectName) throws IOException {
+ * 
+ * ObjectPath path = new ObjectPath(drive, bucket, objectName); return
+ * Files.newInputStream(path.dataFilePath(Context.STORAGE));
+ * 
+ * // return Files.newInputStream(Paths.get(drive.getRootDirPath() +
+ * File.separator // + bucket.getId().toString() + File.separator +
+ * objectName)); }
+ **/
+
+/**
+ * protected InputStream getInputStreamFromSelectedDrive(Drive readDrive, Long
+ * bucketId, String objectName, int version) throws IOException { return
+ * Files.newInputStream( Paths.get(readDrive.getRootDirPath() + File.separator +
+ * bucketId.toString() + File.separator + VirtualFileSystemService.VERSION_DIR +
+ * File.separator + objectName + VirtualFileSystemService.VERSION_EXTENSION +
+ * String.valueOf(version))); }
+ **/
