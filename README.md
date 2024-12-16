@@ -171,19 +171,13 @@ More info in Odilon's website <br/>
 
 <h2>Download</h2>
 <p>
-Current version is Odilon 1.8
+Current version is Odilon 1.8 (Linux), and Odilon 1.9 (Windows)
 <ul>
 <li><a href="https://odilon.io#download" target="_blank">Odilon Server</a></li>	
 <li><a href="https://odilon.io#download" target="_blank">Odilon Java SDK</a></li>
 <li><a href="https://mvnrepository.com/artifact/io.odilon/odilon-client" target="_blank">Odilon Java SDK. MVN Repository</a></li>		
-
-
-
- 
 </ul>
 </p>
-
-
 
 <h2>Installation and configuration</h2>
 <p>
