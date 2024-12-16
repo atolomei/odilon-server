@@ -19,7 +19,6 @@ package io.odilon.virtualFileSystem.raid6;
 import java.io.InputStream;
 import java.util.List;
 
-import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.DriveStatus;
@@ -39,7 +38,6 @@ import io.odilon.virtualFileSystem.model.ServerBucket;
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public class RAIDSixSDriveSyncEncoder extends RAIDSixEncoder {
-
 
     /**
      * @param driver can not be null

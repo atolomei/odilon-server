@@ -82,7 +82,6 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
         Check.requireNonNullStringArgument(meta.getObjectName(), "objectName is null or empty | b:" + meta.getBucketName());
 
         String objectName = meta.getObjectName();
-        Long bucketId = meta.bucketId;
 
         VFSOperation op = null;
         boolean done = false;
@@ -90,12 +89,12 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 
         getLockService().getObjectLock(meta.bucketId, objectName).writeLock().lock();
         try {
-            
+
             getLockService().getBucketLock(meta.bucketId).readLock().lock();
             try {
 
                 bucket = getBucketCache().get(meta.getBucketId());
-                
+
                 /**
                  * backup metadata, there is no need to backup data because existing data files
                  * are not touched.
@@ -148,11 +147,9 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
                             RAIDSixDecoder decoder = new RAIDSixDecoder(getDriver());
                             File file = decoder.decodeVersion(versionMeta, bucket);
 
-                            RAIDSixSDriveSyncEncoder driveEncoder = new RAIDSixSDriveSyncEncoder(getDriver(),
-                                    getDrives());
+                            RAIDSixSDriveSyncEncoder driveEncoder = new RAIDSixSDriveSyncEncoder(getDriver(), getDrives());
 
-                            try (InputStream in = new BufferedInputStream(
-                                    new FileInputStream(file.getAbsolutePath()))) {
+                            try (InputStream in = new BufferedInputStream(new FileInputStream(file.getAbsolutePath()))) {
 
                                 /**
                                  * encodes version without saving existing blocks, only the ones that go to the
@@ -178,9 +175,8 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
                             getDriver().saveObjectMetadataToDisk(getDrives(), list, false);
 
                         } else {
-                            logger.warn("previous version was deleted for Object -> " + String.valueOf(version)
-                                    + " |  head " + getDriver().objectInfo(meta) + "  head version:"
-                                    + String.valueOf(meta.version));
+                            logger.warn("previous version was deleted for Object -> " + String.valueOf(version) + " |  head "
+                                    + getDriver().objectInfo(meta) + "  head version:" + String.valueOf(meta.version));
                         }
                     }
                 }
@@ -272,12 +268,11 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 
         String objectName = op.getObjectName();
 
-        
         ServerBucket bucket = null;
-        
+
         getLockService().getObjectLock(op.getBucketId(), objectName).writeLock().lock();
         try {
-            
+
             getLockService().getBucketLock(op.getBucketId()).readLock().lock();
             try {
                 bucket = getBucketCache().get(op.getBucketId());
@@ -292,7 +287,7 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 
             } catch (Exception e) {
                 if (!recoveryMode)
-                    throw new InternalCriticalException(e,  op.toString());
+                    throw new InternalCriticalException(e, op.toString());
                 else
                     logger.error(e, op.toString(), SharedConstant.NOT_THROWN);
             } finally {
@@ -320,8 +315,7 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
      */
     private void backupMetadata(ServerBucket bucket, ObjectMetadata meta) {
         try {
-            
-            
+
             for (Drive drive : getDriver().getDrivesEnabled()) {
 
                 File src = new File(drive.getObjectMetadataDirPath(bucket, meta.getObjectName()));
@@ -345,8 +339,8 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
                 if (src.exists())
                     FileUtils.copyDirectory(src, dest);
                 else
-                    throw new InternalCriticalException("backup dir does not exist "
-                            + getDriver().objectInfo(bucket, objectName) + "dir:" + src.getAbsolutePath());
+                    throw new InternalCriticalException("backup dir does not exist " + getDriver().objectInfo(bucket, objectName)
+                            + "dir:" + src.getAbsolutePath());
             }
         } catch (IOException e) {
             throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName));

@@ -384,7 +384,6 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
 
             String objectName = metaHeadRemoved.objectName;
 
-
             for (Drive drive : getDriver().getDrivesAll()) {
                 FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(bucket, objectName, versionDiscarded));
                 FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(bucket, objectName, metaNewHeadRestored.getVersion()));
@@ -413,10 +412,6 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
      * @param version
      */
     private void backupVersionObjectMetadata(ServerBucket bucket, String objectName, int version) {
-
-        String bucketName = bucket.getName();
-        Long bucketId = bucket.getId();
-
         try {
             for (Drive drive : getDriver().getDrivesAll()) {
                 File file = drive.getObjectMetadataFile(bucket, objectName);

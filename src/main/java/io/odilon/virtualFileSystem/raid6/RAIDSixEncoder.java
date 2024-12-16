@@ -54,16 +54,16 @@ public class RAIDSixEncoder extends RAIDSixCoder {
 
     @JsonIgnore
     private long fileSize = 0;
-    
+
     @JsonIgnore
     private int chunk = 0;
 
     @JsonIgnore
     private final int data_shards;
-    
+
     @JsonIgnore
     private final int partiy_shards;
-    
+
     @JsonIgnore
     private final int total_shards;
 
@@ -95,8 +95,8 @@ public class RAIDSixEncoder extends RAIDSixCoder {
      * </p>
      */
     protected RAIDSixEncoder(RAIDSixDriver driver, List<Drive> udrives) {
-            super(driver);
-            
+        super(driver);
+
         this.zDrives = (udrives != null) ? udrives : driver.getDrivesAll();
 
         this.data_shards = getVirtualFileSystemService().getServerSettings().getRAID6DataDrives();
@@ -148,8 +148,8 @@ public class RAIDSixEncoder extends RAIDSixCoder {
         Check.requireNonNull(bucket);
 
         if (!getDriver().isConfigurationValid(data_shards, partiy_shards))
-            throw new InternalCriticalException("Incorrect configuration for RAID 6 -> data: "
-                    + String.valueOf(data_shards) + " | parity:" + String.valueOf(partiy_shards));
+            throw new InternalCriticalException("Incorrect configuration for RAID 6 -> data: " + String.valueOf(data_shards)
+                    + " | parity:" + String.valueOf(partiy_shards));
 
         if (getDrives().size() < total_shards)
             throw new InternalCriticalException("There are not enough drives to encode the file in RAID 6 -> "
@@ -178,8 +178,7 @@ public class RAIDSixEncoder extends RAIDSixCoder {
      * 
      * @param is
      */
-    public boolean encodeChunk(InputStream is, ServerBucket bucket, String objectName, int chunk,
-            Optional<Integer> o_version) {
+    public boolean encodeChunk(InputStream is, ServerBucket bucket, String objectName, int chunk, Optional<Integer> o_version) {
 
         // BUFFER 1
         final byte[] allBytes = new byte[ServerConstant.MAX_CHUNK_SIZE];
@@ -190,8 +189,7 @@ public class RAIDSixEncoder extends RAIDSixCoder {
             boolean done = false;
             int bytesRead = 0;
             while (!done) {
-                bytesRead = is.read(allBytes, ServerConstant.BYTES_IN_INT + totalBytesRead,
-                        maxBytesToRead - totalBytesRead);
+                bytesRead = is.read(allBytes, ServerConstant.BYTES_IN_INT + totalBytesRead, maxBytesToRead - totalBytesRead);
                 if (bytesRead > 0)
                     totalBytesRead += bytesRead;
                 else
@@ -199,8 +197,7 @@ public class RAIDSixEncoder extends RAIDSixCoder {
                 done = eof || (totalBytesRead == maxBytesToRead);
             }
         } catch (IOException e) {
-            throw new InternalCriticalException(e,
-                    " reading inputStream | " + getDriver().objectInfo(bucket, objectName));
+            throw new InternalCriticalException(e, " reading inputStream | " + getDriver().objectInfo(bucket, objectName));
         }
 
         if (totalBytesRead == 0)

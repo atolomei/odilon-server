@@ -60,6 +60,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
      * <p>
      * Instances of this class are used internally by {@link RAIDSixDriver}
      * </p>
+     * 
      * @param driver
      */
     protected RAIDSixDeleteObjectHandler(RAIDSixDriver driver) {
@@ -135,7 +136,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
                     }
 
                     /**
-                     * DATA CONSISTENCY ---------------- If The system crashes before Commit or
+                     * DATA CONSISTENCY: If The system crashes before Commit or
                      * Cancel -> next time the system starts up it will REDO all stored operations.
                      * Also, if there are error buckets in the drives, they will be normalized when
                      * the system starts.
@@ -293,7 +294,6 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 
         String bucketName = meta.getBucketName();
         String objectName = meta.getObjectName();
-        Long bucketId = meta.getBucketId();
 
         Check.requireNonNullArgument(bucketName, "bucket is null");
         Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketName);
@@ -339,8 +339,8 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 
         try {
 
-            if (getVirtualFileSystemService().getServerSettings().isStandByEnabled())
-                getVirtualFileSystemService().getReplicationService().cancel(op);
+            if (getServerSettings().isStandByEnabled())
+                getReplicationService().cancel(op);
 
             /** rollback is the same for both operations */
             if (op.getOp() == VFSOp.DELETE_OBJECT)

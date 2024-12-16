@@ -76,13 +76,12 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
      * @param contentType
      * @param customTags
      */
-    protected void create(ServerBucket bucket, String objectName, InputStream stream, String srcFileName,
-            String contentType, Optional<List<String>> customTags) {
+    protected void create(ServerBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType,
+            Optional<List<String>> customTags) {
 
         Check.requireNonNullArgument(bucket, "bucket is null");
         Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 
-        
         VFSOperation op = null;
         boolean done = false;
         boolean isMainException = false;
@@ -98,8 +97,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
                 bucketReadLock(bucket);
 
                 if (getDriver().getObjectMetadataReadDrive(bucket, objectName).existsObjectMetadata(bucket, objectName))
-                    throw new IllegalArgumentException(
-                            "Object already exist -> " + getDriver().objectInfo(bucket, objectName));
+                    throw new IllegalArgumentException("Object already exist -> " + getDriver().objectInfo(bucket, objectName));
 
                 int version = 0;
 
@@ -152,9 +150,9 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
         Check.checkTrue(op.getOp() == VFSOp.CREATE_OBJECT, "Invalid op ->  " + op.getOp().getName());
 
         String objectName = op.getObjectName();
-        
+
         ServerBucket bucket = getBucketCache().get(op.getBucketId());
-        
+
         boolean done = false;
 
         try {
@@ -165,7 +163,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 
             /** remove metadata dir on all drives */
             for (Drive drive : getDriver().getDrivesAll()) {
-                File f_meta = drive.getObjectMetadataFile( bucket, objectName);
+                File f_meta = drive.getObjectMetadataFile(bucket, objectName);
                 if ((meta == null) && (f_meta != null)) {
                     try {
                         meta = drive.getObjectMetadata(bucket, objectName);
@@ -210,8 +208,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
      */
     private RAIDSixBlocks saveObjectDataFile(ServerBucket bucket, String objectName, InputStream stream) {
         Check.requireNonNullArgument(bucket, "bucket is null");
-        try (InputStream sourceStream = isEncrypt()
-                ? (getVirtualFileSystemService().getEncryptionService().encryptStream(stream))
+        try (InputStream sourceStream = isEncrypt() ? (getVirtualFileSystemService().getEncryptionService().encryptStream(stream))
                 : stream) {
             return (new RAIDSixEncoder(getDriver())).encodeHead(sourceStream, bucket, objectName);
         } catch (Exception e) {
