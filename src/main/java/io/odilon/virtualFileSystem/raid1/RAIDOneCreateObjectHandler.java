@@ -84,8 +84,8 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
      * @param contentType
      * @param customTags
      */
-    protected void create(ServerBucket bucket, String objectName, InputStream stream, String srcFileName,
-            String contentType, Optional<List<String>> customTags) {
+    protected void create(ServerBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType,
+            Optional<List<String>> customTags) {
 
         Check.requireNonNullArgument(bucket, "bucket is null");
         Long bucket_id = bucket.getId();
@@ -106,8 +106,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 
             try (stream) {
                 if (getDriver().getReadDrive(bucket, objectName).existsObjectMetadata(bucket, objectName))
-                    throw new IllegalArgumentException(
-                            "object already exist -> b:" + getDriver().objectInfo(bucket, objectName));
+                    throw new IllegalArgumentException("object already exist -> b:" + getDriver().objectInfo(bucket, objectName));
 
                 int version = 0;
                 op = getJournalService().createObject(bucket, objectName);
@@ -126,8 +125,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
                             rollbackJournal(op, false);
                         } catch (Exception e) {
                             if (!isMainException)
-                                throw new InternalCriticalException(e,
-                                        getDriver().objectInfo(bucket, objectName, srcFileName));
+                                throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName, srcFileName));
                             else
                                 logger.error(e, getDriver().objectInfo(bucket, objectName, srcFileName), SharedConstant.NOT_THROWN);
                         }
@@ -171,8 +169,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 
             for (Drive drive : getDriver().getDrivesAll()) {
                 drive.deleteObjectMetadata(bucket, objectName);
-                FileUtils.deleteQuietly(
-                        new File(drive.getRootDirPath(), bucket_id.toString() + File.separator + objectName));
+                FileUtils.deleteQuietly(new File(drive.getRootDirPath(), bucket_id.toString() + File.separator + objectName));
             }
             done = true;
 
@@ -273,8 +270,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 
         } catch (Exception e) {
             isMainException = true;
-            throw new InternalCriticalException(e,
-                    getDriver().objectInfo(bucket, objectName, srcFileName));
+            throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName, srcFileName));
 
         } finally {
             IOException secEx = null;
@@ -298,9 +294,6 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 
     }
 
-    
-
-
     /**
      * <p>
      * This method is not ThreadSafe. Locks must be applied by the caller
@@ -314,8 +307,8 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
      * @param stream
      * @param srcFileName
      */
-    private void saveObjectMetadata(ServerBucket bucket, String objectName, String srcFileName, String contentType,
-            int version, Optional<List<String>> customTags) {
+    private void saveObjectMetadata(ServerBucket bucket, String objectName, String srcFileName, String contentType, int version,
+            Optional<List<String>> customTags) {
 
         String sha = null;
         String baseDrive = null;
@@ -333,7 +326,8 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
                     baseDrive = drive.getName();
                 } else {
                     if (!sha256.equals(sha))
-                        throw new InternalCriticalException("SHA 256 are not equal for -> d:" + baseDrive + " ->" + sha + " vs d:" + drive.getName() + " -> " + sha256);
+                        throw new InternalCriticalException("SHA 256 are not equal for -> d:" + baseDrive + " ->" + sha + " vs d:"
+                                + drive.getName() + " -> " + sha256);
                 }
 
                 ObjectMetadata meta = new ObjectMetadata(bucket.getId(), objectName);
@@ -357,8 +351,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
                 list.add(meta);
 
             } catch (Exception e) {
-                throw new InternalCriticalException(e,
-                        getDriver().objectInfo(bucket, objectName, srcFileName));
+                throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName, srcFileName));
             }
         }
         /** save in parallel */

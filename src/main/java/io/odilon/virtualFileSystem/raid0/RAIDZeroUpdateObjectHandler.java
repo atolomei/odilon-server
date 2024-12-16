@@ -97,9 +97,9 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 
             if (!getBucketCache().contains(bucket.getId()))
                 throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
-            
+
             try (stream) {
-                
+
                 if (!existsMetadata(bucket, objectName))
                     throw new IllegalArgumentException("Object does not exist -> " + objectInfo(bucket, objectName, srcFileName));
 
@@ -290,25 +290,25 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
         VFSOperation op = null;
         boolean done = false;
         boolean isMainException = false;
-        
+
         objectWriteLock(meta);
         try {
 
             bucketReadLock(meta.getBucketId());
-            
-            ServerBucket bucket = null;            
+
+            ServerBucket bucket = null;
             try {
-                
+
                 if (!getBucketCache().contains(meta.getBucketId()))
                     throw new IllegalArgumentException("bucket does not exist -> " + meta.getBucketName());
-                
+
                 bucket = getBucketCache().get(meta.getBucketId());
-                
+
                 op = getJournalService().updateObjectMetadata(bucket, meta.getObjectName(), meta.getVersion());
-                
+
                 backupMetadata(meta, bucket);
                 getWriteDrive(bucket, meta.getObjectName()).saveObjectMetadata(meta);
-                
+
                 done = op.commit();
             } catch (Exception e) {
                 isMainException = true;
@@ -332,8 +332,10 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
                          * Async.
                          */
                         try {
-                            if (bucket!=null)
-                                FileUtils.deleteQuietly( new File(getDriver().getWriteDrive(bucket, meta.getObjectName()).getBucketWorkDirPath(bucket) + File.separator + meta.getObjectName()));
+                            if (bucket != null)
+                                FileUtils.deleteQuietly(new File(
+                                        getDriver().getWriteDrive(bucket, meta.getObjectName()).getBucketWorkDirPath(bucket)
+                                                + File.separator + meta.getObjectName()));
                         } catch (Exception e) {
                             logger.error(e, SharedConstant.NOT_THROWN);
                         }
@@ -436,7 +438,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
         boolean done = false;
 
         try {
-            
+
             ServerBucket bucket = getBucketCache().get(op.getBucketId());
 
             if (getServerSettings().isStandByEnabled())
@@ -481,11 +483,11 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 
         boolean isMainException = false;
 
-        try (InputStream sourceStream = isEncrypt() ? getEncryptionService().encryptStream(stream)
-                : stream) {
+        try (InputStream sourceStream = isEncrypt() ? getEncryptionService().encryptStream(stream) : stream) {
 
             out = new BufferedOutputStream(
-                    new FileOutputStream(((SimpleDrive) getWriteDrive(bucket, objectName)).getObjectDataFilePath(bucket.getId(), objectName)),
+                    new FileOutputStream(
+                            ((SimpleDrive) getWriteDrive(bucket, objectName)).getObjectDataFilePath(bucket.getId(), objectName)),
                     ServerConstant.BUFFER_SIZE);
             int bytesRead;
             while ((bytesRead = sourceStream.read(buf, 0, buf.length)) >= 0) {
@@ -620,9 +622,9 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
      */
     private void backupMetadata(ObjectMetadata meta, ServerBucket bucket) {
 
-        
         try {
-            String objectMetadataDirPath = getDriver().getWriteDrive(bucket, meta.getObjectName()).getObjectMetadataDirPath(bucket, meta.getObjectName());
+            String objectMetadataDirPath = getDriver().getWriteDrive(bucket, meta.getObjectName()).getObjectMetadataDirPath(bucket,
+                    meta.getObjectName());
             String objectMetadataBackupDirPath = getDriver().getWriteDrive(bucket, meta.getObjectName())
                     .getBucketWorkDirPath(bucket) + File.separator + meta.getObjectName();
             File src = new File(objectMetadataDirPath);

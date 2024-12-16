@@ -51,7 +51,6 @@ import io.odilon.util.Check;
 import io.odilon.util.OdilonFileUtils;
 import io.odilon.virtualFileSystem.BaseIODriver;
 import io.odilon.virtualFileSystem.OdilonBucket;
-import io.odilon.virtualFileSystem.OdilonDrive;
 import io.odilon.virtualFileSystem.OdilonObject;
 import io.odilon.virtualFileSystem.model.BucketIterator;
 import io.odilon.virtualFileSystem.model.Drive;
@@ -62,7 +61,6 @@ import io.odilon.virtualFileSystem.model.VFSOp;
 import io.odilon.virtualFileSystem.model.VFSOperation;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemObject;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
-import io.odilon.virtualFileSystem.raid0.RAIDZeroDeleteObjectHandler;
 
 /**
  * <p>
@@ -375,7 +373,6 @@ public class RAIDOneDriver extends BaseIODriver {
         return getOM(bucket, objectName, Optional.of(Integer.valueOf(version)), true);
     }
 
-    
     /**
      * 
      */
@@ -874,11 +871,11 @@ public class RAIDOneDriver extends BaseIODriver {
                         InputStream in = null;
                         try {
                             if (!goodDrive.equals(destDrive)) {
-                                
+
                                 in = ((SimpleDrive) goodDrive).getObjectInputStream(bucket.getId(), objectName);
-                                
+
                                 destDrive.putObjectStream(bucket.getId(), objectName, in);
-                                
+
                                 goodDriveMeta.drive = destDrive.getName();
                                 destDrive.saveObjectMetadata(goodDriveMeta);
                                 logger.debug("Fixed -> d: " + destDrive.getName() + objectInfo(bucket, objectName));

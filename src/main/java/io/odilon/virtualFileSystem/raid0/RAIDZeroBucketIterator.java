@@ -34,7 +34,6 @@ import javax.annotation.concurrent.ThreadSafe;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import io.odilon.errors.InternalCriticalException;
-import io.odilon.model.ServerConstant;
 import io.odilon.virtualFileSystem.model.BucketIterator;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;

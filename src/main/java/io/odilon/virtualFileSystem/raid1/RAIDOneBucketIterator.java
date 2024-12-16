@@ -32,7 +32,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.odilon.errors.InternalCriticalException;
-import io.odilon.model.ServerConstant;
 import io.odilon.virtualFileSystem.model.BucketIterator;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
@@ -118,7 +117,7 @@ public class RAIDOneBucketIterator extends BucketIterator implements Closeable {
         setRelativeIndex(0);
         setBuffer(new ArrayList<Path>());
         boolean isItems = true;
-        while (isItems && getBuffer().size()<defaultBufferSize()) {
+        while (isItems && getBuffer().size() < defaultBufferSize()) {
             if (getIt().hasNext())
                 getBuffer().add(getIt().next());
             else
@@ -126,8 +125,6 @@ public class RAIDOneBucketIterator extends BucketIterator implements Closeable {
         }
         return !getBuffer().isEmpty();
     }
-
-    
 
     private void skipOffset() {
         if (getOffset() == 0)
@@ -155,7 +152,5 @@ public class RAIDOneBucketIterator extends BucketIterator implements Closeable {
     private Stream<Path> getStream() {
         return stream;
     }
-    
-    
 
 }

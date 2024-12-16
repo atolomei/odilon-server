@@ -22,13 +22,14 @@ import javax.annotation.concurrent.ThreadSafe;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import io.odilon.virtualFileSystem.BaseRAIDHandler;
-import io.odilon.virtualFileSystem.BucketCache;
 import io.odilon.virtualFileSystem.RAIDHandler;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VFSOperation;
 
-/** * <p>
+/**
+ * *
+ * <p>
  * Base class for {@link RAIDZeroDriver} operations
  * </p>
  * 
@@ -53,6 +54,5 @@ public abstract class RAIDZeroHandler extends BaseRAIDHandler implements RAIDHan
         return getDriver().getWriteDrive(bucket, objectName);
     }
 
-    
     protected abstract void rollbackJournal(VFSOperation op, boolean recoveryMode);
 }
