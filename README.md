@@ -165,7 +165,7 @@ client.putObject(bucketName, objectName1, file1);
 client.putObject(bucketName, objectName2, file2);
 ```
 <p>
-More info in Odilon's website <br/>
+More info on the Odilon website <br/>
 <a href="https://odilon.io/development.html" target="_blank">Java Application Development with Odilon</a>
 </p>
 
