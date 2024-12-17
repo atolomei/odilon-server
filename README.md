@@ -165,25 +165,19 @@ client.putObject(bucketName, objectName1, file1);
 client.putObject(bucketName, objectName2, file2);
 ```
 <p>
-More info in Odilon's website <br/>
+More info on the Odilon website <br/>
 <a href="https://odilon.io/development.html" target="_blank">Java Application Development with Odilon</a>
 </p>
 
 <h2>Download</h2>
 <p>
-Current version is Odilon 1.8
+Current version is Odilon 1.9.
 <ul>
 <li><a href="https://odilon.io#download" target="_blank">Odilon Server</a></li>	
 <li><a href="https://odilon.io#download" target="_blank">Odilon Java SDK</a></li>
 <li><a href="https://mvnrepository.com/artifact/io.odilon/odilon-client" target="_blank">Odilon Java SDK. MVN Repository</a></li>		
-
-
-
- 
 </ul>
 </p>
-
-
 
 <h2>Installation and configuration</h2>
 <p>
