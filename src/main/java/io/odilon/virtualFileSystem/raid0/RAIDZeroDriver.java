@@ -314,7 +314,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
              * This check was executed by the VirtualFilySystemService, but it must be
              * executed also inside the critical zone.
              */
-            if (!getBucketCache().contains(bucket.getName()))
+            if (!existsCacheBucket(bucket.getName()))
                 throw new IllegalArgumentException("bucket does not exist -> " + bucket.getName());
 
             for (Drive drive : getDrivesEnabled()) {
@@ -356,7 +356,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
                  * This check was executed by the VirtualFilySystemService, but it must be
                  * executed also inside the critical zone.
                  */
-                if (!getBucketCache().contains(bucket.getName()))
+                if (!existsCacheBucket(bucket.getName()))
                     throw new IllegalArgumentException("bucket does not exist -> " + bucket.getName());
 
                 /** read is from only 1 drive in RAID 0 */
@@ -415,7 +415,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
                  * This check was executed by the VirtualFilySystemService, but it must be
                  * executed also inside the critical zone.
                  */
-                if (!getBucketCache().contains(bucket.getName()))
+                if (!existsCacheBucket(bucket.getName()))
                     throw new IllegalArgumentException("bucket does not exist -> " + bucket.getName());
 
                 /** TBA chequear que no este "deleted" en el drive */
@@ -525,7 +525,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
                  * This check was executed by the VirtualFilySystemService, but it must be
                  * executed also inside the critical zone.
                  */
-                if (!getBucketCache().contains(bucket.getName()))
+                if (!existsCacheBucket(bucket.getName()))
                     throw new IllegalArgumentException("bucket does not exist -> " + bucket.getName());
 
                 /** read is from only 1 drive */
@@ -605,7 +605,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
                  * This check was executed by the VirtualFilySystemService, but it must be
                  * executed also inside the critical zone.
                  */
-                if (!getBucketCache().contains(bucket.getName()))
+                if (!existsCacheBucket(bucket.getName()))
                     throw new IllegalArgumentException("bucket does not exist -> " + bucket.getName());
 
                 /** RAID 0: read is from only 1 drive */
@@ -668,7 +668,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
                  * This check was executed by the VirtualFilySystemService, but it must be
                  * executed also inside the critical zone.
                  */
-                if (!getBucketCache().contains(bucket.getName()))
+                if (!existsCacheBucket(bucket.getName()))
                     throw new IllegalArgumentException("bucket does not exist -> " + bucket.getName());
 
                 /** RAID 0: read is from only 1 drive */
@@ -1344,7 +1344,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
                  * This check was executed by the VirtualFilySystemService, but it must be
                  * executed also inside the critical zone.
                  */
-                if (!getBucketCache().contains(bucket.getName()))
+                if (!existsCacheBucket(bucket.getName()))
                     throw new IllegalArgumentException("bucket does not exist -> " + bucket.getName());
 
                 /** read is from only 1 drive */

@@ -95,7 +95,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 
             bucketReadLock(bucket);
 
-            if (!getBucketCache().contains(bucket.getId()))
+            if (!existsCacheBucket(bucket.getId()))
                 throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
 
             try (stream) {
@@ -177,7 +177,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 
             try {
 
-                if (!getBucketCache().contains(bucket.getId()))
+                if (!existsCacheBucket(bucket.getId()))
                     throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
 
                 ObjectMetadata meta = getDriver().getObjectMetadataInternal(bucket, objectName, false);
@@ -299,7 +299,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
             ServerBucket bucket = null;
             try {
 
-                if (!getBucketCache().contains(meta.getBucketId()))
+                if (!existsCacheBucket(meta.getBucketId()))
                     throw new IllegalArgumentException("bucket does not exist -> " + meta.getBucketName());
 
                 bucket = getBucketCache().get(meta.getBucketId());

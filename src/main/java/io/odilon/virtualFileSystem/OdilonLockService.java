@@ -109,8 +109,6 @@ public class OdilonLockService extends BaseService implements LockService {
     @Override
     public ReadWriteLock getBucketLock(BucketMetadata meta) {
         Check.requireNonNullArgument(meta, "BucketMetadata is null");
-        //ServerBucket bucket = this.getVirtualFileSystemService().getBucketById(meta.getId());
-        //Check.requireNonNullArgument(bucket, "bucket is null");
         return getBucketLock(meta.getId());    
     }
 
@@ -243,13 +241,10 @@ public class OdilonLockService extends BaseService implements LockService {
                     {
 
                         if (getFileCacheLocks().size() > 0) { // FC>0
-
                             try {
-
                                 long maxToPurge = Math.round(ratePerMillisec * maxTimeToSleepMillisec)
                                         + (long) (ratePerMillisec * 1000.0);
                                 List<String> list = new ArrayList<String>();
-
                                 int counter = 0;
                                 for (Entry<String, ReentrantReadWriteLock> entry : getFileCacheLocks().entrySet()) {
                                     if (entry.getValue().writeLock().tryLock()) {
@@ -260,19 +255,15 @@ public class OdilonLockService extends BaseService implements LockService {
                                         }
                                     }
                                 }
-
                                 list.forEach(item -> {
                                     ReentrantReadWriteLock lock = getFileCacheLocks().get(item);
                                     getFileCacheLocks().remove(item);
                                     lock.writeLock().unlock();
                                 });
                                 list.forEach(item -> getFileCacheLocks().remove(item));
-
                             } finally {
                             }
-
                         } // FC>0
-
                     }
                 }
             };

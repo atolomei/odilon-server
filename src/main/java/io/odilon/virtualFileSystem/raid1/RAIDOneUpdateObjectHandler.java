@@ -298,7 +298,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
                  * This check was executed by the VirtualFilySystemService, 
                  * but it must be executed also inside the critical zone.
                  * */
-                if (!getBucketCache().contains(bucket.getName()))
+                if (!existsCacheBucket(bucket.getName()))
                     throw new IllegalArgumentException("bucket does not exist -> " + bucket.getName());
                 
                 op = getJournalService().updateObjectMetadata(getBucketCache().get(meta.getBucketId()), meta.getObjectName(), meta.getVersion());

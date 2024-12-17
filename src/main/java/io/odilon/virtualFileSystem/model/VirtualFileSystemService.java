@@ -278,10 +278,6 @@ public interface VirtualFileSystemService extends SystemService {
 
     public BucketCache getBucketCache();
     
-    //public void addBucketCache(ServerBucket bucket);
-    //public void updateBucketCache(String oldBucketName, ServerBucket bucket);
-    //public void removeBucketCacheById(Long id);
-    //boolean isBucketCache(String bucketName);
     
 
 }

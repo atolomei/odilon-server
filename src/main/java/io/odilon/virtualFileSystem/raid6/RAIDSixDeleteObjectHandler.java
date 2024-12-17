@@ -88,16 +88,12 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
         getLockService().getObjectLock(bucket, objectName).writeLock().lock();
 
         try {
-
             getLockService().getBucketLock(bucket).readLock().lock();
-
             try {
-
                 /**
-                 * This check was executed by the VirtualFilySystemService, but it must be
-                 * executed also inside the critical zone.
+                 * This check musst be executed inside the critical section
                  */
-                if (!getBucketCache().contains(bucket))
+                if (!existsCacheBucket(bucket))
                     throw new IllegalArgumentException("bucket does not exist -> " + bucket.getName());
 
                 meta = getDriver().getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucket, objectName);
@@ -116,7 +112,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
             } catch (Exception e) {
                 done = false;
                 isMainException = true;
-                throw new InternalCriticalException(e, "op:" + op.getOp().getName() + objectInfo(bucket, objectName));
+                throw new InternalCriticalException(e, opInfo(op) + " | " + objectInfo(bucket, objectName));
             } finally {
 
                 try {
@@ -194,16 +190,15 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
             getLockService().getBucketLock(bucketId).readLock().lock();
 
             try {
-
-                bucket = getBucketCache().get(headMeta.getBucketId());
-
                 /**
                  * This check was executed by the VirtualFilySystemService, but it must be
                  * executed also inside the critical zone.
                  */
-                if (!getBucketCache().contains(bucket))
-                    throw new IllegalArgumentException("bucket does not exist -> " + bucket.getName());
+                if (!existsCacheBucket(bucketId))
+                    throw new IllegalArgumentException("bucket does not exist -> " + bucketId);
 
+                bucket = getCacheBucket(bucketId);
+                
                 if (!getDriver().getObjectMetadataReadDrive(bucket, objectName).existsObjectMetadata(headMeta))
                     throw new OdilonObjectNotFoundException(
                             "object does not exist -> " + getDriver().objectInfo(bucketId, objectName));
@@ -280,6 +275,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
         }
 
     }
+
 
     /** not used by de moment */
     protected void postObjectDelete(ObjectMetadata meta, int headVersion) {

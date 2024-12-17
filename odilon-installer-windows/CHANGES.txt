@@ -56,6 +56,13 @@ This is the first release of Odilon Object Storage
 2024.10.20 RAID 1 parallel object metadata save
 
 
+==================  1.9 ==================
+
+2024.12.02 Fix Replication bug for bucket rename
+2024.12.11 Fix bucket Cache bugs
+2024.12.16 Clean up source code (add ObjectPath and other classes)
+
+
 
 
 

@@ -44,14 +44,40 @@ public abstract class BaseRAIDHandler {
         return getVirtualFileSystemService().getServerSettings();
     }
 
-    
     protected BucketCache getBucketCache() {
         return getVirtualFileSystemService().getBucketCache();
     }
+
     
-    //protected ServerBucket getBucketById(Long id) {
-     //   return getVirtualFileSystemService().getBucketById(id);
-    //}
+    /**
+     * This check must be executed inside the critical section
+     */
+    protected ServerBucket getCacheBucket(Long bucketId) {
+        return getVirtualFileSystemService().getBucketCache().get(bucketId);
+    }
+    
+    /**
+     * This check must be executed inside the critical section
+     */
+    protected boolean existsCacheBucket(String bucketName) {
+        return getBucketCache().contains(bucketName);
+    }
+    
+    /**
+     * This check must be executed inside the critical section
+     */
+    protected boolean existsCacheBucket(Long id) {
+        return getBucketCache().contains(id);
+    }
+    
+    /**
+     * This check must be executed inside the critical section
+     */
+    protected boolean existsCacheBucket(ServerBucket bucket) {
+        return getBucketCache().contains(bucket);
+    }
+    
+    
     
     protected EncryptionService getEncryptionService() {
         return getVirtualFileSystemService().getEncryptionService();

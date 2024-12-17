@@ -228,7 +228,7 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
 
             try {
 
-                if (!getBucketCache().contains(meta.getBucketId()))
+                if (!existsCacheBucket(meta.getBucketId()))
                     throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
 
                 bucket = getBucketCache().get(meta.getBucketId());
