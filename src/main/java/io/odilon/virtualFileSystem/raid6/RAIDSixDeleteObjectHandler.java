@@ -132,10 +132,9 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
                     }
 
                     /**
-                     * DATA CONSISTENCY: If The system crashes before Commit or
-                     * Cancel -> next time the system starts up it will REDO all stored operations.
-                     * Also, if there are error buckets in the drives, they will be normalized when
-                     * the system starts.
+                     * DATA CONSISTENCY: If The system crashes before Commit or Cancel -> next time
+                     * the system starts up it will REDO all stored operations. Also, if there are
+                     * error buckets in the drives, they will be normalized when the system starts.
                      */
 
                 } catch (Exception e) {
@@ -198,7 +197,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
                     throw new IllegalArgumentException("bucket does not exist -> " + bucketId);
 
                 bucket = getCacheBucket(bucketId);
-                
+
                 if (!getDriver().getObjectMetadataReadDrive(bucket, objectName).existsObjectMetadata(headMeta))
                     throw new OdilonObjectNotFoundException(
                             "object does not exist -> " + getDriver().objectInfo(bucketId, objectName));
@@ -276,7 +275,6 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 
     }
 
-
     /** not used by de moment */
     protected void postObjectDelete(ObjectMetadata meta, int headVersion) {
     }
@@ -348,19 +346,16 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
             done = true;
 
         } catch (InternalCriticalException e) {
-            String msg = "Rollback: " + (Optional.ofNullable(op).isPresent() ? op.toString() : "null");
             if (!recoveryMode)
                 throw (e);
             else
-                logger.error(msg, SharedConstant.NOT_THROWN);
+                logger.error(e, opInfo(op), SharedConstant.NOT_THROWN);
 
         } catch (Exception e) {
             if (!recoveryMode)
-                throw new InternalCriticalException(e,
-                        "Rollback: " + (Optional.ofNullable(op).isPresent() ? op.toString() : "null"));
+                throw new InternalCriticalException(e);
             else
-                logger.error("Rollback: " + (Optional.ofNullable(op).isPresent() ? op.toString() : "null"),
-                        SharedConstant.NOT_THROWN);
+                logger.error(e, opInfo(op), SharedConstant.NOT_THROWN);
         } finally {
             if (done || recoveryMode)
                 op.cancel();
