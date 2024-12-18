@@ -254,18 +254,10 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
                          */
                         if ((op != null) && ((beforeHeadVersion >= 0))) {
                             try {
-
                                 FileUtils.deleteQuietly(getDriver().getWriteDrive(bucket, objectName)
                                         .getObjectMetadataVersionFile(bucket, objectName, beforeHeadVersion));
-
-                                
-                                
                                 ObjectPath path = new ObjectPath(getDriver().getWriteDrive(bucket, objectName), bucket, objectName);
                                 FileUtils.deleteQuietly( path.dataFileVersionPath(beforeHeadVersion).toFile() );
-                                
-                                //FileUtils.deleteQuietly(((SimpleDrive) getDriver().getWriteDrive(bucket, objectName))
-                                //        .getObjectDataVersionFile(bucket.getId(), objectName, beforeHeadVersion));
-
                             } catch (Exception e) {
                                 logger.error(e, SharedConstant.NOT_THROWN);
                             }
@@ -493,10 +485,6 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
         String sPath = path.dataFilePath().toString();
 
         try (InputStream sourceStream = isEncrypt() ? getEncryptionService().encryptStream(stream) : stream) {
-            // out = new BufferedOutputStream(
-            // new FileOutputStream(((SimpleDrive) getWriteDrive(bucket,
-            // objectName)).getObjectDataFilePath(bucket.getId(), objectName)),
-            // ServerConstant.BUFFER_SIZE);
             out = new BufferedOutputStream(new FileOutputStream(sPath), ServerConstant.BUFFER_SIZE);
             int bytesRead;
             while ((bytesRead = sourceStream.read(buf, 0, buf.length)) >= 0) {
@@ -540,9 +528,6 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 
         OffsetDateTime now = OffsetDateTime.now();
         Drive drive = getWriteDrive(bucket, objectName);
-        // File file = ((SimpleDrive) drive).getObjectDataFile(bucket.getId(),
-        // objectName);
-
         ObjectPath path = new ObjectPath(drive, bucket.getId(), objectName);
         File file = path.dataFilePath().toFile();
 
@@ -587,12 +572,8 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
     private void saveVersioDataFile(ServerBucket bucket, String objectName, int version) {
         try {
             Drive drive = getWriteDrive(bucket, objectName);
-
             ObjectPath path = new ObjectPath(drive, bucket.getId(), objectName);
             File file = path.dataFilePath().toFile();
-            // File file = ((SimpleDrive) drive).getObjectDataFile(bucket.getId(),
-            // objectName);
-
             ((SimpleDrive) drive).putObjectDataVersionFile(bucket.getId(), objectName, version, file);
 
         } catch (Exception e) {
@@ -623,11 +604,8 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
     private boolean restoreVersionDataFile(ServerBucket bucket, String objectName, int version) {
         try {
             Drive drive = getWriteDrive(bucket, objectName);
-            
             ObjectPath path = new ObjectPath(drive, bucket, objectName);
-
             File file = path.dataFileVersionPath(version).toFile();
-            //File file = ((SimpleDrive) drive).getObjectDataVersionFile(bucket.getId(), objectName, version);
             
             if (file.exists()) {
                 ((SimpleDrive) drive).putObjectDataFile(bucket.getId(), objectName, file);
@@ -711,13 +689,8 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 
                 FileUtils.deleteQuietly(getDriver().getWriteDrive(bucket, objectName).getObjectMetadataVersionFile(bucket, objectName, previousVersion));
 
-                
                 ObjectPath path = new ObjectPath(getDriver().getWriteDrive(bucket, objectName), bucket, objectName);
                 FileUtils.deleteQuietly( path.dataFileVersionPath(previousVersion).toFile());
-                
-                //FileUtils.deleteQuietly(((SimpleDrive) getDriver().getWriteDrive(bucket, objectName))
-                 //       .getObjectDataVersionFile(bucket.getId(), objectName, previousVersion));
-
             }
         } catch (Exception e) {
             logger.error(e, SharedConstant.NOT_THROWN);

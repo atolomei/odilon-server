@@ -71,7 +71,6 @@ import io.odilon.virtualFileSystem.model.DriveBucket;
 import io.odilon.virtualFileSystem.model.JournalService;
 import io.odilon.virtualFileSystem.model.LockService;
 import io.odilon.virtualFileSystem.model.ServerBucket;
-import io.odilon.virtualFileSystem.model.SimpleDrive;
 import io.odilon.virtualFileSystem.model.VFSOp;
 import io.odilon.virtualFileSystem.model.VFSOperation;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemObject;
@@ -596,11 +595,8 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 
         objectReadLock(bucket, objectName);
         try {
-
             bucketReadLock(bucket);
-
             try {
-
                 /**
                  * This check was executed by the VirtualFilySystemService, but it must be
                  * executed also inside the critical zone.
@@ -638,9 +634,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         } finally {
             objectReadUnLock(bucket, objectName);
         }
-
     }
-
     /**
      * <p>
      * <b>IMPORTANT</b> -> caller must close the {@link InputStream} returned
@@ -659,10 +653,8 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         Check.requireNonNullStringArgument(objectName, "objectName is null or empty " + objectInfo(bucket));
 
         objectReadLock(bucket, objectName);
-
         try {
             bucketReadLock(bucket);
-
             try {
                 /**
                  * This check was executed by the VirtualFilySystemService, but it must be
@@ -746,7 +738,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         std_logger.info("Rollback -> " + String.valueOf(list.size()) + " transactions");
         return list;
     }
-
     /**
      * <p>
      * before starting operations load Requests that are stored on disk
@@ -901,14 +892,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
             }
         }
     }
-
-    /**
-     * RAID 0 -> read drive and write drive are the same
-     */
-    public Drive getWriteDrive(ServerBucket bucket, String objectName) {
-        return getDrive(bucket, objectName);
-    }
-
     @Override
     public void saveServerMasterKey(byte[] key, byte[] hmac, byte[] iv, byte[] salt) {
 
@@ -1055,7 +1038,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 
             ObjectPath path = new ObjectPath(readDrive, bucket.getId(), objectName);
             File file = path.dataFilePath().toFile();
-            // File file = ((SimpleDrive) readDrive).getObjectDataFile(bucket.getId(), objectName);
             String sha256 = null;
 
             try {
@@ -1115,7 +1097,8 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
     public void removeScheduler(ServiceRequest request, String queueId) {
         getDrivesEnabled().get(0).removeScheduler(request, queueId);
     }
-
+    
+    @Override
     public ApplicationContext getApplicationContext() {
         return this.applicationContext;
     }
@@ -1214,6 +1197,13 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
     }
 
     /**
+     * RAID 0 -> read drive and write drive are the same
+     */
+    protected Drive getWriteDrive(ServerBucket bucket, String objectName) {
+        return getDrive(bucket, objectName);
+    }
+
+    /**
      * <p>
      * RAID 0 -> all enabled Drives have all buckets
      * </p>
@@ -1241,7 +1231,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         }
 
         // any drive is ok because all have all the buckets
-
         Drive drive = getDrivesEnabled().get(0);
         for (DriveBucket bucket : drive.getBuckets()) {
             String name = bucket.getName();
@@ -1282,7 +1271,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
             return "f:null";
         return "f:" + file.getName();
     }
-
 
     private void saveNewServerInfo(OdilonServerInfo serverInfo) {
         boolean done = false;
@@ -1335,13 +1323,10 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         Drive readDrive = null;
 
         objectReadLock(bucket, objectName);
-
         try {
 
             bucketReadLock(bucket);
-
             try {
-
                 /**
                  * This check was executed by the VirtualFilySystemService, but it must be
                  * executed also inside the critical zone.
@@ -1383,32 +1368,4 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
             objectReadUnLock(bucket, objectName);
         }
     }
-
 }
-
-
-
-
-
-
-
-/**
- * protected InputStream getInputStreamFromSelectedDrive(Drive drive,
- * ServerBucket bucket, String objectName) throws IOException {
- * 
- * ObjectPath path = new ObjectPath(drive, bucket, objectName); return
- * Files.newInputStream(path.dataFilePath(Context.STORAGE));
- * 
- * // return Files.newInputStream(Paths.get(drive.getRootDirPath() +
- * File.separator // + bucket.getId().toString() + File.separator +
- * objectName)); }
- **/
-
-/**
- * protected InputStream getInputStreamFromSelectedDrive(Drive readDrive, Long
- * bucketId, String objectName, int version) throws IOException { return
- * Files.newInputStream( Paths.get(readDrive.getRootDirPath() + File.separator +
- * bucketId.toString() + File.separator + VirtualFileSystemService.VERSION_DIR +
- * File.separator + objectName + VirtualFileSystemService.VERSION_EXTENSION +
- * String.valueOf(version))); }
- **/

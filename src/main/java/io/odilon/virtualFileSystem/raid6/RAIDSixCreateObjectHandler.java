@@ -48,7 +48,6 @@ import io.odilon.virtualFileSystem.model.VFSOperation;
  * Auxiliary class used by {@link RaidSixHandler}
  * </p>
  * 
- * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 
@@ -88,12 +87,10 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 
         try {
 
-            // getLockService().getObjectLock(bucket, objectName).writeLock().lock();
             objectWriteLock(bucket, objectName);
 
             try (stream) {
 
-                // getLockService().getBucketLock(bucket).readLock().lock();
                 bucketReadLock(bucket);
 
                 if (getDriver().getObjectMetadataReadDrive(bucket, objectName).existsObjectMetadata(bucket, objectName))
@@ -128,12 +125,10 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
                         }
                     }
                 } finally {
-                    // getLockService().getBucketLock(bucket).readLock().unlock();
                     bucketReadUnLock(bucket);
                 }
             }
         } finally {
-            // getLockService().getObjectLock(bucket, objectName).writeLock().unlock();
             objectWriteUnLock(bucket, objectName);
         }
     }
@@ -156,8 +151,8 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
         boolean done = false;
 
         try {
-            if (getVirtualFileSystemService().getServerSettings().isStandByEnabled())
-                getVirtualFileSystemService().getReplicationService().cancel(op);
+            if (getServerSettings().isStandByEnabled())
+                getReplicationService().cancel(op);
 
             ObjectMetadata meta = null;
 

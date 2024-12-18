@@ -17,7 +17,6 @@
  */
 package io.odilon.virtualFileSystem.raid6;
 
-
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;

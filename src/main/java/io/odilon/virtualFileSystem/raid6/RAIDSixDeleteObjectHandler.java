@@ -393,7 +393,6 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
         } catch (Exception e) {
             logger.error(e, SharedConstant.NOT_THROWN);
         }
-
     }
 
     /**
@@ -403,7 +402,6 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
      * @param objectName
      */
     private void backupMetadata(ObjectMetadata meta, ServerBucket bucket) {
-
         try {
             for (Drive drive : getDriver().getDrivesAll()) {
                 String objectMetadataDirPath = drive.getObjectMetadataDirPath(bucket, meta.getObjectName());
@@ -422,7 +420,6 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
      * @param headVersion
      */
     private void onAfterCommit(VFSOperation op, ObjectMetadata meta, int headVersion) {
-
         try {
             if (op.getOp() == VFSOp.DELETE_OBJECT || op.getOp() == VFSOp.DELETE_OBJECT_PREVIOUS_VERSIONS) {
                 getVirtualFileSystemService().getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext()
@@ -448,5 +445,4 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
             }
         }
     }
-
 }
