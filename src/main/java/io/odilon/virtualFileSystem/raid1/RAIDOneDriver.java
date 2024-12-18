@@ -50,6 +50,7 @@ import io.odilon.query.BucketIteratorService;
 import io.odilon.util.Check;
 import io.odilon.util.OdilonFileUtils;
 import io.odilon.virtualFileSystem.BaseIODriver;
+import io.odilon.virtualFileSystem.ObjectPath;
 import io.odilon.virtualFileSystem.OdilonBucket;
 import io.odilon.virtualFileSystem.OdilonObject;
 import io.odilon.virtualFileSystem.model.BucketIterator;
@@ -635,8 +636,11 @@ public class RAIDOneDriver extends BaseIODriver {
                     String originalSha256 = meta.sha256;
                     String sha256 = null;
 
-                    File file = ((SimpleDrive) drive).getObjectDataFile(bucket.getId(), objectName);
-
+                    
+                    //File file = ((SimpleDrive) drive).getObjectDataFile(bucket.getId(), objectName);
+                    ObjectPath path = new ObjectPath(drive, bucket, objectName);
+                    File file = path.dataFilePath().toFile();
+                    
                     try {
 
                         sha256 = OdilonFileUtils.calculateSHA256String(file);

@@ -40,6 +40,7 @@ import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
 import io.odilon.util.OdilonFileUtils;
+import io.odilon.virtualFileSystem.ObjectPath;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.SimpleDrive;
@@ -483,12 +484,15 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 
         boolean isMainException = false;
 
-        try (InputStream sourceStream = isEncrypt() ? getEncryptionService().encryptStream(stream) : stream) {
+        ObjectPath path = new ObjectPath(getWriteDrive(bucket, objectName), bucket, objectName);
+        String sPath = path.dataFilePath().toString();
 
-            out = new BufferedOutputStream(
-                    new FileOutputStream(
-                            ((SimpleDrive) getWriteDrive(bucket, objectName)).getObjectDataFilePath(bucket.getId(), objectName)),
-                    ServerConstant.BUFFER_SIZE);
+        try (InputStream sourceStream = isEncrypt() ? getEncryptionService().encryptStream(stream) : stream) {
+            // out = new BufferedOutputStream(
+            // new FileOutputStream(((SimpleDrive) getWriteDrive(bucket,
+            // objectName)).getObjectDataFilePath(bucket.getId(), objectName)),
+            // ServerConstant.BUFFER_SIZE);
+            out = new BufferedOutputStream(new FileOutputStream(sPath), ServerConstant.BUFFER_SIZE);
             int bytesRead;
             while ((bytesRead = sourceStream.read(buf, 0, buf.length)) >= 0) {
                 out.write(buf, 0, bytesRead);
@@ -531,7 +535,11 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 
         OffsetDateTime now = OffsetDateTime.now();
         Drive drive = getWriteDrive(bucket, objectName);
-        File file = ((SimpleDrive) drive).getObjectDataFile(bucket.getId(), objectName);
+        // File file = ((SimpleDrive) drive).getObjectDataFile(bucket.getId(),
+        // objectName);
+
+        ObjectPath path = new ObjectPath(drive, bucket.getId(), objectName);
+        File file = path.dataFilePath().toFile();
 
         try {
             String sha256 = OdilonFileUtils.calculateSHA256String(file);
@@ -574,8 +582,14 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
     private void saveVersioDataFile(ServerBucket bucket, String objectName, int version) {
         try {
             Drive drive = getWriteDrive(bucket, objectName);
-            File file = ((SimpleDrive) drive).getObjectDataFile(bucket.getId(), objectName);
+
+            ObjectPath path = new ObjectPath(drive, bucket.getId(), objectName);
+            File file = path.dataFilePath().toFile();
+            // File file = ((SimpleDrive) drive).getObjectDataFile(bucket.getId(),
+            // objectName);
+
             ((SimpleDrive) drive).putObjectDataVersionFile(bucket.getId(), objectName, version, file);
+
         } catch (Exception e) {
             throw new InternalCriticalException(e, objectInfo(bucket, objectName));
         }

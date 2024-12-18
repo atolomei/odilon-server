@@ -76,10 +76,10 @@ public class OdilonSimpleDrive extends OdilonDrive implements SimpleDrive {
 	/**
 	 * <p></p>
 	 */	
-	@Override
-	public String getObjectDataFilePath(Long bucketId, String objectName) {
-		return this.getRootDirPath() + File.separator + bucketId.toString() + File.separator + objectName;
-	}
+	//@Override
+	//public String getObjectDataFilePath(Long bucketId, String objectName) {
+	//	return this.getRootDirPath() + File.separator + bucketId.toString() + File.separator + objectName;
+	//}
 	
 	@Override
 	public String getObjectDataVersionFilePath(Long bucketId, String objectName, int version) {
@@ -97,7 +97,13 @@ public class OdilonSimpleDrive extends OdilonDrive implements SimpleDrive {
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null -> b:" + bucketId.toString());
 		
 		try {
-			return Files.newInputStream(getObjectDataFile(bucketId, objectName).toPath());
+		    
+		    ObjectPath path = new ObjectPath(this, bucketId, objectName);
+            File file = path.dataFilePath().toFile();
+		    
+			//return Files.newInputStream(getObjectDataFile(bucketId, objectName).toPath());
+            return Files.newInputStream(file.toPath());
+            
 		} catch (Exception e) {
 			throw new InternalCriticalException(e, "b:" +  bucketId.toString() + ", o:" + objectName +", d:" + getName());
 		}
@@ -121,7 +127,9 @@ public class OdilonSimpleDrive extends OdilonDrive implements SimpleDrive {
 		createDataBucketDirIfNotExists(bucketId);
 		
 		try {
-			String dataFilePath = this.getObjectDataFilePath(bucketId, objectName); 
+		    ObjectPath path = new ObjectPath(this, bucketId, objectName);  
+			//String dataFilePath = this.getObjectDataFilePath(bucketId, objectName);
+		    String dataFilePath = path.dataFilePath().toString();
 			transferTo(stream, dataFilePath);
 			return new File(dataFilePath);
 		}
@@ -147,11 +155,11 @@ public class OdilonSimpleDrive extends OdilonDrive implements SimpleDrive {
 		}
 	}
 
-	@Override
-	public File getObjectDataFile(Long bucketId, String objectName) {
-		Check.requireNonNullArgument(bucketId, "bucketId is null");
-		return new File(this.getRootDirPath(), bucketId.toString() + File.separator + objectName);
-	}
+	//@Override
+	//public File getObjectDataFile(Long bucketId, String objectName) {
+	//	Check.requireNonNullArgument(bucketId, "bucketId is null");
+	//	return new File(this.getRootDirPath(), bucketId.toString() + File.separator + objectName);
+	//}
 
 	@Override
 	public File getObjectDataVersionFile(Long bucketId, String objectName, int version) {

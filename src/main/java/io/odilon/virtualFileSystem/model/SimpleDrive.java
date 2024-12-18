@@ -34,10 +34,12 @@ public interface SimpleDrive extends Drive {
 
 	public void deleteObjectMetadata(ServerBucket bucket, String objectName);
 	
-	public File getObjectDataFile(Long bucketId, String objectName);
+	// public File getObjectDataFile(Long bucketId, String objectName);
+	// public String getObjectDataFilePath(Long bucketId, String objectName);
+	
 	public File getObjectDataVersionFile(Long bucketId, String objectName, int version);
 	
-	public String getObjectDataFilePath			(Long bucketId, String objectName);
+	
 	public String getObjectDataVersionFilePath	(Long bucketId, String objectName, int version);
 }
 

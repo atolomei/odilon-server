@@ -1414,6 +1414,10 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
      * This check must be executed inside the critical section
      */
     protected void addCacheBucket(ServerBucket bucket) {
+
+        if (logger.isDebugEnabled()) 
+            checkDebug(bucket.getName());
+        
         getVirtualFileSystemService().getBucketCache().add(bucket);
     }
     
@@ -1421,13 +1425,23 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
      * This check must be executed inside the critical section
      */
     protected void updateCacheBucket(String oldName, OdilonBucket odilonBucket) {
+        
+        if (logger.isDebugEnabled()) 
+            checkDebug(oldName);
+        
         getVirtualFileSystemService().getBucketCache().update(oldName, odilonBucket);
     }
+    
+    
     
     /**
     * This check must be executed inside the critical section
     */
     protected void removeCacheBucket(ServerBucket bucket) {
+        
+        if (logger.isDebugEnabled()) 
+            checkDebug(bucket.getName());
+        
         getVirtualFileSystemService().getBucketCache().remove(bucket.getId());
     }
     
@@ -1435,6 +1449,10 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
      * This check must be executed inside the critical section
      */
     protected void removeCacheBucket(Long bucketId) {
+        
+        if (logger.isDebugEnabled()) 
+            checkDebug(getVirtualFileSystemService().getBucketCache().get(bucketId).getName());
+
         getVirtualFileSystemService().getBucketCache().remove(bucketId);
     }
     
@@ -1442,6 +1460,10 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
     * This check must be executed inside the critical section
     */
     protected ServerBucket getCacheBucket(Long id) {
+        
+        if (logger.isDebugEnabled()) 
+            checkDebug(getVirtualFileSystemService().getBucketCache().get(id).getName());
+
         return getVirtualFileSystemService().getBucketCache().get(id);
     }
     
@@ -1449,6 +1471,10 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
      * This check must be executed inside the critical section
      */
     protected ServerBucket getCacheBucket(String bucketName) {
+        
+        if (logger.isDebugEnabled())
+            checkDebug(bucketName);
+        
         return getVirtualFileSystemService().getBucketCache().get(bucketName);
     }
 
@@ -1456,6 +1482,10 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
      * This check must be executed inside the critical section
      */
     protected boolean existsCacheBucket(String bucketName) {
+        
+        if (logger.isDebugEnabled())
+            checkDebug(bucketName);
+        
         return getVirtualFileSystemService().getBucketCache().contains(bucketName);
     }
 
@@ -1463,6 +1493,10 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
      * This check must be executed inside the critical section
      */
     protected boolean existsCacheBucket(Long id) {
+        
+        if (logger.isDebugEnabled()) 
+            checkDebug( getVirtualFileSystemService().getBucketCache().get(id).getName() );
+        
         return getVirtualFileSystemService().getBucketCache().contains(id);
     }
 
@@ -1470,9 +1504,19 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
      * This check must be executed inside the critical section
      */
     protected boolean existsCacheBucket(ServerBucket bucket) {
+        
+        if (logger.isDebugEnabled())
+            checkDebug(bucket.getName());
+        
         return getVirtualFileSystemService().getBucketCache().contains(bucket);
     }
 
+    
+    protected void checkDebug(String bucketName) {
+        if (!getLockService().isLocked(bucketName))
+            logger.error("This check must be executed inside the critical section");
+    }
+    
     protected ObjectMetadataCacheService getObjectMetadataCacheService() {
         return getVirtualFileSystemService().getObjectMetadataCacheService();
     }

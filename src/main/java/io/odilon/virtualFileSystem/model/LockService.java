@@ -46,7 +46,11 @@ public interface LockService extends SystemService {
     public ReadWriteLock getServerLock();
 
     public ReadWriteLock getFileCacheLock(Long bucketId, String objectName, Optional<Integer> version);
-
+    
+    public boolean isLocked(ServerBucket bucket);
+    public boolean isLocked(String bucketName);
+    
+    
     public void setVirtualFileSystemService(OdilonVirtualFileSystemService odilonVirtualFileSystemService);
 
     

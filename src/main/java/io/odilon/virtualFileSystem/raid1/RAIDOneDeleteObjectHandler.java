@@ -33,6 +33,7 @@ import io.odilon.model.SharedConstant;
 import io.odilon.scheduler.AfterDeleteObjectServiceRequest;
 import io.odilon.scheduler.DeleteBucketObjectPreviousVersionServiceRequest;
 import io.odilon.util.Check;
+import io.odilon.virtualFileSystem.ObjectPath;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.SimpleDrive;
@@ -414,8 +415,14 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
             }
 
             /** delete data (head) */
-            for (Drive drive : getDriver().getDrivesAll())
-                FileUtils.deleteQuietly(((SimpleDrive) drive).getObjectDataFile(meta.getBucketId(), objectName));
+            for (Drive drive : getDriver().getDrivesAll()) {
+             
+                ObjectPath path = new ObjectPath(drive, bucket, objectName);
+                File file = path.dataFilePath().toFile();
+                FileUtils.deleteQuietly(file);
+                
+                //FileUtils.deleteQuietly(((SimpleDrive) drive).getObjectDataFile(meta.getBucketId(), objectName));
+            }
 
             /** delete backup Metadata */
             for (Drive drive : getDriver().getDrivesAll())

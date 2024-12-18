@@ -19,13 +19,11 @@ package io.odilon.virtualFileSystem;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Optional;
 
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ServerConstant;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
-import io.odilon.virtualFileSystem.model.SimpleDrive;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
@@ -43,15 +41,22 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 public class ObjectPath extends PathBuilder {
 
     private final Drive drive;
+    
     private final String objectName;
+    
     private final Long bucketId;
     
     
     public ObjectPath(Drive drive, ServerBucket bucket, String objectName) {
-
         this.drive=drive;
         this.objectName=objectName;
         this.bucketId=bucket.getId();
+    }
+    
+    public ObjectPath(Drive drive, Long bucketId, String objectName) {
+        this.drive=drive;
+        this.objectName=objectName;
+        this.bucketId=bucketId;
     }
     
     public ObjectPath(Drive drive, ObjectMetadata meta) {
@@ -95,7 +100,7 @@ public class ObjectPath extends PathBuilder {
     
     public Path dataFilePath(Context context) {
         if (context==Context.STORAGE)
-            return Paths.get(getDrive().getRootDirPath(), getBucketId().toString() + File.separator + getObjectName());       
+            return Paths.get(getDrive().getRootDirPath(), getBucketId().toString() + File.separator + getObjectName());
         else
             throw new RuntimeException("not done");
     }
@@ -106,6 +111,8 @@ public class ObjectPath extends PathBuilder {
         else
             throw new RuntimeException("not done");
     }
+
+    
     
     private Long getBucketId() {
         return this.bucketId;
@@ -115,16 +122,11 @@ public class ObjectPath extends PathBuilder {
         return this.objectName;
     }
     
-
-    
-    
-    public Path dataDirPath(Context context) {
-        throw new RuntimeException("not done");
+    private Drive getDrive() {
+        return this.drive;
     }
-    
-    
-    
-    
+
+
     
     //private String getObjectMetadataDir() {
      //   return getBucketsDir() + File.separator + getObjectMetadata().getBucketId().toString() + File.separator + getObjectMetadata().getObjectName();
@@ -153,10 +155,6 @@ public class ObjectPath extends PathBuilder {
 **/
     
    
-
-    private Drive getDrive() {
-        return this.drive;
-    }
 
 
     

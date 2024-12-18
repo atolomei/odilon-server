@@ -65,7 +65,6 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
     protected RAIDZeroCreateObjectHandler(RAIDZeroDriver driver) {
         super(driver);
     }
-
     /**
      * <p>
      * The procedure is the same whether version control is enabled or not
@@ -275,6 +274,8 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
     }
 
     private boolean existsMetadata(ServerBucket bucket, String objectName) {
+        
+        
         return getDriver().getWriteDrive(bucket, objectName).existsObjectMetadata(bucket, objectName);
     }
 

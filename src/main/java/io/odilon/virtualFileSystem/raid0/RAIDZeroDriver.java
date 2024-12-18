@@ -1053,7 +1053,9 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
                 return true;
             }
 
-            File file = ((SimpleDrive) readDrive).getObjectDataFile(bucket.getId(), objectName);
+            ObjectPath path = new ObjectPath(readDrive, bucket.getId(), objectName);
+            File file = path.dataFilePath().toFile();
+            // File file = ((SimpleDrive) readDrive).getObjectDataFile(bucket.getId(), objectName);
             String sha256 = null;
 
             try {

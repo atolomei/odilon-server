@@ -47,6 +47,7 @@ import io.odilon.model.SharedConstant;
 import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
 import io.odilon.virtualFileSystem.DriveInfo;
+import io.odilon.virtualFileSystem.ObjectPath;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.DriveStatus;
 import io.odilon.virtualFileSystem.model.LockService;
@@ -245,18 +246,26 @@ public class RAIDOneDriveSync implements Runnable {
 
                                                         if (!newmeta.exists()) {
 
+                                                            ObjectPath path = new ObjectPath(drive, bucket, item.getObject().getObjectName());
+                                                            File dataFile = path.dataFilePath().toFile();
+
                                                             // copy data ----
-                                                            File dataFile = ((SimpleDrive) enabledDrive)
-                                                                    .getObjectDataFile(item.getObject().bucketId,
-                                                                            item.getObject().objectName);
+                                                            //File dataFile = ((SimpleDrive) enabledDrive)
+                                                             //       .getObjectDataFile(item.getObject().bucketId,
+                                                              //              item.getObject().objectName);
+                                                            //
 
                                                             try (InputStream is = new BufferedInputStream(
                                                                     new FileInputStream(dataFile))) {
 
+                                                                String sPath = path.dataFilePath().toString();
+                                                                
                                                                 byte[] buf = new byte[ServerConstant.BUFFER_SIZE];
-                                                                String sPath = ((SimpleDrive) drive)
-                                                                        .getObjectDataFilePath(bucket.getId(),
-                                                                                item.getObject().objectName);
+                                                                
+                                                                //String sPath = ((SimpleDrive) drive)
+                                                                //        .getObjectDataFilePath(bucket.getId(),
+                                                                //                item.getObject().objectName);
+                                                                
 
                                                                 try (BufferedOutputStream out = new BufferedOutputStream(
                                                                         new FileOutputStream(sPath),

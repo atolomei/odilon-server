@@ -436,8 +436,12 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
                                                  */
 
                                                 /** Data */
-                                                File data_head = ((SimpleDrive) currentDrive).getObjectDataFile(
-                                                        item.getObject().getBucketId(), item.getObject().getObjectName());
+                                                //File data_head = ((SimpleDrive) currentDrive).getObjectDataFile(
+                                                 //       item.getObject().getBucketId(), item.getObject().getObjectName());
+                                                
+                                                ObjectPath path = new ObjectPath(currentDrive, item.getObject().getBucketId(), item.getObject().getObjectName());
+                                                File data_head = path.dataFilePath().toFile();
+                                                
                                                 if (data_head.exists()) {
                                                     ((SimpleDrive) newDrive).putObjectDataFile(item.getObject().getBucketId(),
                                                             item.getObject().getObjectName(), data_head);

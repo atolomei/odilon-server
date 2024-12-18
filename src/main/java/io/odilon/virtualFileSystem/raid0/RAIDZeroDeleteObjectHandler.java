@@ -32,6 +32,7 @@ import io.odilon.model.SharedConstant;
 import io.odilon.scheduler.AfterDeleteObjectServiceRequest;
 import io.odilon.scheduler.DeleteBucketObjectPreviousVersionServiceRequest;
 import io.odilon.util.Check;
+import io.odilon.virtualFileSystem.ObjectPath;
 import io.odilon.virtualFileSystem.RAIDDeleteObjectHandler;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
@@ -417,7 +418,11 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
         /** not required because it was done before commit */
 
         /** delete data (head) */
-        FileUtils.deleteQuietly(((SimpleDrive) getWriteDrive(bucket, objectName)).getObjectDataFile(bucketId, objectName));
+        ObjectPath path = new ObjectPath( getWriteDrive(bucket, objectName), bucketId, objectName);
+        File file = path.dataFilePath().toFile();
+        FileUtils.deleteQuietly(file);
+        
+        // FileUtils.deleteQuietly(((SimpleDrive) getWriteDrive(bucket, objectName)).getObjectDataFile(bucketId, objectName));
 
         /** delete backup Metadata */
         FileUtils.deleteQuietly(
