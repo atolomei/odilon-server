@@ -33,6 +33,7 @@ import io.odilon.model.SharedConstant;
 import io.odilon.scheduler.AfterDeleteObjectServiceRequest;
 import io.odilon.scheduler.DeleteBucketObjectPreviousVersionServiceRequest;
 import io.odilon.util.Check;
+import io.odilon.virtualFileSystem.Context;
 import io.odilon.virtualFileSystem.ObjectPath;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
@@ -361,15 +362,18 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
     private void postObjectPreviousVersionDeleteAllCommit(ObjectMetadata meta, ServerBucket bucket, int headVersion) {
 
         String bucketName = meta.getBucketName();
-        String objectName = meta.objectName;
+        String objectName = meta.getObjectName();
 
         Check.requireNonNullArgument(bucketName, "bucket is null");
         Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketName);
         try {
             /** delete data versions(1..n-1). keep headVersion **/
-            for (int n = 0; n < headVersion; n++) {
-                for (Drive drive : getDriver().getDrivesAll())
-                    FileUtils.deleteQuietly(((SimpleDrive) drive).getObjectDataVersionFile(meta.bucketId, objectName, n));
+            for (int version = 0; version < headVersion; version++) {
+                for (Drive drive : getDriver().getDrivesAll()) {
+                    ObjectPath path = new ObjectPath(drive, bucket, objectName);
+                    FileUtils.deleteQuietly( path.dataFileVersionPath(version).toFile());
+                    // FileUtils.deleteQuietly(((SimpleDrive) drive).getObjectDataVersionFile(meta.bucketId, objectName, version));
+                }
             }
 
             /** delete backup Metadata */
@@ -409,9 +413,14 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
         try {
 
             /** delete data versions(1..n-1) */
-            for (int n = 0; n <= headVersion; n++) {
-                for (Drive drive : getDriver().getDrivesAll())
-                    FileUtils.deleteQuietly(((SimpleDrive) drive).getObjectDataVersionFile(meta.getBucketId(), objectName, n));
+            for (int version = 0; version <= headVersion; version++) {
+                for (Drive drive : getDriver().getDrivesAll()) {
+                    
+                    ObjectPath path = new ObjectPath(drive, bucket, objectName);
+                    FileUtils.deleteQuietly( path.dataFileVersionPath(version).toFile());
+                    
+                    //FileUtils.deleteQuietly(((SimpleDrive) drive).getObjectDataVersionFile(meta.getBucketId(), objectName, version));
+                }
             }
 
             /** delete data (head) */

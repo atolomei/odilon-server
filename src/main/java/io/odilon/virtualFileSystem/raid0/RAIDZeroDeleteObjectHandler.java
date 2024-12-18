@@ -377,15 +377,18 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
         String objectName = meta.getObjectName();
         Long bucketId = meta.getBucketId();
 
+        ObjectPath path = new ObjectPath( getWriteDrive(bucket, objectName), bucketId, objectName);
+        
         try {
             /** delete data versions(1..n-1). keep headVersion **/
-            for (int n = 0; n < headVersion; n++)
-                FileUtils.deleteQuietly(
-                        ((SimpleDrive) getWriteDrive(bucket, objectName)).getObjectDataVersionFile(bucketId, objectName, n));
-
+            for (int n = 0; n < headVersion; n++) {
+                File file =path.dataFileVersionPath(n).toFile();
+                FileUtils.deleteQuietly(file );
+                // FileUtils.deleteQuietly(((SimpleDrive) getWriteDrive(bucket, objectName)).getObjectDataVersionFile(bucketId, objectName, n));
+            }
+            
             /** delete backup Metadata */
-            FileUtils.deleteQuietly(new File(
-                    getDriver().getWriteDrive(bucket, objectName).getBucketWorkDirPath(bucket) + File.separator + objectName));
+            FileUtils.deleteQuietly(new File(getDriver().getWriteDrive(bucket, objectName).getBucketWorkDirPath(bucket) + File.separator + objectName));
 
         } catch (Exception e) {
             logger.error(e, objectInfo(meta), SharedConstant.NOT_THROWN);
@@ -408,20 +411,23 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
 
         Long bucketId = meta.getBucketId();
         String objectName = meta.getObjectName();
-
+        
+        ObjectPath path = new ObjectPath( getWriteDrive(bucket, objectName), bucketId, objectName);
+        
+        
         /** delete data versions(1..n-1) **/
-        for (int n = 0; n <= headVersion; n++)
-            FileUtils.deleteQuietly(
-                    ((SimpleDrive) getWriteDrive(bucket, objectName)).getObjectDataVersionFile(bucketId, objectName, n));
-
+        for (int version = 0; version <= headVersion; version++) {
+            FileUtils.deleteQuietly( path.dataFileVersionPath(version).toFile());
+            // FileUtils.deleteQuietly(((SimpleDrive) getWriteDrive(bucket, objectName)).getObjectDataVersionFile(bucketId, objectName, n));
+        }
+        
         /** delete metadata (head) */
         /** not required because it was done before commit */
 
         /** delete data (head) */
-        ObjectPath path = new ObjectPath( getWriteDrive(bucket, objectName), bucketId, objectName);
+        //ObjectPath path = new ObjectPath( getWriteDrive(bucket, objectName), bucketId, objectName);
         File file = path.dataFilePath().toFile();
         FileUtils.deleteQuietly(file);
-        
         // FileUtils.deleteQuietly(((SimpleDrive) getWriteDrive(bucket, objectName)).getObjectDataFile(bucketId, objectName));
 
         /** delete backup Metadata */

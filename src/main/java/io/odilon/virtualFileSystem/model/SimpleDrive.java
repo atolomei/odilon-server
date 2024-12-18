@@ -37,9 +37,7 @@ public interface SimpleDrive extends Drive {
 	// public File getObjectDataFile(Long bucketId, String objectName);
 	// public String getObjectDataFilePath(Long bucketId, String objectName);
 	
-	public File getObjectDataVersionFile(Long bucketId, String objectName, int version);
-	
-	
-	public String getObjectDataVersionFilePath	(Long bucketId, String objectName, int version);
+	//public File getObjectDataVersionFile(Long bucketId, String objectName, int version);
+	//public String getObjectDataVersionFilePath	(Long bucketId, String objectName, int version);
 }
 

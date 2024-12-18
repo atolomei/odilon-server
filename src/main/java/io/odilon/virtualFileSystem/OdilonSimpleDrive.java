@@ -81,10 +81,10 @@ public class OdilonSimpleDrive extends OdilonDrive implements SimpleDrive {
 	//	return this.getRootDirPath() + File.separator + bucketId.toString() + File.separator + objectName;
 	//}
 	
-	@Override
-	public String getObjectDataVersionFilePath(Long bucketId, String objectName, int version) {
-		return this.getRootDirPath() + File.separator + bucketId.toString() + File.separator + VirtualFileSystemService.VERSION_DIR + File.separator + objectName + VirtualFileSystemService.VERSION_EXTENSION + String.valueOf(version);
-	}
+	//@Override
+	//public String getObjectDataVersionFilePath(Long bucketId, String objectName, int version) {
+	//	return this.getRootDirPath() + File.separator + bucketId.toString() + File.separator + VirtualFileSystemService.VERSION_DIR + File.separator + objectName + VirtualFileSystemService.VERSION_EXTENSION + String.valueOf(version);
+	//}
 	
 	/**
 	 * <b>Object Data</b>
@@ -161,18 +161,21 @@ public class OdilonSimpleDrive extends OdilonDrive implements SimpleDrive {
 	//	return new File(this.getRootDirPath(), bucketId.toString() + File.separator + objectName);
 	//}
 
-	@Override
-	public File getObjectDataVersionFile(Long bucketId, String objectName, int version) {
-		Check.requireNonNullArgument(bucketId, "bucketId is null");
-		return new File(getObjectDataVersionFilePath(bucketId, objectName, version));
-	}
+	//@Override
+	//public File getObjectDataVersionFile(Long bucketId, String objectName, int version) {
+	//	Check.requireNonNullArgument(bucketId, "bucketId is null");
+	//	return new File(getObjectDataVersionFilePath(bucketId, objectName, version));
+	//}
 
 	protected File putObjectDataVersionStream(Long bucketId, String objectName, int version, InputStream stream) throws IOException {
 		Check.requireNonNullArgument(bucketId, "bucketId is null");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null -> b:" + bucketId.toString());
 		
 		try {
-			String dataFilePath = this.getObjectDataVersionFilePath(bucketId, objectName, version); 
+		    ObjectPath path = new ObjectPath(this, bucketId, objectName);
+		    String dataFilePath = path.dataFileVersionPath(version).toString();
+			//String dataFilePath = this.getObjectDataVersionFilePath(bucketId, objectName, version);
+			
 			transferTo(stream, dataFilePath);
 			return new File(dataFilePath);
 		}

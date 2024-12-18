@@ -308,9 +308,15 @@ public class RAIDOneDriveSync implements Runnable {
                                                                         meta_version_n);
                                                             }
                                                             // copy Data Version
-                                                            File version_n = ((SimpleDrive) enabledDrive)
-                                                                    .getObjectDataVersionFile(item.getObject().bucketId,
-                                                                            item.getObject().objectName, version);
+                                                            
+                                                            ObjectPath path = new ObjectPath(enabledDrive, item.getObject().bucketId, item.getObject().objectName);
+                                                            File version_n = path.dataFileVersionPath(version).toFile();    
+
+                                                            
+                                                            //File version_n = ((SimpleDrive) enabledDrive)
+                                                             //       .getObjectDataVersionFile(item.getObject().bucketId,
+                                                              //              item.getObject().objectName, version);
+                                                            
                                                             if (version_n.exists()) {
                                                                 ((SimpleDrive) drive).putObjectDataVersionFile(
                                                                         item.getObject().bucketId,

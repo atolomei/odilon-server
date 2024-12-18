@@ -660,8 +660,12 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
     private boolean restoreVersionObjectDataFile(ServerBucket bucket, String objectName, int version) {
         try {
             boolean success = true;
+            
             for (Drive drive : getDriver().getDrivesAll()) {
-                File file = ((SimpleDrive) drive).getObjectDataVersionFile(bucket.getId(), objectName, version);
+                ObjectPath path = new ObjectPath(drive, bucket, objectName);
+                File file = path.dataFileVersionPath(version).toFile();    
+                //File file = ((SimpleDrive) drive).getObjectDataVersionFile(bucket.getId(), objectName, version);
+                
                 if (file.exists()) {
                     ((SimpleDrive) drive).putObjectDataFile(bucket.getId(), objectName, file);
                     FileUtils.deleteQuietly(file);
@@ -690,8 +694,11 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
         try {
             for (Drive drive : getDriver().getDrivesAll()) {
                 FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(bucket, objectName, versionDiscarded));
-                FileUtils.deleteQuietly(
-                        ((SimpleDrive) drive).getObjectDataVersionFile(bucket.getId(), objectName, versionDiscarded));
+
+                ObjectPath path = new ObjectPath(drive, bucket, objectName);
+                FileUtils.deleteQuietly(path.dataFileVersionPath(versionDiscarded).toFile());
+                // FileUtils.deleteQuietly(((SimpleDrive) drive).getObjectDataVersionFile(bucket.getId(), objectName, versionDiscarded));
+                
             }
         } catch (Exception e) {
             logger.error(e, SharedConstant.NOT_THROWN);
@@ -734,14 +741,15 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
             return;
 
         try {
-
             Check.requireNonNullArgument(bucket, "meta is null");
-
             if (!getVirtualFileSystemService().getServerSettings().isVersionControl()) {
                 for (Drive drive : getDriver().getDrivesAll()) {
                     FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(bucket, objectName, previousVersion));
-                    FileUtils.deleteQuietly(
-                            ((SimpleDrive) drive).getObjectDataVersionFile(bucket.getId(), objectName, previousVersion));
+                    ObjectPath path = new ObjectPath(drive, bucket, objectName);
+                    File file = path.dataFileVersionPath( previousVersion).toFile();    
+                    FileUtils.deleteQuietly(file);
+                    //FileUtils.deleteQuietly(((SimpleDrive) drive).getObjectDataVersionFile(bucket.getId(), objectName, previousVersion));
+                    
                 }
             }
         } catch (Exception e) {

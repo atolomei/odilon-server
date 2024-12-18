@@ -472,10 +472,16 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
                                                                     item.getObject().getObjectName(), n, meta_version_n);
                                                             totalBytesMoved.getAndAdd(meta_version_n.length());
                                                         }
+                                                        
                                                         // move Data Version
-                                                        File version_n = ((SimpleDrive) currentDrive).getObjectDataVersionFile(
-                                                                item.getObject().getBucketId(), item.getObject().getObjectName(),
-                                                                n);
+                                                        File version_n = path.dataFileVersionPath(n).toFile();
+                                                        
+                                                        //File version_n = ((SimpleDrive) currentDrive).getObjectDataVersionFile(
+                                                        //        item.getObject().getBucketId(), item.getObject().getObjectName(),
+                                                        //       n);
+                                                        
+                                                        
+                                                        
                                                         if (version_n.exists()) {
                                                             ((SimpleDrive) newDrive).putObjectDataVersionFile(
                                                                     item.getObject().getBucketId(),

@@ -105,6 +105,10 @@ public class ObjectPath extends PathBuilder {
             throw new RuntimeException("not done");
     }
     
+    public Path dataFileVersionPath( int version) {
+            return dataFilePath(Context.STORAGE, version);
+    }
+    
     public Path dataFilePath(Context context, int version) {
         if (context==Context.STORAGE) 
             return Paths.get(getDrive().getRootDirPath() + File.separator + getBucketId().toString() + File.separator + VirtualFileSystemService.VERSION_DIR, getObjectName() + VirtualFileSystemService.VERSION_EXTENSION + String.valueOf(version));

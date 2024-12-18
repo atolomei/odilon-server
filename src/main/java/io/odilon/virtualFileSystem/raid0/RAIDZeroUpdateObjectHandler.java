@@ -258,8 +258,13 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
                                 FileUtils.deleteQuietly(getDriver().getWriteDrive(bucket, objectName)
                                         .getObjectMetadataVersionFile(bucket, objectName, beforeHeadVersion));
 
-                                FileUtils.deleteQuietly(((SimpleDrive) getDriver().getWriteDrive(bucket, objectName))
-                                        .getObjectDataVersionFile(bucket.getId(), objectName, beforeHeadVersion));
+                                
+                                
+                                ObjectPath path = new ObjectPath(getDriver().getWriteDrive(bucket, objectName), bucket, objectName);
+                                FileUtils.deleteQuietly( path.dataFileVersionPath(beforeHeadVersion).toFile() );
+                                
+                                //FileUtils.deleteQuietly(((SimpleDrive) getDriver().getWriteDrive(bucket, objectName))
+                                //        .getObjectDataVersionFile(bucket.getId(), objectName, beforeHeadVersion));
 
                             } catch (Exception e) {
                                 logger.error(e, SharedConstant.NOT_THROWN);
@@ -618,7 +623,12 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
     private boolean restoreVersionDataFile(ServerBucket bucket, String objectName, int version) {
         try {
             Drive drive = getWriteDrive(bucket, objectName);
-            File file = ((SimpleDrive) drive).getObjectDataVersionFile(bucket.getId(), objectName, version);
+            
+            ObjectPath path = new ObjectPath(drive, bucket, objectName);
+
+            File file = path.dataFileVersionPath(version).toFile();
+            //File file = ((SimpleDrive) drive).getObjectDataVersionFile(bucket.getId(), objectName, version);
+            
             if (file.exists()) {
                 ((SimpleDrive) drive).putObjectDataFile(bucket.getId(), objectName, file);
                 FileUtils.deleteQuietly(file);
@@ -699,11 +709,14 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
         try {
             if (!getServerSettings().isVersionControl()) {
 
-                FileUtils.deleteQuietly(getDriver().getWriteDrive(bucket, objectName).getObjectMetadataVersionFile(bucket,
-                        objectName, previousVersion));
+                FileUtils.deleteQuietly(getDriver().getWriteDrive(bucket, objectName).getObjectMetadataVersionFile(bucket, objectName, previousVersion));
 
-                FileUtils.deleteQuietly(((SimpleDrive) getDriver().getWriteDrive(bucket, objectName))
-                        .getObjectDataVersionFile(bucket.getId(), objectName, previousVersion));
+                
+                ObjectPath path = new ObjectPath(getDriver().getWriteDrive(bucket, objectName), bucket, objectName);
+                FileUtils.deleteQuietly( path.dataFileVersionPath(previousVersion).toFile());
+                
+                //FileUtils.deleteQuietly(((SimpleDrive) getDriver().getWriteDrive(bucket, objectName))
+                 //       .getObjectDataVersionFile(bucket.getId(), objectName, previousVersion));
 
             }
         } catch (Exception e) {
