@@ -1312,9 +1312,9 @@ public class OdilonDrive extends BaseObject implements Drive {
         return getObjectMetadataDirPathById(bucketId, objectName) + File.separator + objectName + ServerConstant.JSON;
     }
     
-    private String getObjectMetadataFilePath(ServerBucket bucket, String objectName) {
-        return getObjectMetadataDirPath(bucket, objectName) + File.separator + objectName + ServerConstant.JSON;
-    }
+    //private String getObjectMetadataFilePath(ServerBucket bucket, String objectName) {
+    //    return getObjectMetadataDirPath(bucket, objectName) + File.separator + objectName + ServerConstant.JSON;
+    //}
 
     private String getObjectMetadataVersionFilePath(ServerBucket bucket, String objectName, int version) {
         return getObjectMetadataDirPath(bucket, objectName) + File.separator + objectName
