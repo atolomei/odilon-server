@@ -78,14 +78,6 @@ public class Dispatcher extends BaseObject {
      */
 
     public Dispatcher(String id, int priority, int poolSize) {
-        this(priority, poolSize, id);
-    }
-
-    /**
-     * <p>
-     * </p>
-     */
-    public Dispatcher(int priority, int poolSize, String id) {
         this.priority = priority;
         this.maxPoolSize = poolSize; // max size
         this.minPoolSize = poolSize;
@@ -146,15 +138,15 @@ public class Dispatcher extends BaseObject {
     }
 
     public String getInfo() {
-        return "Priority: " + String.valueOf(this.priority) + ". Workers: " + String.valueOf(this.maxPoolSize);
+        return "Priority: " + String.valueOf(getPriority()) + ". Workers: " + String.valueOf(getMaximumPoolSize());
     }
 
     public String getStatus() {
         StringBuilder str = new StringBuilder();
         int poolsize = this.threadPool.getPoolSize();
-        str.append("Priority: " + String.valueOf(this.priority) + " | ");
+        str.append("Priority: " + String.valueOf(getPriority()) + " | ");
         str.append("PoolSize: " + String.valueOf(poolsize) + " | ");
-        str.append("MaxPoolSize: " + String.valueOf(this.threadPool.getMaximumPoolSize()));
+        str.append("MaxPoolSize: " + String.valueOf(getMaximumPoolSize()));
         return str.toString();
     }
 

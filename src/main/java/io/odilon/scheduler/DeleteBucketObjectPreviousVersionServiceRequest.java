@@ -50,220 +50,214 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 @Scope("prototype")
 @JsonTypeName("deleteBucketObjectPreviousVersion")
 public class DeleteBucketObjectPreviousVersionServiceRequest extends AbstractServiceRequest implements StandardServiceRequest {
-				
-	static private Logger logger =	Logger.getLogger(DeleteBucketObjectPreviousVersionServiceRequest.class.getName());
-	
-	private static final long serialVersionUID = 1L;
 
-	static AtomicBoolean instanceRunning = new AtomicBoolean(false);
-	
-	static final int PAGESIZE = 1000;
-	
-	private String bucketName;
-	
-	private Long  bucketId;
-	
-	
-	@JsonIgnore
-	private long start_ms = 0;
-	
-	@JsonIgnore
-	private boolean isSuccess = false;
-	
-	@JsonIgnore
-	private AtomicLong checkOk = new AtomicLong(0);
-	
-	@JsonIgnore
-	private AtomicLong counter = new AtomicLong(0);
-	
-	@JsonIgnore
-	private AtomicLong totalBytes = new AtomicLong(0);
-	
-	@JsonIgnore
-	private AtomicLong errors = new AtomicLong(0);
-	
-	@JsonIgnore
-	private AtomicLong notAvailable = new AtomicLong(0);
+    static private Logger logger = Logger.getLogger(DeleteBucketObjectPreviousVersionServiceRequest.class.getName());
 
-	@JsonIgnore
-	private int maxProcessingThread  = 1;
+    private static final long serialVersionUID = 1L;
 
-	
-	@JsonIgnore
-	private volatile ExecutorService executor;
-	
-	
-	public DeleteBucketObjectPreviousVersionServiceRequest() {
-	}
-	
-	public DeleteBucketObjectPreviousVersionServiceRequest(String bucketName, Long bucketId) {
-		this.bucketName=bucketName;
-		this.bucketId=bucketId;
-	}
+    static AtomicBoolean instanceRunning = new AtomicBoolean(false);
 
-	@Override
-	public boolean isSuccess() {
-		return isSuccess;
-	}
+    static final int PAGESIZE = 1000;
 
-	@Override
-	public String getUUID() {
-		return "s:" + this.getClass().getSimpleName();
-	}
+    private String bucketName;
 
-	@Override
-	public boolean isObjectOperation() {
-		return true;
-	}
+    private Long bucketId;
 
-	public String getBucketName() {
-		return this.bucketName;
-	}
-				
-	public Long getBucketId() {
-		return this.bucketId;
-	}
-	
-	
-	private void processBucket(Long bucketId) {
-		
-		Integer pageSize = Integer.valueOf(PAGESIZE);
-		Long offset = Long.valueOf(0);
-		String agentId = null;
-		boolean done = false;
-		
-		//ServerBucket bucket = getVirtualFileSystemService().getBucketById(bucketId);
-		
-		
-		while (!done) {
-			
-			DataList<Item<ObjectMetadata>> data = getVirtualFileSystemService().listObjects(getBucketName(),
-																							Optional.of(offset),
-																							Optional.ofNullable(pageSize),
-																							Optional.empty(),
-																							Optional.ofNullable(agentId)); 
+    @JsonIgnore
+    private long start_ms = 0;
 
-			if (agentId==null)
-				agentId = data.getAgentId();
+    @JsonIgnore
+    private boolean isSuccess = false;
 
-			List<Callable<Object>> tasks = new ArrayList<>(data.getList().size());
-			
-			for (Item<ObjectMetadata> item: data.getList()) {
-				
-				tasks.add(() -> {
-								
-					try {
-						this.counter.getAndIncrement();
-						if (item.isOk()) {
-							process(item);
-						}
-						else
-							this.notAvailable.getAndIncrement();
-					
-					} catch (Exception e) {
-						logger.error(e, SharedConstant.NOT_THROWN);
-					}
-					return null;
-				 });
-			}
-			
-			try {
-				executor.invokeAll(tasks, 20, TimeUnit.MINUTES);						
-			} catch (InterruptedException e) {
-				logger.error(e, SharedConstant.NOT_THROWN);
-			}
-			offset += Long.valueOf(Integer.valueOf(data.getList().size()).longValue());
-			done = data.isEOD();
-		}
-	}
-	
-	/**
-	 *
-	 * 
-	 */
-	@Override
-	public void execute() {
+    @JsonIgnore
+    private AtomicLong checkOk = new AtomicLong(0);
 
-		try {
-			
-			setStatus(ServiceRequestStatus.RUNNING);
-			
-			if (instanceRunning.get()) {
-				throw(new IllegalStateException("There is an instance already running -> " + this.getClass().getSimpleName()));
-			}
-			
-			instanceRunning.set(true);
-			
-			logger.info("Starting -> " + getClass().getSimpleName() + " | b: " + (this.bucketName!=null? this.bucketName:"null"));
-	
-			this.start_ms = System.currentTimeMillis();
-			this.counter = new AtomicLong(0);
-			this.errors = new AtomicLong(0);
-			this.notAvailable = new AtomicLong(0);
-			this.checkOk = new AtomicLong(0);
-			this.maxProcessingThread  = getServerSettings().getIntegrityCheckThreads();
+    @JsonIgnore
+    private AtomicLong counter = new AtomicLong(0);
 
-			this.executor = Executors.newFixedThreadPool(this.maxProcessingThread);
+    @JsonIgnore
+    private AtomicLong totalBytes = new AtomicLong(0);
 
-			if (getBucketName()!=null)
-				processBucket(getBucketId());
-			else {
-				for (ServerBucket bucket: getVirtualFileSystemService().listAllBuckets())
-					processBucket(bucket.getId());
-			}
-			
-			try {
-				this.executor.shutdown();
-				this.executor.awaitTermination(15, TimeUnit.MINUTES);
-				
-			} catch (InterruptedException e) {
-			}
-			
-			this.isSuccess = true;
-			setStatus(ServiceRequestStatus.COMPLETED);
-			
-		} catch (Exception e) {
-			this.isSuccess=false;
-			 logger.error(e, SharedConstant.NOT_THROWN);
-	
-		} finally {
-			instanceRunning.set(false);
-			logResults(logger);
-		}
-	}
+    @JsonIgnore
+    private AtomicLong errors = new AtomicLong(0);
 
-	@Override
-	public void stop() {
-		 isSuccess=false;
-	}
+    @JsonIgnore
+    private AtomicLong notAvailable = new AtomicLong(0);
 
-	private void logResults(Logger lg) {
-		lg.info("Threads: " + String.valueOf(this.maxProcessingThread));
-		lg.info("Total: " + String.valueOf(this.counter.get()));
-		lg.info("Checked OK: " + String.valueOf(this.checkOk.get()));
-		lg.info("Errors: " + String.valueOf(this.errors.get()));
-		lg.info("Not Available: " + String.valueOf(this.notAvailable.get())); 
-		lg.info("Duration: " + String.valueOf(Double.valueOf(System.currentTimeMillis() - start_ms) / Double.valueOf(1000)) + " secs");
-		lg.info("---------");
-	}
-	
-	private ServerSettings getServerSettings() {
-		return getApplicationContext().getBean(ServerSettings.class);
-	}
+    @JsonIgnore
+    private int maxProcessingThread = 1;
 
-	private VirtualFileSystemService getVirtualFileSystemService() {
-		return getApplicationContext().getBean(VirtualFileSystemService.class);
-	}
+    @JsonIgnore
+    private volatile ExecutorService executor;
 
-	private void process(Item<ObjectMetadata> item) {
-		try {
-			getVirtualFileSystemService().deleteObjectAllPreviousVersions(item.getObject());
-			this.checkOk.incrementAndGet();
-		} catch (Exception e) {
-			this.errors.getAndIncrement();
-			logger.error(e, "Could not process -> " + item.getObject().bucketId.toString() + " - "+item.getObject().objectName + " " + SharedConstant.NOT_THROWN);
-			
-		}
-	}
+    public DeleteBucketObjectPreviousVersionServiceRequest() {
+    }
+
+    public DeleteBucketObjectPreviousVersionServiceRequest(String bucketName, Long bucketId) {
+        this.bucketName = bucketName;
+        this.bucketId = bucketId;
+    }
+
+    @Override
+    public boolean isSuccess() {
+        return isSuccess;
+    }
+
+    @Override
+    public String getUUID() {
+        return "s:" + this.getClass().getSimpleName();
+    }
+
+    @Override
+    public boolean isObjectOperation() {
+        return true;
+    }
+
+    public String getBucketName() {
+        return this.bucketName;
+    }
+
+    public Long getBucketId() {
+        return this.bucketId;
+    }
+
+    private void processBucket(Long bucketId) {
+
+        Integer pageSize = Integer.valueOf(PAGESIZE);
+        Long offset = Long.valueOf(0);
+        String agentId = null;
+        boolean done = false;
+
+        // ServerBucket bucket = getVirtualFileSystemService().getBucketById(bucketId);
+
+        while (!done) {
+
+            DataList<Item<ObjectMetadata>> data = getVirtualFileSystemService().listObjects(getBucketName(), Optional.of(offset),
+                    Optional.ofNullable(pageSize), Optional.empty(), Optional.ofNullable(agentId));
+
+            if (agentId == null)
+                agentId = data.getAgentId();
+
+            List<Callable<Object>> tasks = new ArrayList<>(data.getList().size());
+
+            for (Item<ObjectMetadata> item : data.getList()) {
+
+                tasks.add(() -> {
+
+                    try {
+                        this.counter.getAndIncrement();
+                        if (item.isOk()) {
+                            process(item);
+                        } else
+                            this.notAvailable.getAndIncrement();
+
+                    } catch (Exception e) {
+                        logger.error(e, SharedConstant.NOT_THROWN);
+                    }
+                    return null;
+                });
+            }
+
+            try {
+                executor.invokeAll(tasks, 20, TimeUnit.MINUTES);
+            } catch (InterruptedException e) {
+                logger.error(e, SharedConstant.NOT_THROWN);
+            }
+            offset += Long.valueOf(Integer.valueOf(data.getList().size()).longValue());
+            done = data.isEOD();
+        }
+    }
+
+    /**
+     *
+     * 
+     */
+    @Override
+    public void execute() {
+
+        try {
+
+            setStatus(ServiceRequestStatus.RUNNING);
+
+            if (instanceRunning.get()) {
+                throw (new IllegalStateException("There is an instance already running -> " + this.getClass().getSimpleName()));
+            }
+
+            instanceRunning.set(true);
+
+            logger.info(
+                    "Starting -> " + getClass().getSimpleName() + " | b: " + (this.bucketName != null ? this.bucketName : "null"));
+
+            this.start_ms = System.currentTimeMillis();
+            this.counter = new AtomicLong(0);
+            this.errors = new AtomicLong(0);
+            this.notAvailable = new AtomicLong(0);
+            this.checkOk = new AtomicLong(0);
+            this.maxProcessingThread = getServerSettings().getIntegrityCheckThreads();
+
+            this.executor = Executors.newFixedThreadPool(this.maxProcessingThread);
+
+            if (getBucketName() != null)
+                processBucket(getBucketId());
+            else {
+                for (ServerBucket bucket : getVirtualFileSystemService().listAllBuckets())
+                    processBucket(bucket.getId());
+            }
+
+            try {
+                this.executor.shutdown();
+                this.executor.awaitTermination(15, TimeUnit.MINUTES);
+
+            } catch (InterruptedException e) {
+            }
+
+            this.isSuccess = true;
+            setStatus(ServiceRequestStatus.COMPLETED);
+
+        } catch (Exception e) {
+            this.isSuccess = false;
+            logger.error(e, SharedConstant.NOT_THROWN);
+
+        } finally {
+            instanceRunning.set(false);
+            logResults(logger);
+        }
+    }
+
+    @Override
+    public void stop() {
+        isSuccess = false;
+    }
+
+    private void logResults(Logger lg) {
+        lg.info("Threads: " + String.valueOf(this.maxProcessingThread));
+        lg.info("Total: " + String.valueOf(this.counter.get()));
+        lg.info("Checked OK: " + String.valueOf(this.checkOk.get()));
+        lg.info("Errors: " + String.valueOf(this.errors.get()));
+        lg.info("Not Available: " + String.valueOf(this.notAvailable.get()));
+        lg.info("Duration: " + String.valueOf(Double.valueOf(System.currentTimeMillis() - start_ms) / Double.valueOf(1000))
+                + " secs");
+        lg.info("---------");
+    }
+
+    private ServerSettings getServerSettings() {
+        return getApplicationContext().getBean(ServerSettings.class);
+    }
+
+    private VirtualFileSystemService getVirtualFileSystemService() {
+        return getApplicationContext().getBean(VirtualFileSystemService.class);
+    }
+
+    private void process(Item<ObjectMetadata> item) {
+        try {
+            getVirtualFileSystemService().deleteObjectAllPreviousVersions(item.getObject());
+            this.checkOk.incrementAndGet();
+        } catch (Exception e) {
+            this.errors.getAndIncrement();
+            logger.error(e, "Could not process -> " + item.getObject().bucketId.toString() + " - " + item.getObject().objectName
+                    + " " + SharedConstant.NOT_THROWN);
+
+        }
+    }
 
 }

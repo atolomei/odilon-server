@@ -92,8 +92,8 @@ public class StandardSchedulerWorker extends SchedulerWorker {
     @Override
     public void add(ServiceRequest request) {
         Check.requireNonNullArgument(request, "request is null");
-        Check.requireTrue(request instanceof StandardServiceRequest, "must be instanceof -> "
-                + StandardServiceRequest.class.getName() + " | request: " + request.getClass().getName());
+        Check.requireTrue(request instanceof StandardServiceRequest,
+                "must be instanceof -> " + StandardServiceRequest.class.getName() + " | request: " + request.getClass().getName());
         getServiceRequestQueue().add(request);
     }
 

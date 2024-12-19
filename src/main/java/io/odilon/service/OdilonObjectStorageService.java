@@ -198,8 +198,8 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
     }
 
     @Override
-    public DataList<Item<ObjectMetadata>> listObjects(String bucketName, Optional<Long> offset,
-            Optional<Integer> pageSize, Optional<String> prefix, Optional<String> serverAgentId) {
+    public DataList<Item<ObjectMetadata>> listObjects(String bucketName, Optional<Long> offset, Optional<Integer> pageSize,
+            Optional<String> prefix, Optional<String> serverAgentId) {
         Check.requireTrue(isVFSEnabled(), invalidStateMsg());
         return getVirtualFileSystemService().listObjects(bucketName, offset, pageSize, prefix, serverAgentId);
     }
@@ -236,8 +236,7 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
     }
 
     @Override
-    public void putObject(String bucketName, String objectName, InputStream stream, String fileName,
-            String contentType) {
+    public void putObject(String bucketName, String objectName, InputStream stream, String fileName, String contentType) {
         putObject(bucketName, objectName, stream, fileName, contentType, Optional.empty());
     }
 
@@ -259,14 +258,12 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
         }
 
         if (objectName.length() < 1 || objectName.length() > SharedConstant.MAX_OBJECT_CHARS)
-            throw new IllegalArgumentException("objectName must be >0 and <"
-                    + String.valueOf(SharedConstant.MAX_OBJECT_CHARS) + ", and Name must match the java regex ->  "
-                    + SharedConstant.object_valid_regex + " | o:" + objectName);
+            throw new IllegalArgumentException("objectName must be >0 and <" + String.valueOf(SharedConstant.MAX_OBJECT_CHARS)
+                    + ", and Name must match the java regex ->  " + SharedConstant.object_valid_regex + " | o:" + objectName);
 
         if (!objectName.matches(SharedConstant.object_valid_regex))
-            throw new IllegalArgumentException("objectName must be >0 and <"
-                    + String.valueOf(SharedConstant.MAX_OBJECT_CHARS) + ", and Name must match the java regex ->  "
-                    + SharedConstant.object_valid_regex + " | o:" + objectName);
+            throw new IllegalArgumentException("objectName must be >0 and <" + String.valueOf(SharedConstant.MAX_OBJECT_CHARS)
+                    + ", and Name must match the java regex ->  " + SharedConstant.object_valid_regex + " | o:" + objectName);
         try {
             getVirtualFileSystemService().putObject(bucketName, objectName, is, fileName, contentType, customTags);
         } catch (Exception e) {
@@ -303,7 +300,8 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
     @Override
     public ObjectMetadata getObjectMetadata(String bucketName, String objectName) {
         Check.requireTrue(isVFSEnabled(), invalidStateMsg());
-        return getVirtualFileSystemService().getObjectMetadata(getVirtualFileSystemService().getBucketByName(bucketName), objectName);
+        return getVirtualFileSystemService().getObjectMetadata(getVirtualFileSystemService().getBucketByName(bucketName),
+                objectName);
     }
 
     @Override
@@ -333,16 +331,14 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
         }
 
         if (bucketName.length() < 1 || bucketName.length() > SharedConstant.MAX_BUCKET_CHARS)
-            throw new IllegalArgumentException(
-                    "bucketName must be >0 and <" + String.valueOf(SharedConstant.MAX_BUCKET_CHARS)
-                            + " and must contain just lowercase letters and numbers, java regex = '"
-                            + SharedConstant.bucket_valid_regex + "' | b:" + bucketName);
+            throw new IllegalArgumentException("bucketName must be >0 and <" + String.valueOf(SharedConstant.MAX_BUCKET_CHARS)
+                    + " and must contain just lowercase letters and numbers, java regex = '" + SharedConstant.bucket_valid_regex
+                    + "' | b:" + bucketName);
 
         if (!bucketName.matches(SharedConstant.bucket_valid_regex))
-            throw new IllegalArgumentException(
-                    "bucketName must be >0 and <" + String.valueOf(SharedConstant.MAX_BUCKET_CHARS)
-                            + " and must contain just lowercase letters and numbers, java regex = '"
-                            + SharedConstant.bucket_valid_regex + "' | b:" + bucketName);
+            throw new IllegalArgumentException("bucketName must be >0 and <" + String.valueOf(SharedConstant.MAX_BUCKET_CHARS)
+                    + " and must contain just lowercase letters and numbers, java regex = '" + SharedConstant.bucket_valid_regex
+                    + "' | b:" + bucketName);
         try {
             return getVirtualFileSystemService().createBucket(bucketName);
 
@@ -364,16 +360,14 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
             throw new IllegalStateException(dataStorageModeMsg(bucket.getName()));
 
         if (newBucketName.length() < 1 || newBucketName.length() > SharedConstant.MAX_BUCKET_CHARS)
-            throw new IllegalArgumentException(
-                    "bucketName must be >0 and <" + String.valueOf(SharedConstant.MAX_BUCKET_CHARS)
-                            + " and must contain just lowercase letters and numbers, java regex = '"
-                            + SharedConstant.bucket_valid_regex + "' | b:" + newBucketName);
+            throw new IllegalArgumentException("bucketName must be >0 and <" + String.valueOf(SharedConstant.MAX_BUCKET_CHARS)
+                    + " and must contain just lowercase letters and numbers, java regex = '" + SharedConstant.bucket_valid_regex
+                    + "' | b:" + newBucketName);
 
         if (!newBucketName.matches(SharedConstant.bucket_valid_regex))
-            throw new IllegalArgumentException(
-                    "bucketName must be >0 and <" + String.valueOf(SharedConstant.MAX_BUCKET_CHARS)
-                            + " and must contain just lowercase letters and numbers, java regex = '"
-                            + SharedConstant.bucket_valid_regex + "' | b:" + newBucketName);
+            throw new IllegalArgumentException("bucketName must be >0 and <" + String.valueOf(SharedConstant.MAX_BUCKET_CHARS)
+                    + " and must contain just lowercase letters and numbers, java regex = '" + SharedConstant.bucket_valid_regex
+                    + "' | b:" + newBucketName);
 
         if (this.existsBucket(newBucketName))
             throw new IllegalArgumentException("bucketName already used " + newBucketName);
@@ -394,14 +388,14 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
 
         if (getServerSettings().isReadOnly())
             throw new IllegalStateException(dataStorageModeMsg(bucketName));
-        
+
         if (getServerSettings().isWORM()) {
             if (existsBucket(bucketName))
                 throw new IllegalStateException(dataStorageModeMsg(bucketName));
-            else 
+            else
                 return;
         }
-        
+
         getVirtualFileSystemService().removeBucket(bucketName);
     }
 
@@ -413,7 +407,7 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
         if (getServerSettings().isWORM()) {
             if (existsBucket(bucketName))
                 throw new IllegalStateException(dataStorageModeMsg(bucketName));
-            else 
+            else
                 return;
         }
         getVirtualFileSystemService().forceRemoveBucket(bucketName);

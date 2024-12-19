@@ -63,8 +63,7 @@ public interface ObjectStorageService extends SystemService {
      */
     public void putObject(String bucketName, String objectName, File file);
 
-    public void putObject(String bucketName, String objectName, InputStream stream, String fileName,
-            String contentType);
+    public void putObject(String bucketName, String objectName, InputStream stream, String fileName, String contentType);
 
     public void putObject(String bucketName, String objectName, InputStream stream, String fileName, String contentType,
             Optional<List<String>> customTags);
@@ -94,8 +93,8 @@ public interface ObjectStorageService extends SystemService {
     /**
      * ------------------- Query -------------------
      */
-    public DataList<Item<ObjectMetadata>> listObjects(String bucketName, Optional<Long> offset,
-            Optional<Integer> pageSize, Optional<String> prefix, Optional<String> serverAgentId);
+    public DataList<Item<ObjectMetadata>> listObjects(String bucketName, Optional<Long> offset, Optional<Integer> pageSize,
+            Optional<String> prefix, Optional<String> serverAgentId);
 
     public boolean existsObject(String bucketName, String objectName);
 
