@@ -876,13 +876,16 @@ public class RAIDOneDriver extends BaseIODriver {
                         try {
                             if (!goodDrive.equals(destDrive)) {
 
-                                in = ((SimpleDrive) goodDrive).getObjectInputStream(bucket.getId(), objectName);
+                                // in = ((SimpleDrive) goodDrive).getObjectInputStream(bucket.getId(), objectName);
+                                
+                                ObjectPath path = new ObjectPath(goodDrive, bucket, objectName);
+                                in = Files.newInputStream(path.dataFilePath());
 
                                 destDrive.putObjectStream(bucket.getId(), objectName, in);
 
-                                goodDriveMeta.drive = destDrive.getName();
+                                goodDriveMeta.setDrive(destDrive.getName());
                                 destDrive.saveObjectMetadata(goodDriveMeta);
-                                logger.debug("Fixed -> d: " + destDrive.getName() + objectInfo(bucket, objectName));
+                                logger.debug("Fixed -> d: " + destDrive.getName() + " " + objectInfo(bucket, objectName));
                             }
 
                         } catch (IOException e) {
@@ -928,19 +931,18 @@ public class RAIDOneDriver extends BaseIODriver {
         objectReadLock(bucket, objectName);
 
         try {
-            getLockService().getBucketLock(bucket).readLock().lock();
+            
+            bucketReadLock(bucket);
 
             try {
                 /** read is from only 1 drive */
                 readDrive = getReadDrive(bucket, objectName);
 
                 if (!readDrive.existsBucketById(bucket.getId()))
-                    throw new IllegalArgumentException("bucket -> b:" + bucket.getName() + " does not exist for -> d:"
-                            + readDrive.getName() + " | raid -> " + this.getClass().getSimpleName());
+                    throw new IllegalArgumentException("bucket -> b:" + bucket.getName() + " does not exist for -> d:" + readDrive.getName() );
 
                 if (!exists(bucket, objectName))
-                    throw new IllegalArgumentException("Object does not exists for ->  b:" + bucket.getName() + " | o:" + objectName
-                            + " | class:" + this.getClass().getSimpleName());
+                    throw new IllegalArgumentException("Object does not exists -> " + objectInfo(bucket, objectName));
 
                 ObjectMetadata meta;
 
@@ -954,13 +956,10 @@ public class RAIDOneDriver extends BaseIODriver {
                 return meta;
 
             } catch (Exception e) {
-                throw new InternalCriticalException(e,
-                        "b:" + bucket.getId() + ", o:" + objectName + ", d:"
-                                + (Optional.ofNullable(readDrive).isPresent() ? (readDrive.getName()) : "null")
-                                + (o_version.isPresent() ? (", v:" + String.valueOf(o_version.get())) : ""));
+                throw new InternalCriticalException(e, objectInfo(bucket, objectName));
+                
             } finally {
-                getLockService().getBucketLock(bucket).readLock().unlock();
-
+                bucketReadUnLock(bucket);
             }
         } finally {
             objectReadUnLock(bucket, objectName);

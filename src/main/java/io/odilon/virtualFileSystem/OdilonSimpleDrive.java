@@ -17,6 +17,7 @@
 package io.odilon.virtualFileSystem;
 
 
+
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -34,7 +35,6 @@ import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.util.Check;
 import io.odilon.virtualFileSystem.model.SimpleDrive;
-import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
  * <p>Used by: <br/>
@@ -89,7 +89,7 @@ public class OdilonSimpleDrive extends OdilonDrive implements SimpleDrive {
 	/**
 	 * <b>Object Data</b>
 	 * <p>This method is not ThreadSafe</p>
-	 */
+	
 	@Override
 	public InputStream getObjectInputStream(Long bucketId, String objectName) {
 
@@ -108,6 +108,7 @@ public class OdilonSimpleDrive extends OdilonDrive implements SimpleDrive {
 			throw new InternalCriticalException(e, "b:" +  bucketId.toString() + ", o:" + objectName +", d:" + getName());
 		}
 	}
+	 */
 	
 	/**
 	 * <b>bDATA</b> 
