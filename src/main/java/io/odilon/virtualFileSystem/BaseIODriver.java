@@ -66,6 +66,7 @@ import io.odilon.model.RedundancyLevel;
 import io.odilon.model.SharedConstant;
 import io.odilon.monitor.SystemMonitorService;
 import io.odilon.query.BucketIteratorService;
+import io.odilon.replication.ReplicationService;
 import io.odilon.scheduler.AbstractServiceRequest;
 import io.odilon.scheduler.SchedulerService;
 import io.odilon.scheduler.ServiceRequest;
@@ -1344,6 +1345,10 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
         return getVirtualFileSystemService().getServerSettings();
     }
 
+    protected ReplicationService getReplicationService() {
+        return getVirtualFileSystemService().getReplicationService();
+    }
+    
     protected SystemMonitorService getSystemMonitorService() {
         return getVirtualFileSystemService().getSystemMonitorService();
     }

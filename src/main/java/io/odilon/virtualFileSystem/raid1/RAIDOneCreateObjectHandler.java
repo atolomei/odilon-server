@@ -49,7 +49,6 @@ import io.odilon.util.OdilonFileUtils;
 import io.odilon.virtualFileSystem.ObjectPath;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
-import io.odilon.virtualFileSystem.model.SimpleDrive;
 import io.odilon.virtualFileSystem.model.VFSOp;
 import io.odilon.virtualFileSystem.model.VFSOperation;
 
@@ -99,13 +98,14 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
         boolean done = false;
         boolean isMainException = false;
 
-        getLockService().getObjectLock(bucket, objectName).writeLock().lock();
+        objectWriteLock(bucket, objectName);
 
         try {
 
-            getLockService().getBucketLock(bucket).readLock().lock();
+            bucketReadLock(bucket);
 
             try (stream) {
+
                 if (getDriver().getReadDrive(bucket, objectName).existsObjectMetadata(bucket, objectName))
                     throw new IllegalArgumentException("object already exist -> b:" + getDriver().objectInfo(bucket, objectName));
 
@@ -132,11 +132,11 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
                         }
                     }
                 } finally {
-                    getLockService().getBucketLock(bucket).readLock().unlock();
+                    bucketReadUnLock(bucket);
                 }
             }
         } finally {
-            getLockService().getObjectLock(bucket, objectName).writeLock().unlock();
+            objectWriteUnLock(bucket, objectName);
         }
     }
 
@@ -165,12 +165,15 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
         boolean done = false;
 
         try {
-            if (getVirtualFileSystemService().getServerSettings().isStandByEnabled())
-                getVirtualFileSystemService().getReplicationService().cancel(op);
+            if (getServerSettings().isStandByEnabled())
+                getReplicationService().cancel(op);
 
             for (Drive drive : getDriver().getDrivesAll()) {
                 drive.deleteObjectMetadata(bucket, objectName);
-                FileUtils.deleteQuietly(new File(drive.getRootDirPath(), bucket_id.toString() + File.separator + objectName));
+                ObjectPath path = new ObjectPath(drive, bucket_id, objectName);
+                FileUtils.deleteQuietly(path.dataFilePath().toFile());
+                // FileUtils.deleteQuietly(new File(drive.getRootDirPath(), bucket_id.toString()
+                // + File.separator + objectName));
             }
             done = true;
 
@@ -215,10 +218,10 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
                 : stream) {
             int n_d = 0;
             for (Drive drive : getDriver().getDrivesAll()) {
-                
-                ObjectPath path  = new ObjectPath(drive,bucket.getId(), objectName);
-                
-                //String sPath = ((SimpleDrive) drive).getObjectDataFilePath(bucket.getId(), objectName);
+
+                ObjectPath path = new ObjectPath(drive, bucket.getId(), objectName);
+                // String sPath = ((SimpleDrive) drive).getObjectDataFilePath(bucket.getId(),
+                // objectName);
                 String sPath = path.dataFilePath().toString();
                 out[n_d++] = new BufferedOutputStream(new FileOutputStream(sPath), ServerConstant.BUFFER_SIZE);
             }
@@ -321,14 +324,15 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
         OffsetDateTime now = OffsetDateTime.now();
 
         final List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
-        
+
         for (Drive drive : getDriver().getDrivesAll()) {
-            
-            //File file = ((SimpleDrive) drive).getObjectDataFile(bucket.getId(), objectName);
+
+            // File file = ((SimpleDrive) drive).getObjectDataFile(bucket.getId(),
+            // objectName);
 
             ObjectPath path = new ObjectPath(drive, bucket, objectName);
             File file = path.dataFilePath().toFile();
-            
+
             try {
                 String sha256 = OdilonFileUtils.calculateSHA256String(file);
                 if (sha == null) {

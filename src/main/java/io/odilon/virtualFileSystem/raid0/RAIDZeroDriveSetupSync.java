@@ -332,7 +332,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
                                                             item.getObject().getObjectName(), version);
 
                                                     FileUtils.deleteQuietly(m);
-                                                    FileUtils.deleteQuietly(path.dataFilePath(Context.STORAGE, version).toFile());
+                                                    FileUtils.deleteQuietly(path.dataFileVersionPath(version).toFile());
 
                                                 }
                                             }

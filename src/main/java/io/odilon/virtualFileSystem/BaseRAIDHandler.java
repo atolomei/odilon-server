@@ -35,7 +35,6 @@ public abstract class BaseRAIDHandler {
 
     public abstract IODriver getDriver();
 
-    
     public VirtualFileSystemService getVirtualFileSystemService() {
         return getDriver().getVirtualFileSystemService();
     }
@@ -48,41 +47,38 @@ public abstract class BaseRAIDHandler {
         return getVirtualFileSystemService().getBucketCache();
     }
 
-    
     /**
      * This check must be executed inside the critical section
      */
     protected ServerBucket getCacheBucket(Long bucketId) {
         return getVirtualFileSystemService().getBucketCache().get(bucketId);
     }
-    
+
     /**
      * This check must be executed inside the critical section
      */
     protected boolean existsCacheBucket(String bucketName) {
         return getBucketCache().contains(bucketName);
     }
-    
+
     /**
      * This check must be executed inside the critical section
      */
     protected boolean existsCacheBucket(Long id) {
         return getBucketCache().contains(id);
     }
-    
+
     /**
      * This check must be executed inside the critical section
      */
     protected boolean existsCacheBucket(ServerBucket bucket) {
         return getBucketCache().contains(bucket);
     }
-    
-    
-    
+
     protected EncryptionService getEncryptionService() {
         return getVirtualFileSystemService().getEncryptionService();
     }
-    
+
     public JournalService getJournalService() {
         return getDriver().getJournalService();
     }
@@ -98,30 +94,27 @@ public abstract class BaseRAIDHandler {
     protected ReplicationService getReplicationService() {
         return getVirtualFileSystemService().getReplicationService();
     }
-    
+
     protected boolean isStandByEnabled() {
         return getVirtualFileSystemService().getServerSettings().isStandByEnabled();
     }
 
-    
     public RedundancyLevel getRedundancyLevel() {
         return getDriver().getRedundancyLevel();
     }
-
 
     protected String opInfo(VFSOperation op) {
         return getDriver().opInfo(op);
     }
 
-    
     protected String objectInfo(ServerBucket bucket, String objectName, String srcFileName) {
         return getDriver().objectInfo(bucket, objectName, srcFileName);
     }
-                                                
+
     protected String objectInfo(String bucketName, String objectName, String srcFileName) {
         return getDriver().objectInfo(bucketName, objectName, srcFileName);
     }
-    
+
     protected String objectInfo(ObjectMetadata meta) {
         return getDriver().objectInfo(meta);
     }
@@ -142,37 +135,42 @@ public abstract class BaseRAIDHandler {
         getLockService().getObjectLock(bucket, objectName).writeLock().lock();
     }
 
+    protected void objectWriteUnLock(ServerBucket bucket, String objectName) {
+        getLockService().getObjectLock(bucket, objectName).writeLock().unlock();
+    }
+
+    protected void objectWriteLock(Long bucketId, String objectName) {
+        getLockService().getObjectLock(bucketId, objectName).writeLock().lock();
+    }
+
+    protected void objectWriteUnLock(Long bucketId, String objectName) {
+        getLockService().getObjectLock(bucketId, objectName).writeLock().unlock();
+    }
 
     protected void objectWriteLock(ObjectMetadata meta) {
-        getLockService().getObjectLock(meta.getBucketId(),meta.getObjectName()).writeLock().lock();
+        getLockService().getObjectLock(meta.getBucketId(), meta.getObjectName()).writeLock().lock();
     }
 
     protected void objectWriteUnLock(ObjectMetadata meta) {
         getLockService().getObjectLock(meta.getBucketId(), meta.getObjectName()).writeLock().unlock();
     }
 
-    protected void objectWriteUnLock(ServerBucket bucket, String objectName) {
-        getLockService().getObjectLock(bucket, objectName).writeLock().unlock();
-    }
-
     protected void bucketReadLock(String bucketName) {
         getLockService().getBucketLock(bucketName).readLock().lock();
     }
-    
+
     protected void bucketReadLock(Long bucketId) {
         getLockService().getBucketLock(bucketId).readLock().lock();
     }
-    
+
     protected void bucketReadUnLock(Long bucketId) {
         getLockService().getBucketLock(bucketId).readLock().unlock();
     }
-    
-    
+
     protected void bucketReadUnLock(String bucketName) {
         getLockService().getBucketLock(bucketName).readLock().lock();
     }
-    
-    
+
     protected void bucketReadLock(ServerBucket bucket) {
         getLockService().getBucketLock(bucket).readLock().lock();
     }
@@ -192,7 +190,7 @@ public abstract class BaseRAIDHandler {
     protected String objectInfo(ServerBucket bucket) {
         return getDriver().objectInfo(bucket);
     }
-    
+
     protected boolean isUseVaultNewFiles() {
         return getVirtualFileSystemService().isUseVaultNewFiles();
     }

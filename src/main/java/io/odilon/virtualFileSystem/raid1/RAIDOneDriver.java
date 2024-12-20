@@ -50,6 +50,7 @@ import io.odilon.query.BucketIteratorService;
 import io.odilon.util.Check;
 import io.odilon.util.OdilonFileUtils;
 import io.odilon.virtualFileSystem.BaseIODriver;
+import io.odilon.virtualFileSystem.Context;
 import io.odilon.virtualFileSystem.ObjectPath;
 import io.odilon.virtualFileSystem.OdilonBucket;
 import io.odilon.virtualFileSystem.OdilonObject;
@@ -91,14 +92,11 @@ public class RAIDOneDriver extends BaseIODriver {
     private static Logger logger = Logger.getLogger(RAIDOneDriver.class.getName());
 
     /**
-     * <p>
-     * 
-     * @param vfs
-     * @param vfsLockService
-     *                       </p>
+     * @param virtualFileSystemService
+     * @param lockService
      */
-    public RAIDOneDriver(VirtualFileSystemService vfs, LockService vfsLockService) {
-        super(vfs, vfsLockService);
+    public RAIDOneDriver(VirtualFileSystemService virtualFileSystemService, LockService lockService) {
+        super(virtualFileSystemService, lockService);
     }
 
     @Override
@@ -130,9 +128,7 @@ public class RAIDOneDriver extends BaseIODriver {
     }
 
     /**
-     * <p>
-     * If version does not exist -> throws OdilonObjectNotFoundException
-     * </p>
+     * <p>If version does not exist -> throws OdilonObjectNotFoundException</p>
      */
     @Override
     public InputStream getObjectVersionInputStream(ServerBucket bucket, String objectName, int version) {
@@ -141,10 +137,8 @@ public class RAIDOneDriver extends BaseIODriver {
         Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 
         objectReadLock(bucket, objectName);
-
         try {
             bucketReadLock(bucket);
-
             try {
                 /** RAID 1: read is from any of the drives */
                 Drive readDrive = getReadDrive(bucket, objectName);
@@ -156,20 +150,25 @@ public class RAIDOneDriver extends BaseIODriver {
                 ObjectMetadata meta = getObjectMetadataVersion(bucket, objectName, version);
 
                 if ((meta == null) || (!meta.isAccesible()))
-                    throw new OdilonObjectNotFoundException("object version does not exists for -> b:" + bucket.getId() + " | o:"
-                            + objectName + " | v:" + String.valueOf(version));
+                    throw new OdilonObjectNotFoundException("object version does not exists -> " + objectInfo(bucket, objectName, version));
 
-                if (meta.isEncrypt())
-                    return getVirtualFileSystemService().getEncryptionService()
-                            .decryptStream(getInputStreamFromSelectedDrive(readDrive, bucket.getId(), objectName, version));
-                else
-                    return getInputStreamFromSelectedDrive(readDrive, bucket.getId(), objectName, version);
+                ObjectPath path = new ObjectPath(readDrive, bucket, objectName);
+                InputStream is = Files.newInputStream(path.dataFileVersionPath(version));
+                
+                if (meta.isEncrypt()) {
+                    return getEncryptionService().decryptStream(is);
+                    // return getEncryptionService().decryptStream(getInputStreamFromSelectedDrive(readDrive, bucket.getId(), objectName, version));
+                }
+                else {
+                    return is; 
+                    // return getInputStreamFromSelectedDrive(readDrive, bucket.getId(), objectName, version);
+                }
+                    
             } catch (OdilonObjectNotFoundException e) {
                 logger.error(e, SharedConstant.NOT_THROWN);
                 throw e;
             } catch (Exception e) {
-                throw new InternalCriticalException(e,
-                        "b:" + bucket.getId() + ", o:" + objectName + " | v:" + String.valueOf(version));
+                throw new InternalCriticalException(e, objectInfo(bucket, objectName, version));
             } finally {
                 bucketReadUnLock(bucket);
             }
@@ -636,11 +635,11 @@ public class RAIDOneDriver extends BaseIODriver {
                     String originalSha256 = meta.sha256;
                     String sha256 = null;
 
-                    
-                    //File file = ((SimpleDrive) drive).getObjectDataFile(bucket.getId(), objectName);
+                    // File file = ((SimpleDrive) drive).getObjectDataFile(bucket.getId(),
+                    // objectName);
                     ObjectPath path = new ObjectPath(drive, bucket, objectName);
                     File file = path.dataFilePath().toFile();
-                    
+
                     try {
 
                         sha256 = OdilonFileUtils.calculateSHA256String(file);
@@ -830,16 +829,17 @@ public class RAIDOneDriver extends BaseIODriver {
     }
 
     protected InputStream getInputStreamFromSelectedDrive(Drive readDrive, Long bucketId, String objectName) throws IOException {
-        return Files.newInputStream(
-                Paths.get(readDrive.getRootDirPath() + File.separator + bucketId.toString() + File.separator + objectName));
+        return Files.newInputStream(Paths.get(readDrive.getRootDirPath() + File.separator + bucketId.toString() + File.separator + objectName));
     }
 
+    /**
     protected InputStream getInputStreamFromSelectedDrive(Drive readDrive, Long bucketId, String objectName, int version)
             throws IOException {
         return Files.newInputStream(Paths.get(readDrive.getRootDirPath() + File.separator + bucketId.toString() + File.separator
                 + VirtualFileSystemService.VERSION_DIR + File.separator + objectName + VirtualFileSystemService.VERSION_EXTENSION
                 + String.valueOf(version)));
     }
+    **/
 
     /**
      * 
@@ -876,8 +876,9 @@ public class RAIDOneDriver extends BaseIODriver {
                         try {
                             if (!goodDrive.equals(destDrive)) {
 
-                                // in = ((SimpleDrive) goodDrive).getObjectInputStream(bucket.getId(), objectName);
-                                
+                                // in = ((SimpleDrive) goodDrive).getObjectInputStream(bucket.getId(),
+                                // objectName);
+
                                 ObjectPath path = new ObjectPath(goodDrive, bucket, objectName);
                                 in = Files.newInputStream(path.dataFilePath());
 
@@ -931,7 +932,7 @@ public class RAIDOneDriver extends BaseIODriver {
         objectReadLock(bucket, objectName);
 
         try {
-            
+
             bucketReadLock(bucket);
 
             try {
@@ -939,7 +940,8 @@ public class RAIDOneDriver extends BaseIODriver {
                 readDrive = getReadDrive(bucket, objectName);
 
                 if (!readDrive.existsBucketById(bucket.getId()))
-                    throw new IllegalArgumentException("bucket -> b:" + bucket.getName() + " does not exist for -> d:" + readDrive.getName() );
+                    throw new IllegalArgumentException(
+                            "bucket -> b:" + bucket.getName() + " does not exist for -> d:" + readDrive.getName());
 
                 if (!exists(bucket, objectName))
                     throw new IllegalArgumentException("Object does not exists -> " + objectInfo(bucket, objectName));
@@ -957,7 +959,7 @@ public class RAIDOneDriver extends BaseIODriver {
 
             } catch (Exception e) {
                 throw new InternalCriticalException(e, objectInfo(bucket, objectName));
-                
+
             } finally {
                 bucketReadUnLock(bucket);
             }
