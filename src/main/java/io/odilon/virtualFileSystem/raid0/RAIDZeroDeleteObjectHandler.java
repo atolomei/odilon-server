@@ -38,7 +38,7 @@ import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.SimpleDrive;
 import io.odilon.virtualFileSystem.model.VFSOp;
-import io.odilon.virtualFileSystem.model.VFSOperation;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
  * <p>
@@ -69,7 +69,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
         Check.requireNonNullArgument(bucket, "bucket is null");
         Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 
-        VFSOperation op = null;
+        VirtualFileSystemOperation op = null;
         boolean done = false;
         boolean isMainException = false;
         int headVersion = -1;
@@ -157,7 +157,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
         boolean isMainExcetion = false;
         int headVersion = -1;
         boolean done = false;
-        VFSOperation op = null;
+        VirtualFileSystemOperation op = null;
 
         objectWriteLock(meta);
 
@@ -247,13 +247,13 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
      * 
      */
     @Override
-    public void rollbackJournal(VFSOperation op, boolean recoveryMode) {
+    public void rollbackJournal(VirtualFileSystemOperation op, boolean recoveryMode) {
 
         Check.requireNonNullArgument(op, "op is null");
 
         /** also checked by the calling driver */
         Check.requireTrue(op.getOp() == VFSOp.DELETE_OBJECT || op.getOp() == VFSOp.DELETE_OBJECT_PREVIOUS_VERSIONS,
-                VFSOperation.class.getName() + " invalid -> op: " + op.getOp().getName());
+                VirtualFileSystemOperation.class.getName() + " invalid -> op: " + op.getOp().getName());
 
         String objectName = op.getObjectName();
 
@@ -488,7 +488,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
      * if the system crashes those temp files will be removed on system startup
      * </p>
      */
-    private void onAfterCommit(VFSOperation op, ObjectMetadata meta, int headVersion) {
+    private void onAfterCommit(VirtualFileSystemOperation op, ObjectMetadata meta, int headVersion) {
 
         if ((op == null) || (meta == null)) {
             logger.error("op or meta is null, should not happen", SharedConstant.NOT_THROWN);

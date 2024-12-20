@@ -60,7 +60,7 @@ import io.odilon.virtualFileSystem.model.LockService;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.SimpleDrive;
 import io.odilon.virtualFileSystem.model.VFSOp;
-import io.odilon.virtualFileSystem.model.VFSOperation;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemObject;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
@@ -723,7 +723,7 @@ public class RAIDOneDriver extends BaseIODriver {
      * @param objectName
      */
     @Override
-    public void rollbackJournal(VFSOperation op, boolean recoveryMode) {
+    public void rollbackJournal(VirtualFileSystemOperation op, boolean recoveryMode) {
 
         Check.requireNonNullArgument(op, "VFSOperation is null");
 

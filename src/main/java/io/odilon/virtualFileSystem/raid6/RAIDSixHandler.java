@@ -20,7 +20,7 @@ import javax.annotation.concurrent.ThreadSafe;
 
 import io.odilon.virtualFileSystem.BaseRAIDHandler;
 import io.odilon.virtualFileSystem.RAIDHandler;
-import io.odilon.virtualFileSystem.model.VFSOperation;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
@@ -53,5 +53,5 @@ public abstract class RAIDSixHandler extends BaseRAIDHandler implements RAIDHand
         return getDriver().getVirtualFileSystemService();
     }
 
-    protected abstract void rollbackJournal(VFSOperation op, boolean recoveryMode);
+    protected abstract void rollbackJournal(VirtualFileSystemOperation op, boolean recoveryMode);
 }

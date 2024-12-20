@@ -33,16 +33,16 @@ import io.odilon.model.RedundancyLevel;
 import io.odilon.model.SharedConstant;
 import io.odilon.virtualFileSystem.model.JournalService;
 import io.odilon.virtualFileSystem.model.VFSOp;
-import io.odilon.virtualFileSystem.model.VFSOperation;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 
 /**
 *  
 * @author atolomei@novamens.com (Alejandro Tolomei)
 */
-public class OdilonVFSperation implements VFSOperation {
+public class OdilonVirtualFileSystemOperation implements VirtualFileSystemOperation {
 				
-	static private Logger logger = Logger.getLogger(OdilonVFSperation.class.getName());
+	static private Logger logger = Logger.getLogger(OdilonVirtualFileSystemOperation.class.getName());
 
 	@JsonIgnore
 	static private ObjectMapper mapper = new ObjectMapper();
@@ -83,7 +83,7 @@ public class OdilonVFSperation implements VFSOperation {
 	@JsonProperty("raid")
 	private RedundancyLevel raid;
 	
-	public OdilonVFSperation() {
+	public OdilonVirtualFileSystemOperation() {
 	}
 	
 	@Override
@@ -94,7 +94,7 @@ public class OdilonVFSperation implements VFSOperation {
 					((objectName!=null) ? objectName :"null" );
 	}
 	
-	public OdilonVFSperation( 	String id, 
+	public OdilonVirtualFileSystemOperation( 	String id, 
 							VFSOp op,
 							Optional<Long> bucketId,
 							Optional<String> bucketName,
@@ -166,8 +166,8 @@ public class OdilonVFSperation implements VFSOperation {
 		 }
 
 		 
-		if (o instanceof OdilonVFSperation) {
-			String oid =((OdilonVFSperation) o).getId();
+		if (o instanceof OdilonVirtualFileSystemOperation) {
+			String oid =((OdilonVirtualFileSystemOperation) o).getId();
 			if (this.id==null) 
 				return oid==null;
 			if (oid==null)

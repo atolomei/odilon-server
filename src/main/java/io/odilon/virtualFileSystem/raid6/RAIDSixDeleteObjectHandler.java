@@ -39,7 +39,7 @@ import io.odilon.util.Check;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VFSOp;
-import io.odilon.virtualFileSystem.model.VFSOperation;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
  * <p>
@@ -79,7 +79,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
         if (!getDriver().exists(bucket, objectName))
             throw new IllegalArgumentException("object does not exist -> " + getDriver().objectInfo(bucket, objectName));
 
-        VFSOperation op = null;
+        VirtualFileSystemOperation op = null;
         boolean done = false;
         boolean isMainException = false;
         int headVersion = -1;
@@ -171,7 +171,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 
         Check.requireNonNullArgument(headMeta, "ObjectMetadata is null");
 
-        VFSOperation op = null;
+        VirtualFileSystemOperation op = null;
         boolean done = false;
         boolean isMainException = false;
 
@@ -313,7 +313,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
      * 
      */
     @Override
-    protected void rollbackJournal(@NonNull VFSOperation op, boolean recoveryMode) {
+    protected void rollbackJournal(@NonNull VirtualFileSystemOperation op, boolean recoveryMode) {
 
         Check.requireNonNullArgument(op, "op is null");
 
@@ -419,7 +419,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
      * @param op
      * @param headVersion
      */
-    private void onAfterCommit(VFSOperation op, ObjectMetadata meta, int headVersion) {
+    private void onAfterCommit(VirtualFileSystemOperation op, ObjectMetadata meta, int headVersion) {
         try {
             if (op.getOp() == VFSOp.DELETE_OBJECT || op.getOp() == VFSOp.DELETE_OBJECT_PREVIOUS_VERSIONS) {
                 getVirtualFileSystemService().getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext()

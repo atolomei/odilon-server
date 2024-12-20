@@ -25,8 +25,8 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import io.odilon.log.Logger;
 import io.odilon.model.SharedConstant;
-import io.odilon.virtualFileSystem.OdilonVFSperation;
-import io.odilon.virtualFileSystem.model.VFSOperation;
+import io.odilon.virtualFileSystem.OdilonVirtualFileSystemOperation;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
  * <p>
@@ -51,13 +51,13 @@ public class CleanUpWorkDirServiceRequest extends AbstractServiceRequest impleme
     private boolean isSuccess = false;
 
     @JsonProperty("operation")
-    private OdilonVFSperation operation;
+    private OdilonVirtualFileSystemOperation operation;
 
     protected CleanUpWorkDirServiceRequest() {
     }
 
-    public CleanUpWorkDirServiceRequest(VFSOperation operation) {
-        this.operation = (OdilonVFSperation) operation;
+    public CleanUpWorkDirServiceRequest(VirtualFileSystemOperation operation) {
+        this.operation = (OdilonVirtualFileSystemOperation) operation;
     }
 
     /**
@@ -89,7 +89,7 @@ public class CleanUpWorkDirServiceRequest extends AbstractServiceRequest impleme
         this.isSuccess = true;
     }
 
-    public VFSOperation getVFSOperation() {
+    public VirtualFileSystemOperation getVFSOperation() {
         return this.operation;
     }
 

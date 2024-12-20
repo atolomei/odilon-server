@@ -40,7 +40,7 @@ import io.odilon.util.OdilonFileUtils;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VFSOp;
-import io.odilon.virtualFileSystem.model.VFSOperation;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
  * <b>RAID 6 Object creation</b>
@@ -81,7 +81,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
         Check.requireNonNullArgument(bucket, "bucket is null");
         Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 
-        VFSOperation op = null;
+        VirtualFileSystemOperation op = null;
         boolean done = false;
         boolean isMainException = false;
 
@@ -139,7 +139,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
      * </p>
      */
     @Override
-    protected void rollbackJournal(VFSOperation op, boolean recoveryMode) {
+    protected void rollbackJournal(VirtualFileSystemOperation op, boolean recoveryMode) {
 
         Check.requireNonNullArgument(op, "op is null");
         Check.checkTrue(op.getOp() == VFSOp.CREATE_OBJECT, "Invalid op ->  " + op.getOp().getName());

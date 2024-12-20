@@ -18,7 +18,7 @@ package io.odilon.virtualFileSystem;
 
 import io.odilon.model.ObjectMetadata;
 import io.odilon.virtualFileSystem.model.ServerBucket;
-import io.odilon.virtualFileSystem.model.VFSOperation;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
 *  
@@ -35,7 +35,7 @@ public interface RAIDDeleteObjectHandler {
 	public void wipeAllPreviousVersions();
 
 	/** rollbackJournal */
-	public void rollbackJournal(VFSOperation op, boolean recoveryMode);
+	public void rollbackJournal(VirtualFileSystemOperation op, boolean recoveryMode);
 	
 	
 

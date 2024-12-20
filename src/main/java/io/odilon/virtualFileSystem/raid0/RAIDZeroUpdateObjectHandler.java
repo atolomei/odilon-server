@@ -45,7 +45,7 @@ import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.SimpleDrive;
 import io.odilon.virtualFileSystem.model.VFSOp;
-import io.odilon.virtualFileSystem.model.VFSOperation;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
  * <p>
@@ -88,7 +88,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
         int beforeHeadVersion = -1;
         int afterHeadVersion = -1;
 
-        VFSOperation op = null;
+        VirtualFileSystemOperation op = null;
 
         objectWriteLock(bucket, objectName);
 
@@ -169,7 +169,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
         boolean isMainException = false;
         int beforeHeadVersion = -1;
 
-        VFSOperation op = null;
+        VirtualFileSystemOperation op = null;
 
         objectWriteLock(bucket, objectName);
 
@@ -285,7 +285,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
     protected void updateObjectMetadata(ObjectMetadata meta) {
 
         Check.requireNonNullArgument(meta, "meta is null");
-        VFSOperation op = null;
+        VirtualFileSystemOperation op = null;
         boolean done = false;
         boolean isMainException = false;
 
@@ -363,7 +363,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
      * </p>
      */
 
-    protected void rollbackJournal(VFSOperation op, boolean recoveryMode) {
+    protected void rollbackJournal(VirtualFileSystemOperation op, boolean recoveryMode) {
 
         Check.requireNonNullArgument(op, "op is null");
         Check.requireTrue((op.getOp() == VFSOp.UPDATE_OBJECT || op.getOp() == VFSOp.UPDATE_OBJECT_METADATA
@@ -392,7 +392,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
      * @param op
      * @param recoveryMode
      */
-    private void rollbackJournalUpdate(VFSOperation op, boolean recoveryMode) {
+    private void rollbackJournalUpdate(VirtualFileSystemOperation op, boolean recoveryMode) {
 
         boolean done = false;
 
@@ -429,7 +429,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
      * @param op
      * @param recoveryMode
      */
-    private void rollbackJournalUpdateMetadata(VFSOperation op, boolean recoveryMode) {
+    private void rollbackJournalUpdateMetadata(VirtualFileSystemOperation op, boolean recoveryMode) {
 
         Check.requireNonNullArgument(op, "op is null");
 
@@ -679,7 +679,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
      * @param previousVersion >=0
      * @param currentVersion  >0
      */
-    private void cleanUpUpdate(VFSOperation op, ServerBucket bucket, String objectName, int previousVersion, int currentVersion) {
+    private void cleanUpUpdate(VirtualFileSystemOperation op, ServerBucket bucket, String objectName, int previousVersion, int currentVersion) {
 
         if (op == null)
             return;

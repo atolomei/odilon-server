@@ -28,72 +28,71 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.odilon.log.Logger;
 import io.odilon.model.SharedConstant;
 import io.odilon.util.RandomIDGenerator;
-import io.odilon.virtualFileSystem.model.VFSOperation;
-
+import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
- * <p>Spring events fired by the {@link JournalService} on <b>{@code commit}</b> or <b>{@code cancel}</b>
- * and listened by:</p>
+ * <p>
+ * Spring events fired by the {@link JournalService} on <b>{@code commit}</b> or
+ * <b>{@code cancel}</b> and listened by:
+ * </p>
  * <ul>
- * <li> {@link FileCacheService} to invalidate File cache (used by RAID 6)</li> 
- * <li> {@link ObjectMetadataCacheService} to invalidate {@link ObjectMetadata} cache (used by RAID 0, RAID 1, RAID 6).</li>
- * </ul> 
+ * <li>{@link FileCacheService} to invalidate File cache (used by RAID 6)</li>
+ * <li>{@link ObjectMetadataCacheService} to invalidate {@link ObjectMetadata}
+ * cache (used by RAID 0, RAID 1, RAID 6).</li>
+ * </ul>
  * 
- *  @author atolomei@novamens.com (Alejandro Tolomei)
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public class CacheEvent extends ApplicationEvent {
 
-	private static final long serialVersionUID = 1L;
-	
-	@JsonIgnore 
-	static private Logger logger = Logger.getLogger(CacheEvent.class.getName());
-	
-	@JsonIgnore 
-	static final private ObjectMapper mapper = new ObjectMapper();
+    private static final long serialVersionUID = 1L;
 
-	@JsonIgnore
-	static  final private RandomIDGenerator idGenerator = new RandomIDGenerator();  
-	
-	static  {
-		mapper.registerModule(new JavaTimeModule());
-		mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-		mapper.registerModule(new Jdk8Module());
-	}
-	
-	private final VFSOperation opx;
-	
+    @JsonIgnore
+    static private Logger logger = Logger.getLogger(CacheEvent.class.getName());
 
-	public CacheEvent(VFSOperation opx) {
-		super(opx);
-		this.opx=opx;
-	}
-	
-	
-	public VFSOperation getVFSOperation() {
-		return opx;
-	}
+    @JsonIgnore
+    static final private ObjectMapper mapper = new ObjectMapper();
 
-	@Override
-	public String toString() {
-			StringBuilder str = new StringBuilder();
-			str.append(this.getClass().getSimpleName());
-			str.append(toJSON());
-			return str.toString();
-	}
-	
-	public String toJSON() {
-		  try {
-				return getObjectMapper().writeValueAsString(this);
-			} catch (JsonProcessingException e) {
-				logger.error(e, SharedConstant.NOT_THROWN);
-						return "\"error\":\"" + e.getClass().getName()+ " | " + e.getMessage()+"\""; 
-			}
-	}
-	
-	@JsonIgnore 
-	public ObjectMapper getObjectMapper() {
-		return mapper;
-	}
-	
+    @JsonIgnore
+    static final private RandomIDGenerator idGenerator = new RandomIDGenerator();
+
+    static {
+        mapper.registerModule(new JavaTimeModule());
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        mapper.registerModule(new Jdk8Module());
+    }
+
+    private final VirtualFileSystemOperation opx;
+
+    public CacheEvent(VirtualFileSystemOperation opx) {
+        super(opx);
+        this.opx = opx;
+    }
+
+    public VirtualFileSystemOperation getVFSOperation() {
+        return opx;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder str = new StringBuilder();
+        str.append(this.getClass().getSimpleName());
+        str.append(toJSON());
+        return str.toString();
+    }
+
+    public String toJSON() {
+        try {
+            return getObjectMapper().writeValueAsString(this);
+        } catch (JsonProcessingException e) {
+            logger.error(e, SharedConstant.NOT_THROWN);
+            return "\"error\":\"" + e.getClass().getName() + " | " + e.getMessage() + "\"";
+        }
+    }
+
+    @JsonIgnore
+    public ObjectMapper getObjectMapper() {
+        return mapper;
+    }
 
 }

@@ -26,8 +26,8 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import io.odilon.log.Logger;
 import io.odilon.model.SharedConstant;
 import io.odilon.replication.ReplicationService;
-import io.odilon.virtualFileSystem.OdilonVFSperation;
-import io.odilon.virtualFileSystem.model.VFSOperation;
+import io.odilon.virtualFileSystem.OdilonVirtualFileSystemOperation;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
  * <p>
@@ -52,13 +52,13 @@ public class StandByReplicaServiceRequest extends AbstractServiceRequest {
     private boolean isSuccess = false;
 
     @JsonProperty("operation")
-    private OdilonVFSperation operation;
+    private OdilonVirtualFileSystemOperation operation;
 
     protected StandByReplicaServiceRequest() {
     }
 
-    public StandByReplicaServiceRequest(VFSOperation operation) {
-        this.operation = (OdilonVFSperation) operation;
+    public StandByReplicaServiceRequest(VirtualFileSystemOperation operation) {
+        this.operation = (OdilonVirtualFileSystemOperation) operation;
     }
 
     /**
@@ -96,7 +96,7 @@ public class StandByReplicaServiceRequest extends AbstractServiceRequest {
         return getVFSOperation().getUUID();
     }
 
-    public VFSOperation getVFSOperation() {
+    public VirtualFileSystemOperation getVFSOperation() {
         return operation;
     }
 

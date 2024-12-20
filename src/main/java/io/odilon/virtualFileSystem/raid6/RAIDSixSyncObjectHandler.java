@@ -42,7 +42,7 @@ import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.DriveStatus;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VFSOp;
-import io.odilon.virtualFileSystem.model.VFSOperation;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
  * <p>
@@ -83,7 +83,7 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 
         String objectName = meta.getObjectName();
 
-        VFSOperation op = null;
+        VirtualFileSystemOperation op = null;
         boolean done = false;
         ServerBucket bucket;
 
@@ -205,10 +205,10 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
     }
 
     @Override
-    public void rollbackJournal(VFSOperation op, boolean recoveryMode) {
+    public void rollbackJournal(VirtualFileSystemOperation op, boolean recoveryMode) {
         Check.requireNonNullArgument(op, "op is null");
         Check.requireTrue(op.getOp() == VFSOp.SYNC_OBJECT_NEW_DRIVE,
-                VFSOperation.class.getName() + "can not be  ->  op: " + op.getOp().getName());
+                VirtualFileSystemOperation.class.getName() + "can not be  ->  op: " + op.getOp().getName());
 
         switch (op.getOp()) {
         case SYNC_OBJECT_NEW_DRIVE: {
@@ -262,7 +262,7 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
      * @param op
      * @param recoveryMode
      */
-    private void execRollback(VFSOperation op, boolean recoveryMode) {
+    private void execRollback(VirtualFileSystemOperation op, boolean recoveryMode) {
 
         boolean done = false;
 

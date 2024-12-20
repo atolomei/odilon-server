@@ -93,13 +93,13 @@ public interface IODriver {
     /**
      * Journal
      */
-    public void saveJournal(VFSOperation op);
+    public void saveJournal(VirtualFileSystemOperation op);
 
     public void removeJournal(String id);
 
-    public void rollbackJournal(VFSOperation op, boolean recoveryMode);
+    public void rollbackJournal(VirtualFileSystemOperation op, boolean recoveryMode);
 
-    public List<VFSOperation> getJournalPending(JournalService journalService);
+    public List<VirtualFileSystemOperation> getJournalPending(JournalService journalService);
 
     public JournalService getJournalService();
 
@@ -177,7 +177,7 @@ public interface IODriver {
     public String objectInfo(ServerBucket bucket, String objectName, String fileName);
     public String objectInfo(String bucketId, String objectName, String fileName);
     public String objectInfo(ObjectMetadata meta);
-    public String opInfo(VFSOperation op);
+    public String opInfo(VirtualFileSystemOperation op);
     /**
      * 
      */

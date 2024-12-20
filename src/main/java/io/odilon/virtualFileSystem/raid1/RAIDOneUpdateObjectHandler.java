@@ -52,7 +52,7 @@ import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.SimpleDrive;
 import io.odilon.virtualFileSystem.model.VFSOp;
-import io.odilon.virtualFileSystem.model.VFSOperation;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
  * <p>
@@ -92,7 +92,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
     protected void update(ServerBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType,
             Optional<List<String>> customTags) {
 
-        VFSOperation op = null;
+        VirtualFileSystemOperation op = null;
         boolean done = false;
 
         int beforeHeadVersion = -1;
@@ -166,7 +166,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 
     protected ObjectMetadata restorePreviousVersion(ServerBucket bucket, String objectName) {
 
-        VFSOperation op = null;
+        VirtualFileSystemOperation op = null;
         boolean done = false;
         boolean isMainException = false;
 
@@ -275,7 +275,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
         Check.requireNonNullArgument(meta, "meta is null");
         Check.requireNonNullArgument(meta.bucketId, "meta.bucketId is null");
 
-        VFSOperation op = null;
+        VirtualFileSystemOperation op = null;
         boolean done = false;
         boolean isMainException = false;
         ServerBucket bucket = null;
@@ -343,13 +343,13 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
     protected void onAfterCommit(ServerBucket bucket, String objectName, int previousVersion, int currentVersion) {
     }
 
-    protected void rollbackJournal(VFSOperation op, boolean recoveryMode) {
+    protected void rollbackJournal(VirtualFileSystemOperation op, boolean recoveryMode) {
 
         Check.requireNonNullArgument(op, "op is null");
         Check.requireTrue(
                 (op.getOp() == VFSOp.UPDATE_OBJECT || op.getOp() == VFSOp.UPDATE_OBJECT_METADATA
                         || op.getOp() == VFSOp.RESTORE_OBJECT_PREVIOUS_VERSION),
-                VFSOperation.class.getSimpleName() + " can not be  ->  op: " + op.getOp().getName());
+                VirtualFileSystemOperation.class.getSimpleName() + " can not be  ->  op: " + op.getOp().getName());
 
         if (op.getOp() == VFSOp.UPDATE_OBJECT)
             rollbackJournalUpdate(op, recoveryMode);
@@ -361,7 +361,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
             rollbackJournalUpdate(op, recoveryMode);
     }
 
-    private void rollbackJournalUpdate(VFSOperation op, boolean recoveryMode) {
+    private void rollbackJournalUpdate(VirtualFileSystemOperation op, boolean recoveryMode) {
 
         boolean done = false;
 
@@ -394,7 +394,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
         }
     }
 
-    private void rollbackJournalUpdateMetadata(VFSOperation op, boolean recoveryMode) {
+    private void rollbackJournalUpdateMetadata(VirtualFileSystemOperation op, boolean recoveryMode) {
 
         boolean done = false;
         try {
@@ -686,7 +686,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
      * @param objectName       not null
      * @param versionDiscarded if<0 do nothing
      */
-    private void cleanUpRestoreVersion(VFSOperation op, ServerBucket bucket, String objectName, int versionDiscarded) {
+    private void cleanUpRestoreVersion(VirtualFileSystemOperation op, ServerBucket bucket, String objectName, int versionDiscarded) {
 
         if ((op == null) || (versionDiscarded < 0))
             return;
@@ -735,7 +735,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
      * @param previousVersion >=0
      * @param currentVersion  > 0
      */
-    private void cleanUpUpdate(VFSOperation op, ServerBucket bucket, String objectName, int previousVersion, int currentVersion) {
+    private void cleanUpUpdate(VirtualFileSystemOperation op, ServerBucket bucket, String objectName, int previousVersion, int currentVersion) {
 
         if (op == null)
             return;

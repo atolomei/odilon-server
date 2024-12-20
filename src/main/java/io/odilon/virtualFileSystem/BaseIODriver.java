@@ -80,7 +80,7 @@ import io.odilon.virtualFileSystem.model.JournalService;
 import io.odilon.virtualFileSystem.model.LockService;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VFSOp;
-import io.odilon.virtualFileSystem.model.VFSOperation;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
@@ -217,7 +217,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
         boolean done = false;
         boolean isMainException = false;
 
-        VFSOperation op = null;
+        VirtualFileSystemOperation op = null;
 
         bucketWriteLock(bucket);
 
@@ -293,7 +293,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 
         Check.requireNonNullArgument(bucket, "bucket is null");
 
-        VFSOperation op = null;
+        VirtualFileSystemOperation op = null;
         boolean done = false;
         BucketMetadata meta = null;
 
@@ -378,7 +378,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
         Check.requireNonNullArgument(bucket, "bucket can not be null");
 
         boolean done = false;
-        VFSOperation op = null;
+        VirtualFileSystemOperation op = null;
 
         bucketWriteLock(bucket);
 
@@ -484,7 +484,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
      * Shared by RAID 1 and RAID 6
      * </p>
      */
-    public void rollbackJournal(VFSOperation op) {
+    public void rollbackJournal(VirtualFileSystemOperation op) {
         rollbackJournal(op, false);
     }
 
@@ -498,7 +498,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
      * @param op
      * @return
      */
-    protected boolean generalRollbackJournal(VFSOperation op) {
+    protected boolean generalRollbackJournal(VirtualFileSystemOperation op) {
 
         Long bucketId = op.getBucketId();
 
@@ -733,9 +733,9 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
      * </p>
      */
     @Override
-    public List<VFSOperation> getJournalPending(JournalService journalService) {
+    public List<VirtualFileSystemOperation> getJournalPending(JournalService journalService) {
 
-        List<VFSOperation> list = new ArrayList<VFSOperation>();
+        List<VirtualFileSystemOperation> list = new ArrayList<VirtualFileSystemOperation>();
 
         for (Drive drive : getDrivesEnabled()) {
             File dir = new File(drive.getJournalDirPath());
@@ -749,7 +749,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
                     Path pa = Paths.get(file.getAbsolutePath());
                     try {
                         String str = Files.readString(pa);
-                        OdilonVFSperation op = getObjectMapper().readValue(str, OdilonVFSperation.class);
+                        OdilonVirtualFileSystemOperation op = getObjectMapper().readValue(str, OdilonVirtualFileSystemOperation.class);
                         op.setJournalService(getJournalService());
                         if (!list.contains(op))
                             list.add(op);
@@ -888,7 +888,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
         boolean done = false;
         boolean reqRestoreBackup = false;
 
-        VFSOperation op = null;
+        VirtualFileSystemOperation op = null;
 
         getLockService().getServerLock().writeLock().lock();
 
@@ -1090,7 +1090,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
      * </p>
      */
     @Override
-    public void saveJournal(VFSOperation op) {
+    public void saveJournal(VirtualFileSystemOperation op) {
         for (Drive drive : getDrivesEnabled())
             drive.saveJournal(op);
     }
@@ -1162,7 +1162,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
         this.virtualFileSystem = virtualFileSystemService;
     }
 
-    public String opInfo(VFSOperation op) {
+    public String opInfo(VirtualFileSystemOperation op) {
         return "op:" + (op != null ? op.toString() : "null");
     }
 
@@ -1523,7 +1523,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
     private void saveNewServerInfo(OdilonServerInfo serverInfo) {
 
         boolean done = false;
-        VFSOperation op = null;
+        VirtualFileSystemOperation op = null;
 
         try {
             getLockService().getServerLock().writeLock().lock();
@@ -1561,7 +1561,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 
         boolean done = false;
         boolean mayReqRestoreBackup = false;
-        VFSOperation op = null;
+        VirtualFileSystemOperation op = null;
 
         getLockService().getServerLock().writeLock().lock();
 

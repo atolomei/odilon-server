@@ -25,7 +25,7 @@ import io.odilon.virtualFileSystem.BaseRAIDHandler;
 import io.odilon.virtualFileSystem.RAIDHandler;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
-import io.odilon.virtualFileSystem.model.VFSOperation;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
  * *
@@ -54,5 +54,5 @@ public abstract class RAIDZeroHandler extends BaseRAIDHandler implements RAIDHan
         return getDriver().getWriteDrive(bucket, objectName);
     }
 
-    protected abstract void rollbackJournal(VFSOperation op, boolean recoveryMode);
+    protected abstract void rollbackJournal(VirtualFileSystemOperation op, boolean recoveryMode);
 }

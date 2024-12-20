@@ -50,7 +50,7 @@ public interface Drive {
     /**
      * ----------------- Journal ------------------
      */
-    public void saveJournal(VFSOperation op);
+    public void saveJournal(VirtualFileSystemOperation op);
 
     public void removeJournal(String id);
 

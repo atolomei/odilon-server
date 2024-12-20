@@ -59,7 +59,7 @@ import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.LockService;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VFSOp;
-import io.odilon.virtualFileSystem.model.VFSOperation;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemObject;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
@@ -384,7 +384,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
      * 
      */
     @Override
-    public void rollbackJournal(VFSOperation op, boolean recoveryMode) {
+    public void rollbackJournal(VirtualFileSystemOperation op, boolean recoveryMode) {
 
         Check.requireNonNullArgument(op, "VFSOperation is null");
 
@@ -783,7 +783,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
         return RedundancyLevel.RAID_6;
     }
 
-    public void rollbackJournal(VFSOperation op) {
+    public void rollbackJournal(VirtualFileSystemOperation op) {
         rollbackJournal(op, false);
     }
 

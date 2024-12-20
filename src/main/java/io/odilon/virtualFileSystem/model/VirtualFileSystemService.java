@@ -213,11 +213,11 @@ public interface VirtualFileSystemService extends SystemService {
     /**
      * Journal
      */
-    public void saveJournal(VFSOperation op);
+    public void saveJournal(VirtualFileSystemOperation op);
 
     public void removeJournal(String id);
 
-    public List<VFSOperation> getJournalPendingOperations();
+    public List<VirtualFileSystemOperation> getJournalPendingOperations();
 
     /**
      * Scheduler

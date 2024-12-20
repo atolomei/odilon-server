@@ -32,7 +32,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.odilon.log.Logger;
 import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
-import io.odilon.virtualFileSystem.model.VFSOperation;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
@@ -114,7 +114,7 @@ public class StandByReplicaSchedulerWorker extends SchedulerWorker {
         }
     }
 
-    public void cancel(VFSOperation opx) {
+    public void cancel(VirtualFileSystemOperation opx) {
         Check.requireNonNullArgument(opx, "opx is null");
         Iterator<ServiceRequest> it = getServiceRequestQueue().iterator();
         while (it.hasNext()) {

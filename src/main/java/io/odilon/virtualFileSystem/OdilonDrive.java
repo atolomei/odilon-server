@@ -64,7 +64,7 @@ import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.DriveBucket;
 import io.odilon.virtualFileSystem.model.DriveStatus;
 import io.odilon.virtualFileSystem.model.ServerBucket;
-import io.odilon.virtualFileSystem.model.VFSOperation;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 import org.apache.commons.io.FileUtils;
@@ -652,7 +652,7 @@ public class OdilonDrive extends BaseObject implements Drive {
     }
 
     @Override
-    public void saveJournal(VFSOperation op) {
+    public void saveJournal(VirtualFileSystemOperation op) {
 
         Check.requireNonNullArgument(op, "op is null");
         try {

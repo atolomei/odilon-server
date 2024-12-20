@@ -50,7 +50,7 @@ import io.odilon.virtualFileSystem.ObjectPath;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VFSOp;
-import io.odilon.virtualFileSystem.model.VFSOperation;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
  * <p>
@@ -94,7 +94,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 
         Check.requireNonNullArgument(stream, "stream is null");
 
-        VFSOperation op = null;
+        VirtualFileSystemOperation op = null;
         boolean done = false;
         boolean isMainException = false;
 
@@ -149,7 +149,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
      * 
      */
     @Override
-    protected void rollbackJournal(VFSOperation op, boolean recoveryMode) {
+    protected void rollbackJournal(VirtualFileSystemOperation op, boolean recoveryMode) {
 
         Check.requireNonNullArgument(op, "op is null");
         Check.checkTrue(op.getOp() == VFSOp.CREATE_OBJECT, "Invalid op ->  " + op.getOp().getName());

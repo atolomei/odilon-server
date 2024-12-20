@@ -38,7 +38,7 @@ import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.SimpleDrive;
 import io.odilon.virtualFileSystem.model.VFSOp;
-import io.odilon.virtualFileSystem.model.VFSOperation;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
  * <p>
@@ -78,7 +78,7 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
         if (!getDriver().exists(bucket, objectName))
             throw new OdilonObjectNotFoundException("object does not exist -> b:" + bucket.getName() + " o:" + objectName);
 
-        VFSOperation op = null;
+        VirtualFileSystemOperation op = null;
         boolean done = false;
         int headVersion = -1;
         ObjectMetadata meta = null;
@@ -200,7 +200,7 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
 
         Check.requireNonNullArgument(meta, "meta is null");
 
-        VFSOperation op = null;
+        VirtualFileSystemOperation op = null;
         boolean done = false;
         boolean isMainException = false;
 
@@ -286,7 +286,7 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
             onAfterCommit(op, meta, headVersion);
     }
 
-    protected void rollbackJournal(VFSOperation op, boolean recoveryMode) {
+    protected void rollbackJournal(VirtualFileSystemOperation op, boolean recoveryMode) {
 
         /** checked by the calling driver */
         Check.requireNonNullArgument(op, "op is null");
@@ -462,7 +462,7 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
      * if the system crashes those temp files will be removed on system startup
      * </p>
      */
-    private void onAfterCommit(VFSOperation op, ObjectMetadata meta, int headVersion) {
+    private void onAfterCommit(VirtualFileSystemOperation op, ObjectMetadata meta, int headVersion) {
         try {
             if (op.getOp() == VFSOp.DELETE_OBJECT || op.getOp() == VFSOp.DELETE_OBJECT_PREVIOUS_VERSIONS)
                 getVirtualFileSystemService().getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext()

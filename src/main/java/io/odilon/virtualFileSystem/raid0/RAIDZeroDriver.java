@@ -64,7 +64,7 @@ import io.odilon.virtualFileSystem.Context;
 import io.odilon.virtualFileSystem.ObjectPath;
 import io.odilon.virtualFileSystem.OdilonBucket;
 import io.odilon.virtualFileSystem.OdilonObject;
-import io.odilon.virtualFileSystem.OdilonVFSperation;
+import io.odilon.virtualFileSystem.OdilonVirtualFileSystemOperation;
 import io.odilon.virtualFileSystem.model.BucketIterator;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.DriveBucket;
@@ -72,7 +72,7 @@ import io.odilon.virtualFileSystem.model.JournalService;
 import io.odilon.virtualFileSystem.model.LockService;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VFSOp;
-import io.odilon.virtualFileSystem.model.VFSOperation;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemObject;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
@@ -697,9 +697,9 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
      * </p>
      */
     @Override
-    public List<VFSOperation> getJournalPending(JournalService journalService) {
+    public List<VirtualFileSystemOperation> getJournalPending(JournalService journalService) {
 
-        List<VFSOperation> list = new ArrayList<VFSOperation>();
+        List<VirtualFileSystemOperation> list = new ArrayList<VirtualFileSystemOperation>();
         Drive drive = getDrivesEnabled().get(0);
 
         File dir = new File(drive.getJournalDirPath());
@@ -721,7 +721,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
                 Path pa = Paths.get(file.getAbsolutePath());
                 try {
                     String str = Files.readString(pa);
-                    OdilonVFSperation op = getObjectMapper().readValue(str, OdilonVFSperation.class);
+                    OdilonVirtualFileSystemOperation op = getObjectMapper().readValue(str, OdilonVirtualFileSystemOperation.class);
                     op.setJournalService(getJournalService());
                     list.add(op);
                 } catch (IOException e) {
@@ -769,7 +769,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
      * </p>
      */
     @Override
-    public void saveJournal(VFSOperation op) {
+    public void saveJournal(VirtualFileSystemOperation op) {
         getDrivesEnabled().get(0).saveJournal(op);
     }
 
@@ -783,7 +783,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         getDrivesEnabled().get(0).removeJournal(id);
     }
 
-    public void rollbackJournal(VFSOperation op) {
+    public void rollbackJournal(VirtualFileSystemOperation op) {
         rollbackJournal(op, false);
     }
 
@@ -796,9 +796,9 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
      * </p>
      */
     @Override
-    public void rollbackJournal(VFSOperation op, boolean recoveryMode) {
+    public void rollbackJournal(VirtualFileSystemOperation op, boolean recoveryMode) {
 
-        Check.requireNonNullArgument(op, VFSOperation.class.getSimpleName() + " is null");
+        Check.requireNonNullArgument(op, VirtualFileSystemOperation.class.getSimpleName() + " is null");
 
         switch (op.getOp()) {
         case CREATE_OBJECT: {
@@ -902,7 +902,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         boolean done = false;
         boolean reqRestoreBackup = false;
 
-        VFSOperation op = null;
+        VirtualFileSystemOperation op = null;
 
         getLockService().getServerLock().writeLock().lock();
 
@@ -1133,7 +1133,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 
         boolean done = false;
         boolean mayReqRestoreBackup = false;
-        VFSOperation op = null;
+        VirtualFileSystemOperation op = null;
 
         getLockService().getServerLock().writeLock().lock();
         try {
@@ -1275,7 +1275,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 
     private void saveNewServerInfo(OdilonServerInfo serverInfo) {
         boolean done = false;
-        VFSOperation op = null;
+        VirtualFileSystemOperation op = null;
         getLockService().getServerLock().writeLock().lock();
         try {
             op = getJournalService().createServerMetadata();

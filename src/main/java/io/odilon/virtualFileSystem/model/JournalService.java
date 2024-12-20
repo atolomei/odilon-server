@@ -36,49 +36,49 @@ public interface JournalService extends SystemService {
 	/** -----------------
 	 * KEY
 	 * ------------------*/
-	public VFSOperation saveServerKey();
+	public VirtualFileSystemOperation saveServerKey();
 
 	
 	
 	/** -----------------
 	 * SERVER
 	 * ------------------*/
-	public VFSOperation createServerMetadata();
-	public VFSOperation updateServerMetadata();
+	public VirtualFileSystemOperation createServerMetadata();
+	public VirtualFileSystemOperation updateServerMetadata();
 	
 
 	/** -----------------
 	 * BUCKET
 	 * ------------------*/
 
-	public VFSOperation createBucket(BucketMetadata meta); 
+	public VirtualFileSystemOperation createBucket(BucketMetadata meta); 
 	
-	public VFSOperation updateBucket(ServerBucket bucket, String newBucketName);
-	public VFSOperation deleteBucket(ServerBucket bucket);
+	public VirtualFileSystemOperation updateBucket(ServerBucket bucket, String newBucketName);
+	public VirtualFileSystemOperation deleteBucket(ServerBucket bucket);
 	
 	/** -----------------
 	 * OJBECT
 	 * ------------------*/		
-	public VFSOperation createObject(ServerBucket bucket, String objectName);
-	public VFSOperation updateObject(ServerBucket bucket, String objectName, int version);
+	public VirtualFileSystemOperation createObject(ServerBucket bucket, String objectName);
+	public VirtualFileSystemOperation updateObject(ServerBucket bucket, String objectName, int version);
 	
-	public VFSOperation updateObjectMetadata(ServerBucket bucket, String objectName, int version);
+	public VirtualFileSystemOperation updateObjectMetadata(ServerBucket bucket, String objectName, int version);
 
 	/** Version control */
-	public VFSOperation restoreObjectPreviousVersion(ServerBucket bucket, String objectName, int versionToRestore);
-	public VFSOperation deleteObject(ServerBucket bucket, String objectName, int currentHeadVersion);
-	public VFSOperation deleteObjectPreviousVersions(ServerBucket bucket, String objectName, int currentHeadVersion);
+	public VirtualFileSystemOperation restoreObjectPreviousVersion(ServerBucket bucket, String objectName, int versionToRestore);
+	public VirtualFileSystemOperation deleteObject(ServerBucket bucket, String objectName, int currentHeadVersion);
+	public VirtualFileSystemOperation deleteObjectPreviousVersions(ServerBucket bucket, String objectName, int currentHeadVersion);
 	
 
 	/** sync new drive */
-	public VFSOperation syncObject(ServerBucket bucket, String objectName);
+	public VirtualFileSystemOperation syncObject(ServerBucket bucket, String objectName);
 	
 	
 	
 	/** ----------------- */
 	
-	public boolean commit(VFSOperation opx);
-	public boolean cancel(VFSOperation opx);
+	public boolean commit(VirtualFileSystemOperation opx);
+	public boolean cancel(VirtualFileSystemOperation opx);
 	
 	
 	public String newOperationId();

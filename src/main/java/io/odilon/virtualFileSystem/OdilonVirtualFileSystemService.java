@@ -79,7 +79,7 @@ import io.odilon.virtualFileSystem.model.IODriver;
 import io.odilon.virtualFileSystem.model.JournalService;
 import io.odilon.virtualFileSystem.model.LockService;
 import io.odilon.virtualFileSystem.model.ServerBucket;
-import io.odilon.virtualFileSystem.model.VFSOperation;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemObject;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 import io.odilon.virtualFileSystem.raid0.RAIDZeroDriver;
@@ -728,7 +728,7 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
     }
 
     @Override
-    public List<VFSOperation> getJournalPendingOperations() {
+    public List<VirtualFileSystemOperation> getJournalPendingOperations() {
         return createVFSIODriver().getJournalPending(getJournalService());
     }
 
@@ -756,7 +756,7 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
     }
 
     @Override
-    public void saveJournal(VFSOperation op) {
+    public void saveJournal(VirtualFileSystemOperation op) {
         Check.requireNonNullArgument(op, "op is null");
         createVFSIODriver().saveJournal(op);
     }
@@ -1198,12 +1198,12 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
     private synchronized void processJournalQueue(boolean recoveryMode) {
 
         /** Rollback TRX uncompleted */
-        List<VFSOperation> list = getJournalPendingOperations();
+        List<VirtualFileSystemOperation> list = getJournalPendingOperations();
         if (list == null || list.isEmpty())
             return;
         logger.debug("Processing Journal queue -> " + String.valueOf(list.size()));
         IODriver driver = createVFSIODriver();
-        for (VFSOperation op : list)
+        for (VirtualFileSystemOperation op : list)
             driver.rollbackJournal(op, recoveryMode);
     }
 

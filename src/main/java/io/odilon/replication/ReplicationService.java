@@ -53,7 +53,7 @@ import io.odilon.virtualFileSystem.OdilonJournalService;
 import io.odilon.virtualFileSystem.model.JournalService;
 import io.odilon.virtualFileSystem.model.LockService;
 import io.odilon.virtualFileSystem.model.ServerBucket;
-import io.odilon.virtualFileSystem.model.VFSOperation;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
@@ -244,7 +244,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
     /**
      * @param opx
      */
-    public void enqueue(VFSOperation opx) {
+    public void enqueue(VirtualFileSystemOperation opx) {
 
         switch (opx.getOp()) {
 
@@ -282,7 +282,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
         }
     }
 
-    public void cancel(VFSOperation opx) {
+    public void cancel(VirtualFileSystemOperation opx) {
         this.schedulerService.cancel(opx.getId());
     }
 
@@ -291,7 +291,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
      * 
      * @param opx
      */
-    public void replicate(VFSOperation opx) {
+    public void replicate(VirtualFileSystemOperation opx) {
 
         Check.requireNonNullArgument(opx, "opx is null");
         Check.requireTrue(this.client != null, "There is no standby connection (" + url + ":" + port + ")");
@@ -445,7 +445,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
      * 
      * @param opx
      */
-    private void replicateCreateObject(VFSOperation opx) {
+    private void replicateCreateObject(VirtualFileSystemOperation opx) {
 
         Check.requireNonNullArgument(opx, "opx is null");
 
@@ -494,7 +494,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
      * 
      * @param opx
      */
-    private void replicateUpdateObject(VFSOperation opx) {
+    private void replicateUpdateObject(VirtualFileSystemOperation opx) {
 
         Check.requireNonNullArgument(opx, "opx is null");
 
@@ -539,7 +539,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
     /**
      * @param opx
      */
-    private void replicateDeleteObject(VFSOperation opx) {
+    private void replicateDeleteObject(VirtualFileSystemOperation opx) {
 
         Check.requireNonNullArgument(opx, "opx is null");
 
@@ -577,7 +577,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
     /**
      * @param opx
      */
-    private void replicateDeleteObjectPreviousVersion(VFSOperation opx) {
+    private void replicateDeleteObjectPreviousVersion(VirtualFileSystemOperation opx) {
 
         Check.requireNonNullArgument(opx, "opx is null");
 
@@ -613,7 +613,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
     /**
      * @param opx
      */
-    private void replicateRestoreObjectPreviousVersion(VFSOperation opx) {
+    private void replicateRestoreObjectPreviousVersion(VirtualFileSystemOperation opx) {
 
         Check.requireNonNullArgument(opx, "opx is null");
 
@@ -648,7 +648,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
     /**
      * @param opx
      */
-    private void replicateCreateBucket(VFSOperation opx) {
+    private void replicateCreateBucket(VirtualFileSystemOperation opx) {
 
         Check.requireNonNullArgument(opx, "opx is null");
         try {
@@ -666,7 +666,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
     /**
      * @param opx
      */
-    private void replicateDeleteBucket(VFSOperation opx) {
+    private void replicateDeleteBucket(VirtualFileSystemOperation opx) {
         Check.requireNonNullArgument(opx, "opx is null");
         try {
             logger.debug("delete b: " + opx.getBucketName());
@@ -679,7 +679,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
     /**
      * @param opx
      */
-    private void replicateRenameBucket(VFSOperation opx) {
+    private void replicateRenameBucket(VirtualFileSystemOperation opx) {
         Check.requireNonNullArgument(opx, "opx is null");
         try {
             if (!getClient().existsBucket(opx.getBucketName()))

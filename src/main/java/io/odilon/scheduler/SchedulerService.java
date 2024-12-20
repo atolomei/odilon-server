@@ -35,7 +35,7 @@ import io.odilon.service.BaseService;
 import io.odilon.service.ServerSettings;
 import io.odilon.service.SystemService;
 import io.odilon.util.Check;
-import io.odilon.virtualFileSystem.model.VFSOperation;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
@@ -216,7 +216,7 @@ public class SchedulerService extends BaseService implements SystemService, Appl
             getReplicaWorker().fail(request);
     }
 
-    public void cancel(VFSOperation opx) {
+    public void cancel(VirtualFileSystemOperation opx) {
         Check.requireNonNullArgument(opx, "opx is null");
         getReplicaWorker().cancel(opx);
     }

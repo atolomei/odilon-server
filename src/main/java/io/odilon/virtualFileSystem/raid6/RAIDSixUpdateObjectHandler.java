@@ -43,7 +43,7 @@ import io.odilon.util.Check;
 import io.odilon.util.OdilonFileUtils;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
-import io.odilon.virtualFileSystem.model.VFSOperation;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
@@ -89,7 +89,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
 
         String bucketName = bucket.getName();
 
-        VFSOperation op = null;
+        VirtualFileSystemOperation op = null;
         boolean done = false;
         boolean isMainException = false;
 
@@ -175,7 +175,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
         Check.requireNonNullArgument(meta.getBucketName(), "bucketName is null");
         Check.requireNonNullArgument(meta.getObjectName(), "objectName is null or empty " + getDriver().objectInfo(meta));
 
-        VFSOperation op = null;
+        VirtualFileSystemOperation op = null;
 
         boolean done = false;
 
@@ -239,7 +239,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
         Check.requireNonNullArgument(bucketName, "bucketName is null");
         Check.requireNonNullArgument(objectName, "objectName is null or empty " + getDriver().objectInfo(bucket));
 
-        VFSOperation op = null;
+        VirtualFileSystemOperation op = null;
         boolean done = false;
 
         int beforeHeadVersion = -1;
@@ -345,7 +345,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
      * 
      */
     @Override
-    protected void rollbackJournal(VFSOperation op, boolean recoveryMode) {
+    protected void rollbackJournal(VirtualFileSystemOperation op, boolean recoveryMode) {
 
         Check.requireNonNullArgument(op, "op is null");
 
@@ -364,7 +364,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
             break;
         }
         default: {
-            throw new IllegalArgumentException(VFSOperation.class.getSimpleName() + " not supported ->  op: " + opInfo(op));
+            throw new IllegalArgumentException(VirtualFileSystemOperation.class.getSimpleName() + " not supported ->  op: " + opInfo(op));
         }
         }
     }
@@ -569,7 +569,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
         }
     }
 
-    private void rollbackJournalUpdateMetadata(VFSOperation op, ServerBucket bucket, boolean recoveryMode) {
+    private void rollbackJournalUpdateMetadata(VirtualFileSystemOperation op, ServerBucket bucket, boolean recoveryMode) {
 
         boolean done = false;
 
@@ -750,7 +750,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
         }
     }
 
-    private void rollbackJournalUpdate(VFSOperation op, ServerBucket bucket, boolean recoveryMode) {
+    private void rollbackJournalUpdate(VirtualFileSystemOperation op, ServerBucket bucket, boolean recoveryMode) {
 
         boolean done = false;
 

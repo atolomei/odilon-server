@@ -28,7 +28,7 @@ import io.odilon.virtualFileSystem.model.IODriver;
 import io.odilon.virtualFileSystem.model.JournalService;
 import io.odilon.virtualFileSystem.model.LockService;
 import io.odilon.virtualFileSystem.model.ServerBucket;
-import io.odilon.virtualFileSystem.model.VFSOperation;
+import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 public abstract class BaseRAIDHandler {
@@ -103,7 +103,7 @@ public abstract class BaseRAIDHandler {
         return getDriver().getRedundancyLevel();
     }
 
-    protected String opInfo(VFSOperation op) {
+    protected String opInfo(VirtualFileSystemOperation op) {
         return getDriver().opInfo(op);
     }
 
