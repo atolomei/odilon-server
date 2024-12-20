@@ -384,34 +384,34 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
      * 
      */
     @Override
-    public void rollbackJournal(VirtualFileSystemOperation op, boolean recoveryMode) {
+    public void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
 
-        Check.requireNonNullArgument(op, "VFSOperation is null");
+        Check.requireNonNullArgument(operation, "peration is null");
 
-        switch (op.getOperationCode()) {
+        switch (operation.getOperationCode()) {
         case CREATE_OBJECT: {
             RAIDSixCreateObjectHandler handler = new RAIDSixCreateObjectHandler(this);
-            handler.rollbackJournal(op, recoveryMode);
+            handler.rollbackJournal(operation, recoveryMode);
             return;
         }
         case UPDATE_OBJECT: {
             RAIDSixUpdateObjectHandler handler = new RAIDSixUpdateObjectHandler(this);
-            handler.rollbackJournal(op, recoveryMode);
+            handler.rollbackJournal(operation, recoveryMode);
             return;
         }
         case DELETE_OBJECT: {
             RAIDSixDeleteObjectHandler handler = new RAIDSixDeleteObjectHandler(this);
-            handler.rollbackJournal(op, recoveryMode);
+            handler.rollbackJournal(operation, recoveryMode);
             return;
         }
         case DELETE_OBJECT_PREVIOUS_VERSIONS: {
             RAIDSixDeleteObjectHandler handler = new RAIDSixDeleteObjectHandler(this);
-            handler.rollbackJournal(op, recoveryMode);
+            handler.rollbackJournal(operation, recoveryMode);
             return;
         }
         case UPDATE_OBJECT_METADATA: {
             RAIDSixUpdateObjectHandler handler = new RAIDSixUpdateObjectHandler(this);
-            handler.rollbackJournal(op, recoveryMode);
+            handler.rollbackJournal(operation, recoveryMode);
             return;
         }
         default:
@@ -423,50 +423,50 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
         try {
 
             if (getServerSettings().isStandByEnabled())
-                getReplicationService().cancel(op);
+                getReplicationService().cancel(operation);
 
-            if (op.getOperationCode() == OperationCode.CREATE_BUCKET) {
+            if (operation.getOperationCode() == OperationCode.CREATE_BUCKET) {
 
-                done = generalRollbackJournal(op);
+                done = generalRollbackJournal(operation);
 
-            } else if (op.getOperationCode() == OperationCode.DELETE_BUCKET) {
+            } else if (operation.getOperationCode() == OperationCode.DELETE_BUCKET) {
 
-                done = generalRollbackJournal(op);
+                done = generalRollbackJournal(operation);
 
-            } else if (op.getOperationCode() == OperationCode.UPDATE_BUCKET) {
+            } else if (operation.getOperationCode() == OperationCode.UPDATE_BUCKET) {
 
-                done = generalRollbackJournal(op);
+                done = generalRollbackJournal(operation);
             }
-            if (op.getOperationCode() == OperationCode.CREATE_SERVER_MASTERKEY) {
+            if (operation.getOperationCode() == OperationCode.CREATE_SERVER_MASTERKEY) {
 
-                done = generalRollbackJournal(op);
+                done = generalRollbackJournal(operation);
 
-            } else if (op.getOperationCode() == OperationCode.CREATE_SERVER_METADATA) {
+            } else if (operation.getOperationCode() == OperationCode.CREATE_SERVER_METADATA) {
 
-                done = generalRollbackJournal(op);
+                done = generalRollbackJournal(operation);
 
-            } else if (op.getOperationCode() == OperationCode.UPDATE_SERVER_METADATA) {
+            } else if (operation.getOperationCode() == OperationCode.UPDATE_SERVER_METADATA) {
 
-                done = generalRollbackJournal(op);
+                done = generalRollbackJournal(operation);
             }
 
         } catch (InternalCriticalException e) {
             if (!recoveryMode)
-                logger.error(opInfo(op));
+                logger.error(opInfo(operation));
             throw (e);
 
         } catch (Exception e) {
             if (!recoveryMode)
-                throw new InternalCriticalException(e, opInfo(op));
+                throw new InternalCriticalException(e, opInfo(operation));
         } finally {
             if (done || recoveryMode) {
-                op.cancel();
+                operation.cancel();
             } else {
                 if (getVirtualFileSystemService().getServerSettings().isRecoverMode()) {
                     logger.error("---------------------------------------------------------------");
-                    logger.error("Cancelling failed operation -> " + op.toString());
+                    logger.error("Cancelling failed operation -> " + operation.toString());
                     logger.error("---------------------------------------------------------------");
-                    op.cancel();
+                    operation.cancel();
                 }
             }
         }
@@ -783,8 +783,8 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
         return RedundancyLevel.RAID_6;
     }
 
-    public void rollbackJournal(VirtualFileSystemOperation op) {
-        rollbackJournal(op, false);
+    public void rollbackJournal(VirtualFileSystemOperation operation) {
+        rollbackJournal(operation, false);
     }
 
     @Override

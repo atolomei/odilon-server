@@ -94,7 +94,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
                 bucketReadLock(bucket);
 
                 if (getDriver().getObjectMetadataReadDrive(bucket, objectName).existsObjectMetadata(bucket, objectName))
-                    throw new IllegalArgumentException("Object already exist -> " + getDriver().objectInfo(bucket, objectName));
+                    throw new IllegalArgumentException("Object already exist -> " + objectInfo(bucket, objectName));
 
                 int version = 0;
 
@@ -139,20 +139,20 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
      * </p>
      */
     @Override
-    protected void rollbackJournal(VirtualFileSystemOperation op, boolean recoveryMode) {
+    protected void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
 
-        Check.requireNonNullArgument(op, "op is null");
-        Check.checkTrue(op.getOperationCode() == OperationCode.CREATE_OBJECT, "Invalid op ->  " + op.getOperationCode().getName());
+        Check.requireNonNullArgument(operation, "op is null");
+        Check.checkTrue(operation.getOperationCode() == OperationCode.CREATE_OBJECT, "Invalid operation ->  " + operation.getOperationCode().getName());
 
-        String objectName = op.getObjectName();
+        String objectName = operation.getObjectName();
 
-        ServerBucket bucket = getBucketCache().get(op.getBucketId());
+        ServerBucket bucket = getBucketCache().get(operation.getBucketId());
 
         boolean done = false;
 
         try {
             if (getServerSettings().isStandByEnabled())
-                getReplicationService().cancel(op);
+                getReplicationService().cancel(operation);
 
             ObjectMetadata meta = null;
 
@@ -181,16 +181,16 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
             if (!recoveryMode)
                 throw (e);
             else
-                logger.error(e, op.toString() + SharedConstant.NOT_THROWN);
+                logger.error(e, operation.toString() + SharedConstant.NOT_THROWN);
 
         } catch (Exception e) {
             if (!recoveryMode)
-                throw new InternalCriticalException(e, "Rollback: " + op.toString() + SharedConstant.NOT_THROWN);
+                throw new InternalCriticalException(e, "Rollback: " + operation.toString() + SharedConstant.NOT_THROWN);
             else
-                logger.error(e, op.toString() + SharedConstant.NOT_THROWN);
+                logger.error(e, operation.toString() + SharedConstant.NOT_THROWN);
         } finally {
             if (done || recoveryMode) {
-                op.cancel();
+                operation.cancel();
             }
         }
     }
