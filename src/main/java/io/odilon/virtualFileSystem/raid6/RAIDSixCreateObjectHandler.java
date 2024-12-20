@@ -84,15 +84,22 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
         VirtualFileSystemOperation op = null;
         boolean done = false;
         boolean isMainException = false;
-
+        
+        objectWriteLock(bucket, objectName);
+        
         try {
-
-            objectWriteLock(bucket, objectName);
-
+            
+            bucketReadLock(bucket);
+            
             try (stream) {
+                /**
+                 * This check was executed by the VirtualFilySystemService, but it must be
+                 * executed also inside the critical zone.
+                 */
+                if (!existsCacheBucket(bucket))
+                    throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
 
-                bucketReadLock(bucket);
-
+                
                 if (getDriver().getObjectMetadataReadDrive(bucket, objectName).existsObjectMetadata(bucket, objectName))
                     throw new IllegalArgumentException("Object already exist -> " + objectInfo(bucket, objectName));
 

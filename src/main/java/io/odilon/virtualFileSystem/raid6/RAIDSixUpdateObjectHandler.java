@@ -98,12 +98,17 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
         ObjectMetadata meta = null;
 
         getLockService().getObjectLock(bucket, objectName).writeLock().lock();
-
         try {
 
             getLockService().getBucketLock(bucket).readLock().lock();
-
             try (stream) {
+
+                /**
+                 * This check was executed by the VirtualFilySystemService, but it must be
+                 * executed also inside the critical zone.
+                 */
+                if (!existsCacheBucket(bucket))
+                    throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
 
                 if (!getDriver().getObjectMetadataReadDrive(bucket, objectName).existsObjectMetadata(bucket, objectName))
                     throw new IllegalArgumentException(" object not found -> " + getDriver().objectInfo(bucket, objectName));
@@ -187,9 +192,16 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
             getLockService().getBucketLock(meta.getBucketId()).readLock().lock();
             try {
 
+                /**
+                 * This check was executed by the VirtualFilySystemService, but it must be
+                 * executed also inside the critical zone.
+                 */
+                if (!existsCacheBucket(meta.getBucketId()))
+                    throw new IllegalArgumentException("bucket does not exist -> " + meta.getBucketId().toString());
+
                 bucket = getBucketCache().get(meta.getBucketId());
 
-                op = getJournalService().updateObjectMetadata(bucket, meta.getObjectName(), meta.version);
+                op = getJournalService().updateObjectMetadata(bucket, meta.getObjectName(), meta.getVersion());
 
                 backupMetadata(meta, bucket);
                 saveObjectMetadata(meta, isHead);
@@ -237,7 +249,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
         Check.requireNonNullArgument(bucket, "bucket is null");
         String bucketName = bucket.getName();
         Check.requireNonNullArgument(bucketName, "bucketName is null");
-        Check.requireNonNullArgument(objectName, "objectName is null or empty " + getDriver().objectInfo(bucket));
+        Check.requireNonNullArgument(objectName, "objectName is null or empty " + objectInfo(bucket));
 
         VirtualFileSystemOperation op = null;
         boolean done = false;
@@ -255,11 +267,18 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
             getLockService().getBucketLock(bucket).readLock().lock();
             try {
 
+                /**
+                 * This check was executed by the VirtualFilySystemService, but it must be
+                 * executed also inside the critical zone.
+                 */
+                if (!existsCacheBucket(bucket))
+                    throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
+
                 metaHeadToRemove = getDriver().getObjectMetadataInternal(bucket, objectName, false);
 
                 if (metaHeadToRemove.getVersion() == 0)
                     throw new IllegalArgumentException(
-                            "Object does not have any previous version | " + getDriver().objectInfo(bucketName, objectName));
+                            "Object does not have any previous version | " + objectInfo(bucket, objectName));
 
                 beforeHeadVersion = metaHeadToRemove.version;
 
@@ -282,17 +301,17 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
                  * save current head version MetadataFile .vN and data File vN - no need to
                  * additional backup
                  */
-                backupVersionObjectDataFile(metaHeadToRemove, bucket, metaHeadToRemove.version);
-                backupVersionObjectMetadata(bucket, objectName, metaHeadToRemove.version);
+                backupVersionObjectDataFile(metaHeadToRemove, bucket, metaHeadToRemove.getVersion());
+                backupVersionObjectMetadata(bucket, objectName, metaHeadToRemove.getVersion());
 
                 /** save previous version as head */
                 metaToRestore = metaVersions.get(metaVersions.size() - 1);
 
-                if (!restoreVersionObjectDataFile(metaToRestore, bucket, metaToRestore.version))
+                if (!restoreVersionObjectDataFile(metaToRestore, bucket, metaToRestore.getVersion()))
                     throw new OdilonObjectNotFoundException(
                             Optional.of(metaHeadToRemove.systemTags).orElse("previous versions deleted"));
 
-                if (!restoreVersionObjectMetadata(bucket, metaToRestore.objectName, metaToRestore.version))
+                if (!restoreVersionObjectMetadata(bucket, metaToRestore.objectName, metaToRestore.getVersion()))
                     throw new OdilonObjectNotFoundException(
                             Optional.of(metaHeadToRemove.systemTags).orElse("previous versions deleted"));
 
@@ -304,7 +323,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
                 done = false;
                 isMainException = true;
                 logger.error(e, SharedConstant.NOT_THROWN);
-                throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName));
+                throw new InternalCriticalException(e, objectInfo(bucket, objectName));
 
             } finally {
 
@@ -321,9 +340,9 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
 
                         } catch (Exception e) {
                             if (isMainException)
-                                throw new InternalCriticalException(e, getDriver().objectInfo(bucketName, objectName));
+                                throw new InternalCriticalException(e, objectInfo(bucket, objectName));
                             else
-                                logger.error(e, getDriver().objectInfo(bucketName, objectName), SharedConstant.NOT_THROWN);
+                                logger.error(e, objectInfo(bucket, objectName), SharedConstant.NOT_THROWN);
                         }
                     } else {
                         /**
@@ -345,26 +364,27 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
      * 
      */
     @Override
-    protected void rollbackJournal(VirtualFileSystemOperation op, boolean recoveryMode) {
+    protected void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
 
-        Check.requireNonNullArgument(op, "op is null");
+        Check.requireNonNullArgument(operation, "operation is null");
 
-        switch (op.getOperationCode()) {
+        switch (operation.getOperationCode()) {
         case UPDATE_OBJECT: {
-            rollbackJournalUpdate(op, getBucketCache().get(op.getBucketId()), recoveryMode);
+            rollbackJournalUpdate(operation, getBucketCache().get(operation.getBucketId()), recoveryMode);
             break;
         }
         case UPDATE_OBJECT_METADATA: {
 
-            rollbackJournalUpdateMetadata(op, getBucketCache().get(op.getBucketId()), recoveryMode);
+            rollbackJournalUpdateMetadata(operation, getBucketCache().get(operation.getBucketId()), recoveryMode);
             break;
         }
         case RESTORE_OBJECT_PREVIOUS_VERSION: {
-            rollbackJournalUpdate(op, getBucketCache().get(op.getBucketId()), recoveryMode);
+            rollbackJournalUpdate(operation, getBucketCache().get(operation.getBucketId()), recoveryMode);
             break;
         }
         default: {
-            throw new IllegalArgumentException(VirtualFileSystemOperation.class.getSimpleName() + " not supported ->  op: " + opInfo(op));
+            throw new IllegalArgumentException(
+                    VirtualFileSystemOperation.class.getSimpleName() + " not supported ->  op: " + opInfo(operation));
         }
         }
     }
@@ -382,21 +402,19 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
             if (versionDiscarded < 0)
                 return;
 
-            String objectName = metaHeadRemoved.objectName;
+            String objectName = metaHeadRemoved.getObjectName();
 
             for (Drive drive : getDriver().getDrivesAll()) {
                 FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(bucket, objectName, versionDiscarded));
                 FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(bucket, objectName, metaNewHeadRestored.getVersion()));
             }
-
             {
                 List<File> files = getDriver().getObjectDataFiles(metaHeadRemoved, bucket, Optional.of(versionDiscarded));
                 files.forEach(file -> FileUtils.deleteQuietly(file));
             }
-
             {
                 List<File> files = getDriver().getObjectDataFiles(metaHeadRemoved, bucket,
-                        Optional.of(metaNewHeadRestored.version));
+                        Optional.of(metaNewHeadRestored.getVersion()));
                 files.forEach(file -> FileUtils.deleteQuietly(file));
             }
 
@@ -418,7 +436,6 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
                 if (file.exists())
                     drive.putObjectMetadataVersionFile(bucket, objectName, version, file);
             }
-
         } catch (InternalCriticalException e) {
             throw e;
         } catch (Exception e) {
@@ -480,8 +497,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
             try {
                 shaBlocks.add(OdilonFileUtils.calculateSHA256String(item));
             } catch (Exception e) {
-                throw new InternalCriticalException(e,
-                        "saveObjectMetadata" + getDriver().objectInfo(bucketName, objectName, item.getName()));
+                throw new InternalCriticalException(e, objectInfo(bucketName, objectName, item.getName()));
             }
         });
 
@@ -491,8 +507,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
         try {
             etag = OdilonFileUtils.calculateSHA256String(etag_b.toString());
         } catch (NoSuchAlgorithmException | IOException e) {
-            throw new InternalCriticalException(e,
-                    "saveObjectMetadata etag" + getDriver().objectInfo(bucketName, objectName, srcFileName));
+            throw new InternalCriticalException(e, objectInfo(bucketName, objectName, srcFileName));
         }
 
         OffsetDateTime versionCreationDate = OffsetDateTime.now();
@@ -522,8 +537,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
                 list.add(meta);
 
             } catch (Exception e) {
-                throw new InternalCriticalException(e,
-                        "saveObjectMetadata" + " " + getDriver().objectInfo(bucket.getName(), objectName));
+                throw new InternalCriticalException(e, objectInfo(bucket, objectName));
             }
         }
 
@@ -549,7 +563,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
 
         } catch (Exception e) {
             isMainException = true;
-            throw new InternalCriticalException(e, "saveObjectDataFile");
+            throw new InternalCriticalException(e, objectInfo(bucket, objectName));
 
         } finally {
 
@@ -560,8 +574,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
                     sourceStream.close();
 
             } catch (IOException e) {
-                logger.error(e, (getDriver().objectInfo(bucket.getName(), objectName))
-                        + (isMainException ? SharedConstant.NOT_THROWN : ""));
+                logger.error(e, (objectInfo(bucket, objectName)) + (isMainException ? SharedConstant.NOT_THROWN : ""));
                 secEx = e;
             }
             if (!isMainException && (secEx != null))
@@ -569,41 +582,37 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
         }
     }
 
-    private void rollbackJournalUpdateMetadata(VirtualFileSystemOperation op, ServerBucket bucket, boolean recoveryMode) {
+    private void rollbackJournalUpdateMetadata(VirtualFileSystemOperation operation, ServerBucket bucket, boolean recoveryMode) {
 
         boolean done = false;
 
         try {
-            if (getVirtualFileSystemService().getServerSettings().isStandByEnabled())
-                getVirtualFileSystemService().getReplicationService().cancel(op);
+            if (getServerSettings().isStandByEnabled())
+                getReplicationService().cancel(operation);
 
-            restoreVersionObjectMetadata(bucket, op.getObjectName(), op.getVersion());
+            restoreVersionObjectMetadata(bucket, operation.getObjectName(), operation.getVersion());
 
             done = true;
 
         } catch (InternalCriticalException e) {
-            String msg = "Rollback: " + (Optional.ofNullable(op).isPresent() ? op.toString() : "null");
             if (!recoveryMode)
                 throw (e);
             else
-                logger.error(msg, SharedConstant.NOT_THROWN);
+                logger.error(opInfo(operation), SharedConstant.NOT_THROWN);
 
         } catch (Exception e) {
             if (!recoveryMode)
-                throw new InternalCriticalException(e,
-                        "Rollback: " + (Optional.ofNullable(op).isPresent() ? op.toString() : "null"));
+                throw new InternalCriticalException(e, opInfo(operation));
             else
-                logger.error("Rollback: " + (Optional.ofNullable(op).isPresent() ? op.toString() : "null"),
-                        SharedConstant.NOT_THROWN);
+                logger.error(opInfo(operation), SharedConstant.NOT_THROWN);
         } finally {
             if (done || recoveryMode) {
-                op.cancel();
+                operation.cancel();
             }
         }
     }
 
     /**
-     * 
      * <p>
      * copy metadata directory <br/>
      * . back up the full metadata directory (ie. ObjectMetadata for all versions)
@@ -654,8 +663,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
     private void cleanUpUpdate(ObjectMetadata meta, ServerBucket bucket, int previousVersion, int currentVersion) {
         Check.requireNonNullArgument(meta, "meta is null");
         try {
-            if (!getVirtualFileSystemService().getServerSettings().isVersionControl()) {
-
+            if (!getServerSettings().isVersionControl()) {
                 for (Drive drive : getDriver().getDrivesAll()) {
                     FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(bucket, meta.getObjectName(), previousVersion));
                     List<File> files = getDriver().getObjectDataFiles(meta, bucket, Optional.of(previousVersion));
@@ -695,11 +703,9 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
 
         try {
             boolean success = true;
-
             ObjectMetadata versionMeta = getDriver().getObjectMetadataVersion(bucket, objectName, version);
-
             for (Drive drive : getDriver().getDrivesAll()) {
-                versionMeta.drive = drive.getName();
+                versionMeta.setDrive(drive.getName());
                 drive.saveObjectMetadata(versionMeta);
             }
             return success;
@@ -707,19 +713,15 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
         } catch (InternalCriticalException e) {
             throw e;
         } catch (Exception e) {
-            throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName));
+            throw new InternalCriticalException(e, objectInfo(bucket, objectName));
         }
     }
 
     private boolean restoreVersionObjectDataFile(ObjectMetadata meta, ServerBucket bucket, int version) {
-
         Check.requireNonNullArgument(meta.getBucketName(), "bucketName is null");
         Check.requireNonNullArgument(meta.getObjectName(), "objectName is null or empty | b:" + meta.getBucketName());
-
         try {
-
             Map<Drive, List<String>> versionToRestore = getDriver().getObjectDataFilesNames(meta, Optional.of(version));
-
             for (Drive drive : versionToRestore.keySet()) {
                 for (String name : versionToRestore.get(drive)) {
                     String arr[] = name.split(".v");
@@ -735,7 +737,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
                                     StandardCopyOption.REPLACE_EXISTING);
                         }
                     } catch (IOException e) {
-                        throw new InternalCriticalException(e, getDriver().objectInfo(meta));
+                        throw new InternalCriticalException(e, objectInfo(meta));
                     }
                 }
 
@@ -755,7 +757,6 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
         boolean done = false;
 
         try {
-
             if (isStandByEnabled())
                 getReplicationService().cancel(op);
 

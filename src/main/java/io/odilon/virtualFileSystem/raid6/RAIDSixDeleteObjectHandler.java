@@ -76,9 +76,6 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
         Check.requireNonNullArgument(bucket, "bucket is null");
         Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 
-        if (!getDriver().exists(bucket, objectName))
-            throw new IllegalArgumentException("object does not exist -> " + getDriver().objectInfo(bucket, objectName));
-
         VirtualFileSystemOperation operation = null;
         boolean done = false;
         boolean isMainException = false;
@@ -86,15 +83,18 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
         ObjectMetadata meta = null;
 
         getLockService().getObjectLock(bucket, objectName).writeLock().lock();
-
         try {
             getLockService().getBucketLock(bucket).readLock().lock();
+
             try {
                 /**
-                 * This check musst be executed inside the critical section
+                 * This check must be executed inside the critical section
                  */
                 if (!existsCacheBucket(bucket))
                     throw new IllegalArgumentException("bucket does not exist -> " + bucket.getName());
+
+                if (!getDriver().exists(bucket, objectName))
+                    throw new IllegalArgumentException("object does not exist -> " + objectInfo(bucket, objectName));
 
                 meta = getDriver().getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucket, objectName);
 
@@ -169,7 +169,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
      */
     protected void deleteObjectAllPreviousVersions(ObjectMetadata headMeta) {
 
-        Check.requireNonNullArgument(headMeta, "ObjectMetadata is null");
+        Check.requireNonNullArgument(headMeta, "headMeta is null");
 
         VirtualFileSystemOperation operation = null;
         boolean done = false;
@@ -184,10 +184,9 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
         ServerBucket bucket = null;
 
         getLockService().getObjectLock(bucketId, objectName).writeLock().lock();
-
         try {
-            getLockService().getBucketLock(bucketId).readLock().lock();
 
+            getLockService().getBucketLock(bucketId).readLock().lock();
             try {
                 /**
                  * This check was executed by the VirtualFilySystemService, but it must be
@@ -318,7 +317,9 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
         Check.requireNonNullArgument(operation, "operation is null");
 
         /** checked by the calling driver */
-        Check.requireTrue(operation.getOperationCode() == OperationCode.DELETE_OBJECT || operation.getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS,
+        Check.requireTrue(
+                operation.getOperationCode() == OperationCode.DELETE_OBJECT
+                        || operation.getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS,
                 "invalid -> op: " + operation.getOperationCode().getName());
 
         String objectName = operation.getObjectName();
@@ -329,9 +330,9 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 
         boolean done = false;
 
-        ServerBucket bucket = getBucketCache().get(operation.getBucketId());
-
         try {
+
+            ServerBucket bucket = getBucketCache().get(operation.getBucketId());
 
             if (getServerSettings().isStandByEnabled())
                 getReplicationService().cancel(operation);
@@ -421,7 +422,8 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
      */
     private void onAfterCommit(VirtualFileSystemOperation operation, ObjectMetadata meta, int headVersion) {
         try {
-            if (operation.getOperationCode() == OperationCode.DELETE_OBJECT || operation.getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS) {
+            if (operation.getOperationCode() == OperationCode.DELETE_OBJECT
+                    || operation.getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS) {
                 getVirtualFileSystemService().getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext()
                         .getBean(AfterDeleteObjectServiceRequest.class, operation.getOperationCode(), meta, headVersion));
             }

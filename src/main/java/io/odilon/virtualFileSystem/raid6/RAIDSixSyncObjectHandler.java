@@ -64,7 +64,6 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
     private List<Drive> drivesToSync;
 
     /**
-     * 
      * @param driver can not be null
      */
     protected RAIDSixSyncObjectHandler(RAIDSixDriver driver) {
@@ -72,7 +71,6 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
     }
 
     /**
-     * 
      * @param meta can not be null
      */
     public void sync(ObjectMetadata meta) {
@@ -83,25 +81,31 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 
         String objectName = meta.getObjectName();
 
-        VirtualFileSystemOperation op = null;
+        VirtualFileSystemOperation operation = null;
         boolean done = false;
         ServerBucket bucket;
 
-        getLockService().getObjectLock(meta.bucketId, objectName).writeLock().lock();
+       objectWriteLock(meta.getBucketId(), objectName);
         try {
 
-            getLockService().getBucketLock(meta.bucketId).readLock().lock();
+            bucketReadLock(meta.getBucketId());
             try {
+                /**
+                 * This check was executed by the VirtualFilySystemService, but it must be
+                 * executed also inside the critical zone.
+                 */
+                if (!existsCacheBucket(meta.getBucketId()))
+                    throw new IllegalArgumentException("bucket does not exist -> " + meta.getBucketId().toString());
 
                 bucket = getBucketCache().get(meta.getBucketId());
 
                 /**
-                 * backup metadata, there is no need to backup data because existing data files
-                 * are not touched.
+                 * backup metadata, there is no need to backup data because 
+                 * existing data files are not touched.
                  **/
                 backupMetadata(bucket, meta);
 
-                op = getJournalService().syncObject(bucket, objectName);
+                operation = getJournalService().syncObject(bucket, objectName);
 
                 /** HEAD VERSION --------------------------------------------------------- */
 
@@ -121,22 +125,18 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
                     }
 
                     /** MetaData (head) */
-                    meta.dateSynced = OffsetDateTime.now();
+                    meta.setDateSynced(OffsetDateTime.now());
 
                     List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
-                    // getDrives().forEach(d -> list.add(meta));
                     getDrivesToSync().forEach(d -> list.add(meta));
-
-                    // getDriver().saveObjectMetadataToDisk(getDrives(), list, true);
                     getDriver().saveObjectMetadataToDisk(getDrivesToSync(), list, true);
-
                 }
 
                 /** PREVIOUS VERSIONS ---------------------------------------------------- */
 
                 if (getDriver().getVirtualFileSystemService().getServerSettings().isVersionControl()) {
 
-                    for (int version = 0; version < meta.version; version++) {
+                    for (int version = 0; version < meta.getVersion(); version++) {
 
                         ObjectMetadata versionMeta = getDriver().getObjectMetadataReadDrive(bucket, objectName)
                                 .getObjectMetadataVersion(bucket, objectName, version);
@@ -152,10 +152,10 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
                             try (InputStream in = new BufferedInputStream(new FileInputStream(file.getAbsolutePath()))) {
 
                                 /**
-                                 * encodes version without saving existing blocks, only the ones that go to the
-                                 * new drive/s
+                                 * encodes version without saving existing blocks, 
+                                 * only the ones that go to the new drive/s
                                  */
-                                driveEncoder.encodeVersion(in, bucket, objectName, versionMeta.version);
+                                driveEncoder.encodeVersion(in, bucket, objectName, versionMeta.getVersion());
 
                             } catch (FileNotFoundException e) {
                                 throw new InternalCriticalException(e, getDriver().objectInfo(meta));
@@ -168,7 +168,7 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
                              * changes the date of sync in order to prevent this object's sync if the
                              * process is re run
                              */
-                            versionMeta.dateSynced = OffsetDateTime.now();
+                            versionMeta.setDateSynced(OffsetDateTime.now());
 
                             List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
                             getDrives().forEach(d -> list.add(versionMeta));
@@ -176,62 +176,44 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
 
                         } else {
                             logger.warn("previous version was deleted for Object -> " + String.valueOf(version) + " |  head "
-                                    + getDriver().objectInfo(meta) + "  head version:" + String.valueOf(meta.version));
+                                    + objectInfo(meta) + "  head version:" + String.valueOf(meta.getVersion()));
                         }
                     }
                 }
-
-                done = op.commit();
-
+                done = operation.commit();
             } finally {
-
                 try {
-                    if ((!done) && (op != null)) {
+                    if ((!done) && (operation != null)) {
                         try {
-                            rollbackJournal(op, false);
+                            rollbackJournal(operation, false);
                         } catch (Exception e) {
-                            throw new InternalCriticalException(e, getDriver().objectInfo(meta));
+                            throw new InternalCriticalException(e, objectInfo(meta));
                         }
                     }
                 } finally {
-                    getLockService().getBucketLock(meta.bucketId).readLock().unlock();
+                    bucketReadUnLock(meta.getBucketId());
                 }
             }
         } finally {
-            getLockService().getObjectLock(meta.bucketId, objectName).writeLock().unlock();
-
+            objectWriteUnLock(meta.getBucketId(), objectName);
         }
-
     }
 
     @Override
-    public void rollbackJournal(VirtualFileSystemOperation op, boolean recoveryMode) {
-        Check.requireNonNullArgument(op, "op is null");
-        Check.requireTrue(op.getOperationCode() == OperationCode.SYNC_OBJECT_NEW_DRIVE,
-                VirtualFileSystemOperation.class.getName() + "can not be  ->  op: " + op.getOperationCode().getName());
+    public void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
+        Check.requireNonNullArgument(operation, "operation is null");
+        Check.requireTrue(operation.getOperationCode() == OperationCode.SYNC_OBJECT_NEW_DRIVE, 
+                "operation can not be  ->  op: " + operation.getOperationCode().getName());
 
-        switch (op.getOperationCode()) {
+        switch (operation.getOperationCode()) {
         case SYNC_OBJECT_NEW_DRIVE: {
-            execRollback(op, recoveryMode);
+            execRollback(operation, recoveryMode);
             break;
         }
         default: {
             break;
         }
         }
-    }
-
-    protected synchronized List<Drive> getDrivesToSync() {
-        if (this.drivesToSync != null)
-            return this.drivesToSync;
-        drivesToSync = new ArrayList<Drive>();
-        getDrives().forEach(d -> {
-            if (d.getDriveInfo().getStatus() == DriveStatus.NOTSYNC)
-                drivesToSync.add(d);
-        });
-
-        return drivesToSync;
-
     }
 
     protected synchronized List<Drive> getDrives() {
@@ -252,30 +234,23 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
                 }
             }
         });
-
         return this.drives;
-
     }
 
-    /**
-     * 
-     * @param op
-     * @param recoveryMode
-     */
-    private void execRollback(VirtualFileSystemOperation op, boolean recoveryMode) {
+    private void execRollback(VirtualFileSystemOperation operation, boolean recoveryMode) {
 
         boolean done = false;
 
-        String objectName = op.getObjectName();
+        String objectName = operation.getObjectName();
 
         ServerBucket bucket = null;
 
-        getLockService().getObjectLock(op.getBucketId(), objectName).writeLock().lock();
+        getLockService().getObjectLock(operation.getBucketId(), objectName).writeLock().lock();
         try {
 
-            getLockService().getBucketLock(op.getBucketId()).readLock().lock();
+            getLockService().getBucketLock(operation.getBucketId()).readLock().lock();
             try {
-                bucket = getBucketCache().get(op.getBucketId());
+                bucket = getBucketCache().get(operation.getBucketId());
                 restoreMetadata(bucket, objectName);
                 done = true;
 
@@ -283,17 +258,16 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
                 if (!recoveryMode)
                     throw (e);
                 else
-                    logger.error("Rollback -> " + op.toString(), SharedConstant.NOT_THROWN);
-
+                    logger.error(opInfo(operation), SharedConstant.NOT_THROWN);
             } catch (Exception e) {
                 if (!recoveryMode)
-                    throw new InternalCriticalException(e, op.toString());
+                    throw new InternalCriticalException(e, opInfo(operation));
                 else
-                    logger.error(e, op.toString(), SharedConstant.NOT_THROWN);
+                    logger.error(e, opInfo(operation), SharedConstant.NOT_THROWN);
             } finally {
                 try {
                     if (done || recoveryMode) {
-                        op.cancel();
+                        operation.cancel();
                     }
                 } finally {
                     getLockService().getBucketLock(bucket).readLock().unlock();
@@ -302,6 +276,18 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
         } finally {
             getLockService().getObjectLock(bucket, objectName).writeLock().unlock();
         }
+    }
+
+    protected synchronized List<Drive> getDrivesToSync() {
+        if (this.drivesToSync != null)
+            return this.drivesToSync;
+        drivesToSync = new ArrayList<Drive>();
+        getDrives().forEach(d -> {
+            if (d.getDriveInfo().getStatus() == DriveStatus.NOTSYNC)
+                drivesToSync.add(d);
+        });
+
+        return drivesToSync;
     }
 
     /**
@@ -317,10 +303,8 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
         try {
 
             for (Drive drive : getDriver().getDrivesEnabled()) {
-
                 File src = new File(drive.getObjectMetadataDirPath(bucket, meta.getObjectName()));
                 File dest = new File(drive.getBucketWorkDirPath(bucket) + File.separator + meta.getObjectName());
-
                 if (src.exists())
                     FileUtils.copyDirectory(src, dest);
             }
@@ -332,10 +316,8 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
     private void restoreMetadata(ServerBucket bucket, String objectName) {
         try {
             for (Drive drive : getDriver().getDrivesEnabled()) {
-
                 File dest = new File(drive.getObjectMetadataDirPath(bucket, objectName));
                 File src = new File(drive.getBucketWorkDirPath(bucket) + File.separator + objectName);
-
                 if (src.exists())
                     FileUtils.copyDirectory(src, dest);
                 else
@@ -346,5 +328,4 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
             throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName));
         }
     }
-
 }

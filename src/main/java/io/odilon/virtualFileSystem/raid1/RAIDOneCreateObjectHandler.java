@@ -220,8 +220,6 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
             for (Drive drive : getDriver().getDrivesAll()) {
 
                 ObjectPath path = new ObjectPath(drive, bucket.getId(), objectName);
-                // String sPath = ((SimpleDrive) drive).getObjectDataFilePath(bucket.getId(),
-                // objectName);
                 String sPath = path.dataFilePath().toString();
                 out[n_d++] = new BufferedOutputStream(new FileOutputStream(sPath), ServerConstant.BUFFER_SIZE);
             }
@@ -326,13 +324,8 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
         final List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
 
         for (Drive drive : getDriver().getDrivesAll()) {
-
-            // File file = ((SimpleDrive) drive).getObjectDataFile(bucket.getId(),
-            // objectName);
-
             ObjectPath path = new ObjectPath(drive, bucket, objectName);
             File file = path.dataFilePath().toFile();
-
             try {
                 String sha256 = OdilonFileUtils.calculateSHA256String(file);
                 if (sha == null) {
