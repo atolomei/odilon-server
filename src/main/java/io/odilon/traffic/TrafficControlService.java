@@ -34,114 +34,109 @@ import io.odilon.model.ServiceStatus;
 import io.odilon.service.BaseService;
 import io.odilon.service.ServerSettings;
 
-
 /**
  * 
  * 
- *  @author atolomei@novamens.com (Alejandro Tolomei)
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @Service
 public class TrafficControlService extends BaseService {
-			
-	static private Logger logger = Logger.getLogger(TrafficControlService.class.getName());
-	static private Logger startuplogger = Logger.getLogger("StartupLogger");
-	
-	@JsonIgnore
-	@Autowired
-	private final ServerSettings serverSettings;
-	
-	@JsonIgnore
-	private Set<TrafficPass> passes = null;
-	
-	@JsonProperty("waittimeout")
-	private long waittimeout = 10000L; 
 
-	@JsonProperty("tokens")
-	private  int tokens = ServerConstant.TRAFFIC_TOKENS_DEFAULT;
-		
-	
-	public TrafficControlService(ServerSettings serverSettings) {
-		this.serverSettings=serverSettings;
-	}
-	
-	
-	public TrafficPass getPass() {
-		
-		TrafficPass pass = null;
-		long initialtime = System.currentTimeMillis();
-		long wait = 0;
-		boolean inqueue = false;
-		
-		try {
-			while(pass==null) {
-				
-				synchronized (this) {
-					if (!passes.isEmpty()) {
-						pass = passes.iterator().next();
-						passes.remove(pass);
-					}
-				}
+    static private Logger logger = Logger.getLogger(TrafficControlService.class.getName());
+    static private Logger startuplogger = Logger.getLogger("StartupLogger");
 
-				if (pass == null) {
-					wait = System.currentTimeMillis() - initialtime;
-					if (wait > waittimeout) {
-						logger.error("TimeoutException  | passes = "+ String.valueOf(passes));
-						throw new RuntimeException("TimeoutException  | passes -> "+ String.valueOf(passes));
-					}
-					
-					synchronized (this) {
-						try {
-							if (!inqueue) {
-								//metrics_service.getMeterAPITrafficeQueueIn().mark();
-								//metrics_service.getCounterTrafficQueueSize().inc();
-								inqueue = true;
-							}
-							wait(500);
-						}
-						catch(InterruptedException e) {
-						}
-					}
-				}
-			}
-		}
-		finally {
-			//if (inqueue) {
-				//wait = System.currentTimeMillis() - initialtime;
-				//metrics_service.getCounterTrafficQueueSize().dec();
-				//metrics_service.getMeterAPITrafficeQueueOut().mark();
-				//metrics_service.getTrafficInQueueEstimator().addValue(wait);
-			//}
-		}
-		return pass;
-	}
+    @JsonIgnore
+    @Autowired
+    private final ServerSettings serverSettings;
 
-	public void release(TrafficPass pass) {
-		
-		if (pass==null)
-			return;
-		
-		synchronized (this) {
-			passes.add(pass);
-			notify();
-		}
-	}
-	
-	public void setTimeout(long value) {
-		waittimeout = value;
-	}
-	
-	@PostConstruct
-	protected synchronized void onInitialize() {
-		setStatus(ServiceStatus.STARTING);
-		this.tokens  = serverSettings.getMaxTrafficTokens();
-		createPasses();
-		setStatus(ServiceStatus.RUNNING);
- 		startuplogger.debug("Started -> " + TrafficControlService.class.getSimpleName());
-	}
-	
-	protected synchronized void createPasses() {
-		this.passes = Collections.synchronizedSet(new HashSet<TrafficPass>(this.tokens));
-		for (int n=0; n<this.tokens; n++)
-			passes.add(new OdilonTrafficPass(n));
-	}
+    @JsonIgnore
+    private Set<TrafficPass> passes = null;
+
+    @JsonProperty("waittimeout")
+    private long waittimeout = 10000L;
+
+    @JsonProperty("tokens")
+    private int tokens = ServerConstant.TRAFFIC_TOKENS_DEFAULT;
+
+    public TrafficControlService(ServerSettings serverSettings) {
+        this.serverSettings = serverSettings;
+    }
+
+    public TrafficPass getPass() {
+
+        TrafficPass pass = null;
+        long initialtime = System.currentTimeMillis();
+        long wait = 0;
+        boolean inqueue = false;
+
+        try {
+            while (pass == null) {
+
+                synchronized (this) {
+                    if (!passes.isEmpty()) {
+                        pass = passes.iterator().next();
+                        passes.remove(pass);
+                    }
+                }
+
+                if (pass == null) {
+                    wait = System.currentTimeMillis() - initialtime;
+                    if (wait > waittimeout) {
+                        logger.error("TimeoutException  | passes = " + String.valueOf(passes));
+                        throw new RuntimeException("TimeoutException  | passes -> " + String.valueOf(passes));
+                    }
+
+                    synchronized (this) {
+                        try {
+                            if (!inqueue) {
+                                // metrics_service.getMeterAPITrafficeQueueIn().mark();
+                                // metrics_service.getCounterTrafficQueueSize().inc();
+                                inqueue = true;
+                            }
+                            wait(500);
+                        } catch (InterruptedException e) {
+                        }
+                    }
+                }
+            }
+        } finally {
+            // if (inqueue) {
+            // wait = System.currentTimeMillis() - initialtime;
+            // metrics_service.getCounterTrafficQueueSize().dec();
+            // metrics_service.getMeterAPITrafficeQueueOut().mark();
+            // metrics_service.getTrafficInQueueEstimator().addValue(wait);
+            // }
+        }
+        return pass;
+    }
+
+    public void release(TrafficPass pass) {
+
+        if (pass == null)
+            return;
+
+        synchronized (this) {
+            passes.add(pass);
+            notify();
+        }
+    }
+
+    public void setTimeout(long value) {
+        waittimeout = value;
+    }
+
+    @PostConstruct
+    protected synchronized void onInitialize() {
+        setStatus(ServiceStatus.STARTING);
+        this.tokens = serverSettings.getMaxTrafficTokens();
+        createPasses();
+        setStatus(ServiceStatus.RUNNING);
+        startuplogger.debug("Started -> " + TrafficControlService.class.getSimpleName());
+    }
+
+    protected synchronized void createPasses() {
+        this.passes = Collections.synchronizedSet(new HashSet<TrafficPass>(this.tokens));
+        for (int n = 0; n < this.tokens; n++)
+            passes.add(new OdilonTrafficPass(n));
+    }
 }

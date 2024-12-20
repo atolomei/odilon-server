@@ -47,7 +47,6 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemObject;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
- * 
  * <p>
  * API endopoint to get an Object's presigned url
  * </p>
@@ -79,9 +78,9 @@ public class ObjectControllerPresigned extends BaseApiController {
     @Autowired
     ServerSettings serverSettings;
 
-    public ObjectControllerPresigned(ObjectStorageService objectStorageService,
-            VirtualFileSystemService virtualFileSystemService, SystemMonitorService monitoringService,
-            TrafficControlService trafficControlService, TokenService tokenService, ServerSettings serverSettings) {
+    public ObjectControllerPresigned(ObjectStorageService objectStorageService, VirtualFileSystemService virtualFileSystemService,
+            SystemMonitorService monitoringService, TrafficControlService trafficControlService, TokenService tokenService,
+            ServerSettings serverSettings) {
 
         super(objectStorageService, virtualFileSystemService, monitoringService, trafficControlService);
         this.tokenService = tokenService;
@@ -123,9 +122,8 @@ public class ObjectControllerPresigned extends BaseApiController {
             VirtualFileSystemObject object = getObjectStorageService().getObject(bucketName, objectName);
 
             if (object == null)
-                throw new OdilonObjectNotFoundException(
-                        String.format("not found -> b: %s | o:%s", Optional.ofNullable(bucketName).orElse("null"),
-                                Optional.ofNullable(objectName).orElse("null")));
+                throw new OdilonObjectNotFoundException(String.format("not found -> b: %s | o:%s",
+                        Optional.ofNullable(bucketName).orElse("null"), Optional.ofNullable(objectName).orElse("null")));
 
             HttpHeaders responseHeaders = new HttpHeaders();
 
@@ -143,12 +141,10 @@ public class ObjectControllerPresigned extends BaseApiController {
 
             getSystemMonitorService().getGetObjectMeter().mark();
 
-            return ResponseEntity.ok().headers(responseHeaders).contentType(contentType)
-                    .body(new InputStreamResource(in));
+            return ResponseEntity.ok().headers(responseHeaders).contentType(contentType).body(new InputStreamResource(in));
 
         } catch (Exception e) {
-            throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR,
-                    getMessage(e));
+            throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));
 
         } finally {
             getTrafficControlService().release(pass);
@@ -156,10 +152,6 @@ public class ObjectControllerPresigned extends BaseApiController {
         }
     }
 
-    /**
-     * @param f_name
-     * @return
-     */
     private MediaType estimateContentType(String f_name) {
 
         if (f_name == null)
@@ -207,8 +199,7 @@ public class ObjectControllerPresigned extends BaseApiController {
     }
 
     static public boolean isVideo(String filename) {
-        return (filename.toLowerCase()
-                .matches("^.*\\.(mp4|flv|aac|ogg|wmv|3gp|avi|swf|svi|wtv|fla|mpeg|mpg|mov|m4v)$"));
+        return (filename.toLowerCase().matches("^.*\\.(mp4|flv|aac|ogg|wmv|3gp|avi|swf|svi|wtv|fla|mpeg|mpg|mov|m4v)$"));
     }
 
     static public boolean isAudio(String filename) {

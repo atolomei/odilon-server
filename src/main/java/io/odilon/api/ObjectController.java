@@ -89,18 +89,13 @@ public class ObjectController extends BaseApiController {
     @Autowired
     private TokenService tokenService;
 
-    public ObjectController(ObjectStorageService objectStorageService,
-            VirtualFileSystemService virtualFileSystemService, SystemMonitorService monitoringService,
-            TrafficControlService trafficControlService, TokenService tokenService) {
+    public ObjectController(ObjectStorageService objectStorageService, VirtualFileSystemService virtualFileSystemService,
+            SystemMonitorService monitoringService, TrafficControlService trafficControlService, TokenService tokenService) {
 
         super(objectStorageService, virtualFileSystemService, monitoringService, trafficControlService);
         this.tokenService = tokenService;
     }
 
-    /**
-     * 
-     * 
-     */
     @RequestMapping(value = "/exists/{bucketName}/{objectName}", method = RequestMethod.GET)
     public ResponseEntity<Boolean> exists(@PathVariable("bucketName") String bucketName,
             @PathVariable("objectName") String objectName) {
@@ -114,8 +109,7 @@ public class ObjectController extends BaseApiController {
                 return new ResponseEntity<Boolean>(Boolean.valueOf(false), HttpStatus.OK);
 
             return new ResponseEntity<Boolean>(
-                    Boolean.valueOf(getObjectStorageService().existsObject(bucketName, objectName) ? true : false),
-                    HttpStatus.OK);
+                    Boolean.valueOf(getObjectStorageService().existsObject(bucketName, objectName) ? true : false), HttpStatus.OK);
 
         } catch (OdilonServerAPIException e) {
             throw e;
@@ -146,12 +140,10 @@ public class ObjectController extends BaseApiController {
 
             if (!getObjectStorageService().existsObject(bucketName, objectName))
                 throw new OdilonObjectNotFoundException(String.format("Object not Ffund -> b: %s | o:%s",
-                        Optional.ofNullable(bucketName).orElse("null"),
-                        Optional.ofNullable(objectName).orElse("null")));
+                        Optional.ofNullable(bucketName).orElse("null"), Optional.ofNullable(objectName).orElse("null")));
 
             return new ResponseEntity<Boolean>(
-                    Boolean.valueOf(getObjectStorageService().hasVersions(bucketName, objectName) ? true : false),
-                    HttpStatus.OK);
+                    Boolean.valueOf(getObjectStorageService().hasVersions(bucketName, objectName) ? true : false), HttpStatus.OK);
 
         } catch (OdilonServerAPIException e) {
             throw e;
@@ -181,15 +173,13 @@ public class ObjectController extends BaseApiController {
 
             if (!getObjectStorageService().existsObject(bucketName, objectName))
                 throw new OdilonObjectNotFoundException(String.format("object not found -> b: %s | o:%s",
-                        Optional.ofNullable(bucketName).orElse("null"),
-                        Optional.ofNullable(objectName).orElse("null")));
+                        Optional.ofNullable(bucketName).orElse("null"), Optional.ofNullable(objectName).orElse("null")));
 
             ObjectMetadata meta = getObjectStorageService().getObjectMetadata(bucketName, objectName);
 
             if (meta == null || meta.status == ObjectStatus.DELETED || meta.status == ObjectStatus.DRAFT)
                 throw new OdilonObjectNotFoundException(String.format("object not found -> b: %s | o:%s",
-                        Optional.ofNullable(bucketName).orElse("null"),
-                        Optional.ofNullable(objectName).orElse("null")));
+                        Optional.ofNullable(bucketName).orElse("null"), Optional.ofNullable(objectName).orElse("null")));
 
             MediaType contentType = MediaType.APPLICATION_OCTET_STREAM;
 
@@ -202,8 +192,7 @@ public class ObjectController extends BaseApiController {
         } catch (OdilonServerAPIException e1) {
             throw e1;
         } catch (Exception e) {
-            throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR,
-                    getMessage(e));
+            throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));
 
         } finally {
             getTrafficControlService().release(pass);
@@ -243,15 +232,13 @@ public class ObjectController extends BaseApiController {
 
             if (!getObjectStorageService().existsObject(bucketName, objectName))
                 throw new OdilonObjectNotFoundException(String.format("object not found -> b: %s | o:%s",
-                        Optional.ofNullable(bucketName).orElse("null"),
-                        Optional.ofNullable(objectName).orElse("null")));
+                        Optional.ofNullable(bucketName).orElse("null"), Optional.ofNullable(objectName).orElse("null")));
 
             ObjectMetadata meta = getObjectStorageService().getObjectMetadata(bucketName, objectName);
 
             if (meta == null || meta.status == ObjectStatus.DELETED || meta.status == ObjectStatus.DRAFT)
                 throw new OdilonObjectNotFoundException(String.format("object not found -> b: %s | o:%s",
-                        Optional.ofNullable(bucketName).orElse("null"),
-                        Optional.ofNullable(objectName).orElse("null")));
+                        Optional.ofNullable(bucketName).orElse("null"), Optional.ofNullable(objectName).orElse("null")));
 
             if (version.isEmpty())
                 throw new IllegalArgumentException("version can not be null");
@@ -271,8 +258,7 @@ public class ObjectController extends BaseApiController {
             throw e;
 
         } catch (Exception e) {
-            throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR,
-                    getMessage(e));
+            throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));
 
         } finally {
             getTrafficControlService().release(pass);
@@ -287,8 +273,8 @@ public class ObjectController extends BaseApiController {
      */
     @RequestMapping(path = "/getpreviousversion/{bucketName}/{objectName}", method = RequestMethod.GET)
     @ResponseBody
-    public ResponseEntity<InputStreamResource> getObjectPreviousVersionStream(
-            @PathVariable("bucketName") String bucketName, @PathVariable("objectName") String objectName) {
+    public ResponseEntity<InputStreamResource> getObjectPreviousVersionStream(@PathVariable("bucketName") String bucketName,
+            @PathVariable("objectName") String objectName) {
         TrafficPass pass = null;
 
         try {
@@ -301,21 +287,18 @@ public class ObjectController extends BaseApiController {
 
             if (!getObjectStorageService().existsObject(bucketName, objectName))
                 throw new OdilonObjectNotFoundException(String.format("object not found -> b: %s | o:%s",
-                        Optional.ofNullable(bucketName).orElse("null"),
-                        Optional.ofNullable(objectName).orElse("null")));
+                        Optional.ofNullable(bucketName).orElse("null"), Optional.ofNullable(objectName).orElse("null")));
 
             ObjectMetadata meta = getObjectStorageService().getObjectMetadata(bucketName, objectName);
 
             if (meta == null || meta.status == ObjectStatus.DELETED || meta.status == ObjectStatus.DRAFT)
                 throw new OdilonObjectNotFoundException(String.format("object not found -> b: %s | o:%s",
-                        Optional.ofNullable(bucketName).orElse("null"),
-                        Optional.ofNullable(objectName).orElse("null")));
+                        Optional.ofNullable(bucketName).orElse("null"), Optional.ofNullable(objectName).orElse("null")));
 
             if (meta.version == 0)
                 throw new OdilonObjectNotFoundException(String.format("object version not found"));
 
-            List<ObjectMetadata> list = getObjectStorageService().getObjectMetadataAllPreviousVersions(bucketName,
-                    objectName);
+            List<ObjectMetadata> list = getObjectStorageService().getObjectMetadataAllPreviousVersions(bucketName, objectName);
 
             if (list == null || list.isEmpty())
                 throw new OdilonObjectNotFoundException(String.format("object version not found"));
@@ -333,8 +316,7 @@ public class ObjectController extends BaseApiController {
             throw e1;
 
         } catch (Exception e) {
-            throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR,
-                    getMessage(e));
+            throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));
 
         } finally {
             getTrafficControlService().release(pass);
@@ -350,8 +332,7 @@ public class ObjectController extends BaseApiController {
     @RequestMapping(path = "/get/presignedurl/{bucketName}/{objectName}", method = RequestMethod.GET)
     @ResponseBody
     public ResponseEntity<String> getPresignedUrl(@PathVariable("bucketName") String bucketName,
-            @PathVariable("objectName") String objectName,
-            @RequestParam("durationSeconds") Optional<Integer> durationSeconds) {
+            @PathVariable("objectName") String objectName, @RequestParam("durationSeconds") Optional<Integer> durationSeconds) {
 
         TrafficPass pass = null;
 
@@ -361,15 +342,13 @@ public class ObjectController extends BaseApiController {
 
             if (!getObjectStorageService().existsObject(bucketName, objectName))
                 throw new OdilonObjectNotFoundException(String.format("object not found -> b: %s | o:%s",
-                        Optional.ofNullable(bucketName).orElse("null"),
-                        Optional.ofNullable(objectName).orElse("null")));
+                        Optional.ofNullable(bucketName).orElse("null"), Optional.ofNullable(objectName).orElse("null")));
 
             ObjectMetadata meta = getObjectStorageService().getObjectMetadata(bucketName, objectName);
 
             if (meta == null || meta.status == ObjectStatus.DELETED || meta.status == ObjectStatus.DRAFT)
                 throw new OdilonObjectNotFoundException(String.format("object not found -> b: %s | o:%s",
-                        Optional.ofNullable(bucketName).orElse("null"),
-                        Optional.ofNullable(objectName).orElse("null")));
+                        Optional.ofNullable(bucketName).orElse("null"), Optional.ofNullable(objectName).orElse("null")));
 
             String token = durationSeconds.isPresent()
                     ? this.tokenService.encrypt(new AuthToken(bucketName, objectName, durationSeconds.get()))
@@ -382,8 +361,7 @@ public class ObjectController extends BaseApiController {
         } catch (OdilonServerAPIException e) {
             throw e;
         } catch (Exception e) {
-            throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR,
-                    getMessage(e));
+            throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));
 
         } finally {
             getTrafficControlService().release(pass);
@@ -412,8 +390,7 @@ public class ObjectController extends BaseApiController {
 
             if (meta == null || meta.status == ObjectStatus.DELETED || meta.status == ObjectStatus.DRAFT)
                 throw new OdilonObjectNotFoundException(String.format("object not found -> b: %s | o:%s",
-                        Optional.ofNullable(bucketName).orElse("null"),
-                        Optional.ofNullable(objectName).orElse("null")));
+                        Optional.ofNullable(bucketName).orElse("null"), Optional.ofNullable(objectName).orElse("null")));
 
             getSystemMonitorService().getGetObjectMeter().mark();
 
@@ -422,8 +399,7 @@ public class ObjectController extends BaseApiController {
         } catch (OdilonServerAPIException e) {
             throw e;
         } catch (Exception e) {
-            throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR,
-                    getMessage(e));
+            throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));
 
         } finally {
             getTrafficControlService().release(pass);
@@ -440,8 +416,8 @@ public class ObjectController extends BaseApiController {
      */
     @RequestMapping(path = "/getmetadatapreviousversion/{bucketName}/{objectName}", method = RequestMethod.GET)
     @ResponseBody
-    public ResponseEntity<ObjectMetadata> getObjectMetadataPreviousVersion(
-            @PathVariable("bucketName") String bucketName, @PathVariable("objectName") String objectName) {
+    public ResponseEntity<ObjectMetadata> getObjectMetadataPreviousVersion(@PathVariable("bucketName") String bucketName,
+            @PathVariable("objectName") String objectName) {
 
         TrafficPass pass = null;
 
@@ -457,8 +433,7 @@ public class ObjectController extends BaseApiController {
 
             if (meta == null || meta.status == ObjectStatus.DELETED || meta.status == ObjectStatus.DRAFT)
                 throw new OdilonObjectNotFoundException(String.format("object not found -> b: %s | o:%s",
-                        Optional.ofNullable(bucketName).orElse("null"),
-                        Optional.ofNullable(objectName).orElse("null")));
+                        Optional.ofNullable(bucketName).orElse("null"), Optional.ofNullable(objectName).orElse("null")));
 
             getSystemMonitorService().getGetObjectMeter().mark();
 
@@ -468,8 +443,7 @@ public class ObjectController extends BaseApiController {
             throw e;
 
         } catch (Exception e) {
-            throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR,
-                    getMessage(e));
+            throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));
 
         } finally {
             getTrafficControlService().release(pass);
@@ -484,8 +458,8 @@ public class ObjectController extends BaseApiController {
      */
     @RequestMapping(path = "/getmetadatapreviousversionall/{bucketName}/{objectName}", method = RequestMethod.GET)
     @ResponseBody
-    public ResponseEntity<List<ObjectMetadata>> getObjectMetadataAllPreviousVersion(
-            @PathVariable("bucketName") String bucketName, @PathVariable("objectName") String objectName) {
+    public ResponseEntity<List<ObjectMetadata>> getObjectMetadataAllPreviousVersion(@PathVariable("bucketName") String bucketName,
+            @PathVariable("objectName") String objectName) {
 
         TrafficPass pass = null;
 
@@ -501,11 +475,9 @@ public class ObjectController extends BaseApiController {
 
             if (meta == null || meta.status == ObjectStatus.DELETED || meta.status == ObjectStatus.DRAFT)
                 throw new OdilonObjectNotFoundException(String.format("object not found -> b: %s | o:%s",
-                        Optional.ofNullable(bucketName).orElse("null"),
-                        Optional.ofNullable(objectName).orElse("null")));
+                        Optional.ofNullable(bucketName).orElse("null"), Optional.ofNullable(objectName).orElse("null")));
 
-            List<ObjectMetadata> list = getObjectStorageService().getObjectMetadataAllPreviousVersions(bucketName,
-                    objectName);
+            List<ObjectMetadata> list = getObjectStorageService().getObjectMetadataAllPreviousVersions(bucketName, objectName);
 
             getSystemMonitorService().getGetObjectMeter().mark();
 
@@ -515,8 +487,7 @@ public class ObjectController extends BaseApiController {
             throw e;
         } catch (Exception e) {
             logger.error(e, SharedConstant.NOT_THROWN);
-            throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR,
-                    getMessage(e));
+            throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));
 
         } finally {
             getTrafficControlService().release(pass);
@@ -529,8 +500,7 @@ public class ObjectController extends BaseApiController {
      * @param objectName
      */
     @RequestMapping(path = "/delete/{bucketName}/{objectName}", method = RequestMethod.DELETE)
-    public void deleteObject(@PathVariable("bucketName") String bucketName,
-            @PathVariable("objectName") String objectName) {
+    public void deleteObject(@PathVariable("bucketName") String bucketName, @PathVariable("objectName") String objectName) {
 
         TrafficPass pass = null;
         try {
@@ -539,8 +509,7 @@ public class ObjectController extends BaseApiController {
 
             if (!getObjectStorageService().existsObject(bucketName, objectName))
                 throw new OdilonObjectNotFoundException(String.format("object not found -> b: %s | o:%s",
-                        Optional.ofNullable(bucketName).orElse("null"),
-                        Optional.ofNullable(objectName).orElse("null")));
+                        Optional.ofNullable(bucketName).orElse("null"), Optional.ofNullable(objectName).orElse("null")));
 
             getObjectStorageService().deleteObject(bucketName, objectName);
             getSystemMonitorService().getDeleteObjectCounter().inc();
@@ -548,8 +517,7 @@ public class ObjectController extends BaseApiController {
         } catch (OdilonServerAPIException e) {
             throw e;
         } catch (Exception e) {
-            throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR,
-                    getMessage(e));
+            throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));
         } finally {
             getTrafficControlService().release(pass);
             mark();
@@ -581,8 +549,7 @@ public class ObjectController extends BaseApiController {
         } catch (OdilonServerAPIException e) {
             throw e;
         } catch (Exception e) {
-            throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR,
-                    getMessage(e));
+            throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));
         } finally {
             if (pass != null)
                 getTrafficControlService().release(pass);
@@ -610,15 +577,13 @@ public class ObjectController extends BaseApiController {
 
             if (!getObjectStorageService().existsObject(bucketName, objectName))
                 throw new OdilonObjectNotFoundException(String.format("object not found -> b: %s | o:%s",
-                        Optional.ofNullable(bucketName).orElse("null"),
-                        Optional.ofNullable(objectName).orElse("null")));
+                        Optional.ofNullable(bucketName).orElse("null"), Optional.ofNullable(objectName).orElse("null")));
 
             ObjectMetadata meta = getObjectStorageService().getObjectMetadata(bucketName, objectName);
 
             if (meta == null || meta.status == ObjectStatus.DELETED || meta.status == ObjectStatus.DRAFT)
                 throw new OdilonObjectNotFoundException(String.format("object not found -> b: %s | o:%s",
-                        Optional.ofNullable(bucketName).orElse("null"),
-                        Optional.ofNullable(objectName).orElse("null")));
+                        Optional.ofNullable(bucketName).orElse("null"), Optional.ofNullable(objectName).orElse("null")));
 
             if (meta.version == 0)
                 throw new OdilonObjectNotFoundException(
@@ -631,8 +596,7 @@ public class ObjectController extends BaseApiController {
         } catch (OdilonServerAPIException e) {
             throw e;
         } catch (Exception e) {
-            throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR,
-                    getMessage(e));
+            throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));
         } finally {
             getTrafficControlService().release(pass);
             mark();
@@ -681,13 +645,11 @@ public class ObjectController extends BaseApiController {
                 o_list = Optional.empty();
 
             if (version.isEmpty()) {
-                getObjectStorageService().putObject(bucketName, objectName, file.getInputStream(), fileName,
-                        contentType, o_list);
+                getObjectStorageService().putObject(bucketName, objectName, file.getInputStream(), fileName, contentType, o_list);
                 meta = getObjectStorageService().getObjectMetadata(bucketName, objectName);
             } else {
 
-                meta = getObjectStorageService().getObjectMetadataPreviousVersion(bucketName, objectName,
-                        version.get().intValue());
+                meta = getObjectStorageService().getObjectMetadataPreviousVersion(bucketName, objectName, version.get().intValue());
 
                 if (meta != null) {
                     logger.error("version update not done");
@@ -699,14 +661,13 @@ public class ObjectController extends BaseApiController {
             return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(meta);
 
         } catch (IllegalStateException e) {
-            throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED,
-                    ErrorCode.DATA_STORAGE_MODE_OPERATION_NOT_ALLOWED, getMessage(e));
+            throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.DATA_STORAGE_MODE_OPERATION_NOT_ALLOWED,
+                    getMessage(e));
 
         } catch (OdilonServerAPIException e) {
             throw e;
         } catch (Exception e) {
-            throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR,
-                    getMessage(e));
+            throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));
 
         } finally {
             getTrafficControlService().release(pass);

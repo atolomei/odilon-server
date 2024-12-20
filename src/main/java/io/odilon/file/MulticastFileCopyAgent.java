@@ -38,7 +38,6 @@ import io.odilon.log.Logger;
 import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
 import io.odilon.util.DateTimeUtil;
-import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
  * NOT USED
@@ -47,126 +46,92 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  */
 public class MulticastFileCopyAgent extends FileCopyAgent {
 
-	static private Logger logger = Logger.getLogger(MulticastFileCopyAgent.class.getName());
-	
-	@JsonIgnore
-	private ExecutorService executor;
-	
-	private OffsetDateTime start;
-	private OffsetDateTime end;
-	
-	
-	List<File> destination;
-	File source;
-	InputStream sourceStream;
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	@Override
-	public long durationMillisecs() {
-		if (start==null || end==null)
-			return -1;
-		return  DateTimeUtil.dateTimeDifference(start, end, ChronoUnit.MILLIS);
-	}
-	
-	@Override
-	public boolean execute() {
-	
-		try {
+    static private Logger logger = Logger.getLogger(MulticastFileCopyAgent.class.getName());
 
-			this.start = OffsetDateTime.now();
-			
-			int size = destination.size();
-			
-			/** Thread pool */
-			this.executor = Executors.newFixedThreadPool(size);
-			
-			
-			
-			byte[] buf = new byte[ServerConstant.BUFFER_SIZE];
+    @JsonIgnore
+    private ExecutorService executor;
 
-			
-			/**
-			 * copy 1 buffer 16k
-			 * 
-			 * paso el buffer a N threads
-			 * espero que todos terminen
-			 * loop
-			 * 
-			 * 	
-			 */
-			int bytesRead;
-			
-			List<OutputStream> out = new ArrayList<OutputStream>();
-			
-			
-			destination.forEach( file ->  {
-				try {
-					out.add( new BufferedOutputStream(new FileOutputStream(file)));
-				} catch (FileNotFoundException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			});
-			
-			List<Callable<Boolean>> tasks = new ArrayList<Callable<Boolean>>(size);
-			
-			
-			while ((bytesRead = sourceStream.read(buf, 0, buf.length)) >= 0) {
-			
-				
-				for (int index=0; index<size; index++) {
-					final int val=index;
-					
-					tasks.add(() -> {
-						try {
-		    				out.get(val).write(buf);
-		   			        } catch (FileNotFoundException e) {
-		    						throw new InternalCriticalException(e, "f: " + destination.get(val).getName());
-		   					} catch (IOException e) {
-		   						throw new InternalCriticalException(e, "f: " +  destination.get(val).getName());
-		   					}
-						finally {
-						}
-						return true;
-					});
-				}
-				
-				
-				
-				
-				
-				
-				
-				
-				// out.write(buf, 0, bytesRead);
-			}
-			
-			
-			
-			
-			
-			
-			
-			
-			return true;
-		
-			
-		} catch (Exception e) {
-			logger.error(e, SharedConstant.NOT_THROWN);
-			return false;
-			
-		} finally {
-			this.end = OffsetDateTime.now();
-			logger.info("Duration: " +  DateTimeUtil.timeElapsed(this.start, this.end));
-		}
-	}
+    private OffsetDateTime start;
+    private OffsetDateTime end;
+
+    List<File> destination;
+    File source;
+    InputStream sourceStream;
+
+    @Override
+    public long durationMillisecs() {
+        if (start == null || end == null)
+            return -1;
+        return DateTimeUtil.dateTimeDifference(start, end, ChronoUnit.MILLIS);
+    }
+
+    @Override
+    public boolean execute() {
+
+        try {
+
+            this.start = OffsetDateTime.now();
+
+            int size = destination.size();
+
+            /** Thread pool */
+            this.executor = Executors.newFixedThreadPool(size);
+
+            byte[] buf = new byte[ServerConstant.BUFFER_SIZE];
+
+            /**
+             * copy 1 buffer 16k
+             * 
+             * paso el buffer a N threads espero que todos terminen loop
+             * 
+             * 
+             */
+            int bytesRead;
+
+            List<OutputStream> out = new ArrayList<OutputStream>();
+
+            destination.forEach(file -> {
+                try {
+                    out.add(new BufferedOutputStream(new FileOutputStream(file)));
+                } catch (FileNotFoundException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+            });
+
+            List<Callable<Boolean>> tasks = new ArrayList<Callable<Boolean>>(size);
+
+            while ((bytesRead = sourceStream.read(buf, 0, buf.length)) >= 0) {
+
+                for (int index = 0; index < size; index++) {
+                    final int val = index;
+
+                    tasks.add(() -> {
+                        try {
+                            out.get(val).write(buf);
+                        } catch (FileNotFoundException e) {
+                            throw new InternalCriticalException(e, "f: " + destination.get(val).getName());
+                        } catch (IOException e) {
+                            throw new InternalCriticalException(e, "f: " + destination.get(val).getName());
+                        } finally {
+                        }
+                        return true;
+                    });
+                }
+
+                // out.write(buf, 0, bytesRead);
+            }
+
+            return true;
+
+        } catch (Exception e) {
+            logger.error(e, SharedConstant.NOT_THROWN);
+            return false;
+
+        } finally {
+            this.end = OffsetDateTime.now();
+            logger.info("Duration: " + DateTimeUtil.timeElapsed(this.start, this.end));
+        }
+    }
 
 }

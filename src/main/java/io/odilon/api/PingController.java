@@ -61,19 +61,10 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 @RestController
 public class PingController extends BaseApiController {
 
-    @SuppressWarnings("unused")
-    static private Logger logger = Logger.getLogger(PingController.class.getName());
-
-    @SuppressWarnings("unused")
-    private ServerSettings settings;
-
     @Autowired
     public PingController(ObjectStorageService objectStorageService, VirtualFileSystemService virtualFileSystemService,
-            SystemMonitorService monitoringService, ServerSettings settings,
-            TrafficControlService trafficControlService) {
-
+            SystemMonitorService monitoringService, TrafficControlService trafficControlService) {
         super(objectStorageService, virtualFileSystemService, monitoringService, trafficControlService);
-        this.settings = settings;
     }
 
     /**

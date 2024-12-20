@@ -16,8 +16,6 @@
  */
 package io.odilon.encryption;
 
-
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -43,30 +41,43 @@ import io.odilon.monitor.SystemMonitorService;
 import io.odilon.service.BaseService;
 import io.odilon.service.ServerSettings;
 
-
 /**
- * <p>Object Encryption Service</p>
- * <p>The variable <b>encryption.key</b> in <b>odilon.properties</b> contain a AES key used to decrypt the
- * Server Master Key on server's startup. </p>
+ * <p>
+ * Object Encryption Service
+ * </p>
+ * <p>
+ * The variable <b>encryption.key</b> in <b>odilon.properties</b> contain a AES
+ * key used to decrypt the Server Master Key on server's startup.
+ * </p>
  * 
- * <p>The Master Key is unique for each server and can not be changed.</p>
- *  
- * <p>It used by the {@link EncryptionService} to encrypt/decrypt files. Strictly speaking the
- * Master Key is used by the EncryptionService to encrypt/decrypt the key used to encrypt/decrypt every 
- * Object. Each Object has its own unique encryption key</p>
+ * <p>
+ * The Master Key is unique for each server and can not be changed.
+ * </p>
+ * 
+ * <p>
+ * It used by the {@link EncryptionService} to encrypt/decrypt files. Strictly
+ * speaking the Master Key is used by the EncryptionService to encrypt/decrypt
+ * the key used to encrypt/decrypt every Object. Each Object has its own unique
+ * encryption key
+ * </p>
  *
- *<p>The procedure is:</p>
+ * <p>
+ * The procedure is:
+ * </p>
  *
  * <b>SERVER STARTUP</b>
  * <ul>
- * <li>Odilon decrypts the MasterKEy using the key provided in variable encryption.key in odilon.properties</li>
+ * <li>Odilon decrypts the MasterKEy using the key provided in variable
+ * encryption.key in odilon.properties</li>
  * </ul>
  * <br/>
  * <b>PUT OBJECT</b>
  * <ul>
  * <li>Odilon generates a new key for every Object (objKey)</li>
  * <li>The Object is encrypted using AES with key objKey</li>
- * <li>The obkKey is encrypted by {@link OdilonKeyEncryptorService} using AES with the server Master Key or by the KMS if enabled, and saved in disk as a prefix of the Object</li>
+ * <li>The obkKey is encrypted by {@link OdilonKeyEncryptorService} using AES
+ * with the server Master Key or by the KMS if enabled, and saved in disk as a
+ * prefix of the Object</li>
  * </ul>
  * <br/>
  * <b>GET OBJECT</b>
@@ -75,119 +86,107 @@ import io.odilon.service.ServerSettings;
  * <li>objKey is decrypted using MasterKey or KMS if enabled</li>
  * <li>Object is decrypted using objKey</li>
  * </ul>
- *<br/>
- *<br/>
+ * <br/>
+ * <br/>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @Service
-public class OdilonEncryptionService extends BaseService implements EncryptionService  {
-		
-	   @SuppressWarnings("unused")
-	   static private Logger logger = Logger.getLogger(OdilonEncryptionService.class.getName());
-	   static private Logger startuplogger = Logger.getLogger("StartupLogger");
-	   
-	    @JsonIgnore
-	    @Autowired
-		private final ServerSettings serverSettings;
+public class OdilonEncryptionService extends BaseService implements EncryptionService {
 
-	    @JsonIgnore
-	    @Autowired
-		private final SystemMonitorService monitoringService;
-		
-	    @JsonIgnore
-	    @Autowired
-		private final KeyEncriptorWrapper odilonKeyEncriptorWrapper;
- 
-	    /**
-		 * @param serverSettings
-		 * @param montoringService
-		 * @param odilonKeyEncriptorWrapper
-		 */
-	    public OdilonEncryptionService(	ServerSettings serverSettings, 
-										SystemMonitorService montoringService,
-										KeyEncriptorWrapper odilonKeyEncriptorWrapper) {
-			
-			this.serverSettings=serverSettings;
-			this.monitoringService=montoringService;
-			this.odilonKeyEncriptorWrapper=odilonKeyEncriptorWrapper;
-		}
+    static private Logger startuplogger = Logger.getLogger("StartupLogger");
 
-	    
-	   /**
-	    * 
-	    */
-	   @Override
-	   public InputStream encryptStream(InputStream inputStream) {
-	        try {
-	            															
-	        	StreamEncryptor streamEnc = new JCipherStreamEncryptor(EncryptionService.ENCRYPTION_ALGORITHM_METHOD, EncryptionService.ENCRYPTION_ALGORITHM, this.odilonKeyEncriptorWrapper);
-	        	
-	        	String key = streamEnc.getNewKey();
-	        	String iv = streamEnc.getIV();
-	        	
-	            EncryptedInputStream odilonEncryptedInputStream = streamEnc.encrypt(inputStream, key, iv);
+    @JsonIgnore
+    @Autowired
+    private final ServerSettings serverSettings;
 
-	            String jsonStreamEncryptionInfo = getObjectMapper().writeValueAsString(odilonEncryptedInputStream.getStreamEncryptorInfo());
-	            InputStream jsonStreamEncryptionInfoStream = new ByteArrayInputStream(jsonStreamEncryptionInfo.getBytes());
+    @JsonIgnore
+    @Autowired
+    private final SystemMonitorService monitoringService;
 
-	            getSystemMonitorService().getEncrpytFileMeter().mark();
-	            
-	            return new SequenceInputStream(jsonStreamEncryptionInfoStream, odilonEncryptedInputStream);
-	            
-	        } catch (Exception e) {
-	            throw new InternalCriticalException(e, "encryptStream");
-	        }
-	    }
-	   
-	   @Override
-	   public InputStream decryptStream(InputStream inputStream) {
-	        try {
-	            
-	        	JsonFactory f = new MappingJsonFactory();
-	            f.disable(JsonParser.Feature.AUTO_CLOSE_SOURCE);
-	            JsonParser parser = f.createParser(inputStream);
-	            String json = parser.readValueAsTree().toString();
+    @JsonIgnore
+    @Autowired
+    private final KeyEncriptorWrapper odilonKeyEncriptorWrapper;
 
-	            StreamEncryptorInfo streamEncryptionInfo  = new ObjectMapper().readValue(json, StreamEncryptorInfo.class);
-	            
-	            String key = streamEncryptionInfo.getEncryptedKey();
-	            String iv = streamEncryptionInfo.getIV();
-	            
-	            StreamEncryptor streamEncryption = streamEncryptionInfo.getStreamEncryption();
+    /**
+     * @param serverSettings
+     * @param montoringService
+     * @param odilonKeyEncriptorWrapper
+     */
+    public OdilonEncryptionService(ServerSettings serverSettings, SystemMonitorService montoringService,
+            KeyEncriptorWrapper odilonKeyEncriptorWrapper) {
 
-	            ByteArrayOutputStream remainderOutputStream = new ByteArrayOutputStream();
-	            parser.releaseBuffered(remainderOutputStream);
-	            ByteArrayInputStream  remainderInputStream = new ByteArrayInputStream(remainderOutputStream.toByteArray());
+        this.serverSettings = serverSettings;
+        this.monitoringService = montoringService;
+        this.odilonKeyEncriptorWrapper = odilonKeyEncriptorWrapper;
+    }
 
-	            InputStream encryptedStream = new SequenceInputStream(remainderInputStream, inputStream);
+    @Override
+    public InputStream encryptStream(InputStream inputStream) {
+        try {
 
-	            getSystemMonitorService().getDecryptFileMeter().mark();
-	            
-	            return streamEncryption.decrypt(encryptedStream, key, iv);
-	            
-	        } catch (IOException e) {
-	        	throw new InternalCriticalException(e, "decryptStream");
-	        }
-	    }
-	   
-	   /**
-	    * 
-	    * 
-	    */
-	   public SystemMonitorService getSystemMonitorService() {
-			return  this.monitoringService;
-		}
+            StreamEncryptor streamEnc = new JCipherStreamEncryptor(EncryptionService.ENCRYPTION_ALGORITHM_METHOD,
+                    EncryptionService.ENCRYPTION_ALGORITHM, this.odilonKeyEncriptorWrapper);
 
-	   /**
-	    * 
-	    */
-	   @PostConstruct
-	   protected void onInitialize() {
-			synchronized (this) {
-				setStatus(ServiceStatus.STARTING);
-				startuplogger.debug("Started -> " + EncryptionService.class.getSimpleName());
-				setStatus(ServiceStatus.RUNNING);
-			}
-		}
+            String key = streamEnc.getNewKey();
+            String iv = streamEnc.getIV();
+
+            EncryptedInputStream odilonEncryptedInputStream = streamEnc.encrypt(inputStream, key, iv);
+
+            String jsonStreamEncryptionInfo = getObjectMapper()
+                    .writeValueAsString(odilonEncryptedInputStream.getStreamEncryptorInfo());
+            InputStream jsonStreamEncryptionInfoStream = new ByteArrayInputStream(jsonStreamEncryptionInfo.getBytes());
+
+            getSystemMonitorService().getEncrpytFileMeter().mark();
+
+            return new SequenceInputStream(jsonStreamEncryptionInfoStream, odilonEncryptedInputStream);
+
+        } catch (Exception e) {
+            throw new InternalCriticalException(e, "encryptStream");
+        }
+    }
+
+    @Override
+    public InputStream decryptStream(InputStream inputStream) {
+        try {
+
+            JsonFactory f = new MappingJsonFactory();
+            f.disable(JsonParser.Feature.AUTO_CLOSE_SOURCE);
+            JsonParser parser = f.createParser(inputStream);
+            String json = parser.readValueAsTree().toString();
+
+            StreamEncryptorInfo streamEncryptionInfo = new ObjectMapper().readValue(json, StreamEncryptorInfo.class);
+
+            String key = streamEncryptionInfo.getEncryptedKey();
+            String iv = streamEncryptionInfo.getIV();
+
+            StreamEncryptor streamEncryption = streamEncryptionInfo.getStreamEncryption();
+
+            ByteArrayOutputStream remainderOutputStream = new ByteArrayOutputStream();
+            parser.releaseBuffered(remainderOutputStream);
+            ByteArrayInputStream remainderInputStream = new ByteArrayInputStream(remainderOutputStream.toByteArray());
+
+            InputStream encryptedStream = new SequenceInputStream(remainderInputStream, inputStream);
+
+            getSystemMonitorService().getDecryptFileMeter().mark();
+
+            return streamEncryption.decrypt(encryptedStream, key, iv);
+
+        } catch (IOException e) {
+            throw new InternalCriticalException(e, "decryptStream");
+        }
+    }
+
+    public SystemMonitorService getSystemMonitorService() {
+        return this.monitoringService;
+    }
+
+    @PostConstruct
+    protected void onInitialize() {
+        synchronized (this) {
+            setStatus(ServiceStatus.STARTING);
+            startuplogger.debug("Started -> " + EncryptionService.class.getSimpleName());
+            setStatus(ServiceStatus.RUNNING);
+        }
+    }
 }

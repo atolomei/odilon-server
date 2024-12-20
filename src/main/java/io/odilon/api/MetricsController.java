@@ -60,24 +60,17 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 @RestController
 public class MetricsController extends BaseApiController {
 
-    @SuppressWarnings("unused")
-    static private Logger logger = Logger.getLogger(MetricsController.class.getName());
-
     @Autowired
     private final ServerSettings serverSettings;
 
     @Autowired
-    public MetricsController(ObjectStorageService objectStorageService,
-            VirtualFileSystemService virtualFileSystemService, SystemMonitorService monitoringService,
-            ServerSettings settings) {
+    public MetricsController(ObjectStorageService objectStorageService, VirtualFileSystemService virtualFileSystemService,
+            SystemMonitorService monitoringService, ServerSettings settings) {
 
         super(objectStorageService, virtualFileSystemService, monitoringService);
         this.serverSettings = settings;
     }
 
-    /**
-     * 
-     */
     @RequestMapping(value = "/status", produces = "application/json", method = RequestMethod.GET)
     public Map<String, Object> getStatus() {
         TrafficPass pass = null;
@@ -101,8 +94,7 @@ public class MetricsController extends BaseApiController {
 
         try {
             pass = getTrafficControlService().getPass();
-            return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON)
-                    .body(objectStorageService.getSystemInfo());
+            return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(objectStorageService.getSystemInfo());
 
         } finally {
             getTrafficControlService().release(pass);
@@ -173,16 +165,13 @@ public class MetricsController extends BaseApiController {
         TrafficPass pass = null;
 
         try {
-
             pass = getTrafficControlService().getPass();
 
-            return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON)
-                    .body(getSystemMonitorService().getMetricsValues());
+            return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(getSystemMonitorService().getMetricsValues());
 
         } finally {
             getTrafficControlService().release(pass);
             mark();
         }
     }
-
 }

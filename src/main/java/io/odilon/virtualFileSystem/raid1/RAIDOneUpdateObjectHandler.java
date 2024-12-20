@@ -289,15 +289,15 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
             try {
 
                 /**
-                 * This check was executed by the VirtualFilySystemService, 
-                 * but it must be executed also inside the critical zone.
+                 * This check was executed by the VirtualFilySystemService, but it must be
+                 * executed also inside the critical zone.
                  */
                 if (!existsCacheBucket(meta.getBucketName()))
                     throw new IllegalArgumentException("bucket does not exist -> " + meta.getBucketName());
-                
+
                 // TODO VER
                 bucket = getBucketCache().get(meta.getBucketId());
-                
+
                 op = getJournalService().updateObjectMetadata(getBucketCache().get(meta.getBucketId()), meta.getObjectName(),
                         meta.getVersion());
 
@@ -347,7 +347,8 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 
         Check.requireNonNullArgument(op, "op is null");
         Check.requireTrue(
-                (op.getOperationCode() == OperationCode.UPDATE_OBJECT || op.getOperationCode() == OperationCode.UPDATE_OBJECT_METADATA
+                (op.getOperationCode() == OperationCode.UPDATE_OBJECT
+                        || op.getOperationCode() == OperationCode.UPDATE_OBJECT_METADATA
                         || op.getOperationCode() == OperationCode.RESTORE_OBJECT_PREVIOUS_VERSION),
                 VirtualFileSystemOperation.class.getSimpleName() + " can not be  ->  op: " + op.getOperationCode().getName());
 
@@ -441,11 +442,12 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
         // TODO AT: parallel
         try {
             for (Drive drive : getDriver().getDrivesAll()) {
-                
+
                 ObjectPath path = new ObjectPath(drive, bucket, objectName);
                 File file = path.dataFilePath().toFile();
-                
-                //File file = ((SimpleDrive) drive).getObjectDataFile(bucket.getId(), objectName);
+
+                // File file = ((SimpleDrive) drive).getObjectDataFile(bucket.getId(),
+                // objectName);
                 ((SimpleDrive) drive).putObjectDataVersionFile(bucket.getId(), objectName, version, file);
             }
         } catch (Exception e) {
@@ -470,12 +472,12 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 
             int n_d = 0;
             for (Drive drive : getDriver().getDrivesAll()) {
-                
-                
-                ObjectPath path  = new ObjectPath(drive,bucket.getId(), objectName);
+
+                ObjectPath path = new ObjectPath(drive, bucket.getId(), objectName);
                 String sPath = path.dataFilePath().toString();
-                
-                //String sPath = ((SimpleDrive) drive).getObjectDataFilePath(bucket.getId(), objectName);
+
+                // String sPath = ((SimpleDrive) drive).getObjectDataFilePath(bucket.getId(),
+                // objectName);
                 out[n_d++] = new BufferedOutputStream(new FileOutputStream(sPath), ServerConstant.BUFFER_SIZE);
             }
             int bytes_read = 0;
@@ -587,11 +589,11 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 
         for (Drive drive : getDriver().getDrivesAll()) {
 
-            //File file = ((SimpleDrive) drive).getObjectDataFile(bucket.getId(), objectName);
-            
+            // File file = ((SimpleDrive) drive).getObjectDataFile(bucket.getId(),
+            // objectName);
+
             ObjectPath path = new ObjectPath(drive, bucket, objectName);
             File file = path.dataFilePath().toFile();
-            
 
             try {
 
@@ -660,12 +662,13 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
     private boolean restoreVersionObjectDataFile(ServerBucket bucket, String objectName, int version) {
         try {
             boolean success = true;
-            
+
             for (Drive drive : getDriver().getDrivesAll()) {
                 ObjectPath path = new ObjectPath(drive, bucket, objectName);
-                File file = path.dataFileVersionPath(version).toFile();    
-                //File file = ((SimpleDrive) drive).getObjectDataVersionFile(bucket.getId(), objectName, version);
-                
+                File file = path.dataFileVersionPath(version).toFile();
+                // File file = ((SimpleDrive) drive).getObjectDataVersionFile(bucket.getId(),
+                // objectName, version);
+
                 if (file.exists()) {
                     ((SimpleDrive) drive).putObjectDataFile(bucket.getId(), objectName, file);
                     FileUtils.deleteQuietly(file);
@@ -686,7 +689,8 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
      * @param objectName       not null
      * @param versionDiscarded if<0 do nothing
      */
-    private void cleanUpRestoreVersion(VirtualFileSystemOperation op, ServerBucket bucket, String objectName, int versionDiscarded) {
+    private void cleanUpRestoreVersion(VirtualFileSystemOperation op, ServerBucket bucket, String objectName,
+            int versionDiscarded) {
 
         if ((op == null) || (versionDiscarded < 0))
             return;
@@ -697,8 +701,10 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 
                 ObjectPath path = new ObjectPath(drive, bucket, objectName);
                 FileUtils.deleteQuietly(path.dataFileVersionPath(versionDiscarded).toFile());
-                // FileUtils.deleteQuietly(((SimpleDrive) drive).getObjectDataVersionFile(bucket.getId(), objectName, versionDiscarded));
-                
+                // FileUtils.deleteQuietly(((SimpleDrive)
+                // drive).getObjectDataVersionFile(bucket.getId(), objectName,
+                // versionDiscarded));
+
             }
         } catch (Exception e) {
             logger.error(e, SharedConstant.NOT_THROWN);
@@ -735,7 +741,8 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
      * @param previousVersion >=0
      * @param currentVersion  > 0
      */
-    private void cleanUpUpdate(VirtualFileSystemOperation op, ServerBucket bucket, String objectName, int previousVersion, int currentVersion) {
+    private void cleanUpUpdate(VirtualFileSystemOperation op, ServerBucket bucket, String objectName, int previousVersion,
+            int currentVersion) {
 
         if (op == null)
             return;
@@ -746,10 +753,12 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
                 for (Drive drive : getDriver().getDrivesAll()) {
                     FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(bucket, objectName, previousVersion));
                     ObjectPath path = new ObjectPath(drive, bucket, objectName);
-                    File file = path.dataFileVersionPath( previousVersion).toFile();    
+                    File file = path.dataFileVersionPath(previousVersion).toFile();
                     FileUtils.deleteQuietly(file);
-                    //FileUtils.deleteQuietly(((SimpleDrive) drive).getObjectDataVersionFile(bucket.getId(), objectName, previousVersion));
-                    
+                    // FileUtils.deleteQuietly(((SimpleDrive)
+                    // drive).getObjectDataVersionFile(bucket.getId(), objectName,
+                    // previousVersion));
+
                 }
             }
         } catch (Exception e) {

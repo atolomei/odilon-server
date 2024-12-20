@@ -64,7 +64,6 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
     private SchedulerService schedulerService;
 
     /**
-     * 
      * @param appContext
      * @param schedulerService
      */
@@ -117,9 +116,6 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
         return appContext;
     }
 
-    /**
-     * 
-     */
     private void initCronJobs() {
 
         ServerSettings settingsService = getAppContext().getBean(ServerSettings.class);
@@ -129,10 +125,9 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
             CronJobDataIntegrityCheckRequest checker = appContext.getBean(CronJobDataIntegrityCheckRequest.class,
                     settingsService.getIntegrityCheckCronExpression());
             getSchedulerService().enqueue(checker);
-            startupLogger.debug("Integrity Check -> " + "CronExpression: "
-                    + settingsService.getIntegrityCheckCronExpression() + " | " + "Checking interval (days) "
-                    + String.valueOf(settingsService.getIntegrityCheckDays()) + " | " + "Threads "
-                    + String.valueOf(settingsService.getIntegrityCheckThreads()));
+            startupLogger.debug("Integrity Check -> " + "CronExpression: " + settingsService.getIntegrityCheckCronExpression()
+                    + " | " + "Checking interval (days) " + String.valueOf(settingsService.getIntegrityCheckDays()) + " | "
+                    + "Threads " + String.valueOf(settingsService.getIntegrityCheckThreads()));
         } else {
             startupLogger.debug("Integrity Check -> disabled");
         }
@@ -154,10 +149,6 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
         }
     }
 
-    /**
-     *
-     * 
-     */
     private boolean initGeneral() {
         ServerSettings settingsService = getAppContext().getBean(ServerSettings.class);
 
@@ -166,15 +157,15 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 
         OdilonServerInfo info = getAppContext().getBean(VirtualFileSystemService.class).getOdilonServerInfo();
 
-        startupLogger.info("Encryption service initialized -> "
-                + (((info != null) && info.isEncryptionIntialized()) ? "true" : "false"));
+        startupLogger.info(
+                "Encryption service initialized -> " + (((info != null) && info.isEncryptionIntialized()) ? "true" : "false"));
         startupLogger.info("Encryption enabled -> " + String.valueOf(settingsService.isEncryptionEnabled()));
         startupLogger.info("Version Control -> " + String.valueOf(settingsService.isVersionControl()));
         startupLogger.info("Data Storage mode -> " + settingsService.getDataStorage().getName());
 
         if (settingsService.getRedundancyLevel() == RedundancyLevel.RAID_6) {
-            startupLogger.info("Data Storage redundancy level -> " + settingsService.getRedundancyLevel().getName()
-                    + " [data:" + String.valueOf(settingsService.getRAID6DataDrives()) + ", parity:"
+            startupLogger.info("Data Storage redundancy level -> " + settingsService.getRedundancyLevel().getName() + " [data:"
+                    + String.valueOf(settingsService.getRAID6DataDrives()) + ", parity:"
                     + String.valueOf(settingsService.getRAID6ParityDrives()) + "]");
         } else
             startupLogger.info("Data Storage redundancy level -> " + settingsService.getRedundancyLevel().getName());
@@ -183,9 +174,6 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
         return true;
     }
 
-    /**
-     * 
-     */
     private boolean initVault() {
 
         ServerSettings settingsService = getAppContext().getBean(ServerSettings.class);
@@ -213,8 +201,8 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
             }
             if (!isOk) {
                 startupLogger.error("The system can not run without a Vault operational");
-                startupLogger.error("Check variable 'vault.url' and 'vault' in -> ." + File.separator + "config"
-                        + File.separator + "odilon.properties");
+                startupLogger.error("Check variable 'vault.url' and 'vault' in -> ." + File.separator + "config" + File.separator
+                        + "odilon.properties");
                 startupLogger.error("Current value for vault.enabled = " + settingsService.isVaultEnabled());
                 startupLogger.error("Current value for vault.newfiles = " + settingsService.isUseVaultNewFiles());
                 startupLogger.error("Current value for vault.url -> " + settingsService.getVaultUrl().get());
@@ -236,8 +224,8 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
                     Thread.sleep(5000);
                 } catch (InterruptedException e) {
                 }
-                ((ConfigurableApplicationContext) getAppContext().getBean(VirtualFileSystemService.class)
-                        .getApplicationContext()).close();
+                ((ConfigurableApplicationContext) getAppContext().getBean(VirtualFileSystemService.class).getApplicationContext())
+                        .close();
                 System.exit(1);
 
             }
@@ -246,25 +234,17 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
         return true;
     }
 
-    /**
-     * 
-     * 
-     */
     private boolean initKeys() {
         ServerSettings settingsService = getAppContext().getBean(ServerSettings.class);
         if (settingsService.getAccessKey().equals("odilon") && settingsService.getSecretKey().equals("odilon")) {
             startupLogger.info("Odilon is running with default vaules for AccessKey and SecretKey (ie. odilon/odilon)");
-            startupLogger.info("It is recommended to change their values in file -> ." + File.separator + "config"
-                    + File.separator + "odilon.properties");
+            startupLogger.info("It is recommended to change their values in file -> ." + File.separator + "config" + File.separator
+                    + "odilon.properties");
             return true;
         }
         return false;
     }
 
-    /**
-     * 
-     * 
-     */
     private boolean initStandby() {
         ServerSettings settingsService = getAppContext().getBean(ServerSettings.class);
         if (settingsService.getServerMode().equals(ServerConstant.STANDBY_MODE)) {
@@ -282,8 +262,7 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 
                     if (settingsService.isVersionControl() && (!replicationService.isVersionControl())) {
 
-                        startupLogger.error(
-                                "Server has Version Control enabled but Standby replica does not. You must either:");
+                        startupLogger.error("Server has Version Control enabled but Standby replica does not. You must either:");
                         startupLogger.error("- Disable Version Control in Master Server");
                         startupLogger.error("- Enable Version Control in Standby Server");
                         startupLogger.error("- Disable Standby replication");
@@ -297,8 +276,8 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
                 } else {
                     startupLogger.error("Standby connection  error -> " + ping);
                     startupLogger.error("The server is set up to use a standby connection that is not available");
-                    startupLogger.error("You must check the connection or disable standby replica in file -> ."
-                            + File.separator + "config" + File.separator + "odilon.properties");
+                    startupLogger.error("You must check the connection or disable standby replica in file -> ." + File.separator
+                            + "config" + File.separator + "odilon.properties");
                     startupLogger.error("Current value for standby.enabled -> " + settingsService.isStandByEnabled());
                     startupLogger.error("Exiting");
                     startupLogger.error(ServerConstant.SEPARATOR);

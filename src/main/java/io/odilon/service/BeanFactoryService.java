@@ -37,9 +37,6 @@ public class BeanFactoryService extends BaseService implements SystemService, Ap
 
     static private Logger startuplogger = Logger.getLogger("StartupLogger");
 
-    @SuppressWarnings("unused")
-    static private Logger logger = Logger.getLogger(BeanFactoryService.class.getName());
-
     @JsonIgnore
     private ApplicationContext applicationContext;
 

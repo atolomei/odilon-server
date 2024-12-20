@@ -749,7 +749,8 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
                     Path pa = Paths.get(file.getAbsolutePath());
                     try {
                         String str = Files.readString(pa);
-                        OdilonVirtualFileSystemOperation op = getObjectMapper().readValue(str, OdilonVirtualFileSystemOperation.class);
+                        OdilonVirtualFileSystemOperation op = getObjectMapper().readValue(str,
+                                OdilonVirtualFileSystemOperation.class);
                         op.setJournalService(getJournalService());
                         if (!list.contains(op))
                             list.add(op);
@@ -1348,7 +1349,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
     protected ReplicationService getReplicationService() {
         return getVirtualFileSystemService().getReplicationService();
     }
-    
+
     protected SystemMonitorService getSystemMonitorService() {
         return getVirtualFileSystemService().getSystemMonitorService();
     }
@@ -1509,6 +1510,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
     }
 
     protected void checkDebug(String bucketName) {
+
         if (!getLockService().isLocked(bucketName))
             logger.error("This check must be executed inside the critical section");
     }

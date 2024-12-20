@@ -33,6 +33,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ServiceStatus;
+import io.odilon.model.SharedConstant;
 import io.odilon.service.BaseService;
 import io.odilon.service.ServerSettings;
 import io.odilon.virtualFileSystem.model.ServerBucket;
@@ -97,14 +98,13 @@ public class ObjectMetadataCacheService extends BaseService implements Applicati
     public void onApplicationEvent(CacheEvent event) {
 
         if (event.getVFSOperation() == null) {
-            logger.error("event Operation is null ");
+            logger.error("event Operation is null", SharedConstant.NOT_THROWN);
             return;
         }
         if (event.getVFSOperation().getOperationCode() == null) {
-            logger.debug("op is null -> " + event.toString());
+            logger.debug("operation code is null -> " + event.toString());
             return;
         }
-
         if (event.getVFSOperation().getOperationCode() == OperationCode.CREATE_OBJECT) {
             remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName());
             return;
@@ -121,12 +121,10 @@ public class ObjectMetadataCacheService extends BaseService implements Applicati
             remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName());
             return;
         }
-
         if (event.getVFSOperation().getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS) {
             remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName());
             return;
         }
-
         if (event.getVFSOperation().getOperationCode() == OperationCode.SYNC_OBJECT_NEW_DRIVE) {
             remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName());
             return;

@@ -227,7 +227,8 @@ public class StandByInitialSync implements Runnable {
 
                                     boolean objectSynced = false;
 
-                                    getLockService().getObjectLock(item.getObject().getBucketId(), item.getObject().getObjectName()).readLock().lock();
+                                    getLockService().getObjectLock(item.getObject().getBucketId(), item.getObject().getObjectName())
+                                            .readLock().lock();
 
                                     try {
 
@@ -238,13 +239,13 @@ public class StandByInitialSync implements Runnable {
                                             if ((item.getObject().dateSynced == null)
                                                     || (item.getObject().dateSynced.isBefore(info.getStandByStartDate()))) {
 
-                                                logger.debug(item.getObject().getBucketId().toString() + "-" + item.getObject().getObjectName());
+                                                logger.debug(item.getObject().getBucketId().toString() + "-"
+                                                        + item.getObject().getObjectName());
 
                                                 VirtualFileSystemOperation op = new OdilonVirtualFileSystemOperation(
                                                         getDriver().getVirtualFileSystemService().getJournalService()
                                                                 .newOperationId(),
-                                                        OperationCode.CREATE_OBJECT, 
-                                                        Optional.of(item.getObject().getBucketId()),
+                                                        OperationCode.CREATE_OBJECT, Optional.of(item.getObject().getBucketId()),
                                                         Optional.of(item.getObject().getBucketName()), // TODO AT VER
                                                         Optional.of(item.getObject().getObjectName()),
                                                         Optional.of(Integer.valueOf(item.getObject().getVersion())),
@@ -268,7 +269,9 @@ public class StandByInitialSync implements Runnable {
 
                                         }
                                     } finally {
-                                        getLockService().getObjectLock(item.getObject().getBucketId(), item.getObject().getObjectName()).readLock().unlock();
+                                        getLockService()
+                                                .getObjectLock(item.getObject().getBucketId(), item.getObject().getObjectName())
+                                                .readLock().unlock();
                                     }
 
                                     if (objectSynced) {

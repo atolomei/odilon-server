@@ -15,16 +15,20 @@
  * limitations under the License.
  */
 package io.odilon.encryption;
+
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 /**
  * 
- * <p>Service that encrypts/decrypts Object's encryption key (if encryption is enabled in odilon.properties)</p>
-
  * <p>
- * Every object is encrypted with its own key. The key in turn is encrypted by
- * a KeyEncryptor. One of these two is used: 
+ * Service that encrypts/decrypts Object's encryption key (if encryption is
+ * enabled in odilon.properties)
+ * </p>
+ * 
+ * <p>
+ * Every object is encrypted with its own key. The key in turn is encrypted by a
+ * KeyEncryptor. One of these two is used:
  * </p>
  * 
  * <br/>
@@ -32,7 +36,8 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
  * <li>{@link OdilonKeyEncryptor} is Odilon's key encryption service</li>
  * 
  * <br/>
- * <li>{@link VaultKeyEncryptor} is the key encryption service based in Vault KMS, it is used if Vault is enabled in odilon.properties.</li>
+ * <li>{@link VaultKeyEncryptor} is the key encryption service based in Vault
+ * KMS, it is used if Vault is enabled in odilon.properties.</li>
  * </ul>
  * 
  * @see {@link MasterKeyService}
@@ -41,13 +46,12 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
-@JsonTypeInfo(use=JsonTypeInfo.Id.CLASS, include=JsonTypeInfo.As.PROPERTY, property="@class")
+@JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, include = JsonTypeInfo.As.PROPERTY, property = "@class")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY, getterVisibility = JsonAutoDetect.Visibility.NONE)
 public interface KeyEncryptor {
-    
-	byte[] encryptKey(byte[] key, byte[] iv);
-	byte[] decryptKey(byte[] key, byte[] iv);
-	
 
-    
+    byte[] encryptKey(byte[] key, byte[] iv);
+
+    byte[] decryptKey(byte[] key, byte[] iv);
+
 }

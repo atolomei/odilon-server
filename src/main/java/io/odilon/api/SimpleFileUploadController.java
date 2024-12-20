@@ -56,9 +56,8 @@ public class SimpleFileUploadController extends BaseApiController {
     @JsonIgnore
     RandomIDGenerator idGenerator = new RandomIDGenerator();
 
-    public SimpleFileUploadController(ObjectStorageService objectStorageService,
-            VirtualFileSystemService virtualFileSystemService, SystemMonitorService monitoringService,
-            TrafficControlService trafficControlService) {
+    public SimpleFileUploadController(ObjectStorageService objectStorageService, VirtualFileSystemService virtualFileSystemService,
+            SystemMonitorService monitoringService, TrafficControlService trafficControlService) {
         super(objectStorageService, virtualFileSystemService, monitoringService, trafficControlService);
 
     }
@@ -95,8 +94,7 @@ public class SimpleFileUploadController extends BaseApiController {
     }
 
     @RequestMapping(value = "/upload", produces = "application/json", method = RequestMethod.POST)
-    public ResponseEntity<FileUploadResponse> uploadFile(@RequestParam("file") MultipartFile multipartFile)
-            throws IOException {
+    public ResponseEntity<FileUploadResponse> uploadFile(@RequestParam("file") MultipartFile multipartFile) throws IOException {
 
         try {
             String fileName = StringUtils.cleanPath(multipartFile.getOriginalFilename());

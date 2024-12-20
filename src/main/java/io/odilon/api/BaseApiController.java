@@ -28,7 +28,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
-import io.odilon.log.Logger;
 import io.odilon.model.BaseObject;
 import io.odilon.monitor.SystemMonitorService;
 import io.odilon.service.ObjectStorageService;
@@ -56,9 +55,6 @@ public abstract class BaseApiController extends BaseObject implements Applicatio
         mapper.registerModule(new Jdk8Module());
     }
 
-    @SuppressWarnings("unused")
-    static private Logger logger = Logger.getLogger(BaseApiController.class.getName());
-
     @JsonIgnore
     private ApplicationContext applicationContext;
 
@@ -79,16 +75,15 @@ public abstract class BaseApiController extends BaseObject implements Applicatio
     TrafficControlService trafficControlService;
 
     @Autowired
-    public BaseApiController(ObjectStorageService objectStorageService,
-            VirtualFileSystemService virtualFileSystemService, SystemMonitorService monitoringService) {
+    public BaseApiController(ObjectStorageService objectStorageService, VirtualFileSystemService virtualFileSystemService,
+            SystemMonitorService monitoringService) {
 
         this(objectStorageService, virtualFileSystemService, monitoringService, null);
     }
 
     @Autowired
-    public BaseApiController(ObjectStorageService objectStorageService,
-            VirtualFileSystemService virtualFileSystemService, SystemMonitorService monitoringService,
-            TrafficControlService trafficControlService) {
+    public BaseApiController(ObjectStorageService objectStorageService, VirtualFileSystemService virtualFileSystemService,
+            SystemMonitorService monitoringService, TrafficControlService trafficControlService) {
 
         this.objectStorageService = objectStorageService;
         this.virtualFileSystemService = virtualFileSystemService;

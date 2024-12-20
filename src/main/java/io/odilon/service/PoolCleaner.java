@@ -64,8 +64,7 @@ public abstract class PoolCleaner implements Runnable {
 
     @Override
     public void run() {
-        Check.checkTrue(getSleepTimeMillis() > 100,
-                "sleep time must be > 100 milisecs -> " + String.valueOf(getSleepTimeMillis()));
+        Check.checkTrue(getSleepTimeMillis() > 100, "sleep time must be > 100 milisecs -> " + String.valueOf(getSleepTimeMillis()));
         this.thread = Thread.currentThread();
         synchronized (this) {
             while (!exit()) {

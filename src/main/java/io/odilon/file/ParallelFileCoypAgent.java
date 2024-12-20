@@ -16,7 +16,6 @@
  */
 package io.odilon.file;
 
-
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -47,98 +46,97 @@ import io.odilon.util.DateTimeUtil;
  */
 public class ParallelFileCoypAgent extends FileCopyAgent {
 
-	static private Logger logger = Logger.getLogger(ParallelFileCoypAgent.class.getName());
-	
-	@JsonIgnore
-	final byte[][] source;
-	
-	@JsonIgnore
-	final List<File> destination;
-	
-	@JsonIgnore
-	private ExecutorService executor;
-	
-	@JsonIgnore
-	private OffsetDateTime start;
-	
-	@JsonIgnore
-	private OffsetDateTime end;
-	
-	public ParallelFileCoypAgent(byte[][] source, List<File> destination) {
-		
-		Check.requireNonNull(source);
-		Check.requireNonNull(destination);
+    static private Logger logger = Logger.getLogger(ParallelFileCoypAgent.class.getName());
 
-		this.source=source;
-		this.destination=destination;
-	}
-	
-	@Override
-	public long durationMillisecs() {
-		if (this.start==null || this.end==null)
-			return -1;
-		return  DateTimeUtil.dateTimeDifference(start, end, ChronoUnit.MILLIS);
-	}
-	
-	@Override
-	public boolean execute() {
-	
-		try {
-			this.start = OffsetDateTime.now();
-		
-			int size = this.destination.size();
-			
-			/** Thread pool */
-			this.executor = Executors.newFixedThreadPool(size);
-			
-			List<Callable<Boolean>> tasks = new ArrayList<Callable<Boolean>>(size);
-			
-			for (int index=0; index<size; index++) {
-				
-				final int val=index;
+    @JsonIgnore
+    final byte[][] source;
 
-				tasks.add(() -> {
-					try {
-						File outputFile = this.destination.get(val);
-	   					try  (OutputStream out = new BufferedOutputStream(new FileOutputStream(outputFile))) {
-	    						out.write(this.source[val]);
-	   			        } catch (FileNotFoundException e) {
-	    						throw new InternalCriticalException(e, "f: " + outputFile.getName());
-	   					} catch (IOException e) {
-	   						throw new InternalCriticalException(e, "f: " + outputFile.getName());
-	   					}
-						return Boolean.valueOf(true);
-						
-					} catch (Exception e) {
-						logger.error(e, SharedConstant.NOT_THROWN);
-						return Boolean.valueOf(false);
-					} finally {
-						
-					}
-				});
-			}
-			/** process buffer in parallel */
-			try {
-				 List <Future<Boolean>>  future = this.executor.invokeAll(tasks, 10, TimeUnit.MINUTES);
-				 Iterator<Future<Boolean>> it = future.iterator();
-				 while (it.hasNext()) {
-					if (!it.next().get())
-						return false;
-				 }
-				 
-			} catch (InterruptedException e) {
-				logger.error(e, SharedConstant.NOT_THROWN);
-			}
-			
-			return true;
-			
-		} catch (Exception e) {
-			logger.error(e, SharedConstant.NOT_THROWN);
-			return false;
-			
-		} finally {
-			this.end = OffsetDateTime.now();
-		}
-	}
+    @JsonIgnore
+    final List<File> destination;
+
+    @JsonIgnore
+    private ExecutorService executor;
+
+    @JsonIgnore
+    private OffsetDateTime start;
+
+    @JsonIgnore
+    private OffsetDateTime end;
+
+    public ParallelFileCoypAgent(byte[][] source, List<File> destination) {
+
+        Check.requireNonNull(source);
+        Check.requireNonNull(destination);
+
+        this.source = source;
+        this.destination = destination;
+    }
+
+    @Override
+    public long durationMillisecs() {
+        if (this.start == null || this.end == null)
+            return -1;
+        return DateTimeUtil.dateTimeDifference(start, end, ChronoUnit.MILLIS);
+    }
+
+    @Override
+    public boolean execute() {
+
+        try {
+            this.start = OffsetDateTime.now();
+
+            int size = this.destination.size();
+
+            /** Thread pool */
+            this.executor = Executors.newFixedThreadPool(size);
+
+            List<Callable<Boolean>> tasks = new ArrayList<Callable<Boolean>>(size);
+
+            for (int index = 0; index < size; index++) {
+
+                final int val = index;
+
+                tasks.add(() -> {
+                    try {
+                        File outputFile = this.destination.get(val);
+                        try (OutputStream out = new BufferedOutputStream(new FileOutputStream(outputFile))) {
+                            out.write(this.source[val]);
+                        } catch (FileNotFoundException e) {
+                            throw new InternalCriticalException(e, "f: " + outputFile.getName());
+                        } catch (IOException e) {
+                            throw new InternalCriticalException(e, "f: " + outputFile.getName());
+                        }
+                        return Boolean.valueOf(true);
+
+                    } catch (Exception e) {
+                        logger.error(e, SharedConstant.NOT_THROWN);
+                        return Boolean.valueOf(false);
+                    } finally {
+
+                    }
+                });
+            }
+            /** process buffer in parallel */
+            try {
+                List<Future<Boolean>> future = this.executor.invokeAll(tasks, 10, TimeUnit.MINUTES);
+                Iterator<Future<Boolean>> it = future.iterator();
+                while (it.hasNext()) {
+                    if (!it.next().get())
+                        return false;
+                }
+
+            } catch (InterruptedException e) {
+                logger.error(e, SharedConstant.NOT_THROWN);
+            }
+
+            return true;
+
+        } catch (Exception e) {
+            logger.error(e, SharedConstant.NOT_THROWN);
+            return false;
+
+        } finally {
+            this.end = OffsetDateTime.now();
+        }
+    }
 }
-

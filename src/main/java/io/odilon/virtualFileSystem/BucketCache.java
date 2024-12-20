@@ -79,7 +79,7 @@ public class BucketCache extends BaseObject {
         Check.requireNonNullArgument(bucket, "bucket is null");
         remove(bucket.getId());
     }
-    
+
     public void remove(Long id) {
         Check.requireNonNullArgument(id, "bucket is null");
         ServerBucket serverBucket = null;

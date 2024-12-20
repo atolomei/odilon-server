@@ -21,15 +21,14 @@ package io.odilon.encryption;
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public class JCipherStreamEncryptorInfo implements StreamEncryptorInfo {
-    
-	private String encryptionAlgorithm;
-	private String keyAlgorithm;
-	
-	private String encryptedKey;
+
+    private String encryptionAlgorithm;
+    private String keyAlgorithm;
+
+    private String encryptedKey;
     private String iv;
-    
+
     private KeyEncryptor keyEncryptor;
-    
 
     public JCipherStreamEncryptorInfo() {
     }
@@ -77,10 +76,9 @@ public class JCipherStreamEncryptorInfo implements StreamEncryptorInfo {
     }
 
     public void setIV(String iv) {
-        this.iv=iv;
+        this.iv = iv;
     }
 
-    
     public KeyEncryptor getKeyEncryptor() {
         return this.keyEncryptor;
     }

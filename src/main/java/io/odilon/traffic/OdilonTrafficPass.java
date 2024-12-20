@@ -18,20 +18,19 @@ package io.odilon.traffic;
 
 /**
  * 
- *  @author atolomei@novamens.com (Alejandro Tolomei)
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public class OdilonTrafficPass implements TrafficPass {
-	
-	
-	private static final long serialVersionUID = 1L;
-	
-	final int id;
-	
-	public OdilonTrafficPass(int id) {
-		this.id=id;
-	}
-	
-	public int getId() {
-		return id;
-	}
+
+    private static final long serialVersionUID = 1L;
+
+    final int id;
+
+    public OdilonTrafficPass(int id) {
+        this.id = id;
+    }
+
+    public int getId() {
+        return id;
+    }
 }

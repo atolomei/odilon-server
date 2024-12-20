@@ -54,14 +54,11 @@ public class ServiceRequestExecutor implements Runnable {
             this.request.setStatus(ServiceRequestStatus.RUNNING);
             this.request.execute();
             this.success = this.request.isSuccess();
-
         } catch (Throwable e) {
             logger.error(e, SharedConstant.NOT_THROWN);
             this.request.setStatus(ServiceRequestStatus.ERROR);
             this.success = false;
-
         } finally {
-
             try {
                 this.request.setEnd(OffsetDateTime.now());
 

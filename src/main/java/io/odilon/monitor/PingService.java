@@ -67,8 +67,8 @@ public class PingService extends BaseService implements ApplicationContextAware 
 	private ApplicationContext applicationContext;
 	
 	@JsonIgnore
-	private OffsetDateTime lastVaultReconnect = OffsetDateTime.now();
-	
+    private OffsetDateTime lastVaultReconnect = OffsetDateTime.now();
+
 	public PingService() {}
 	
 	public synchronized List<String> pingList() {

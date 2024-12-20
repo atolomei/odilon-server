@@ -154,8 +154,7 @@ public class RAIDOneDriveSync implements Runnable {
 
         while (getDriver().getVirtualFileSystemService().getStatus() != ServiceStatus.RUNNING) {
             startuplogger.info("waiting for " + VirtualFileSystemService.class.getSimpleName() + " to startup ("
-                    + String.valueOf(Double.valueOf(System.currentTimeMillis() - start) / Double.valueOf(1000.0))
-                    + " secs)");
+                    + String.valueOf(Double.valueOf(System.currentTimeMillis() - start) / Double.valueOf(1000.0)) + " secs)");
             try {
                 Thread.sleep(1000 * 2);
             } catch (InterruptedException e) {
@@ -181,8 +180,8 @@ public class RAIDOneDriveSync implements Runnable {
 
         long start_ms = System.currentTimeMillis();
 
-        final int maxProcessingThread = Double
-                .valueOf(Double.valueOf(Runtime.getRuntime().availableProcessors() - 1) / 2.0).intValue() + 1;
+        final int maxProcessingThread = Double.valueOf(Double.valueOf(Runtime.getRuntime().availableProcessors() - 1) / 2.0)
+                .intValue() + 1;
 
         ExecutorService executor = null;
 
@@ -204,9 +203,8 @@ public class RAIDOneDriveSync implements Runnable {
 
                 while (!done) {
 
-                    DataList<Item<ObjectMetadata>> data = this.driver.getVirtualFileSystemService().listObjects(
-                            bucket.getName(), Optional.of(offset), Optional.ofNullable(pageSize), Optional.empty(),
-                            Optional.ofNullable(agentId));
+                    DataList<Item<ObjectMetadata>> data = this.driver.getVirtualFileSystemService().listObjects(bucket.getName(),
+                            Optional.of(offset), Optional.ofNullable(pageSize), Optional.empty(), Optional.ofNullable(agentId));
 
                     if (agentId == null)
                         agentId = data.getAgentId();
@@ -228,8 +226,10 @@ public class RAIDOneDriveSync implements Runnable {
                                         if (drive.getDriveInfo().getStatus() == DriveStatus.NOTSYNC) {
 
                                             try {
-                                                
-                                                getLockService().getObjectLock(item.getObject().bucketId, item.getObject().objectName).writeLock().lock();
+
+                                                getLockService()
+                                                        .getObjectLock(item.getObject().bucketId, item.getObject().objectName)
+                                                        .writeLock().lock();
 
                                                 try {
 
@@ -237,42 +237,40 @@ public class RAIDOneDriveSync implements Runnable {
 
                                                     {
                                                         /**
-                                                         * HEAD VERSION
-                                                         * ---------------------------------------------------------
+                                                         * HEAD VERSION ---------------------------------------------------------
                                                          */
-                                                        File newmeta = drive.getObjectMetadataFile(bucket, item.getObject().objectName);
+                                                        File newmeta = drive.getObjectMetadataFile(bucket,
+                                                                item.getObject().objectName);
 
                                                         // If ObjectMetadata exists -> the file was already synced, skip
 
                                                         if (!newmeta.exists()) {
 
-                                                            ObjectPath path = new ObjectPath(drive, bucket, item.getObject().getObjectName());
+                                                            ObjectPath path = new ObjectPath(drive, bucket,
+                                                                    item.getObject().getObjectName());
                                                             File dataFile = path.dataFilePath().toFile();
 
                                                             // copy data ----
-                                                            //File dataFile = ((SimpleDrive) enabledDrive)
-                                                             //       .getObjectDataFile(item.getObject().bucketId,
-                                                              //              item.getObject().objectName);
+                                                            // File dataFile = ((SimpleDrive) enabledDrive)
+                                                            // .getObjectDataFile(item.getObject().bucketId,
+                                                            // item.getObject().objectName);
                                                             //
 
                                                             try (InputStream is = new BufferedInputStream(
                                                                     new FileInputStream(dataFile))) {
 
                                                                 String sPath = path.dataFilePath().toString();
-                                                                
+
                                                                 byte[] buf = new byte[ServerConstant.BUFFER_SIZE];
-                                                                
-                                                                //String sPath = ((SimpleDrive) drive)
-                                                                //        .getObjectDataFilePath(bucket.getId(),
-                                                                //                item.getObject().objectName);
-                                                                
+
+                                                                // String sPath = ((SimpleDrive) drive)
+                                                                // .getObjectDataFilePath(bucket.getId(),
+                                                                // item.getObject().objectName);
 
                                                                 try (BufferedOutputStream out = new BufferedOutputStream(
-                                                                        new FileOutputStream(sPath),
-                                                                        ServerConstant.BUFFER_SIZE)) {
+                                                                        new FileOutputStream(sPath), ServerConstant.BUFFER_SIZE)) {
                                                                     int bytesRead;
-                                                                    while ((bytesRead = is.read(buf, 0,
-                                                                            buf.length)) >= 0) {
+                                                                    while ((bytesRead = is.read(buf, 0, buf.length)) >= 0) {
                                                                         out.write(buf, 0, bytesRead);
                                                                     }
                                                                     this.totalBytes.addAndGet(dataFile.length());
@@ -287,41 +285,34 @@ public class RAIDOneDriveSync implements Runnable {
                                                     }
 
                                                     /**
-                                                     * PREVIOUS VERSIONS
-                                                     * ---------------------------------------------------------
+                                                     * PREVIOUS VERSIONS ---------------------------------------------------------
                                                      */
 
                                                     if (getDriver().getVirtualFileSystemService().getServerSettings()
                                                             .isVersionControl()) {
 
-                                                        for (int version = 0; version < item
-                                                                .getObject().version; version++) {
+                                                        for (int version = 0; version < item.getObject().version; version++) {
                                                             // copy Meta Version
-                                                            File meta_version_n = enabledDrive
-                                                                    .getObjectMetadataVersionFile(
-                                                                            bucket,
-                                                                            item.getObject().objectName, version);
+                                                            File meta_version_n = enabledDrive.getObjectMetadataVersionFile(bucket,
+                                                                    item.getObject().objectName, version);
                                                             if (meta_version_n.exists()) {
-                                                                drive.putObjectMetadataVersionFile(
-                                                                        bucket,
-                                                                        item.getObject().objectName, version,
-                                                                        meta_version_n);
+                                                                drive.putObjectMetadataVersionFile(bucket,
+                                                                        item.getObject().objectName, version, meta_version_n);
                                                             }
                                                             // copy Data Version
-                                                            
-                                                            ObjectPath path = new ObjectPath(enabledDrive, item.getObject().bucketId, item.getObject().objectName);
-                                                            File version_n = path.dataFileVersionPath(version).toFile();    
 
-                                                            
-                                                            //File version_n = ((SimpleDrive) enabledDrive)
-                                                             //       .getObjectDataVersionFile(item.getObject().bucketId,
-                                                              //              item.getObject().objectName, version);
-                                                            
+                                                            ObjectPath path = new ObjectPath(enabledDrive,
+                                                                    item.getObject().bucketId, item.getObject().objectName);
+                                                            File version_n = path.dataFileVersionPath(version).toFile();
+
+                                                            // File version_n = ((SimpleDrive) enabledDrive)
+                                                            // .getObjectDataVersionFile(item.getObject().bucketId,
+                                                            // item.getObject().objectName, version);
+
                                                             if (version_n.exists()) {
                                                                 ((SimpleDrive) drive).putObjectDataVersionFile(
-                                                                        item.getObject().bucketId,
-                                                                        item.getObject().objectName, version,
-                                                                        version_n);
+                                                                        item.getObject().bucketId, item.getObject().objectName,
+                                                                        version, version_n);
                                                             }
                                                         }
                                                     }
@@ -330,12 +321,13 @@ public class RAIDOneDriveSync implements Runnable {
                                                     logger.error(e, SharedConstant.NOT_THROWN);
                                                     this.errors.getAndIncrement();
                                                 } finally {
-                                                    getLockService().getBucketLock(bucket).readLock()
-                                                            .unlock();
+                                                    getLockService().getBucketLock(bucket).readLock().unlock();
                                                 }
                                             } finally {
-                                                
-                                                getLockService().getObjectLock(item.getObject().bucketId, item.getObject().objectName).writeLock().unlock();
+
+                                                getLockService()
+                                                        .getObjectLock(item.getObject().bucketId, item.getObject().objectName)
+                                                        .writeLock().unlock();
 
                                             }
                                         }
@@ -389,8 +381,7 @@ public class RAIDOneDriveSync implements Runnable {
                 startuplogger.info("Not available: " + String.valueOf(this.notAvailable.get()));
 
             startuplogger.info("Duration: "
-                    + String.valueOf(Double.valueOf(System.currentTimeMillis() - start_ms) / Double.valueOf(1000))
-                    + " secs");
+                    + String.valueOf(Double.valueOf(System.currentTimeMillis() - start_ms) / Double.valueOf(1000)) + " secs");
             startuplogger.info(ServerConstant.SEPARATOR);
         }
     }
@@ -403,11 +394,10 @@ public class RAIDOneDriveSync implements Runnable {
         return this.vfsLockService;
     }
 
-    //protected ServerBucket getBucketById(Long id) {
-    //    return getDriver().getVirtualFileSystemService().getBucketById(id);
-    //}
-    
-    
+    // protected ServerBucket getBucketById(Long id) {
+    // return getDriver().getVirtualFileSystemService().getBucketById(id);
+    // }
+
     private void updateDrives() {
         for (Drive drive : getDriver().getDrivesAll()) {
             if (drive.getDriveInfo().getStatus() == DriveStatus.NOTSYNC) {

@@ -19,17 +19,21 @@ package io.odilon.query;
 import io.odilon.service.SystemService;
 import io.odilon.virtualFileSystem.model.BucketIterator;
 
-
 /**
- * <p>Directory of Iterators being used.</p> 
+ * <p>
+ * Directory of Iterators being used.
+ * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public interface BucketIteratorService extends SystemService {
-	
-	public boolean exists(String agentId);
-	public BucketIterator get(String agentId);
-	public String register(BucketIterator walker);
-	public void remove(String agentId);
-	
+
+    public boolean exists(String agentId);
+
+    public BucketIterator get(String agentId);
+
+    public String register(BucketIterator walker);
+
+    public void remove(String agentId);
+
 }

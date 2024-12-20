@@ -341,16 +341,12 @@ public class ServerSettings implements JSONObject {
 
         str.append(", \"Vault enabled\":\"" + "\"" + (isVaultEnabled() ? "true" : "false") + "\"");
         str.append(", \"Use Vault for new files\":\"" + "\"" + (isUseVaultNewFiles() ? "true" : "false") + "\"");
-        str.append(
-                ", \"vaultUrl\":\"" + (Optional.ofNullable(vaultUrl).isPresent() ? ("\"" + vaultUrl + "\"") : "null"));
-        str.append(", \"vaultKeyId\":\""
-                + (Optional.ofNullable(vaultKeyId).isPresent() ? ("\"" + vaultKeyId + "\"") : "null"));
-        str.append(", \"vaultRoleId\":\""
-                + (Optional.ofNullable(vaultRoleId).isPresent() ? ("\"" + vaultRoleId + "\"") : "null"));
+        str.append(", \"vaultUrl\":\"" + (Optional.ofNullable(vaultUrl).isPresent() ? ("\"" + vaultUrl + "\"") : "null"));
+        str.append(", \"vaultKeyId\":\"" + (Optional.ofNullable(vaultKeyId).isPresent() ? ("\"" + vaultKeyId + "\"") : "null"));
+        str.append(", \"vaultRoleId\":\"" + (Optional.ofNullable(vaultRoleId).isPresent() ? ("\"" + vaultRoleId + "\"") : "null"));
 
         str.append(", \"redundancyLevel\":"
-                + (Optional.ofNullable(redundancyLevel).isPresent() ? ("\"" + redundancyLevel.getName() + "\"")
-                        : "null"));
+                + (Optional.ofNullable(redundancyLevel).isPresent() ? ("\"" + redundancyLevel.getName() + "\"") : "null"));
 
         if (redundancyLevel == RedundancyLevel.RAID_6) {
             str.append(", \"dataDrives\":" + String.format("%3d", getRAID6DataDrives()).trim());
@@ -367,8 +363,7 @@ public class ServerSettings implements JSONObject {
         str.append(", \"standby.enabled\":\"" + "\"" + (isStandByEnabled() ? "true" : "false") + "\"");
 
         if (isStandByEnabled()) {
-            str.append(", \"standby.url\":"
-                    + (Optional.ofNullable(standbyUrl).isPresent() ? ("\"" + standbyUrl + "\"") : "null"));
+            str.append(", \"standby.url\":" + (Optional.ofNullable(standbyUrl).isPresent() ? ("\"" + standbyUrl + "\"") : "null"));
             str.append(", \"standby.accesskey\":"
                     + (Optional.ofNullable(standbyUrl).isPresent() ? ("\"" + standbyAccessKey + "\"") : "null"));
             str.append(", \"standby.secretkey\":"
@@ -379,8 +374,7 @@ public class ServerSettings implements JSONObject {
         str.append("\"dataStorage\":\"" + getDataStorage() + "\"");
 
         str.append(", \"encrypt\":\"" + "\"" + (isEncryptionEnabled() ? "true" : "false") + "\"");
-        str.append(", \"keyAlgorithm\":"
-                + (Optional.ofNullable(keyAlgorithm).isPresent() ? ("\"" + keyAlgorithm + "\"") : "null"));
+        str.append(", \"keyAlgorithm\":" + (Optional.ofNullable(keyAlgorithm).isPresent() ? ("\"" + keyAlgorithm + "\"") : "null"));
 
         // str.append(", \"encryptionAlgorithm\":" +
         // (Optional.ofNullable(encryptionAlgorithm).isPresent() ?
@@ -428,8 +422,7 @@ public class ServerSettings implements JSONObject {
         map.put("port", getPort());
         map.put("accessKey", accessKey);
         map.put("secretKey", secretKey);
-        map.put("redundancyLevel",
-                Optional.ofNullable(redundancyLevel).isPresent() ? (redundancyLevel.getName()) : "null");
+        map.put("redundancyLevel", Optional.ofNullable(redundancyLevel).isPresent() ? (redundancyLevel.getName()) : "null");
         int n = 0;
         if (rootDirs != null && rootDirs.size() > 0) {
             for (String s : rootDirs) {
@@ -493,11 +486,11 @@ public class ServerSettings implements JSONObject {
         }
 
         if (this.rootDirs == null || this.rootDirs.size() < 1) {
-            startuplogger.error("No rootDirs are defined. \n"
-                    + "for RAID 0. at least 1 dataDir must be defined in file -> odilon.properties \n"
-                    + "for RAID 1. at least 1 dataDir must be defined in file -> odilon.properties \n"
-                    + "for RAID 6. 3, 6, 12, 24 or 48 dataDirs must be defined in file -> odilon.properties \n"
-                    + "using default values ");
+            startuplogger.error(
+                    "No rootDirs are defined. \n" + "for RAID 0. at least 1 dataDir must be defined in file -> odilon.properties \n"
+                            + "for RAID 1. at least 1 dataDir must be defined in file -> odilon.properties \n"
+                            + "for RAID 6. 3, 6, 12, 24 or 48 dataDirs must be defined in file -> odilon.properties \n"
+                            + "using default values ");
 
             getDefaultRootDirs().forEach(o -> startuplogger.error(o));
             this.rootDirs = getDefaultRootDirs();
@@ -505,9 +498,8 @@ public class ServerSettings implements JSONObject {
 
         if (this.encryptionKeyIV != null) {
             this.encryptionKeyIV = encryptionKeyIV.trim();
-            if (this.encryptionKeyIV
-                    .length() != (2 * (EncryptionService.AES_KEY_SIZE_BITS + EncryptionService.AES_IV_SIZE_BITS)
-                            / VirtualFileSystemService.BITS_PER_BYTE))
+            if (this.encryptionKeyIV.length() != (2 * (EncryptionService.AES_KEY_SIZE_BITS + EncryptionService.AES_IV_SIZE_BITS)
+                    / VirtualFileSystemService.BITS_PER_BYTE))
                 exit("encryption key length must be -> "
                         + String.valueOf((2 * (EncryptionService.AES_KEY_SIZE_BITS + EncryptionService.AES_IV_SIZE_BITS)
                                 / VirtualFileSystemService.BITS_PER_BYTE)));
@@ -531,10 +523,9 @@ public class ServerSettings implements JSONObject {
 
         if (masterKey != null) {
             masterKey = masterKey.trim();
-            if (masterKey
-                    .length() != (2 * EncryptionService.AES_KEY_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE))
-                exit("masterKey key length must be -> " + String
-                        .valueOf((2 * EncryptionService.AES_KEY_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE)));
+            if (masterKey.length() != (2 * EncryptionService.AES_KEY_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE))
+                exit("masterKey key length must be -> "
+                        + String.valueOf((2 * EncryptionService.AES_KEY_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE)));
             try {
                 @SuppressWarnings("unused")
                 byte[] be = ByteToString.hexStringToByte(masterKey);
@@ -562,8 +553,8 @@ public class ServerSettings implements JSONObject {
         else {
             this.serverMode = this.serverMode.toLowerCase().trim();
             if (!(this.serverMode.equals(ServerConstant.MASTER_MODE) || serverMode.equals(ServerConstant.STANDBY_MODE)))
-                exit("server.mode must be '" + ServerConstant.MASTER_MODE + "' or '" + ServerConstant.STANDBY_MODE
-                        + "' -> " + serverMode);
+                exit("server.mode must be '" + ServerConstant.MASTER_MODE + "' or '" + ServerConstant.STANDBY_MODE + "' -> "
+                        + serverMode);
         }
 
         if (this.redundancyLevelStr == null)
@@ -574,11 +565,11 @@ public class ServerSettings implements JSONObject {
         List<String> dirs = new ArrayList<String>();
 
         if (isWindows())
-            this.rootDirs.forEach(item -> dirs.add(
-                    item.replace("/", File.separator).replace("\\", File.separator).replaceAll("[?;<>|]", "").trim()));
+            this.rootDirs.forEach(item -> dirs
+                    .add(item.replace("/", File.separator).replace("\\", File.separator).replaceAll("[?;<>|]", "").trim()));
         else
-            this.rootDirs.forEach(item -> dirs.add(
-                    item.replace("/", File.separator).replace("\\", File.separator).replaceAll("[?;<>|]", "").trim()));
+            this.rootDirs.forEach(item -> dirs
+                    .add(item.replace("/", File.separator).replace("\\", File.separator).replaceAll("[?;<>|]", "").trim()));
 
         this.rootDirs = dirs.stream().distinct().collect(Collectors.toList());
 
@@ -604,8 +595,8 @@ public class ServerSettings implements JSONObject {
 
             if (!((this.rootDirs.size() == 3) || (this.rootDirs.size() == 6) || (this.rootDirs.size() == 12)
                     || (this.rootDirs.size() == 24) || (this.rootDirs.size() == 48))) {
-                exit("DataStorage must have 3, 6, 12, 24, 48 entries for -> " + redundancyLevel.getName()
-                        + " | value provided -> " + String.valueOf(this.rootDirs.size()));
+                exit("DataStorage must have 3, 6, 12, 24, 48 entries for -> " + redundancyLevel.getName() + " | value provided -> "
+                        + String.valueOf(this.rootDirs.size()));
             }
 
             if (this.rootDirs.size() == 3) {
@@ -641,8 +632,7 @@ public class ServerSettings implements JSONObject {
                     || ((this.rootDirs.size() == 6) && (this.raid6DataDrives == 4) && (this.raid6ParityDrives == 2))
                     || ((this.rootDirs.size() == 12) && (this.raid6DataDrives == 8) && (this.raid6ParityDrives == 4))
                     || ((this.rootDirs.size() == 24) && (this.raid6DataDrives == 16) && (this.raid6ParityDrives == 8))
-                    || ((this.rootDirs.size() == 48) && (this.raid6DataDrives == 32)
-                            && (this.raid6ParityDrives == 16)))) {
+                    || ((this.rootDirs.size() == 48) && (this.raid6DataDrives == 32) && (this.raid6ParityDrives == 16)))) {
                 exit(RedundancyLevel.RAID_6.getName() + " configurations supported are -> "
                         + " 3 dirs in DataStorage and raid6.dataDrives=2 and raid6.parityDrives=1  | "
                         + " 6 dirs in DataStorage and raid6.dataDrives=4 and raid6.parityDrives=2  | "
@@ -670,19 +660,19 @@ public class ServerSettings implements JSONObject {
             this.integrityCheckDays = 180;
 
         if (this.integrityCheckThreads < 1)
-            this.integrityCheckThreads = Double
-                    .valueOf(Double.valueOf(Runtime.getRuntime().availableProcessors() - 1) / 2.0).intValue() + 1;
+            this.integrityCheckThreads = Double.valueOf(Double.valueOf(Runtime.getRuntime().availableProcessors() - 1) / 2.0)
+                    .intValue() + 1;
 
         if (this.schedulerThreads < 1)
-            this.schedulerThreads = Double.valueOf(Double.valueOf(Runtime.getRuntime().availableProcessors() - 1) / 2.0)
-                    .intValue() + 1;
+            this.schedulerThreads = Double.valueOf(Double.valueOf(Runtime.getRuntime().availableProcessors() - 1) / 2.0).intValue()
+                    + 1;
 
         if (this.schedulerThreads < 2)
             this.schedulerThreads = 2;
 
         if (this.cronSchedulerThreads < 1)
-            this.cronSchedulerThreads = Double
-                    .valueOf(Double.valueOf(Runtime.getRuntime().availableProcessors() - 1) / 2.5).intValue() + 1;
+            this.cronSchedulerThreads = Double.valueOf(Double.valueOf(Runtime.getRuntime().availableProcessors() - 1) / 2.5)
+                    .intValue() + 1;
 
         if (this.cronSchedulerThreads < 2)
             this.cronSchedulerThreads = 2;
@@ -780,8 +770,7 @@ public class ServerSettings implements JSONObject {
             /** Linux */
 
             List<String> list = new ArrayList<String>();
-            list.add(File.separator + "var" + File.separator + "lib" + File.separator + "odilon-data" + File.separator
-                    + "drive0");
+            list.add(File.separator + "var" + File.separator + "lib" + File.separator + "odilon-data" + File.separator + "drive0");
 
             if (getRedundancyLevel() == RedundancyLevel.RAID_1 || getRedundancyLevel() == RedundancyLevel.RAID_0)
                 return list;

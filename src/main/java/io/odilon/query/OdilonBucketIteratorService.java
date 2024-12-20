@@ -121,8 +121,7 @@ public class OdilonBucketIteratorService extends BaseService implements BucketIt
     public VirtualFileSystemService getVirtualFileSystemService() {
         if (this.virtualFileSystemService == null) {
             throw new IllegalStateException("The member of " + VirtualFileSystemService.class.getName()
-                    + " must be asigned during the @PostConstruct method of the "
-                    + VirtualFileSystemService.class.getName()
+                    + " must be asigned during the @PostConstruct method of the " + VirtualFileSystemService.class.getName()
                     + " instance. It can not be injected via AutoWired beacause of circular dependencies.");
         }
         return this.virtualFileSystemService;
@@ -184,11 +183,9 @@ public class OdilonBucketIteratorService extends BaseService implements BucketIt
 
                         } finally {
                             if (logger.isDebugEnabled() && (startingSize - getWalkers().size() > 0)) {
-                                logger.debug("Clean up " + " | initial size -> "
-                                        + String.format("%,6d", startingSize).trim() + " | new size ->  "
-                                        + String.format("%,6d", getWalkers().size()).trim() + " | removed  -> "
-                                        + String.format("%,6d", startingSize - getWalkers().size()).trim()
-                                        + " | duration -> "
+                                logger.debug("Clean up " + " | initial size -> " + String.format("%,6d", startingSize).trim()
+                                        + " | new size ->  " + String.format("%,6d", getWalkers().size()).trim() + " | removed  -> "
+                                        + String.format("%,6d", startingSize - getWalkers().size()).trim() + " | duration -> "
                                         + String.format("%,12d", (System.currentTimeMillis() - start)).trim() + " ms");
                             }
                         }
@@ -216,7 +213,6 @@ public class OdilonBucketIteratorService extends BaseService implements BucketIt
     }
 
     private String newAgentId() {
-        return System.currentTimeMillis() + "-"
-                + String.valueOf(Double.valueOf(Math.abs(Math.random() * 100000)).intValue());
+        return System.currentTimeMillis() + "-" + String.valueOf(Double.valueOf(Math.abs(Math.random() * 100000)).intValue());
     }
 }

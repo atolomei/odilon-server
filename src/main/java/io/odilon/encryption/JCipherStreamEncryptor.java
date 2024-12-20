@@ -16,7 +16,6 @@
  */
 package io.odilon.encryption;
 
-
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
 import javax.crypto.KeyGenerator;
@@ -27,7 +26,6 @@ import javax.crypto.spec.SecretKeySpec;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import io.odilon.errors.InternalCriticalException;
-import io.odilon.log.Logger;
 import java.io.InputStream;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -41,97 +39,99 @@ import java.util.Base64;
  */
 public class JCipherStreamEncryptor implements StreamEncryptor {
 
-	@SuppressWarnings("unused")
-	private static Logger logger = Logger.getLogger(JCipherStreamEncryptor.class.getName());
-  
-	@JsonIgnore
+    @JsonIgnore
     static SecureRandom secRandom = new SecureRandom();
 
-	private String encryptionAlgorithm; 
-	private String keyAlgorithm; 		 
-	
-	@JsonIgnore
-	private KeyEncryptor keyEncryptor; 	 
+    @JsonIgnore
+    private KeyEncryptor keyEncryptor;
 
-	@JsonIgnore
-	byte[] ivs;
-	
-	/**
-	 * 
-	 * @param encryptionAlgorithm
-	 * @param keyAlgorithm
-	 * @param keyEncryptor
-	 */
-	public JCipherStreamEncryptor(String encryptionAlgorithm, String keyAlgorithm, KeyEncryptor keyEncryptor) {
-		 this.encryptionAlgorithm = encryptionAlgorithm;
-	     this.keyAlgorithm = keyAlgorithm;
-	     this.keyEncryptor = keyEncryptor;
-	     this.ivs = new byte [EncryptionService.IV_LENGTH_BIT/8];
-	     secRandom.nextBytes(ivs);
-	}
-	
-	@Override
-	public String getNewKey() {
+    @JsonIgnore
+    byte[] ivs;
+
+    private String encryptionAlgorithm;
+
+    private String keyAlgorithm;
+
+    /**
+     * @param encryptionAlgorithm
+     * @param keyAlgorithm
+     * @param keyEncryptor
+     */
+    public JCipherStreamEncryptor(String encryptionAlgorithm, String keyAlgorithm, KeyEncryptor keyEncryptor) {
+        this.encryptionAlgorithm = encryptionAlgorithm;
+        this.keyAlgorithm = keyAlgorithm;
+        this.keyEncryptor = keyEncryptor;
+        this.ivs = new byte[EncryptionService.IV_LENGTH_BIT / 8];
+        secRandom.nextBytes(ivs);
+    }
+
+    @Override
+    public String getNewKey() {
         try {
-        	
+
             // Creating a KeyGenerator object
-            KeyGenerator keyGen = KeyGenerator.getInstance(this.keyAlgorithm);
-            
+            KeyGenerator keyGen = KeyGenerator.getInstance(getKeyAlgorithm());
+
             // Initializing the KeyGenerator
             keyGen.init(secRandom);
-            
+
             // Creating/Generating a key
             Key key = keyGen.generateKey();
-            
+
             return Base64.getEncoder().encodeToString(key.getEncoded());
-            
-        }catch (NoSuchAlgorithmException e) {
-           	throw new InternalCriticalException(e, "genNewKey");
+
+        } catch (NoSuchAlgorithmException e) {
+            throw new InternalCriticalException(e, "genNewKey");
         }
     }
 
     @Override
     public StreamEncryptorInfo getStreamEncryptionInfo(String key, String ivStr) {
-        
-    	byte[] decodedKey 		= Base64.getDecoder().decode(key);
-    	byte[] ivec 			= Base64.getDecoder().decode(ivStr);
 
-    	String encryptKey = Base64.getEncoder().encodeToString(keyEncryptor.encryptKey(decodedKey, ivec ));
-        return new JCipherStreamEncryptorInfo(this, encryptKey, Base64.getEncoder().encodeToString(ivec ));
+        byte[] decodedKey = Base64.getDecoder().decode(key);
+        byte[] ivec = Base64.getDecoder().decode(ivStr);
+
+        String encryptKey = Base64.getEncoder().encodeToString(getKeyEncryptor().encryptKey(decodedKey, ivec));
+        return new JCipherStreamEncryptorInfo(this, encryptKey, Base64.getEncoder().encodeToString(ivec));
     }
 
     @Override
     public EncryptedInputStream encrypt(InputStream inputStream, String key, String ivString) {
         try {
-            
-        	byte[] decodedKey = Base64.getDecoder().decode(key);
-            byte[] ivec   = Base64.getDecoder().decode(ivString);
-            
-            InputStream encryptedStream = processStream(inputStream, Cipher.ENCRYPT_MODE, decodedKey, ivec );
-            
+
+            byte[] decodedKey = Base64.getDecoder().decode(key);
+            byte[] ivec = Base64.getDecoder().decode(ivString);
+
+            InputStream encryptedStream = processStream(inputStream, Cipher.ENCRYPT_MODE, decodedKey, ivec);
+
             StreamEncryptorInfo streamEncryptionInfo = this.getStreamEncryptionInfo(key, ivString);
 
             return new EncryptedInputStream(encryptedStream, streamEncryptionInfo);
-            
+
         } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException e) {
-        	throw new InternalCriticalException(e, "encrypt");
+            throw new InternalCriticalException(e, "encrypt");
         }
     }
 
     @Override
     public InputStream decrypt(InputStream inputStream, String encryptedKey, String ivString) {
         try {
-            
-        	byte[] decodedEncryptedkey = Base64.getDecoder().decode(encryptedKey);
-        	byte[] ivec   = Base64.getDecoder().decode(ivString);
-        	
-        	byte[] key = this.keyEncryptor.decryptKey(decodedEncryptedkey, ivec );
-            
-        	return processStream(inputStream, Cipher.DECRYPT_MODE, key, ivec );
-            
+
+            byte[] decodedEncryptedkey = Base64.getDecoder().decode(encryptedKey);
+            byte[] ivec = Base64.getDecoder().decode(ivString);
+
+            byte[] key = getKeyEncryptor().decryptKey(decodedEncryptedkey, ivec);
+
+            return processStream(inputStream, Cipher.DECRYPT_MODE, key, ivec);
+
         } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException e) {
-        	throw new InternalCriticalException(e, " decrypt");
+            throw new InternalCriticalException(e, " decrypt");
         }
+    }
+
+    @Override
+    public String getIV() {
+        return Base64.getEncoder().encodeToString(getIVS());
     }
 
     public String getEncryptionAlgorithm() {
@@ -158,32 +158,25 @@ public class JCipherStreamEncryptor implements StreamEncryptor {
         this.keyEncryptor = keyEncryptor;
     }
 
-    
-    
-    
-    private InputStream processStream(InputStream inputStream, int encryptMode, byte[] key, byte[] iv) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException {
-        
-    	SecretKeySpec secretKeySpec = new SecretKeySpec(key, getKeyAlgorithm());
-    	
+    private InputStream processStream(InputStream inputStream, int encryptMode, byte[] key, byte[] iv)
+            throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException {
+
+        SecretKeySpec secretKeySpec = new SecretKeySpec(key, getKeyAlgorithm());
+
         Cipher c = Cipher.getInstance(getEncryptionAlgorithm());
-        
+
         try {
-			c.init(encryptMode, secretKeySpec, new GCMParameterSpec(EncryptionService.IV_LENGTH_BIT, iv));
-			
+            c.init(encryptMode, secretKeySpec, new GCMParameterSpec(EncryptionService.IV_LENGTH_BIT, iv));
+
         } catch (InvalidKeyException | InvalidAlgorithmParameterException e) {
-		
+
         }
-    	return new CipherInputStream(inputStream, c);
-        
-        
+        return new CipherInputStream(inputStream, c);
+
     }
 
-
-	@Override
-	public String getIV() {
-        return Base64.getEncoder().encodeToString(this.ivs);
-    
-	}
-
+    private byte[] getIVS() {
+        return this.ivs;
+    }
 
 }

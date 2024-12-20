@@ -18,25 +18,24 @@ package io.odilon.service.util;
 
 import io.odilon.model.SharedConstant;
 
-
 /**
  *
  * @author atolomei@novamens.com (Alejandro Tolomei)
  * 
  */
 public class BucketNameValidator {
-	
-	private String name;
-	
-	public BucketNameValidator(String name) {
-		this.name=name;
-	}
-	
-	/**
-	 * 
-	 */
-	public boolean isValid() {
-		return name.matches(SharedConstant.bucket_valid_regex);
-	}
-	
+
+    private String name;
+
+    public BucketNameValidator(String name) {
+        this.name = name;
+    }
+
+    /**
+     * 
+     */
+    public boolean isValid() {
+        return name.matches(SharedConstant.bucket_valid_regex);
+    }
+
 }

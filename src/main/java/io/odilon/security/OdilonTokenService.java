@@ -49,7 +49,6 @@ import io.odilon.log.Logger;
 import io.odilon.model.ServiceStatus;
 import io.odilon.monitor.SystemMonitorService;
 import io.odilon.service.BaseService;
-import io.odilon.service.OdilonObjectStorageService;
 import io.odilon.service.ServerSettings;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
@@ -64,9 +63,6 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 public class OdilonTokenService extends BaseService implements TokenService, ApplicationContextAware {
 
     static private Logger startuplogger = Logger.getLogger("StartupLogger");
-
-    @SuppressWarnings("unused")
-    static private Logger logger = Logger.getLogger(OdilonObjectStorageService.class.getName());
 
     static private String salt = randomString(20);
 
@@ -124,9 +120,8 @@ public class OdilonTokenService extends BaseService implements TokenService, App
             encCipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, ivspec);
             return Base64.getEncoder().encodeToString(encCipher.doFinal(token.toJSON().getBytes("UTF-8")));
 
-        } catch (IllegalBlockSizeException | BadPaddingException | UnsupportedEncodingException
-                | NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException
-                | InvalidAlgorithmParameterException e) {
+        } catch (IllegalBlockSizeException | BadPaddingException | UnsupportedEncodingException | NoSuchAlgorithmException
+                | NoSuchPaddingException | InvalidKeyException | InvalidAlgorithmParameterException e) {
             throw new InternalCriticalException(e, "encrypt");
         }
 
@@ -188,8 +183,8 @@ public class OdilonTokenService extends BaseService implements TokenService, App
 
                 // Key has to be of length 8
                 if (secretKey == null || secretKey.length() != 8)
-                    throw new RuntimeException("Invalid key length - 8 bytes key needed -> "
-                            + Optional.ofNullable(secretKey).orElse("null"));
+                    throw new RuntimeException(
+                            "Invalid key length - 8 bytes key needed -> " + Optional.ofNullable(secretKey).orElse("null"));
 
                 byte[] iv = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
                 this.ivspec = new IvParameterSpec(iv);

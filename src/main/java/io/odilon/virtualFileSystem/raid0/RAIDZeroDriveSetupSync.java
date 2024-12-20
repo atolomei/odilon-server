@@ -43,7 +43,6 @@ import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
 import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
-import io.odilon.virtualFileSystem.Context;
 import io.odilon.virtualFileSystem.DriveInfo;
 import io.odilon.virtualFileSystem.ObjectPath;
 import io.odilon.virtualFileSystem.model.Drive;
@@ -436,12 +435,13 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
                                                  */
 
                                                 /** Data */
-                                                //File data_head = ((SimpleDrive) currentDrive).getObjectDataFile(
-                                                 //       item.getObject().getBucketId(), item.getObject().getObjectName());
-                                                
-                                                ObjectPath path = new ObjectPath(currentDrive, item.getObject().getBucketId(), item.getObject().getObjectName());
+                                                // File data_head = ((SimpleDrive) currentDrive).getObjectDataFile(
+                                                // item.getObject().getBucketId(), item.getObject().getObjectName());
+
+                                                ObjectPath path = new ObjectPath(currentDrive, item.getObject().getBucketId(),
+                                                        item.getObject().getObjectName());
                                                 File data_head = path.dataFilePath().toFile();
-                                                
+
                                                 if (data_head.exists()) {
                                                     ((SimpleDrive) newDrive).putObjectDataFile(item.getObject().getBucketId(),
                                                             item.getObject().getObjectName(), data_head);
@@ -472,16 +472,14 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
                                                                     item.getObject().getObjectName(), n, meta_version_n);
                                                             totalBytesMoved.getAndAdd(meta_version_n.length());
                                                         }
-                                                        
+
                                                         // move Data Version
                                                         File version_n = path.dataFileVersionPath(n).toFile();
-                                                        
-                                                        //File version_n = ((SimpleDrive) currentDrive).getObjectDataVersionFile(
-                                                        //        item.getObject().getBucketId(), item.getObject().getObjectName(),
-                                                        //       n);
-                                                        
-                                                        
-                                                        
+
+                                                        // File version_n = ((SimpleDrive) currentDrive).getObjectDataVersionFile(
+                                                        // item.getObject().getBucketId(), item.getObject().getObjectName(),
+                                                        // n);
+
                                                         if (version_n.exists()) {
                                                             ((SimpleDrive) newDrive).putObjectDataVersionFile(
                                                                     item.getObject().getBucketId(),

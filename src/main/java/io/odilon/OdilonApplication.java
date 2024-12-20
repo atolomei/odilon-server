@@ -111,10 +111,6 @@ public class OdilonApplication {
         initShutdownMessage();
     }
 
-    /**
-     *
-     *
-     */
     private void initShutdownMessage() {
         Runtime.getRuntime().addShutdownHook(new Thread() {
             public void run() {

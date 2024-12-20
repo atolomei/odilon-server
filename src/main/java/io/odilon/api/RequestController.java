@@ -25,7 +25,6 @@ import org.springframework.web.bind.annotation.RestController;
 import io.odilon.error.OdilonInternalErrorException;
 import io.odilon.error.OdilonObjectNotFoundException;
 import io.odilon.error.OdilonServerAPIException;
-import io.odilon.log.Logger;
 import io.odilon.monitor.SystemMonitorService;
 import io.odilon.net.ErrorCode;
 import io.odilon.scheduler.SchedulerService;
@@ -48,16 +47,13 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 @RequestMapping(value = "/servicerequest")
 public class RequestController extends BaseApiController {
 
-    @SuppressWarnings("unused")
-    static private Logger logger = Logger.getLogger(RequestController.class.getName());
-
     @Autowired
     private SchedulerService schedulerService;
 
     @Autowired
-    public RequestController(ObjectStorageService objectStorageService,
-            VirtualFileSystemService virtualFileSystemService, SystemMonitorService monitoringService,
-            TrafficControlService trafficControlService, SchedulerService schedulerService) {
+    public RequestController(ObjectStorageService objectStorageService, VirtualFileSystemService virtualFileSystemService,
+            SystemMonitorService monitoringService, TrafficControlService trafficControlService,
+            SchedulerService schedulerService) {
         super(objectStorageService, virtualFileSystemService, monitoringService, trafficControlService);
 
         this.schedulerService = schedulerService;
@@ -77,8 +73,7 @@ public class RequestController extends BaseApiController {
             pass = getTrafficControlService().getPass();
 
             if (name == null)
-                throw new OdilonObjectNotFoundException(ErrorCode.INTERNAL_ERROR,
-                        String.format("parameter request is null"));
+                throw new OdilonObjectNotFoundException(ErrorCode.INTERNAL_ERROR, String.format("parameter request is null"));
 
             name = TestServiceRequest.class.getName();
             ServiceRequest request = (ServiceRequest) getApplicationContext().getBean(TestServiceRequest.class);

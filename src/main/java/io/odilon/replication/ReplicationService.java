@@ -57,7 +57,6 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
- * 
  * <p>
  * Service that asynchronously propagates operations already completed (after
  * Commit) to the Standby server
@@ -341,8 +340,8 @@ public class ReplicationService extends BaseService implements ApplicationContex
                     + (System.currentTimeMillis() - start) + " ms -> " + opx.toString());
 
         logger.debug(opx.getOperationCode().getName() + " " + ((opx.getBucketId() != null) ? (" b:" + opx.getBucketId()) : "")
-                     + ((opx.getBucketName() != null) ? (" bn:" + opx.getBucketName()) : "")
-                     + ((opx.getObjectName() != null) ? (" o:" + opx.getObjectName()) : ""));
+                + ((opx.getBucketName() != null) ? (" bn:" + opx.getBucketName()) : "")
+                + ((opx.getObjectName() != null) ? (" o:" + opx.getObjectName()) : ""));
 
         switch (opx.getOperationCode()) {
 
@@ -516,7 +515,8 @@ public class ReplicationService extends BaseService implements ApplicationContex
                     ObjectMetadata meta = getVirtualFileSystemService().getObjectMetadata(bucket, opx.getObjectName());
                     try {
                         getClient().putObjectStream(bucket.getName(), opx.getObjectName(),
-                                getVirtualFileSystemService().getObjectStream(bucket.getName(), opx.getObjectName()),meta.getFileName());
+                                getVirtualFileSystemService().getObjectStream(bucket.getName(), opx.getObjectName()),
+                                meta.getFileName());
                         getMonitoringService().getReplicationObjectUpdateCounter().inc();
 
                     } catch (IOException e) {

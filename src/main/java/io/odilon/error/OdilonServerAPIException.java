@@ -31,147 +31,143 @@ import io.odilon.net.ErrorCode;
 import io.odilon.net.ODHttpStatus;
 
 /**
- * <p>Odilon Server Exception</p>
+ * <p>
+ * Odilon Server Exception
+ * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public class OdilonServerAPIException extends RuntimeException {
-				
-	private static final long serialVersionUID = 1L;
 
-	@SuppressWarnings("unused")
-	static private Logger logger = Logger.getLogger(OdilonServerAPIException.class.getName());
+    private static final long serialVersionUID = 1L;
 
-	static private ObjectMapper mapper = new ObjectMapper();
-	
-	static  {
-		mapper.registerModule(new JavaTimeModule());
-		mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-		mapper.registerModule(new Jdk8Module());
-	}
-	
-	/* odilon library internal error */
-	@JsonProperty("errorCode")
-	private int errorCode;
+    @SuppressWarnings("unused")
+    static private Logger logger = Logger.getLogger(OdilonServerAPIException.class.getName());
 
-	@JsonProperty("errorMessage")
-	private String errorMessage;
+    static private ObjectMapper mapper = new ObjectMapper();
 
-	/* http standard error */
-	@JsonProperty("httpStatus")
-	protected int httpStatus;
+    static {
+        mapper.registerModule(new JavaTimeModule());
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        mapper.registerModule(new Jdk8Module());
+    }
 
-	/* odilon library internal error */
-	@JsonProperty("context")
-	private Map<String, String> context = new HashMap<String, String>();
+    /* odilon library internal error */
+    @JsonProperty("errorCode")
+    private int errorCode;
 
-	public OdilonServerAPIException() {
-	}
-	
-	public OdilonServerAPIException(ODHttpStatus httpStatus, ErrorCode error) {
-		super(error.getMessage());
-		this.errorCode = error.getCode();
-		this.httpStatus = httpStatus.value();
-		this.errorMessage=super.getMessage();
-	}
-	
-	public OdilonServerAPIException(ODHttpStatus httpStatus, ErrorCode error, String... parameter) {
-		super(buildMessage(error.getMessage(), parameter));
-		this.errorCode = error.getCode();
-		this.httpStatus = httpStatus.value();
-		this.errorMessage=super.getMessage();
-	}
-		
-	public OdilonServerAPIException(OdilonErrorProxy proxy) {
-		super(proxy.getMessage());
-		
-		this.errorCode = proxy.getErrorCode();
-		this.httpStatus = proxy.getHttpStatus();
-		this.errorMessage = proxy.getMessage();
-		this.context = proxy.getContext();
-	}
-	
-	public int getHttpsStatus() {
-			return httpStatus;
-	}
-	
-	public int getErrorCode() {
-		return errorCode;
-	}
+    @JsonProperty("errorMessage")
+    private String errorMessage;
 
-	public void setErrorCode(int errorCode) {
-		this.errorCode = errorCode;
-	}
-	
-	public OdilonServerAPIException(String message) {
-		super(message);
-		this.errorMessage=super.getMessage();
-	}
+    /* http standard error */
+    @JsonProperty("httpStatus")
+    protected int httpStatus;
 
-	public OdilonServerAPIException(ODHttpStatus httpStatus, ErrorCode error, Exception e) {
-		super(buildMessage(e.getClass().getName()));
-		this.errorCode = error.getCode();
-		this.httpStatus = httpStatus.value();
-		this.errorMessage=super.getMessage();
-	}
+    /* odilon library internal error */
+    @JsonProperty("context")
+    private Map<String, String> context = new HashMap<String, String>();
 
-	public int getHttpStatus() {
-		return httpStatus;
-	}
+    public OdilonServerAPIException() {
+    }
 
-	public void setHttpStatus(int httpStatus) {
-		this.httpStatus = httpStatus;
-	}
+    public OdilonServerAPIException(ODHttpStatus httpStatus, ErrorCode error) {
+        super(error.getMessage());
+        this.errorCode = error.getCode();
+        this.httpStatus = httpStatus.value();
+        this.errorMessage = super.getMessage();
+    }
 
-		
-  @Override
-  public String toString() {
-			StringBuilder str = new StringBuilder();
-			str.append(this.getClass().getSimpleName());
-			str.append(" {");
-				str.append(toJSON());
-			str.append("}");
-			return str.toString();
-	}
-	  
-	public String toJSON() {
-		StringBuilder str  = new StringBuilder();
-		str.append("\"httpStatus\": "+ String.valueOf(httpStatus));
-		str.append(", \"errorCode\": " + String.valueOf(errorCode));
-		str.append(", \"errorMessage\": \"" + errorMessage + "\"");
-		str.append(", \"context\":" + 
-					(	    (getContext()!=null && !getContext().isEmpty()) ?
-							("{"+getContext().toString()+"}") :
-								"{}"
-					)
-				);
-		return str.toString();
-	}
-		
-	public static String buildMessage(String template, String... parameter) {
-			String message =  template;
-			for (int p=0; p<parameter.length; p++) {
-				 message = template.replace("%"+String.valueOf(p+1), parameter[p]!=null ? parameter[p] : "null");
-				template = message;
-			}
-			return message;
-	}
+    public OdilonServerAPIException(ODHttpStatus httpStatus, ErrorCode error, String... parameter) {
+        super(buildMessage(error.getMessage(), parameter));
+        this.errorCode = error.getCode();
+        this.httpStatus = httpStatus.value();
+        this.errorMessage = super.getMessage();
+    }
 
-	public void setContext(Map<String, String> context) {
-			this.context=context;
-	}
-		
-	public Map<String, String> getContext() {
-		return context;
-	}
-	
-	public String getErrorMessage() {
-		return errorMessage;
-	}
+    public OdilonServerAPIException(OdilonErrorProxy proxy) {
+        super(proxy.getMessage());
 
-	public void setErrorMessage(String errorMessage) {
-		this.errorMessage = errorMessage;
-	}
+        this.errorCode = proxy.getErrorCode();
+        this.httpStatus = proxy.getHttpStatus();
+        this.errorMessage = proxy.getMessage();
+        this.context = proxy.getContext();
+    }
 
-		
+    public int getHttpsStatus() {
+        return httpStatus;
+    }
+
+    public int getErrorCode() {
+        return errorCode;
+    }
+
+    public void setErrorCode(int errorCode) {
+        this.errorCode = errorCode;
+    }
+
+    public OdilonServerAPIException(String message) {
+        super(message);
+        this.errorMessage = super.getMessage();
+    }
+
+    public OdilonServerAPIException(ODHttpStatus httpStatus, ErrorCode error, Exception e) {
+        super(buildMessage(e.getClass().getName()));
+        this.errorCode = error.getCode();
+        this.httpStatus = httpStatus.value();
+        this.errorMessage = super.getMessage();
+    }
+
+    public int getHttpStatus() {
+        return httpStatus;
+    }
+
+    public void setHttpStatus(int httpStatus) {
+        this.httpStatus = httpStatus;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder str = new StringBuilder();
+        str.append(this.getClass().getSimpleName());
+        str.append(" {");
+        str.append(toJSON());
+        str.append("}");
+        return str.toString();
+    }
+
+    public String toJSON() {
+        StringBuilder str = new StringBuilder();
+        str.append("\"httpStatus\": " + String.valueOf(httpStatus));
+        str.append(", \"errorCode\": " + String.valueOf(errorCode));
+        str.append(", \"errorMessage\": \"" + errorMessage + "\"");
+        str.append(", \"context\":"
+                + ((getContext() != null && !getContext().isEmpty()) ? ("{" + getContext().toString() + "}") : "{}"));
+        return str.toString();
+    }
+
+    public static String buildMessage(String template, String... parameter) {
+        String message = template;
+        for (int p = 0; p < parameter.length; p++) {
+            message = template.replace("%" + String.valueOf(p + 1), parameter[p] != null ? parameter[p] : "null");
+            template = message;
+        }
+        return message;
+    }
+
+    public void setContext(Map<String, String> context) {
+        this.context = context;
+    }
+
+    public Map<String, String> getContext() {
+        return context;
+    }
+
+    public String getErrorMessage() {
+        return errorMessage;
+    }
+
+    public void setErrorMessage(String errorMessage) {
+        this.errorMessage = errorMessage;
+    }
+
 }

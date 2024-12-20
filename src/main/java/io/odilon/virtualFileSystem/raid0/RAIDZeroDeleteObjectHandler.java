@@ -36,7 +36,6 @@ import io.odilon.virtualFileSystem.ObjectPath;
 import io.odilon.virtualFileSystem.RAIDDeleteObjectHandler;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
-import io.odilon.virtualFileSystem.model.SimpleDrive;
 import io.odilon.virtualFileSystem.model.OperationCode;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
@@ -83,6 +82,14 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
             bucketReadLock(bucket);
 
             try {
+
+                /**
+                 * This check was executed by the VirtualFilySystemService, but it must be
+                 * executed also inside the critical zone.
+                 */
+                if (!existsCacheBucket(bucket.getName()))
+                    throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
+
                 if (!getDriver().exists(bucket, objectName))
                     throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
 
@@ -166,6 +173,13 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
 
             try {
 
+                /**
+                 * This check was executed by the VirtualFilySystemService, but it must be
+                 * executed also inside the critical zone.
+                 */
+                if (!existsCacheBucket(meta.getBucketId()))
+                    throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
+
                 if (!getDriver().getReadDrive(bucket, meta.getObjectName()).existsObjectMetadata(meta))
                     throw new OdilonObjectNotFoundException("object does not exist -> " + getDriver().objectInfo(meta));
 
@@ -244,29 +258,34 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
     }
 
     /**
+     * <p>
+     * This method is not Thread Safe, the caller object must get required locks
+     * </p>
      * 
      */
     @Override
-    public void rollbackJournal(VirtualFileSystemOperation op, boolean recoveryMode) {
+    public void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
 
-        Check.requireNonNullArgument(op, "op is null");
+        Check.requireNonNullArgument(operation, "op is null");
 
         /** also checked by the calling driver */
-        Check.requireTrue(op.getOperationCode() == OperationCode.DELETE_OBJECT || op.getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS,
-                VirtualFileSystemOperation.class.getName() + " invalid -> op: " + op.getOperationCode().getName());
+        Check.requireTrue(
+                operation.getOperationCode() == OperationCode.DELETE_OBJECT
+                        || operation.getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS,
+                VirtualFileSystemOperation.class.getName() + " invalid -> op: " + operation.getOperationCode().getName());
 
-        String objectName = op.getObjectName();
+        String objectName = operation.getObjectName();
 
-        Check.requireNonNullArgument(op.getBucketId(), "bucketId is null");
-        Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + op.getBucketId().toString());
+        Check.requireNonNullArgument(operation.getBucketId(), "bucketId is null");
+        Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + operation.getBucketId().toString());
 
         boolean done = false;
 
-        ServerBucket bucket = getBucketCache().get(op.getBucketId());
+        ServerBucket bucket = getBucketCache().get(operation.getBucketId());
 
         try {
             if (isStandByEnabled())
-                getReplicationService().cancel(op);
+                getReplicationService().cancel(operation);
 
             /**
              * Rollback is the same for both operations ->
@@ -274,10 +293,10 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
              * DELETE_OBJECT and DELETE_OBJECT_PREVIOUS_VERSIONS
              * 
              */
-            if (op.getOperationCode() == OperationCode.DELETE_OBJECT)
+            if (operation.getOperationCode() == OperationCode.DELETE_OBJECT)
                 restoreMetadata(bucket, objectName);
 
-            else if (op.getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS)
+            else if (operation.getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS)
                 restoreMetadata(bucket, objectName);
 
             done = true;
@@ -286,16 +305,16 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
             if (!recoveryMode)
                 throw (e);
             else
-                logger.error(opInfo(op), SharedConstant.NOT_THROWN);
+                logger.error(opInfo(operation), SharedConstant.NOT_THROWN);
 
         } catch (Exception e) {
             if (!recoveryMode)
-                throw new InternalCriticalException(e, opInfo(op));
+                throw new InternalCriticalException(e, opInfo(operation));
             else
-                logger.error(opInfo(op), SharedConstant.NOT_THROWN);
+                logger.error(opInfo(operation), SharedConstant.NOT_THROWN);
         } finally {
             if (done || recoveryMode)
-                op.cancel();
+                operation.cancel();
         }
     }
 
@@ -377,18 +396,20 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
         String objectName = meta.getObjectName();
         Long bucketId = meta.getBucketId();
 
-        ObjectPath path = new ObjectPath( getWriteDrive(bucket, objectName), bucketId, objectName);
-        
+        ObjectPath path = new ObjectPath(getWriteDrive(bucket, objectName), bucketId, objectName);
+
         try {
             /** delete data versions(1..n-1). keep headVersion **/
             for (int n = 0; n < headVersion; n++) {
-                File file =path.dataFileVersionPath(n).toFile();
-                FileUtils.deleteQuietly(file );
-                // FileUtils.deleteQuietly(((SimpleDrive) getWriteDrive(bucket, objectName)).getObjectDataVersionFile(bucketId, objectName, n));
+                File file = path.dataFileVersionPath(n).toFile();
+                FileUtils.deleteQuietly(file);
+                // FileUtils.deleteQuietly(((SimpleDrive) getWriteDrive(bucket,
+                // objectName)).getObjectDataVersionFile(bucketId, objectName, n));
             }
-            
+
             /** delete backup Metadata */
-            FileUtils.deleteQuietly(new File(getDriver().getWriteDrive(bucket, objectName).getBucketWorkDirPath(bucket) + File.separator + objectName));
+            FileUtils.deleteQuietly(new File(
+                    getDriver().getWriteDrive(bucket, objectName).getBucketWorkDirPath(bucket) + File.separator + objectName));
 
         } catch (Exception e) {
             logger.error(e, objectInfo(meta), SharedConstant.NOT_THROWN);
@@ -411,28 +432,29 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
 
         Long bucketId = meta.getBucketId();
         String objectName = meta.getObjectName();
-        
-        ObjectPath path = new ObjectPath( getWriteDrive(bucket, objectName), bucketId, objectName);
-        
-        
+
+        ObjectPath path = new ObjectPath(getWriteDrive(bucket, objectName), bucketId, objectName);
+
         /** delete data versions(1..n-1) **/
         for (int version = 0; version <= headVersion; version++) {
-            FileUtils.deleteQuietly( path.dataFileVersionPath(version).toFile());
-            // FileUtils.deleteQuietly(((SimpleDrive) getWriteDrive(bucket, objectName)).getObjectDataVersionFile(bucketId, objectName, n));
+            FileUtils.deleteQuietly(path.dataFileVersionPath(version).toFile());
+            // FileUtils.deleteQuietly(((SimpleDrive) getWriteDrive(bucket,
+            // objectName)).getObjectDataVersionFile(bucketId, objectName, n));
         }
-        
+
         /** delete metadata (head) */
         /** not required because it was done before commit */
 
         /** delete data (head) */
-        //ObjectPath path = new ObjectPath( getWriteDrive(bucket, objectName), bucketId, objectName);
+        // ObjectPath path = new ObjectPath( getWriteDrive(bucket, objectName),
+        // bucketId, objectName);
         File file = path.dataFilePath().toFile();
         FileUtils.deleteQuietly(file);
-        // FileUtils.deleteQuietly(((SimpleDrive) getWriteDrive(bucket, objectName)).getObjectDataFile(bucketId, objectName));
+        // FileUtils.deleteQuietly(((SimpleDrive) getWriteDrive(bucket,
+        // objectName)).getObjectDataFile(bucketId, objectName));
 
         /** delete backup Metadata */
-        FileUtils.deleteQuietly(
-                new File(getDriver().getWriteDrive(bucket, objectName).getBucketWorkDirPath(bucket) + File.separator + objectName));
+        FileUtils.deleteQuietly(new File(getDriver().getWriteDrive(bucket, objectName).getBucketWorkDirPath(bucket) + File.separator + objectName));
     }
 
     /**
@@ -488,20 +510,21 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
      * if the system crashes those temp files will be removed on system startup
      * </p>
      */
-    private void onAfterCommit(VirtualFileSystemOperation op, ObjectMetadata meta, int headVersion) {
+    private void onAfterCommit(VirtualFileSystemOperation operation, ObjectMetadata meta, int headVersion) {
 
-        if ((op == null) || (meta == null)) {
+        if ((operation == null) || (meta == null)) {
             logger.error("op or meta is null, should not happen", SharedConstant.NOT_THROWN);
             return;
         }
 
         try {
-            if (op.getOperationCode() == OperationCode.DELETE_OBJECT || op.getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS)
+            if (operation.getOperationCode() == OperationCode.DELETE_OBJECT
+                    || operation.getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS)
                 getVirtualFileSystemService().getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext()
-                        .getBean(AfterDeleteObjectServiceRequest.class, op.getOperationCode(), meta, headVersion));
+                        .getBean(AfterDeleteObjectServiceRequest.class, operation.getOperationCode(), meta, headVersion));
 
         } catch (Exception e) {
-            logger.error(e, opInfo(op), SharedConstant.NOT_THROWN);
+            logger.error(e, opInfo(operation), SharedConstant.NOT_THROWN);
         }
     }
 }

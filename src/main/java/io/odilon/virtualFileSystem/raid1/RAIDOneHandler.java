@@ -26,39 +26,40 @@ import io.odilon.virtualFileSystem.model.LockService;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
- * <p>Base class for all RAID 1 handlers</p>
+ * <p>
+ * Base class for all RAID 1 handlers
+ * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @ThreadSafe
 public abstract class RAIDOneHandler extends BaseRAIDHandler implements RAIDHandler {
-	
-	private final RAIDOneDriver driver;
-	
-	protected abstract void rollbackJournal(VirtualFileSystemOperation op, boolean recoveryMode);
-	
-	
-	public RAIDOneHandler(RAIDOneDriver driver) {
-		this.driver=driver;
-	}
 
-	public RAIDOneDriver getDriver() {
-		return this.driver;
-	}
+    private final RAIDOneDriver driver;
 
-	public JournalService getJournalService() {
-		return this.driver.getJournalService();
-	}
+    protected abstract void rollbackJournal(VirtualFileSystemOperation op, boolean recoveryMode);
 
-	public LockService getLockService() {
-		return this.driver.getLockService();
-	}
-	
-	protected boolean isEncrypt() {
-		return this.driver.isEncrypt();
-	}
-	
-	public RedundancyLevel getRedundancyLevel() {
-		return this.driver.getRedundancyLevel(); 
-	}
+    public RAIDOneHandler(RAIDOneDriver driver) {
+        this.driver = driver;
+    }
+
+    public RAIDOneDriver getDriver() {
+        return this.driver;
+    }
+
+    public JournalService getJournalService() {
+        return this.driver.getJournalService();
+    }
+
+    public LockService getLockService() {
+        return this.driver.getLockService();
+    }
+
+    protected boolean isEncrypt() {
+        return this.driver.isEncrypt();
+    }
+
+    public RedundancyLevel getRedundancyLevel() {
+        return this.driver.getRedundancyLevel();
+    }
 }

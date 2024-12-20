@@ -75,9 +75,6 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
         Check.requireNonNullArgument(bucket.getId(), "bucketId is null");
         Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 
-        if (!getDriver().exists(bucket, objectName))
-            throw new OdilonObjectNotFoundException("object does not exist -> b:" + bucket.getName() + " o:" + objectName);
-
         VirtualFileSystemOperation op = null;
         boolean done = false;
         int headVersion = -1;
@@ -85,9 +82,17 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
 
         objectWriteLock(bucket, objectName);
         try {
-
             bucketReadLock(bucket);
             try {
+                /**
+                 * This check was executed by the VirtualFilySystemService, but it must be
+                 * executed also inside the critical zone.
+                 */
+                if (!existsCacheBucket(bucket.getName()))
+                    throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
+
+                if (!getDriver().exists(bucket, objectName))
+                    throw new OdilonObjectNotFoundException("object does not exist -> b:" + objectInfo(bucket, objectName));
 
                 meta = getDriver().getReadDrive(bucket, objectName).getObjectMetadata(bucket, objectName);
                 headVersion = meta.getVersion();
@@ -216,8 +221,13 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
             bucketReadLock(meta.getBucketId());
 
             try {
+
+                /**
+                 * This check was executed by the VirtualFilySystemService, but it must be
+                 * executed also inside the critical zone.
+                 */
                 if (!existsCacheBucket(meta.getBucketId()))
-                    throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
+                    throw new IllegalArgumentException("bucket does not exist -> " + meta.getBucketId().toString());
 
                 bucket = getCacheBucket(meta.getBucketId());
 
@@ -277,24 +287,24 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
                 }
             }
         } finally {
-            // getLockService().getObjectLock(meta.getBucketId(),
-            // meta.objectName).writeLock().unlock();
-            objectWriteUnLock(bucket, objectName);
+            objectWriteUnLock(meta.getBucketId(), objectName);
         }
 
         if (done)
             onAfterCommit(op, meta, headVersion);
     }
 
-    protected void rollbackJournal(VirtualFileSystemOperation op, boolean recoveryMode) {
+    protected void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
 
         /** checked by the calling driver */
-        Check.requireNonNullArgument(op, "op is null");
-        Check.requireTrue(op.getOperationCode() == OperationCode.DELETE_OBJECT || op.getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS,
-                "VFSOperation invalid -> op: " + op.getOperationCode().getName());
+        Check.requireNonNullArgument(operation, "op is null");
+        Check.requireTrue(
+                operation.getOperationCode() == OperationCode.DELETE_OBJECT
+                        || operation.getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS,
+                "VFSOperation invalid -> op: " + operation.getOperationCode().getName());
 
-        String objectName = op.getObjectName();
-        Long bucketId = op.getBucketId();
+        String objectName = operation.getObjectName();
+        Long bucketId = operation.getBucketId();
 
         Check.requireNonNullArgument(bucketId, "bucketId is null");
         Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketId.toString());
@@ -304,15 +314,15 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
         try {
 
             if (getServerSettings().isStandByEnabled())
-                getReplicationService().cancel(op);
+                getReplicationService().cancel(operation);
 
-            ServerBucket bucket = getCacheBucket(op.getBucketId());
+            ServerBucket bucket = getCacheBucket(operation.getBucketId());
 
             /** rollback is the same for both operations */
-            if (op.getOperationCode() == OperationCode.DELETE_OBJECT)
+            if (operation.getOperationCode() == OperationCode.DELETE_OBJECT)
                 restoreMetadata(bucket, objectName);
 
-            else if (op.getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS)
+            else if (operation.getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS)
                 restoreMetadata(bucket, objectName);
 
             done = true;
@@ -321,16 +331,16 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
             if (!recoveryMode)
                 throw (e);
             else
-                logger.error(opInfo(op), SharedConstant.NOT_THROWN);
+                logger.error(opInfo(operation), SharedConstant.NOT_THROWN);
         } catch (Exception e) {
             if (!recoveryMode)
-                throw new InternalCriticalException(e, opInfo(op));
+                throw new InternalCriticalException(e, opInfo(operation));
             else
-                logger.error(opInfo(op), SharedConstant.NOT_THROWN);
+                logger.error(opInfo(operation), SharedConstant.NOT_THROWN);
 
         } finally {
             if (done || recoveryMode)
-                op.cancel();
+                operation.cancel();
         }
     }
 
@@ -464,7 +474,8 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
      */
     private void onAfterCommit(VirtualFileSystemOperation op, ObjectMetadata meta, int headVersion) {
         try {
-            if (op.getOperationCode() == OperationCode.DELETE_OBJECT || op.getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS)
+            if (op.getOperationCode() == OperationCode.DELETE_OBJECT
+                    || op.getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS)
                 getVirtualFileSystemService().getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext()
                         .getBean(AfterDeleteObjectServiceRequest.class, op.getOperationCode(), meta, headVersion));
         } catch (Exception e) {

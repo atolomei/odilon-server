@@ -43,9 +43,8 @@ public class ShutdownController extends BaseApiController {
     static private Logger logger = Logger.getLogger(ShutdownController.class.getName());
 
     @Autowired
-    public ShutdownController(ObjectStorageService objectStorageService,
-            VirtualFileSystemService virtualFileSystemService, SystemMonitorService monitoringService,
-            TrafficControlService trafficControlService) {
+    public ShutdownController(ObjectStorageService objectStorageService, VirtualFileSystemService virtualFileSystemService,
+            SystemMonitorService monitoringService, TrafficControlService trafficControlService) {
         super(objectStorageService, virtualFileSystemService, monitoringService, trafficControlService);
     }
 

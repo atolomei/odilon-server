@@ -25,16 +25,10 @@ import org.springframework.context.ApplicationListener;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.PropertiesPropertySource;
 
-import io.odilon.log.Logger;
-
 /**
- * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public class OdilonPropertiesListener implements ApplicationListener<ApplicationEnvironmentPreparedEvent> {
-
-    @SuppressWarnings("unused")
-    static private Logger logger = Logger.getLogger(OdilonPropertiesListener.class.getName());
 
     @Override
     public void onApplicationEvent(ApplicationEnvironmentPreparedEvent event) {

@@ -65,6 +65,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
     protected RAIDZeroCreateObjectHandler(RAIDZeroDriver driver) {
         super(driver);
     }
+
     /**
      * <p>
      * The procedure is the same whether version control is enabled or not
@@ -90,15 +91,18 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
         boolean isMainException = false;
 
         objectWriteLock(bucket, objectName);
-
         try {
-
-            if (existsMetadata(bucket, objectName)) {
-                logger.debug("Object already exist -> " + objectInfo(bucket, objectName));
-                throw new IllegalArgumentException("Object already exist -> " + objectInfo(bucket, objectName));
-            }
-
             bucketReadLock(bucket);
+
+            /**
+             * This check was executed by the VirtualFilySystemService, but it must be
+             * executed also inside the critical zone.
+             */
+            if (!existsCacheBucket(bucket.getName()))
+                throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
+
+            if (existsMetadata(bucket, objectName))
+                throw new IllegalArgumentException("Object already exist -> " + objectInfo(bucket, objectName));
 
             try (stream) {
 
@@ -117,7 +121,6 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
             } catch (Exception e) {
                 done = false;
                 isMainException = true;
-                logger.debug(e, objectInfo(bucket, objectName, srcFileName));
                 throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
             } finally {
                 try {
@@ -157,7 +160,8 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
     protected void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
 
         Check.requireNonNullArgument(operation, "operation is null");
-        Check.checkTrue(operation.getOperationCode() == OperationCode.CREATE_OBJECT, "Invalid op ->  " + operation.getOperationCode().getName());
+        Check.checkTrue(operation.getOperationCode() == OperationCode.CREATE_OBJECT,
+                "Invalid op ->  " + operation.getOperationCode().getName());
 
         logger.debug(opInfo(operation));
 
@@ -274,9 +278,6 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
     }
 
     private boolean existsMetadata(ServerBucket bucket, String objectName) {
-        
-        
         return getDriver().getWriteDrive(bucket, objectName).existsObjectMetadata(bucket, objectName);
     }
-
 }

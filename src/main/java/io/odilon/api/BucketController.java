@@ -71,9 +71,8 @@ public class BucketController extends BaseApiController {
     static private Logger logger = Logger.getLogger(BucketController.class.getName());
 
     @Autowired
-    public BucketController(ObjectStorageService objectStorageService,
-            VirtualFileSystemService virtualFileSystemService, SystemMonitorService monitoringService,
-            TrafficControlService trafficControlService) {
+    public BucketController(ObjectStorageService objectStorageService, VirtualFileSystemService virtualFileSystemService,
+            SystemMonitorService monitoringService, TrafficControlService trafficControlService) {
         super(objectStorageService, virtualFileSystemService, monitoringService, trafficControlService);
     }
 
@@ -113,8 +112,7 @@ public class BucketController extends BaseApiController {
     @RequestMapping(value = "/objects/{name}", produces = "application/json", method = RequestMethod.GET)
     public ResponseEntity<DataList<Item<ObjectMetadata>>> queryObjects(@PathVariable("name") String bucketName,
             @RequestParam("offset") Optional<Long> offset, @RequestParam("pageSize") Optional<Integer> pageSize,
-            @RequestParam("prefix") Optional<String> prefix,
-            @RequestParam("serverAgentId") Optional<String> serverAgentId) {
+            @RequestParam("prefix") Optional<String> prefix, @RequestParam("serverAgentId") Optional<String> serverAgentId) {
 
         TrafficPass pass = null;
 
@@ -122,8 +120,8 @@ public class BucketController extends BaseApiController {
 
             pass = getTrafficControlService().getPass();
 
-            DataList<Item<ObjectMetadata>> result = getObjectStorageService().listObjects(bucketName, offset, pageSize,
-                    prefix, serverAgentId);
+            DataList<Item<ObjectMetadata>> result = getObjectStorageService().listObjects(bucketName, offset, pageSize, prefix,
+                    serverAgentId);
             return new ResponseEntity<DataList<Item<ObjectMetadata>>>(result, HttpStatus.OK);
 
         } catch (OdilonInternalErrorException e) {
@@ -184,8 +182,8 @@ public class BucketController extends BaseApiController {
 
         try {
             pass = getTrafficControlService().getPass();
-            return new ResponseEntity<Boolean>(
-                    Boolean.valueOf(getObjectStorageService().existsBucket(name) ? true : false), HttpStatus.OK);
+            return new ResponseEntity<Boolean>(Boolean.valueOf(getObjectStorageService().existsBucket(name) ? true : false),
+                    HttpStatus.OK);
 
         } catch (OdilonServerAPIException e) {
             throw e;
@@ -214,8 +212,8 @@ public class BucketController extends BaseApiController {
                 throw new OdilonObjectNotFoundException(ErrorCode.BUCKET_NOT_EXISTS,
                         String.format("bucket does not exist -> %s", name));
 
-            return new ResponseEntity<Boolean>(
-                    Boolean.valueOf(getObjectStorageService().isEmptyBucket(name) ? true : false), HttpStatus.OK);
+            return new ResponseEntity<Boolean>(Boolean.valueOf(getObjectStorageService().isEmptyBucket(name) ? true : false),
+                    HttpStatus.OK);
 
         } catch (OdilonServerAPIException e) {
             throw e;
@@ -280,8 +278,8 @@ public class BucketController extends BaseApiController {
                         String.format("bucket does not exist -> %s", name));
 
             if (getObjectStorageService().existsBucket(newname)) {
-                throw new OdilonServerAPIException(ODHttpStatus.CONFLICT, ErrorCode.OBJECT_ALREADY_EXIST, String
-                        .format("new bucket name already exist -> %s", Optional.ofNullable(newname).orElse("null")));
+                throw new OdilonServerAPIException(ODHttpStatus.CONFLICT, ErrorCode.OBJECT_ALREADY_EXIST,
+                        String.format("new bucket name already exist -> %s", Optional.ofNullable(newname).orElse("null")));
             }
 
             bucket = getObjectStorageService().updateBucketName(bucket, newname);

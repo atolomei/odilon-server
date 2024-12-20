@@ -91,18 +91,16 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
         VirtualFileSystemOperation op = null;
 
         objectWriteLock(bucket, objectName);
-
         try {
-
             bucketReadLock(bucket);
 
-            if (!existsCacheBucket(bucket.getId()))
+            if (!existsCacheBucket(bucket))
                 throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
 
-            try (stream) {
+            if (!existsMetadata(bucket, objectName))
+                throw new IllegalArgumentException("Object does not exist -> " + objectInfo(bucket, objectName, srcFileName));
 
-                if (!existsMetadata(bucket, objectName))
-                    throw new IllegalArgumentException("Object does not exist -> " + objectInfo(bucket, objectName, srcFileName));
+            try (stream) {
 
                 ObjectMetadata meta = getDriver().getObjectMetadataInternal(bucket, objectName, false);
 
@@ -172,13 +170,10 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
         VirtualFileSystemOperation op = null;
 
         objectWriteLock(bucket, objectName);
-
         try {
             bucketReadLock(bucket);
-
             try {
-
-                if (!existsCacheBucket(bucket.getId()))
+                if (!existsCacheBucket(bucket))
                     throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
 
                 ObjectMetadata meta = getDriver().getObjectMetadataInternal(bucket, objectName, false);
@@ -257,7 +252,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
                                 FileUtils.deleteQuietly(getDriver().getWriteDrive(bucket, objectName)
                                         .getObjectMetadataVersionFile(bucket, objectName, beforeHeadVersion));
                                 ObjectPath path = new ObjectPath(getDriver().getWriteDrive(bucket, objectName), bucket, objectName);
-                                FileUtils.deleteQuietly( path.dataFileVersionPath(beforeHeadVersion).toFile() );
+                                FileUtils.deleteQuietly(path.dataFileVersionPath(beforeHeadVersion).toFile());
                             } catch (Exception e) {
                                 logger.error(e, SharedConstant.NOT_THROWN);
                             }
@@ -366,8 +361,11 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
     protected void rollbackJournal(VirtualFileSystemOperation op, boolean recoveryMode) {
 
         Check.requireNonNullArgument(op, "op is null");
-        Check.requireTrue((op.getOperationCode() == OperationCode.UPDATE_OBJECT || op.getOperationCode() == OperationCode.UPDATE_OBJECT_METADATA
-                || op.getOperationCode() == OperationCode.RESTORE_OBJECT_PREVIOUS_VERSION), "invalid state ->  op: " + opInfo(op));
+        Check.requireTrue(
+                (op.getOperationCode() == OperationCode.UPDATE_OBJECT
+                        || op.getOperationCode() == OperationCode.UPDATE_OBJECT_METADATA
+                        || op.getOperationCode() == OperationCode.RESTORE_OBJECT_PREVIOUS_VERSION),
+                "invalid state ->  op: " + opInfo(op));
 
         switch (op.getOperationCode()) {
         case UPDATE_OBJECT: {
@@ -606,7 +604,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
             Drive drive = getWriteDrive(bucket, objectName);
             ObjectPath path = new ObjectPath(drive, bucket, objectName);
             File file = path.dataFileVersionPath(version).toFile();
-            
+
             if (file.exists()) {
                 ((SimpleDrive) drive).putObjectDataFile(bucket.getId(), objectName, file);
                 FileUtils.deleteQuietly(file);
@@ -679,7 +677,8 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
      * @param previousVersion >=0
      * @param currentVersion  >0
      */
-    private void cleanUpUpdate(VirtualFileSystemOperation op, ServerBucket bucket, String objectName, int previousVersion, int currentVersion) {
+    private void cleanUpUpdate(VirtualFileSystemOperation op, ServerBucket bucket, String objectName, int previousVersion,
+            int currentVersion) {
 
         if (op == null)
             return;
@@ -687,10 +686,11 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
         try {
             if (!getServerSettings().isVersionControl()) {
 
-                FileUtils.deleteQuietly(getDriver().getWriteDrive(bucket, objectName).getObjectMetadataVersionFile(bucket, objectName, previousVersion));
+                FileUtils.deleteQuietly(getDriver().getWriteDrive(bucket, objectName).getObjectMetadataVersionFile(bucket,
+                        objectName, previousVersion));
 
                 ObjectPath path = new ObjectPath(getDriver().getWriteDrive(bucket, objectName), bucket, objectName);
-                FileUtils.deleteQuietly( path.dataFileVersionPath(previousVersion).toFile());
+                FileUtils.deleteQuietly(path.dataFileVersionPath(previousVersion).toFile());
             }
         } catch (Exception e) {
             logger.error(e, SharedConstant.NOT_THROWN);
