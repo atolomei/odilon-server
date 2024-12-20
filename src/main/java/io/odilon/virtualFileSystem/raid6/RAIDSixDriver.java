@@ -423,7 +423,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
         try {
 
             if (getServerSettings().isStandByEnabled())
-                getVirtualFileSystemService().getReplicationService().cancel(op);
+                getReplicationService().cancel(op);
 
             if (op.getOp() == VFSOp.CREATE_BUCKET) {
 
@@ -563,13 +563,22 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 
             try {
 
-                /** read is from only one of the drive (randomly selected) drive */
-                Drive readDrive = getObjectMetadataReadDrive(bucket, objectName);
 
-                if (!readDrive.existsBucketById(bucket.getId()))
-                    throw new IllegalArgumentException(
-                            "bucket control folder -> b:" + bucket.getName() + " does not exist for drive -> d:"
-                                    + readDrive.getName() + " | RAID -> " + this.getClass().getSimpleName());
+                /**
+                 * This check was executed by the VirtualFilySystemService, but it must be
+                 * executed also inside the critical zone.
+                 */
+                if (!existsCacheBucket(bucket.getName()))
+                    throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
+
+                
+                /** read is from only one of the drive (randomly selected) drive */
+                //Drive readDrive = getObjectMetadataReadDrive(bucket, objectName);
+
+                //if (!readDrive.existsBucketById(bucket.getId()))
+                //    throw new IllegalArgumentException(
+                //            "bucket control folder -> b:" + bucket.getName() + " does not exist for drive -> d:"
+                //                    + readDrive.getName() + " | RAID -> " + this.getClass().getSimpleName());
 
                 if (!exists(bucket, objectName))
                     throw new IllegalArgumentException("object does not exists for ->  " + objectInfo(bucket, objectName) + " | "
@@ -663,12 +672,21 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
             getLockService().getBucketLock(bucket).readLock().lock();
 
             try {
+                
+                /**
+                 * This check was executed by the VirtualFilySystemService, but it must be
+                 * executed also inside the critical zone.
+                 */
+                if (!existsCacheBucket(bucket.getName()))
+                    throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
+
+                
                 /** read is from only 1 drive */
                 readDrive = getObjectMetadataReadDrive(bucket, objectName);
 
-                if (!readDrive.existsBucketById(bucket.getId()))
-                    throw new IllegalStateException("bucket -> b:" + bucket.getName() + " does not exist for -> d:"
-                            + readDrive.getName() + " | raid -> " + this.getClass().getSimpleName());
+                //if (!readDrive.existsBucketById(bucket.getId()))
+                //    throw new IllegalStateException("bucket -> b:" + bucket.getName() + " does not exist for -> d:"
+                //            + readDrive.getName() + " | raid -> " + this.getClass().getSimpleName());
 
                 ObjectMetadata meta = getObjectMetadataInternal(bucket, objectName, true);
                 meta.setBucketName(bucket.getName());
@@ -872,9 +890,9 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
                 /** read is from only 1 drive */
                 readDrive = getObjectMetadataReadDrive(bucket, objectName);
 
-                if (!readDrive.existsBucketById(bucket.getId()))
-                    throw new IllegalArgumentException("b:" + bucket.getName() + " does not exist for -> d:" + readDrive.getName()
-                            + " | raid -> " + this.getClass().getSimpleName());
+                //if (!readDrive.existsBucketById(bucket.getId()))
+                 //   throw new IllegalArgumentException("b:" + bucket.getName() + " does not exist for -> d:" + readDrive.getName()
+                 //           + " | raid -> " + this.getClass().getSimpleName());
 
                 if (!exists(bucket, objectName))
                     throw new IllegalArgumentException(
@@ -955,8 +973,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 
         int totalBlocks = meta.getSha256Blocks().size();
 
-        int totalDisks = getServerSettings().getRAID6DataDrives()
-                + getVirtualFileSystemService().getServerSettings().getRAID6ParityDrives();
+        int totalDisks = getServerSettings().getRAID6DataDrives() + getServerSettings().getRAID6ParityDrives();
         Check.checkTrue(totalDisks > 0, "total disks must be greater than zero");
 
         int chunks = totalBlocks / totalDisks;
