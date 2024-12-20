@@ -43,7 +43,7 @@ import io.odilon.virtualFileSystem.OdilonVirtualFileSystemOperation;
 import io.odilon.virtualFileSystem.model.IODriver;
 import io.odilon.virtualFileSystem.model.LockService;
 import io.odilon.virtualFileSystem.model.ServerBucket;
-import io.odilon.virtualFileSystem.model.VFSOp;
+import io.odilon.virtualFileSystem.model.OperationCode;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
@@ -243,7 +243,7 @@ public class StandByInitialSync implements Runnable {
                                                 VirtualFileSystemOperation op = new OdilonVirtualFileSystemOperation(
                                                         getDriver().getVirtualFileSystemService().getJournalService()
                                                                 .newOperationId(),
-                                                        VFSOp.CREATE_OBJECT, 
+                                                        OperationCode.CREATE_OBJECT, 
                                                         Optional.of(item.getObject().getBucketId()),
                                                         Optional.of(item.getObject().getBucketName()), // TODO AT VER
                                                         Optional.of(item.getObject().getObjectName()),

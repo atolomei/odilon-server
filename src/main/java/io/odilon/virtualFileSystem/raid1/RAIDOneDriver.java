@@ -59,7 +59,7 @@ import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.LockService;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.SimpleDrive;
-import io.odilon.virtualFileSystem.model.VFSOp;
+import io.odilon.virtualFileSystem.model.OperationCode;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemObject;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
@@ -727,25 +727,25 @@ public class RAIDOneDriver extends BaseIODriver {
 
         Check.requireNonNullArgument(op, "VFSOperation is null");
 
-        if (op.getOp() == VFSOp.CREATE_OBJECT) {
+        if (op.getOperationCode() == OperationCode.CREATE_OBJECT) {
             RAIDOneCreateObjectHandler handler = new RAIDOneCreateObjectHandler(this);
             handler.rollbackJournal(op, recoveryMode);
             return;
-        } else if (op.getOp() == VFSOp.UPDATE_OBJECT) {
+        } else if (op.getOperationCode() == OperationCode.UPDATE_OBJECT) {
             RAIDOneUpdateObjectHandler handler = new RAIDOneUpdateObjectHandler(this);
             handler.rollbackJournal(op, recoveryMode);
             return;
-        } else if (op.getOp() == VFSOp.DELETE_OBJECT) {
+        } else if (op.getOperationCode() == OperationCode.DELETE_OBJECT) {
             RAIDOneDeleteObjectHandler handler = new RAIDOneDeleteObjectHandler(this);
             handler.rollbackJournal(op, recoveryMode);
             return;
         }
 
-        else if (op.getOp() == VFSOp.DELETE_OBJECT_PREVIOUS_VERSIONS) {
+        else if (op.getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS) {
             RAIDOneDeleteObjectHandler handler = new RAIDOneDeleteObjectHandler(this);
             handler.rollbackJournal(op, recoveryMode);
             return;
-        } else if (op.getOp() == VFSOp.UPDATE_OBJECT_METADATA) {
+        } else if (op.getOperationCode() == OperationCode.UPDATE_OBJECT_METADATA) {
             RAIDOneUpdateObjectHandler handler = new RAIDOneUpdateObjectHandler(this);
             handler.rollbackJournal(op, recoveryMode);
             return;
@@ -758,27 +758,27 @@ public class RAIDOneDriver extends BaseIODriver {
             if (getServerSettings().isStandByEnabled())
                 getVirtualFileSystemService().getReplicationService().cancel(op);
 
-            if (op.getOp() == VFSOp.CREATE_BUCKET) {
+            if (op.getOperationCode() == OperationCode.CREATE_BUCKET) {
 
                 done = generalRollbackJournal(op);
 
-            } else if (op.getOp() == VFSOp.DELETE_BUCKET) {
+            } else if (op.getOperationCode() == OperationCode.DELETE_BUCKET) {
 
                 done = generalRollbackJournal(op);
 
-            } else if (op.getOp() == VFSOp.UPDATE_BUCKET) {
+            } else if (op.getOperationCode() == OperationCode.UPDATE_BUCKET) {
 
                 done = generalRollbackJournal(op);
             }
-            if (op.getOp() == VFSOp.CREATE_SERVER_MASTERKEY) {
+            if (op.getOperationCode() == OperationCode.CREATE_SERVER_MASTERKEY) {
 
                 done = generalRollbackJournal(op);
 
-            } else if (op.getOp() == VFSOp.CREATE_SERVER_METADATA) {
+            } else if (op.getOperationCode() == OperationCode.CREATE_SERVER_METADATA) {
 
                 done = generalRollbackJournal(op);
 
-            } else if (op.getOp() == VFSOp.UPDATE_SERVER_METADATA) {
+            } else if (op.getOperationCode() == OperationCode.UPDATE_SERVER_METADATA) {
 
                 done = generalRollbackJournal(op);
             }

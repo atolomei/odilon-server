@@ -51,7 +51,7 @@ import io.odilon.virtualFileSystem.ObjectPath;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.SimpleDrive;
-import io.odilon.virtualFileSystem.model.VFSOp;
+import io.odilon.virtualFileSystem.model.OperationCode;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
@@ -347,17 +347,17 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 
         Check.requireNonNullArgument(op, "op is null");
         Check.requireTrue(
-                (op.getOp() == VFSOp.UPDATE_OBJECT || op.getOp() == VFSOp.UPDATE_OBJECT_METADATA
-                        || op.getOp() == VFSOp.RESTORE_OBJECT_PREVIOUS_VERSION),
-                VirtualFileSystemOperation.class.getSimpleName() + " can not be  ->  op: " + op.getOp().getName());
+                (op.getOperationCode() == OperationCode.UPDATE_OBJECT || op.getOperationCode() == OperationCode.UPDATE_OBJECT_METADATA
+                        || op.getOperationCode() == OperationCode.RESTORE_OBJECT_PREVIOUS_VERSION),
+                VirtualFileSystemOperation.class.getSimpleName() + " can not be  ->  op: " + op.getOperationCode().getName());
 
-        if (op.getOp() == VFSOp.UPDATE_OBJECT)
+        if (op.getOperationCode() == OperationCode.UPDATE_OBJECT)
             rollbackJournalUpdate(op, recoveryMode);
 
-        else if (op.getOp() == VFSOp.UPDATE_OBJECT_METADATA)
+        else if (op.getOperationCode() == OperationCode.UPDATE_OBJECT_METADATA)
             rollbackJournalUpdateMetadata(op, recoveryMode);
 
-        else if (op.getOp() == VFSOp.RESTORE_OBJECT_PREVIOUS_VERSION)
+        else if (op.getOperationCode() == OperationCode.RESTORE_OBJECT_PREVIOUS_VERSION)
             rollbackJournalUpdate(op, recoveryMode);
     }
 

@@ -29,7 +29,7 @@ import io.odilon.model.RedundancyLevel;
  */
 public interface VirtualFileSystemOperation {
 
-	public VFSOp getOp();
+	public OperationCode getOperationCode();
 	
 	public boolean commit();
 	public boolean cancel();

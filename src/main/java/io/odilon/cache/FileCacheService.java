@@ -52,7 +52,7 @@ import io.odilon.service.ServerSettings;
 import io.odilon.util.Check;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.LockService;
-import io.odilon.virtualFileSystem.model.VFSOp;
+import io.odilon.virtualFileSystem.model.OperationCode;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
@@ -240,32 +240,32 @@ public class FileCacheService extends BaseService implements ApplicationListener
     		logger.error("event is null ");
     		return;
     	}
-    	if (event.getVFSOperation().getOp()==null) {
+    	if (event.getVFSOperation().getOperationCode()==null) {
     		logger.debug("op is null -> "  + event.toString());
     		return;
     	}
     	
-		if (event.getVFSOperation().getOp()==VFSOp.CREATE_OBJECT) {
+		if (event.getVFSOperation().getOperationCode()==OperationCode.CREATE_OBJECT) {
 			remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName(), Optional.empty());
 			remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName(), Optional.of(event.getVFSOperation().getVersion()));
 			return;
 		}
-		if (event.getVFSOperation().getOp()==VFSOp.UPDATE_OBJECT) {
+		if (event.getVFSOperation().getOperationCode()==OperationCode.UPDATE_OBJECT) {
 			remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName(), Optional.empty());
 			remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName(), Optional.of(event.getVFSOperation().getVersion()));
 			return;
 		}
-		if (event.getVFSOperation().getOp()==VFSOp.RESTORE_OBJECT_PREVIOUS_VERSION) {
+		if (event.getVFSOperation().getOperationCode()==OperationCode.RESTORE_OBJECT_PREVIOUS_VERSION) {
 			remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName(), Optional.empty());
 			remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName(), Optional.of(event.getVFSOperation().getVersion()));
 			return;
 		}
-		if (event.getVFSOperation().getOp()==VFSOp.DELETE_OBJECT) {
+		if (event.getVFSOperation().getOperationCode()==OperationCode.DELETE_OBJECT) {
 			remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName(), Optional.empty());
 			return;
 		}
 		
-		if (event.getVFSOperation().getOp()==VFSOp.DELETE_OBJECT_PREVIOUS_VERSIONS) {
+		if (event.getVFSOperation().getOperationCode()==OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS) {
 			remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName(), Optional.empty());
 			if (getVirtualFileSystemService().getServerSettings().isVersionControl()) { 
 				for (int version=0; version < event.getVFSOperation().getVersion(); version++) 
@@ -274,7 +274,7 @@ public class FileCacheService extends BaseService implements ApplicationListener
 			return;
 		}
 		
-		if (event.getVFSOperation().getOp()==VFSOp.SYNC_OBJECT_NEW_DRIVE) {
+		if (event.getVFSOperation().getOperationCode()==OperationCode.SYNC_OBJECT_NEW_DRIVE) {
 			remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName(), Optional.empty());
 			return;
 		}

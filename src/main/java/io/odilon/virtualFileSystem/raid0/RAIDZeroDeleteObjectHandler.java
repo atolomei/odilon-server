@@ -37,7 +37,7 @@ import io.odilon.virtualFileSystem.RAIDDeleteObjectHandler;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.SimpleDrive;
-import io.odilon.virtualFileSystem.model.VFSOp;
+import io.odilon.virtualFileSystem.model.OperationCode;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
@@ -252,8 +252,8 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
         Check.requireNonNullArgument(op, "op is null");
 
         /** also checked by the calling driver */
-        Check.requireTrue(op.getOp() == VFSOp.DELETE_OBJECT || op.getOp() == VFSOp.DELETE_OBJECT_PREVIOUS_VERSIONS,
-                VirtualFileSystemOperation.class.getName() + " invalid -> op: " + op.getOp().getName());
+        Check.requireTrue(op.getOperationCode() == OperationCode.DELETE_OBJECT || op.getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS,
+                VirtualFileSystemOperation.class.getName() + " invalid -> op: " + op.getOperationCode().getName());
 
         String objectName = op.getObjectName();
 
@@ -274,10 +274,10 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
              * DELETE_OBJECT and DELETE_OBJECT_PREVIOUS_VERSIONS
              * 
              */
-            if (op.getOp() == VFSOp.DELETE_OBJECT)
+            if (op.getOperationCode() == OperationCode.DELETE_OBJECT)
                 restoreMetadata(bucket, objectName);
 
-            else if (op.getOp() == VFSOp.DELETE_OBJECT_PREVIOUS_VERSIONS)
+            else if (op.getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS)
                 restoreMetadata(bucket, objectName);
 
             done = true;
@@ -496,9 +496,9 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
         }
 
         try {
-            if (op.getOp() == VFSOp.DELETE_OBJECT || op.getOp() == VFSOp.DELETE_OBJECT_PREVIOUS_VERSIONS)
+            if (op.getOperationCode() == OperationCode.DELETE_OBJECT || op.getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS)
                 getVirtualFileSystemService().getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext()
-                        .getBean(AfterDeleteObjectServiceRequest.class, op.getOp(), meta, headVersion));
+                        .getBean(AfterDeleteObjectServiceRequest.class, op.getOperationCode(), meta, headVersion));
 
         } catch (Exception e) {
             logger.error(e, opInfo(op), SharedConstant.NOT_THROWN);

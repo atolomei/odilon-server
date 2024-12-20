@@ -39,7 +39,7 @@ import io.odilon.util.Check;
 import io.odilon.util.OdilonFileUtils;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
-import io.odilon.virtualFileSystem.model.VFSOp;
+import io.odilon.virtualFileSystem.model.OperationCode;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
@@ -142,7 +142,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
     protected void rollbackJournal(VirtualFileSystemOperation op, boolean recoveryMode) {
 
         Check.requireNonNullArgument(op, "op is null");
-        Check.checkTrue(op.getOp() == VFSOp.CREATE_OBJECT, "Invalid op ->  " + op.getOp().getName());
+        Check.checkTrue(op.getOperationCode() == OperationCode.CREATE_OBJECT, "Invalid op ->  " + op.getOperationCode().getName());
 
         String objectName = op.getObjectName();
 

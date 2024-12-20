@@ -41,13 +41,13 @@ import io.odilon.util.OdilonFileUtils;
 import io.odilon.virtualFileSystem.ObjectPath;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
-import io.odilon.virtualFileSystem.model.VFSOp;
+import io.odilon.virtualFileSystem.model.OperationCode;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
  * <p>
  * RAID 0 Handler <br/>
- * Creates new Objects ({@link VFSOp.CREATE_OBJECT})
+ * Creates new Objects ({@link OperationCode.CREATE_OBJECT})
  * </p>
  *
  * @author atolomei@novamens.com (Alejandro Tolomei)
@@ -85,7 +85,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
         Check.requireNonNullArgument(bucket.getId(), "bucket id is null");
         Check.requireNonNullArgument(objectName, "objectName is null or empty " + objectInfo(bucket));
 
-        VirtualFileSystemOperation op = null;
+        VirtualFileSystemOperation operation = null;
         boolean done = false;
         boolean isMainException = false;
 
@@ -104,10 +104,10 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
 
                 int version = 0;
 
-                op = getJournalService().createObject(bucket, objectName);
+                operation = getJournalService().createObject(bucket, objectName);
                 saveFile(bucket, objectName, stream, srcFileName);
                 saveMetadata(bucket, objectName, srcFileName, contentType, version, customTags);
-                done = op.commit();
+                done = operation.commit();
 
             } catch (InternalCriticalException e1) {
                 done = false;
@@ -121,9 +121,9 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
                 throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
             } finally {
                 try {
-                    if ((!done) && (op != null)) {
+                    if ((!done) && (operation != null)) {
                         try {
-                            rollbackJournal(op, false);
+                            rollbackJournal(operation, false);
                         } catch (InternalCriticalException e) {
                             if (!isMainException) {
                                 logger.debug(e, objectInfo(bucket, objectName, srcFileName));
@@ -154,21 +154,21 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
      * 
      */
     @Override
-    protected void rollbackJournal(VirtualFileSystemOperation op, boolean recoveryMode) {
+    protected void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
 
-        Check.requireNonNullArgument(op, "op is null");
-        Check.checkTrue(op.getOp() == VFSOp.CREATE_OBJECT, "Invalid op ->  " + op.getOp().getName());
+        Check.requireNonNullArgument(operation, "operation is null");
+        Check.checkTrue(operation.getOperationCode() == OperationCode.CREATE_OBJECT, "Invalid op ->  " + operation.getOperationCode().getName());
 
-        logger.debug(opInfo(op));
+        logger.debug(opInfo(operation));
 
         boolean done = false;
 
-        ServerBucket bucket = getBucketCache().get(op.getBucketId());
-        String objectName = op.getObjectName();
+        ServerBucket bucket = getBucketCache().get(operation.getBucketId());
+        String objectName = operation.getObjectName();
 
         try {
             if (isStandByEnabled())
-                getReplicationService().cancel(op);
+                getReplicationService().cancel(operation);
 
             getWriteDrive(bucket, objectName).deleteObjectMetadata(bucket, objectName);
 
@@ -177,20 +177,20 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
             done = true;
 
         } catch (InternalCriticalException e) {
-            logger.debug(e, opInfo(op));
+            logger.debug(e, opInfo(operation));
             if (!recoveryMode)
                 throw (e);
             else
-                logger.error(e, opInfo(op), SharedConstant.NOT_THROWN);
+                logger.error(e, opInfo(operation), SharedConstant.NOT_THROWN);
 
         } catch (Exception e) {
             if (!recoveryMode)
-                throw new InternalCriticalException(e, opInfo(op));
+                throw new InternalCriticalException(e, opInfo(operation));
             else
-                logger.error(e, opInfo(op), SharedConstant.NOT_THROWN);
+                logger.error(e, opInfo(operation), SharedConstant.NOT_THROWN);
         } finally {
             if (done || recoveryMode)
-                op.cancel();
+                operation.cancel();
         }
     }
 

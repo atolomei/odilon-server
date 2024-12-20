@@ -44,7 +44,7 @@ import io.odilon.virtualFileSystem.ObjectPath;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.SimpleDrive;
-import io.odilon.virtualFileSystem.model.VFSOp;
+import io.odilon.virtualFileSystem.model.OperationCode;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
@@ -366,10 +366,10 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
     protected void rollbackJournal(VirtualFileSystemOperation op, boolean recoveryMode) {
 
         Check.requireNonNullArgument(op, "op is null");
-        Check.requireTrue((op.getOp() == VFSOp.UPDATE_OBJECT || op.getOp() == VFSOp.UPDATE_OBJECT_METADATA
-                || op.getOp() == VFSOp.RESTORE_OBJECT_PREVIOUS_VERSION), "invalid state ->  op: " + opInfo(op));
+        Check.requireTrue((op.getOperationCode() == OperationCode.UPDATE_OBJECT || op.getOperationCode() == OperationCode.UPDATE_OBJECT_METADATA
+                || op.getOperationCode() == OperationCode.RESTORE_OBJECT_PREVIOUS_VERSION), "invalid state ->  op: " + opInfo(op));
 
-        switch (op.getOp()) {
+        switch (op.getOperationCode()) {
         case UPDATE_OBJECT: {
             rollbackJournalUpdate(op, recoveryMode);
             break;
@@ -442,7 +442,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
             if (getServerSettings().isStandByEnabled())
                 getReplicationService().cancel(op);
 
-            if (op.getOp() == VFSOp.UPDATE_OBJECT_METADATA)
+            if (op.getOperationCode() == OperationCode.UPDATE_OBJECT_METADATA)
                 restoreMetadata(bucket, op.getObjectName());
 
             done = true;

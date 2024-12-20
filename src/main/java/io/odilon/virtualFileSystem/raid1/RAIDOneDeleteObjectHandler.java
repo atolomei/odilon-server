@@ -37,13 +37,13 @@ import io.odilon.virtualFileSystem.ObjectPath;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.SimpleDrive;
-import io.odilon.virtualFileSystem.model.VFSOp;
+import io.odilon.virtualFileSystem.model.OperationCode;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
  * <p>
  * RAID 1 Handler <br/>
- * Delete methods ({@link VFSOp.DELETE_OBJECT})
+ * Delete methods ({@link OperationCode.DELETE_OBJECT})
  * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
@@ -290,8 +290,8 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
 
         /** checked by the calling driver */
         Check.requireNonNullArgument(op, "op is null");
-        Check.requireTrue(op.getOp() == VFSOp.DELETE_OBJECT || op.getOp() == VFSOp.DELETE_OBJECT_PREVIOUS_VERSIONS,
-                "VFSOperation invalid -> op: " + op.getOp().getName());
+        Check.requireTrue(op.getOperationCode() == OperationCode.DELETE_OBJECT || op.getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS,
+                "VFSOperation invalid -> op: " + op.getOperationCode().getName());
 
         String objectName = op.getObjectName();
         Long bucketId = op.getBucketId();
@@ -309,10 +309,10 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
             ServerBucket bucket = getCacheBucket(op.getBucketId());
 
             /** rollback is the same for both operations */
-            if (op.getOp() == VFSOp.DELETE_OBJECT)
+            if (op.getOperationCode() == OperationCode.DELETE_OBJECT)
                 restoreMetadata(bucket, objectName);
 
-            else if (op.getOp() == VFSOp.DELETE_OBJECT_PREVIOUS_VERSIONS)
+            else if (op.getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS)
                 restoreMetadata(bucket, objectName);
 
             done = true;
@@ -464,9 +464,9 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
      */
     private void onAfterCommit(VirtualFileSystemOperation op, ObjectMetadata meta, int headVersion) {
         try {
-            if (op.getOp() == VFSOp.DELETE_OBJECT || op.getOp() == VFSOp.DELETE_OBJECT_PREVIOUS_VERSIONS)
+            if (op.getOperationCode() == OperationCode.DELETE_OBJECT || op.getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS)
                 getVirtualFileSystemService().getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext()
-                        .getBean(AfterDeleteObjectServiceRequest.class, op.getOp(), meta, headVersion));
+                        .getBean(AfterDeleteObjectServiceRequest.class, op.getOperationCode(), meta, headVersion));
         } catch (Exception e) {
             logger.error(e, SharedConstant.NOT_THROWN);
         }

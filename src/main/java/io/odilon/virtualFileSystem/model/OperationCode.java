@@ -26,7 +26,7 @@ import java.util.Locale;
  *  
  *  @author atolomei@novamens.com (Alejandro Tolomei)
  */
-public enum VFSOp {
+public enum OperationCode {
 	
 	CREATE_BUCKET 						("create_bucket", 0, "b"), // 1
 	UPDATE_BUCKET 						("update_bucket", 1, "b"), // 2 
@@ -45,14 +45,14 @@ public enum VFSOp {
 	
 	CREATE_SERVER_MASTERKEY		 		("create_server_key", 90, "s"); 		// 13
 	
-	static List<VFSOp> ops;
+	static List<OperationCode> ops;
 	
 	private String name;
 	private int code;
 	private String enttiyGroupCode;
 	
 	
-	public static VFSOp fromId(String id) {
+	public static OperationCode fromId(String id) {
 		
 		if (id==null)
 			throw new IllegalArgumentException("id is null");
@@ -68,12 +68,12 @@ public enum VFSOp {
 		}
 	}
 	
-	public static List<VFSOp> getValues() {
+	public static List<OperationCode> getValues() {
 		
 		if (ops!=null)
 			return ops;
 		
-		ops = new ArrayList<VFSOp>();
+		ops = new ArrayList<OperationCode>();
 		
 		ops.add( CREATE_BUCKET );
 		ops.add( UPDATE_BUCKET ); 
@@ -102,7 +102,7 @@ public enum VFSOp {
 	 * @param name
 	 * @return
 	 */
-	public static VFSOp get(String name) {
+	public static OperationCode get(String name) {
 		
 		if (name==null)
 			throw new IllegalArgumentException ("name is null");
@@ -130,7 +130,7 @@ public enum VFSOp {
 		throw new IllegalArgumentException ("unsuported name -> " + name);
 	}
 	
-	public static VFSOp get(int code) {
+	public static OperationCode get(int code) {
 		
 		if (code==CREATE_BUCKET.getCode()) return CREATE_BUCKET;
 		if (code==UPDATE_BUCKET.getCode()) return UPDATE_BUCKET;
@@ -199,7 +199,7 @@ public enum VFSOp {
 		return enttiyGroupCode;
 	}
 
-	private VFSOp(String name, int code, String groupCode) {
+	private OperationCode(String name, int code, String groupCode) {
 		this.name = name;
 		this.code = code;
 		this.enttiyGroupCode=groupCode;

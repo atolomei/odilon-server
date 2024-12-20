@@ -32,7 +32,7 @@ import io.odilon.log.Logger;
 import io.odilon.model.RedundancyLevel;
 import io.odilon.model.SharedConstant;
 import io.odilon.virtualFileSystem.model.JournalService;
-import io.odilon.virtualFileSystem.model.VFSOp;
+import io.odilon.virtualFileSystem.model.OperationCode;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 
@@ -78,7 +78,7 @@ public class OdilonVirtualFileSystemOperation implements VirtualFileSystemOperat
 	private OffsetDateTime timestamp;
 	
 	@JsonProperty("operation")
-	private VFSOp op;
+	private OperationCode op;
 	
 	@JsonProperty("raid")
 	private RedundancyLevel raid;
@@ -95,7 +95,7 @@ public class OdilonVirtualFileSystemOperation implements VirtualFileSystemOperat
 	}
 	
 	public OdilonVirtualFileSystemOperation( 	String id, 
-							VFSOp op,
+							OperationCode op,
 							Optional<Long> bucketId,
 							Optional<String> bucketName,
 							Optional<String> objectName,
@@ -212,11 +212,11 @@ public class OdilonVirtualFileSystemOperation implements VirtualFileSystemOperat
 	}
 
 	@Override
-	public VFSOp getOp() {
+	public OperationCode getOperationCode() {
 		return op;
 	}
 
-	public void setOp(VFSOp op) {
+	public void setOp(OperationCode op) {
 		this.op = op;
 	}
 

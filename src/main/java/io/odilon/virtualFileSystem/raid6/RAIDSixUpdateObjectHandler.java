@@ -349,7 +349,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
 
         Check.requireNonNullArgument(op, "op is null");
 
-        switch (op.getOp()) {
+        switch (op.getOperationCode()) {
         case UPDATE_OBJECT: {
             rollbackJournalUpdate(op, getBucketCache().get(op.getBucketId()), recoveryMode);
             break;

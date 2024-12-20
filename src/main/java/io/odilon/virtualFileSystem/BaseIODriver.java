@@ -79,7 +79,7 @@ import io.odilon.virtualFileSystem.model.IODriver;
 import io.odilon.virtualFileSystem.model.JournalService;
 import io.odilon.virtualFileSystem.model.LockService;
 import io.odilon.virtualFileSystem.model.ServerBucket;
-import io.odilon.virtualFileSystem.model.VFSOp;
+import io.odilon.virtualFileSystem.model.OperationCode;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
@@ -504,14 +504,14 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 
         try {
 
-            if (op.getOp() == VFSOp.CREATE_BUCKET) {
+            if (op.getOperationCode() == OperationCode.CREATE_BUCKET) {
                 removeCacheBucket(bucketId);
                 for (Drive drive : getDrivesAll()) {
                     ((OdilonDrive) drive).forceDeleteBucketById(bucketId);
                 }
                 return true;
 
-            } else if (op.getOp() == VFSOp.DELETE_BUCKET) {
+            } else if (op.getOperationCode() == OperationCode.DELETE_BUCKET) {
                 BucketMetadata meta = null;
                 for (Drive drive : getDrivesAll()) {
                     drive.markAsEnabledBucket(getCacheBucket(bucketId));
@@ -526,7 +526,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
                 }
                 return true;
 
-            } else if (op.getOp() == VFSOp.UPDATE_BUCKET) {
+            } else if (op.getOperationCode() == OperationCode.UPDATE_BUCKET) {
                 restoreBucketMetadata(getCacheBucket(bucketId));
                 BucketMetadata meta = null;
                 for (Drive drive : getDrivesAll()) {
@@ -541,22 +541,22 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
                 }
                 return true;
             }
-            if (op.getOp() == VFSOp.CREATE_SERVER_MASTERKEY) {
+            if (op.getOperationCode() == OperationCode.CREATE_SERVER_MASTERKEY) {
                 for (Drive drive : getDrivesAll()) {
                     File file = drive.getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE);
                     if ((file != null) && file.exists())
                         FileUtils.forceDelete(file);
                 }
                 return true;
-            } else if (op.getOp() == VFSOp.CREATE_SERVER_METADATA) {
+            } else if (op.getOperationCode() == OperationCode.CREATE_SERVER_METADATA) {
                 if (op.getObjectName() != null) {
                     for (Drive drive : getDrivesAll()) {
                         drive.removeSysFile(op.getObjectName());
                     }
                 }
                 return true;
-            } else if (op.getOp() == VFSOp.UPDATE_SERVER_METADATA) {
-                logger.debug("no action yet, rollback -> " + VFSOp.UPDATE_SERVER_METADATA.getName());
+            } else if (op.getOperationCode() == OperationCode.UPDATE_SERVER_METADATA) {
+                logger.debug("no action yet, rollback -> " + OperationCode.UPDATE_SERVER_METADATA.getName());
                 return true;
             }
 

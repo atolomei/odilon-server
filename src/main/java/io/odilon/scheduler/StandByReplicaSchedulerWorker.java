@@ -289,7 +289,7 @@ public class StandByReplicaSchedulerWorker extends SchedulerWorker {
 
         StandByReplicaServiceRequest repRequest = (StandByReplicaServiceRequest) request;
 
-        if (!repRequest.getVFSOperation().getOp().isObjectOperation())
+        if (!repRequest.getVFSOperation().getOperationCode().isObjectOperation())
             return false;
 
         if (map.containsKey(repRequest.getVFSOperation().getUUID()))

@@ -58,7 +58,7 @@ import io.odilon.virtualFileSystem.model.BucketIterator;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.LockService;
 import io.odilon.virtualFileSystem.model.ServerBucket;
-import io.odilon.virtualFileSystem.model.VFSOp;
+import io.odilon.virtualFileSystem.model.OperationCode;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemObject;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
@@ -388,7 +388,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 
         Check.requireNonNullArgument(op, "VFSOperation is null");
 
-        switch (op.getOp()) {
+        switch (op.getOperationCode()) {
         case CREATE_OBJECT: {
             RAIDSixCreateObjectHandler handler = new RAIDSixCreateObjectHandler(this);
             handler.rollbackJournal(op, recoveryMode);
@@ -425,27 +425,27 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
             if (getServerSettings().isStandByEnabled())
                 getReplicationService().cancel(op);
 
-            if (op.getOp() == VFSOp.CREATE_BUCKET) {
+            if (op.getOperationCode() == OperationCode.CREATE_BUCKET) {
 
                 done = generalRollbackJournal(op);
 
-            } else if (op.getOp() == VFSOp.DELETE_BUCKET) {
+            } else if (op.getOperationCode() == OperationCode.DELETE_BUCKET) {
 
                 done = generalRollbackJournal(op);
 
-            } else if (op.getOp() == VFSOp.UPDATE_BUCKET) {
+            } else if (op.getOperationCode() == OperationCode.UPDATE_BUCKET) {
 
                 done = generalRollbackJournal(op);
             }
-            if (op.getOp() == VFSOp.CREATE_SERVER_MASTERKEY) {
+            if (op.getOperationCode() == OperationCode.CREATE_SERVER_MASTERKEY) {
 
                 done = generalRollbackJournal(op);
 
-            } else if (op.getOp() == VFSOp.CREATE_SERVER_METADATA) {
+            } else if (op.getOperationCode() == OperationCode.CREATE_SERVER_METADATA) {
 
                 done = generalRollbackJournal(op);
 
-            } else if (op.getOp() == VFSOp.UPDATE_SERVER_METADATA) {
+            } else if (op.getOperationCode() == OperationCode.UPDATE_SERVER_METADATA) {
 
                 done = generalRollbackJournal(op);
             }

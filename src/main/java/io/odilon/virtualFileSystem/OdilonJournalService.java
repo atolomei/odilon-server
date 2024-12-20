@@ -43,13 +43,13 @@ import io.odilon.service.ServerSettings;
 import io.odilon.util.Check;
 import io.odilon.virtualFileSystem.model.JournalService;
 import io.odilon.virtualFileSystem.model.ServerBucket;
-import io.odilon.virtualFileSystem.model.VFSOp;
+import io.odilon.virtualFileSystem.model.OperationCode;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
  * <p>
- * Persistent disk logging of atomic operations{@link VFSOp}
+ * Persistent disk logging of atomic operations{@link OperationCode}
  *
  * <ul>
  * <li>bucket registration</li>
@@ -114,75 +114,75 @@ public class OdilonJournalService extends BaseService implements JournalService 
 
     @Override
     public VirtualFileSystemOperation saveServerKey() {
-        return createNew(VFSOp.CREATE_SERVER_MASTERKEY, Optional.empty(), Optional.empty(),
+        return createNew(OperationCode.CREATE_SERVER_MASTERKEY, Optional.empty(), Optional.empty(),
                 Optional.of(VirtualFileSystemService.ENCRYPTION_KEY_FILE), Optional.empty());
     }
     @Override
     public VirtualFileSystemOperation createServerMetadata() {
-        return createNew(VFSOp.CREATE_SERVER_METADATA, Optional.empty(), Optional.empty(),
+        return createNew(OperationCode.CREATE_SERVER_METADATA, Optional.empty(), Optional.empty(),
                 Optional.of(VirtualFileSystemService.SERVER_METADATA_FILE), Optional.empty());
     }
     @Override
     public VirtualFileSystemOperation updateServerMetadata() {
-        return createNew(VFSOp.UPDATE_SERVER_METADATA, Optional.empty(), Optional.empty(),
+        return createNew(OperationCode.UPDATE_SERVER_METADATA, Optional.empty(), Optional.empty(),
                 Optional.of(VirtualFileSystemService.SERVER_METADATA_FILE), Optional.empty());
     }
     @Override
     public VirtualFileSystemOperation createBucket(BucketMetadata meta) {
         Check.requireNonNullArgument(meta, "meta is null");
-        return createNew(VFSOp.CREATE_BUCKET, Optional.of(meta.getId()), Optional.of(meta.getBucketName()), Optional.empty(),
+        return createNew(OperationCode.CREATE_BUCKET, Optional.of(meta.getId()), Optional.of(meta.getBucketName()), Optional.empty(),
                 Optional.empty());
     }
     @Override
     public VirtualFileSystemOperation updateBucket(ServerBucket bucket, String newBucketName) {
         Check.requireNonNullArgument(bucket, "bucket is null");
-        return createNew(VFSOp.UPDATE_BUCKET, Optional.of(bucket.getId()), Optional.of(bucket.getName()),
+        return createNew(OperationCode.UPDATE_BUCKET, Optional.of(bucket.getId()), Optional.of(bucket.getName()),
                 Optional.of(newBucketName), Optional.empty());
     }
     @Override
     public VirtualFileSystemOperation deleteBucket(ServerBucket bucket) {
         Check.requireNonNullArgument(bucket, "bucket is null");
 
-        return createNew(VFSOp.DELETE_BUCKET, Optional.of(bucket.getId()), Optional.of(bucket.getName()), Optional.empty(),
+        return createNew(OperationCode.DELETE_BUCKET, Optional.of(bucket.getId()), Optional.of(bucket.getName()), Optional.empty(),
                 Optional.empty());
     }
     @Override
     public VirtualFileSystemOperation deleteObjectPreviousVersions(ServerBucket bucket, String objectName, int currentHeadVersion) {
         Check.requireNonNullArgument(bucket, "bucket is null");
-        return createNew(VFSOp.DELETE_OBJECT_PREVIOUS_VERSIONS, Optional.of(bucket.getId()), Optional.of(bucket.getName()),
+        return createNew(OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS, Optional.of(bucket.getId()), Optional.of(bucket.getName()),
                 Optional.ofNullable(objectName), Optional.of(Integer.valueOf(currentHeadVersion)));
     }
     @Override
     public VirtualFileSystemOperation syncObject(ServerBucket bucket, String objectName) {
         Check.requireNonNullArgument(bucket, "bucket is null");
-        return createNew(VFSOp.SYNC_OBJECT_NEW_DRIVE, Optional.of(bucket.getId()), Optional.of(bucket.getName()),
+        return createNew(OperationCode.SYNC_OBJECT_NEW_DRIVE, Optional.of(bucket.getId()), Optional.of(bucket.getName()),
                 Optional.ofNullable(objectName), Optional.empty());
     }
     @Override
     public VirtualFileSystemOperation deleteObject(ServerBucket bucket, String objectName, int currentHeadVersion) {
         Check.requireNonNullArgument(bucket, "bucket is null");
-        return createNew(VFSOp.DELETE_OBJECT, Optional.of(bucket.getId()), Optional.of(bucket.getName()),
+        return createNew(OperationCode.DELETE_OBJECT, Optional.of(bucket.getId()), Optional.of(bucket.getName()),
                 Optional.ofNullable(objectName), Optional.of(Integer.valueOf(currentHeadVersion)));
     }
     @Override
     public VirtualFileSystemOperation restoreObjectPreviousVersion(ServerBucket bucket, String objectName, int currentHeadVersion) {
         Check.requireNonNullArgument(bucket, "bucket is null");
-        return createNew(VFSOp.RESTORE_OBJECT_PREVIOUS_VERSION, Optional.of(bucket.getId()), Optional.of(bucket.getName()),
+        return createNew(OperationCode.RESTORE_OBJECT_PREVIOUS_VERSION, Optional.of(bucket.getId()), Optional.of(bucket.getName()),
                 Optional.ofNullable(objectName), Optional.of(Integer.valueOf(currentHeadVersion)));
     }
     @Override
     public VirtualFileSystemOperation createObject(ServerBucket bucket, String objectName) {
-        return createNew(VFSOp.CREATE_OBJECT, Optional.of(bucket.getId()), Optional.of(bucket.getName()),
+        return createNew(OperationCode.CREATE_OBJECT, Optional.of(bucket.getId()), Optional.of(bucket.getName()),
                 Optional.ofNullable(objectName), Optional.of(Integer.valueOf(0)));
     }
     @Override
     public VirtualFileSystemOperation updateObject(ServerBucket bucket, String objectName, int version) {
-        return createNew(VFSOp.UPDATE_OBJECT, Optional.of(bucket.getId()), Optional.of(bucket.getName()),
+        return createNew(OperationCode.UPDATE_OBJECT, Optional.of(bucket.getId()), Optional.of(bucket.getName()),
                 Optional.ofNullable(objectName), Optional.of(Integer.valueOf(version)));
     }
     @Override
     public VirtualFileSystemOperation updateObjectMetadata(ServerBucket bucket, String objectName, int version) {
-        return createNew(VFSOp.UPDATE_OBJECT_METADATA, Optional.of(bucket.getId()), Optional.of(bucket.getName()),
+        return createNew(OperationCode.UPDATE_OBJECT_METADATA, Optional.of(bucket.getId()), Optional.of(bucket.getName()),
                 Optional.ofNullable(objectName), Optional.of(Integer.valueOf(version)));
     }
     /**
@@ -313,7 +313,7 @@ public class OdilonJournalService extends BaseService implements JournalService 
         return this.isStandBy;
     }
 
-    private synchronized VirtualFileSystemOperation createNew(VFSOp op, Optional<Long> bucketId, Optional<String> bucketName,
+    private synchronized VirtualFileSystemOperation createNew(OperationCode op, Optional<Long> bucketId, Optional<String> bucketName,
             Optional<String> objectName, Optional<Integer> iVersion) {
         final VirtualFileSystemOperation operation = new OdilonVirtualFileSystemOperation(newOperationId(), op, bucketId, bucketName, objectName, iVersion,
                 getRedundancyLevel(), this);

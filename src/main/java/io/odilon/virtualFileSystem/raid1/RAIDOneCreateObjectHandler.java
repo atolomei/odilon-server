@@ -49,13 +49,13 @@ import io.odilon.util.OdilonFileUtils;
 import io.odilon.virtualFileSystem.ObjectPath;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
-import io.odilon.virtualFileSystem.model.VFSOp;
+import io.odilon.virtualFileSystem.model.OperationCode;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
  * <p>
  * RAID 1 Handler <br/>
- * Creates new Objects ({@link VFSOp.CREATE_OBJECT})
+ * Creates new Objects ({@link OperationCode.CREATE_OBJECT})
  * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
@@ -144,7 +144,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
      * 
      * <p>
      * The only operation that should be called here by {@link RAIDSixDriver} is
-     * {@link VFSOp.CREATE_OBJECT}
+     * {@link OperationCode.CREATE_OBJECT}
      * </p>
      * 
      */
@@ -152,7 +152,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
     protected void rollbackJournal(VirtualFileSystemOperation op, boolean recoveryMode) {
 
         Check.requireNonNullArgument(op, "op is null");
-        Check.checkTrue(op.getOp() == VFSOp.CREATE_OBJECT, "Invalid op ->  " + op.getOp().getName());
+        Check.checkTrue(op.getOperationCode() == OperationCode.CREATE_OBJECT, "Invalid op ->  " + op.getOperationCode().getName());
 
         String objectName = op.getObjectName();
         Long bucket_id = op.getBucketId();

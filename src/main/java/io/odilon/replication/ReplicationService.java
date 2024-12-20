@@ -246,7 +246,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
      */
     public void enqueue(VirtualFileSystemOperation opx) {
 
-        switch (opx.getOp()) {
+        switch (opx.getOperationCode()) {
 
         case CREATE_BUCKET:
         case UPDATE_BUCKET:
@@ -274,7 +274,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 
         default: {
             try {
-                logger.error(opx.getOp().toString() + " -> not recognized | " + SharedConstant.NOT_THROWN);
+                logger.error(opx.getOperationCode().toString() + " -> not recognized | " + SharedConstant.NOT_THROWN);
             } catch (Exception e) {
                 logger.error(e, SharedConstant.NOT_THROWN);
             }
@@ -340,11 +340,11 @@ public class ReplicationService extends BaseService implements ApplicationContex
             throw new InternalCriticalException(JournalService.class.getName() + " still executing on opx after "
                     + (System.currentTimeMillis() - start) + " ms -> " + opx.toString());
 
-        logger.debug(opx.getOp().getName() + " " + ((opx.getBucketId() != null) ? (" b:" + opx.getBucketId()) : "")
+        logger.debug(opx.getOperationCode().getName() + " " + ((opx.getBucketId() != null) ? (" b:" + opx.getBucketId()) : "")
                      + ((opx.getBucketName() != null) ? (" bn:" + opx.getBucketName()) : "")
                      + ((opx.getObjectName() != null) ? (" o:" + opx.getObjectName()) : ""));
 
-        switch (opx.getOp()) {
+        switch (opx.getOperationCode()) {
 
         case CREATE_BUCKET:
             replicateCreateBucket(opx);
@@ -383,7 +383,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
             break;
 
         default:
-            logger.error(opx.getOp().toString() + " -> not recognized");
+            logger.error(opx.getOperationCode().toString() + " -> not recognized");
         }
     }
 

@@ -36,7 +36,7 @@ import io.odilon.model.ServiceStatus;
 import io.odilon.service.BaseService;
 import io.odilon.service.ServerSettings;
 import io.odilon.virtualFileSystem.model.ServerBucket;
-import io.odilon.virtualFileSystem.model.VFSOp;
+import io.odilon.virtualFileSystem.model.OperationCode;
 
 /**
  * <p>
@@ -100,34 +100,34 @@ public class ObjectMetadataCacheService extends BaseService implements Applicati
             logger.error("event Operation is null ");
             return;
         }
-        if (event.getVFSOperation().getOp() == null) {
+        if (event.getVFSOperation().getOperationCode() == null) {
             logger.debug("op is null -> " + event.toString());
             return;
         }
 
-        if (event.getVFSOperation().getOp() == VFSOp.CREATE_OBJECT) {
+        if (event.getVFSOperation().getOperationCode() == OperationCode.CREATE_OBJECT) {
             remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName());
             return;
         }
-        if (event.getVFSOperation().getOp() == VFSOp.UPDATE_OBJECT) {
+        if (event.getVFSOperation().getOperationCode() == OperationCode.UPDATE_OBJECT) {
             remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName());
             return;
         }
-        if (event.getVFSOperation().getOp() == VFSOp.RESTORE_OBJECT_PREVIOUS_VERSION) {
+        if (event.getVFSOperation().getOperationCode() == OperationCode.RESTORE_OBJECT_PREVIOUS_VERSION) {
             remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName());
             return;
         }
-        if (event.getVFSOperation().getOp() == VFSOp.DELETE_OBJECT) {
-            remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName());
-            return;
-        }
-
-        if (event.getVFSOperation().getOp() == VFSOp.DELETE_OBJECT_PREVIOUS_VERSIONS) {
+        if (event.getVFSOperation().getOperationCode() == OperationCode.DELETE_OBJECT) {
             remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName());
             return;
         }
 
-        if (event.getVFSOperation().getOp() == VFSOp.SYNC_OBJECT_NEW_DRIVE) {
+        if (event.getVFSOperation().getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS) {
+            remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName());
+            return;
+        }
+
+        if (event.getVFSOperation().getOperationCode() == OperationCode.SYNC_OBJECT_NEW_DRIVE) {
             remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName());
             return;
         }

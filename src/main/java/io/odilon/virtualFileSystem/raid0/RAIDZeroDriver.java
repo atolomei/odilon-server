@@ -71,7 +71,7 @@ import io.odilon.virtualFileSystem.model.DriveBucket;
 import io.odilon.virtualFileSystem.model.JournalService;
 import io.odilon.virtualFileSystem.model.LockService;
 import io.odilon.virtualFileSystem.model.ServerBucket;
-import io.odilon.virtualFileSystem.model.VFSOp;
+import io.odilon.virtualFileSystem.model.OperationCode;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemObject;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
@@ -721,9 +721,9 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
                 Path pa = Paths.get(file.getAbsolutePath());
                 try {
                     String str = Files.readString(pa);
-                    OdilonVirtualFileSystemOperation op = getObjectMapper().readValue(str, OdilonVirtualFileSystemOperation.class);
-                    op.setJournalService(getJournalService());
-                    list.add(op);
+                    OdilonVirtualFileSystemOperation operation = getObjectMapper().readValue(str, OdilonVirtualFileSystemOperation.class);
+                    operation.setJournalService(getJournalService());
+                    list.add(operation);
                 } catch (IOException e) {
                     logger.debug(e, fileInfo(file));
                     try {
@@ -769,8 +769,8 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
      * </p>
      */
     @Override
-    public void saveJournal(VirtualFileSystemOperation op) {
-        getDrivesEnabled().get(0).saveJournal(op);
+    public void saveJournal(VirtualFileSystemOperation operation) {
+        getDrivesEnabled().get(0).saveJournal(operation);
     }
 
     /**
@@ -783,8 +783,8 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         getDrivesEnabled().get(0).removeJournal(id);
     }
 
-    public void rollbackJournal(VirtualFileSystemOperation op) {
-        rollbackJournal(op, false);
+    public void rollbackJournal(VirtualFileSystemOperation operation) {
+        rollbackJournal(operation, false);
     }
 
     /**
@@ -796,39 +796,39 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
      * </p>
      */
     @Override
-    public void rollbackJournal(VirtualFileSystemOperation op, boolean recoveryMode) {
+    public void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
 
-        Check.requireNonNullArgument(op, VirtualFileSystemOperation.class.getSimpleName() + " is null");
+        Check.requireNonNullArgument(operation, "operation is null");
 
-        switch (op.getOp()) {
+        switch (operation.getOperationCode()) {
         case CREATE_OBJECT: {
             RAIDZeroCreateObjectHandler handler = new RAIDZeroCreateObjectHandler(this);
-            handler.rollbackJournal(op, recoveryMode);
+            handler.rollbackJournal(operation, recoveryMode);
             return;
         }
         case UPDATE_OBJECT: {
             RAIDZeroUpdateObjectHandler handler = new RAIDZeroUpdateObjectHandler(this);
-            handler.rollbackJournal(op, recoveryMode);
+            handler.rollbackJournal(operation, recoveryMode);
             return;
         }
         case DELETE_OBJECT: {
             RAIDZeroDeleteObjectHandler handler = new RAIDZeroDeleteObjectHandler(this);
-            handler.rollbackJournal(op, recoveryMode);
+            handler.rollbackJournal(operation, recoveryMode);
             return;
         }
         case DELETE_OBJECT_PREVIOUS_VERSIONS: {
             RAIDZeroDeleteObjectHandler handler = new RAIDZeroDeleteObjectHandler(this);
-            handler.rollbackJournal(op, recoveryMode);
+            handler.rollbackJournal(operation, recoveryMode);
             return;
         }
         case RESTORE_OBJECT_PREVIOUS_VERSION: {
             RAIDZeroUpdateObjectHandler handler = new RAIDZeroUpdateObjectHandler(this);
-            handler.rollbackJournal(op, recoveryMode);
+            handler.rollbackJournal(operation, recoveryMode);
             return;
         }
         case UPDATE_OBJECT_METADATA: {
             RAIDZeroUpdateObjectHandler handler = new RAIDZeroUpdateObjectHandler(this);
-            handler.rollbackJournal(op, recoveryMode);
+            handler.rollbackJournal(operation, recoveryMode);
             return;
         }
         default:
@@ -840,53 +840,53 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         try {
 
             if (getServerSettings().isStandByEnabled())
-                        getReplicationService().cancel(op);
+                        getReplicationService().cancel(operation);
 
-            if (op.getOp() == VFSOp.CREATE_BUCKET) {
+            if (operation.getOperationCode() == OperationCode.CREATE_BUCKET) {
 
-                done = generalRollbackJournal(op);
+                done = generalRollbackJournal(operation);
 
-            } else if (op.getOp() == VFSOp.DELETE_BUCKET) {
+            } else if (operation.getOperationCode() == OperationCode.DELETE_BUCKET) {
 
-                done = generalRollbackJournal(op);
+                done = generalRollbackJournal(operation);
 
-            } else if (op.getOp() == VFSOp.UPDATE_BUCKET) {
+            } else if (operation.getOperationCode() == OperationCode.UPDATE_BUCKET) {
 
-                done = generalRollbackJournal(op);
+                done = generalRollbackJournal(operation);
             }
-            if (op.getOp() == VFSOp.CREATE_SERVER_MASTERKEY) {
+            if (operation.getOperationCode() == OperationCode.CREATE_SERVER_MASTERKEY) {
 
-                done = generalRollbackJournal(op);
+                done = generalRollbackJournal(operation);
 
-            } else if (op.getOp() == VFSOp.CREATE_SERVER_METADATA) {
+            } else if (operation.getOperationCode() == OperationCode.CREATE_SERVER_METADATA) {
 
-                done = generalRollbackJournal(op);
+                done = generalRollbackJournal(operation);
 
-            } else if (op.getOp() == VFSOp.UPDATE_SERVER_METADATA) {
+            } else if (operation.getOperationCode() == OperationCode.UPDATE_SERVER_METADATA) {
 
-                done = generalRollbackJournal(op);
+                done = generalRollbackJournal(operation);
             }
 
         } catch (InternalCriticalException e) {
             if (!recoveryMode)
                 throw (e);
             else
-                logger.error(opInfo(op), SharedConstant.NOT_THROWN);
+                logger.error(opInfo(operation), SharedConstant.NOT_THROWN);
 
         } catch (Exception e) {
             if (!recoveryMode)
-                throw new InternalCriticalException(e, opInfo(op));
+                throw new InternalCriticalException(e, opInfo(operation));
             else
-                logger.error(opInfo(op), SharedConstant.NOT_THROWN);
+                logger.error(opInfo(operation), SharedConstant.NOT_THROWN);
         } finally {
             if (done || recoveryMode) {
-                op.cancel();
+                operation.cancel();
             } else {
                 if (getServerSettings().isRecoverMode()) {
                     logger.error("---------------------------------------------------------------");
-                    logger.error("Cancelling failed operation -> " + opInfo(op));
+                    logger.error("Cancelling failed operation -> " + opInfo(operation));
                     logger.error("---------------------------------------------------------------");
-                    op.cancel();
+                    operation.cancel();
                 }
             }
         }

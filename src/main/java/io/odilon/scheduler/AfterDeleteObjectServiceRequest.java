@@ -26,7 +26,7 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.SharedConstant;
-import io.odilon.virtualFileSystem.model.VFSOp;
+import io.odilon.virtualFileSystem.model.OperationCode;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
@@ -79,7 +79,7 @@ public class AfterDeleteObjectServiceRequest extends AbstractServiceRequest impl
     int headVersion = 0;
 
     @JsonProperty("vfsop")
-    VFSOp vfsop;
+    OperationCode vfsop;
 
     @JsonIgnore
     private boolean isSuccess = false;
@@ -92,7 +92,7 @@ public class AfterDeleteObjectServiceRequest extends AbstractServiceRequest impl
     protected AfterDeleteObjectServiceRequest() {
     }
 
-    public AfterDeleteObjectServiceRequest(VFSOp vfsop, ObjectMetadata meta, int headVersion) {
+    public AfterDeleteObjectServiceRequest(OperationCode vfsop, ObjectMetadata meta, int headVersion) {
 
         this.vfsop = vfsop;
         this.meta = meta;
@@ -154,7 +154,7 @@ public class AfterDeleteObjectServiceRequest extends AbstractServiceRequest impl
         VirtualFileSystemService vfs = getApplicationContext().getBean(VirtualFileSystemService.class);
 
         if (this.vfsop == null) {
-            logger.error("Invalid " + VFSOp.class.getName() + " is null ", SharedConstant.NOT_THROWN);
+            logger.error("Invalid " + OperationCode.class.getName() + " is null ", SharedConstant.NOT_THROWN);
             return;
         }
 
@@ -163,13 +163,13 @@ public class AfterDeleteObjectServiceRequest extends AbstractServiceRequest impl
             return;
         }
 
-        if (this.vfsop == VFSOp.DELETE_OBJECT)
+        if (this.vfsop == OperationCode.DELETE_OBJECT)
             vfs.createVFSIODriver().postObjectDeleteTransaction(meta, headVersion);
 
-        else if (this.vfsop == VFSOp.DELETE_OBJECT_PREVIOUS_VERSIONS)
+        else if (this.vfsop == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS)
             vfs.createVFSIODriver().postObjectPreviousVersionDeleteAllTransaction(meta, headVersion);
         else
-            logger.error("Invalid " + VFSOp.class.getName() + " -> " + this.vfsop.getName(), SharedConstant.NOT_THROWN);
+            logger.error("Invalid " + OperationCode.class.getName() + " -> " + this.vfsop.getName(), SharedConstant.NOT_THROWN);
     }
 
 }
