@@ -16,15 +16,20 @@
  */
 package io.odilon.virtualFileSystem;
 
+import java.io.File;
+import java.util.List;
+
 import org.springframework.lang.NonNull;
 
 import io.odilon.encryption.EncryptionService;
+import io.odilon.model.BaseObject;
 import io.odilon.model.BucketMetadata;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.RedundancyLevel;
 import io.odilon.replication.ReplicationService;
 import io.odilon.scheduler.SchedulerService;
 import io.odilon.service.ServerSettings;
+import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.IODriver;
 import io.odilon.virtualFileSystem.model.JournalService;
 import io.odilon.virtualFileSystem.model.LockService;
@@ -32,7 +37,7 @@ import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
-public abstract class BaseRAIDHandler {
+public abstract class BaseRAIDHandler extends BaseObject {
 
     public abstract IODriver getDriver();
 
@@ -50,7 +55,12 @@ public abstract class BaseRAIDHandler {
     protected BucketCache getBucketCache() {
         return getVirtualFileSystemService().getBucketCache();
     }
-
+    
+    
+    protected String getKey(ServerBucket bucket, String objectName) {
+        return bucket.getId().toString() + File.separator + objectName;
+    }
+    
     /**
      * This check must be executed inside the critical section
      */
@@ -79,6 +89,13 @@ public abstract class BaseRAIDHandler {
         return getBucketCache().contains(bucket);
     }
 
+    /**
+     * This check must be executed inside the critical section
+     */
+    protected boolean existsCacheObject(ServerBucket bucket, String objectName) {
+        return getVirtualFileSystemService().getObjectMetadataCacheService().containsKey(bucket, objectName);
+    }
+    
     protected EncryptionService getEncryptionService() {
         return getVirtualFileSystemService().getEncryptionService();
     }
@@ -197,5 +214,39 @@ public abstract class BaseRAIDHandler {
 
     protected boolean isUseVaultNewFiles() {
         return getVirtualFileSystemService().isUseVaultNewFiles();
+    }
+    
+    
+    protected abstract Drive getObjectMetadataReadDrive(ServerBucket bucket, String objectName);
+    
+    
+    /**
+     * <p>
+     * Note that bucketName is not stored on disk, we must set the bucketName
+     * explicitly. Disks identify Buckets by id, the name is stored in the
+     * BucketMetadata file
+     * </p>
+     * 
+     * MUST BE CALLED INSIDE THE CRITICAL ZONE
+     */
+    public ObjectMetadata getObjectMetadataInternal(ServerBucket bucket, String objectName, boolean addToCacheIfmiss) {
+
+        if ((!getServerSettings().isUseObjectCache()))
+            return getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucket, objectName);
+
+        if (getVirtualFileSystemService().getObjectMetadataCacheService().containsKey(bucket, objectName)) {
+            getVirtualFileSystemService().getSystemMonitorService().getCacheObjectHitCounter().inc();
+            ObjectMetadata meta = getVirtualFileSystemService().getObjectMetadataCacheService().get(bucket, objectName);
+            meta.setBucketName(bucket.getName());
+            return meta;
+        }
+        ObjectMetadata meta = getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucket, objectName);
+        if (meta==null)
+            return meta;
+        meta.setBucketName(bucket.getName());
+        getVirtualFileSystemService().getSystemMonitorService().getCacheObjectMissCounter().inc();
+        if (addToCacheIfmiss)
+            getVirtualFileSystemService().getObjectMetadataCacheService().put(bucket, objectName, meta);
+        return meta;
     }
 }

@@ -80,6 +80,25 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
         super(driver);
     }
 
+    @Override
+    protected Drive getObjectMetadataReadDrive(ServerBucket bucket, String objectName) {
+        return getDriver().getReadDrive(bucket, objectName);
+    }
+    
+    /**
+     * This check must be executed inside the critical section
+     * 
+     * @param bucket
+     * @param objectName
+     * @return
+     */
+   protected boolean existsObjectMetadata(ServerBucket bucket, String objectName) {
+       if (existsCacheObject(bucket, objectName))
+            return true;
+         return getDriver().getReadDrive(bucket, objectName).existsObjectMetadata(bucket, objectName);
+    }
+   
+    
     /**
      * @param bucket
      * @param objectName
@@ -103,11 +122,18 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
         try {
             getLockService().getBucketLock(bucket).readLock().lock();
             try {
-                if (!getDriver().getReadDrive(bucket, objectName).existsObjectMetadata(bucket, objectName))
-                    throw new IllegalArgumentException("object does not exist -> b:" + bucket.getId() + " o:"
-                            + (Optional.ofNullable(objectName).isPresent() ? (objectName) : "null"));
-
-                ObjectMetadata meta = getDriver().getObjectMetadataInternal(bucket, objectName, false);
+                
+                /**
+                 * This check was executed by the VirtualFilySystemService, but it must be
+                 * executed also inside the critical zone.
+                 */
+                if (!existsCacheBucket(bucket))
+                    throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
+                
+                if (!existsObjectMetadata(bucket, objectName))
+                    throw new IllegalArgumentException("Object does not exist -> " + objectInfo(bucket, objectName));
+                
+                ObjectMetadata meta = getObjectMetadataInternal(bucket, objectName, true);
                 beforeHeadVersion = meta.getVersion();
 
                 op = getJournalService().updateObject(bucket, objectName, beforeHeadVersion);
@@ -179,7 +205,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 
             try {
 
-                ObjectMetadata meta = getDriver().getObjectMetadataInternal(bucket, objectName, false);
+                ObjectMetadata meta = getObjectMetadataInternal(bucket, objectName, false);
 
                 if (meta.getVersion() == 0)
                     throw new IllegalArgumentException("Object does not have any previous version | " + "b:"
@@ -637,9 +663,11 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
         }
 
         /** save in parallel */
-        getDriver().saveObjectMetadataToDisk(getDriver().getDrivesAll(), list, true);
-
+        saveRAIDOneObjectMetadataToDisk(getDriver().getDrivesAll(), list, true);
     }
+    
+
+    
 
     private boolean restoreVersionObjectMetadata(ServerBucket bucket, String objectName, int version) {
         try {

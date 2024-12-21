@@ -141,7 +141,7 @@ public interface IODriver {
 
     public VirtualFileSystemService getVirtualFileSystemService();
 
-    public List<Drive> getDrivesEnabled();
+
 
     public List<ServiceRequest> getSchedulerPendingRequests(String queueId);
 
@@ -182,9 +182,13 @@ public interface IODriver {
      * 
      */
     public ServerBucket getBucket(String bucketName);
-    //public ServerBucket getBucket(Long id);
+    
 
-
+    /**
+     * Drive
+     */
+    public List<Drive> getDrivesEnabled();
+    public List<Drive> getDrivesAll();
 
     /**
      * <p>

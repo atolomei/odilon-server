@@ -213,7 +213,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
     @Override
     public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName, String contentType,
             Optional<List<String>> customTags) {
-
         Check.requireNonNullArgument(bucket, "bucket is null");
         Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible " + objectInfo(bucket));
         Check.requireNonNullStringArgument(objectName, "objectName can not be null " + objectInfo(bucket));
@@ -229,7 +228,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
             getSystemMonitorService().getCreateObjectCounter().inc();
         }
     }
-
     /**
      * <p>
      * This method is called only for Objects that already exist
@@ -292,10 +290,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
      */
     @Override
     public boolean isEmpty(ServerBucket bucket) {
-
         Check.requireNonNullArgument(bucket, "bucket is null");
-        Check.requireTrue(existsBucketInDrives(bucket.getId()), "bucket does not exist in all drives -> b: " + bucket.getName());
-
         bucketReadLock(bucket);
         try {
             /**
@@ -389,15 +384,19 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         try {
             bucketReadLock(bucket);
             try {
-                /**
-                 * This check was executed by the VirtualFilySystemService, but it must be
-                 * executed also inside the critical zone.
-                 */
-                if (!existsCacheBucket(bucket.getName()))
+                
+                /** must be executed also inside the critical zone. */
+                if (!existsCacheBucket(bucket))
                     throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
-
+                
+                /** must be executed also inside the critical zone. */
+                if (getObjectMetadataCacheService().containsKey(bucket, objectName))
+                    return true;
+                    
                 /** TBA chequear que no este "deleted" en el drive */
                 return getDrive(bucket, objectName).existsObjectMetadata(bucket, objectName);
+                
+                
             } finally {
                 bucketReadUnLock(bucket);
             }
@@ -405,6 +404,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
             objectReadUnLock(bucket, objectName);
         }
     }
+    
     /**
      * <p>
      * Returns a {@link DataList} of {@link Items} <br/>
@@ -488,7 +488,8 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         Check.requireNonNullArgument(bucket, "bucket is null");
         Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible " + objectInfo(bucket));
         Check.requireNonNullStringArgument(objectName, "objectName is null or empty " + objectInfo(bucket));
-        List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
+        
+        List<ObjectMetadata> list = null;
         Drive readDrive = null;
 
         objectReadLock(bucket, objectName);
@@ -496,10 +497,9 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 
             bucketReadLock(bucket);
             try {
-                /**
-                 * This check was executed by the VirtualFilySystemService, but it must be
-                 * executed also inside the critical zone.
-                 */
+                
+                list = new ArrayList<ObjectMetadata>();
+                /** must be executed also inside the critical zone */
                 if (!existsCacheBucket(bucket.getName()))
                     throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
 
@@ -517,14 +517,13 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
                 for (int version = 0; version < meta.getVersion(); version++) {
                     ObjectMetadata meta_version = readDrive.getObjectMetadataVersion(bucket, objectName, version);
                     if (meta_version != null) {
-                        /**
-                         * bucketName is not stored on disk, only bucketId, we must set it explicitly
-                         */
+                        // bucketName is not stored on disk, only bucketId, we must set it explicitly
                         meta_version.setBucketName(bucket.getName());
                         list.add(meta_version);
                     }
                 }
                 return list;
+                
             } catch (IllegalArgumentException e) {
                 throw e;
             } catch (OdilonObjectNotFoundException e) {

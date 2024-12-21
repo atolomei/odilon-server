@@ -346,7 +346,9 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
             }
         }
         /** save in parallel */
-        getDriver().saveObjectMetadataToDisk(getDriver().getDrivesAll(), list, true);
+        saveRAIDOneObjectMetadataToDisk(getDriver().getDrivesAll(), list, true);
     }
+
+    
 
 }

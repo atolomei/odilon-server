@@ -20,6 +20,7 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -65,7 +66,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
     protected RAIDZeroCreateObjectHandler(RAIDZeroDriver driver) {
         super(driver);
     }
-
+    
     /**
      * <p>
      * The procedure is the same whether version control is enabled or not
@@ -100,9 +101,9 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
             if (!existsCacheBucket(bucket))
                 throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
 
-            if (getDriver().getWriteDrive(bucket, objectName).existsObjectMetadata(bucket, objectName))
+            if (existsObjectMetadata(bucket, objectName))
                 throw new IllegalArgumentException("Object already exist -> " + objectInfo(bucket, objectName));
-
+            
             try (stream) {
                 int version = 0;
                 operation = getJournalService().createObject(bucket, objectName);
@@ -239,8 +240,9 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
             meta.setEncrypt(isEncrypt());
             meta.setVault(isUseVaultNewFiles());
             meta.setCreationDate(now);
+            meta.setLastModified(now);
+            meta.setVersioncreationDate(now);
             meta.setVersion(version);
-            meta.setVersioncreationDate(meta.getCreationDate());
             meta.setLength(file.length());
             meta.setEtag(sha256); /** note that -> sha256 is calculated on the encrypted file **/
             meta.setIntegrityCheck(now);
@@ -250,9 +252,16 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
             if (customTags.isPresent())
                 meta.setCustomTags(customTags.get());
             meta.setRaid(String.valueOf(getRedundancyLevel().getCode()).trim());
-            drive.saveObjectMetadata(meta);
+            
+            if (!path.metadataDirPath().toFile().exists())
+                FileUtils.forceMkdir(path.metadataDirPath().toFile());
+
+            Files.writeString(path.metadataFilePath(), getObjectMapper().writeValueAsString(meta));
+            //drive.saveObjectMetadata(meta);
         } catch (Exception e) {
             throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
         }
     }
+    
+
 }

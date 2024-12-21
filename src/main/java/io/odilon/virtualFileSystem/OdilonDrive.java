@@ -63,6 +63,7 @@ import io.odilon.util.Check;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.DriveBucket;
 import io.odilon.virtualFileSystem.model.DriveStatus;
+import io.odilon.virtualFileSystem.model.IODriver;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
@@ -342,11 +343,19 @@ public class OdilonDrive extends BaseObject implements Drive {
      */
     @Override
     public boolean existsObjectMetadata(ServerBucket bucket, String objectName) {
+        
         Check.requireNonNullArgument(bucket, "bucket is null");
         Check.requireNonNullStringArgument(objectName, "objectName is null " + objectInfo(bucket));
-        File objectMetadataDir = new File(this.getObjectMetadataDirPath(bucket, objectName));
+        
+        ObjectPath path = new ObjectPath(this, bucket, objectName);
+                
+        File objectMetadataDir = path.metadataDirPath().toFile();
+
+        // File objectMetadataDir = new File(this.getObjectMetadataDirPath(bucket, objectName));
+        
         if (!objectMetadataDir.exists())
             return false;
+        
         return (getObjectMetadata(bucket, objectName).status != ObjectStatus.DELETED);
     }
 
@@ -567,13 +576,19 @@ public class OdilonDrive extends BaseObject implements Drive {
             meta.setLastModified(OffsetDateTime.now());
             String jsonString = getObjectMapper().writeValueAsString(meta);
 
-            if (isHead)
-                Files.writeString(
-                        Paths.get(getObjectMetadataDirPathById(meta.getBucketId(), meta.getObjectName()) + File.separator + meta.getObjectName() + ServerConstant.JSON), jsonString);
-            else
+            ObjectPath path = new ObjectPath(this, meta.getBucketId(), meta.getObjectName());
+            
+            if (isHead) {
+                Files.writeString(path.metadataFilePath(), jsonString);
+                //Files.writeString(
+                //        Paths.get(getObjectMetadataDirPathById(meta.getBucketId(), meta.getObjectName()) + File.separator + meta.getObjectName() + ServerConstant.JSON), jsonString);
+            }
+            else {
+
                 Files.writeString(
                         Paths.get(getObjectMetadataVersionFilePathById(meta.getBucketId(), meta.getObjectName(), version.get().intValue())),
                         jsonString);
+            }
 
         } catch (Exception e) {
             throw new InternalCriticalException(e, "b:" + meta.getBucketId().toString() + "o: + " + meta.getObjectName() + " v: "

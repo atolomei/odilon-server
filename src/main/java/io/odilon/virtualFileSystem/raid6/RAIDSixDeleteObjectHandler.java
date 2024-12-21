@@ -229,7 +229,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 
                 final ServerBucket f_bucket = bucket;
                 getDriver().getDrivesAll().forEach(d -> list.add(d.getObjectMetadata(f_bucket, objectName)));
-                getDriver().saveObjectMetadataToDisk(drives, list, true);
+                saveRAIDOneObjectMetadataToDisk(drives, list, true);
 
                 done = operation.commit();
 

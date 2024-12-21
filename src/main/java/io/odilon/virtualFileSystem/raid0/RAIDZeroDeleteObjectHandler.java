@@ -89,10 +89,14 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
                 if (!existsCacheBucket(bucket))
                     throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
 
-                if (!getDriver().exists(bucket, objectName))
-                    throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
+                //if (!getDriver().exists(bucket, objectName))
+                //    throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
+                
+                if (!existsObjectMetadata(bucket, objectName))
+                    throw new IllegalArgumentException("Object does not exist -> " + objectInfo(bucket, objectName));
 
-                meta = getDriver().getObjectMetadataInternal(bucket, objectName, false);
+
+                meta = getObjectMetadataInternal(bucket, objectName, false);
                 headVersion = meta.getVersion();
                 op = getJournalService().deleteObject(bucket, objectName, headVersion);
                 backupMetadata(bucket, meta.getObjectName());

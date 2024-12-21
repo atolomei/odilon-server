@@ -272,7 +272,7 @@ public class ServerSettings implements JSONObject {
 
     // OBJECT CACHES --------------------------------------
 
-    @Value("${objectMetadataCacheInitialCapacity:10000}")
+    @Value("${objectMetadataCache.initialCapacity:10000}")
     protected int objectCacheInitialCapacity;
 
     @Value("${objectMetadataCache.enabled:true}")

@@ -95,11 +95,11 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
             if (!existsCacheBucket(bucket))
                 throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
 
-            if (!existsMetadata(bucket, objectName))
+            if (!existsObjectMetadata(bucket, objectName))
                 throw new IllegalArgumentException("Object does not exist -> " + objectInfo(bucket, objectName, srcFileName));
 
             try (stream) {
-                ObjectMetadata meta = getDriver().getObjectMetadataInternal(bucket, objectName, false);
+                ObjectMetadata meta = getObjectMetadataInternal(bucket, objectName, true);
                 beforeHeadVersion = meta.getVersion();
                 op = getJournalService().updateObject(bucket, objectName, beforeHeadVersion);
                 /** backup current head version */
@@ -165,7 +165,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
                 if (!existsCacheBucket(bucket))
                     throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
 
-                ObjectMetadata meta = getDriver().getObjectMetadataInternal(bucket, objectName, false);
+                ObjectMetadata meta = getObjectMetadataInternal(bucket, objectName, false);
                 
                 if (meta.getVersion() == 0)
                     throw new IllegalArgumentException("Object does not have versions -> " + objectInfo(bucket, objectName));
@@ -683,8 +683,8 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
         }
     }
 
-    private boolean existsMetadata(ServerBucket bucket, String objectName) {
-        return getDriver().getWriteDrive(bucket, objectName).existsObjectMetadata(bucket, objectName);
-    }
+    //private boolean existsMetadata(ServerBucket bucket, String objectName) {
+    //    return getDriver().getWriteDrive(bucket, objectName).existsObjectMetadata(bucket, objectName);
+    //}
 
 }

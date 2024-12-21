@@ -16,10 +16,27 @@
  */
 package io.odilon.virtualFileSystem.raid6;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+
 import javax.annotation.concurrent.ThreadSafe;
 
+import io.odilon.errors.InternalCriticalException;
+import io.odilon.log.Logger;
+import io.odilon.model.ObjectMetadata;
+import io.odilon.model.SharedConstant;
+import io.odilon.util.Check;
 import io.odilon.virtualFileSystem.BaseRAIDHandler;
 import io.odilon.virtualFileSystem.RAIDHandler;
+import io.odilon.virtualFileSystem.model.Drive;
+import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
@@ -37,13 +54,18 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  */
 @ThreadSafe
 public abstract class RAIDSixHandler extends BaseRAIDHandler implements RAIDHandler {
-
+                    
+    private static Logger logger = Logger.getLogger(RAIDSixHandler.class.getName());
+    
     private final RAIDSixDriver driver;
 
     public RAIDSixHandler(RAIDSixDriver driver) {
         this.driver = driver;
     }
 
+    
+    
+    
     @Override
     public RAIDSixDriver getDriver() {
         return this.driver;
@@ -52,6 +74,72 @@ public abstract class RAIDSixHandler extends BaseRAIDHandler implements RAIDHand
     public VirtualFileSystemService getVirtualFileSystemService() {
         return getDriver().getVirtualFileSystemService();
     }
+    
+    @Override
+    protected Drive getObjectMetadataReadDrive(ServerBucket bucket, String objectName) {
+        return getDriver().getDrivesEnabled().get(getKey(bucket,objectName).hashCode() % getDriver().getDrivesEnabled().size());
+    }
 
+    
+    protected void saveRAIDOneObjectMetadataToDisk(final List<Drive> drives, final List<ObjectMetadata> list, final boolean isHead) {
+        
+        if (logger.isDebugEnabled()) {
+                Check.requireTrue(drives.size()>0, "no drives");
+                Check.requireTrue(drives.size() == list.size(), "must have the same number of elements." + " Drives -> "
+                + String.valueOf(drives.size()) + " - ObjectMetadata -> " + String.valueOf(list.size()));
+        }
+
+        final int size = drives.size();
+        
+        if (size==1) {
+            try {
+                ObjectMetadata meta = list.get(0);
+                if (isHead) {
+                    drives.get(0).saveObjectMetadata(meta);
+                } else {
+                    drives.get(0).saveObjectMetadataVersion(meta);
+                }
+                
+            } catch (Exception e) {
+                throw new InternalCriticalException(e);
+            }
+            return;
+        }
+
+        ExecutorService executor = Executors.newFixedThreadPool(size);
+        List<Callable<Boolean>> tasks = new ArrayList<Callable<Boolean>>(size);
+
+        for (int index = 0; index < size; index++) {
+            final int val = index;
+            tasks.add(() -> {
+                try {
+                    ObjectMetadata meta = list.get(val);
+                    if (isHead) {
+                        drives.get(val).saveObjectMetadata(meta);
+                    } else {
+                        drives.get(val).saveObjectMetadataVersion(meta);
+                    }
+                    return Boolean.valueOf(true);
+
+                } catch (Exception e) {
+                    logger.error(e, SharedConstant.NOT_THROWN);
+                    return Boolean.valueOf(false);
+                } finally {
+
+                }
+            });
+        }
+        try {
+            List<Future<Boolean>> future = executor.invokeAll(tasks, 10, TimeUnit.MINUTES);
+            Iterator<Future<Boolean>> it = future.iterator();
+            while (it.hasNext()) {
+                if (!it.next().get())
+                    throw new InternalCriticalException(ObjectMetadata.class.getSimpleName());
+            }
+        } catch (InterruptedException | ExecutionException e) {
+            throw new InternalCriticalException(e, ObjectMetadata.class.getSimpleName());
+        }
+    }
+ 
     protected abstract void rollbackJournal(VirtualFileSystemOperation op, boolean recoveryMode);
 }

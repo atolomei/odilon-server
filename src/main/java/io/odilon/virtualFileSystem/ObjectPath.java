@@ -20,6 +20,8 @@ import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ServerConstant;
 import io.odilon.virtualFileSystem.model.Drive;
@@ -38,12 +40,16 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  */
 public class ObjectPath extends PathBuilder {
 
+    @JsonProperty("drive")
     private final Drive drive;
 
+    @JsonProperty("objectName")
     private final String objectName;
-
+    
+    @JsonProperty("bucketId")
     private final Long bucketId;
 
+    
     public ObjectPath(Drive drive, ServerBucket bucket, String objectName) {
         this.drive = drive;
         this.objectName = objectName;
@@ -78,6 +84,15 @@ public class ObjectPath extends PathBuilder {
         return metadataDirPath(context).resolve(getObjectName() + ServerConstant.JSON);
     }
 
+    public Path metadataFileVersionPath(Context context) {
+        return metadataDirPath(context).resolve(getObjectName() + ServerConstant.JSON);
+    }
+    
+    // return getObjectMetadataDirPathById(bucketId, objectName) + File.separator + objectName
+    //+ VirtualFileSystemService.VERSION_EXTENSION + String.valueOf(version) + ServerConstant.JSON;
+    //
+    //
+    
     public String getBucketsDirPath() {
         return getDrive().getBucketsDirPath();
     }
