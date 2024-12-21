@@ -16,6 +16,7 @@
  */
 package io.odilon.virtualFileSystem.raid1;
 
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -37,11 +38,9 @@ import org.springframework.stereotype.Component;
 import io.odilon.error.OdilonObjectNotFoundException;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
-import io.odilon.model.BucketStatus;
 import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
 import io.odilon.model.ObjectMetadata;
-import io.odilon.model.ObjectStatus;
 import io.odilon.model.RedundancyLevel;
 import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
@@ -763,7 +762,7 @@ public class RAIDOneDriver extends BaseIODriver {
     }
 
     /**
-     * DATA CONSISTENCY --------------- The system crashes before Commit or Cancel
+     * DATA CONSISTENCY The system crashes before Commit or Cancel
      * -> next time the system starts up it will CANCEL all operations that are
      * incomplete. REDO in this version means deleting the object from the drives
      * where it completed
@@ -789,16 +788,12 @@ public class RAIDOneDriver extends BaseIODriver {
 
     private boolean fix(ServerBucket bucket, String objectName, ObjectMetadata goodDriveMeta, Boolean[] iCheck, Drive goodDrive) {
 
-        Check.requireNonNullArgument(goodDrive, "goodDrive is null");
-        Check.requireNonNullArgument(goodDriveMeta, "goodDriveMeta is null");
-
         boolean retValue = true;
 
-        getLockService().getObjectLock(bucket, objectName).writeLock().lock();
+       objectWriteLock(bucket, objectName);
 
         try {
-            getLockService().getBucketLock(bucket).readLock().lock();
-
+            bucketReadLock(bucket);
             try {
 
                 ObjectMetadata currentMeta = goodDrive.getObjectMetadata(bucket, objectName);
@@ -843,11 +838,10 @@ public class RAIDOneDriver extends BaseIODriver {
                 logger.error(e, SharedConstant.NOT_THROWN);
                 retValue = false;
             } finally {
-
-                getLockService().getBucketLock(bucket).readLock().unlock();
+                bucketReadUnLock(bucket);
             }
         } finally {
-            getLockService().getObjectLock(bucket, objectName).writeLock().unlock();
+            objectWriteUnLock(bucket, objectName);
         }
         return retValue;
     }
@@ -858,17 +852,9 @@ public class RAIDOneDriver extends BaseIODriver {
      * </p>
      */
     private ObjectMetadata getOM(ServerBucket bucket, String objectName, Optional<Integer> o_version, boolean addToCacheifMiss) {
-
-        Check.requireNonNullArgument(bucket, "bucket is null");
-        Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
-        Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie. " + BucketStatus.ARCHIVED.getName() + " or "
-                + BucketStatus.ENABLED.getName() + ") | b:" + bucket.getName());
-
         Drive readDrive = null;
-
         objectReadLock(bucket, objectName);
         try {
-
             bucketReadLock(bucket);
             try {
                 /**

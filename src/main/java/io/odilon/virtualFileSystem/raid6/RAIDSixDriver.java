@@ -235,11 +235,12 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
     @Override
     public boolean checkIntegrity(ServerBucket bucket, String objectName, boolean forceCheck) {
 
-        // TODO
-
         Check.requireNonNullArgument(bucket, "bucket is null");
         Check.requireNonNullArgument(objectName, "objectName is null");
 
+        
+        logger.error("not completed");
+        
         OffsetDateTime thresholdDate = OffsetDateTime.now()
                 .minusDays(getVirtualFileSystemService().getServerSettings().getIntegrityCheckDays());
 
