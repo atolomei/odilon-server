@@ -99,12 +99,15 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
         boolean isMainException = false;
 
         objectWriteLock(bucket, objectName);
-
         try {
-
             bucketReadLock(bucket);
-
             try (stream) {
+                /**
+                 * This check was executed by the VirtualFilySystemService, but it must be
+                 * executed also inside the critical zone.
+                 */
+                if (!existsCacheBucket(bucket))
+                    throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
 
                 if (getDriver().getReadDrive(bucket, objectName).existsObjectMetadata(bucket, objectName))
                     throw new IllegalArgumentException("object already exist -> b:" + getDriver().objectInfo(bucket, objectName));
@@ -114,7 +117,6 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
                 saveObjectDataFile(bucket, objectName, stream, srcFileName);
                 saveObjectMetadata(bucket, objectName, srcFileName, contentType, version, customTags);
                 done = op.commit();
-
             } catch (Exception e) {
                 done = false;
                 isMainException = true;
@@ -172,8 +174,6 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
                 drive.deleteObjectMetadata(bucket, objectName);
                 ObjectPath path = new ObjectPath(drive, bucket_id, objectName);
                 FileUtils.deleteQuietly(path.dataFilePath().toFile());
-                // FileUtils.deleteQuietly(new File(drive.getRootDirPath(), bucket_id.toString()
-                // + File.separator + objectName));
             }
             done = true;
 
@@ -211,9 +211,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
         byte[] buf = new byte[ServerConstant.BUFFER_SIZE];
 
         BufferedOutputStream out[] = new BufferedOutputStream[total_drives];
-
         boolean isMainException = false;
-
         try (InputStream sourceStream = isEncrypt() ? (getVirtualFileSystemService().getEncryptionService().encryptStream(stream))
                 : stream) {
             int n_d = 0;
@@ -225,7 +223,6 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
             }
 
             int bytes_read = 0;
-
             if (getDriver().getDrivesAll().size() < 2) {
                 while ((bytes_read = sourceStream.read(buf, 0, buf.length)) >= 0) {
                     for (int bytes = 0; bytes < total_drives; bytes++) {
@@ -235,16 +232,11 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
             } else {
                 final int size = getDriver().getDrivesAll().size();
                 ExecutorService executor = Executors.newFixedThreadPool(size);
-
                 while ((bytes_read = sourceStream.read(buf, 0, buf.length)) >= 0) {
-
                     List<Callable<Boolean>> tasks = new ArrayList<Callable<Boolean>>(size);
-
                     for (int index = 0; index < total_drives; index++) {
-
                         final int t_index = index;
                         final int t_bytes_read = bytes_read;
-
                         tasks.add(() -> {
                             try {
                                 out[t_index].write(buf, 0, t_bytes_read);
@@ -255,7 +247,6 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
                             }
                         });
                     }
-
                     try {
                         List<Future<Boolean>> future = executor.invokeAll(tasks, 10, TimeUnit.MINUTES);
                         Iterator<Future<Boolean>> it = future.iterator();
@@ -273,14 +264,12 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
         } catch (InternalCriticalException e) {
             isMainException = true;
             throw e;
-
         } catch (Exception e) {
             isMainException = true;
             throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName, srcFileName));
 
         } finally {
             IOException secEx = null;
-
             if (out != null) {
                 try {
                     for (int n = 0; n < total_drives; n++) {
@@ -293,11 +282,9 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
                     secEx = e;
                 }
             }
-
             if (!isMainException && (secEx != null))
                 throw new InternalCriticalException(secEx);
         }
-
     }
 
     /**
@@ -336,7 +323,6 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
                         throw new InternalCriticalException("SHA 256 are not equal for -> d:" + baseDrive + " ->" + sha + " vs d:"
                                 + drive.getName() + " -> " + sha256);
                 }
-
                 ObjectMetadata meta = new ObjectMetadata(bucket.getId(), objectName);
                 meta.setFileName(srcFileName);
                 meta.setAppVersion(OdilonVersion.VERSION);
@@ -354,9 +340,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
                 meta.setRaid(String.valueOf(getRedundancyLevel().getCode()).trim());
                 if (customTags.isPresent())
                     meta.setCustomTags(customTags.get());
-
                 list.add(meta);
-
             } catch (Exception e) {
                 throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName, srcFileName));
             }

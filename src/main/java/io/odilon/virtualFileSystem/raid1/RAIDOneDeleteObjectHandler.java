@@ -100,7 +100,6 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
                 backupMetadata(meta, bucket);
 
                 // TODO AT: parallel
-
                 for (Drive drive : getDriver().getDrivesAll())
                     ((SimpleDrive) drive).deleteObjectMetadata(bucket, objectName);
 
@@ -114,9 +113,7 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
                 done = false;
                 throw new InternalCriticalException(e, opInfo(op) + "  " + objectInfo(bucket, objectName));
             } finally {
-
                 try {
-
                     if ((!done) && (op != null)) {
                         try {
                             rollbackJournal(op, false);
@@ -125,7 +122,6 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
                         }
                     } else if (done)
                         postObjectDeleteCommit(meta, bucket, headVersion);
-
                     /**
                      * DATA CONSISTENCY: If The system crashes before Commit or Cancel -> next time
                      * the system starts up it will REDO all stored operations. Also, the if there
@@ -214,14 +210,10 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
 
         ServerBucket bucket = null;
 
-        // getLockService().getObjectLock(meta.getBucketId(),
-        // objectName).writeLock().lock();
         objectWriteLock(meta.getBucketId(), objectName);
         try {
             bucketReadLock(meta.getBucketId());
-
             try {
-
                 /**
                  * This check was executed by the VirtualFilySystemService, but it must be
                  * executed also inside the critical zone.
@@ -241,9 +233,7 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
                     return;
 
                 op = getJournalService().deleteObjectPreviousVersions(bucket, objectName, headVersion);
-
                 backupMetadata(meta, bucket);
-
                 /**
                  * remove all "objectmetadata.json.vn" Files, but keep -> "objectmetadata.json"
                  **/
@@ -252,7 +242,6 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
                         FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(bucket, objectName, version));
                     }
                 }
-
                 /** update head metadata with the tag */
                 meta.addSystemTag("delete versions");
                 meta.lastModified = OffsetDateTime.now();
@@ -261,7 +250,6 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
                     meta.drive = drive.getName();
                     drive.saveObjectMetadata(metaDrive);
                 }
-
                 done = op.commit();
 
             } catch (Exception e) {
@@ -289,7 +277,6 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
         } finally {
             objectWriteUnLock(meta.getBucketId(), objectName);
         }
-
         if (done)
             onAfterCommit(op, meta, headVersion);
     }
@@ -350,10 +337,6 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
     protected void postObjectPreviousVersionDeleteAll(ObjectMetadata meta, int headVersion) {
     }
 
-    /**
-     * 
-     * 
-     */
     private void postObjectPreviousVersionDeleteAllCommit(ObjectMetadata meta, ServerBucket bucket, int headVersion) {
 
         String bucketName = meta.getBucketName();
@@ -367,20 +350,15 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
                 for (Drive drive : getDriver().getDrivesAll()) {
                     ObjectPath path = new ObjectPath(drive, bucket, objectName);
                     FileUtils.deleteQuietly(path.dataFileVersionPath(version).toFile());
-                    // FileUtils.deleteQuietly(((SimpleDrive)
-                    // drive).getObjectDataVersionFile(meta.bucketId, objectName, version));
                 }
             }
-
             /** delete backup Metadata */
             for (Drive drive : getDriver().getDrivesAll()) {
                 FileUtils.deleteQuietly(new File(drive.getBucketWorkDirPath(bucket) + File.separator + objectName));
             }
-
         } catch (Exception e) {
             logger.error(e, SharedConstant.NOT_THROWN);
         }
-
     }
 
     /**
@@ -403,18 +381,13 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
      */
 
     private void postObjectDeleteCommit(ObjectMetadata meta, ServerBucket bucket, int headVersion) {
-
         String objectName = meta.getObjectName();
-
         try {
             /** delete data versions(1..n-1) */
             for (int version = 0; version <= headVersion; version++) {
                 for (Drive drive : getDriver().getDrivesAll()) {
-
                     ObjectPath path = new ObjectPath(drive, bucket, objectName);
                     FileUtils.deleteQuietly(path.dataFileVersionPath(version).toFile());
-                    // FileUtils.deleteQuietly(((SimpleDrive)
-                    // drive).getObjectDataVersionFile(meta.getBucketId(), objectName, version));
                 }
             }
             /** delete data (head) */
@@ -422,8 +395,6 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
                 ObjectPath path = new ObjectPath(drive, bucket, objectName);
                 File file = path.dataFilePath().toFile();
                 FileUtils.deleteQuietly(file);
-                // FileUtils.deleteQuietly(((SimpleDrive)
-                // drive).getObjectDataFile(meta.getBucketId(), objectName));
             }
             /** delete backup Metadata */
             for (Drive drive : getDriver().getDrivesAll())
@@ -447,7 +418,6 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
                 if (src.exists())
                     FileUtils.copyDirectory(src, new File(objectMetadataBackupDirPath));
             }
-
         } catch (IOException e) {
             throw new InternalCriticalException(e, objectInfo(meta));
         }
@@ -482,5 +452,4 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
             logger.error(e, SharedConstant.NOT_THROWN);
         }
     }
-
 }
