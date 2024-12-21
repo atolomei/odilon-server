@@ -83,8 +83,6 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
             String contentType, Optional<List<String>> customTags) {
 
         Check.requireNonNullArgument(bucket, "bucket is null");
-        Check.requireNonNullArgument(bucket.getName(), "bucketName is null");
-        Check.requireNonNullArgument(bucket.getId(), "bucket id is null");
         Check.requireNonNullArgument(objectName, "objectName is null or empty " + objectInfo(bucket));
 
         VirtualFileSystemOperation operation = null;
@@ -94,21 +92,20 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
         objectWriteLock(bucket, objectName);
         try {
             bucketReadLock(bucket);
-            /**
-             * This check was executed by the VirtualFilySystemService, but it must be
-             * executed also inside the critical zone.
-             */
+            
+            /**must be executed also inside the critical zone. */
             if (!existsCacheBucket(bucket))
                 throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
 
+            /**must be executed also inside the critical zone. */
             if (existsObjectMetadata(bucket, objectName))
                 throw new IllegalArgumentException("Object already exist -> " + objectInfo(bucket, objectName));
             
             try (stream) {
                 int version = 0;
                 operation = getJournalService().createObject(bucket, objectName);
-                saveFile(bucket, objectName, stream, srcFileName);
-                saveMetadata(bucket, objectName, srcFileName, contentType, version, customTags);
+                saveObjectDataFile(bucket, objectName, stream, srcFileName);
+                saveObjectMetadata(bucket, objectName, srcFileName, contentType, version, customTags);
                 done = operation.commit();
             } catch (InternalCriticalException e1) {
                 done = false;
@@ -194,7 +191,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
      * @param stream      can not be null
      * @param srcFileName can not be null
      */
-    private void saveFile(ServerBucket bucket, String objectName, InputStream stream, String srcFileName) {
+    private void saveObjectDataFile(ServerBucket bucket, String objectName, InputStream stream, String srcFileName) {
         byte[] buf = new byte[ServerConstant.BUFFER_SIZE];
         try (InputStream sourceStream = isEncrypt() ? getEncryptionService().encryptStream(stream) : stream) {
             ObjectPath path = new ObjectPath(getWriteDrive(bucket, objectName), bucket, objectName);
@@ -208,7 +205,6 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
             throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
         }
     }
-
     /**
      * <p>
      * This method is <b>not</b> ThreadSafe, callers must ensure proper concurrency
@@ -224,9 +220,8 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
      * @param srcFileName can not be null
      * @param customTags
      */
-    private void saveMetadata(ServerBucket bucket, String objectName, String srcFileName, String contentType, int version,
+    private void saveObjectMetadata(ServerBucket bucket, String objectName, String srcFileName, String contentType, int version,
             Optional<List<String>> customTags) {
-        Check.requireNonNullArgument(bucket, "bucket is null");
         OffsetDateTime now = OffsetDateTime.now();
         Drive drive = getWriteDrive(bucket, objectName);
         ObjectPath path = new ObjectPath(drive, bucket, objectName);
@@ -252,15 +247,11 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
             if (customTags.isPresent())
                 meta.setCustomTags(customTags.get());
             meta.setRaid(String.valueOf(getRedundancyLevel().getCode()).trim());
-            
             if (!path.metadataDirPath().toFile().exists())
                 FileUtils.forceMkdir(path.metadataDirPath().toFile());
-
             Files.writeString(path.metadataFilePath(), getObjectMapper().writeValueAsString(meta));
         } catch (Exception e) {
             throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
         }
     }
-    
-
 }

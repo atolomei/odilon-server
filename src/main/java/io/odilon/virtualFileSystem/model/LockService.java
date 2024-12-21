@@ -35,24 +35,25 @@ import io.odilon.virtualFileSystem.OdilonVirtualFileSystemService;
 public interface LockService extends SystemService {
 
     public ReadWriteLock getObjectLock(ServerBucket bucket, String objectName);
-    public ReadWriteLock getObjectLock(Long bucketId, String objectName);    
-    
-    
+
+    public ReadWriteLock getObjectLock(Long bucketId, String objectName);
+
     public ReadWriteLock getBucketLock(ServerBucket bucket);
+
     public ReadWriteLock getBucketLock(String bucketName);
+
     public ReadWriteLock getBucketLock(BucketMetadata meta);
+
     public ReadWriteLock getBucketLock(Long id);
-    
+
     public ReadWriteLock getServerLock();
 
     public ReadWriteLock getFileCacheLock(Long bucketId, String objectName, Optional<Integer> version);
-    
-    public boolean isLocked(ServerBucket bucket);
-    public boolean isLocked(String bucketName);
-    
-    
-    public void setVirtualFileSystemService(OdilonVirtualFileSystemService odilonVirtualFileSystemService);
 
-    
+    public boolean isLocked(ServerBucket bucket);
+
+    public boolean isLocked(String bucketName);
+
+    public void setVirtualFileSystemService(OdilonVirtualFileSystemService odilonVirtualFileSystemService);
 
 }

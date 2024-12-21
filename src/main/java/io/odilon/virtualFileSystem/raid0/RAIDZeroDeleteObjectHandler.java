@@ -72,17 +72,11 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
         boolean isMainException = false;
         int headVersion = -1;
         ObjectMetadata meta = null;
-
         Drive drive = getDriver().getDrive(bucket, objectName);
-
         objectWriteLock(bucket, objectName);
         try {
             bucketReadLock(bucket);
             try {
-                /**
-                 * This check was executed by the VirtualFilySystemService, but it must be
-                 * executed also inside the critical zone.
-                 */
                 if (!existsCacheBucket(bucket))
                     throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
 
@@ -93,13 +87,11 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
                 
                 if ((meta == null) || (!meta.isAccesible()))
                     throw new OdilonObjectNotFoundException( objectInfo(bucket, objectName));
-                
                 headVersion = meta.getVersion();
                 op = getJournalService().deleteObject(bucket, objectName, headVersion);
                 backupMetadata(bucket, meta.getObjectName());
                 drive.deleteObjectMetadata(bucket, objectName);
                 done = op.commit();
-
             } catch (OdilonObjectNotFoundException e1) {
                 done = false;
                 isMainException = true;
@@ -134,7 +126,6 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
         } finally {
             objectWriteUnLock(bucket, objectName);
         }
-
         if (done)
             onAfterCommit(op, meta, headVersion);
     }
@@ -151,52 +142,38 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
     public void deleteObjectAllPreviousVersions(ObjectMetadata meta) {
 
         Check.requireNonNullArgument(meta, "meta is null");
-        Check.requireNonNullArgument(meta.bucketId, "bucketId is null");
-        Check.requireNonNullArgument(meta.objectName, "objectName is null or empty | b:" + meta.bucketId.toString());
-
         ServerBucket bucket = null;
-
         boolean isMainExcetion = false;
         int headVersion = -1;
         boolean done = false;
         VirtualFileSystemOperation op = null;
-
         objectWriteLock(meta);
-
         try {
             bucketReadLock(meta.getBucketName());
-
             try {
 
-                /**
-                 * This check was executed by the VirtualFilySystemService, but it must be
-                 * executed also inside the critical zone.
-                 */
                 if (!existsCacheBucket(meta.getBucketId()))
-                    throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
+                    throw new IllegalArgumentException("bucket does not exist -> " + meta.getBucketId().toString());
 
-                if (!getDriver().getReadDrive(bucket, meta.getObjectName()).existsObjectMetadata(meta))
-                    throw new OdilonObjectNotFoundException("object does not exist -> " + getDriver().objectInfo(meta));
+                bucket = getCacheBucket(meta.getBucketId());
+                        
+                if (!existsObjectMetadata(bucket, meta.getObjectName()))
+                    throw new IllegalArgumentException("Object does not exist -> " + objectInfo(bucket, meta.getObjectName()));
 
                 headVersion = meta.getVersion();
-
                 /**
                  * It does not delete the head version, only previous versions
                  */
-                if (meta.getVersion() == 0)
+                if (headVersion == 0)
                     return;
-
                 op = getJournalService().deleteObjectPreviousVersions(bucket, meta.getObjectName(), headVersion);
-
                 backupMetadata(bucket, meta.getObjectName());
-
                 /**
                  * remove all "objectmetadata.json.vn" Files, but keep -> "objectmetadata.json"
                  **/
                 for (int version = 0; version < headVersion; version++)
                     FileUtils.deleteQuietly(getDriver().getReadDrive(bucket, meta.getObjectName())
                             .getObjectMetadataVersionFile(bucket, meta.getObjectName(), version));
-
                 meta.addSystemTag("delete versions");
                 meta.setLastModified(OffsetDateTime.now());
                 getDriver().getWriteDrive(bucket, meta.getObjectName()).saveObjectMetadata(meta);
@@ -278,9 +255,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
 
             /**
              * Rollback is the same for both operations ->
-             * 
              * DELETE_OBJECT and DELETE_OBJECT_PREVIOUS_VERSIONS
-             * 
              */
             if (operation.getOperationCode() == OperationCode.DELETE_OBJECT)
                 restoreMetadata(bucket, objectName);
@@ -375,26 +350,22 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
 
     private void postObjectPreviousVersionDeleteAllCommit(ObjectMetadata meta, ServerBucket bucket, int headVersion) {
 
-        Check.requireNonNullArgument(meta, "meta is null");
-
         String objectName = meta.getObjectName();
         Long bucketId = meta.getBucketId();
 
         ObjectPath path = new ObjectPath(getWriteDrive(bucket, objectName), bucketId, objectName);
         try {
             /** delete data versions(1..n-1). keep headVersion **/
-            for (int n = 0; n < headVersion; n++) {
-                File file = path.dataFileVersionPath(n).toFile();
-                FileUtils.deleteQuietly(file);
-            }
+            for (int n = 0; n < headVersion; n++)
+                FileUtils.deleteQuietly(path.dataFileVersionPath(n).toFile());
+            
             /** delete backup Metadata */
-            FileUtils.deleteQuietly(new File(
-                    getDriver().getWriteDrive(bucket, objectName).getBucketWorkDirPath(bucket) + File.separator + objectName));
+            // FileUtils.deleteQuietly(new File(getDriver().getWriteDrive(bucket, objectName).getBucketWorkDirPath(bucket) + File.separator + objectName));
+            FileUtils.deleteQuietly(path.metadataWorkFilePath().toFile());
         } catch (Exception e) {
             logger.error(e, objectInfo(meta), SharedConstant.NOT_THROWN);
         }
     }
-
     /**
      * <p>
      * This method is executed by the delete thread. It does not need to control
@@ -426,8 +397,9 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
         FileUtils.deleteQuietly(file);
 
         /** delete backup Metadata */
-        FileUtils.deleteQuietly(
-                new File(getDriver().getWriteDrive(bucket, objectName).getBucketWorkDirPath(bucket) + File.separator + objectName));
+        //FileUtils.deleteQuietly(
+        //        new File(getDriver().getWriteDrive(bucket, objectName).getBucketWorkDirPath(bucket) + File.separator + objectName));
+        FileUtils.deleteQuietly(path.metadataWorkFilePath().toFile());
     }
     /**
      * copy metadata directory
@@ -435,8 +407,6 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
      * @param objectName
      */
     private void backupMetadata(ServerBucket bucket, String objectName) {
-        Check.requireNonNullArgument(bucket, "meta is null");
-        Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
         try {
             String objectMetadataDirPath = getDriver().getWriteDrive(bucket, objectName).getObjectMetadataDirPath(bucket,
                     objectName);
@@ -456,8 +426,6 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
      * @param objectName
      */
     private void restoreMetadata(ServerBucket bucket, String objectName) {
-        Check.requireNonNullArgument(bucket, "meta is null");
-        Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
         String objectMetadataBackupDirPath = getDriver().getWriteDrive(bucket, objectName).getBucketWorkDirPath(bucket)
                 + File.separator + objectName;
         String objectMetadataDirPath = getDriver().getWriteDrive(bucket, objectName).getObjectMetadataDirPath(bucket, objectName);

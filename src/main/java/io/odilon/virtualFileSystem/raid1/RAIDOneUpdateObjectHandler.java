@@ -333,7 +333,6 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
                 if (!existsCacheBucket(meta.getBucketName()))
                     throw new IllegalArgumentException("bucket does not exist -> " + meta.getBucketName());
 
-                // TODO VER
                 bucket = getBucketCache().get(meta.getBucketId());
 
                 op = getJournalService().updateObjectMetadata(getBucketCache().get(meta.getBucketId()), meta.getObjectName(),

@@ -30,7 +30,6 @@ import io.odilon.model.list.Item;
 import io.odilon.scheduler.ServiceRequest;
 
 /**
- * 
  * <p>
  * Implementations of this interface are expected to be thread-safe, and can be
  * safely accessed by multiple concurrent threads.

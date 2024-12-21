@@ -97,6 +97,11 @@ public class ObjectPath extends PathBuilder {
         return getDrive().getBucketsDirPath();
     }
 
+    private String getBucketWorkDirPath() {
+        return getDrive().getWorkDirPath() + File.separator + getBucketId().toString();
+    }
+    
+    
     /**
      * this works for RAID 1 and RAID 0
      * 
@@ -116,6 +121,11 @@ public class ObjectPath extends PathBuilder {
             throw new RuntimeException("not done");
     }
 
+    public Path metadataWorkFilePath() {
+        return Paths.get(getBucketWorkDirPath(), getObjectName());
+    }
+
+    
     public Path dataFileVersionPath(int version) {
         return dataFileVersionPath(Context.STORAGE, version);
     }
