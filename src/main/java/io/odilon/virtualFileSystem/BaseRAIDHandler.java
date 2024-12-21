@@ -23,6 +23,7 @@ import io.odilon.model.BucketMetadata;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.RedundancyLevel;
 import io.odilon.replication.ReplicationService;
+import io.odilon.scheduler.SchedulerService;
 import io.odilon.service.ServerSettings;
 import io.odilon.virtualFileSystem.model.IODriver;
 import io.odilon.virtualFileSystem.model.JournalService;
@@ -39,6 +40,9 @@ public abstract class BaseRAIDHandler {
         return getDriver().getVirtualFileSystemService();
     }
 
+    protected SchedulerService getSchedulerService() {
+        return getVirtualFileSystemService().getSchedulerService();
+    } 
     protected ServerSettings getServerSettings() {
         return getVirtualFileSystemService().getServerSettings();
     }

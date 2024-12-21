@@ -87,9 +87,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
         boolean done = false;
         int beforeHeadVersion = -1;
         int afterHeadVersion = -1;
-
         VirtualFileSystemOperation op = null;
-
         objectWriteLock(bucket, objectName);
         try {
             bucketReadLock(bucket);
@@ -101,24 +99,17 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
                 throw new IllegalArgumentException("Object does not exist -> " + objectInfo(bucket, objectName, srcFileName));
 
             try (stream) {
-
                 ObjectMetadata meta = getDriver().getObjectMetadataInternal(bucket, objectName, false);
-
                 beforeHeadVersion = meta.getVersion();
                 op = getJournalService().updateObject(bucket, objectName, beforeHeadVersion);
-
                 /** backup current head version */
                 saveVersioDataFile(bucket, objectName, beforeHeadVersion);
                 saveVersionMetadata(bucket, objectName, beforeHeadVersion);
-
                 /** copy new version head version */
                 afterHeadVersion = beforeHeadVersion + 1;
-
                 saveObjectDataFile(bucket, objectName, stream, srcFileName, afterHeadVersion);
                 saveObjectMetadataHead(bucket, objectName, srcFileName, contentType, afterHeadVersion, customTags);
-
                 done = op.commit();
-
             } catch (OdilonObjectNotFoundException e1) {
                 done = false;
                 isMaixException = true;
@@ -166,9 +157,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
         boolean done = false;
         boolean isMainException = false;
         int beforeHeadVersion = -1;
-
         VirtualFileSystemOperation op = null;
-
         objectWriteLock(bucket, objectName);
         try {
             bucketReadLock(bucket);
@@ -177,14 +166,12 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
                     throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
 
                 ObjectMetadata meta = getDriver().getObjectMetadataInternal(bucket, objectName, false);
-
+                
                 if (meta.getVersion() == 0)
                     throw new IllegalArgumentException("Object does not have versions -> " + objectInfo(bucket, objectName));
 
                 beforeHeadVersion = meta.getVersion();
-
                 List<ObjectMetadata> metaVersions = new ArrayList<ObjectMetadata>();
-
                 for (int version = 0; version < beforeHeadVersion; version++) {
                     ObjectMetadata mv = getDriver().getReadDrive(bucket, objectName).getObjectMetadataVersion(bucket, objectName,
                             version);
@@ -215,7 +202,6 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
                     throw new OdilonObjectNotFoundException(Optional.of(meta.getSystemTags()).orElse("previous versions deleted"));
 
                 done = op.commit();
-
                 return metaToRestore;
 
             } catch (OdilonObjectNotFoundException e1) {
@@ -230,11 +216,8 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
                 throw new InternalCriticalException(e, objectInfo(bucket, objectName));
 
             } finally {
-
                 try {
-
                     if ((!done) && (op != null)) {
-
                         try {
                             rollbackJournal(op, false);
                         } catch (Exception e) {
@@ -249,8 +232,11 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
                          */
                         if ((op != null) && ((beforeHeadVersion >= 0))) {
                             try {
+                                /** metadata file */
                                 FileUtils.deleteQuietly(getDriver().getWriteDrive(bucket, objectName)
                                         .getObjectMetadataVersionFile(bucket, objectName, beforeHeadVersion));
+                                
+                                /** data file */
                                 ObjectPath path = new ObjectPath(getDriver().getWriteDrive(bucket, objectName), bucket, objectName);
                                 FileUtils.deleteQuietly(path.dataFileVersionPath(beforeHeadVersion).toFile());
                             } catch (Exception e) {

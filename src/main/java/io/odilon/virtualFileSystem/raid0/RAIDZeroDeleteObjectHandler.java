@@ -16,6 +16,7 @@
  */
 package io.odilon.virtualFileSystem.raid0;
 
+
 import java.io.File;
 import java.io.IOException;
 import java.time.OffsetDateTime;
@@ -31,6 +32,7 @@ import io.odilon.model.ObjectMetadata;
 import io.odilon.model.SharedConstant;
 import io.odilon.scheduler.AfterDeleteObjectServiceRequest;
 import io.odilon.scheduler.DeleteBucketObjectPreviousVersionServiceRequest;
+import io.odilon.scheduler.SchedulerService;
 import io.odilon.util.Check;
 import io.odilon.virtualFileSystem.ObjectPath;
 import io.odilon.virtualFileSystem.RAIDDeleteObjectHandler;
@@ -77,32 +79,24 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
         Drive drive = getDriver().getDrive(bucket, objectName);
 
         objectWriteLock(bucket, objectName);
-
         try {
             bucketReadLock(bucket);
-
             try {
-
                 /**
                  * This check was executed by the VirtualFilySystemService, but it must be
                  * executed also inside the critical zone.
                  */
-                if (!existsCacheBucket(bucket.getName()))
+                if (!existsCacheBucket(bucket))
                     throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
 
                 if (!getDriver().exists(bucket, objectName))
                     throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
 
                 meta = getDriver().getObjectMetadataInternal(bucket, objectName, false);
-
                 headVersion = meta.getVersion();
-
                 op = getJournalService().deleteObject(bucket, objectName, headVersion);
-
                 backupMetadata(bucket, meta.getObjectName());
-
                 drive.deleteObjectMetadata(bucket, objectName);
-
                 done = op.commit();
 
             } catch (OdilonObjectNotFoundException e1) {
@@ -222,12 +216,9 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
             } finally {
 
                 try {
-
                     if ((!done) && (op != null)) {
                         try {
-
                             rollbackJournal(op, false);
-
                         } catch (InternalCriticalException e) {
                             if (!isMainExcetion)
                                 throw e;
@@ -384,11 +375,6 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
     public void postObjectDelete(ObjectMetadata meta, int headVersion) {
     }
 
-    /**
-     * 
-     * @param meta
-     * @param headVersion
-     */
     private void postObjectPreviousVersionDeleteAllCommit(ObjectMetadata meta, ServerBucket bucket, int headVersion) {
 
         Check.requireNonNullArgument(meta, "meta is null");
@@ -397,20 +383,15 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
         Long bucketId = meta.getBucketId();
 
         ObjectPath path = new ObjectPath(getWriteDrive(bucket, objectName), bucketId, objectName);
-
         try {
             /** delete data versions(1..n-1). keep headVersion **/
             for (int n = 0; n < headVersion; n++) {
                 File file = path.dataFileVersionPath(n).toFile();
                 FileUtils.deleteQuietly(file);
-                // FileUtils.deleteQuietly(((SimpleDrive) getWriteDrive(bucket,
-                // objectName)).getObjectDataVersionFile(bucketId, objectName, n));
             }
-
             /** delete backup Metadata */
             FileUtils.deleteQuietly(new File(
                     getDriver().getWriteDrive(bucket, objectName).getBucketWorkDirPath(bucket) + File.separator + objectName));
-
         } catch (Exception e) {
             logger.error(e, objectInfo(meta), SharedConstant.NOT_THROWN);
         }
@@ -432,29 +413,23 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
 
         Long bucketId = meta.getBucketId();
         String objectName = meta.getObjectName();
-
         ObjectPath path = new ObjectPath(getWriteDrive(bucket, objectName), bucketId, objectName);
 
         /** delete data versions(1..n-1) **/
         for (int version = 0; version <= headVersion; version++) {
             FileUtils.deleteQuietly(path.dataFileVersionPath(version).toFile());
-            // FileUtils.deleteQuietly(((SimpleDrive) getWriteDrive(bucket,
-            // objectName)).getObjectDataVersionFile(bucketId, objectName, n));
         }
 
         /** delete metadata (head) */
         /** not required because it was done before commit */
 
         /** delete data (head) */
-        // ObjectPath path = new ObjectPath( getWriteDrive(bucket, objectName),
-        // bucketId, objectName);
         File file = path.dataFilePath().toFile();
         FileUtils.deleteQuietly(file);
-        // FileUtils.deleteQuietly(((SimpleDrive) getWriteDrive(bucket,
-        // objectName)).getObjectDataFile(bucketId, objectName));
 
         /** delete backup Metadata */
-        FileUtils.deleteQuietly(new File(getDriver().getWriteDrive(bucket, objectName).getBucketWorkDirPath(bucket) + File.separator + objectName));
+        FileUtils.deleteQuietly(
+                new File(getDriver().getWriteDrive(bucket, objectName).getBucketWorkDirPath(bucket) + File.separator + objectName));
     }
 
     /**
@@ -487,10 +462,8 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
      * @param objectName
      */
     private void restoreMetadata(ServerBucket bucket, String objectName) {
-
         Check.requireNonNullArgument(bucket, "meta is null");
         Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
-
         String objectMetadataBackupDirPath = getDriver().getWriteDrive(bucket, objectName).getBucketWorkDirPath(bucket)
                 + File.separator + objectName;
         String objectMetadataDirPath = getDriver().getWriteDrive(bucket, objectName).getObjectMetadataDirPath(bucket, objectName);
@@ -511,20 +484,19 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
      * </p>
      */
     private void onAfterCommit(VirtualFileSystemOperation operation, ObjectMetadata meta, int headVersion) {
-
-        if ((operation == null) || (meta == null)) {
-            logger.error("op or meta is null, should not happen", SharedConstant.NOT_THROWN);
+        if (operation == null)
             return;
-        }
-
+        if (meta == null)
+            return;
         try {
             if (operation.getOperationCode() == OperationCode.DELETE_OBJECT
                     || operation.getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS)
-                getVirtualFileSystemService().getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext()
+                getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext()
                         .getBean(AfterDeleteObjectServiceRequest.class, operation.getOperationCode(), meta, headVersion));
-
         } catch (Exception e) {
             logger.error(e, opInfo(operation), SharedConstant.NOT_THROWN);
         }
     }
+
+
 }

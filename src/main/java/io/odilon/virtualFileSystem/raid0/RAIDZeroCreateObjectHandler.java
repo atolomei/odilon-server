@@ -93,31 +93,26 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
         objectWriteLock(bucket, objectName);
         try {
             bucketReadLock(bucket);
-
             /**
              * This check was executed by the VirtualFilySystemService, but it must be
              * executed also inside the critical zone.
              */
-            if (!existsCacheBucket(bucket.getName()))
+            if (!existsCacheBucket(bucket))
                 throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
 
-            if (existsMetadata(bucket, objectName))
+            if (getDriver().getWriteDrive(bucket, objectName).existsObjectMetadata(bucket, objectName))
                 throw new IllegalArgumentException("Object already exist -> " + objectInfo(bucket, objectName));
 
             try (stream) {
-
                 int version = 0;
-
                 operation = getJournalService().createObject(bucket, objectName);
                 saveFile(bucket, objectName, stream, srcFileName);
                 saveMetadata(bucket, objectName, srcFileName, contentType, version, customTags);
                 done = operation.commit();
-
             } catch (InternalCriticalException e1) {
                 done = false;
                 isMainException = true;
                 throw e1;
-
             } catch (Exception e) {
                 done = false;
                 isMainException = true;
@@ -129,7 +124,6 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
                             rollbackJournal(operation, false);
                         } catch (InternalCriticalException e) {
                             if (!isMainException) {
-                                logger.debug(e, objectInfo(bucket, objectName, srcFileName));
                                 throw e;
                             } else
                                 logger.error(e, objectInfo(bucket, objectName, srcFileName), SharedConstant.NOT_THROWN);
@@ -154,39 +148,29 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
      * This method is <b>not</b> ThreadSafe, callers must ensure proper concurrency
      * control
      * </p>
-     * 
      */
     @Override
     protected void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
-
         Check.requireNonNullArgument(operation, "operation is null");
         Check.checkTrue(operation.getOperationCode() == OperationCode.CREATE_OBJECT,
-                "Invalid op ->  " + operation.getOperationCode().getName());
-
+                "Invalid operation ->  " + operation.getOperationCode().getName());
         logger.debug(opInfo(operation));
-
         boolean done = false;
-
         ServerBucket bucket = getBucketCache().get(operation.getBucketId());
         String objectName = operation.getObjectName();
-
         try {
             if (isStandByEnabled())
                 getReplicationService().cancel(operation);
-
             getWriteDrive(bucket, objectName).deleteObjectMetadata(bucket, objectName);
-
             ObjectPath path = new ObjectPath(getWriteDrive(bucket, objectName), bucket, objectName);
             FileUtils.deleteQuietly(path.dataFilePath().toFile());
             done = true;
-
         } catch (InternalCriticalException e) {
             logger.debug(e, opInfo(operation));
             if (!recoveryMode)
                 throw (e);
             else
                 logger.error(e, opInfo(operation), SharedConstant.NOT_THROWN);
-
         } catch (Exception e) {
             if (!recoveryMode)
                 throw new InternalCriticalException(e, opInfo(operation));
@@ -210,9 +194,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
      * @param srcFileName can not be null
      */
     private void saveFile(ServerBucket bucket, String objectName, InputStream stream, String srcFileName) {
-
         byte[] buf = new byte[ServerConstant.BUFFER_SIZE];
-
         try (InputStream sourceStream = isEncrypt() ? getEncryptionService().encryptStream(stream) : stream) {
             ObjectPath path = new ObjectPath(getWriteDrive(bucket, objectName), bucket, objectName);
             try (BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(path.dataFilePath().toFile()),
@@ -241,10 +223,8 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
      * @param srcFileName can not be null
      * @param customTags
      */
-
     private void saveMetadata(ServerBucket bucket, String objectName, String srcFileName, String contentType, int version,
             Optional<List<String>> customTags) {
-
         Check.requireNonNullArgument(bucket, "bucket is null");
         OffsetDateTime now = OffsetDateTime.now();
         Drive drive = getWriteDrive(bucket, objectName);
@@ -271,13 +251,8 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
                 meta.setCustomTags(customTags.get());
             meta.setRaid(String.valueOf(getRedundancyLevel().getCode()).trim());
             drive.saveObjectMetadata(meta);
-
         } catch (Exception e) {
             throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
         }
-    }
-
-    private boolean existsMetadata(ServerBucket bucket, String objectName) {
-        return getDriver().getWriteDrive(bucket, objectName).existsObjectMetadata(bucket, objectName);
     }
 }
