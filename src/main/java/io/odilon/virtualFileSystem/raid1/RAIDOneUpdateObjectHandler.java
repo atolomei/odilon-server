@@ -133,7 +133,11 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
                 if (!existsObjectMetadata(bucket, objectName))
                     throw new IllegalArgumentException("Object does not exist -> " + objectInfo(bucket, objectName));
                 
-                ObjectMetadata meta = getObjectMetadataInternal(bucket, objectName, true);
+                ObjectMetadata meta = getHandlerObjectMetadataInternal(bucket, objectName, true);
+                
+                if ((meta == null) || (!meta.isAccesible()))
+                    throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
+                
                 beforeHeadVersion = meta.getVersion();
 
                 op = getJournalService().updateObject(bucket, objectName, beforeHeadVersion);
@@ -149,6 +153,11 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 
                 done = op.commit();
 
+            } catch (InternalCriticalException e) {
+                done = false;
+                isMainException = true;
+                throw e;
+                        
             } catch (Exception e) {
                 done = false;
                 isMainException = true;
@@ -205,8 +214,11 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 
             try {
 
-                ObjectMetadata meta = getObjectMetadataInternal(bucket, objectName, false);
+                ObjectMetadata meta = getHandlerObjectMetadataInternal(bucket, objectName, false);
 
+                if ((meta == null) || (!meta.isAccesible()))
+                    throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
+                
                 if (meta.getVersion() == 0)
                     throw new IllegalArgumentException("Object does not have any previous version | " + "b:"
                             + (Optional.ofNullable(bucket).isPresent() ? (bucket.getId()) : "null") + ", o:"

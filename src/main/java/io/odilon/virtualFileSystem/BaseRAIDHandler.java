@@ -229,7 +229,7 @@ public abstract class BaseRAIDHandler extends BaseObject {
      * 
      * MUST BE CALLED INSIDE THE CRITICAL ZONE
      */
-    public ObjectMetadata getObjectMetadataInternal(ServerBucket bucket, String objectName, boolean addToCacheIfmiss) {
+    public ObjectMetadata getHandlerObjectMetadataInternal(ServerBucket bucket, String objectName, boolean addToCacheIfmiss) {
 
         if ((!getServerSettings().isUseObjectCache()))
             return getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucket, objectName);

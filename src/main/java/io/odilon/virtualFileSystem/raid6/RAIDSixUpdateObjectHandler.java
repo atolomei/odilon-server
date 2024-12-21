@@ -125,7 +125,14 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
                 if (!existsObjectMetadata(bucket, objectName))
                     throw new IllegalArgumentException("Object does not exist -> " + objectInfo(bucket, objectName));
                 
-                meta =getObjectMetadataInternal(bucket, objectName, true);
+                meta =getHandlerObjectMetadataInternal(bucket, objectName, true);
+                
+                
+                
+                if ((meta == null) || (!meta.isAccesible()))
+                    throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
+
+                
                 beforeHeadVersion = meta.getVersion();
                 operation = getJournalService().updateObject(bucket, objectName, beforeHeadVersion);
                 /** backup current head version */
@@ -275,8 +282,11 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
                 if (!existsCacheBucket(bucket))
                     throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
 
-                metaHeadToRemove = getObjectMetadataInternal(bucket, objectName, false);
+                metaHeadToRemove = getHandlerObjectMetadataInternal(bucket, objectName, false);
 
+                if ((metaHeadToRemove  == null) || (!metaHeadToRemove .isAccesible()))
+                    throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
+                
                 if (metaHeadToRemove.getVersion() == 0)
                     throw new IllegalArgumentException(
                             "Object does not have any previous version | " + objectInfo(bucket, objectName));

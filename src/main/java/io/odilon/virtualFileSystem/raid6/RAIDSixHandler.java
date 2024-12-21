@@ -77,7 +77,7 @@ public abstract class RAIDSixHandler extends BaseRAIDHandler implements RAIDHand
     
     @Override
     protected Drive getObjectMetadataReadDrive(ServerBucket bucket, String objectName) {
-        return getDriver().getDrivesEnabled().get(getKey(bucket,objectName).hashCode() % getDriver().getDrivesEnabled().size());
+        return getDriver().getDrivesEnabled().get(Math.abs(getKey(bucket,objectName).hashCode()) % getDriver().getDrivesEnabled().size());
     }
 
     

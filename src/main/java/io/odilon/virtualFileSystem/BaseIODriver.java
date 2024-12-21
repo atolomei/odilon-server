@@ -1053,7 +1053,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
      * 
      * MUST BE CALLED INSIDE THE CRITICAL ZONE
      */
-   protected ObjectMetadata getObjectMetadataInternal(ServerBucket bucket, String objectName, boolean addToCacheIfmiss) {
+   protected ObjectMetadata getDriverObjectMetadataInternal(ServerBucket bucket, String objectName, boolean addToCacheIfmiss) {
 
         if ((!getServerSettings().isUseObjectCache()))
             return getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucket, objectName);
@@ -1180,19 +1180,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
         return "bn:" + (bucketName != null ? bucketName.toString() : "null") + " o:" + (objectName != null ? objectName : "null")
                 + (fileName != null ? (" f:" + fileName) : "");
     }
-
-    /**
-    protected boolean existsBucketInDrives(Long bucketId) {
-        for (Drive drive : getDrivesEnabled()) {
-            if (!drive.existsBucketById(bucketId)) {
-                logger.error(("b: " + (Optional.of(bucketId).isPresent() ? bucketId.toString() : "null")) + " -> not in d:"
-                        + drive.getName());
-                return false;
-            }
-        }
-        return true;
-    }
-    **/
 
     /**
      * <p>
@@ -1454,6 +1441,11 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
     protected ObjectMetadataCacheService getObjectMetadataCacheService() {
         return getVirtualFileSystemService().getObjectMetadataCacheService();
     }
+    
+    protected void checkIsAccesible(ServerBucket bucket) {
+        Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible (ie. " + BucketStatus.ENABLED.getName() + " or " + BucketStatus.ENABLED.getName() + "  | b:" + bucket.getName());        
+    }
+    
 
     /**
      * @param serverInfo

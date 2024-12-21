@@ -98,8 +98,9 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
             if (!existsObjectMetadata(bucket, objectName))
                 throw new IllegalArgumentException("Object does not exist -> " + objectInfo(bucket, objectName, srcFileName));
 
+            
             try (stream) {
-                ObjectMetadata meta = getObjectMetadataInternal(bucket, objectName, true);
+                ObjectMetadata meta = getHandlerObjectMetadataInternal(bucket, objectName, true);
                 beforeHeadVersion = meta.getVersion();
                 op = getJournalService().updateObject(bucket, objectName, beforeHeadVersion);
                 /** backup current head version */
@@ -165,20 +166,21 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
                 if (!existsCacheBucket(bucket))
                     throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
 
-                ObjectMetadata meta = getObjectMetadataInternal(bucket, objectName, false);
+                ObjectMetadata meta = getHandlerObjectMetadataInternal(bucket, objectName, false);
                 
+                if ((meta == null) || (!meta.isAccesible()))
+                    throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
+
                 if (meta.getVersion() == 0)
                     throw new IllegalArgumentException("Object does not have versions -> " + objectInfo(bucket, objectName));
 
                 beforeHeadVersion = meta.getVersion();
                 List<ObjectMetadata> metaVersions = new ArrayList<ObjectMetadata>();
                 for (int version = 0; version < beforeHeadVersion; version++) {
-                    ObjectMetadata mv = getDriver().getReadDrive(bucket, objectName).getObjectMetadataVersion(bucket, objectName,
-                            version);
+                    ObjectMetadata mv = getDriver().getReadDrive(bucket, objectName).getObjectMetadataVersion(bucket, objectName,version);
                     if (mv != null)
                         metaVersions.add(mv);
                 }
-
                 if (metaVersions.isEmpty())
                     throw new OdilonObjectNotFoundException(Optional.of(meta.getSystemTags()).orElse("previous versions deleted"));
 

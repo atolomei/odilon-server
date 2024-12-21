@@ -257,7 +257,6 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
                 FileUtils.forceMkdir(path.metadataDirPath().toFile());
 
             Files.writeString(path.metadataFilePath(), getObjectMapper().writeValueAsString(meta));
-            //drive.saveObjectMetadata(meta);
         } catch (Exception e) {
             throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
         }

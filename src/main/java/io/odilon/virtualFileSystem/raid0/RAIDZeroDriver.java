@@ -341,23 +341,13 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
                 if (!existsCacheBucket(bucket.getName()))
                     throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
 
-                if (!exists(bucket, objectName))
+                ObjectMetadata meta = getDriverObjectMetadataInternal(bucket, objectName, true);
+
+                if ((meta == null) || (!meta.isAccesible()))
                     throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
+                
+                return new OdilonObject(bucket, objectName, getVirtualFileSystemService());
 
-                ObjectMetadata meta = getObjectMetadataInternal(bucket, objectName, true);
-
-                if (meta.getStatus() == ObjectStatus.ENABLED || meta.getStatus() == ObjectStatus.ARCHIVED) {
-                    return new OdilonObject(bucket, objectName, getVirtualFileSystemService());
-                }
-
-                /**
-                 * if the object is DELETED or DRAFT -> it will be purged from the system at
-                 * some point.
-                 */
-                throw new OdilonObjectNotFoundException(String.format(
-                        "object not found | status must be %s or %s -> b: %s | o:%s | o.status: %s", ObjectStatus.ENABLED.getName(),
-                        ObjectStatus.ARCHIVED.getName(), Optional.ofNullable(bucket.getName()).orElse("null"),
-                        Optional.ofNullable(bucket.getName()).orElse("null"), meta.status.getName()));
             } catch (IllegalArgumentException e) {
                 throw e;
             } catch (Exception e) {
@@ -384,7 +374,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         try {
             bucketReadLock(bucket);
             try {
-                
                 /** must be executed also inside the critical zone. */
                 if (!existsCacheBucket(bucket))
                     throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
@@ -506,7 +495,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
                 /** read is from only 1 drive */
                 readDrive = getReadDrive(bucket, objectName);
 
-                ObjectMetadata meta = getObjectMetadataInternal(bucket, objectName, true);
+                ObjectMetadata meta = getDriverObjectMetadataInternal(bucket, objectName, true);
 
                 if ((meta == null) || (!meta.isAccesible()))
                     throw new OdilonObjectNotFoundException(ObjectMetadata.class.getSimpleName());
@@ -630,16 +619,16 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
                 /** RAID 0: read is from only 1 drive */
                 Drive readDrive = getReadDrive(bucket, objectName);
 
-                ObjectMetadata meta = getObjectMetadataInternal(bucket, objectName, true);
+                ObjectMetadata meta = getDriverObjectMetadataInternal(bucket, objectName, true);
 
-                if ((meta != null) && meta.isAccesible()) {
+                if ((meta == null) || (!meta.isAccesible()))
+                    throw new OdilonObjectNotFoundException( objectInfo(bucket, objectName));
+                
+                ObjectPath path = new ObjectPath(readDrive, bucket, objectName);
+                InputStream stream = Files.newInputStream(path.dataFilePath(Context.STORAGE));
 
-                    ObjectPath path = new ObjectPath(readDrive, bucket, objectName);
-                    InputStream stream = Files.newInputStream(path.dataFilePath(Context.STORAGE));
-
-                    return (meta.isEncrypt()) ? getEncryptionService().decryptStream(stream) : stream;
-                }
-                throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
+                return (meta.isEncrypt()) ? getEncryptionService().decryptStream(stream) : stream;
+                
 
             } catch (IllegalArgumentException e) {
                 throw e;
@@ -1302,13 +1291,14 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
                     meta = readDrive.getObjectMetadataVersion(bucket, objectName, o_version.get());
                     meta.setBucketName(bucket.getName());
                 } else {
-                    meta = getObjectMetadataInternal(bucket, objectName, addToCacheifMiss);
+                    meta = getDriverObjectMetadataInternal(bucket, objectName, addToCacheifMiss);
                 }
 
-                if ((meta != null) && meta.isAccesible())
-                    return meta;
-                else
-                    throw new OdilonObjectNotFoundException("Object does not exist -> " + objectInfo(bucket, objectName));
+                if ((meta == null) || (!meta.isAccesible()))
+                    throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
+
+                return meta;
+
 
             } catch (IllegalArgumentException e) {
                 throw e;

@@ -16,7 +16,6 @@
  */
 package io.odilon.virtualFileSystem.raid0;
 
-
 import java.io.File;
 import java.io.IOException;
 import java.time.OffsetDateTime;
@@ -66,10 +65,8 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
      */
     @Override
     public void delete(ServerBucket bucket, String objectName) {
-
         Check.requireNonNullArgument(bucket, "bucket is null");
         Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
-
         VirtualFileSystemOperation op = null;
         boolean done = false;
         boolean isMainException = false;
@@ -89,14 +86,14 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
                 if (!existsCacheBucket(bucket))
                     throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
 
-                //if (!getDriver().exists(bucket, objectName))
-                //    throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
-                
                 if (!existsObjectMetadata(bucket, objectName))
                     throw new IllegalArgumentException("Object does not exist -> " + objectInfo(bucket, objectName));
 
-
-                meta = getObjectMetadataInternal(bucket, objectName, false);
+                meta = getHandlerObjectMetadataInternal(bucket, objectName, false);
+                
+                if ((meta == null) || (!meta.isAccesible()))
+                    throw new OdilonObjectNotFoundException( objectInfo(bucket, objectName));
+                
                 headVersion = meta.getVersion();
                 op = getJournalService().deleteObject(bucket, objectName, headVersion);
                 backupMetadata(bucket, meta.getObjectName());
@@ -196,16 +193,13 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
                 /**
                  * remove all "objectmetadata.json.vn" Files, but keep -> "objectmetadata.json"
                  **/
-
                 for (int version = 0; version < headVersion; version++)
                     FileUtils.deleteQuietly(getDriver().getReadDrive(bucket, meta.getObjectName())
                             .getObjectMetadataVersionFile(bucket, meta.getObjectName(), version));
 
                 meta.addSystemTag("delete versions");
                 meta.setLastModified(OffsetDateTime.now());
-
                 getDriver().getWriteDrive(bucket, meta.getObjectName()).saveObjectMetadata(meta);
-
                 done = op.commit();
 
             } catch (InternalCriticalException e) {
@@ -435,18 +429,14 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
         FileUtils.deleteQuietly(
                 new File(getDriver().getWriteDrive(bucket, objectName).getBucketWorkDirPath(bucket) + File.separator + objectName));
     }
-
     /**
      * copy metadata directory
-     * 
      * @param bucket
      * @param objectName
      */
     private void backupMetadata(ServerBucket bucket, String objectName) {
-
         Check.requireNonNullArgument(bucket, "meta is null");
         Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
-
         try {
             String objectMetadataDirPath = getDriver().getWriteDrive(bucket, objectName).getObjectMetadataDirPath(bucket,
                     objectName);
@@ -475,12 +465,10 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
             FileUtils.copyDirectory(new File(objectMetadataBackupDirPath), new File(objectMetadataDirPath));
         } catch (InternalCriticalException e) {
             throw e;
-
         } catch (IOException e) {
             throw new InternalCriticalException(e, objectInfo(bucket, objectName));
         }
     }
-
     /**
      * <p>
      * This method is called after the TRX commit. It is used to clean temp files,
