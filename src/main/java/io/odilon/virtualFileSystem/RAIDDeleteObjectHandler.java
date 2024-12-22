@@ -34,8 +34,7 @@ public interface RAIDDeleteObjectHandler {
 	public void deleteBucketAllPreviousVersions(ServerBucket bucket);
 	public void wipeAllPreviousVersions();
 
-	/** rollbackJournal */
-	public void rollbackJournal(VirtualFileSystemOperation op, boolean recoveryMode);
+	
 	
 	
 

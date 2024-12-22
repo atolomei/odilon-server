@@ -67,7 +67,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
     public void delete(ServerBucket bucket, String objectName) {
         Check.requireNonNullArgument(bucket, "bucket is null");
         Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
-        VirtualFileSystemOperation op = null;
+        VirtualFileSystemOperation operation = null;
         boolean done = false;
         boolean isMainException = false;
         int headVersion = -1;
@@ -81,17 +81,18 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
                     throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
 
                 if (!existsObjectMetadata(bucket, objectName))
-                    throw new IllegalArgumentException("Object does not exist -> " + objectInfo(bucket, objectName));
+                    throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
 
                 meta = getHandlerObjectMetadataInternal(bucket, objectName, false);
                 
                 if ((meta == null) || (!meta.isAccesible()))
-                    throw new OdilonObjectNotFoundException( objectInfo(bucket, objectName));
+                    throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
+                
                 headVersion = meta.getVersion();
-                op = getJournalService().deleteObject(bucket, objectName, headVersion);
+                operation = getJournalService().deleteObject(bucket, objectName, headVersion);
                 backupMetadata(bucket, meta.getObjectName());
                 drive.deleteObjectMetadata(bucket, objectName);
-                done = op.commit();
+                done = operation.commit();
             } catch (OdilonObjectNotFoundException e1) {
                 done = false;
                 isMainException = true;
@@ -103,9 +104,9 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
                 throw new InternalCriticalException(e, objectInfo(bucket, objectName));
             } finally {
                 try {
-                    if ((!done) && (op != null)) {
+                    if (!done) {
                         try {
-                            rollbackJournal(op, false);
+                            rollback(operation);
                         } catch (Exception e) {
                             if (!isMainException)
                                 throw new InternalCriticalException(e, objectInfo(bucket, objectName));
@@ -127,7 +128,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
             objectWriteUnLock(bucket, objectName);
         }
         if (done)
-            onAfterCommit(op, meta, headVersion);
+            onAfterCommit(operation, meta, headVersion);
     }
 
     /**
@@ -146,7 +147,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
         boolean isMainExcetion = false;
         int headVersion = -1;
         boolean done = false;
-        VirtualFileSystemOperation op = null;
+        VirtualFileSystemOperation operation = null;
         objectWriteLock(meta);
         try {
             bucketReadLock(meta.getBucketName());
@@ -158,7 +159,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
                 bucket = getCacheBucket(meta.getBucketId());
                         
                 if (!existsObjectMetadata(bucket, meta.getObjectName()))
-                    throw new IllegalArgumentException("Object does not exist -> " + objectInfo(bucket, meta.getObjectName()));
+                    throw new OdilonObjectNotFoundException(objectInfo(meta));
 
                 headVersion = meta.getVersion();
                 /**
@@ -166,7 +167,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
                  */
                 if (headVersion == 0)
                     return;
-                op = getJournalService().deleteObjectPreviousVersions(bucket, meta.getObjectName(), headVersion);
+                operation = getJournalService().deleteObjectPreviousVersions(bucket, meta.getObjectName(), headVersion);
                 backupMetadata(bucket, meta.getObjectName());
                 /**
                  * remove all "objectmetadata.json.vn" Files, but keep -> "objectmetadata.json"
@@ -177,7 +178,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
                 meta.addSystemTag("delete versions");
                 meta.setLastModified(OffsetDateTime.now());
                 getDriver().getWriteDrive(bucket, meta.getObjectName()).saveObjectMetadata(meta);
-                done = op.commit();
+                done = operation.commit();
 
             } catch (InternalCriticalException e) {
                 done = false;
@@ -191,9 +192,9 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
             } finally {
 
                 try {
-                    if ((!done) && (op != null)) {
+                    if (!done) {
                         try {
-                            rollbackJournal(op, false);
+                            rollback(operation);
                         } catch (InternalCriticalException e) {
                             if (!isMainExcetion)
                                 throw e;
@@ -220,7 +221,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
             objectWriteUnLock(meta);
         }
         if (done)
-            onAfterCommit(op, meta, headVersion);
+            onAfterCommit(operation, meta, headVersion);
     }
 
     /**
@@ -230,7 +231,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
      * 
      */
     @Override
-    public void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
+    protected void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
 
         Check.requireNonNullArgument(operation, "op is null");
 
@@ -360,8 +361,8 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
                 FileUtils.deleteQuietly(path.dataFileVersionPath(n).toFile());
             
             /** delete backup Metadata */
-            // FileUtils.deleteQuietly(new File(getDriver().getWriteDrive(bucket, objectName).getBucketWorkDirPath(bucket) + File.separator + objectName));
             FileUtils.deleteQuietly(path.metadataWorkFilePath().toFile());
+            
         } catch (Exception e) {
             logger.error(e, objectInfo(meta), SharedConstant.NOT_THROWN);
         }
@@ -385,10 +386,9 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
         ObjectPath path = new ObjectPath(getWriteDrive(bucket, objectName), bucketId, objectName);
 
         /** delete data versions(1..n-1) **/
-        for (int version = 0; version <= headVersion; version++) {
+        for (int version = 0; version <= headVersion; version++) 
             FileUtils.deleteQuietly(path.dataFileVersionPath(version).toFile());
-        }
-
+        
         /** delete metadata (head) */
         /** not required because it was done before commit */
 
@@ -397,8 +397,6 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
         FileUtils.deleteQuietly(file);
 
         /** delete backup Metadata */
-        //FileUtils.deleteQuietly(
-        //        new File(getDriver().getWriteDrive(bucket, objectName).getBucketWorkDirPath(bucket) + File.separator + objectName));
         FileUtils.deleteQuietly(path.metadataWorkFilePath().toFile());
     }
     /**

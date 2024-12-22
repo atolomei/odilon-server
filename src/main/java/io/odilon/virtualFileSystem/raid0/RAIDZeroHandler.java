@@ -75,7 +75,11 @@ public abstract class RAIDZeroHandler extends BaseRAIDHandler implements RAIDHan
          return getDriver().getWriteDrive(bucket, objectName).existsObjectMetadata(bucket, objectName);
     }
 
-
-
+    protected void rollback(VirtualFileSystemOperation operation) {
+        if (operation==null)
+            return;
+        rollbackJournal(operation, false);
+                
+    }
     protected abstract void rollbackJournal(VirtualFileSystemOperation op, boolean recoveryMode);
 }

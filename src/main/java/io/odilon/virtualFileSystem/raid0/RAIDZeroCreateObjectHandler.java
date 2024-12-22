@@ -88,16 +88,14 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
         VirtualFileSystemOperation operation = null;
         boolean done = false;
         boolean isMainException = false;
-
         objectWriteLock(bucket, objectName);
         try {
             bucketReadLock(bucket);
-            
-            /**must be executed also inside the critical zone. */
+            /**must be executed inside the critical zone. */
             if (!existsCacheBucket(bucket))
                 throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
 
-            /**must be executed also inside the critical zone. */
+            /**must be executed inside the critical zone. */
             if (existsObjectMetadata(bucket, objectName))
                 throw new IllegalArgumentException("Object already exist -> " + objectInfo(bucket, objectName));
             
@@ -117,9 +115,9 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
                 throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
             } finally {
                 try {
-                    if ((!done) && (operation != null)) {
+                    if (!done) {
                         try {
-                            rollbackJournal(operation, false);
+                            rollback(operation);
                         } catch (InternalCriticalException e) {
                             if (!isMainException) {
                                 throw e;
@@ -148,7 +146,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
      * </p>
      */
     @Override
-    protected void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
+    public void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
         Check.requireNonNullArgument(operation, "operation is null");
         Check.checkTrue(operation.getOperationCode() == OperationCode.CREATE_OBJECT,
                 "Invalid operation ->  " + operation.getOperationCode().getName());
@@ -179,7 +177,6 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
                 operation.cancel();
         }
     }
-
     /**
      * <p>
      * This method is <b>not</b> ThreadSafe, callers must ensure proper concurrency
