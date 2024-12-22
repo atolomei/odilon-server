@@ -21,6 +21,7 @@ import javax.annotation.concurrent.ThreadSafe;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import io.odilon.error.OdilonObjectNotFoundException;
 import io.odilon.virtualFileSystem.BaseRAIDHandler;
 import io.odilon.virtualFileSystem.RAIDHandler;
 import io.odilon.virtualFileSystem.model.Drive;
@@ -61,10 +62,18 @@ public abstract class RAIDZeroHandler extends BaseRAIDHandler implements RAIDHan
 
     /**
      * must be executed inside the critical zone.
-     */
-    protected void checkObject(ServerBucket bucket, String objectName) {
-        if (!existsObjectMetadata(bucket, objectName))
+     */   
+    protected void checkNotExistObject(ServerBucket bucket, String objectName) {
+        if (existsObjectMetadata(bucket, objectName))
             throw new IllegalArgumentException("Object already exist -> " + objectInfo(bucket, objectName));
+    }
+ 
+    /**
+     * must be executed inside the critical zone.
+     */   
+    protected void checkExistObject(ServerBucket bucket, String objectName) {
+        if (!existsObjectMetadata(bucket, objectName))
+            throw new OdilonObjectNotFoundException("Object does not exist -> " + objectInfo(bucket, objectName));
     }
 
     /**
@@ -73,13 +82,13 @@ public abstract class RAIDZeroHandler extends BaseRAIDHandler implements RAIDHan
      * @param bucket
      * @param objectName
      * @return
-     */
+    */
     protected boolean existsObjectMetadata(ServerBucket bucket, String objectName) {
         if (existsCacheObject(bucket, objectName))
             return true;
         return getDriver().getWriteDrive(bucket, objectName).existsObjectMetadata(bucket, objectName);
-    }
-
+        }
+        
     protected void rollback(VirtualFileSystemOperation operation) {
         if (operation == null)
             return;

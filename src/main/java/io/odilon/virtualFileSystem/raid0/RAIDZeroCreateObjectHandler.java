@@ -97,10 +97,10 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
             try (stream) {
 
                 /** must be executed inside the critical zone. */
-                checkBucket(bucket);
+                checkExistsBucket(bucket);
 
                 /** must be executed inside the critical zone. */
-                checkObject(bucket, objectName);
+                checkNotExistObject(bucket, objectName);
 
                 int version = 0;
                 operation = createObject(bucket, objectName);

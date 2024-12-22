@@ -60,7 +60,7 @@ public abstract class BaseRAIDHandler extends BaseObject {
     /**
      * must be executed inside the critical zone. 
      * */
-    protected void  checkBucket(ServerBucket bucket) { 
+    protected void  checkExistsBucket(ServerBucket bucket) { 
         if (!existsCacheBucket(bucket))
             throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
     }

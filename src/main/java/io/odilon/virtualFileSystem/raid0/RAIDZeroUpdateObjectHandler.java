@@ -89,11 +89,15 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 
             bucketReadLock(bucket);
             try (stream) {
+               
                 /** must be executed inside the critical zone */
-                checkBucket(bucket);
+                checkExistsBucket(bucket);
 
-                if (!existsObjectMetadata(bucket, objectName))
-                    throw new IllegalArgumentException("Object does not exist -> " + objectInfo(bucket, objectName, srcFileName));
+                /** must be executed inside the critical zone */
+                checkExistObject(bucket, objectName);
+                
+                //if (!existsObjectMetadata(bucket, objectName))
+                //    throw new IllegalArgumentException("Object does not exist -> " + objectInfo(bucket, objectName, srcFileName));
 
                 ObjectMetadata meta = getHandlerObjectMetadataInternal(bucket, objectName, true);
                 beforeHeadVersion = meta.getVersion();
@@ -168,10 +172,10 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
             try {
 
                 /** must be executed inside the critical zone. */
-                checkBucket(bucket);
+                checkExistsBucket(bucket);
 
                 /** must be executed inside the critical zone. */
-                checkObject(bucket, objectName);
+                checkExistObject(bucket, objectName);
 
                 ObjectMetadata meta = getHandlerObjectMetadataInternal(bucket, objectName, false);
 

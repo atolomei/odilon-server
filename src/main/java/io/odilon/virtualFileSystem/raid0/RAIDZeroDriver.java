@@ -302,7 +302,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         try {
 
             /** must beexecuted inside the critical zone */
-            checkBucket(bucket);
+            checkExistBucket(bucket);
 
             for (Drive drive : getDrivesEnabled()) {
                 if (!drive.isEmpty(bucket))
@@ -340,7 +340,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
             bucketReadLock(bucket);
             try {
                 /** must beexecuted inside the critical zone */
-                checkBucket(bucket);
+                checkExistBucket(bucket);
 
                 ObjectMetadata meta = getDriverObjectMetadataInternal(bucket, objectName, true);
 
@@ -377,7 +377,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
             bucketReadLock(bucket);
             try {
                 /** must be executed inside the critical zone. */
-                checkBucket(bucket);
+                checkExistBucket(bucket);
 
                 /** must be executed inside the critical zone. */
                 if (getObjectMetadataCacheService().containsKey(bucket, objectName))
@@ -491,7 +491,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
                 list = new ArrayList<ObjectMetadata>();
 
                 /** must be executed inside the critical zone */
-                checkBucket(bucket);
+                checkExistBucket(bucket);
 
                 /** read is from only 1 drive */
                 readDrive = getReadDrive(bucket, objectName);
@@ -556,7 +556,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
             bucketReadLock(bucket);
             try {
                 /** must be executed inside the critical zone */
-                checkBucket(bucket);
+                checkExistBucket(bucket);
 
                 /** RAID 0: read is from only 1 drive */
                 Drive readDrive = getReadDrive(bucket, objectName);
@@ -611,7 +611,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
             try {
 
                 /** must be executed inside the critical zone */
-                checkBucket(bucket);
+                checkExistBucket(bucket);
 
                 /** RAID 0: read is from only 1 drive */
                 Drive readDrive = getReadDrive(bucket, objectName);

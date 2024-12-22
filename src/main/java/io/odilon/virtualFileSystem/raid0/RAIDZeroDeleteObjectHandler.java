@@ -79,10 +79,10 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
             try {
 
                 /** must be executed inside the critical zone. */
-                checkBucket(bucket);
+                checkExistsBucket(bucket);
 
                 /** must be executed inside the critical zone. */
-                checkObject(bucket, objectName);
+                checkExistObject(bucket, objectName);
 
                 meta = getHandlerObjectMetadataInternal(bucket, objectName, false);
 
@@ -154,12 +154,13 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
             bucketReadLock(meta.getBucketName());
             try {
 
+
                 checkExistsBucket(meta.getBucketId());
-
                 bucket = getCacheBucket(meta.getBucketId());
-
-                if (!existsObjectMetadata(bucket, meta.getObjectName()))
-                    throw new OdilonObjectNotFoundException(objectInfo(meta));
+                
+                checkExistObject(bucket, meta.getObjectName());
+                //if (!existsObjectMetadata(bucket, meta.getObjectName()))
+                //    throw new OdilonObjectNotFoundException(objectInfo(meta));
 
                 headVersion = meta.getVersion();
                 /**
@@ -167,6 +168,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
                  */
                 if (headVersion == 0)
                     return;
+                
                 operation = getJournalService().deleteObjectPreviousVersions(bucket, meta.getObjectName(), headVersion);
                 backupMetadata(bucket, meta.getObjectName());
                 /**
