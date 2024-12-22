@@ -300,10 +300,10 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         Check.requireNonNullArgument(bucket, "bucket is null");
         bucketReadLock(bucket);
         try {
-            
+
             /** must beexecuted inside the critical zone */
             checkBucket(bucket);
-            
+
             for (Drive drive : getDrivesEnabled()) {
                 if (!drive.isEmpty(bucket))
                     return false;
@@ -489,7 +489,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
             try {
 
                 list = new ArrayList<ObjectMetadata>();
-                
+
                 /** must be executed inside the critical zone */
                 checkBucket(bucket);
 

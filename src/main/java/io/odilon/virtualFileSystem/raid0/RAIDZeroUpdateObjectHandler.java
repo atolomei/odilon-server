@@ -91,26 +91,26 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
             try (stream) {
                 /** must be executed inside the critical zone */
                 checkBucket(bucket);
-                
+
                 if (!existsObjectMetadata(bucket, objectName))
                     throw new IllegalArgumentException("Object does not exist -> " + objectInfo(bucket, objectName, srcFileName));
-                
+
                 ObjectMetadata meta = getHandlerObjectMetadataInternal(bucket, objectName, true);
                 beforeHeadVersion = meta.getVersion();
-                
+
                 operation = updateObject(bucket, objectName, beforeHeadVersion);
-                
+
                 /** backup current head version */
                 saveVersioDataFile(bucket, objectName, beforeHeadVersion);
                 saveVersionMetadata(bucket, objectName, beforeHeadVersion);
-                
+
                 /** copy new version head version */
                 afterHeadVersion = beforeHeadVersion + 1;
                 saveObjectDataFile(bucket, objectName, stream, srcFileName, afterHeadVersion);
                 saveObjectMetadataHead(bucket, objectName, srcFileName, contentType, afterHeadVersion, customTags);
-                
+
                 done = operation.commit();
-            
+
             } catch (OdilonObjectNotFoundException e1) {
                 done = false;
                 isMaixException = true;
@@ -150,7 +150,6 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
         }
     }
 
-
     /**
      * <p>
      * . The Object does not have a previous version (ie. version=0) . The Object
@@ -167,7 +166,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
         try {
             bucketReadLock(bucket);
             try {
-                
+
                 /** must be executed inside the critical zone. */
                 checkBucket(bucket);
 
@@ -185,8 +184,8 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
                 beforeHeadVersion = meta.getVersion();
                 List<ObjectMetadata> metaVersions = new ArrayList<ObjectMetadata>();
                 for (int version = 0; version < beforeHeadVersion; version++) {
-                    ObjectMetadata metaVersion = getDriver().getReadDrive(bucket, objectName).getObjectMetadataVersion(bucket, objectName,
-                            version);
+                    ObjectMetadata metaVersion = getDriver().getReadDrive(bucket, objectName).getObjectMetadataVersion(bucket,
+                            objectName, version);
                     if (metaVersion != null)
                         metaVersions.add(metaVersion);
                 }
@@ -290,7 +289,6 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
                 /** must be executed inside the critical zone */
                 checkExistsBucket(meta.getBucketId());
 
-                
                 bucket = getBucketCache().get(meta.getBucketId());
 
                 operation = getJournalService().updateObjectMetadata(bucket, meta.getObjectName(), meta.getVersion());

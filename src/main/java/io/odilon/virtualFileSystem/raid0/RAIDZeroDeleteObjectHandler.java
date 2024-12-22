@@ -77,7 +77,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
         try {
             bucketReadLock(bucket);
             try {
-                
+
                 /** must be executed inside the critical zone. */
                 checkBucket(bucket);
 
@@ -94,7 +94,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
                 backupMetadata(bucket, meta.getObjectName());
                 drive.deleteObjectMetadata(bucket, objectName);
                 done = operation.commit();
-                
+
             } catch (OdilonObjectNotFoundException e1) {
                 done = false;
                 isMainException = true;
@@ -131,8 +131,6 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
         if (done)
             onAfterCommit(operation, meta, headVersion);
     }
-
-
 
     /**
      * <p>

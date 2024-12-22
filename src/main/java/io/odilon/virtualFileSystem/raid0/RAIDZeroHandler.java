@@ -59,16 +59,14 @@ public abstract class RAIDZeroHandler extends BaseRAIDHandler implements RAIDHan
         return getDriver().getWriteDrive(bucket, objectName);
     }
 
-    
     /**
-     * must be executed inside the critical zone. 
-     * */
-    protected void  checkObject(ServerBucket bucket, String objectName) { 
+     * must be executed inside the critical zone.
+     */
+    protected void checkObject(ServerBucket bucket, String objectName) {
         if (!existsObjectMetadata(bucket, objectName))
             throw new IllegalArgumentException("Object already exist -> " + objectInfo(bucket, objectName));
     }
 
-    
     /**
      * This check must be executed inside the critical section
      * 
