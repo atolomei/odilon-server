@@ -84,7 +84,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
     protected Drive getObjectMetadataReadDrive(ServerBucket bucket, String objectName) {
         return getDriver().getReadDrive(bucket, objectName);
     }
-    
+
     /**
      * This check must be executed inside the critical section
      * 
@@ -92,13 +92,12 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
      * @param objectName
      * @return
      */
-   protected boolean existsObjectMetadata(ServerBucket bucket, String objectName) {
-       if (existsCacheObject(bucket, objectName))
+    protected boolean existsObjectMetadata(ServerBucket bucket, String objectName) {
+        if (existsCacheObject(bucket, objectName))
             return true;
-         return getDriver().getReadDrive(bucket, objectName).existsObjectMetadata(bucket, objectName);
+        return getDriver().getReadDrive(bucket, objectName).existsObjectMetadata(bucket, objectName);
     }
-   
-    
+
     /**
      * @param bucket
      * @param objectName
@@ -111,53 +110,51 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
     protected void update(ServerBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType,
             Optional<List<String>> customTags) {
 
-        VirtualFileSystemOperation op = null;
+        VirtualFileSystemOperation operation = null;
         boolean done = false;
 
         int beforeHeadVersion = -1;
         int afterHeadVersion = -1;
         boolean isMainException = false;
 
-        getLockService().getObjectLock(bucket, objectName).writeLock().lock();
+        objectWriteLock(bucket, objectName);
+
         try {
-            getLockService().getBucketLock(bucket).readLock().lock();
+            bucketReadLock(bucket);
+
             try {
-                
-                /**
-                 * This check was executed by the VirtualFilySystemService, but it must be
-                 * executed also inside the critical zone.
-                 */
-                if (!existsCacheBucket(bucket))
-                    throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
-                
-                if (!existsObjectMetadata(bucket, objectName))
-                    throw new IllegalArgumentException("Object does not exist -> " + objectInfo(bucket, objectName));
-                
+
+                /** must be executed inside the critical zone */
+                checkExistsBucket(bucket);
+
+                /** must be executed inside the critical zone */
+                checkExistObject(bucket, objectName);
+
                 ObjectMetadata meta = getHandlerObjectMetadataInternal(bucket, objectName, true);
-                
+
                 if ((meta == null) || (!meta.isAccesible()))
                     throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
-                
+
                 beforeHeadVersion = meta.getVersion();
 
-                op = getJournalService().updateObject(bucket, objectName, beforeHeadVersion);
+                operation = updateObject(bucket, objectName, beforeHeadVersion);
 
                 /** backup current head version */
                 saveVersionObjectDataFile(bucket, objectName, meta.getVersion());
                 saveVersionObjectMetadata(bucket, objectName, meta.getVersion());
 
                 /** copy new version as head version */
-                afterHeadVersion = meta.version + 1;
-                saveObjectDataFile(bucket, objectName, stream, srcFileName, meta.getVersion() + 1);
-                saveObjectMetadata(bucket, objectName, srcFileName, contentType, meta.getVersion() + 1, customTags);
+                afterHeadVersion = meta.getVersion() + 1;
+                saveObjectDataFile(bucket, objectName, stream, srcFileName, afterHeadVersion);
+                saveObjectMetadata(bucket, objectName, srcFileName, contentType, afterHeadVersion, customTags);
 
-                done = op.commit();
+                done = operation.commit();
 
             } catch (InternalCriticalException e) {
                 done = false;
                 isMainException = true;
                 throw e;
-                        
+
             } catch (Exception e) {
                 done = false;
                 isMainException = true;
@@ -175,8 +172,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 
                     if (!done) {
                         try {
-                            rollbackJournal(op, false);
-
+                            rollback(operation);
                         } catch (Exception e) {
                             if (!isMainException)
                                 throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
@@ -187,15 +183,14 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
                         /**
                          * TODO AT -> this is after commit, Sync by the moment. see how to make it Async
                          */
-                        cleanUpUpdate(op, bucket, objectName, beforeHeadVersion, afterHeadVersion);
+                        cleanUpUpdate(operation, bucket, objectName, beforeHeadVersion, afterHeadVersion);
                     }
                 } finally {
-                    getLockService().getBucketLock(bucket).readLock().unlock();
-
+                    bucketReadUnLock(bucket);
                 }
             }
         } finally {
-            getLockService().getObjectLock(bucket, objectName).writeLock().unlock();
+            objectWriteUnLock(bucket, objectName);
         }
     }
 
@@ -218,7 +213,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 
                 if ((meta == null) || (!meta.isAccesible()))
                     throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
-                
+
                 if (meta.getVersion() == 0)
                     throw new IllegalArgumentException("Object does not have any previous version | " + "b:"
                             + (Optional.ofNullable(bucket).isPresent() ? (bucket.getId()) : "null") + ", o:"
@@ -295,7 +290,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
                 }
             }
         } finally {
-            getLockService().getObjectLock(bucket, objectName).writeLock().unlock();
+            objectWriteUnLock(bucket, objectName);
         }
     }
 
@@ -373,92 +368,93 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
                 }
             }
         } finally {
-            getLockService().getObjectLock(bucket, meta.getObjectName()).writeLock().unlock();
+            objectWriteUnLock(meta.getBucketId(), meta.getObjectName());
         }
     }
 
     protected void onAfterCommit(ServerBucket bucket, String objectName, int previousVersion, int currentVersion) {
     }
 
-    protected void rollbackJournal(VirtualFileSystemOperation op, boolean recoveryMode) {
+    protected void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
 
-        Check.requireNonNullArgument(op, "op is null");
+        Check.requireNonNullArgument(operation, "operation is null");
         Check.requireTrue(
-                (op.getOperationCode() == OperationCode.UPDATE_OBJECT
-                        || op.getOperationCode() == OperationCode.UPDATE_OBJECT_METADATA
-                        || op.getOperationCode() == OperationCode.RESTORE_OBJECT_PREVIOUS_VERSION),
-                VirtualFileSystemOperation.class.getSimpleName() + " can not be  ->  op: " + op.getOperationCode().getName());
+                (operation.getOperationCode() == OperationCode.UPDATE_OBJECT
+                        || operation.getOperationCode() == OperationCode.UPDATE_OBJECT_METADATA
+                        || operation.getOperationCode() == OperationCode.RESTORE_OBJECT_PREVIOUS_VERSION),
+                VirtualFileSystemOperation.class.getSimpleName() + " can not be  ->  op: "
+                        + operation.getOperationCode().getName());
 
-        if (op.getOperationCode() == OperationCode.UPDATE_OBJECT)
-            rollbackJournalUpdate(op, recoveryMode);
+        if (operation.getOperationCode() == OperationCode.UPDATE_OBJECT)
+            rollbackJournalUpdate(operation, recoveryMode);
 
-        else if (op.getOperationCode() == OperationCode.UPDATE_OBJECT_METADATA)
-            rollbackJournalUpdateMetadata(op, recoveryMode);
+        else if (operation.getOperationCode() == OperationCode.UPDATE_OBJECT_METADATA)
+            rollbackJournalUpdateMetadata(operation, recoveryMode);
 
-        else if (op.getOperationCode() == OperationCode.RESTORE_OBJECT_PREVIOUS_VERSION)
-            rollbackJournalUpdate(op, recoveryMode);
+        else if (operation.getOperationCode() == OperationCode.RESTORE_OBJECT_PREVIOUS_VERSION)
+            rollbackJournalUpdate(operation, recoveryMode);
     }
 
-    private void rollbackJournalUpdate(VirtualFileSystemOperation op, boolean recoveryMode) {
+    private void rollbackJournalUpdate(VirtualFileSystemOperation operation, boolean recoveryMode) {
 
         boolean done = false;
 
         try {
 
             if (getServerSettings().isStandByEnabled())
-                getReplicationService().cancel(op);
+                getReplicationService().cancel(operation);
 
-            ServerBucket bucket = getBucketCache().get(op.getBucketId());
+            ServerBucket bucket = getBucketCache().get(operation.getBucketId());
 
-            restoreVersionObjectDataFile(bucket, op.getObjectName(), op.getVersion());
-            restoreVersionObjectMetadata(bucket, op.getObjectName(), op.getVersion());
+            restoreVersionObjectDataFile(bucket, operation.getObjectName(), operation.getVersion());
+            restoreVersionObjectMetadata(bucket, operation.getObjectName(), operation.getVersion());
 
             done = true;
 
         } catch (InternalCriticalException e) {
-            logger.error(getDriver().opInfo(op));
+            logger.error(getDriver().opInfo(operation));
             if (!recoveryMode)
                 throw (e);
 
         } catch (Exception e) {
             if (!recoveryMode)
-                throw new InternalCriticalException(e, opInfo(op));
+                throw new InternalCriticalException(e, opInfo(operation));
             else
-                logger.error(e, opInfo(op), SharedConstant.NOT_THROWN);
+                logger.error(e, opInfo(operation), SharedConstant.NOT_THROWN);
         } finally {
             if (done || recoveryMode) {
-                op.cancel();
+                operation.cancel();
             }
         }
     }
 
-    private void rollbackJournalUpdateMetadata(VirtualFileSystemOperation op, boolean recoveryMode) {
+    private void rollbackJournalUpdateMetadata(VirtualFileSystemOperation operation, boolean recoveryMode) {
 
         boolean done = false;
         try {
             if (getVirtualFileSystemService().getServerSettings().isStandByEnabled())
-                getVirtualFileSystemService().getReplicationService().cancel(op);
+                getVirtualFileSystemService().getReplicationService().cancel(operation);
 
-            ServerBucket bucket = getBucketCache().get(op.getBucketId());
+            ServerBucket bucket = getBucketCache().get(operation.getBucketId());
 
-            restoreVersionObjectMetadata(bucket, op.getObjectName(), op.getVersion());
+            restoreVersionObjectMetadata(bucket, operation.getObjectName(), operation.getVersion());
 
             done = true;
 
         } catch (InternalCriticalException e) {
-            logger.error(opInfo(op));
+            logger.error(opInfo(operation));
             if (!recoveryMode)
                 throw (e);
 
         } catch (Exception e) {
 
             if (!recoveryMode)
-                throw new InternalCriticalException(e, opInfo(op));
+                throw new InternalCriticalException(e, opInfo(operation));
             else
-                logger.error(opInfo(op), SharedConstant.NOT_THROWN);
+                logger.error(opInfo(operation), SharedConstant.NOT_THROWN);
         } finally {
             if (done || recoveryMode) {
-                op.cancel();
+                operation.cancel();
             }
         }
     }
@@ -512,9 +508,6 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 
                 ObjectPath path = new ObjectPath(drive, bucket.getId(), objectName);
                 String sPath = path.dataFilePath().toString();
-
-                // String sPath = ((SimpleDrive) drive).getObjectDataFilePath(bucket.getId(),
-                // objectName);
                 out[n_d++] = new BufferedOutputStream(new FileOutputStream(sPath), ServerConstant.BUFFER_SIZE);
             }
             int bytes_read = 0;
@@ -625,15 +618,10 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
         // try {
 
         for (Drive drive : getDriver().getDrivesAll()) {
-
-            // File file = ((SimpleDrive) drive).getObjectDataFile(bucket.getId(),
-            // objectName);
-
             ObjectPath path = new ObjectPath(drive, bucket, objectName);
             File file = path.dataFilePath().toFile();
 
             try {
-
                 String sha256 = OdilonFileUtils.calculateSHA256String(file);
 
                 if (sha == null) {
@@ -676,9 +664,6 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
         /** save in parallel */
         saveRAIDOneObjectMetadataToDisk(getDriver().getDrivesAll(), list, true);
     }
-    
-
-    
 
     private boolean restoreVersionObjectMetadata(ServerBucket bucket, String objectName, int version) {
         try {
@@ -740,10 +725,6 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 
                 ObjectPath path = new ObjectPath(drive, bucket, objectName);
                 FileUtils.deleteQuietly(path.dataFileVersionPath(versionDiscarded).toFile());
-                // FileUtils.deleteQuietly(((SimpleDrive)
-                // drive).getObjectDataVersionFile(bucket.getId(), objectName,
-                // versionDiscarded));
-
             }
         } catch (Exception e) {
             logger.error(e, SharedConstant.NOT_THROWN);
@@ -794,10 +775,6 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
                     ObjectPath path = new ObjectPath(drive, bucket, objectName);
                     File file = path.dataFileVersionPath(previousVersion).toFile();
                     FileUtils.deleteQuietly(file);
-                    // FileUtils.deleteQuietly(((SimpleDrive)
-                    // drive).getObjectDataVersionFile(bucket.getId(), objectName,
-                    // previousVersion));
-
                 }
             }
         } catch (Exception e) {

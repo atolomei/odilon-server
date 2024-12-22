@@ -47,7 +47,7 @@ public abstract class BaseRAIDHandler extends BaseObject {
     protected VirtualFileSystemOperation deleteObject(ServerBucket bucket, String objectName, int headVersion) {
         return getJournalService().deleteObject(bucket, objectName, headVersion);
     }
-    
+
     protected VirtualFileSystemOperation createObject(ServerBucket bucket, String objectName) {
         return getJournalService().createObject(bucket, objectName);
     }
@@ -62,26 +62,25 @@ public abstract class BaseRAIDHandler extends BaseObject {
         rollbackJournal(operation, false);
 
     }
-    
+
     protected abstract void rollbackJournal(VirtualFileSystemOperation op, boolean recoveryMode);
-    
+
     /**
-     * must be executed inside the critical zone. 
-     * */
-    protected void  checkExistsBucket(ServerBucket bucket) { 
+     * must be executed inside the critical zone.
+     */
+    protected void checkExistsBucket(ServerBucket bucket) {
         if (!existsCacheBucket(bucket))
             throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
     }
-    
+
     /**
-     * must be executed inside the critical zone. 
-     * */
-    protected void  checkExistsBucket(Long bucketId) { 
+     * must be executed inside the critical zone.
+     */
+    protected void checkExistsBucket(Long bucketId) {
         if (!existsCacheBucket(bucketId))
             throw new IllegalArgumentException("bucket does not exist -> " + bucketId.toString());
     }
 
-    
     protected SchedulerService getSchedulerService() {
         return getVirtualFileSystemService().getSchedulerService();
     }
@@ -136,8 +135,6 @@ public abstract class BaseRAIDHandler extends BaseObject {
     protected EncryptionService getEncryptionService() {
         return getVirtualFileSystemService().getEncryptionService();
     }
-
-    
 
     public JournalService getJournalService() {
         return getDriver().getJournalService();

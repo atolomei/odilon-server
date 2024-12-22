@@ -154,13 +154,12 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
             bucketReadLock(meta.getBucketName());
             try {
 
-
                 checkExistsBucket(meta.getBucketId());
                 bucket = getCacheBucket(meta.getBucketId());
-                
+
                 checkExistObject(bucket, meta.getObjectName());
-                //if (!existsObjectMetadata(bucket, meta.getObjectName()))
-                //    throw new OdilonObjectNotFoundException(objectInfo(meta));
+                // if (!existsObjectMetadata(bucket, meta.getObjectName()))
+                // throw new OdilonObjectNotFoundException(objectInfo(meta));
 
                 headVersion = meta.getVersion();
                 /**
@@ -168,7 +167,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
                  */
                 if (headVersion == 0)
                     return;
-                
+
                 operation = getJournalService().deleteObjectPreviousVersions(bucket, meta.getObjectName(), headVersion);
                 backupMetadata(bucket, meta.getObjectName());
                 /**
@@ -410,9 +409,12 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
      */
     private void backupMetadata(ServerBucket bucket, String objectName) {
         try {
-            //ObjectPath path = new ObjectPath( getDriver().getWriteDrive(bucket, objectName), bucket,objectName);
-            String objectMetadataDirPath = getDriver().getWriteDrive(bucket, objectName).getObjectMetadataDirPath(bucket,objectName);
-            String objectMetadataBackupDirPath = getDriver().getWriteDrive(bucket, objectName).getBucketWorkDirPath(bucket) + File.separator + objectName;
+            // ObjectPath path = new ObjectPath( getDriver().getWriteDrive(bucket,
+            // objectName), bucket,objectName);
+            String objectMetadataDirPath = getDriver().getWriteDrive(bucket, objectName).getObjectMetadataDirPath(bucket,
+                    objectName);
+            String objectMetadataBackupDirPath = getDriver().getWriteDrive(bucket, objectName).getBucketWorkDirPath(bucket)
+                    + File.separator + objectName;
             FileUtils.copyDirectory(new File(objectMetadataDirPath), new File(objectMetadataBackupDirPath));
         } catch (IOException e) {
             throw new InternalCriticalException(e, objectInfo(bucket, objectName));

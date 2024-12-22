@@ -62,15 +62,15 @@ public abstract class RAIDZeroHandler extends BaseRAIDHandler implements RAIDHan
 
     /**
      * must be executed inside the critical zone.
-     */   
+     */
     protected void checkNotExistObject(ServerBucket bucket, String objectName) {
         if (existsObjectMetadata(bucket, objectName))
             throw new IllegalArgumentException("Object already exist -> " + objectInfo(bucket, objectName));
     }
- 
+
     /**
      * must be executed inside the critical zone.
-     */   
+     */
     protected void checkExistObject(ServerBucket bucket, String objectName) {
         if (!existsObjectMetadata(bucket, objectName))
             throw new OdilonObjectNotFoundException("Object does not exist -> " + objectInfo(bucket, objectName));
@@ -78,13 +78,13 @@ public abstract class RAIDZeroHandler extends BaseRAIDHandler implements RAIDHan
 
     /**
      * This check must be executed inside the critical section
-    */
+     */
     protected boolean existsObjectMetadata(ServerBucket bucket, String objectName) {
         if (existsCacheObject(bucket, objectName))
             return true;
         return getDriver().getWriteDrive(bucket, objectName).existsObjectMetadata(bucket, objectName);
-   }
-        
+    }
+
     protected void rollback(VirtualFileSystemOperation operation) {
         if (operation == null)
             return;
@@ -92,5 +92,4 @@ public abstract class RAIDZeroHandler extends BaseRAIDHandler implements RAIDHan
 
     }
 
-    
 }
