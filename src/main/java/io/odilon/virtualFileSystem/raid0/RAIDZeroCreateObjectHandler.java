@@ -107,6 +107,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
                 saveObjectDataFile(bucket, objectName, stream, srcFileName);
                 saveObjectMetadata(bucket, objectName, srcFileName, contentType, version, customTags);
                 done = operation.commit();
+                
             } catch (InternalCriticalException e1) {
                 done = false;
                 isMainException = true;
@@ -152,7 +153,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
         Check.requireNonNullArgument(operation, "operation is null");
         Check.checkTrue(operation.getOperationCode() == OperationCode.CREATE_OBJECT,
                 "Invalid operation ->  " + operation.getOperationCode().getName());
-        logger.debug(opInfo(operation));
+        
         boolean done = false;
         ServerBucket bucket = getBucketCache().get(operation.getBucketId());
         String objectName = operation.getObjectName();

@@ -125,10 +125,6 @@ public class ServerSettings implements JSONObject {
     @Value("${timezone:null}")
     protected String timeZone;
 
-    public String getTimeZone() {
-        return this.timeZone;
-    }
-
     @Value("${server.mode:master}") /** server.mode = master | standby */
     protected String serverMode;
 
@@ -300,10 +296,6 @@ public class ServerSettings implements JSONObject {
     @Value("${retryFailedSeconds:20}")
     protected long retryFailedSeconds;
 
-    /**
-     * 
-     * 
-     */
     @Autowired
     public ServerSettings() {
     }
@@ -944,9 +936,9 @@ public class ServerSettings implements JSONObject {
         return retryFailedSeconds;
     }
 
-    /**
-     * 
-     */
+    public String getTimeZone() {
+        return this.timeZone;
+    }
 
     public synchronized OdilonServerInfo getDefaultOdilonServerInfo() {
 
@@ -998,9 +990,11 @@ public class ServerSettings implements JSONObject {
     }
 
     public boolean isRAID6ConfigurationValid(int dataShards, int parityShards) {
-        return (dataShards == 32 && parityShards == 16) || (dataShards == 16 && parityShards == 8)
-                || (dataShards == 8 && parityShards == 4) || (dataShards == 4 && parityShards == 2)
-                || (dataShards == 2 && parityShards == 1);
+        return (    dataShards == 32 && parityShards == 16) || 
+                   (dataShards == 16 && parityShards == 8)  ||
+                   (dataShards == 8  && parityShards == 4)  || 
+                   (dataShards == 4  && parityShards == 2)  || 
+                   (dataShards == 2  && parityShards == 1);
     }
 
     public DataStorage getDataStorage() {

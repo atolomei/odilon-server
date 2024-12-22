@@ -410,10 +410,9 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
      */
     private void backupMetadata(ServerBucket bucket, String objectName) {
         try {
-            String objectMetadataDirPath = getDriver().getWriteDrive(bucket, objectName).getObjectMetadataDirPath(bucket,
-                    objectName);
-            String objectMetadataBackupDirPath = getDriver().getWriteDrive(bucket, objectName).getBucketWorkDirPath(bucket)
-                    + File.separator + objectName;
+            //ObjectPath path = new ObjectPath( getDriver().getWriteDrive(bucket, objectName), bucket,objectName);
+            String objectMetadataDirPath = getDriver().getWriteDrive(bucket, objectName).getObjectMetadataDirPath(bucket,objectName);
+            String objectMetadataBackupDirPath = getDriver().getWriteDrive(bucket, objectName).getBucketWorkDirPath(bucket) + File.separator + objectName;
             FileUtils.copyDirectory(new File(objectMetadataDirPath), new File(objectMetadataBackupDirPath));
         } catch (IOException e) {
             throw new InternalCriticalException(e, objectInfo(bucket, objectName));
@@ -428,6 +427,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
      * @param objectName
      */
     private void restoreMetadata(ServerBucket bucket, String objectName) {
+
         String objectMetadataBackupDirPath = getDriver().getWriteDrive(bucket, objectName).getBucketWorkDirPath(bucket)
                 + File.separator + objectName;
         String objectMetadataDirPath = getDriver().getWriteDrive(bucket, objectName).getObjectMetadataDirPath(bucket, objectName);
