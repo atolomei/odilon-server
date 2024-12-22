@@ -67,8 +67,6 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
         super(driver);
     }
 
-    
-
     /**
      * <p>
      * The procedure is the same whether version control is enabled or not
@@ -95,9 +93,9 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
         try {
 
             bucketReadLock(bucket);
-            
+
             try (stream) {
-                
+
                 /** must be executed inside the critical zone. */
                 checkBucket(bucket);
 
