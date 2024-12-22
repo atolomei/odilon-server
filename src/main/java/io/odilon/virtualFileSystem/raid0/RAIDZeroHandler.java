@@ -78,16 +78,12 @@ public abstract class RAIDZeroHandler extends BaseRAIDHandler implements RAIDHan
 
     /**
      * This check must be executed inside the critical section
-     * 
-     * @param bucket
-     * @param objectName
-     * @return
     */
     protected boolean existsObjectMetadata(ServerBucket bucket, String objectName) {
         if (existsCacheObject(bucket, objectName))
             return true;
         return getDriver().getWriteDrive(bucket, objectName).existsObjectMetadata(bucket, objectName);
-        }
+   }
         
     protected void rollback(VirtualFileSystemOperation operation) {
         if (operation == null)
@@ -96,5 +92,5 @@ public abstract class RAIDZeroHandler extends BaseRAIDHandler implements RAIDHan
 
     }
 
-    protected abstract void rollbackJournal(VirtualFileSystemOperation op, boolean recoveryMode);
+    
 }

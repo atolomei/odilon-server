@@ -56,6 +56,14 @@ public abstract class BaseRAIDHandler extends BaseObject {
         return getJournalService().updateObject(bucket, objectName, beforeHeadVersion);
     }
 
+    protected void rollback(VirtualFileSystemOperation operation) {
+        if (operation == null)
+            return;
+        rollbackJournal(operation, false);
+
+    }
+    
+    protected abstract void rollbackJournal(VirtualFileSystemOperation op, boolean recoveryMode);
     
     /**
      * must be executed inside the critical zone. 

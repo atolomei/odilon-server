@@ -94,7 +94,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 
         Check.requireNonNullArgument(stream, "stream is null");
 
-        VirtualFileSystemOperation op = null;
+        VirtualFileSystemOperation operation = null;
         boolean done = false;
         boolean isMainException = false;
 
@@ -102,30 +102,31 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
         try {
             bucketReadLock(bucket);
             try (stream) {
-                /**
-                 * This check was executed by the VirtualFilySystemService, but it must be
-                 * executed also inside the critical zone.
-                 */
-                if (!existsCacheBucket(bucket))
-                    throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
+            
+                /** must be executed inside the critical zone. */
+                checkExistsBucket(bucket);
 
-                if (getDriver().getReadDrive(bucket, objectName).existsObjectMetadata(bucket, objectName))
-                    throw new IllegalArgumentException("object already exist -> b:" + getDriver().objectInfo(bucket, objectName));
+                /** must be executed inside the critical zone. */
+                checkNotExistObject(bucket, objectName);
+                
+                //if (getDriver().getReadDrive(bucket, objectName).existsObjectMetadata(bucket, objectName))
+                //    throw new IllegalArgumentException("object already exist -> b:" + getDriver().objectInfo(bucket, objectName));
 
                 int version = 0;
-                op = getJournalService().createObject(bucket, objectName);
+                operation = createObject(bucket, objectName);
                 saveObjectDataFile(bucket, objectName, stream, srcFileName);
                 saveObjectMetadata(bucket, objectName, srcFileName, contentType, version, customTags);
-                done = op.commit();
+                done = operation.commit();
+                
             } catch (Exception e) {
                 done = false;
                 isMainException = true;
                 throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName, srcFileName));
             } finally {
                 try {
-                    if ((!done) && (op != null)) {
+                    if (!done) {
                         try {
-                            rollbackJournal(op, false);
+                            rollback(operation);
                         } catch (Exception e) {
                             if (!isMainException)
                                 throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName, srcFileName));
@@ -151,15 +152,15 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
      * 
      */
     @Override
-    protected void rollbackJournal(VirtualFileSystemOperation op, boolean recoveryMode) {
+    protected void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
 
-        Check.requireNonNullArgument(op, "op is null");
-        Check.checkTrue(op.getOperationCode() == OperationCode.CREATE_OBJECT, "Invalid op ->  " + op.getOperationCode().getName());
+        Check.requireNonNullArgument(operation, "operation is null");
+        Check.checkTrue(operation.getOperationCode() == OperationCode.CREATE_OBJECT, "Invalid op ->  " + operation.getOperationCode().getName());
 
-        String objectName = op.getObjectName();
-        Long bucket_id = op.getBucketId();
+        String objectName = operation.getObjectName();
+        Long bucket_id = operation.getBucketId();
 
-        ServerBucket bucket = getBucketCache().get(op.getBucketId());
+        ServerBucket bucket = getBucketCache().get(operation.getBucketId());
 
         Check.requireNonNullArgument(bucket_id, "bucket_id is null");
         Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucket_id.toString());
@@ -168,7 +169,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
 
         try {
             if (getServerSettings().isStandByEnabled())
-                getReplicationService().cancel(op);
+                getReplicationService().cancel(operation);
 
             for (Drive drive : getDriver().getDrivesAll()) {
                 drive.deleteObjectMetadata(bucket, objectName);
@@ -181,16 +182,16 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
             if (!recoveryMode)
                 throw (e);
             else
-                logger.error(e, getDriver().opInfo(op), SharedConstant.NOT_THROWN);
+                logger.error(e, getDriver().opInfo(operation), SharedConstant.NOT_THROWN);
 
         } catch (Exception e) {
             if (!recoveryMode)
-                throw new InternalCriticalException(e, getDriver().opInfo(op));
+                throw new InternalCriticalException(e, getDriver().opInfo(operation));
             else
-                logger.error(e, getDriver().opInfo(op), SharedConstant.NOT_THROWN);
+                logger.error(e, getDriver().opInfo(operation), SharedConstant.NOT_THROWN);
         } finally {
             if (done || recoveryMode)
-                op.cancel();
+                operation.cancel();
         }
     }
 
@@ -223,6 +224,8 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
             }
 
             int bytes_read = 0;
+            
+            /** if there is just 1 disk copy directly */
             if (getDriver().getDrivesAll().size() < 2) {
                 while ((bytes_read = sourceStream.read(buf, 0, buf.length)) >= 0) {
                     for (int bytes = 0; bytes < total_drives; bytes++) {
@@ -230,6 +233,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
                     }
                 }
             } else {
+                /** for 2 or more disks copy in parallel */
                 final int size = getDriver().getDrivesAll().size();
                 ExecutorService executor = Executors.newFixedThreadPool(size);
                 while ((bytes_read = sourceStream.read(buf, 0, buf.length)) >= 0) {

@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.concurrent.ThreadSafe;
 
+import io.odilon.error.OdilonObjectNotFoundException;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
@@ -81,6 +82,29 @@ public abstract class RAIDOneHandler extends BaseRAIDHandler implements RAIDHand
     public RedundancyLevel getRedundancyLevel() {
         return this.driver.getRedundancyLevel();
     }
+    
+    /**
+     * must be executed inside the critical zone.
+     */   
+    protected void checkNotExistObject(ServerBucket bucket, String objectName) {
+        if (existsObjectMetadata(bucket, objectName))
+            throw new IllegalArgumentException("Object already exist -> " + objectInfo(bucket, objectName));
+    }
+    
+    protected void checkExistObject(ServerBucket bucket, String objectName) {
+        if (!existsObjectMetadata(bucket, objectName))
+            throw new OdilonObjectNotFoundException("Object does not exist -> " + objectInfo(bucket, objectName));
+    }
+    
+    /**
+     * This check must be executed inside the critical section
+    */
+    protected boolean existsObjectMetadata(ServerBucket bucket, String objectName) {
+        if (existsCacheObject(bucket, objectName))
+            return true;
+        return getObjectMetadataReadDrive(bucket, objectName).existsObjectMetadata(bucket, objectName);
+   }
+
     
     @Override
     protected Drive getObjectMetadataReadDrive(ServerBucket bucket, String objectName) {

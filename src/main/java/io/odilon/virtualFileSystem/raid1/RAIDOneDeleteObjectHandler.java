@@ -75,7 +75,7 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
         Check.requireNonNullArgument(bucket.getId(), "bucketId is null");
         Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 
-        VirtualFileSystemOperation op = null;
+        VirtualFileSystemOperation operation = null;
         boolean done = false;
         int headVersion = -1;
         ObjectMetadata meta = null;
@@ -84,26 +84,27 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
         try {
             bucketReadLock(bucket);
             try {
-                /**
-                 * This check was executed by the VirtualFilySystemService, but it must be
-                 * executed also inside the critical zone.
-                 */
-                if (!existsCacheBucket(bucket.getName()))
-                    throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
 
-                if (!getDriver().exists(bucket, objectName))
-                    throw new OdilonObjectNotFoundException("object does not exist -> b:" + objectInfo(bucket, objectName));
+                /** must be executed inside the critical zone. */
+                checkExistsBucket(bucket);
+
+                /** must be executed inside the critical zone. */
+                checkExistObject(bucket, objectName);
+
+                // if (!getDriver().exists(bucket, objectName))
+                // throw new OdilonObjectNotFoundException("object does not exist -> b:" +
+                // objectInfo(bucket, objectName));
 
                 meta = getDriver().getReadDrive(bucket, objectName).getObjectMetadata(bucket, objectName);
                 headVersion = meta.getVersion();
-                op = getJournalService().deleteObject(bucket, objectName, headVersion);
+                operation = deleteObject(bucket, objectName, headVersion);
                 backupMetadata(meta, bucket);
 
                 // TODO AT: parallel
                 for (Drive drive : getDriver().getDrivesAll())
                     ((SimpleDrive) drive).deleteObjectMetadata(bucket, objectName);
 
-                done = op.commit();
+                done = operation.commit();
 
             } catch (OdilonObjectNotFoundException e1) {
                 done = false;
@@ -111,14 +112,14 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
 
             } catch (Exception e) {
                 done = false;
-                throw new InternalCriticalException(e, opInfo(op) + "  " + objectInfo(bucket, objectName));
+                throw new InternalCriticalException(e, opInfo(operation) + "  " + objectInfo(bucket, objectName));
             } finally {
                 try {
-                    if ((!done) && (op != null)) {
+                    if (!done) {
                         try {
-                            rollbackJournal(op, false);
+                            rollback(operation);
                         } catch (Exception e) {
-                            throw new InternalCriticalException(e, opInfo(op) + "  " + objectInfo(bucket, objectName));
+                            throw new InternalCriticalException(e, opInfo(operation) + "  " + objectInfo(bucket, objectName));
                         }
                     } else if (done)
                         postObjectDeleteCommit(meta, bucket, headVersion);
@@ -130,7 +131,7 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
                      */
 
                 } catch (Exception e) {
-                    logger.error(e, opInfo(op) + "  " + objectInfo(bucket, objectName), SharedConstant.NOT_THROWN);
+                    logger.error(e, opInfo(operation) + "  " + objectInfo(bucket, objectName), SharedConstant.NOT_THROWN);
                 } finally {
                     bucketReadUnLock(bucket);
                 }
@@ -140,7 +141,7 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
         }
 
         if (done)
-            onAfterCommit(op, meta, headVersion);
+            onAfterCommit(operation, meta, headVersion);
     }
 
     /**
@@ -201,7 +202,7 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
 
         Check.requireNonNullArgument(meta, "meta is null");
 
-        VirtualFileSystemOperation op = null;
+        VirtualFileSystemOperation operation = null;
         boolean done = false;
         boolean isMainException = false;
 
@@ -214,17 +215,18 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
         try {
             bucketReadLock(meta.getBucketId());
             try {
-                /**
-                 * This check was executed by the VirtualFilySystemService, but it must be
-                 * executed also inside the critical zone.
-                 */
-                if (!existsCacheBucket(meta.getBucketId()))
-                    throw new IllegalArgumentException("bucket does not exist -> " + meta.getBucketId().toString());
+
+                /** must be executed inside the critical zone. */
+                checkExistsBucket(bucket);
 
                 bucket = getCacheBucket(meta.getBucketId());
 
-                if (!getDriver().getReadDrive(bucket, objectName).existsObjectMetadata(meta))
-                    throw new IllegalArgumentException("object does not exist -> " + objectInfo(bucket, objectName));
+                /** must be executed inside the critical zone. */
+                checkExistObject(bucket, objectName);
+
+                // if (!getDriver().getReadDrive(bucket, objectName).existsObjectMetadata(meta))
+                // throw new IllegalArgumentException("object does not exist -> " +
+                // objectInfo(bucket, objectName));
 
                 headVersion = meta.getVersion();
 
@@ -232,7 +234,7 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
                 if (headVersion == 0)
                     return;
 
-                op = getJournalService().deleteObjectPreviousVersions(bucket, objectName, headVersion);
+                operation = getJournalService().deleteObjectPreviousVersions(bucket, objectName, headVersion);
                 backupMetadata(meta, bucket);
                 /**
                  * remove all "objectmetadata.json.vn" Files, but keep -> "objectmetadata.json"
@@ -250,7 +252,7 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
                     meta.drive = drive.getName();
                     drive.saveObjectMetadata(metaDrive);
                 }
-                done = op.commit();
+                done = operation.commit();
 
             } catch (Exception e) {
                 done = false;
@@ -258,9 +260,9 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
                 throw new InternalCriticalException(e);
             } finally {
                 try {
-                    if ((!done) && (op != null)) {
+                    if (done) {
                         try {
-                            rollbackJournal(op, false);
+                            rollback(operation);
                         } catch (Exception e) {
                             if (!isMainException)
                                 throw new InternalCriticalException(e, objectInfo(meta));
@@ -278,13 +280,13 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
             objectWriteUnLock(meta.getBucketId(), objectName);
         }
         if (done)
-            onAfterCommit(op, meta, headVersion);
+            onAfterCommit(operation, meta, headVersion);
     }
 
     protected void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
 
         /** checked by the calling driver */
-        Check.requireNonNullArgument(operation, "op is null");
+        Check.requireNonNullArgument(operation, "operation is null");
         Check.requireTrue(
                 operation.getOperationCode() == OperationCode.DELETE_OBJECT
                         || operation.getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS,
