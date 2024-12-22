@@ -86,10 +86,9 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
         VirtualFileSystemOperation operation = null;
         objectWriteLock(bucket, objectName);
         try {
+
             bucketReadLock(bucket);
-            
             try (stream) {
-            
                 /** must be executed inside the critical zone */
                 checkBucket(bucket);
                 
@@ -98,14 +97,18 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
                 
                 ObjectMetadata meta = getHandlerObjectMetadataInternal(bucket, objectName, true);
                 beforeHeadVersion = meta.getVersion();
-                operation = getJournalService().updateObject(bucket, objectName, beforeHeadVersion);
+                
+                operation = updateObject(bucket, objectName, beforeHeadVersion);
+                
                 /** backup current head version */
                 saveVersioDataFile(bucket, objectName, beforeHeadVersion);
                 saveVersionMetadata(bucket, objectName, beforeHeadVersion);
+                
                 /** copy new version head version */
                 afterHeadVersion = beforeHeadVersion + 1;
                 saveObjectDataFile(bucket, objectName, stream, srcFileName, afterHeadVersion);
                 saveObjectMetadataHead(bucket, objectName, srcFileName, contentType, afterHeadVersion, customTags);
+                
                 done = operation.commit();
             
             } catch (OdilonObjectNotFoundException e1) {
@@ -146,6 +149,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
             objectWriteUnLock(bucket, objectName);
         }
     }
+
 
     /**
      * <p>
@@ -286,6 +290,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
                 /** must be executed inside the critical zone */
                 checkExistsBucket(meta.getBucketId());
 
+                
                 bucket = getBucketCache().get(meta.getBucketId());
 
                 operation = getJournalService().updateObjectMetadata(bucket, meta.getObjectName(), meta.getVersion());

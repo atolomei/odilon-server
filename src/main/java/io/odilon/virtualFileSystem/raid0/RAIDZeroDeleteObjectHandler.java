@@ -90,7 +90,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
                     throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
 
                 headVersion = meta.getVersion();
-                operation = getJournalService().deleteObject(bucket, objectName, headVersion);
+                operation = deleteObject(bucket, objectName, headVersion);
                 backupMetadata(bucket, meta.getObjectName());
                 drive.deleteObjectMetadata(bucket, objectName);
                 done = operation.commit();
@@ -131,6 +131,8 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
         if (done)
             onAfterCommit(operation, meta, headVersion);
     }
+
+
 
     /**
      * <p>

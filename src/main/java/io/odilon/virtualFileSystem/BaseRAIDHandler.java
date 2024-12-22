@@ -44,8 +44,18 @@ public abstract class BaseRAIDHandler extends BaseObject {
         return getDriver().getVirtualFileSystemService();
     }
 
-
+    protected VirtualFileSystemOperation deleteObject(ServerBucket bucket, String objectName, int headVersion) {
+        return getJournalService().deleteObject(bucket, objectName, headVersion);
+    }
     
+    protected VirtualFileSystemOperation createObject(ServerBucket bucket, String objectName) {
+        return getJournalService().createObject(bucket, objectName);
+    }
+
+    protected VirtualFileSystemOperation updateObject(ServerBucket bucket, String objectName, int beforeHeadVersion) {
+        return getJournalService().updateObject(bucket, objectName, beforeHeadVersion);
+    }
+
     
     /**
      * must be executed inside the critical zone. 
@@ -118,6 +128,8 @@ public abstract class BaseRAIDHandler extends BaseObject {
     protected EncryptionService getEncryptionService() {
         return getVirtualFileSystemService().getEncryptionService();
     }
+
+    
 
     public JournalService getJournalService() {
         return getDriver().getJournalService();
