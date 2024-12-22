@@ -87,11 +87,15 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
         objectWriteLock(bucket, objectName);
         try {
             bucketReadLock(bucket);
-            if (!existsCacheBucket(bucket))
-                throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
-            if (!existsObjectMetadata(bucket, objectName))
-                throw new IllegalArgumentException("Object does not exist -> " + objectInfo(bucket, objectName, srcFileName));
+            
             try (stream) {
+            
+                /** must be executed inside the critical zone */
+                checkBucket(bucket);
+                
+                if (!existsObjectMetadata(bucket, objectName))
+                    throw new IllegalArgumentException("Object does not exist -> " + objectInfo(bucket, objectName, srcFileName));
+                
                 ObjectMetadata meta = getHandlerObjectMetadataInternal(bucket, objectName, true);
                 beforeHeadVersion = meta.getVersion();
                 operation = getJournalService().updateObject(bucket, objectName, beforeHeadVersion);
@@ -103,11 +107,15 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
                 saveObjectDataFile(bucket, objectName, stream, srcFileName, afterHeadVersion);
                 saveObjectMetadataHead(bucket, objectName, srcFileName, contentType, afterHeadVersion, customTags);
                 done = operation.commit();
+            
             } catch (OdilonObjectNotFoundException e1) {
                 done = false;
                 isMaixException = true;
                 throw e1;
-
+            } catch (InternalCriticalException e2) {
+                done = false;
+                isMaixException = true;
+                throw e2;
             } catch (Exception e) {
                 done = false;
                 isMaixException = true;
@@ -155,8 +163,12 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
         try {
             bucketReadLock(bucket);
             try {
-                if (!existsCacheBucket(bucket))
-                    throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
+                
+                /** must be executed inside the critical zone. */
+                checkBucket(bucket);
+
+                /** must be executed inside the critical zone. */
+                checkObject(bucket, objectName);
 
                 ObjectMetadata meta = getHandlerObjectMetadataInternal(bucket, objectName, false);
 
@@ -270,8 +282,9 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
             bucketReadLock(meta.getBucketId());
             ServerBucket bucket = null;
             try {
-                if (!existsCacheBucket(meta.getBucketId()))
-                    throw new IllegalArgumentException("bucket does not exist -> " + meta.getBucketName());
+
+                /** must be executed inside the critical zone */
+                checkExistsBucket(meta.getBucketId());
 
                 bucket = getBucketCache().get(meta.getBucketId());
 

@@ -44,11 +44,13 @@ public abstract class BaseRAIDHandler extends BaseObject {
         return getDriver().getVirtualFileSystemService();
     }
 
+
+    
     
     /**
      * must be executed inside the critical zone. 
      * */
-    protected void  checkExistsBucket(ServerBucket bucket) { 
+    protected void  checkBucket(ServerBucket bucket) { 
         if (!existsCacheBucket(bucket))
             throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
     }

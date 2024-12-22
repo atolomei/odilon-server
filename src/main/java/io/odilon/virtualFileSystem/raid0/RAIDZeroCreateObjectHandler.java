@@ -66,9 +66,9 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
     protected RAIDZeroCreateObjectHandler(RAIDZeroDriver driver) {
         super(driver);
     }
+
     
-   
-    
+
     /**
      * <p>
      * The procedure is the same whether version control is enabled or not
@@ -91,17 +91,19 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
         boolean done = false;
         boolean isMainException = false;
         objectWriteLock(bucket, objectName);
+
         try {
-            
+
             bucketReadLock(bucket);
             
-            checkExistsBucket(bucket);
-            
-            /**must be executed inside the critical zone. */
-            if (existsObjectMetadata(bucket, objectName))
-                throw new IllegalArgumentException("Object already exist -> " + objectInfo(bucket, objectName));
-            
             try (stream) {
+                
+                /** must be executed inside the critical zone. */
+                checkBucket(bucket);
+
+                /** must be executed inside the critical zone. */
+                checkObject(bucket, objectName);
+
                 int version = 0;
                 operation = getJournalService().createObject(bucket, objectName);
                 saveObjectDataFile(bucket, objectName, stream, srcFileName);
@@ -157,17 +159,17 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
         ServerBucket bucket = getBucketCache().get(operation.getBucketId());
         String objectName = operation.getObjectName();
         try {
-            
+
             if (isStandByEnabled())
                 getReplicationService().cancel(operation);
-            
+
             getWriteDrive(bucket, objectName).deleteObjectMetadata(bucket, objectName);
-            
+
             ObjectPath path = new ObjectPath(getWriteDrive(bucket, objectName), bucket, objectName);
             FileUtils.deleteQuietly(path.dataFilePath().toFile());
-            
+
             done = true;
-            
+
         } catch (InternalCriticalException e) {
             logger.debug(e, opInfo(operation));
             if (!recoveryMode)
@@ -184,6 +186,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
                 operation.cancel();
         }
     }
+
     /**
      * <p>
      * This method is <b>not</b> ThreadSafe, callers must ensure proper concurrency
@@ -209,6 +212,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
             throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
         }
     }
+
     /**
      * <p>
      * This method is <b>not</b> ThreadSafe, callers must ensure proper concurrency

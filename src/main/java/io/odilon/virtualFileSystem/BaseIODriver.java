@@ -1334,6 +1334,14 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
     }
 
     /**
+     * must be executed inside the critical zone. 
+     * */
+    protected void  checkBucket(ServerBucket bucket) { 
+        if (!existsCacheBucket(bucket))
+            throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
+    }
+    
+    /**
      * This check must be executed inside the critical section
      */
     protected void addCacheBucket(ServerBucket bucket) {

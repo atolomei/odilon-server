@@ -78,10 +78,11 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
             bucketReadLock(bucket);
             try {
                 
-                checkExistsBucket(bucket);
+                /** must be executed inside the critical zone. */
+                checkBucket(bucket);
 
-                if (!existsObjectMetadata(bucket, objectName))
-                    throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
+                /** must be executed inside the critical zone. */
+                checkObject(bucket, objectName);
 
                 meta = getHandlerObjectMetadataInternal(bucket, objectName, false);
 

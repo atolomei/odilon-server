@@ -300,13 +300,10 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         Check.requireNonNullArgument(bucket, "bucket is null");
         bucketReadLock(bucket);
         try {
-            /**
-             * This check was executed by the VirtualFilySystemService, but it must be
-             * executed also inside the critical zone.
-             */
-            if (!existsCacheBucket(bucket.getName()))
-                throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
-
+            
+            /** must beexecuted inside the critical zone */
+            checkBucket(bucket);
+            
             for (Drive drive : getDrivesEnabled()) {
                 if (!drive.isEmpty(bucket))
                     return false;
@@ -343,8 +340,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
             bucketReadLock(bucket);
             try {
                 /** must beexecuted inside the critical zone */
-                if (!existsCacheBucket(bucket.getName()))
-                    throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
+                checkBucket(bucket);
 
                 ObjectMetadata meta = getDriverObjectMetadataInternal(bucket, objectName, true);
 
@@ -381,8 +377,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
             bucketReadLock(bucket);
             try {
                 /** must be executed inside the critical zone. */
-                if (!existsCacheBucket(bucket))
-                    throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
+                checkBucket(bucket);
 
                 /** must be executed inside the critical zone. */
                 if (getObjectMetadataCacheService().containsKey(bucket, objectName))
@@ -494,9 +489,9 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
             try {
 
                 list = new ArrayList<ObjectMetadata>();
+                
                 /** must be executed inside the critical zone */
-                if (!existsCacheBucket(bucket.getName()))
-                    throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
+                checkBucket(bucket);
 
                 /** read is from only 1 drive */
                 readDrive = getReadDrive(bucket, objectName);
@@ -561,8 +556,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
             bucketReadLock(bucket);
             try {
                 /** must be executed inside the critical zone */
-                if (!existsCacheBucket(bucket))
-                    throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
+                checkBucket(bucket);
 
                 /** RAID 0: read is from only 1 drive */
                 Drive readDrive = getReadDrive(bucket, objectName);
@@ -617,8 +611,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
             try {
 
                 /** must be executed inside the critical zone */
-                if (!existsCacheBucket(bucket))
-                    throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
+                checkBucket(bucket);
 
                 /** RAID 0: read is from only 1 drive */
                 Drive readDrive = getReadDrive(bucket, objectName);
