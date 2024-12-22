@@ -77,27 +77,27 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
         try {
             bucketReadLock(bucket);
             try {
-                if (!existsCacheBucket(bucket))
-                    throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
+                
+                checkExistsBucket(bucket);
 
                 if (!existsObjectMetadata(bucket, objectName))
                     throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
 
                 meta = getHandlerObjectMetadataInternal(bucket, objectName, false);
-                
+
                 if ((meta == null) || (!meta.isAccesible()))
                     throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
-                
+
                 headVersion = meta.getVersion();
                 operation = getJournalService().deleteObject(bucket, objectName, headVersion);
                 backupMetadata(bucket, meta.getObjectName());
                 drive.deleteObjectMetadata(bucket, objectName);
                 done = operation.commit();
+                
             } catch (OdilonObjectNotFoundException e1) {
                 done = false;
                 isMainException = true;
                 throw e1;
-
             } catch (Exception e) {
                 done = false;
                 isMainException = true;
@@ -113,7 +113,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
                             else
                                 logger.error(e, objectInfo(bucket, objectName), SharedConstant.NOT_THROWN);
                         }
-                    } else if (done) {
+                    } else {
                         try {
                             postObjectDeleteCommit(meta, bucket, headVersion);
                         } catch (Exception e) {
@@ -153,11 +153,10 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
             bucketReadLock(meta.getBucketName());
             try {
 
-                if (!existsCacheBucket(meta.getBucketId()))
-                    throw new IllegalArgumentException("bucket does not exist -> " + meta.getBucketId().toString());
+                checkExistsBucket(meta.getBucketId());
 
                 bucket = getCacheBucket(meta.getBucketId());
-                        
+
                 if (!existsObjectMetadata(bucket, meta.getObjectName()))
                     throw new OdilonObjectNotFoundException(objectInfo(meta));
 
@@ -190,7 +189,6 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
                 isMainExcetion = true;
                 throw new InternalCriticalException(e, getDriver().objectInfo(meta));
             } finally {
-
                 try {
                     if (!done) {
                         try {
@@ -206,7 +204,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
                             else
                                 logger.error(e, objectInfo(meta), SharedConstant.NOT_THROWN);
                         }
-                    } else if (done) {
+                    } else {
                         try {
                             postObjectPreviousVersionDeleteAllCommit(meta, bucket, headVersion);
                         } catch (Exception e) {
@@ -233,7 +231,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
     @Override
     protected void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
 
-        Check.requireNonNullArgument(operation, "op is null");
+        Check.requireNonNullArgument(operation, "operation is null");
 
         /** also checked by the calling driver */
         Check.requireTrue(
@@ -255,8 +253,8 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
                 getReplicationService().cancel(operation);
 
             /**
-             * Rollback is the same for both operations ->
-             * DELETE_OBJECT and DELETE_OBJECT_PREVIOUS_VERSIONS
+             * Rollback is the same for both operations -> DELETE_OBJECT and
+             * DELETE_OBJECT_PREVIOUS_VERSIONS
              */
             if (operation.getOperationCode() == OperationCode.DELETE_OBJECT)
                 restoreMetadata(bucket, objectName);
@@ -359,19 +357,20 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
             /** delete data versions(1..n-1). keep headVersion **/
             for (int n = 0; n < headVersion; n++)
                 FileUtils.deleteQuietly(path.dataFileVersionPath(n).toFile());
-            
+
             /** delete backup Metadata */
             FileUtils.deleteQuietly(path.metadataWorkFilePath().toFile());
-            
+
         } catch (Exception e) {
             logger.error(e, objectInfo(meta), SharedConstant.NOT_THROWN);
         }
     }
+
     /**
      * <p>
      * This method is executed by the delete thread. It does not need to control
      * concurrent access because the caller method does it. It should also be fast
-     * since it is part of the main transactiion
+     * since it is part of the main transaction
      * </p>
      * 
      * @param meta
@@ -386,9 +385,9 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
         ObjectPath path = new ObjectPath(getWriteDrive(bucket, objectName), bucketId, objectName);
 
         /** delete data versions(1..n-1) **/
-        for (int version = 0; version <= headVersion; version++) 
+        for (int version = 0; version <= headVersion; version++)
             FileUtils.deleteQuietly(path.dataFileVersionPath(version).toFile());
-        
+
         /** delete metadata (head) */
         /** not required because it was done before commit */
 
@@ -399,8 +398,10 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
         /** delete backup Metadata */
         FileUtils.deleteQuietly(path.metadataWorkFilePath().toFile());
     }
+
     /**
      * copy metadata directory
+     * 
      * @param bucket
      * @param objectName
      */
@@ -435,6 +436,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
             throw new InternalCriticalException(e, objectInfo(bucket, objectName));
         }
     }
+
     /**
      * <p>
      * This method is called after the TRX commit. It is used to clean temp files,
@@ -455,6 +457,5 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
             logger.error(e, opInfo(operation), SharedConstant.NOT_THROWN);
         }
     }
-
 
 }

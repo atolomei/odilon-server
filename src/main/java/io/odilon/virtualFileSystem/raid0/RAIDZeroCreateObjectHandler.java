@@ -67,6 +67,8 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
         super(driver);
     }
     
+   
+    
     /**
      * <p>
      * The procedure is the same whether version control is enabled or not
@@ -90,11 +92,11 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
         boolean isMainException = false;
         objectWriteLock(bucket, objectName);
         try {
+            
             bucketReadLock(bucket);
-            /**must be executed inside the critical zone. */
-            if (!existsCacheBucket(bucket))
-                throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
-
+            
+            checkExistsBucket(bucket);
+            
             /**must be executed inside the critical zone. */
             if (existsObjectMetadata(bucket, objectName))
                 throw new IllegalArgumentException("Object already exist -> " + objectInfo(bucket, objectName));
@@ -155,12 +157,17 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
         ServerBucket bucket = getBucketCache().get(operation.getBucketId());
         String objectName = operation.getObjectName();
         try {
+            
             if (isStandByEnabled())
                 getReplicationService().cancel(operation);
+            
             getWriteDrive(bucket, objectName).deleteObjectMetadata(bucket, objectName);
+            
             ObjectPath path = new ObjectPath(getWriteDrive(bucket, objectName), bucket, objectName);
             FileUtils.deleteQuietly(path.dataFilePath().toFile());
+            
             done = true;
+            
         } catch (InternalCriticalException e) {
             logger.debug(e, opInfo(operation));
             if (!recoveryMode)

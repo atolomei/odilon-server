@@ -16,6 +16,7 @@
  */
 package io.odilon.service;
 
+
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -48,7 +49,6 @@ import io.odilon.model.SystemInfo;
 import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
 import io.odilon.monitor.SystemInfoService;
-import io.odilon.monitor.SystemMonitorService;
 import io.odilon.util.Check;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemObject;
@@ -62,6 +62,8 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  * The Object Storage is essentially an intermediary that downloads the
  * requirements into the Virtual File System
  * </p>
+ * 
+ * Checks VFS is in state enabled WORM or Read Only
  *
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
@@ -79,9 +81,9 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
     @Autowired
     private EncryptionService encrpytionService;
 
-    @JsonIgnore
-    @Autowired
-    private SystemMonitorService monitoringService;
+    //@JsonIgnore
+    //@Autowired
+    //private SystemMonitorService monitoringService;
 
     @JsonIgnore
     @Autowired
@@ -113,85 +115,85 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
      * @param encrpytionService
      * @param vfs
      */
-    public OdilonObjectStorageService(ServerSettings serverSettings, SystemMonitorService montoringService,
+    public OdilonObjectStorageService(ServerSettings serverSettings, 
             EncryptionService encrpytionService, VirtualFileSystemService vfs, SystemInfoService systemInfoService) {
 
         this.systemInfoService = systemInfoService;
         this.serverSettings = serverSettings;
-        this.monitoringService = montoringService;
+        //this.monitoringService = montoringService;
         this.encrpytionService = encrpytionService;
         this.virtualFileSystemService = vfs;
     }
 
     @Override
     public void wipeAllPreviousVersions() {
-        Check.requireTrue(isVFSEnabled(), invalidStateMsg());
+        Check.requireTrue(isVirtualFileSystemServiceEnabled(), invalidStateMsg());
         getVirtualFileSystemService().wipeAllPreviousVersions();
     }
 
     @Override
     public void deleteBucketAllPreviousVersions(String bucketName) {
-        Check.requireTrue(isVFSEnabled(), invalidStateMsg());
+        Check.requireTrue(isVirtualFileSystemServiceEnabled(), invalidStateMsg());
         getVirtualFileSystemService().deleteBucketAllPreviousVersions(bucketName);
     }
 
     @Override
     public List<ObjectMetadata> getObjectMetadataAllPreviousVersions(String bucketName, String objectName) {
-        Check.requireTrue(isVFSEnabled(), invalidStateMsg());
+        Check.requireTrue(isVirtualFileSystemServiceEnabled(), invalidStateMsg());
         return getVirtualFileSystemService().getObjectMetadataAllVersions(bucketName, objectName);
     }
 
     @Override
     public ObjectMetadata getObjectMetadataPreviousVersion(String bucketName, String objectName, int version) {
-        Check.requireTrue(isVFSEnabled(), invalidStateMsg());
+        Check.requireTrue(isVirtualFileSystemServiceEnabled(), invalidStateMsg());
         return getVirtualFileSystemService().getObjectMetadataVersion(bucketName, objectName, version);
     }
 
     @Override
     public ObjectMetadata getObjectMetadataPreviousVersion(String bucketName, String objectName) {
-        Check.requireTrue(isVFSEnabled(), invalidStateMsg());
+        Check.requireTrue(isVirtualFileSystemServiceEnabled(), invalidStateMsg());
         return getVirtualFileSystemService().getObjectMetadataPreviousVersion(bucketName, objectName);
     }
 
     @Override
     public InputStream getObjectPreviousVersionStream(String bucketName, String objectName, int version) {
-        Check.requireTrue(isVFSEnabled(), invalidStateMsg());
+        Check.requireTrue(isVirtualFileSystemServiceEnabled(), invalidStateMsg());
         return getVirtualFileSystemService().getObjectVersion(bucketName, objectName, version);
     }
 
     @Override
     public ObjectMetadata restorePreviousVersion(String bucketName, String objectName) {
-        Check.requireTrue(isVFSEnabled(), invalidStateMsg());
+        Check.requireTrue(isVirtualFileSystemServiceEnabled(), invalidStateMsg());
         return getVirtualFileSystemService().restorePreviousVersion(bucketName, objectName);
     }
 
     @Override
     public void deleteObjectAllPreviousVersions(ObjectMetadata meta) {
-        Check.requireTrue(isVFSEnabled(), invalidStateMsg());
+        Check.requireTrue(isVirtualFileSystemServiceEnabled(), invalidStateMsg());
         getVirtualFileSystemService().deleteObjectAllPreviousVersions(meta);
     }
 
     @Override
     public boolean hasVersions(String bucketName, String objectName) {
-        Check.requireTrue(isVFSEnabled(), invalidStateMsg());
+        Check.requireTrue(isVirtualFileSystemServiceEnabled(), invalidStateMsg());
         return getVirtualFileSystemService().hasVersions(bucketName, objectName);
     }
 
     @Override
     public boolean existsObject(String bucketName, String objectName) {
-        Check.requireTrue(isVFSEnabled(), invalidStateMsg());
+        Check.requireTrue(isVirtualFileSystemServiceEnabled(), invalidStateMsg());
         return getVirtualFileSystemService().existsObject(bucketName, objectName);
     }
 
     @Override
     public boolean isEmptyBucket(String bucketName) {
-        Check.requireTrue(isVFSEnabled(), invalidStateMsg());
+        Check.requireTrue(isVirtualFileSystemServiceEnabled(), invalidStateMsg());
         return getVirtualFileSystemService().isEmptyBucket(bucketName);
     }
 
     @Override
     public void deleteObject(String bucketName, String objectName) {
-        Check.requireTrue(isVFSEnabled(), invalidStateMsg());
+        Check.requireTrue(isVirtualFileSystemServiceEnabled(), invalidStateMsg());
         if (getServerSettings().isReadOnly() || getServerSettings().isWORM())
             throw new IllegalStateException(dataStorageModeMsg(bucketName, objectName));
         getVirtualFileSystemService().deleteObject(getVirtualFileSystemService().getBucketByName(bucketName), objectName);
@@ -200,13 +202,13 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
     @Override
     public DataList<Item<ObjectMetadata>> listObjects(String bucketName, Optional<Long> offset, Optional<Integer> pageSize,
             Optional<String> prefix, Optional<String> serverAgentId) {
-        Check.requireTrue(isVFSEnabled(), invalidStateMsg());
+        Check.requireTrue(isVirtualFileSystemServiceEnabled(), invalidStateMsg());
         return getVirtualFileSystemService().listObjects(bucketName, offset, pageSize, prefix, serverAgentId);
     }
 
     @Override
     public void putObject(String bucketName, String objectName, File file) {
-        Check.requireTrue(isVFSEnabled(), invalidStateMsg());
+        Check.requireTrue(isVirtualFileSystemServiceEnabled(), invalidStateMsg());
         Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
         Check.requireNonNullStringArgument(objectName, "objectName can not be null or empty | b:" + bucketName);
         Check.requireNonNullArgument(file, "file is null | b: " + bucketName + " o: " + objectName);
@@ -243,7 +245,7 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
     @Override
     public void putObject(String bucketName, String objectName, InputStream is, String fileName, String contentType,
             Optional<List<String>> customTags) {
-        Check.requireTrue(isVFSEnabled(), invalidStateMsg());
+        Check.requireTrue(isVirtualFileSystemServiceEnabled(), invalidStateMsg());
         Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
         Check.requireNonNullStringArgument(objectName, "objectName can not be null or empty | b:" + bucketName);
         Check.requireNonNullStringArgument(fileName, "file is null | b: " + bucketName + " o:" + objectName);
@@ -273,7 +275,7 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
 
     @Override
     public InputStream getObjectStream(String bucketName, String objectName) {
-        Check.requireTrue(isVFSEnabled(), invalidStateMsg());
+        Check.requireTrue(isVirtualFileSystemServiceEnabled(), invalidStateMsg());
         InputStream is = null;
         try {
             is = getVirtualFileSystemService().getObjectStream(bucketName, objectName);
@@ -293,33 +295,33 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
 
     @Override
     public VirtualFileSystemObject getObject(String bucketName, String objectName) {
-        Check.requireTrue(isVFSEnabled(), invalidStateMsg());
+        Check.requireTrue(isVirtualFileSystemServiceEnabled(), invalidStateMsg());
         return getVirtualFileSystemService().getObject(bucketName, objectName);
     }
 
     @Override
     public ObjectMetadata getObjectMetadata(String bucketName, String objectName) {
-        Check.requireTrue(isVFSEnabled(), invalidStateMsg());
+        Check.requireTrue(isVirtualFileSystemServiceEnabled(), invalidStateMsg());
         return getVirtualFileSystemService().getObjectMetadata(getVirtualFileSystemService().getBucketByName(bucketName),
                 objectName);
     }
 
     @Override
     public boolean existsBucket(String bucketName) {
-        Check.requireTrue(isVFSEnabled(), invalidStateMsg());
+        Check.requireTrue(isVirtualFileSystemServiceEnabled(), invalidStateMsg());
         return getVirtualFileSystemService().existsBucket(bucketName);
     }
 
     @Override
     public ServerBucket findBucketName(String bucketName) {
-        Check.requireTrue(isVFSEnabled(), invalidStateMsg());
+        Check.requireTrue(isVirtualFileSystemServiceEnabled(), invalidStateMsg());
         return getVirtualFileSystemService().getBucketByName(bucketName);
     }
 
     @Override
     public ServerBucket createBucket(String bucketName) {
 
-        Check.requireTrue(isVFSEnabled(), invalidStateMsg());
+        Check.requireTrue(isVirtualFileSystemServiceEnabled(), invalidStateMsg());
         Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
 
         if (getServerSettings().isReadOnly())
@@ -349,8 +351,7 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
 
     @Override
     public ServerBucket updateBucketName(ServerBucket bucket, String newBucketName) {
-
-        Check.requireTrue(isVFSEnabled(), invalidStateMsg());
+        Check.requireTrue(isVirtualFileSystemServiceEnabled(), invalidStateMsg());
         Check.requireNonNullArgument(bucket, "bucket can not be null or empty");
         Check.requireNonNullStringArgument(newBucketName, "newbucketName can not be null or empty");
 
@@ -383,9 +384,7 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
      * delete all DriveBuckets
      */
     public void deleteBucketByName(String bucketName) {
-
-        Check.requireTrue(isVFSEnabled(), invalidStateMsg());
-
+        Check.requireTrue(isVirtualFileSystemServiceEnabled(), invalidStateMsg());
         if (getServerSettings().isReadOnly())
             throw new IllegalStateException(dataStorageModeMsg(bucketName));
 
@@ -395,13 +394,12 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
             else
                 return;
         }
-
         getVirtualFileSystemService().removeBucket(bucketName);
     }
 
     @Override
     public void forceDeleteBucket(String bucketName) {
-        Check.requireTrue(isVFSEnabled(), invalidStateMsg());
+        Check.requireTrue(isVirtualFileSystemServiceEnabled(), invalidStateMsg());
         if (getServerSettings().isReadOnly())
             throw new IllegalStateException(dataStorageModeMsg(bucketName));
         if (getServerSettings().isWORM()) {
@@ -415,13 +413,13 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
 
     @Override
     public List<ServerBucket> findAllBuckets() {
-        Check.requireTrue(isVFSEnabled(), invalidStateMsg());
+        Check.requireTrue(isVirtualFileSystemServiceEnabled(), invalidStateMsg());
         return getVirtualFileSystemService().listAllBuckets();
     }
 
     @Override
     public String ping() {
-        if (!isVFSEnabled())
+        if (!isVirtualFileSystemServiceEnabled())
             return (VirtualFileSystemService.class.getSimpleName() + " not enabled -> "
                     + getVirtualFileSystemService().getStatus().toString());
         return getVirtualFileSystemService().ping();
@@ -473,11 +471,11 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
         }
     }
 
-    protected SystemMonitorService getSystemMonitorService() {
-        return this.monitoringService;
-    }
+    //private SystemMonitorService getSystemMonitorService() {
+    //    return this.monitoringService;
+    //}
 
-    private boolean isVFSEnabled() {
+    private boolean isVirtualFileSystemServiceEnabled() {
         return (getVirtualFileSystemService().getStatus() == ServiceStatus.RUNNING);
     }
 

@@ -72,10 +72,6 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
         super(driver);
     }
 
-    /**
-     * @param customTags
-     * 
-     */
     protected void update(ServerBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType,
             Optional<List<String>> customTags) {
 
@@ -173,10 +169,10 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
                 beforeHeadVersion = meta.getVersion();
                 List<ObjectMetadata> metaVersions = new ArrayList<ObjectMetadata>();
                 for (int version = 0; version < beforeHeadVersion; version++) {
-                    ObjectMetadata mv = getDriver().getReadDrive(bucket, objectName).getObjectMetadataVersion(bucket, objectName,
+                    ObjectMetadata metaVersion = getDriver().getReadDrive(bucket, objectName).getObjectMetadataVersion(bucket, objectName,
                             version);
-                    if (mv != null)
-                        metaVersions.add(mv);
+                    if (metaVersion != null)
+                        metaVersions.add(metaVersion);
                 }
                 if (metaVersions.isEmpty())
                     throw new OdilonObjectNotFoundException(Optional.of(meta.getSystemTags()).orElse("previous versions deleted"));
@@ -265,7 +261,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 
     protected void updateObjectMetadata(ObjectMetadata meta) {
 
-        VirtualFileSystemOperation op = null;
+        VirtualFileSystemOperation operation = null;
         boolean done = false;
         boolean isMainException = false;
 
@@ -279,12 +275,12 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 
                 bucket = getBucketCache().get(meta.getBucketId());
 
-                op = getJournalService().updateObjectMetadata(bucket, meta.getObjectName(), meta.getVersion());
+                operation = getJournalService().updateObjectMetadata(bucket, meta.getObjectName(), meta.getVersion());
 
                 backupMetadata(meta, bucket);
                 getWriteDrive(bucket, meta.getObjectName()).saveObjectMetadata(meta);
 
-                done = op.commit();
+                done = operation.commit();
             } catch (Exception e) {
                 isMainException = true;
                 done = false;
@@ -294,7 +290,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
                 try {
                     if (!done) {
                         try {
-                            rollback(op);
+                            rollback(operation);
                         } catch (Exception e) {
                             if (!isMainException)
                                 throw new InternalCriticalException(e, objectInfo(meta));
@@ -340,26 +336,26 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
      * </p>
      */
 
-    protected void rollbackJournal(VirtualFileSystemOperation op, boolean recoveryMode) {
+    protected void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
 
-        Check.requireNonNullArgument(op, "op is null");
+        Check.requireNonNullArgument(operation, "op is null");
         Check.requireTrue(
-                (op.getOperationCode() == OperationCode.UPDATE_OBJECT
-                        || op.getOperationCode() == OperationCode.UPDATE_OBJECT_METADATA
-                        || op.getOperationCode() == OperationCode.RESTORE_OBJECT_PREVIOUS_VERSION),
-                "invalid state ->  op: " + opInfo(op));
+                (operation.getOperationCode() == OperationCode.UPDATE_OBJECT
+                        || operation.getOperationCode() == OperationCode.UPDATE_OBJECT_METADATA
+                        || operation.getOperationCode() == OperationCode.RESTORE_OBJECT_PREVIOUS_VERSION),
+                "invalid state ->  op: " + opInfo(operation));
 
-        switch (op.getOperationCode()) {
+        switch (operation.getOperationCode()) {
         case UPDATE_OBJECT: {
-            rollbackJournalUpdate(op, recoveryMode);
+            rollbackJournalUpdate(operation, recoveryMode);
             break;
         }
         case UPDATE_OBJECT_METADATA: {
-            rollbackJournalUpdateMetadata(op, recoveryMode);
+            rollbackJournalUpdateMetadata(operation, recoveryMode);
             break;
         }
         case RESTORE_OBJECT_PREVIOUS_VERSION: {
-            rollbackJournalUpdate(op, recoveryMode);
+            rollbackJournalUpdate(operation, recoveryMode);
             break;
         }
         default: {

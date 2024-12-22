@@ -327,10 +327,10 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
                                             if (getDriver().getVirtualFileSystemService().getServerSettings().isVersionControl()) {
                                                 for (int version = 0; version < item.getObject().getVersion(); version++) {
 
-                                                    File m = currentDrive.getObjectMetadataVersionFile(bucket,
+                                                    File metaVersion = currentDrive.getObjectMetadataVersionFile(bucket,
                                                             item.getObject().getObjectName(), version);
 
-                                                    FileUtils.deleteQuietly(m);
+                                                    FileUtils.deleteQuietly(metaVersion);
                                                     FileUtils.deleteQuietly(path.dataFileVersionPath(version).toFile());
 
                                                 }
@@ -435,9 +435,6 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
                                                  */
 
                                                 /** Data */
-                                                // File data_head = ((SimpleDrive) currentDrive).getObjectDataFile(
-                                                // item.getObject().getBucketId(), item.getObject().getObjectName());
-
                                                 ObjectPath path = new ObjectPath(currentDrive, item.getObject().getBucketId(),
                                                         item.getObject().getObjectName());
                                                 File data_head = path.dataFilePath().toFile();
@@ -475,10 +472,6 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 
                                                         // move Data Version
                                                         File version_n = path.dataFileVersionPath(n).toFile();
-
-                                                        // File version_n = ((SimpleDrive) currentDrive).getObjectDataVersionFile(
-                                                        // item.getObject().getBucketId(), item.getObject().getObjectName(),
-                                                        // n);
 
                                                         if (version_n.exists()) {
                                                             ((SimpleDrive) newDrive).putObjectDataVersionFile(

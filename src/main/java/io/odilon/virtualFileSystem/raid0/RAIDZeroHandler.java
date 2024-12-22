@@ -17,7 +17,6 @@
 
 package io.odilon.virtualFileSystem.raid0;
 
-
 import javax.annotation.concurrent.ThreadSafe;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -42,13 +41,11 @@ public abstract class RAIDZeroHandler extends BaseRAIDHandler implements RAIDHan
     @JsonIgnore
     private final RAIDZeroDriver driver;
 
-    
     @Override
     protected Drive getObjectMetadataReadDrive(ServerBucket bucket, String objectName) {
         return getDriver().getReadDrive(bucket, objectName);
     }
-    
-    
+
     public RAIDZeroHandler(RAIDZeroDriver driver) {
         this.driver = driver;
     }
@@ -61,7 +58,7 @@ public abstract class RAIDZeroHandler extends BaseRAIDHandler implements RAIDHan
     public Drive getWriteDrive(ServerBucket bucket, String objectName) {
         return getDriver().getWriteDrive(bucket, objectName);
     }
-    
+
     /**
      * This check must be executed inside the critical section
      * 
@@ -69,17 +66,18 @@ public abstract class RAIDZeroHandler extends BaseRAIDHandler implements RAIDHan
      * @param objectName
      * @return
      */
-   protected boolean existsObjectMetadata(ServerBucket bucket, String objectName) {
-       if (existsCacheObject(bucket, objectName))
+    protected boolean existsObjectMetadata(ServerBucket bucket, String objectName) {
+        if (existsCacheObject(bucket, objectName))
             return true;
-         return getDriver().getWriteDrive(bucket, objectName).existsObjectMetadata(bucket, objectName);
+        return getDriver().getWriteDrive(bucket, objectName).existsObjectMetadata(bucket, objectName);
     }
 
     protected void rollback(VirtualFileSystemOperation operation) {
-        if (operation==null)
+        if (operation == null)
             return;
         rollbackJournal(operation, false);
-                
+
     }
+
     protected abstract void rollbackJournal(VirtualFileSystemOperation op, boolean recoveryMode);
 }

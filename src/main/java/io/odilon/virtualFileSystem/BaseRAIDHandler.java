@@ -16,7 +16,6 @@
  */
 package io.odilon.virtualFileSystem;
 
-
 import java.io.File;
 
 import org.springframework.lang.NonNull;
@@ -45,9 +44,28 @@ public abstract class BaseRAIDHandler extends BaseObject {
         return getDriver().getVirtualFileSystemService();
     }
 
+    
+    /**
+     * must be executed inside the critical zone. 
+     * */
+    protected void  checkExistsBucket(ServerBucket bucket) { 
+        if (!existsCacheBucket(bucket))
+            throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
+    }
+    
+    /**
+     * must be executed inside the critical zone. 
+     * */
+    protected void  checkExistsBucket(Long bucketId) { 
+        if (!existsCacheBucket(bucketId))
+            throw new IllegalArgumentException("bucket does not exist -> " + bucketId.toString());
+    }
+
+    
     protected SchedulerService getSchedulerService() {
         return getVirtualFileSystemService().getSchedulerService();
-    } 
+    }
+
     protected ServerSettings getServerSettings() {
         return getVirtualFileSystemService().getServerSettings();
     }
@@ -55,12 +73,11 @@ public abstract class BaseRAIDHandler extends BaseObject {
     protected BucketCache getBucketCache() {
         return getVirtualFileSystemService().getBucketCache();
     }
-    
-    
+
     protected String getKey(ServerBucket bucket, String objectName) {
         return bucket.getId().toString() + File.separator + objectName;
     }
-    
+
     /**
      * This check must be executed inside the critical section
      */
@@ -95,7 +112,7 @@ public abstract class BaseRAIDHandler extends BaseObject {
     protected boolean existsCacheObject(ServerBucket bucket, String objectName) {
         return getVirtualFileSystemService().getObjectMetadataCacheService().containsKey(bucket, objectName);
     }
-    
+
     protected EncryptionService getEncryptionService() {
         return getVirtualFileSystemService().getEncryptionService();
     }
@@ -215,11 +232,9 @@ public abstract class BaseRAIDHandler extends BaseObject {
     protected boolean isUseVaultNewFiles() {
         return getVirtualFileSystemService().isUseVaultNewFiles();
     }
-    
-    
+
     protected abstract Drive getObjectMetadataReadDrive(ServerBucket bucket, String objectName);
-    
-    
+
     /**
      * <p>
      * Note that bucketName is not stored on disk, we must set the bucketName
@@ -241,7 +256,7 @@ public abstract class BaseRAIDHandler extends BaseObject {
             return meta;
         }
         ObjectMetadata meta = getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucket, objectName);
-        if (meta==null)
+        if (meta == null)
             return meta;
         meta.setBucketName(bucket.getName());
         getVirtualFileSystemService().getSystemMonitorService().getCacheObjectMissCounter().inc();
