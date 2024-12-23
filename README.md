@@ -171,7 +171,7 @@ More info on the Odilon website <br/>
 
 <h2>Download</h2>
 <p>
-Current version is Odilon 1.9.
+Current version is Odilon 1.10.
 <ul>
 <li><a href="https://odilon.io#download" target="_blank">Odilon Server</a></li>	
 <li><a href="https://odilon.io#download" target="_blank">Odilon Java SDK</a></li>
