@@ -50,7 +50,6 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 /**
  * <p>
  * Persistent disk logging of atomic operations{@link OperationCode}
- *
  * <ul>
  * <li>bucket registration</li>
  * <li>bucket deletion</li>
@@ -60,12 +59,10 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  * <li>object sync in new Drive</li>
  * </ul>
  * </p>
- *
  * <p>
  * When an operation is performed, a Journal record is stored in disk and upon
  * successful completion or cancellation the registration is deleted.
  * </p>
- *
  * <h3>In case of critical problems</h3>
  * <p>
  * when the system restarts, the operations are taken from the disk that could
@@ -85,7 +82,7 @@ public class OdilonJournalService extends BaseService implements JournalService 
     private VirtualFileSystemService virtualFileSystemService;
 
     @JsonIgnore
-    private Map<String, VirtualFileSystemOperation> ops = new ConcurrentHashMap<String, VirtualFileSystemOperation>();
+    private Map<String, VirtualFileSystemOperation> operations = new ConcurrentHashMap<String, VirtualFileSystemOperation>();
 
     @JsonIgnore
     private Map<String, String> ops_aborted = new ConcurrentHashMap<String, String>();
@@ -212,16 +209,12 @@ public class OdilonJournalService extends BaseService implements JournalService 
             return true;
 
         synchronized (this) {
-
             getApplicationEventPublisher().publishEvent(new CacheEvent(opx));
-
             try {
                 if (isStandBy())
                     getReplicationService().enqueue(opx);
-
                 getVirtualFileSystemService().removeJournal(opx.getId());
-                getOps().remove(opx.getId());
-
+                getOperations().remove(opx.getId());
             } catch (Exception e) {
                 if (isStandBy()) {
                     getOpsAborted().put(opx.getId(), opx.getId());
@@ -232,7 +225,6 @@ public class OdilonJournalService extends BaseService implements JournalService 
             }
             return true;
         }
-
     }
 
     @Override
@@ -247,11 +239,10 @@ public class OdilonJournalService extends BaseService implements JournalService 
                 getApplicationEventPublisher().publishEvent(event);
                 getVirtualFileSystemService().removeJournal(opx.getId());
             } catch (InternalCriticalException e) {
-                logger.error(e, "the operation may have been saved in just some of the drives due to a crash",
-                        SharedConstant.NOT_THROWN);
+                logger.error(e, "the operation was saved in just some of the drives due to a crash", SharedConstant.NOT_THROWN);
             }
             logger.debug("Cancel ->" + opx.toString());
-            getOps().remove(opx.getId());
+            getOperations().remove(opx.getId());
         }
         return true;
     }
@@ -262,7 +253,7 @@ public class OdilonJournalService extends BaseService implements JournalService 
     }
 
     public boolean isExecuting(String opid) {
-        return getOps().containsKey(opid);
+        return getOperations().containsKey(opid);
     }
 
     public boolean isAborted(String opid) {
@@ -316,7 +307,7 @@ public class OdilonJournalService extends BaseService implements JournalService 
         final VirtualFileSystemOperation operation = new OdilonVirtualFileSystemOperation(newOperationId(), op, bucketId,
                 bucketName, objectName, iVersion, getRedundancyLevel(), this);
         getVirtualFileSystemService().saveJournal(operation);
-        getOps().put(operation.getId(), operation);
+        getOperations().put(operation.getId(), operation);
         return operation;
     }
 
@@ -324,8 +315,8 @@ public class OdilonJournalService extends BaseService implements JournalService 
         return this.virtualFileSystemService.getRedundancyLevel();
     }
 
-    private Map<String, VirtualFileSystemOperation> getOps() {
-        return this.ops;
+    private Map<String, VirtualFileSystemOperation> getOperations() {
+        return this.operations;
     }
 
     private Map<String, String> getOpsAborted() {
