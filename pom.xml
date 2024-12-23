@@ -10,7 +10,7 @@
 	
 	<groupId>io.odilon</groupId>
 	<artifactId>odilon-server</artifactId>
-	<version>1.10</version>
+	<version>1.11</version>
 	<name>odilon server</name>
 	
 	<description>
