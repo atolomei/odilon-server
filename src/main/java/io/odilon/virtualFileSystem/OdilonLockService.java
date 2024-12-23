@@ -50,8 +50,8 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
  * <p>
- * Implementation of the interface {@link OdilonLockService}.
- * Bucket locks, Object locks, File locks for {@link FileCacheService}
+ * Implementation of the interface {@link OdilonLockService}. Bucket locks,
+ * Object locks, File locks for {@link FileCacheService}
  * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
@@ -141,28 +141,24 @@ public class OdilonLockService extends BaseService implements LockService {
     public ReadWriteLock getFileCacheLock(Long bucketId, String objectName, Optional<Integer> version) {
         return getFileCacheLocks().computeIfAbsent(getFileKey(bucketId, objectName, version), key -> new ReentrantReadWriteLock());
     }
-    
+
     public boolean isLocked(ServerBucket bucket) {
         return isLocked(bucket);
     }
-    
+
     public boolean isLocked(String bucketName) {
-        
+
         if (!getBucketLocks().containsKey(bucketName))
             return false;
-        
+
         if (getBucketLocks().get(bucketName).isWriteLocked())
             return true;
-        
-        if (getBucketLocks().get(bucketName).getReadLockCount()>0)
+
+        if (getBucketLocks().get(bucketName).getReadLockCount() > 0)
             return true;
-        
+
         return false;
-        
     }
-    
-    
-    
 
     @Override
     public ReadWriteLock getServerLock() {

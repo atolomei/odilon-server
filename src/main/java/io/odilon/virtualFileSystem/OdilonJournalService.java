@@ -117,28 +117,33 @@ public class OdilonJournalService extends BaseService implements JournalService 
         return createNew(OperationCode.CREATE_SERVER_MASTERKEY, Optional.empty(), Optional.empty(),
                 Optional.of(VirtualFileSystemService.ENCRYPTION_KEY_FILE), Optional.empty());
     }
+
     @Override
     public VirtualFileSystemOperation createServerMetadata() {
         return createNew(OperationCode.CREATE_SERVER_METADATA, Optional.empty(), Optional.empty(),
                 Optional.of(VirtualFileSystemService.SERVER_METADATA_FILE), Optional.empty());
     }
+
     @Override
     public VirtualFileSystemOperation updateServerMetadata() {
         return createNew(OperationCode.UPDATE_SERVER_METADATA, Optional.empty(), Optional.empty(),
                 Optional.of(VirtualFileSystemService.SERVER_METADATA_FILE), Optional.empty());
     }
+
     @Override
     public VirtualFileSystemOperation createBucket(BucketMetadata meta) {
         Check.requireNonNullArgument(meta, "meta is null");
-        return createNew(OperationCode.CREATE_BUCKET, Optional.of(meta.getId()), Optional.of(meta.getBucketName()), Optional.empty(),
-                Optional.empty());
+        return createNew(OperationCode.CREATE_BUCKET, Optional.of(meta.getId()), Optional.of(meta.getBucketName()),
+                Optional.empty(), Optional.empty());
     }
+
     @Override
     public VirtualFileSystemOperation updateBucket(ServerBucket bucket, String newBucketName) {
         Check.requireNonNullArgument(bucket, "bucket is null");
         return createNew(OperationCode.UPDATE_BUCKET, Optional.of(bucket.getId()), Optional.of(bucket.getName()),
                 Optional.of(newBucketName), Optional.empty());
     }
+
     @Override
     public VirtualFileSystemOperation deleteBucket(ServerBucket bucket) {
         Check.requireNonNullArgument(bucket, "bucket is null");
@@ -146,58 +151,59 @@ public class OdilonJournalService extends BaseService implements JournalService 
         return createNew(OperationCode.DELETE_BUCKET, Optional.of(bucket.getId()), Optional.of(bucket.getName()), Optional.empty(),
                 Optional.empty());
     }
+
     @Override
     public VirtualFileSystemOperation deleteObjectPreviousVersions(ServerBucket bucket, String objectName, int currentHeadVersion) {
         Check.requireNonNullArgument(bucket, "bucket is null");
         return createNew(OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS, Optional.of(bucket.getId()), Optional.of(bucket.getName()),
                 Optional.ofNullable(objectName), Optional.of(Integer.valueOf(currentHeadVersion)));
     }
+
     @Override
     public VirtualFileSystemOperation syncObject(ServerBucket bucket, String objectName) {
         Check.requireNonNullArgument(bucket, "bucket is null");
         return createNew(OperationCode.SYNC_OBJECT_NEW_DRIVE, Optional.of(bucket.getId()), Optional.of(bucket.getName()),
                 Optional.ofNullable(objectName), Optional.empty());
     }
+
     @Override
     public VirtualFileSystemOperation deleteObject(ServerBucket bucket, String objectName, int currentHeadVersion) {
         Check.requireNonNullArgument(bucket, "bucket is null");
         return createNew(OperationCode.DELETE_OBJECT, Optional.of(bucket.getId()), Optional.of(bucket.getName()),
                 Optional.ofNullable(objectName), Optional.of(Integer.valueOf(currentHeadVersion)));
     }
+
     @Override
     public VirtualFileSystemOperation restoreObjectPreviousVersion(ServerBucket bucket, String objectName, int currentHeadVersion) {
         Check.requireNonNullArgument(bucket, "bucket is null");
         return createNew(OperationCode.RESTORE_OBJECT_PREVIOUS_VERSION, Optional.of(bucket.getId()), Optional.of(bucket.getName()),
                 Optional.ofNullable(objectName), Optional.of(Integer.valueOf(currentHeadVersion)));
     }
+
     @Override
     public VirtualFileSystemOperation createObject(ServerBucket bucket, String objectName) {
         return createNew(OperationCode.CREATE_OBJECT, Optional.of(bucket.getId()), Optional.of(bucket.getName()),
                 Optional.ofNullable(objectName), Optional.of(Integer.valueOf(0)));
     }
+
     @Override
     public VirtualFileSystemOperation updateObject(ServerBucket bucket, String objectName, int version) {
         return createNew(OperationCode.UPDATE_OBJECT, Optional.of(bucket.getId()), Optional.of(bucket.getName()),
                 Optional.ofNullable(objectName), Optional.of(Integer.valueOf(version)));
     }
+
     @Override
     public VirtualFileSystemOperation updateObjectMetadata(ServerBucket bucket, String objectName, int version) {
         return createNew(OperationCode.UPDATE_OBJECT_METADATA, Optional.of(bucket.getId()), Optional.of(bucket.getName()),
                 Optional.ofNullable(objectName), Optional.of(Integer.valueOf(version)));
     }
+
     /**
      * <p>
-     * If there is a replica enabled,
-     * 
-     * 1. save the op into the replica queue 2. remove op from journal
-     * 
-     * error -> remove from replication
-     * 
-     * ---- on recovery rollback op -> 1. remove op from replica, remove op from
-     * local ops
-     * 
+     * If there is a replica enabled, 1. save the op into the replica queue 2.
+     * remove op from journal error -> remove from replication on recovery rollback
+     * op -> 1. remove op from replica, remove op from local ops
      * </p>
-     * 
      */
     @Override
     public boolean commit(VirtualFileSystemOperation opx) {
@@ -210,13 +216,8 @@ public class OdilonJournalService extends BaseService implements JournalService 
             getApplicationEventPublisher().publishEvent(new CacheEvent(opx));
 
             try {
-
-                if (isStandBy()) {
-                    // if (opx.getBucketId()!=null && opx.getBucketName()==null) {
-                    // logger.error("horror !!!");
-                    // }
+                if (isStandBy())
                     getReplicationService().enqueue(opx);
-                }
 
                 getVirtualFileSystemService().removeJournal(opx.getId());
                 getOps().remove(opx.getId());
@@ -226,7 +227,6 @@ public class OdilonJournalService extends BaseService implements JournalService 
                     getOpsAborted().put(opx.getId(), opx.getId());
                     logger.debug("rollback replication -> " + opx.toString());
                     getReplicationService().cancel(opx);
-
                 }
                 throw e;
             }
@@ -234,6 +234,7 @@ public class OdilonJournalService extends BaseService implements JournalService 
         }
 
     }
+
     @Override
     public boolean cancel(VirtualFileSystemOperation opx) {
 
@@ -241,25 +242,20 @@ public class OdilonJournalService extends BaseService implements JournalService 
             return true;
 
         synchronized (this) {
-
             try {
-
                 CacheEvent event = new CacheEvent(opx);
                 getApplicationEventPublisher().publishEvent(event);
-
                 getVirtualFileSystemService().removeJournal(opx.getId());
-
             } catch (InternalCriticalException e) {
-                logger.error(e,
-                        "this is normally not a critical Exception (the op may have saved in some of the drives and not in others due to a crash)",
+                logger.error(e, "the operation may have been saved in just some of the drives due to a crash",
                         SharedConstant.NOT_THROWN);
             }
             logger.debug("Cancel ->" + opx.toString());
             getOps().remove(opx.getId());
-
         }
         return true;
     }
+
     @Override
     public synchronized String newOperationId() {
         return String.valueOf(System.nanoTime());
@@ -268,13 +264,15 @@ public class OdilonJournalService extends BaseService implements JournalService 
     public boolean isExecuting(String opid) {
         return getOps().containsKey(opid);
     }
+
     public boolean isAborted(String opid) {
         return getOpsAborted().containsKey(opid);
     }
+
     public void removeAborted(String opid) {
         getOpsAborted().remove(opid);
     }
-    
+
     public VirtualFileSystemService getVirtualFileSystemService() {
         if (this.virtualFileSystemService == null) {
             logger.error(VirtualFileSystemService.class.getSimpleName() + " must be set during the @PostConstruct method of the "
@@ -313,10 +311,10 @@ public class OdilonJournalService extends BaseService implements JournalService 
         return this.isStandBy;
     }
 
-    private synchronized VirtualFileSystemOperation createNew(OperationCode op, Optional<Long> bucketId, Optional<String> bucketName,
-            Optional<String> objectName, Optional<Integer> iVersion) {
-        final VirtualFileSystemOperation operation = new OdilonVirtualFileSystemOperation(newOperationId(), op, bucketId, bucketName, objectName, iVersion,
-                getRedundancyLevel(), this);
+    private synchronized VirtualFileSystemOperation createNew(OperationCode op, Optional<Long> bucketId,
+            Optional<String> bucketName, Optional<String> objectName, Optional<Integer> iVersion) {
+        final VirtualFileSystemOperation operation = new OdilonVirtualFileSystemOperation(newOperationId(), op, bucketId,
+                bucketName, objectName, iVersion, getRedundancyLevel(), this);
         getVirtualFileSystemService().saveJournal(operation);
         getOps().put(operation.getId(), operation);
         return operation;
