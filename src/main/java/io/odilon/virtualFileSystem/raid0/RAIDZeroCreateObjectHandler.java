@@ -75,9 +75,10 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
 
             if (isStandByEnabled())
                 getReplicationService().cancel(operation);
-
-            getWriteDrive(bucket, objectName).deleteObjectMetadata(bucket, objectName);
+            
             ObjectPath path = new ObjectPath(getWriteDrive(bucket, objectName), bucket, objectName);
+            //getWriteDrive(bucket, objectName).deleteObjectMetadata(bucket, objectName);
+            FileUtils.deleteQuietly(path.metadataDirPath().toFile());
             FileUtils.deleteQuietly(path.dataFilePath().toFile());
             done = true;
 
@@ -117,7 +118,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
         Check.requireNonNullArgument(objectName, "objectName is null or empty " + objectInfo(bucket));
 
         VirtualFileSystemOperation operation = null;
-        boolean done = false;
+        boolean commitOk = false;
         boolean isMainException = false;
         
         objectWriteLock(bucket, objectName);
@@ -136,25 +137,25 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
                 operation = createObject(bucket, objectName);
                 saveObjectDataFile(bucket, objectName, stream, srcFileName);
                 saveObjectMetadata(bucket, objectName, srcFileName, contentType, version, customTags);
-                done = operation.commit();
+                commitOk = operation.commit();
 
             } catch (InternalCriticalException e1) {
-                done = false;
+                commitOk = false;
                 isMainException = true;
                 throw e1;
             } catch (Exception e) {
-                done = false;
+                commitOk = false;
                 isMainException = true;
                 throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
             } finally {
                 try {
-                    if (!done) {
+                    if (!commitOk) {
                         try {
                             rollback(operation);
                         } catch (InternalCriticalException e) {
-                            if (!isMainException) {
+                            if (!isMainException) 
                                 throw e;
-                            } else
+                             else 
                                 logger.error(e, objectInfo(bucket, objectName, srcFileName), SharedConstant.NOT_THROWN);
                         } catch (Exception e) {
                             if (!isMainException)

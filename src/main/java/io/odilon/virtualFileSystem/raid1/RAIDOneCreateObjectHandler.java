@@ -109,9 +109,6 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
                 /** must be executed inside the critical zone. */
                 checkNotExistObject(bucket, objectName);
                 
-                //if (getDriver().getReadDrive(bucket, objectName).existsObjectMetadata(bucket, objectName))
-                //    throw new IllegalArgumentException("object already exist -> b:" + getDriver().objectInfo(bucket, objectName));
-
                 int version = 0;
                 operation = createObject(bucket, objectName);
                 saveObjectDataFile(bucket, objectName, stream, srcFileName);

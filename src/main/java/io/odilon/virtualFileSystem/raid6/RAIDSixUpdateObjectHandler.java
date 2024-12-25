@@ -79,13 +79,12 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
      * @param objectName
      * @return
      */
-   protected boolean existsObjectMetadata(ServerBucket bucket, String objectName) {
-       if (existsCacheObject(bucket, objectName))
+    protected boolean existsObjectMetadata(ServerBucket bucket, String objectName) {
+        if (existsCacheObject(bucket, objectName))
             return true;
-         return getDriver().getObjectMetadataReadDrive(bucket, objectName).existsObjectMetadata(bucket, objectName);
+        return getDriver().getObjectMetadataReadDrive(bucket, objectName).existsObjectMetadata(bucket, objectName);
     }
 
-   
     /**
      * @param bucket      can not be null
      * @param objectName  can not be null
@@ -104,7 +103,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
         String bucketName = bucket.getName();
 
         VirtualFileSystemOperation operation = null;
-        boolean done = false;
+        boolean commitOK = false;
         boolean isMainException = false;
 
         int beforeHeadVersion = -1;
@@ -117,43 +116,41 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
             getLockService().getBucketLock(bucket).readLock().lock();
             try (stream) {
 
-                // must be executed inside the critical zone.
-                if (!existsCacheBucket(bucket))
-                    throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
-                
-                // must be executed inside the critical zone.
-                if (!existsObjectMetadata(bucket, objectName))
-                    throw new IllegalArgumentException("Object does not exist -> " + objectInfo(bucket, objectName));
-                
-                meta =getMetadata(bucket, objectName, true);
-                
-                
-                
-                if ((meta == null) || (!meta.isAccesible()))
-                    throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
+                /** must be executed inside the critical zone. */
+                checkExistsBucket(bucket);
 
-                
+                /** must be executed inside the critical zone. */
+                checkExistObject(bucket, objectName);
+
+                meta = getMetadata(bucket, objectName, true);
+
+                // if ((meta == null) || (!meta.isAccesible()))
+                // throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
+
                 beforeHeadVersion = meta.getVersion();
                 operation = getJournalService().updateObject(bucket, objectName, beforeHeadVersion);
+
                 /** backup current head version */
-                backupVersionObjectDataFile(meta, bucket, meta.version);
-                backupVersionObjectMetadata(bucket, objectName, meta.version);
+                backupVersionObjectDataFile(meta, bucket, meta.getVersion());
+                backupVersionObjectMetadata(bucket, objectName, meta.getVersion());
+
                 /** copy new version as head version */
                 afterHeadVersion = meta.getVersion() + 1;
                 RAIDSixBlocks ei = saveObjectDataFile(bucket, objectName, stream);
-                saveObjectMetadata(bucket, objectName, ei, srcFileName, contentType, afterHeadVersion, meta.getCreationDate(),customTags);
-                done = operation.commit();
+                saveObjectMetadata(bucket, objectName, ei, srcFileName, contentType, afterHeadVersion, meta.getCreationDate(),
+                        customTags);
+                commitOK = operation.commit();
 
             } catch (Exception e) {
-                done = false;
+                commitOK = false;
                 isMainException = true;
                 throw new InternalCriticalException(e, getDriver().objectInfo(bucketName, objectName, srcFileName));
 
             } finally {
                 try {
-                    if ((!done) && (operation != null)) {
+                    if (!commitOK) {
                         try {
-                            rollbackJournal(operation, false);
+                            rollback(operation);
                         } catch (Exception e) {
                             if (isMainException)
                                 throw new InternalCriticalException(e, getDriver().objectInfo(bucketName, objectName, srcFileName));
@@ -161,11 +158,8 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
                                 logger.error(objectInfo(bucketName, objectName, srcFileName), SharedConstant.NOT_THROWN);
                         }
                     } else {
-                        /**
-                         * TODO AT -> Sync by the moment. see how to make it Async
-                         */
-                        if ((operation != null) && (meta != null))
-                            cleanUpUpdate(meta, bucket, beforeHeadVersion, afterHeadVersion);
+                        /** TODO Sync by the moment. see how to make it Async */
+                        cleanUpUpdate(meta, bucket, beforeHeadVersion, afterHeadVersion);
                     }
                 } finally {
                     getLockService().getBucketLock(bucket).readLock().unlock();
@@ -204,9 +198,16 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
             getLockService().getBucketLock(meta.getBucketId()).readLock().lock();
             try {
 
+                /** must be executed inside the critical zone. */
+                checkExistsBucket(bucket);
+
+                /** must be executed inside the critical zone. */
+                checkExistObject(bucket, meta.getObjectName());
+
                 // must be executed inside the critical zone.
-                if (!existsCacheBucket(meta.getBucketId()))
-                    throw new IllegalArgumentException("bucket does not exist -> " + meta.getBucketId().toString());
+                // if (!existsCacheBucket(meta.getBucketId()))
+                // throw new IllegalArgumentException("bucket does not exist -> " +
+                // meta.getBucketId().toString());
 
                 bucket = getBucketCache().get(meta.getBucketId());
                 operation = getJournalService().updateObjectMetadata(bucket, meta.getObjectName(), meta.getVersion());
@@ -284,9 +285,9 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
 
                 metaHeadToRemove = getMetadata(bucket, objectName, false);
 
-                if ((metaHeadToRemove  == null) || (!metaHeadToRemove .isAccesible()))
+                if ((metaHeadToRemove == null) || (!metaHeadToRemove.isAccesible()))
                     throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
-                
+
                 if (metaHeadToRemove.getVersion() == 0)
                     throw new IllegalArgumentException(
                             "Object does not have any previous version | " + objectInfo(bucket, objectName));
@@ -656,7 +657,6 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
      * @param objectName
      */
     private void cleanUpBackupMetadataDir(ServerBucket bucket, String objectName) {
-
         try {
             for (Drive drive : getDriver().getDrivesAll()) {
                 FileUtils.deleteQuietly(new File(drive.getBucketWorkDirPath(bucket) + File.separator + objectName));
@@ -672,7 +672,8 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
      * @param currentVersion
      */
     private void cleanUpUpdate(ObjectMetadata meta, ServerBucket bucket, int previousVersion, int currentVersion) {
-        Check.requireNonNullArgument(meta, "meta is null");
+        if (meta == null)
+            return;
         try {
             if (!getServerSettings().isVersionControl()) {
                 for (Drive drive : getDriver().getDrivesAll()) {
@@ -762,9 +763,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
     }
 
     private void rollbackJournalUpdate(VirtualFileSystemOperation op, ServerBucket bucket, boolean recoveryMode) {
-
         boolean done = false;
-
         try {
             if (isStandByEnabled())
                 getReplicationService().cancel(op);

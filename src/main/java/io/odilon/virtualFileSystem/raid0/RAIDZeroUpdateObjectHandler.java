@@ -73,7 +73,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
         Check.requireNonNullArgument(stream, "stream is null");
 
         boolean isMaixException = false;
-        boolean done = false;
+        boolean commitOK = false;
         int beforeHeadVersion = -1;
         int afterHeadVersion = -1;
         VirtualFileSystemOperation operation = null;
@@ -92,36 +92,32 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
 
                 ObjectMetadata meta = getMetadata(bucket, objectName, true);
                 beforeHeadVersion = meta.getVersion();
-
                 operation = updateObject(bucket, objectName, beforeHeadVersion);
-
                 /** backup current head version */
                 versionObject(bucket, objectName, beforeHeadVersion);
-
                 /** copy new version head version */
                 afterHeadVersion = beforeHeadVersion + 1;
-
                 saveObjectDataFile(bucket, objectName, stream, srcFileName);
                 saveObjectMetadata(bucket, objectName, srcFileName, contentType, afterHeadVersion, customTags);
 
-                done = operation.commit();
+                commitOK = operation.commit();
 
             } catch (OdilonObjectNotFoundException e1) {
-                done = false;
+                commitOK = false;
                 isMaixException = true;
                 throw e1;
             } catch (InternalCriticalException e2) {
-                done = false;
+                commitOK = false;
                 isMaixException = true;
                 throw e2;
             } catch (Exception e) {
-                done = false;
+                commitOK = false;
                 isMaixException = true;
                 throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
 
             } finally {
                 try {
-                    if (!done) {
+                    if (!commitOK) {
                         try {
                             rollback(operation);
                         } catch (Exception e) {
@@ -163,7 +159,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
      */
     protected ObjectMetadata restorePreviousVersion(ServerBucket bucket, String objectName) {
 
-        boolean done = false;
+        boolean commitOK = false;
         boolean isMainException = false;
         int beforeHeadVersion = -1;
         VirtualFileSystemOperation operation = null;
@@ -214,23 +210,23 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
                 if (!restoreVersionMetadata(bucket, metaToRestore.getObjectName(), metaToRestore.getVersion()))
                     throw new OdilonObjectNotFoundException(Optional.of(meta.getSystemTags()).orElse("previous versions deleted"));
 
-                done = operation.commit();
+                commitOK = operation.commit();
                 return metaToRestore;
 
             } catch (OdilonObjectNotFoundException e1) {
-                done = false;
+                commitOK = false;
                 isMainException = true;
                 e1.setErrorMessage(e1.getErrorMessage() + " | " + objectInfo(bucket, objectName));
                 throw e1;
 
             } catch (Exception e) {
-                done = false;
+                commitOK = false;
                 isMainException = true;
                 throw new InternalCriticalException(e, objectInfo(bucket, objectName));
 
             } finally {
                 try {
-                    if (!done) {
+                    if (!commitOK) {
                         try {
                             rollback(operation);
                         } catch (Exception e) {
@@ -314,10 +310,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
                                 logger.error(e, objectInfo(meta), SharedConstant.NOT_THROWN);
                         }
                     } else {
-                        /**
-                         * TODO AT -> Delete backup Metadata. Sync by the moment see how to make it
-                         * Async.
-                         */
+                        /**TODO-> Delete backup Metadata. change to Async */
                         try {
                             if (bucket != null)
                                 FileUtils.deleteQuietly(new File(
@@ -351,7 +344,6 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
      * The procedure is the same for Version Control
      * </p>
      */
-
     protected void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
 
         Check.requireNonNullArgument(operation, "op is null");
@@ -387,18 +379,13 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
     private void rollbackJournalUpdate(VirtualFileSystemOperation op, boolean recoveryMode) {
 
         boolean done = false;
-
         try {
             if (isStandByEnabled())
                 getReplicationService().cancel(op);
-
             ServerBucket bucket = getBucketCache().get(op.getBucketId());
-
             restoreVersionDataFile(bucket, op.getObjectName(), op.getVersion());
             restoreVersionMetadata(bucket, op.getObjectName(), op.getVersion());
-
             done = true;
-
         } catch (InternalCriticalException e) {
             if (!recoveryMode)
                 throw (e);

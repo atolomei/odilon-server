@@ -81,49 +81,43 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
         Check.requireNonNullArgument(bucket, "bucket is null");
         Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 
-        VirtualFileSystemOperation op = null;
-        boolean done = false;
+        VirtualFileSystemOperation operation = null;
+        boolean commitOK = false;
         boolean isMainException = false;
         
         objectWriteLock(bucket, objectName);
-        
         try {
             
             bucketReadLock(bucket);
-            
             try (stream) {
-                /**
-                 * This check was executed by the VirtualFilySystemService, but it must be
-                 * executed also inside the critical zone.
-                 */
-                if (!existsCacheBucket(bucket))
-                    throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
 
-                
-                if (getDriver().getObjectMetadataReadDrive(bucket, objectName).existsObjectMetadata(bucket, objectName))
-                    throw new IllegalArgumentException("Object already exist -> " + objectInfo(bucket, objectName));
+                /** must be executed inside the critical zone. */
+                checkExistsBucket(bucket);
+
+                /** must be executed inside the critical zone. */
+                checkNotExistObject(bucket, objectName);
 
                 int version = 0;
 
-                op = getJournalService().createObject(bucket, objectName);
+                operation = createObject(bucket, objectName);
 
                 RAIDSixBlocks raidSixBlocks = saveObjectDataFile(bucket, objectName, stream);
                 saveObjectMetadata(bucket, objectName, raidSixBlocks, srcFileName, contentType, version, customTags);
-                done = op.commit();
+                commitOK = operation.commit();
 
             } catch (InternalCriticalException e) {
-                done = false;
+                commitOK = false;
                 isMainException = true;
                 throw e;
             } catch (Exception e) {
-                done = false;
+                commitOK = false;
                 isMainException = true;
                 throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName, srcFileName));
             } finally {
                 try {
-                    if ((!done) && (op != null)) {
+                    if (!commitOK) {
                         try {
-                            rollbackJournal(op, false);
+                            rollback(operation);
                         } catch (Exception e) {
                             if (isMainException)
                                 logger.error(objectInfo(bucket, objectName, srcFileName), SharedConstant.NOT_THROWN);
@@ -209,7 +203,6 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
      * @param srcFileName
      */
     private RAIDSixBlocks saveObjectDataFile(ServerBucket bucket, String objectName, InputStream stream) {
-        Check.requireNonNullArgument(bucket, "bucket is null");
         try (InputStream sourceStream = isEncrypt() ? (getVirtualFileSystemService().getEncryptionService().encryptStream(stream))
                 : stream) {
             return (new RAIDSixEncoder(getDriver())).encodeHead(sourceStream, bucket, objectName);
@@ -283,7 +276,6 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
                 throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName, srcFileName));
             }
         }
-
         /** save in parallel */
         saveRAIDOneObjectMetadataToDisk(drives, list, true);
     }
