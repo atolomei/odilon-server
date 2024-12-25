@@ -125,7 +125,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
                 if (!existsObjectMetadata(bucket, objectName))
                     throw new IllegalArgumentException("Object does not exist -> " + objectInfo(bucket, objectName));
                 
-                meta =getHandlerObjectMetadataInternal(bucket, objectName, true);
+                meta =getMetadata(bucket, objectName, true);
                 
                 
                 
@@ -282,7 +282,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
                 if (!existsCacheBucket(bucket))
                     throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
 
-                metaHeadToRemove = getHandlerObjectMetadataInternal(bucket, objectName, false);
+                metaHeadToRemove = getMetadata(bucket, objectName, false);
 
                 if ((metaHeadToRemove  == null) || (!metaHeadToRemove .isAccesible()))
                     throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));

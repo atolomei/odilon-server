@@ -84,7 +84,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler implements RAID
                 /** must be executed inside the critical zone. */
                 checkExistObject(bucket, objectName);
 
-                meta = getHandlerObjectMetadataInternal(bucket, objectName, false);
+                meta = getMetadata(bucket, objectName, false);
 
                 if ((meta == null) || (!meta.isAccesible()))
                     throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));

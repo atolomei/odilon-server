@@ -130,7 +130,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
                 /** must be executed inside the critical zone */
                 checkExistObject(bucket, objectName);
 
-                ObjectMetadata meta = getHandlerObjectMetadataInternal(bucket, objectName, true);
+                ObjectMetadata meta = getMetadata(bucket, objectName, true);
 
                 if ((meta == null) || (!meta.isAccesible()))
                     throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
@@ -209,7 +209,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
 
             try {
 
-                ObjectMetadata meta = getHandlerObjectMetadataInternal(bucket, objectName, false);
+                ObjectMetadata meta = getMetadata(bucket, objectName, false);
 
                 if ((meta == null) || (!meta.isAccesible()))
                     throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));

@@ -16,12 +16,9 @@
  */
 package io.odilon.virtualFileSystem.raid0;
 
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -30,16 +27,12 @@ import javax.annotation.concurrent.ThreadSafe;
 
 import org.apache.commons.io.FileUtils;
 
-import io.odilon.OdilonVersion;
 import io.odilon.error.OdilonObjectNotFoundException;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
-import io.odilon.model.ObjectStatus;
-import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
-import io.odilon.util.OdilonFileUtils;
 import io.odilon.virtualFileSystem.ObjectPath;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
@@ -84,11 +77,11 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
         int beforeHeadVersion = -1;
         int afterHeadVersion = -1;
         VirtualFileSystemOperation operation = null;
+
         objectWriteLock(bucket, objectName);
         try {
 
             bucketReadLock(bucket);
-
             try (stream) {
 
                 /** must be executed inside the critical zone */
@@ -97,23 +90,19 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
                 /** must be executed inside the critical zone */
                 checkExistObject(bucket, objectName);
 
-                // if (!existsObjectMetadata(bucket, objectName))
-                // throw new IllegalArgumentException("Object does not exist -> " +
-                // objectInfo(bucket, objectName, srcFileName));
-
-                ObjectMetadata meta = getHandlerObjectMetadataInternal(bucket, objectName, true);
+                ObjectMetadata meta = getMetadata(bucket, objectName, true);
                 beforeHeadVersion = meta.getVersion();
 
                 operation = updateObject(bucket, objectName, beforeHeadVersion);
 
                 /** backup current head version */
-                saveVersioDataFile(bucket, objectName, beforeHeadVersion);
-                saveVersionMetadata(bucket, objectName, beforeHeadVersion);
+                versionObject(bucket, objectName, beforeHeadVersion);
 
                 /** copy new version head version */
                 afterHeadVersion = beforeHeadVersion + 1;
-                saveObjectDataFile(bucket, objectName, stream, srcFileName, afterHeadVersion);
-                saveObjectMetadataHead(bucket, objectName, srcFileName, contentType, afterHeadVersion, customTags);
+
+                saveObjectDataFile(bucket, objectName, stream, srcFileName);
+                saveObjectMetadata(bucket, objectName, srcFileName, contentType, afterHeadVersion, customTags);
 
                 done = operation.commit();
 
@@ -131,9 +120,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
                 throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
 
             } finally {
-
                 try {
-
                     if (!done) {
                         try {
                             rollback(operation);
@@ -144,8 +131,20 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
                                 logger.error(e, objectInfo(bucket, objectName, srcFileName), SharedConstant.NOT_THROWN);
                         }
                     } else {
-                        /** TODO AT -> This is Sync by the moment, see how to make it Async */
-                        cleanUpUpdate(operation, bucket, objectName, beforeHeadVersion, afterHeadVersion);
+                        /**
+                         * TODO AT -> This is Sync by the moment, see how to make it Async This clean up
+                         * is executed after the commit by the transaction thread, and therefore all
+                         * locks are still applied. Also it is required to be fast<br/>
+                         */
+                        try {
+                            if (!getServerSettings().isVersionControl()) {
+                                ObjectPath path = new ObjectPath(getWriteDrive(bucket, objectName), bucket, objectName);
+                                FileUtils.deleteQuietly(path.metadataFileVersionPath(beforeHeadVersion).toFile());
+                                FileUtils.deleteQuietly(path.dataFileVersionPath(beforeHeadVersion).toFile());
+                            }
+                        } catch (Exception e) {
+                            logger.error(e, SharedConstant.NOT_THROWN);
+                        }
                     }
                 } finally {
                     bucketReadUnLock(bucket);
@@ -168,8 +167,10 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
         boolean isMainException = false;
         int beforeHeadVersion = -1;
         VirtualFileSystemOperation operation = null;
+
         objectWriteLock(bucket, objectName);
         try {
+
             bucketReadLock(bucket);
             try {
 
@@ -179,10 +180,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
                 /** must be executed inside the critical zone. */
                 checkExistObject(bucket, objectName);
 
-                ObjectMetadata meta = getHandlerObjectMetadataInternal(bucket, objectName, false);
-
-                if ((meta == null) || (!meta.isAccesible()))
-                    throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
+                ObjectMetadata meta = getMetadata(bucket, objectName, false);
 
                 if (meta.getVersion() == 0)
                     throw new IllegalArgumentException("Object does not have versions -> " + objectInfo(bucket, objectName));
@@ -204,8 +202,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
                  * save current head version MetadataFile .vN and data File vN - no need to
                  * additional backup
                  */
-                saveVersioDataFile(bucket, objectName, meta.getVersion());
-                saveVersionMetadata(bucket, objectName, meta.getVersion());
+                versionObject(bucket, objectName, meta.getVersion());
 
                 /** save previous version as head */
                 ObjectMetadata metaToRestore = metaVersions.get(metaVersions.size() - 1);
@@ -249,11 +246,9 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
                         if ((operation != null) && ((beforeHeadVersion >= 0))) {
                             try {
                                 ObjectPath path = new ObjectPath(getDriver().getWriteDrive(bucket, objectName), bucket, objectName);
-
                                 /** metadata file */
                                 FileUtils.deleteQuietly(getDriver().getWriteDrive(bucket, objectName)
                                         .getObjectMetadataVersionFile(bucket, objectName, beforeHeadVersion));
-
                                 /** data file */
                                 FileUtils.deleteQuietly(path.dataFileVersionPath(beforeHeadVersion).toFile());
                             } catch (Exception e) {
@@ -279,7 +274,6 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
      * 
      * @param meta
      */
-
     protected void updateObjectMetadata(ObjectMetadata meta) {
 
         VirtualFileSystemOperation operation = null;
@@ -459,94 +453,19 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
         }
     }
 
-    /**
-     * @param bucket
-     * @param objectName
-     * @param stream
-     * @param srcFileName
-     * @param newVersion
-     */
-    private void saveObjectDataFile(ServerBucket bucket, String objectName, InputStream stream, String srcFileName,
-            int newVersion) {
-        byte[] buf = new byte[ServerConstant.BUFFER_SIZE];
-        ObjectPath path = new ObjectPath(getWriteDrive(bucket, objectName), bucket, objectName);
-        try (InputStream sourceStream = isEncrypt() ? getEncryptionService().encryptStream(stream) : stream) {
-            try (BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(path.dataFilePath().toString()),
-                    ServerConstant.BUFFER_SIZE)) {
-                int bytesRead;
-                while ((bytesRead = sourceStream.read(buf, 0, buf.length)) >= 0) {
-                    out.write(buf, 0, bytesRead);
-                }
-            }
-        } catch (InternalCriticalException e) {
-            throw (e);
-        } catch (Exception e) {
-            throw new InternalCriticalException(e);
-        }
-    }
-
-    /**
-     * <p>
-     * sha256 is calculated on the encrypted file
-     * </p>
-     * 
-     * @param bucket
-     * @param objectName
-     * @param stream
-     * @param srcFileName
-     */
-    private void saveObjectMetadataHead(ServerBucket bucket, String objectName, String srcFileName, String contentType, int version,
-            Optional<List<String>> customTags) {
-
-        OffsetDateTime now = OffsetDateTime.now();
+    private void versionObject(ServerBucket bucket, String objectName, int version) {
         Drive drive = getWriteDrive(bucket, objectName);
-        ObjectPath path = new ObjectPath(drive, bucket.getId(), objectName);
-        File file = path.dataFilePath().toFile();
-
         try {
-            String sha256 = OdilonFileUtils.calculateSHA256String(file);
-            ObjectMetadata meta = new ObjectMetadata(bucket.getId(), objectName);
-            meta.setFileName(srcFileName);
-            meta.setAppVersion(OdilonVersion.VERSION);
-            meta.setContentType(contentType);
-            meta.setEncrypt(getVirtualFileSystemService().isEncrypt());
-            meta.setVault(getVirtualFileSystemService().isUseVaultNewFiles());
-            meta.setCreationDate(now);
-            meta.setVersion(version);
-            meta.setVersioncreationDate(meta.getCreationDate());
-            meta.setLength(file.length());
-            meta.setEtag(sha256); /** sha256 is calculated on the encrypted file */
-            meta.setIntegrityCheck(now);
-            meta.setSha256(sha256);
-            meta.setStatus(ObjectStatus.ENABLED);
-            meta.setDrive(drive.getName());
-            meta.setRaid(String.valueOf(getRedundancyLevel().getCode()).trim());
-            if (customTags.isPresent())
-                meta.setCustomTags(customTags.get());
-
-            drive.saveObjectMetadata(meta);
-
-        } catch (Exception e) {
-            throw new InternalCriticalException(e);
-        }
-    }
-
-    private void saveVersionMetadata(ServerBucket bucket, String objectName, int version) {
-        try {
-            Drive drive = getWriteDrive(bucket, objectName);
-            File file = drive.getObjectMetadataFile(bucket, objectName);
-            drive.putObjectMetadataVersionFile(bucket, objectName, version, file);
-        } catch (Exception e) {
-            throw new InternalCriticalException(e, objectInfo(bucket, objectName));
-        }
-    }
-
-    private void saveVersioDataFile(ServerBucket bucket, String objectName, int version) {
-        try {
-            Drive drive = getWriteDrive(bucket, objectName);
             ObjectPath path = new ObjectPath(drive, bucket.getId(), objectName);
             File file = path.dataFilePath().toFile();
             ((SimpleDrive) drive).putObjectDataVersionFile(bucket.getId(), objectName, version, file);
+        } catch (Exception e) {
+            throw new InternalCriticalException(e, objectInfo(bucket, objectName));
+        }
+
+        try {
+            File file = drive.getObjectMetadataFile(bucket, objectName);
+            drive.putObjectMetadataVersionFile(bucket, objectName, version, file);
         } catch (Exception e) {
             throw new InternalCriticalException(e, objectInfo(bucket, objectName));
         }
@@ -618,50 +537,6 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
             FileUtils.copyDirectory(new File(objectMetadataBackupDirPath), new File(objectMetadataDirPath));
         } catch (IOException e) {
             throw new InternalCriticalException(e, objectInfo(bucket, objectName));
-        }
-    }
-
-    /**
-     * <p>
-     * This clean up is executed after the commit by the transaction thread, and
-     * therefore all locks are still applied. Also it is required to be fast<br/>
-     * 
-     * <b>TODO AT</b> -> <i>This method should be Async</i><br/>
-     * 
-     * <h3>Version Control</h3>
-     * <ul>
-     * <li>do not remove previous version Metadata</li>
-     * <li>do not remove previous version Data</li>
-     * </ul>
-     * 
-     * <h3>No Version Control</h3>
-     * <ul>
-     * <li>remove previous version Metadata</li>
-     * <li>remove previous version Data</li>
-     * </ul>
-     * </p>
-     * 
-     * @param operation       can be null (no need to do anything)
-     * @param bucket          not null
-     * @param objectName      not null
-     * @param previousVersion >=0
-     * @param currentVersion  >0
-     */
-    private void cleanUpUpdate(VirtualFileSystemOperation operation, ServerBucket bucket, String objectName, int previousVersion,
-            int currentVersion) {
-
-        if (operation == null)
-            return;
-
-        try {
-            if (!getServerSettings().isVersionControl()) {
-                FileUtils.deleteQuietly(getDriver().getWriteDrive(bucket, objectName).getObjectMetadataVersionFile(bucket,
-                        objectName, previousVersion));
-                ObjectPath path = new ObjectPath(getDriver().getWriteDrive(bucket, objectName), bucket, objectName);
-                FileUtils.deleteQuietly(path.dataFileVersionPath(previousVersion).toFile());
-            }
-        } catch (Exception e) {
-            logger.error(e, SharedConstant.NOT_THROWN);
         }
     }
 }

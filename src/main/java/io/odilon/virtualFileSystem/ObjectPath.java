@@ -73,7 +73,9 @@ public class ObjectPath extends PathBuilder {
     }
 
     public Path metadataDirPath(Context context) {
-        return Paths.get(getBucketsDirPath()).resolve(getBucketId().toString() + File.separator + getObjectName());
+        if (context==Context.STORAGE)
+            return Paths.get(getBucketsDirPath()).resolve(getBucketId().toString() + File.separator + getObjectName());
+        throw new RuntimeException("not done");
     }
 
     public Path metadataFilePath() {
@@ -84,6 +86,10 @@ public class ObjectPath extends PathBuilder {
         return metadataDirPath(context).resolve(getObjectName() + ServerConstant.JSON);
     }
 
+    public Path metadataFileVersionPath(int version) {
+        return metadataDirPath(Context.STORAGE).resolve(getObjectName() + VirtualFileSystemService.VERSION_EXTENSION + String.valueOf(version) + ServerConstant.JSON);
+    }
+    
     public Path metadataFileVersionPath(Context context) {
         return metadataDirPath(context).resolve(getObjectName() + ServerConstant.JSON);
     }
