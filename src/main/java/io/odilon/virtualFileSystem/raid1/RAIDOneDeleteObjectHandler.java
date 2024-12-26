@@ -91,10 +91,6 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
                 /** must be executed inside the critical zone. */
                 checkExistObject(bucket, objectName);
 
-                // if (!getDriver().exists(bucket, objectName))
-                // throw new OdilonObjectNotFoundException("object does not exist -> b:" +
-                // objectInfo(bucket, objectName));
-
                 meta = getDriver().getReadDrive(bucket, objectName).getObjectMetadata(bucket, objectName);
                 headVersion = meta.getVersion();
                 operation = deleteObject(bucket, objectName, headVersion);

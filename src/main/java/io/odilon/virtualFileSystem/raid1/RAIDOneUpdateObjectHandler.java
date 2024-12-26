@@ -80,23 +80,6 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
         super(driver);
     }
 
-    @Override
-    protected Drive getObjectMetadataReadDrive(ServerBucket bucket, String objectName) {
-        return getDriver().getReadDrive(bucket, objectName);
-    }
-
-    /**
-     * This check must be executed inside the critical section
-     * 
-     * @param bucket
-     * @param objectName
-     * @return
-     */
-    protected boolean existsObjectMetadata(ServerBucket bucket, String objectName) {
-        if (existsCacheObject(bucket, objectName))
-            return true;
-        return getDriver().getReadDrive(bucket, objectName).existsObjectMetadata(bucket, objectName);
-    }
 
     /**
      * @param bucket
@@ -395,6 +378,25 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
             rollbackJournalUpdate(operation, recoveryMode);
     }
 
+    @Override
+    protected Drive getObjectMetadataReadDrive(ServerBucket bucket, String objectName) {
+        return getDriver().getReadDrive(bucket, objectName);
+    }
+
+    /**
+     * This check must be executed inside the critical section
+     * 
+     * @param bucket
+     * @param objectName
+     * @return
+     */
+    protected boolean existsObjectMetadata(ServerBucket bucket, String objectName) {
+        if (existsCacheObject(bucket, objectName))
+            return true;
+        return getDriver().getReadDrive(bucket, objectName).existsObjectMetadata(bucket, objectName);
+    }
+
+    
     private void rollbackJournalUpdate(VirtualFileSystemOperation operation, boolean recoveryMode) {
 
         boolean done = false;

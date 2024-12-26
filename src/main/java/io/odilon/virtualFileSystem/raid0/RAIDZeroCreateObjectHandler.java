@@ -56,49 +56,6 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
         super(driver);
     }
 
-    /**
-     * <p>
-     * This method is <b>not</b> ThreadSafe, callers must ensure proper concurrency
-     * control
-     * </p>
-     */
-    @Override
-    public void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
-        
-        Check.requireNonNullArgument(operation, "operation is null");
-        Check.checkTrue(operation.getOperationCode() == OperationCode.CREATE_OBJECT,
-                "Invalid operation ->  " + operation.getOperationCode().getName());
-
-        boolean rollbackOK = false;
-        
-        ServerBucket bucket = getBucketCache().get(operation.getBucketId());
-        String objectName = operation.getObjectName();
-        try {
-
-            if (isStandByEnabled())
-                getReplicationService().cancel(operation);
-
-            ObjectPath path = new ObjectPath(getWriteDrive(bucket, objectName), bucket, objectName);
-
-            FileUtils.deleteQuietly(path.metadataDirPath().toFile());
-            FileUtils.deleteQuietly(path.dataFilePath().toFile());
-            rollbackOK = true;
-
-        } catch (InternalCriticalException e) {
-            if (!recoveryMode)
-                throw (e);
-            else
-                logger.error(e, opInfo(operation), SharedConstant.NOT_THROWN);
-        } catch (Exception e) {
-            if (!recoveryMode)
-                throw new InternalCriticalException(e, opInfo(operation));
-            else
-                logger.error(e, opInfo(operation), SharedConstant.NOT_THROWN);
-        } finally {
-            if (rollbackOK || recoveryMode)
-                operation.cancel();
-        }
-    }
 
     /**
      * <p>
@@ -175,4 +132,48 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
             objectWriteUnLock(bucket, objectName);
         }
     }
+    
+    /**
+     * <p>
+     * This method is <b>not</b> ThreadSafe, callers must ensure proper concurrency
+     * control
+     * </p>
+     */
+    protected void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
+        
+        Check.requireNonNullArgument(operation, "operation is null");
+        Check.checkTrue(operation.getOperationCode() == OperationCode.CREATE_OBJECT,
+                "Invalid operation ->  " + operation.getOperationCode().getName());
+
+        boolean rollbackOK = false;
+        
+        ServerBucket bucket = getBucketCache().get(operation.getBucketId());
+        String objectName = operation.getObjectName();
+        try {
+
+            if (isStandByEnabled())
+                getReplicationService().cancel(operation);
+
+            ObjectPath path = new ObjectPath(getWriteDrive(bucket, objectName), bucket, objectName);
+
+            FileUtils.deleteQuietly(path.metadataDirPath().toFile());
+            FileUtils.deleteQuietly(path.dataFilePath().toFile());
+            rollbackOK = true;
+
+        } catch (InternalCriticalException e) {
+            if (!recoveryMode)
+                throw (e);
+            else
+                logger.error(e, opInfo(operation), SharedConstant.NOT_THROWN);
+        } catch (Exception e) {
+            if (!recoveryMode)
+                throw new InternalCriticalException(e, opInfo(operation));
+            else
+                logger.error(e, opInfo(operation), SharedConstant.NOT_THROWN);
+        } finally {
+            if (rollbackOK || recoveryMode)
+                operation.cancel();
+        }
+    }
+
 }
