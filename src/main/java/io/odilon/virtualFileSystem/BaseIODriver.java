@@ -48,6 +48,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.odilon.OdilonVersion;
 import io.odilon.cache.ObjectMetadataCacheService;
 import io.odilon.encryption.EncryptionService;
+import io.odilon.error.OdilonObjectNotFoundException;
 import io.odilon.error.OdilonServerAPIException;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
@@ -163,19 +164,18 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
         bucketMeta.setId(getVirtualFileSystemService().getNextBucketId());
 
         ServerBucket bucket = new OdilonBucket(bucketMeta);
-        boolean done = false;
+        boolean commitOK = false;
         boolean isMainException = false;
 
-        VirtualFileSystemOperation op = null;
+        VirtualFileSystemOperation operation = null;
 
         bucketWriteLock(bucketName);
-
         try {
-            /** must be executed also inside the critical zone. */
-            if (existsCacheBucket(bucketName))
-                throw new IllegalArgumentException("bucket already exist -> " + objectInfo(bucketName));
 
-            op = getJournalService().createBucket(bucketMeta);
+            /** must be executed inside the critical zone. */
+            checkNotExistsBucket(bucket);
+
+            operation = getJournalService().createBucket(bucketMeta);
             OffsetDateTime now = OffsetDateTime.now();
             bucketMeta.setCreationDate(now);
             bucketMeta.setLastModified(now);
@@ -184,20 +184,20 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
                 try {
                     drive.createBucket(bucketMeta);
                 } catch (Exception e) {
-                    done = false;
+                    commitOK = false;
                     isMainException = true;
                     throw new InternalCriticalException(e, objectInfo(drive));
                 }
             }
-            // TODO AT ver donde poner esto mejor
+            // TODO ver donde poner esto mejor
             addCacheBucket(bucket);
-            done = op.commit();
+            commitOK = operation.commit();
             return bucket;
 
         } finally {
             try {
-                if (!done && op != null)
-                    rollbackJournal(op);
+                if (!commitOK)
+                    rollback(operation);
             } catch (Exception e) {
                 if (!isMainException)
                     throw new InternalCriticalException(e, objectInfo(bucketMeta));
@@ -214,9 +214,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
         Check.requireNonNullArgument(bucketName, "bucket is null");
         bucketReadLock(bucketName);
         try {
-            /** must be executed also inside the critical zone. */
-            if (!existsCacheBucket(bucketName))
-                throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucketName));
+            checkExistsBucket(bucketName);
             return getCacheBucket(bucketName);
         } finally {
             bucketReadUnLock(bucketName);
@@ -226,8 +224,8 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
     @Override
     public ServerBucket renameBucket(ServerBucket bucket, String newBucketName) {
         Check.requireNonNullArgument(bucket, "bucket is null");
-        VirtualFileSystemOperation op = null;
-        boolean done = false;
+        VirtualFileSystemOperation operation = null;
+        boolean commitOK = false;
         BucketMetadata bucketMeta = null;
         OffsetDateTime now = OffsetDateTime.now();
         String oldName = bucket.getName();
@@ -235,31 +233,37 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
         try {
             bucketWriteLock(newBucketName);
             try {
+                
+                /** must be executed inside the critical zone. */
+                checkExistsBucket(bucket);
+
                 /** must be executed also inside the critical zone. */
-                if (existsCacheBucket(newBucketName))
-                    throw new IllegalArgumentException("bucketName already used -> " + newBucketName);
-                op = getJournalService().updateBucket(bucket, newBucketName);
+                checkNotExistsBucket(newBucketName);
+                
+                operation = getJournalService().updateBucket(bucket, newBucketName);
                 backupBucketMetadata(bucket);
+                
                 bucketMeta = bucket.getBucketMetadata();
                 bucketMeta.setLastModified(now);
                 bucketMeta.setBucketName(newBucketName);
+                
                 for (Drive drive : getDrivesAll()) {
                     try {
                         drive.updateBucket(bucketMeta);
                     } catch (Exception e) {
-                        done = false;
+                        commitOK = false;
                         throw new InternalCriticalException(e, objectInfo(drive));
                     }
                 }
                 // TODO AT ver donde poner esto mejor
                 updateCacheBucket(oldName, new OdilonBucket(bucketMeta));
-                done = op.commit();
+                commitOK = operation.commit();
                 return bucket;
 
             } finally {
                 try {
-                    if ((!done) && (op != null)) {
-                        rollbackJournal(op);
+                    if ((!commitOK) && (operation != null)) {
+                        rollbackJournal(operation);
                     }
                 } catch (Exception e) {
                     logger.error(e, SharedConstant.NOT_THROWN);
@@ -285,27 +289,27 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
     @Override
     public void removeBucket(ServerBucket bucket, boolean forceDelete) {
         Check.requireNonNullArgument(bucket, "bucket can not be null");
-        boolean done = false;
-        VirtualFileSystemOperation op = null;
+        boolean commitOK = false;
+        VirtualFileSystemOperation operation = null;
+        
         bucketWriteLock(bucket);
         try {
+            
             try {
-                /** must be executed also inside the critical zone. */
-                if (!existsCacheBucket(bucket.getName()))
-                    throw new IllegalArgumentException("bucket does not exist -> " + bucket.getName());
+                /** must be executed inside the critical zone. */
+                checkExistsBucket(bucket);
 
                 if ((!forceDelete) && (!isEmpty(bucket))) {
-                    // logger.debug("bucket must be empty to be deleted -> b:" + bucket.getName());
                     throw new OdilonServerAPIException("bucket must be empty to be deleted -> b:" + bucket.getName());
                 }
-                // logger.debug("delete bucket -> " + bucket.getName() + " | id: " +
-                // bucket.getId().toString());
-                op = getJournalService().deleteBucket(bucket);
+
+                operation = getJournalService().deleteBucket(bucket);
+                
                 for (Drive drive : getDrivesAll()) {
                     try {
                         drive.markAsDeletedBucket(bucket);
                     } catch (Exception e) {
-                        done = false;
+                        commitOK = false;
                         throw new InternalCriticalException(e);
                     }
                 }
@@ -315,14 +319,11 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
                  * is gone, it can not be restored
                  */
                 removeCacheBucket(bucket);
-                done = op.commit();
+                commitOK = operation.commit();
 
             } finally {
 
-                if (op == null)
-                    return;
-
-                if (done) {
+                if (commitOK) {
                     /**
                      * once the TRX is completed buckets -> all marked as "deleted" or all marked as
                      * "enabled". TBA this step can be Async
@@ -334,7 +335,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
                     }
                 } else {
                     /** rollback restores all buckets */
-                    rollbackJournal(op, false);
+                    rollback(operation);
                 }
             }
 
@@ -352,13 +353,13 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
     public boolean isEmpty(ServerBucket bucket) {
 
         Check.requireNonNullArgument(bucket, ServerBucket.class.getSimpleName() + " is null");
-        // Check.requireTrue(existsBucketInDrives(bucket.getId()), "bucket does not
-        // exist in all drives -> b: " + bucket.getName());
+
         bucketReadLock(bucket);
         try {
-            /** must be executed also inside the critical zone. */
-            if (!existsCacheBucket(bucket.getName()))
-                throw new IllegalArgumentException("bucket does not exist -> " + bucket.getName());
+            
+            /** must be executed inside the critical zone. */
+            checkExistsBucket(bucket);
+            
             for (Drive drive : getDrivesEnabled()) {
                 if (!drive.isEmpty(bucket))
                     return false;
@@ -388,23 +389,23 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
      * method.
      * </p>
      * 
-     * @param op
+     * @param operation
      * @return
      */
-    protected boolean generalRollbackJournal(VirtualFileSystemOperation op) {
+    protected boolean generalRollbackJournal(VirtualFileSystemOperation operation) {
 
-        Long bucketId = op.getBucketId();
+        Long bucketId = operation.getBucketId();
 
         try {
 
-            if (op.getOperationCode() == OperationCode.CREATE_BUCKET) {
+            if (operation.getOperationCode() == OperationCode.CREATE_BUCKET) {
                 removeCacheBucket(bucketId);
                 for (Drive drive : getDrivesAll()) {
                     ((OdilonDrive) drive).forceDeleteBucketById(bucketId);
                 }
                 return true;
 
-            } else if (op.getOperationCode() == OperationCode.DELETE_BUCKET) {
+            } else if (operation.getOperationCode() == OperationCode.DELETE_BUCKET) {
                 BucketMetadata meta = null;
                 for (Drive drive : getDrivesAll()) {
                     drive.markAsEnabledBucket(getCacheBucket(bucketId));
@@ -419,7 +420,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
                 }
                 return true;
 
-            } else if (op.getOperationCode() == OperationCode.UPDATE_BUCKET) {
+            } else if (operation.getOperationCode() == OperationCode.UPDATE_BUCKET) {
                 restoreBucketMetadata(getCacheBucket(bucketId));
                 BucketMetadata meta = null;
                 for (Drive drive : getDrivesAll()) {
@@ -434,21 +435,21 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
                 }
                 return true;
             }
-            if (op.getOperationCode() == OperationCode.CREATE_SERVER_MASTERKEY) {
+            if (operation.getOperationCode() == OperationCode.CREATE_SERVER_MASTERKEY) {
                 for (Drive drive : getDrivesAll()) {
                     File file = drive.getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE);
                     if ((file != null) && file.exists())
                         FileUtils.forceDelete(file);
                 }
                 return true;
-            } else if (op.getOperationCode() == OperationCode.CREATE_SERVER_METADATA) {
-                if (op.getObjectName() != null) {
+            } else if (operation.getOperationCode() == OperationCode.CREATE_SERVER_METADATA) {
+                if (operation.getObjectName() != null) {
                     for (Drive drive : getDrivesAll()) {
-                        drive.removeSysFile(op.getObjectName());
+                        drive.removeSysFile(operation.getObjectName());
                     }
                 }
                 return true;
-            } else if (op.getOperationCode() == OperationCode.UPDATE_SERVER_METADATA) {
+            } else if (operation.getOperationCode() == OperationCode.UPDATE_SERVER_METADATA) {
                 logger.debug("no action yet, rollback -> " + OperationCode.UPDATE_SERVER_METADATA.getName());
                 return true;
             }
@@ -477,13 +478,14 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
         Check.requireNonNullArgument(objectName, "objectName can not be null | b:" + bucket.getName());
 
         objectReadLock(bucket, objectName);
+        
         try {
-            bucketReadLock(bucket);
-            /** must be executed also inside the critical zone. */
-            if (!existsCacheBucket(bucket.getName()))
-                throw new IllegalArgumentException("bucket does not exist -> " + bucket.getName());
 
+            bucketReadLock(bucket);
             try {
+                /** must be executed inside the critical zone. */
+                checkExistsBucket(bucket);
+                
                 List<ObjectMetadata> list = getObjectMetadataVersionAll(bucket, objectName);
                 if (list != null && !list.isEmpty())
                     return list.get(list.size() - 1);
@@ -1017,8 +1019,10 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
             return meta;
         }
         ObjectMetadata meta = getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucket, objectName);
+        
         if (meta == null)
             return meta;
+        
         meta.setBucketName(bucket.getName());
         getVirtualFileSystemService().getSystemMonitorService().getCacheObjectMissCounter().inc();
         if (addToCacheIfmiss)
@@ -1297,10 +1301,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
      * This check must be executed inside the critical section
      */
     protected void addCacheBucket(ServerBucket bucket) {
-
-        if (logger.isDebugEnabled())
-            checkDebug(bucket.getName());
-
         getVirtualFileSystemService().getBucketCache().add(bucket);
     }
 
@@ -1308,10 +1308,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
      * This check must be executed inside the critical section
      */
     protected void updateCacheBucket(String oldName, OdilonBucket odilonBucket) {
-
-        if (logger.isDebugEnabled())
-            checkDebug(oldName);
-
         getVirtualFileSystemService().getBucketCache().update(oldName, odilonBucket);
     }
 
@@ -1319,10 +1315,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
      * This check must be executed inside the critical section
      */
     protected void removeCacheBucket(ServerBucket bucket) {
-
-        if (logger.isDebugEnabled())
-            checkDebug(bucket.getName());
-
         getVirtualFileSystemService().getBucketCache().remove(bucket.getId());
     }
 
@@ -1330,10 +1322,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
      * This check must be executed inside the critical section
      */
     protected void removeCacheBucket(Long bucketId) {
-
-        if (logger.isDebugEnabled())
-            checkDebug(getVirtualFileSystemService().getBucketCache().get(bucketId).getName());
-
         getVirtualFileSystemService().getBucketCache().remove(bucketId);
     }
 
@@ -1341,10 +1329,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
      * This check must be executed inside the critical section
      */
     protected ServerBucket getCacheBucket(Long id) {
-
-        if (logger.isDebugEnabled())
-            checkDebug(getVirtualFileSystemService().getBucketCache().get(id).getName());
-
         return getVirtualFileSystemService().getBucketCache().get(id);
     }
 
@@ -1352,10 +1336,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
      * This check must be executed inside the critical section
      */
     protected ServerBucket getCacheBucket(String bucketName) {
-
-        if (logger.isDebugEnabled())
-            checkDebug(bucketName);
-
         return getVirtualFileSystemService().getBucketCache().get(bucketName);
     }
 
@@ -1363,10 +1343,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
      * This check must be executed inside the critical section
      */
     protected boolean existsCacheBucket(String bucketName) {
-
-        if (logger.isDebugEnabled())
-            checkDebug(bucketName);
-
         return getVirtualFileSystemService().getBucketCache().contains(bucketName);
     }
 
@@ -1374,10 +1350,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
      * This check must be executed inside the critical section
      */
     protected boolean existsCacheBucket(Long id) {
-
-        if (logger.isDebugEnabled())
-            checkDebug(getVirtualFileSystemService().getBucketCache().get(id).getName());
-
         return getVirtualFileSystemService().getBucketCache().contains(id);
     }
 
@@ -1385,17 +1357,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
      * This check must be executed inside the critical section
      */
     protected boolean existsCacheBucket(ServerBucket bucket) {
-
-        if (logger.isDebugEnabled())
-            checkDebug(bucket.getName());
-
         return getVirtualFileSystemService().getBucketCache().contains(bucket);
-    }
-
-    protected void checkDebug(String bucketName) {
-
-        if (!getLockService().isLocked(bucketName))
-            logger.error("This check must be executed inside the critical section");
     }
 
     protected ObjectMetadataCacheService getObjectMetadataCacheService() {
@@ -1500,4 +1462,44 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
         }
     }
 
+    /**
+     * must be executed inside the critical zone.
+     */
+    protected void checkNotExistsBucket(ServerBucket bucket) {
+        if (existsCacheBucket(bucket))
+            throw new IllegalArgumentException("bucket already exists -> " + objectInfo(bucket));
+    }
+    
+
+    /**
+     * must be executed inside the critical zone.
+     */
+    protected void checkNotExistsBucket(String bucketName) {
+        if (getVirtualFileSystemService().getBucketCache().contains(bucketName))
+            throw new IllegalArgumentException("bucket already exists -> " + bucketName);
+    }
+
+    
+    /**
+     * must be executed inside the critical zone.
+     */
+    protected void checkExistsBucket(ServerBucket bucket) {
+        if (!existsCacheBucket(bucket))
+            throw new OdilonObjectNotFoundException("bucket does not exist -> " + objectInfo(bucket));
+    }
+
+    /**
+     * must be executed inside the critical zone.
+     */
+    protected void checkExistsBucket(String bucketName) {
+        if (!getVirtualFileSystemService().getBucketCache().contains(bucketName))
+            throw new IllegalArgumentException("bucket does not exist -> " + bucketName);
+    }
+    
+    protected void rollback(VirtualFileSystemOperation operation) {
+        if (operation == null)
+            return;
+        rollbackJournal(operation, false);
+
+    }
 }

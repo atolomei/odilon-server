@@ -21,6 +21,7 @@ import java.io.File;
 import org.springframework.lang.NonNull;
 
 import io.odilon.encryption.EncryptionService;
+import io.odilon.error.OdilonObjectNotFoundException;
 import io.odilon.model.BaseObject;
 import io.odilon.model.BucketMetadata;
 import io.odilon.model.ObjectMetadata;
@@ -70,7 +71,7 @@ public abstract class BaseRAIDHandler extends BaseObject {
      */
     protected void checkExistsBucket(ServerBucket bucket) {
         if (!existsCacheBucket(bucket))
-            throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
+            throw new OdilonObjectNotFoundException("bucket does not exist -> " + objectInfo(bucket));
     }
 
     /**
