@@ -300,19 +300,18 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         Check.requireNonNullArgument(bucket, "bucket is null");
         bucketReadLock(bucket);
         try {
-
-            /** must beexecuted inside the critical zone */
+            /** must be executed inside the critical zone */
             checkExistBucket(bucket);
-
             for (Drive drive : getDrivesEnabled()) {
                 if (!drive.isEmpty(bucket))
                     return false;
             }
             return true;
-
         } catch (IllegalArgumentException e) {
             throw e;
         } catch (Exception e) {
+            if (e instanceof InternalCriticalException)
+                throw e;
             throw new InternalCriticalException(e, objectInfo(bucket));
         } finally {
             bucketReadUnLock(bucket);
@@ -339,12 +338,16 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 
             bucketReadLock(bucket);
             try {
-                /** must beexecuted inside the critical zone */
+                /** must be executed inside the critical zone */
                 checkExistBucket(bucket);
 
-                ObjectMetadata meta = getDriverObjectMetadataInternal(bucket, objectName, true);
+                /** must be executed inside the critical zone. */
+                checkExistObject(bucket, objectName);
 
-                if ((meta == null) || (!meta.isAccesible()))
+                /** must be executed inside the critical zone. */
+                ObjectMetadata meta = getMetadata(bucket, objectName);
+
+                if (!meta.isAccesible())
                     throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
 
                 return new OdilonObject(bucket, objectName, getVirtualFileSystemService());
@@ -352,6 +355,8 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
             } catch (IllegalArgumentException e) {
                 throw e;
             } catch (Exception e) {
+                if (e instanceof InternalCriticalException)
+                    throw e;
                 throw new InternalCriticalException(e, objectInfo(bucket, objectName));
             } finally {
                 bucketReadUnLock(bucket);
@@ -380,11 +385,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
                 checkExistBucket(bucket);
 
                 /** must be executed inside the critical zone. */
-                if (getObjectMetadataCacheService().containsKey(bucket, objectName))
-                    return true;
-
-                /** TBA chequear que no este "deleted" en el drive */
-                return getDrive(bucket, objectName).existsObjectMetadata(bucket, objectName);
+                return existsObjectMetadata(bucket, objectName);
 
             } finally {
                 bucketReadUnLock(bucket);
@@ -507,7 +508,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
                 for (int version = 0; version < meta.getVersion(); version++) {
                     ObjectMetadata meta_version = readDrive.getObjectMetadataVersion(bucket, objectName, version);
                     if (meta_version != null) {
-                        // bucketName is not stored on disk, only bucketId, we must set it explicitly
+                        /** bucketName is not stored on disk, only bucketId, we must set it explicitly */
                         meta_version.setBucketName(bucket.getName());
                         list.add(meta_version);
                     }
@@ -520,6 +521,8 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
                 e.setErrorMessage((e.getMessage() != null ? (e.getMessage() + " | ") : "") + objectInfo(bucket, objectName));
                 throw e;
             } catch (Exception e) {
+                if (e instanceof InternalCriticalException)
+                    throw e;
                 throw new InternalCriticalException(e, objectInfo(bucket, objectName));
             } finally {
                 bucketReadUnLock(bucket);
@@ -1311,5 +1314,33 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         } finally {
             objectReadUnLock(bucket, objectName);
         }
+    }
+    
+    
+    
+    
+    /**
+     * must be executed inside the critical zone.
+     */
+    protected void checkNotExistObject(ServerBucket bucket, String objectName) {
+        if (existsObjectMetadata(bucket, objectName))
+            throw new IllegalArgumentException("Object already exist -> " + objectInfo(bucket, objectName));
+    }
+
+    /**
+     * must be executed inside the critical zone.
+     */
+    protected void checkExistObject(ServerBucket bucket, String objectName) {
+        if (!existsObjectMetadata(bucket, objectName))
+            throw new OdilonObjectNotFoundException("Object does not exist -> " + objectInfo(bucket, objectName));
+    }
+
+    /**
+     * This check must be executed inside the critical section
+     */
+    private boolean existsObjectMetadata(ServerBucket bucket, String objectName) {
+        if (getVirtualFileSystemService().getObjectMetadataCacheService().containsKey(bucket, objectName))
+            return true;
+        return getDrive(bucket, objectName).existsObjectMetadata(bucket, objectName);
     }
 }

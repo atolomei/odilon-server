@@ -124,8 +124,8 @@ public class ObjectPath extends PathBuilder {
     public Path dataFilePath(Context context) {
         if (context == Context.STORAGE)
             return Paths.get(getDrive().getRootDirPath(), getBucketId().toString() + File.separator + getObjectName());
-        else
-            throw new RuntimeException("not done");
+        
+        throw new RuntimeException("not done");
     }
 
     public Path metadataWorkFilePath() {

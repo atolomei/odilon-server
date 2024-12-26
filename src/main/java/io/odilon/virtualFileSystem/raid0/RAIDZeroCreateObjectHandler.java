@@ -64,11 +64,13 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
      */
     @Override
     public void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
+        
         Check.requireNonNullArgument(operation, "operation is null");
         Check.checkTrue(operation.getOperationCode() == OperationCode.CREATE_OBJECT,
                 "Invalid operation ->  " + operation.getOperationCode().getName());
 
-        boolean done = false;
+        boolean rollbackOK = false;
+        
         ServerBucket bucket = getBucketCache().get(operation.getBucketId());
         String objectName = operation.getObjectName();
         try {
@@ -77,13 +79,12 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
                 getReplicationService().cancel(operation);
 
             ObjectPath path = new ObjectPath(getWriteDrive(bucket, objectName), bucket, objectName);
-            // getWriteDrive(bucket, objectName).deleteObjectMetadata(bucket, objectName);
+
             FileUtils.deleteQuietly(path.metadataDirPath().toFile());
             FileUtils.deleteQuietly(path.dataFilePath().toFile());
-            done = true;
+            rollbackOK = true;
 
         } catch (InternalCriticalException e) {
-            logger.debug(e, opInfo(operation));
             if (!recoveryMode)
                 throw (e);
             else
@@ -94,7 +95,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
             else
                 logger.error(e, opInfo(operation), SharedConstant.NOT_THROWN);
         } finally {
-            if (done || recoveryMode)
+            if (rollbackOK || recoveryMode)
                 operation.cancel();
         }
     }
@@ -135,8 +136,10 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
 
                 int version = 0;
                 operation = createObject(bucket, objectName);
+                
                 saveObjectDataFile(bucket, objectName, stream, srcFileName);
                 saveObjectMetadata(bucket, objectName, srcFileName, contentType, version, customTags);
+                
                 commitOk = operation.commit();
 
             } catch (InternalCriticalException e1) {

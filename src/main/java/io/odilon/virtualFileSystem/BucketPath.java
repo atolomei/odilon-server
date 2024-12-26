@@ -32,8 +32,9 @@ public class BucketPath extends PathBuilder {
     public Path bucketMetadata(Context context) {
         if (context==Context.BACKUP)
             return workDirPath().resolve(BUCKET_METADATA + getBucket().getId().toString() + ServerConstant.JSON);
-        else
-            return null;
+        
+        throw new RuntimeException("not done");
+        
     }
     
     
