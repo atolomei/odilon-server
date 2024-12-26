@@ -208,7 +208,9 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
         ServerBucket bucket = null;
 
         objectWriteLock(meta.getBucketId(), objectName);
+        
         try {
+        
             bucketReadLock(meta.getBucketId());
             try {
 
@@ -219,10 +221,6 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
 
                 /** must be executed inside the critical zone. */
                 checkExistObject(bucket, objectName);
-
-                // if (!getDriver().getReadDrive(bucket, objectName).existsObjectMetadata(meta))
-                // throw new IllegalArgumentException("object does not exist -> " +
-                // objectInfo(bucket, objectName));
 
                 headVersion = meta.getVersion();
 
