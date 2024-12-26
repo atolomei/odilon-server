@@ -23,7 +23,8 @@ import java.util.Locale;
 
 /**
  * <p>
- * Transtactional operations that managed by the {@link JournalService}
+ * Atomic operations that managed by the {@link JournalService}.
+ * Include: Bucket CRUD, Object CRUD and versions, Sync drive, server metadata, server Masterkey
  * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)

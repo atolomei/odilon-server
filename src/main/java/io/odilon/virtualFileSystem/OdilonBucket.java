@@ -81,19 +81,5 @@ public class OdilonBucket extends BaseObject implements ServerBucket {
     public Long getId() {
         return this.meta.id;
     }
-
-    /**
-     * @Override public String toString() { StringBuilder str = new StringBuilder();
-     *           str.append(this.getClass().getSimpleName() +"{");
-     *           str.append("\"name\":" +
-     *           (Optional.ofNullable(meta.bucketName).isPresent() ?
-     *           ("\""+meta.bucketName+"\"") :"null")); str.append("\"id\":" +
-     *           (Optional.ofNullable(meta.id).isPresent() ? ("+meta.id+")
-     *           :"null")); str.append(", \"status\":" +
-     *           (Optional.ofNullable(meta.status).isPresent() ?
-     *           ("\""+meta.status.getName()+"\"") :"null")); str.append(",
-     *           \"creationDate\":" + (meta.creationDate!=null ?
-     *           ("\""+meta.creationDate+"\"") :"null")); str.append("}"); return
-     *           str.toString(); }
-     **/
+ 
 }

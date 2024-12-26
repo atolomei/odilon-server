@@ -23,9 +23,13 @@ import io.odilon.model.RedundancyLevel;
 
 /**
  * <p>
- * Transactional operation, they are persisted on the File System by the
- * JournalService
+ *  information processing that is divided into individual, indivisible operations called transactions. 
+ *  Each transaction must succeed or fail as a complete unit; it can never be only partially complete.
+ *  They are persisted on the {@link VirtualFileSystem} by the {@link JournalService}.
+ *  
  * </p>
+ * 
+ * @see {@link OperationCode}
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */

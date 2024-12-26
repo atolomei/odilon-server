@@ -203,8 +203,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
                     if (e instanceof InternalCriticalException)
                         throw e;
                     throw new InternalCriticalException(e, objectInfo(bucketMeta));
-                }
-                else
+                } else
                     logger.error(e, SharedConstant.NOT_THROWN);
             } finally {
                 bucketWriteUnLock(bucketName);
@@ -244,7 +243,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
                 checkNotExistsBucket(newBucketName);
 
                 operation = getJournalService().updateBucket(bucket, newBucketName);
-                
+
                 backupBucketMetadata(bucket);
 
                 bucketMeta = bucket.getBucketMetadata();
@@ -254,7 +253,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
                 for (Drive drive : getDrivesAll()) {
                     try {
                         drive.updateBucket(bucketMeta);
-                    
+
                     } catch (IOException e) {
                         commitOK = false;
                         throw new InternalCriticalException(e, objectInfo(drive));
@@ -270,7 +269,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 
             } finally {
                 try {
-                    if (!commitOK) 
+                    if (!commitOK)
                         rollback(operation);
                 } finally {
                     bucketWriteUnLock(newBucketName);
@@ -491,12 +490,12 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
             try {
                 /** must be executed inside the critical zone. */
                 checkExistsBucket(bucket);
-                
+
                 List<ObjectMetadata> list = getObjectMetadataVersionAll(bucket, objectName);
-                
+
                 if (list != null && !list.isEmpty())
                     return list.get(list.size() - 1);
-                
+
                 return null;
 
             } catch (IllegalArgumentException e1) {
@@ -1015,9 +1014,9 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
      * MUST BE CALLED INSIDE THE CRITICAL ZONE
      */
     protected ObjectMetadata getMetadata(ServerBucket bucket, String objectName) {
-            return getDriverObjectMetadataInternal(bucket, objectName, true);
+        return getDriverObjectMetadataInternal(bucket, objectName, true);
     }
-    
+
     protected ObjectMetadata getDriverObjectMetadataInternal(ServerBucket bucket, String objectName, boolean addToCacheIfmiss) {
 
         if ((!getServerSettings().isUseObjectCache())) {
@@ -1032,7 +1031,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
             meta.setBucketName(bucket.getName());
             return meta;
         }
-        
+
         ObjectMetadata meta = getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucket, objectName);
 
         if (meta == null)
@@ -1040,10 +1039,10 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 
         meta.setBucketName(bucket.getName());
         getVirtualFileSystemService().getSystemMonitorService().getCacheObjectMissCounter().inc();
-        
+
         if (addToCacheIfmiss)
             getObjectMetadataCacheService().put(bucket, objectName, meta);
-        
+
         return meta;
     }
 
@@ -1509,8 +1508,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
             throw new IllegalArgumentException("bucket does not exist -> " + bucketName);
     }
 
-
-    
     protected void rollback(VirtualFileSystemOperation operation) {
         if (operation == null)
             return;

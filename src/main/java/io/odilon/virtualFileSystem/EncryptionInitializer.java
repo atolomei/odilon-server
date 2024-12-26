@@ -16,7 +16,6 @@
  */
 package io.odilon.virtualFileSystem;
 
-
 import java.io.File;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;

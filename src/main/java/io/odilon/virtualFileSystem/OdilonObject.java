@@ -30,56 +30,54 @@ import io.odilon.model.BaseObject;
 import io.odilon.model.ObjectMetadata;
 
 /**
-*  
-* @author atolomei@novamens.com (Alejandro Tolomei)
-*/
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public class OdilonObject extends BaseObject implements VirtualFileSystemObject {
-			
-	@SuppressWarnings("unused")
-	private static Logger logger = Logger.getLogger(OdilonObject.class.getName());
 
-	private ObjectMetadata objectMetadata;
-	
-	@JsonIgnore
-	private ServerBucket bucket;
-	
-	@JsonIgnore
-	private String objectName;
-	
-	@JsonIgnore
-	private VirtualFileSystemService vfs;
-	
-	
-	public OdilonObject(ServerBucket bucket, String objectName, VirtualFileSystemService vfs) {
-		this.bucket=bucket;
-		this.objectName=objectName;
-		this.vfs=vfs;
-	}
-	
-	@Override
-	public ServerBucket getBucket() {
-		return bucket;
-	}
-	
-	@Override
-	public ObjectMetadata getObjectMetadata() {
-		if (this.objectMetadata==null) 
-			this.objectMetadata=this.vfs.getObjectMetadata(bucket, objectName);
-		return this.objectMetadata;
-	}
-	
-	public int hashCode() {
-		return ((bucket!=null?bucket.getName():"null") +  ServerConstant.BO_SEPARATOR + objectName).hashCode(); 
-	}
-	
-	@Override
-	public String getObjectName() {
-		return this.objectName;
-	}
+    @SuppressWarnings("unused")
+    private static Logger logger = Logger.getLogger(OdilonObject.class.getName());
 
-	
-	@Override
-	public InputStream getInputStream() throws IOException {
-			return this.vfs.getObjectStream(bucket, objectName);
-	}
+    private ObjectMetadata objectMetadata;
+
+    @JsonIgnore
+    private ServerBucket bucket;
+
+    @JsonIgnore
+    private String objectName;
+
+    @JsonIgnore
+    private VirtualFileSystemService vfs;
+
+    public OdilonObject(ServerBucket bucket, String objectName, VirtualFileSystemService vfs) {
+        this.bucket = bucket;
+        this.objectName = objectName;
+        this.vfs = vfs;
+    }
+
+    @Override
+    public ServerBucket getBucket() {
+        return bucket;
+    }
+
+    @Override
+    public ObjectMetadata getObjectMetadata() {
+        if (this.objectMetadata == null)
+            this.objectMetadata = this.vfs.getObjectMetadata(bucket, objectName);
+        return this.objectMetadata;
+    }
+
+    public int hashCode() {
+        return ((bucket != null ? bucket.getName() : "null") + ServerConstant.BO_SEPARATOR + objectName).hashCode();
+    }
+
+    @Override
+    public String getObjectName() {
+        return this.objectName;
+    }
+
+    @Override
+    public InputStream getInputStream() throws IOException {
+        return this.vfs.getObjectStream(bucket, objectName);
+    }
 }
