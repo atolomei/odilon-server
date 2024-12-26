@@ -19,26 +19,26 @@ package io.odilon.virtualFileSystem;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.SimpleDrive;
 
-
 /**
  * @author atolomei@novamens.com (Alejandro Tolomei)
- */public class ObjectDataPathBuilder extends PathBuilder {
+ */
+public class ObjectDataPathBuilder extends PathBuilder {
 
-    //private final SimpleDrive drive;
+    // private final SimpleDrive drive;
     private final String objectName;
     private final ServerBucket bucket;
     private final ObjectPath path;
-    
-    public ObjectDataPathBuilder( SimpleDrive drive, ServerBucket bucket, String objectName) {
-        //this.drive=drive;
-        this.objectName=objectName;
-        this.bucket=bucket;
+
+    public ObjectDataPathBuilder(SimpleDrive drive, ServerBucket bucket, String objectName) {
+        // this.drive=drive;
+        this.objectName = objectName;
+        this.bucket = bucket;
         path = new ObjectPath(drive, getBucket().getId(), getObjectName());
     }
-    
+
     public String build() {
         return path.dataFilePath().toString();
-        //return drive.getObjectDataFilePath(getBucket().getId(), getObjectName());
+        // return drive.getObjectDataFilePath(getBucket().getId(), getObjectName());
     }
 
     private String getObjectName() {
@@ -49,5 +49,4 @@ import io.odilon.virtualFileSystem.model.SimpleDrive;
         return bucket;
     }
 
-    
 }

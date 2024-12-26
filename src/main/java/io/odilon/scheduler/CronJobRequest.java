@@ -89,8 +89,8 @@ public abstract class CronJobRequest extends AbstractServiceRequest {
 
     public ZonedDateTime getTime() {
         if (this.ztime == null)
-            this.ztime = getCronExpression().nextTimeAfter(
-                    (getTimeZone() == null) ? ZonedDateTime.now() : ZonedDateTime.now(ZoneId.of(getTimeZone())));
+            this.ztime = getCronExpression()
+                    .nextTimeAfter((getTimeZone() == null) ? ZonedDateTime.now() : ZonedDateTime.now(ZoneId.of(getTimeZone())));
         return this.ztime;
     }
 
@@ -142,8 +142,7 @@ public abstract class CronJobRequest extends AbstractServiceRequest {
 
     public CronJobRequest clone() {
         try {
-            CronJobRequest clone = getApplicationContext().getBean(this.getClass(),
-                    getCronExpression().getExpression());
+            CronJobRequest clone = getApplicationContext().getBean(this.getClass(), getCronExpression().getExpression());
             onClone(clone);
             return clone;
         } catch (Exception e) {

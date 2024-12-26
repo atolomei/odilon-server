@@ -18,25 +18,21 @@ package io.odilon.virtualFileSystem;
 
 import io.odilon.model.ObjectMetadata;
 import io.odilon.virtualFileSystem.model.ServerBucket;
-import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
-*  
-* @author atolomei@novamens.com (Alejandro Tolomei)
-*/
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public interface RAIDDeleteObjectHandler {
 
-	/** Delete Object */
-	public void delete(ServerBucket bucket, String objectName);
-	
-	/** Delete Version */
-	public void deleteObjectAllPreviousVersions(ObjectMetadata meta);
-	public void deleteBucketAllPreviousVersions(ServerBucket bucket);
-	public void wipeAllPreviousVersions();
+    /** Delete Object */
+    public void delete(ServerBucket bucket, String objectName);
 
-	
-	
-	
+    /** Delete Version */
+    public void deleteObjectAllPreviousVersions(ObjectMetadata meta);
 
-	
+    public void deleteBucketAllPreviousVersions(ServerBucket bucket);
+
+    public void wipeAllPreviousVersions();
+
 }

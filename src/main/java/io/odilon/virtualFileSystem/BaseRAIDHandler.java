@@ -264,10 +264,11 @@ public abstract class BaseRAIDHandler extends BaseObject {
      * 
      * MUST BE CALLED INSIDE THE CRITICAL ZONE
      */
-    
+
     protected ObjectMetadata getMetadata(ServerBucket bucket, String objectName) {
-        return getMetadata(bucket, objectName, true); 
+        return getMetadata(bucket, objectName, true);
     }
+
     protected ObjectMetadata getMetadata(ServerBucket bucket, String objectName, boolean addToCacheIfmiss) {
 
         if ((!getServerSettings().isUseObjectCache()))
@@ -280,13 +281,13 @@ public abstract class BaseRAIDHandler extends BaseObject {
             return meta;
         }
         ObjectMetadata meta = getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucket, objectName);
-        
+
         if (meta == null)
             return meta;
-        
+
         meta.setBucketName(bucket.getName());
         getVirtualFileSystemService().getSystemMonitorService().getCacheObjectMissCounter().inc();
-        
+
         if (addToCacheIfmiss)
             getVirtualFileSystemService().getObjectMetadataCacheService().put(bucket, objectName, meta);
         return meta;

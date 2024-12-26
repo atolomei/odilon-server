@@ -45,11 +45,10 @@ public class ObjectPath extends PathBuilder {
 
     @JsonProperty("objectName")
     private final String objectName;
-    
+
     @JsonProperty("bucketId")
     private final Long bucketId;
 
-    
     public ObjectPath(Drive drive, ServerBucket bucket, String objectName) {
         this.drive = drive;
         this.objectName = objectName;
@@ -73,7 +72,7 @@ public class ObjectPath extends PathBuilder {
     }
 
     public Path metadataDirPath(Context context) {
-        if (context==Context.STORAGE)
+        if (context == Context.STORAGE)
             return Paths.get(getBucketsDirPath()).resolve(getBucketId().toString() + File.separator + getObjectName());
         throw new RuntimeException("not done");
     }
@@ -87,18 +86,21 @@ public class ObjectPath extends PathBuilder {
     }
 
     public Path metadataFileVersionPath(int version) {
-        return metadataDirPath(Context.STORAGE).resolve(getObjectName() + VirtualFileSystemService.VERSION_EXTENSION + String.valueOf(version) + ServerConstant.JSON);
+        return metadataDirPath(Context.STORAGE).resolve(
+                getObjectName() + VirtualFileSystemService.VERSION_EXTENSION + String.valueOf(version) + ServerConstant.JSON);
     }
-    
+
     public Path metadataFileVersionPath(Context context) {
         return metadataDirPath(context).resolve(getObjectName() + ServerConstant.JSON);
     }
-    
-    // return getObjectMetadataDirPathById(bucketId, objectName) + File.separator + objectName
-    //+ VirtualFileSystemService.VERSION_EXTENSION + String.valueOf(version) + ServerConstant.JSON;
+
+    // return getObjectMetadataDirPathById(bucketId, objectName) + File.separator +
+    // objectName
+    // + VirtualFileSystemService.VERSION_EXTENSION + String.valueOf(version) +
+    // ServerConstant.JSON;
     //
     //
-    
+
     public String getBucketsDirPath() {
         return getDrive().getBucketsDirPath();
     }
@@ -106,8 +108,7 @@ public class ObjectPath extends PathBuilder {
     private String getBucketWorkDirPath() {
         return getDrive().getWorkDirPath() + File.separator + getBucketId().toString();
     }
-    
-    
+
     /**
      * this works for RAID 1 and RAID 0
      * 
@@ -131,7 +132,6 @@ public class ObjectPath extends PathBuilder {
         return Paths.get(getBucketWorkDirPath(), getObjectName());
     }
 
-    
     public Path dataFileVersionPath(int version) {
         return dataFileVersionPath(Context.STORAGE, version);
     }

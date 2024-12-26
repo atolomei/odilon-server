@@ -40,21 +40,23 @@ import io.odilon.scheduler.ServiceRequest;
 public interface IODriver {
 
     static final boolean IS_HEAD = true;
-    
+
     /**
      * Bucket
      */
-    
+
     public boolean existsBucket(String bucketName);
+
     public ServerBucket createBucket(String bucketName);
-    
+
     public void removeBucket(ServerBucket bucket);
+
     public void removeBucket(ServerBucket bucket, boolean b);
 
     public ServerBucket renameBucket(ServerBucket bucket, String newBucketName);
+
     public boolean isEmpty(ServerBucket bucket);
 
-    
     /**
      * Object get/ put / delete
      */
@@ -62,25 +64,24 @@ public interface IODriver {
 
     public void putObjectMetadata(ObjectMetadata meta);
 
-    public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName,
-            String contentType, Optional<List<String>> customTags);
+    public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName, String contentType,
+            Optional<List<String>> customTags);
 
     public void putObject(ServerBucket bucket, String objectName, File file);
 
     public VirtualFileSystemObject getObject(ServerBucket bucket, String objectName);
 
     public boolean exists(ServerBucket bucket, String objectName);
+
     public void delete(ServerBucket bucket, String objectName);
-    
+
     public InputStream getInputStream(ServerBucket bucket, String objectName) throws IOException;
 
-    
-    
     /**
      * Object List
      */
-    public DataList<Item<ObjectMetadata>> listObjects(ServerBucket bucket, Optional<Long> offset,
-            Optional<Integer> pageSize, Optional<String> prefix, Optional<String> serverAgentId);
+    public DataList<Item<ObjectMetadata>> listObjects(ServerBucket bucket, Optional<Long> offset, Optional<Integer> pageSize,
+            Optional<String> prefix, Optional<String> serverAgentId);
 
     /**
      * Post Transaction (Async)
@@ -140,8 +141,6 @@ public interface IODriver {
 
     public VirtualFileSystemService getVirtualFileSystemService();
 
-
-
     public List<ServiceRequest> getSchedulerPendingRequests(String queueId);
 
     /**
@@ -172,21 +171,27 @@ public interface IODriver {
      * ERROR
      */
     public String objectInfo(ServerBucket bucket);
+
     public String objectInfo(ServerBucket bucket, String objectName);
+
     public String objectInfo(ServerBucket bucket, String objectName, String fileName);
+
     public String objectInfo(String bucketId, String objectName, String fileName);
+
     public String objectInfo(ObjectMetadata meta);
+
     public String opInfo(VirtualFileSystemOperation op);
+
     /**
      * 
      */
     public ServerBucket getBucket(String bucketName);
-    
 
     /**
      * Drive
      */
     public List<Drive> getDrivesEnabled();
+
     public List<Drive> getDrivesAll();
 
     /**
@@ -194,10 +199,5 @@ public interface IODriver {
      * Shared by RAID 1 and RAID 6
      * </p>
      */
-    
-
-    
-    
-    
 
 }

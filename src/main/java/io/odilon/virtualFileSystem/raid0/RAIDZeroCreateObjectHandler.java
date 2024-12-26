@@ -75,9 +75,9 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
 
             if (isStandByEnabled())
                 getReplicationService().cancel(operation);
-            
+
             ObjectPath path = new ObjectPath(getWriteDrive(bucket, objectName), bucket, objectName);
-            //getWriteDrive(bucket, objectName).deleteObjectMetadata(bucket, objectName);
+            // getWriteDrive(bucket, objectName).deleteObjectMetadata(bucket, objectName);
             FileUtils.deleteQuietly(path.metadataDirPath().toFile());
             FileUtils.deleteQuietly(path.dataFilePath().toFile());
             done = true;
@@ -120,7 +120,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
         VirtualFileSystemOperation operation = null;
         boolean commitOk = false;
         boolean isMainException = false;
-        
+
         objectWriteLock(bucket, objectName);
         try {
 
@@ -153,9 +153,9 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
                         try {
                             rollback(operation);
                         } catch (InternalCriticalException e) {
-                            if (!isMainException) 
+                            if (!isMainException)
                                 throw e;
-                             else 
+                            else
                                 logger.error(e, objectInfo(bucket, objectName, srcFileName), SharedConstant.NOT_THROWN);
                         } catch (Exception e) {
                             if (!isMainException)

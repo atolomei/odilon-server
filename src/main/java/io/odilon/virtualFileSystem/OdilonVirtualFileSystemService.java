@@ -248,10 +248,10 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
         Check.requireNonNullStringArgument(objectName, "objectName can not be null or empty | b:" + bucketName);
 
         IODriver driver = createVFSIODriver();
-        
+
         /** must be repeated inside the critical section */
         Check.requireTrue(driver.existsBucket(bucketName), "bucket does not exist -> " + bucketName);
-        
+
         return driver.getObjectMetadataVersionAll(driver.getBucket(bucketName), objectName);
     }
 
@@ -259,12 +259,12 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
     public ObjectMetadata getObjectMetadataVersion(String bucketName, String objectName, int version) {
         Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
         Check.requireNonNullStringArgument(objectName, "objectName can not be null or empty | b:" + bucketName);
-        
+
         IODriver driver = createVFSIODriver();
-        
+
         /** must be repeated inside the critical section */
         Check.requireTrue(driver.existsBucket(bucketName), "bucket does not exist -> " + bucketName);
-        
+
         return driver.getObjectMetadataVersion(driver.getBucket(bucketName), objectName, version);
     }
 
@@ -272,10 +272,10 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
     public ObjectMetadata getObjectMetadataPreviousVersion(String bucketName, String objectName) {
         Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
         Check.requireNonNullStringArgument(objectName, "objectName can not be null or empty | b:" + bucketName);
-        
+
         IODriver driver = createVFSIODriver();
         /** must be repeated inside the critical section */
-        
+
         Check.requireTrue(driver.existsBucket(bucketName), "bucket does not exist -> " + bucketName);
         return driver.getObjectMetadataPreviousVersion(driver.getBucket(bucketName), objectName);
 
@@ -286,12 +286,12 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
         Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
         Check.requireNonNullStringArgument(objectName, "objectName can not be null or empty | b:" + bucketName);
         Check.requireTrue(version >= 0, "version must be >=0");
-        
+
         IODriver driver = createVFSIODriver();
-        
+
         /** must be repeated inside the critical section */
         Check.requireTrue(driver.existsBucket(bucketName), "bucket does not exist -> " + bucketName);
-        
+
         return driver.getObjectVersionInputStream(driver.getBucket(bucketName), objectName, version);
     }
 
@@ -299,35 +299,35 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
     public boolean hasVersions(String bucketName, String objectName) {
         Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
         Check.requireNonNullStringArgument(objectName, "objectName can not be null or empty | b:" + bucketName);
-        
+
         IODriver driver = createVFSIODriver();
 
         /** must be repeated inside the critical section */
         Check.requireTrue(driver.existsBucket(bucketName), "bucket does not exist -> " + bucketName);
-        
+
         return driver.hasVersions(driver.getBucket(bucketName), objectName);
     }
 
     @Override
     public void deleteObjectAllPreviousVersions(ObjectMetadata meta) {
         Check.requireNonNullArgument(meta, "meta can not be null or empty");
-        
+
         IODriver driver = createVFSIODriver();
-        
+
         /** must be repeated inside the critical section */
         Check.requireTrue(driver.existsBucket(meta.getBucketName()), "bucket does not exist -> " + meta.getBucketName());
-        
+
         driver.deleteObjectAllPreviousVersions(meta);
     }
 
     @Override
     public void deleteBucketAllPreviousVersions(String bucketName) {
         Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
-        
+
         IODriver driver = createVFSIODriver();
         /** must be repeated inside the critical section */
         Check.requireTrue(driver.existsBucket(bucketName), "bucket does not exist -> " + bucketName);
-        
+
         driver.deleteBucketAllPreviousVersions(driver.getBucket(bucketName));
     }
 
@@ -340,12 +340,12 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
     public ObjectMetadata restorePreviousVersion(String bucketName, String objectName) {
         Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
         Check.requireNonNullStringArgument(objectName, "objectName can not be null or empty | b:" + bucketName);
-        
+
         IODriver driver = createVFSIODriver();
-        
+
         /** must be repeated inside the critical section */
         Check.requireTrue(driver.existsBucket(bucketName), "bucket does not exist -> " + bucketName);
-        
+
         return driver.restorePreviousVersion(driver.getBucket(bucketName), objectName);
     }
 
@@ -376,34 +376,34 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
                     + SharedConstant.bucket_valid_regex + " |  b:" + newBucketName);
 
         IODriver driver = createVFSIODriver();
-        
+
         /** this check must be repeated inside the critical section */
         Check.requireTrue(driver.existsBucket(bucketName), "bucket does not exist -> " + bucketName);
-        
+
         return driver.renameBucket(driver.getBucket(bucketName), newBucketName);
     }
 
     @Override
     public void removeBucket(String bucketName) {
         Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
-        
+
         IODriver driver = createVFSIODriver();
-        
+
         /** must be repeated inside the critical section */
         Check.requireTrue(driver.existsBucket(bucketName), "bucket does not exist -> " + bucketName);
-        
+
         driver.removeBucket(driver.getBucket(bucketName), false);
     }
 
     @Override
     public void forceRemoveBucket(String bucketName) {
         Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
-        
+
         IODriver driver = createVFSIODriver();
 
         /** this check must be repeated inside the critical section */
         Check.requireTrue(driver.existsBucket(bucketName), "bucket does not exist -> " + bucketName);
-        
+
         driver.removeBucket(driver.getBucket(bucketName), true);
     }
 
@@ -416,10 +416,10 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
     @Override
     public boolean isEmptyBucket(String bucketName) {
         Check.requireNonNullArgument(bucketName, "bucketName can not be null or empty");
-        
+
         IODriver driver = createVFSIODriver();
         Check.requireTrue(driver.existsBucket(bucketName), "bucket does not exist -> " + bucketName);
-        
+
         return driver.isEmpty(driver.getBucket(bucketName));
     }
 
@@ -474,13 +474,17 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
         Check.requireTrue(driver.existsBucket(bucketName), "bucket does not exist -> " + bucketName);
         return driver.getObject(driver.getBucket(bucketName), objectName);
     }
+
     /**
      * <p>
+     * 
      * <pre>
      * IMPORTANT
      * </pre>
+     * 
      * caller must close the {@link InputStream} returned
      * </p>
+     * 
      * @throws IOException
      */
     @Override
@@ -489,13 +493,17 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
         Check.requireNonNullStringArgument(objectName, "objectName can not be null or empty | b:" + bucket.getName());
         return createVFSIODriver().getInputStream(bucket, objectName);
     }
+
     /**
      * <p>
+     * 
      * <pre>
      * IMPORTANT
      * </pre>
+     * 
      * caller must close the {@link InputStream} returned
      * </p>
+     * 
      * @throws IOException
      */
     @Override
@@ -505,7 +513,7 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
         IODriver driver = createVFSIODriver();
         /** must be repeated inside the critical section */
         Check.requireTrue(driver.existsBucket(bucketName), "bucket does not exist -> " + bucketName);
-        return getObjectStream( driver.getBucket(bucketName), objectName);
+        return getObjectStream(driver.getBucket(bucketName), objectName);
     }
 
     @Override
@@ -536,7 +544,7 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
         Check.requireNonNullStringArgument(objectName, "objectName can not be null or empty | b:" + bucket.getName());
         return createVFSIODriver().getObjectMetadata(bucket, objectName);
     }
-    
+
     @Override
     public boolean existsObject(String bucketName, String objectName) {
         Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
@@ -546,6 +554,7 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
         Check.requireTrue(driver.existsBucket(bucketName), "bucket does not exist -> " + bucketName);
         return driver.exists(driver.getBucket(bucketName), objectName);
     }
+
     /**
      * <p>
      * returns true if the object exist and is not in state DELETED
@@ -931,7 +940,8 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
             }
         }
         /** set up drives for RS Decoding */
-        this.drivesEnabled.values().forEach(drive -> this.drivesRSDecode.put(Integer.valueOf(drive.getDriveInfo().getOrder()), drive));
+        this.drivesEnabled.values()
+                .forEach(drive -> this.drivesRSDecode.put(Integer.valueOf(drive.getDriveInfo().getOrder()), drive));
     }
 
     /**
@@ -966,7 +976,7 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
         });
 
         if (map.size() > 0)
-            
+
             this.bucketIdGenerator = new AtomicLong(
                     map.values().stream().mapToLong(value -> value.getId()).max().orElseThrow(IllegalStateException::new));
 

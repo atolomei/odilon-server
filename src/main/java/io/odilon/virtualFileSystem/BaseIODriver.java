@@ -233,20 +233,20 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
         try {
             bucketWriteLock(newBucketName);
             try {
-                
+
                 /** must be executed inside the critical zone. */
                 checkExistsBucket(bucket);
 
                 /** must be executed also inside the critical zone. */
                 checkNotExistsBucket(newBucketName);
-                
+
                 operation = getJournalService().updateBucket(bucket, newBucketName);
                 backupBucketMetadata(bucket);
-                
+
                 bucketMeta = bucket.getBucketMetadata();
                 bucketMeta.setLastModified(now);
                 bucketMeta.setBucketName(newBucketName);
-                
+
                 for (Drive drive : getDrivesAll()) {
                     try {
                         drive.updateBucket(bucketMeta);
@@ -291,10 +291,10 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
         Check.requireNonNullArgument(bucket, "bucket can not be null");
         boolean commitOK = false;
         VirtualFileSystemOperation operation = null;
-        
+
         bucketWriteLock(bucket);
         try {
-            
+
             try {
                 /** must be executed inside the critical zone. */
                 checkExistsBucket(bucket);
@@ -304,7 +304,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
                 }
 
                 operation = getJournalService().deleteBucket(bucket);
-                
+
                 for (Drive drive : getDrivesAll()) {
                     try {
                         drive.markAsDeletedBucket(bucket);
@@ -356,10 +356,10 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 
         bucketReadLock(bucket);
         try {
-            
+
             /** must be executed inside the critical zone. */
             checkExistsBucket(bucket);
-            
+
             for (Drive drive : getDrivesEnabled()) {
                 if (!drive.isEmpty(bucket))
                     return false;
@@ -478,14 +478,14 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
         Check.requireNonNullArgument(objectName, "objectName can not be null | b:" + bucket.getName());
 
         objectReadLock(bucket, objectName);
-        
+
         try {
 
             bucketReadLock(bucket);
             try {
                 /** must be executed inside the critical zone. */
                 checkExistsBucket(bucket);
-                
+
                 List<ObjectMetadata> list = getObjectMetadataVersionAll(bucket, objectName);
                 if (list != null && !list.isEmpty())
                     return list.get(list.size() - 1);
@@ -1019,10 +1019,10 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
             return meta;
         }
         ObjectMetadata meta = getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucket, objectName);
-        
+
         if (meta == null)
             return meta;
-        
+
         meta.setBucketName(bucket.getName());
         getVirtualFileSystemService().getSystemMonitorService().getCacheObjectMissCounter().inc();
         if (addToCacheIfmiss)
@@ -1469,7 +1469,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
         if (existsCacheBucket(bucket))
             throw new IllegalArgumentException("bucket already exists -> " + objectInfo(bucket));
     }
-    
 
     /**
      * must be executed inside the critical zone.
@@ -1479,7 +1478,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
             throw new IllegalArgumentException("bucket already exists -> " + bucketName);
     }
 
-    
     /**
      * must be executed inside the critical zone.
      */
@@ -1495,7 +1493,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
         if (!getVirtualFileSystemService().getBucketCache().contains(bucketName))
             throw new IllegalArgumentException("bucket does not exist -> " + bucketName);
     }
-    
+
     protected void rollback(VirtualFileSystemOperation operation) {
         if (operation == null)
             return;

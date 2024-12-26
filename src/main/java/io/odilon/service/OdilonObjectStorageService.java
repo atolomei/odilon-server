@@ -16,7 +16,6 @@
  */
 package io.odilon.service;
 
-
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -81,10 +80,6 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
     @Autowired
     private EncryptionService encrpytionService;
 
-    //@JsonIgnore
-    //@Autowired
-    //private SystemMonitorService monitoringService;
-
     @JsonIgnore
     @Autowired
     private VirtualFileSystemService virtualFileSystemService;
@@ -115,12 +110,10 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
      * @param encrpytionService
      * @param vfs
      */
-    public OdilonObjectStorageService(ServerSettings serverSettings, 
-            EncryptionService encrpytionService, VirtualFileSystemService vfs, SystemInfoService systemInfoService) {
-
+    public OdilonObjectStorageService(ServerSettings serverSettings, EncryptionService encrpytionService,
+            VirtualFileSystemService vfs, SystemInfoService systemInfoService) {
         this.systemInfoService = systemInfoService;
         this.serverSettings = serverSettings;
-        //this.monitoringService = montoringService;
         this.encrpytionService = encrpytionService;
         this.virtualFileSystemService = vfs;
     }
@@ -471,9 +464,9 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
         }
     }
 
-    //private SystemMonitorService getSystemMonitorService() {
-    //    return this.monitoringService;
-    //}
+    // private SystemMonitorService getSystemMonitorService() {
+    // return this.monitoringService;
+    // }
 
     private boolean isVirtualFileSystemServiceEnabled() {
         return (getVirtualFileSystemService().getStatus() == ServiceStatus.RUNNING);

@@ -16,7 +16,6 @@
  */
 package io.odilon.virtualFileSystem.raid6;
 
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -165,7 +164,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
             try {
                 checkIsAccesible(bucket);
                 ObjectMetadata meta = getDriverObjectMetadataInternal(bucket, objectName, true);
-                
+
                 if ((meta != null) && meta.isAccesible()) {
                     RAIDSixDecoder decoder = new RAIDSixDecoder(this);
                     return (meta.isEncrypt())
@@ -185,8 +184,6 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
             objectReadUnLock(bucket, objectName);
         }
     }
-
-    
 
     /**
      * 
@@ -238,9 +235,8 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
         Check.requireNonNullArgument(bucket, "bucket is null");
         Check.requireNonNullArgument(objectName, "objectName is null");
 
-        
         logger.error("not completed");
-        
+
         OffsetDateTime thresholdDate = OffsetDateTime.now()
                 .minusDays(getVirtualFileSystemService().getServerSettings().getIntegrityCheckDays());
 
@@ -515,7 +511,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 
         Check.requireNonNullArgument(bucket, "bucket is null");
         Check.requireNonNullArgument(objectName, "objectName can not be null | b:" + bucket.getName());
-        
+
         String bucketName = bucket.getName();
         getLockService().getObjectLock(bucket, objectName).readLock().lock();
 
@@ -524,7 +520,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
             try {
 
                 checkIsAccesible(bucket);
-                
+
                 /** must be executed also inside the critical zone. */
                 if (!existsCacheBucket(bucket.getName()))
                     throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
@@ -532,11 +528,11 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
                 ObjectMetadata meta = getDriverObjectMetadataInternal(bucket, objectName, true);
                 if ((meta == null) || (!meta.isAccesible()))
                     throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
-                
+
                 return new OdilonObject(bucket, objectName, getVirtualFileSystemService());
 
             } catch (Exception e) {
-                throw new InternalCriticalException(e, objectInfo(bucketName ,objectName));
+                throw new InternalCriticalException(e, objectInfo(bucketName, objectName));
             } finally {
                 bucketReadUnLock(bucket);
 
@@ -592,26 +588,26 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
         try {
             bucketReadLock(bucket);
             try {
-                
+
                 checkIsAccesible(bucket);
-                
+
                 /**
                  * This check was executed by the VirtualFilySystemService, but it must be
                  * executed also inside the critical zone.
                  */
                 if (!existsCacheBucket(bucket.getName()))
                     throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
-                
+
                 /** read is from only 1 drive */
                 readDrive = getObjectMetadataReadDrive(bucket, objectName);
 
                 ObjectMetadata meta = getDriverObjectMetadataInternal(bucket, objectName, true);
-                
+
                 if ((meta == null) || (!meta.isAccesible()))
                     throw new OdilonObjectNotFoundException(ObjectMetadata.class.getName() + " does not exist");
 
                 meta.setBucketName(bucket.getName());
-                
+
                 if (meta.getVersion() == 0)
                     return list;
 
@@ -785,17 +781,17 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 
         objectReadLock(bucket, objectName);
         try {
-        
+
             bucketReadLock(bucket);
             try {
-            
+
                 checkIsAccesible(bucket);
-                
+
                 /** read is from only 1 drive */
                 readDrive = getObjectMetadataReadDrive(bucket, objectName);
 
                 ObjectMetadata meta;
-                
+
                 if (o_version.isPresent()) {
                     meta = readDrive.getObjectMetadataVersion(bucket, objectName, o_version.get());
                 } else {
@@ -807,12 +803,13 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 
                 meta.setBucketName(bucket.getName());
                 return meta;
-                
+
             } catch (InternalCriticalException e) {
                 throw e;
-                
+
             } catch (Exception e) {
-                throw new InternalCriticalException(e, objectInfo(bucket, objectName) + (o_version.isPresent() ? (", v:" + String.valueOf(o_version.get())) : ""));
+                throw new InternalCriticalException(e,
+                        objectInfo(bucket, objectName) + (o_version.isPresent() ? (", v:" + String.valueOf(o_version.get())) : ""));
             } finally {
                 bucketReadUnLock(bucket);
             }

@@ -22,9 +22,7 @@ import java.time.OffsetDateTime;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.odilon.model.BaseObject;
-import io.odilon.model.OdilonModelObject;
 import io.odilon.virtualFileSystem.model.DriveStatus;
-
 
 /**
  * 
@@ -32,73 +30,73 @@ import io.odilon.virtualFileSystem.model.DriveStatus;
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public class DriveInfo extends BaseObject implements Serializable {
-	
-	private static final long serialVersionUID = 1L;
-	
-	@JsonProperty("name")
-	private String name;
 
-	@JsonProperty("driveId")
-	private String driveId;
-				
-	@JsonProperty("dateConnected")
-	private OffsetDateTime dateConnected;
+    private static final long serialVersionUID = 1L;
 
-	@JsonProperty("status")
-	private DriveStatus driveStatus;
-	
-	@JsonProperty("order")
-	private int order;
-	
-	public DriveInfo() {
-	}
-	
-	public DriveInfo(String name, String driveId, OffsetDateTime dateConnected, DriveStatus status, int configOrder) {
-		this.name=name;
-		this.driveId=driveId;
-		this.dateConnected=dateConnected;
-		this.driveStatus=status;
-		this.order=configOrder;
-	}
+    @JsonProperty("name")
+    private String name;
 
-	public DriveStatus getStatus() {
-		return this.driveStatus; 
-	}
-	
-	public void setStatus(DriveStatus status) {
-		this.driveStatus=status;
-	}
-	
-	public String getName() {
-		return name;
-	}
+    @JsonProperty("driveId")
+    private String driveId;
 
-	public void setName(String name) {
-		this.name = name;
-	}
+    @JsonProperty("dateConnected")
+    private OffsetDateTime dateConnected;
 
-	public int getOrder() {
-		return order;
-	}
+    @JsonProperty("status")
+    private DriveStatus driveStatus;
 
-	public void setOrder(int order) {
-		this.order = order;
-	}
-	
-	public String getDriveId() {
-		return driveId;
-	}
+    @JsonProperty("order")
+    private int order;
 
-	public void setDriveId(String driveId) {
-		this.driveId = driveId;
-	}
+    public DriveInfo() {
+    }
 
-	public OffsetDateTime getDateConnected() {
-		return dateConnected;
-	}
+    public DriveInfo(String name, String driveId, OffsetDateTime dateConnected, DriveStatus status, int configOrder) {
+        this.name = name;
+        this.driveId = driveId;
+        this.dateConnected = dateConnected;
+        this.driveStatus = status;
+        this.order = configOrder;
+    }
 
-	public void setDateConnected(OffsetDateTime dateConnected) {
-		this.dateConnected = dateConnected;
-	}
-	
+    public DriveStatus getStatus() {
+        return this.driveStatus;
+    }
+
+    public void setStatus(DriveStatus status) {
+        this.driveStatus = status;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public int getOrder() {
+        return order;
+    }
+
+    public void setOrder(int order) {
+        this.order = order;
+    }
+
+    public String getDriveId() {
+        return driveId;
+    }
+
+    public void setDriveId(String driveId) {
+        this.driveId = driveId;
+    }
+
+    public OffsetDateTime getDateConnected() {
+        return dateConnected;
+    }
+
+    public void setDateConnected(OffsetDateTime dateConnected) {
+        this.dateConnected = dateConnected;
+    }
+
 }

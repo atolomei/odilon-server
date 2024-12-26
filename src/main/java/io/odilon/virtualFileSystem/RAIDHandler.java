@@ -17,9 +17,9 @@
 package io.odilon.virtualFileSystem;
 
 /**
-*  
-* @author atolomei@novamens.com (Alejandro Tolomei)
-*/
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public interface RAIDHandler {
 
     static final boolean IS_HEAD = true;

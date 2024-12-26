@@ -130,6 +130,7 @@ public class OdilonDrive extends BaseObject implements Drive {
         this.name = rootDir;
         this.rootDir = rootDir;
     }
+
     /**
      * <p>
      * Constructor to call when creating a Dir with {@code new Drive}. <br/>
@@ -149,9 +150,10 @@ public class OdilonDrive extends BaseObject implements Drive {
     @JsonIgnore
     @Override
     public BucketMetadata getBucketMetadata(ServerBucket bucket) throws IOException {
-        Check.requireNonNullArgument(bucket, "bucket is null");    
+        Check.requireNonNullArgument(bucket, "bucket is null");
         return getBucketMetadataById(bucket.getId());
     }
+
     /**
      * @param bucketId
      * @return
@@ -175,20 +177,20 @@ public class OdilonDrive extends BaseObject implements Drive {
         Check.requireNonNullStringArgument(objectName, "objectName is null " + objectInfo(bucket));
         return getObjectMetadataFileById(bucket.getId(), objectName);
     }
-    
+
     @JsonIgnore
     @Override
     public String getBucketMetadataDirPath(ServerBucket bucket) {
         Check.requireNonNullArgument(bucket, "bucket is null");
         return getBucketMetadataDirPathById(bucket.getId());
     }
-    
+
     @JsonIgnore
     @Override
     public String getObjectMetadataDirPath(ServerBucket bucket, String objectName) {
         Check.requireNonNullArgument(bucket, "bucket is null");
         Check.requireNonNullStringArgument(objectName, "objectName is null " + objectInfo(bucket));
-        return getObjectMetadataDirPathById( bucket.getId(), objectName);
+        return getObjectMetadataDirPathById(bucket.getId(), objectName);
     }
 
     @JsonIgnore
@@ -209,7 +211,6 @@ public class OdilonDrive extends BaseObject implements Drive {
         Check.requireNonNullArgument(bucket, "bucket is null");
         return getBucketWorkDirPathById(bucket.getId());
     }
-    
 
     @JsonIgnore
     @Override
@@ -217,10 +218,11 @@ public class OdilonDrive extends BaseObject implements Drive {
         Check.requireNonNullArgument(bucket, "bucket is null");
         return getBucketCacheDirPathById(bucket.getId());
     }
+
     private String getBucketCacheDirPathById(Long id) {
         return this.getCacheDirPath() + File.separator + id.toString();
     }
-    
+
     @JsonIgnore
     @Override
     public String getBucketObjectDataDirPath(ServerBucket bucket) {
@@ -229,7 +231,8 @@ public class OdilonDrive extends BaseObject implements Drive {
     }
 
     @Override
-    public void putObjectMetadataVersionFile(ServerBucket bucket, String objectName, int version, File metaFile) throws IOException {
+    public void putObjectMetadataVersionFile(ServerBucket bucket, String objectName, int version, File metaFile)
+            throws IOException {
         try (InputStream is = new BufferedInputStream(new FileInputStream(metaFile))) {
             putObjectMetadataVersionStream(bucket, objectName, version, is);
         }
@@ -308,7 +311,6 @@ public class OdilonDrive extends BaseObject implements Drive {
         deleteBucketInternal(bucketId);
     }
 
-    
     /**
      * <p>
      * If the control directory contains the object directory -> the file is
@@ -343,19 +345,20 @@ public class OdilonDrive extends BaseObject implements Drive {
      */
     @Override
     public boolean existsObjectMetadata(ServerBucket bucket, String objectName) {
-        
+
         Check.requireNonNullArgument(bucket, "bucket is null");
         Check.requireNonNullStringArgument(objectName, "objectName is null " + objectInfo(bucket));
-        
+
         ObjectPath path = new ObjectPath(this, bucket, objectName);
-                
+
         File objectMetadataDir = path.metadataDirPath().toFile();
 
-        // File objectMetadataDir = new File(this.getObjectMetadataDirPath(bucket, objectName));
-        
+        // File objectMetadataDir = new File(this.getObjectMetadataDirPath(bucket,
+        // objectName));
+
         if (!objectMetadataDir.exists())
             return false;
-        
+
         return (getObjectMetadata(bucket, objectName).status != ObjectStatus.DELETED);
     }
 
@@ -401,7 +404,7 @@ public class OdilonDrive extends BaseObject implements Drive {
     public void markAsDeletedObject(ServerBucket bucket, String objectName) {
         Check.requireNonNullArgument(bucket, "bucket is null");
         Check.requireNonNullStringArgument(objectName, "objectName is null " + objectInfo(bucket));
-        
+
         ObjectMetadata meta = getObjectMetadata(bucket, objectName);
         meta.status = ObjectStatus.DELETED;
         saveObjectMetadata(meta, true);
@@ -477,7 +480,8 @@ public class OdilonDrive extends BaseObject implements Drive {
     @JsonIgnore
     @Override
     public String getSchedulerDirPath() {
-        return getRootDirPath() + File.separator + VirtualFileSystemService.SYS + File.separator + VirtualFileSystemService.SCHEDULER;
+        return getRootDirPath() + File.separator + VirtualFileSystemService.SYS + File.separator
+                + VirtualFileSystemService.SCHEDULER;
     }
 
     @JsonIgnore
@@ -511,7 +515,7 @@ public class OdilonDrive extends BaseObject implements Drive {
             throw new InternalCriticalException(e);
         }
     }
-    
+
     private ObjectMetadata getObjectMetadataById(Long bucketId, String objectName) {
         try {
             return getObjectMapper().readValue(getObjectMetadataFileById(bucketId, objectName), ObjectMetadata.class);
@@ -520,8 +524,6 @@ public class OdilonDrive extends BaseObject implements Drive {
         }
     }
 
-    
-    
     /**
      * ObjectMetadata Version
      * 
@@ -577,16 +579,17 @@ public class OdilonDrive extends BaseObject implements Drive {
             String jsonString = getObjectMapper().writeValueAsString(meta);
 
             ObjectPath path = new ObjectPath(this, meta.getBucketId(), meta.getObjectName());
-            
+
             if (isHead) {
                 Files.writeString(path.metadataFilePath(), jsonString);
-                //Files.writeString(
-                //        Paths.get(getObjectMetadataDirPathById(meta.getBucketId(), meta.getObjectName()) + File.separator + meta.getObjectName() + ServerConstant.JSON), jsonString);
-            }
-            else {
+                // Files.writeString(
+                // Paths.get(getObjectMetadataDirPathById(meta.getBucketId(),
+                // meta.getObjectName()) + File.separator + meta.getObjectName() +
+                // ServerConstant.JSON), jsonString);
+            } else {
 
-                Files.writeString(
-                        Paths.get(getObjectMetadataVersionFilePathById(meta.getBucketId(), meta.getObjectName(), version.get().intValue())),
+                Files.writeString(Paths.get(
+                        getObjectMetadataVersionFilePathById(meta.getBucketId(), meta.getObjectName(), version.get().intValue())),
                         jsonString);
             }
 
@@ -596,7 +599,6 @@ public class OdilonDrive extends BaseObject implements Drive {
         }
     }
 
-    
     @Override
     public void removeScheduler(ServiceRequest serviceRequest, String queueId) {
 
@@ -688,10 +690,6 @@ public class OdilonDrive extends BaseObject implements Drive {
         }
     }
 
-    
-    
-
-    
     @Override
     public File getObjectMetadataVersionFile(ServerBucket bucket, String objectName, int version) {
         return new File(getObjectMetadataVersionFilePath(bucket, objectName, version));
@@ -709,7 +707,8 @@ public class OdilonDrive extends BaseObject implements Drive {
         try {
             transferTo(stream, this.getObjectMetadataVersionFilePath(bucket, objectName, version));
         } catch (Exception e) {
-            throw new InternalCriticalException(e, objectInfo(bucket, objectName) + ", version:" + String.valueOf(version) + ", d:" + getName());
+            throw new InternalCriticalException(e,
+                    objectInfo(bucket, objectName) + ", version:" + String.valueOf(version) + ", d:" + getName());
         }
     }
 
@@ -726,7 +725,6 @@ public class OdilonDrive extends BaseObject implements Drive {
             throw new InternalCriticalException(e, fileInfo(fileName));
         }
     }
-
 
     /**
      * 
@@ -871,8 +869,8 @@ public class OdilonDrive extends BaseObject implements Drive {
                 }
             }
             if (n > 0)
-                logger.debug("Removed temp files from  dir:" + getBucketCacheDirPath(bucket) + " | b:"
-                        + bucket.getName() + " total:" + String.valueOf(n));
+                logger.debug("Removed temp files from  dir:" + getBucketCacheDirPath(bucket) + " | b:" + bucket.getName()
+                        + " total:" + String.valueOf(n));
         } catch (Exception e) {
             logger.error(e, SharedConstant.NOT_THROWN);
         }
@@ -893,8 +891,8 @@ public class OdilonDrive extends BaseObject implements Drive {
                 }
             }
             if (n > 0)
-                logger.debug("Removed temp files from dir: " + getBucketWorkDirPath(bucket) + " | b:"
-                        + bucket.getName() + " total:" + String.valueOf(n));
+                logger.debug("Removed temp files from dir: " + getBucketWorkDirPath(bucket) + " | b:" + bucket.getName() + " total:"
+                        + String.valueOf(n));
         } catch (Exception e) {
             logger.error(e, SharedConstant.NOT_THROWN);
         }
@@ -996,7 +994,7 @@ public class OdilonDrive extends BaseObject implements Drive {
         Check.requireNonNullArgument(bucketId, "bucketId is null");
 
         File metadata_dir = new File(this.getBucketsDirPath() + File.separator + bucketId.toString());
-        
+
         File data_dir = new File(this.getRootDirPath() + File.separator + bucketId.toString());
         File data_version_dir = new File(this.getRootDirPath() + File.separator + bucketId.toString() + File.separator
                 + VirtualFileSystemService.VERSION_DIR);
@@ -1026,7 +1024,7 @@ public class OdilonDrive extends BaseObject implements Drive {
                 FileUtils.deleteQuietly(work_dir);
             }
 
-        } catch (Exception e) {            
+        } catch (Exception e) {
             if (done) {
                 return;
             }
@@ -1035,7 +1033,6 @@ public class OdilonDrive extends BaseObject implements Drive {
             this.drive_lock.writeLock().unlock();
         }
     }
-
 
     @Override
     public void updateBucket(BucketMetadata meta) throws IOException {
@@ -1325,16 +1322,18 @@ public class OdilonDrive extends BaseObject implements Drive {
     private String getObjectMetadataFilePathById(Long bucketId, String objectName) {
         return getObjectMetadataDirPathById(bucketId, objectName) + File.separator + objectName + ServerConstant.JSON;
     }
-    
-    //private String getObjectMetadataFilePath(ServerBucket bucket, String objectName) {
-    //    return getObjectMetadataDirPath(bucket, objectName) + File.separator + objectName + ServerConstant.JSON;
-    //}
+
+    // private String getObjectMetadataFilePath(ServerBucket bucket, String
+    // objectName) {
+    // return getObjectMetadataDirPath(bucket, objectName) + File.separator +
+    // objectName + ServerConstant.JSON;
+    // }
 
     private String getObjectMetadataVersionFilePath(ServerBucket bucket, String objectName, int version) {
         return getObjectMetadataDirPath(bucket, objectName) + File.separator + objectName
                 + VirtualFileSystemService.VERSION_EXTENSION + String.valueOf(version) + ServerConstant.JSON;
     }
-    
+
     private String getObjectMetadataVersionFilePathById(Long bucketId, String objectName, int version) {
         return getObjectMetadataDirPathById(bucketId, objectName) + File.separator + objectName
                 + VirtualFileSystemService.VERSION_EXTENSION + String.valueOf(version) + ServerConstant.JSON;
@@ -1367,7 +1366,7 @@ public class OdilonDrive extends BaseObject implements Drive {
     @Override
     public void deleteObjectMetadata(ServerBucket bucket, String objectName) {
         Check.requireNonNullArgument(bucket, "bucket is null");
-        Check.requireNonNullStringArgument(objectName, "objectName is null " + objectInfo(bucket));        
+        Check.requireNonNullStringArgument(objectName, "objectName is null " + objectInfo(bucket));
         FileUtils.deleteQuietly(new File(this.getObjectMetadataDirPath(bucket, objectName)));
     }
 
@@ -1392,28 +1391,27 @@ public class OdilonDrive extends BaseObject implements Drive {
     }
 
     private String fileInfo(String fileName) {
-        return "f:" + (fileName!=null?fileName:"null") + " d:" + getName();
+        return "f:" + (fileName != null ? fileName : "null") + " d:" + getName();
     }
 
-    
     public String objectInfo(ServerBucket bucket, String objectName) {
         return "bn:" + (bucket != null ? bucket.getId().toString() : "null") + " o:" + (objectName != null ? objectName : "null");
     }
-    
+
     private String getBucketWorkDirPathById(Long id) {
         return this.getWorkDirPath() + File.separator + id.toString();
     }
-    
+
     private File getObjectMetadataFileById(Long bucketId, String objectName) {
         return new File(getObjectMetadataFilePathById(bucketId, objectName));
     }
+
     private String getBucketMetadataDirPathById(Long id) {
         return this.getBucketsDirPath() + File.separator + id.toString();
     }
+
     private String getObjectMetadataDirPathById(Long bucketId, String objectName) {
         return getBucketsDirPath() + File.separator + bucketId.toString() + File.separator + objectName;
     }
-
-    
 
 }

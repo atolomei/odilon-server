@@ -35,209 +35,198 @@ import io.odilon.virtualFileSystem.model.JournalService;
 import io.odilon.virtualFileSystem.model.OperationCode;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
-
 /**
-*  
-* @author atolomei@novamens.com (Alejandro Tolomei)
-*/
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public class OdilonVirtualFileSystemOperation implements VirtualFileSystemOperation {
-				
-	static private Logger logger = Logger.getLogger(OdilonVirtualFileSystemOperation.class.getName());
 
-	@JsonIgnore
-	static private ObjectMapper mapper = new ObjectMapper();
-	
-	static  {
-		mapper.registerModule(new JavaTimeModule());
-		mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-		mapper.registerModule(new Jdk8Module());
-	}
-	
-	@JsonIgnore
-	static final private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("YYYY-MM-dd'T'HH:mm:ss.XXX-z", Locale.ENGLISH);
-	
-	@JsonIgnore
-	private JournalService journalService;
-	
-	@JsonProperty("id")
-	private String id;
+    static private Logger logger = Logger.getLogger(OdilonVirtualFileSystemOperation.class.getName());
 
-	@JsonProperty("version")
-	private int version;
-	
-	@JsonProperty("bucketId")
-	private Long bucketId;
-	
-	@JsonProperty("bucketName")
-	private String bucketName;
+    @JsonIgnore
+    static private ObjectMapper mapper = new ObjectMapper();
 
-	@JsonProperty("objectName")
-	private String objectName;
-	
-	@JsonProperty("timestamp")
-	private OffsetDateTime timestamp;
-	
-	@JsonProperty("operation")
-	private OperationCode op;
-	
-	@JsonProperty("raid")
-	private RedundancyLevel raid;
-	
-	public OdilonVirtualFileSystemOperation() {
-	}
-	
-	@Override
-	public String getUUID() {
+    static {
+        mapper.registerModule(new JavaTimeModule());
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        mapper.registerModule(new Jdk8Module());
+    }
 
-		return  	op.getEntityGroupCode() + ":"  +
-					((bucketId!=null) ? bucketId.toString() :"null" ) + ":" + 
-					((objectName!=null) ? objectName :"null" );
-	}
-	
-	public OdilonVirtualFileSystemOperation( 	String id, 
-							OperationCode op,
-							Optional<Long> bucketId,
-							Optional<String> bucketName,
-							Optional<String> objectName,
-							Optional<Integer> iVersion,
-							RedundancyLevel raid, 
-							JournalService journalService) {
-	
-		this.id = id;
-		this.op = op;
-		
-		if (iVersion.isPresent())
-			version= iVersion.get().intValue();
-			
-		if (bucketId.isPresent())
-			this.bucketId = bucketId.get();
-		
-		if (objectName.isPresent())
-			this.objectName = objectName.get();
-		
-		if (bucketName.isPresent())
-			this.bucketName = bucketName.get();
-		
-		this.raid =raid;
-		this.journalService = journalService;
-		this.timestamp = OffsetDateTime.now();  
-	}
+    @JsonIgnore
+    static final private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("YYYY-MM-dd'T'HH:mm:ss.XXX-z", Locale.ENGLISH);
 
-	@Override
-	public Long getBucketId() {
-		return bucketId;
-	}
+    @JsonIgnore
+    private JournalService journalService;
 
-	public void setBucketId(Long bucketId) {
-		this.bucketId = bucketId;
-	}
+    @JsonProperty("id")
+    private String id;
 
-	@Override
-	public String getObjectName() {
-		return objectName;
-	}
+    @JsonProperty("version")
+    private int version;
 
-	public void setObjectName(String objectName) {
-		this.objectName = objectName;
-	}
+    @JsonProperty("bucketId")
+    private Long bucketId;
 
-	public int getVersion() {
-		return this.version;
-	}
-	
-	protected void setTimestamp(OffsetDateTime date) {
-		this.timestamp=date;
-	}
+    @JsonProperty("bucketName")
+    private String bucketName;
 
-	protected void setRedundancyLevel(RedundancyLevel level) {
-		this.raid=level;
-	}
+    @JsonProperty("objectName")
+    private String objectName;
 
-	@Override
-	public RedundancyLevel getRedundancyLevel() {
-		return this.raid;
-	}
+    @JsonProperty("timestamp")
+    private OffsetDateTime timestamp;
 
-	@Override
-	public boolean equals(Object o) {
-		
-		 if (o == this) {
-		     return true;
-		 }
+    @JsonProperty("operation")
+    private OperationCode op;
 
-		 
-		if (o instanceof OdilonVirtualFileSystemOperation) {
-			String oid =((OdilonVirtualFileSystemOperation) o).getId();
-			if (this.id==null) 
-				return oid==null;
-			if (oid==null)
-				return false;
-			return this.id.equals(oid);
-		}
-		return false;
-		
-	}
-	
-	@Override
-	public String toJSON() {
-		 try {
-			return mapper.writeValueAsString(this);
-		 } catch (Exception e) {
-					logger.error(e, SharedConstant.NOT_THROWN);
-					return "\"error\":\"" + e.getClass().getName()+"\""; 
-		}
-	  }
+    @JsonProperty("raid")
+    private RedundancyLevel raid;
 
-	@Override
-	public String toString() {
-		StringBuilder str = new StringBuilder();
-		str.append(this.getClass().getSimpleName());
-		str.append(toJSON());
-		return str.toString();
-	}
-	
-	
-	@Override
-	public OffsetDateTime getTimestamp() {
-		return timestamp;
-	}
-	
-	@Override
-	public String getId() {
-		return id;
-	}
+    public OdilonVirtualFileSystemOperation() {
+    }
 
-	public void setId(String id) {
-		this.id = id;
-	}
+    @Override
+    public String getUUID() {
 
-	@Override
-	public OperationCode getOperationCode() {
-		return op;
-	}
+        return op.getEntityGroupCode() + ":" + ((bucketId != null) ? bucketId.toString() : "null") + ":"
+                + ((objectName != null) ? objectName : "null");
+    }
 
-	public void setOp(OperationCode op) {
-		this.op = op;
-	}
+    public OdilonVirtualFileSystemOperation(String id, OperationCode op, Optional<Long> bucketId, Optional<String> bucketName,
+            Optional<String> objectName, Optional<Integer> iVersion, RedundancyLevel raid, JournalService journalService) {
 
-	@Override
-	public boolean commit() {
-		return this.journalService.commit(this);
-	}
+        this.id = id;
+        this.op = op;
 
-	@Override
-	public boolean cancel() {
-		return this.journalService.cancel(this);
-	}
+        if (iVersion.isPresent())
+            version = iVersion.get().intValue();
 
-	public void setJournalService(JournalService journalService) {
-		this.journalService=journalService;
-	}
+        if (bucketId.isPresent())
+            this.bucketId = bucketId.get();
 
-	@Override
-	public String getBucketName() {
-		return this.bucketName;
-	}
+        if (objectName.isPresent())
+            this.objectName = objectName.get();
 
+        if (bucketName.isPresent())
+            this.bucketName = bucketName.get();
+
+        this.raid = raid;
+        this.journalService = journalService;
+        this.timestamp = OffsetDateTime.now();
+    }
+
+    @Override
+    public Long getBucketId() {
+        return bucketId;
+    }
+
+    public void setBucketId(Long bucketId) {
+        this.bucketId = bucketId;
+    }
+
+    @Override
+    public String getObjectName() {
+        return objectName;
+    }
+
+    public void setObjectName(String objectName) {
+        this.objectName = objectName;
+    }
+
+    public int getVersion() {
+        return this.version;
+    }
+
+    protected void setTimestamp(OffsetDateTime date) {
+        this.timestamp = date;
+    }
+
+    protected void setRedundancyLevel(RedundancyLevel level) {
+        this.raid = level;
+    }
+
+    @Override
+    public RedundancyLevel getRedundancyLevel() {
+        return this.raid;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+
+        if (o == this) {
+            return true;
+        }
+
+        if (o instanceof OdilonVirtualFileSystemOperation) {
+            String oid = ((OdilonVirtualFileSystemOperation) o).getId();
+            if (this.id == null)
+                return oid == null;
+            if (oid == null)
+                return false;
+            return this.id.equals(oid);
+        }
+        return false;
+
+    }
+
+    @Override
+    public String toJSON() {
+        try {
+            return mapper.writeValueAsString(this);
+        } catch (Exception e) {
+            logger.error(e, SharedConstant.NOT_THROWN);
+            return "\"error\":\"" + e.getClass().getName() + "\"";
+        }
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder str = new StringBuilder();
+        str.append(this.getClass().getSimpleName());
+        str.append(toJSON());
+        return str.toString();
+    }
+
+    @Override
+    public OffsetDateTime getTimestamp() {
+        return timestamp;
+    }
+
+    @Override
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    @Override
+    public OperationCode getOperationCode() {
+        return op;
+    }
+
+    public void setOp(OperationCode op) {
+        this.op = op;
+    }
+
+    @Override
+    public boolean commit() {
+        return this.journalService.commit(this);
+    }
+
+    @Override
+    public boolean cancel() {
+        return this.journalService.cancel(this);
+    }
+
+    public void setJournalService(JournalService journalService) {
+        this.journalService = journalService;
+    }
+
+    @Override
+    public String getBucketName() {
+        return this.bucketName;
+    }
 
 }

@@ -102,19 +102,19 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
         try {
             bucketReadLock(bucket);
             try (stream) {
-            
+
                 /** must be executed inside the critical zone. */
                 checkExistsBucket(bucket);
 
                 /** must be executed inside the critical zone. */
                 checkNotExistObject(bucket, objectName);
-                
+
                 int version = 0;
                 operation = createObject(bucket, objectName);
                 saveObjectDataFile(bucket, objectName, stream, srcFileName);
                 saveObjectMetadata(bucket, objectName, srcFileName, contentType, version, customTags);
                 done = operation.commit();
-                
+
             } catch (Exception e) {
                 done = false;
                 isMainException = true;
@@ -152,7 +152,8 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
     protected void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
 
         Check.requireNonNullArgument(operation, "operation is null");
-        Check.checkTrue(operation.getOperationCode() == OperationCode.CREATE_OBJECT, "Invalid op ->  " + operation.getOperationCode().getName());
+        Check.checkTrue(operation.getOperationCode() == OperationCode.CREATE_OBJECT,
+                "Invalid op ->  " + operation.getOperationCode().getName());
 
         String objectName = operation.getObjectName();
         Long bucket_id = operation.getBucketId();
@@ -221,7 +222,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
             }
 
             int bytes_read = 0;
-            
+
             /** if there is just 1 disk copy directly */
             if (getDriver().getDrivesAll().size() < 2) {
                 while ((bytes_read = sourceStream.read(buf, 0, buf.length)) >= 0) {
@@ -349,7 +350,5 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
         /** save in parallel */
         saveRAIDOneObjectMetadataToDisk(getDriver().getDrivesAll(), list, true);
     }
-
-    
 
 }

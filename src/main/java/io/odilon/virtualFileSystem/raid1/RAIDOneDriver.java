@@ -16,7 +16,6 @@
  */
 package io.odilon.virtualFileSystem.raid1;
 
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -135,13 +134,13 @@ public class RAIDOneDriver extends BaseIODriver {
         Check.requireNonNullArgument(bucket, "bucket is null");
         Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
         checkIsAccesible(bucket);
-        
+
         objectReadLock(bucket, objectName);
         try {
-        
+
             bucketReadLock(bucket);
             try {
-                
+
                 /** must be executed also inside the critical zone */
                 if (!existsCacheBucket(bucket))
                     throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
@@ -152,7 +151,8 @@ public class RAIDOneDriver extends BaseIODriver {
                 ObjectMetadata meta = getObjectMetadataVersion(bucket, objectName, version);
 
                 if ((meta == null) || (!meta.isAccesible()))
-                    throw new OdilonObjectNotFoundException("object version does not exists -> " + objectInfo(bucket, objectName, version));
+                    throw new OdilonObjectNotFoundException(
+                            "object version does not exists -> " + objectInfo(bucket, objectName, version));
 
                 ObjectPath path = new ObjectPath(readDrive, bucket, objectName);
                 InputStream is = Files.newInputStream(path.dataFileVersionPath(version));
@@ -192,9 +192,9 @@ public class RAIDOneDriver extends BaseIODriver {
         Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucket.getId());
         Check.requireNonNullStringArgument(fileName, "fileName is null | b: " + bucket.getId() + " o:" + objectName);
         Check.requireNonNullArgument(stream, "InpuStream can not null -> b:" + bucket.getId() + " | o:" + objectName);
-        
+
         checkIsAccesible(bucket);
-        
+
         if (exists(bucket, objectName)) {
             RAIDOneUpdateObjectHandler updateAgent = new RAIDOneUpdateObjectHandler(this);
             updateAgent.update(bucket, objectName, stream, fileName, contentType, customTags);
@@ -217,10 +217,11 @@ public class RAIDOneDriver extends BaseIODriver {
         Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getId());
 
         Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible " + objectInfo(bucket));
-        
+
         RAIDOneDeleteObjectHandler agent = new RAIDOneDeleteObjectHandler(this);
         agent.delete(bucket, objectName);
     }
+
     /**
      * <p>
      * THis method is executed Async by the {@link SchedulerService}
@@ -290,7 +291,7 @@ public class RAIDOneDriver extends BaseIODriver {
 
         Check.requireNonNullArgument(bucket, "bucket is null");
         Check.requireNonNullStringArgument(objectName, "objectName is null or empty | " + objectInfo(bucket));
-        
+
         checkIsAccesible(bucket);
 
         List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
@@ -312,26 +313,28 @@ public class RAIDOneDriver extends BaseIODriver {
                 readDrive = getReadDrive(bucket, objectName);
 
                 ObjectMetadata meta = getDriverObjectMetadataInternal(bucket, objectName, true);
-                
+
                 if ((meta == null) || (!meta.isAccesible()))
-                    throw new OdilonObjectNotFoundException( objectInfo(bucket, objectName));
+                    throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
 
                 meta.setBucketName(bucket.getName());
-                
+
                 if (meta.getVersion() == 0)
                     return list;
 
                 for (int version = 0; version < meta.getVersion(); version++) {
                     ObjectMetadata meta_version = readDrive.getObjectMetadataVersion(bucket, objectName, version);
 
-                    /** bucketName is not stored on disk, only bucketId, we must set it explicitly */
+                    /**
+                     * bucketName is not stored on disk, only bucketId, we must set it explicitly
+                     */
                     if (meta_version != null) {
                         meta_version.setBucketName(bucket.getName());
                         list.add(meta_version);
                     }
                 }
                 return list;
-            
+
             } catch (Exception e) {
                 throw new InternalCriticalException(e, objectInfo(bucket, objectName));
             } finally {
@@ -374,12 +377,12 @@ public class RAIDOneDriver extends BaseIODriver {
                             + " | " + this.getClass().getSimpleName());
 
                 ObjectMetadata meta = getDriverObjectMetadataInternal(bucket, objectName, true);
-                
+
                 if ((meta == null) || (!meta.isAccesible()))
-                    throw new OdilonObjectNotFoundException( objectInfo(bucket, objectName));
+                    throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
 
                 return new OdilonObject(bucket, objectName, getVirtualFileSystemService());
-                
+
             } catch (Exception e) {
                 throw new InternalCriticalException(e, objectInfo(bucket, objectName));
             } finally {
@@ -486,6 +489,7 @@ public class RAIDOneDriver extends BaseIODriver {
                 getVirtualFileSystemService().getBucketIteratorService().remove(bucketIterator.getAgentId());
         }
     }
+
     /**
      * <b>IMPORTANT</b> -> caller must close the {@link InputStream} returned
      * 
@@ -762,10 +766,9 @@ public class RAIDOneDriver extends BaseIODriver {
     }
 
     /**
-     * DATA CONSISTENCY The system crashes before Commit or Cancel
-     * -> next time the system starts up it will CANCEL all operations that are
-     * incomplete. REDO in this version means deleting the object from the drives
-     * where it completed
+     * DATA CONSISTENCY The system crashes before Commit or Cancel -> next time the
+     * system starts up it will CANCEL all operations that are incomplete. REDO in
+     * this version means deleting the object from the drives where it completed
      */
 
     @Override
@@ -790,7 +793,7 @@ public class RAIDOneDriver extends BaseIODriver {
 
         boolean retValue = true;
 
-       objectWriteLock(bucket, objectName);
+        objectWriteLock(bucket, objectName);
 
         try {
             bucketReadLock(bucket);

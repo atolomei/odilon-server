@@ -990,11 +990,9 @@ public class ServerSettings implements JSONObject {
     }
 
     public boolean isRAID6ConfigurationValid(int dataShards, int parityShards) {
-        return (    dataShards == 32 && parityShards == 16) || 
-                   (dataShards == 16 && parityShards == 8)  ||
-                   (dataShards == 8  && parityShards == 4)  || 
-                   (dataShards == 4  && parityShards == 2)  || 
-                   (dataShards == 2  && parityShards == 1);
+        return (dataShards == 32 && parityShards == 16) || (dataShards == 16 && parityShards == 8)
+                || (dataShards == 8 && parityShards == 4) || (dataShards == 4 && parityShards == 2)
+                || (dataShards == 2 && parityShards == 1);
     }
 
     public DataStorage getDataStorage() {
