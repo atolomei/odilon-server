@@ -735,20 +735,28 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         getDrivesEnabled().get(0).removeJournal(id);
     }
 
-    public void rollbackJournal(VirtualFileSystemOperation operation) {
-        rollbackJournal(operation, false);
-    }
-
     /**
      * <p>
      * Rollback from Journal
-     * 
      * Required locks must be applied before calling this method
-     * 
      * </p>
      */
     @Override
-    public void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
+    public void rollbackJournal(VirtualFileSystemOperation operation) {
+        rollbackJournal(operation, null, false);
+    }
+
+    @Override
+    public void rollbackJournal(VirtualFileSystemOperation operation, boolean recovery) {
+        rollbackJournal(operation, null, recovery);
+    }
+    
+    //public void rollbackJournal(VirtualFileSystemOperation operation, Object payload) {
+    //    rollbackJournal(operation, payload, false);
+    //}
+    
+    @Override
+    public void rollbackJournal(VirtualFileSystemOperation operation, Object payload, boolean recoveryMode) {
 
         Check.requireNonNullArgument(operation, "operation is null");
 

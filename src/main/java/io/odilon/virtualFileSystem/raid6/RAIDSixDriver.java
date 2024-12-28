@@ -348,8 +348,19 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
      * locked before calling this
      * 
      */
+    
     @Override
-    public void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
+    public void rollbackJournal(VirtualFileSystemOperation operation) {
+        rollbackJournal(operation, false);
+    }
+    
+    @Override
+    public void rollbackJournal(VirtualFileSystemOperation operation,  boolean recoveryMode) {
+        rollbackJournal(operation, null, recoveryMode);
+    }
+    
+    @Override
+    public void rollbackJournal(VirtualFileSystemOperation operation, Object payload, boolean recoveryMode) {
 
         Check.requireNonNullArgument(operation, "peration is null");
 
@@ -686,9 +697,6 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
         return RedundancyLevel.RAID_6;
     }
 
-    public void rollbackJournal(VirtualFileSystemOperation operation) {
-        rollbackJournal(operation, false);
-    }
 
     @Override
     public boolean setUpDrives() {

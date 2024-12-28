@@ -18,6 +18,7 @@ package io.odilon.virtualFileSystem.model;
 
 import io.odilon.model.BucketMetadata;
 import io.odilon.service.SystemService;
+import io.odilon.virtualFileSystem.OdilonVirtualFileSystemOperation;
 
 /**
  * <p>
@@ -74,10 +75,23 @@ public interface JournalService extends SystemService {
     public VirtualFileSystemOperation syncObject(ServerBucket bucket, String objectName);
 
     /** ----------------- */
-    public boolean commit(VirtualFileSystemOperation opx);
-
-    public boolean cancel(VirtualFileSystemOperation opx);
-
+    public boolean commit(VirtualFileSystemOperation operation);
+    public boolean commit(VirtualFileSystemOperation operation, Object payload);
+    
+    public boolean cancel(VirtualFileSystemOperation operation);
+    public boolean cancel(VirtualFileSystemOperation odilonVirtualFileSystemOperation, Object payload);
+    
     public String newOperationId();
+
+
+
+    /**
+     * <p>
+     * If there is a replica enabled, 1. save the op into the replica queue 2.
+     * remove op from journal error -> remove from replication on recovery rollback
+     * op -> 1. remove op from replica, remove op from local ops
+     * </p>
+     */
+    
 
 }

@@ -244,52 +244,44 @@ public class FileCacheService extends BaseService implements ApplicationListener
         return this.vfsLockService;
     }
 
+    /**
+     * 
+     */
     @Override
     public void onApplicationEvent(CacheEvent event) {
 
-        if (event.getVFSOperation() == null) {
-            logger.error("event is null ");
+        if (event.getOperation().getOperationCode() == OperationCode.CREATE_OBJECT) {
+            remove(event.getOperation().getBucketId(), event.getOperation().getObjectName(), Optional.empty());
+            remove(event.getOperation().getBucketId(), event.getOperation().getObjectName(),
+                    Optional.of(event.getOperation().getVersion()));
             return;
         }
-        if (event.getVFSOperation().getOperationCode() == null) {
-            logger.debug("op is null -> " + event.toString());
+        if (event.getOperation().getOperationCode() == OperationCode.UPDATE_OBJECT) {
+            remove(event.getOperation().getBucketId(), event.getOperation().getObjectName(), Optional.empty());
+            remove(event.getOperation().getBucketId(), event.getOperation().getObjectName(),
+                    Optional.of(event.getOperation().getVersion()));
             return;
         }
-
-        if (event.getVFSOperation().getOperationCode() == OperationCode.CREATE_OBJECT) {
-            remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName(), Optional.empty());
-            remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName(),
-                    Optional.of(event.getVFSOperation().getVersion()));
+        if (event.getOperation().getOperationCode() == OperationCode.RESTORE_OBJECT_PREVIOUS_VERSION) {
+            remove(event.getOperation().getBucketId(), event.getOperation().getObjectName(), Optional.empty());
+            remove(event.getOperation().getBucketId(), event.getOperation().getObjectName(),
+                    Optional.of(event.getOperation().getVersion()));
             return;
         }
-        if (event.getVFSOperation().getOperationCode() == OperationCode.UPDATE_OBJECT) {
-            remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName(), Optional.empty());
-            remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName(),
-                    Optional.of(event.getVFSOperation().getVersion()));
+        if (event.getOperation().getOperationCode() == OperationCode.DELETE_OBJECT) {
+            remove(event.getOperation().getBucketId(), event.getOperation().getObjectName(), Optional.empty());
             return;
         }
-        if (event.getVFSOperation().getOperationCode() == OperationCode.RESTORE_OBJECT_PREVIOUS_VERSION) {
-            remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName(), Optional.empty());
-            remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName(),
-                    Optional.of(event.getVFSOperation().getVersion()));
-            return;
-        }
-        if (event.getVFSOperation().getOperationCode() == OperationCode.DELETE_OBJECT) {
-            remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName(), Optional.empty());
-            return;
-        }
-
-        if (event.getVFSOperation().getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS) {
-            remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName(), Optional.empty());
+        if (event.getOperation().getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS) {
+            remove(event.getOperation().getBucketId(), event.getOperation().getObjectName(), Optional.empty());
             if (getVirtualFileSystemService().getServerSettings().isVersionControl()) {
-                for (int version = 0; version < event.getVFSOperation().getVersion(); version++)
-                    remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName(), Optional.of(version));
+                for (int version = 0; version < event.getOperation().getVersion(); version++)
+                    remove(event.getOperation().getBucketId(), event.getOperation().getObjectName(), Optional.of(version));
             }
             return;
         }
-
-        if (event.getVFSOperation().getOperationCode() == OperationCode.SYNC_OBJECT_NEW_DRIVE) {
-            remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName(), Optional.empty());
+        if (event.getOperation().getOperationCode() == OperationCode.SYNC_OBJECT_NEW_DRIVE) {
+            remove(event.getOperation().getBucketId(), event.getOperation().getObjectName(), Optional.empty());
             return;
         }
     }

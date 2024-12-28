@@ -38,9 +38,11 @@ public interface VirtualFileSystemOperation {
     public OperationCode getOperationCode();
 
     public boolean commit();
+    public boolean commit(Object payload);
 
     public boolean cancel();
-
+    public boolean cancel(Object payload);
+    
     public String getId();
 
     public String toJSON();
@@ -58,5 +60,7 @@ public interface VirtualFileSystemOperation {
     public int getVersion();
 
     String getUUID();
+
+
 
 }

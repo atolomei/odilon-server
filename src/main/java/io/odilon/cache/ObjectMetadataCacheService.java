@@ -97,36 +97,28 @@ public class ObjectMetadataCacheService extends BaseService implements Applicati
     @Override
     public void onApplicationEvent(CacheEvent event) {
 
-        if (event.getVFSOperation() == null) {
-            logger.error("event Operation is null", SharedConstant.NOT_THROWN);
+        if (event.getOperation().getOperationCode() == OperationCode.CREATE_OBJECT) {
+            remove(event.getOperation().getBucketId(), event.getOperation().getObjectName());
             return;
         }
-        if (event.getVFSOperation().getOperationCode() == null) {
-            logger.debug("operation code is null -> " + event.toString());
+        if (event.getOperation().getOperationCode() == OperationCode.UPDATE_OBJECT) {
+            remove(event.getOperation().getBucketId(), event.getOperation().getObjectName());
             return;
         }
-        if (event.getVFSOperation().getOperationCode() == OperationCode.CREATE_OBJECT) {
-            remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName());
+        if (event.getOperation().getOperationCode() == OperationCode.RESTORE_OBJECT_PREVIOUS_VERSION) {
+            remove(event.getOperation().getBucketId(), event.getOperation().getObjectName());
             return;
         }
-        if (event.getVFSOperation().getOperationCode() == OperationCode.UPDATE_OBJECT) {
-            remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName());
+        if (event.getOperation().getOperationCode() == OperationCode.DELETE_OBJECT) {
+            remove(event.getOperation().getBucketId(), event.getOperation().getObjectName());
             return;
         }
-        if (event.getVFSOperation().getOperationCode() == OperationCode.RESTORE_OBJECT_PREVIOUS_VERSION) {
-            remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName());
+        if (event.getOperation().getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS) {
+            remove(event.getOperation().getBucketId(), event.getOperation().getObjectName());
             return;
         }
-        if (event.getVFSOperation().getOperationCode() == OperationCode.DELETE_OBJECT) {
-            remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName());
-            return;
-        }
-        if (event.getVFSOperation().getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS) {
-            remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName());
-            return;
-        }
-        if (event.getVFSOperation().getOperationCode() == OperationCode.SYNC_OBJECT_NEW_DRIVE) {
-            remove(event.getVFSOperation().getBucketId(), event.getVFSOperation().getObjectName());
+        if (event.getOperation().getOperationCode() == OperationCode.SYNC_OBJECT_NEW_DRIVE) {
+            remove(event.getOperation().getBucketId(), event.getOperation().getObjectName());
             return;
         }
     }

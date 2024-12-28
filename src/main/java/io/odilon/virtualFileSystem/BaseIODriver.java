@@ -122,8 +122,9 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
     private ApplicationContext applicationContext;
 
     /**
-     * @param vfs
-     * @param vfsLockService
+     * 
+     * @param virtualFileSystemService
+     * @param lockService
      */
     public BaseIODriver(VirtualFileSystemService virtualFileSystemService, LockService lockService) {
         this.virtualFileSystem = virtualFileSystemService;
@@ -135,6 +136,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
     @Override
     public boolean existsBucket(String bucketName) {
         Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
+        
         bucketReadLock(bucketName);
         try {
             /** Bucket cache must be used after locking critical resource */
@@ -189,15 +191,13 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
                     throw new InternalCriticalException(e, objectInfo(drive));
                 }
             }
-            // TODO ver donde poner esto mejor
-            addCacheBucket(bucket);
-            commitOK = operation.commit();
+            commitOK = operation.commit(bucket);
             return bucket;
 
         } finally {
             try {
                 if (!commitOK)
-                    rollback(operation);
+                    rollback(operation, bucket);
             } catch (Exception e) {
                 if (!isMainException) {
                     if (e instanceof InternalCriticalException)
@@ -243,7 +243,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
                 checkNotExistsBucket(newBucketName);
 
                 operation = getJournalService().updateBucket(bucket, newBucketName);
-
                 backupBucketMetadata(bucket);
 
                 bucketMeta = bucket.getBucketMetadata();
@@ -262,9 +261,8 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
                         throw new InternalCriticalException(e, objectInfo(drive));
                     }
                 }
-                // TODO AT ver donde poner esto mejor
-                updateCacheBucket(oldName, new OdilonBucket(bucketMeta));
-                commitOK = operation.commit();
+
+                commitOK = operation.commit(bucket);
                 return bucket;
 
             } finally {
@@ -322,8 +320,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
                  * once the bucket is marked as DELETED on all drives and the TRX commited -> it
                  * is gone, it can not be restored
                  */
-                removeCacheBucket(bucket);
-                commitOK = operation.commit();
+                commitOK = operation.commit(bucket);
 
             } finally {
 
@@ -406,6 +403,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 
             if (operation.getOperationCode() == OperationCode.CREATE_BUCKET) {
                 removeCacheBucket(bucketId);
+                
                 for (Drive drive : getDrivesAll()) {
                     ((OdilonDrive) drive).forceDeleteBucketById(bucketId);
                 }
@@ -1509,9 +1507,13 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
     }
 
     protected void rollback(VirtualFileSystemOperation operation) {
+                    rollback(operation);
+    }
+    
+    protected void rollback(VirtualFileSystemOperation operation, Object payload) {
         if (operation == null)
             return;
-        rollbackJournal(operation, false);
+        rollbackJournal(operation, payload, false);
 
     }
 }

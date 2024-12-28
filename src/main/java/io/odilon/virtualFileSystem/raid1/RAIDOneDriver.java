@@ -682,8 +682,19 @@ public class RAIDOneDriver extends BaseIODriver {
      * @param bucket
      * @param objectName
      */
+    
     @Override
-    public void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
+    public void rollbackJournal(VirtualFileSystemOperation operation) {
+        rollbackJournal(operation, null, false);
+    }
+    
+    @Override
+    public void rollbackJournal(VirtualFileSystemOperation operation,  boolean recoveryMode) {
+        rollbackJournal(operation, null, recoveryMode);
+    }
+    
+    @Override
+    public void rollbackJournal(VirtualFileSystemOperation operation, Object payload, boolean recoveryMode) {
         Check.requireNonNullArgument(operation, "operation is null");
         if (operation.getOperationCode() == OperationCode.CREATE_OBJECT) {
             RAIDOneCreateObjectHandler handler = new RAIDOneCreateObjectHandler(this);

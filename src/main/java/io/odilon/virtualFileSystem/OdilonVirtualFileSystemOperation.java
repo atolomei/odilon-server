@@ -211,19 +211,33 @@ public class OdilonVirtualFileSystemOperation implements VirtualFileSystemOperat
     }
 
     @Override
+    public boolean commit(Object payload) {
+        return this. getJournalService() .commit(this, payload);
+    }
+    
+    @Override
     public boolean commit() {
-        return this.journalService.commit(this);
+        return this. getJournalService() .commit(this);
     }
 
     @Override
     public boolean cancel() {
-        return this.journalService.cancel(this);
+        return this. getJournalService() .cancel(this);
     }
 
+    @Override
+    public boolean cancel(Object payload) {
+        return this. getJournalService() .cancel(this, payload);
+    }
+    
     public void setJournalService(JournalService journalService) {
         this.journalService = journalService;
     }
 
+    public JournalService getJournalService() {
+        return this.journalService;
+    }
+    
     @Override
     public String getBucketName() {
         return this.bucketName;

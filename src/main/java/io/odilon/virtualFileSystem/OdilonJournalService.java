@@ -16,6 +16,7 @@
  */
 package io.odilon.virtualFileSystem;
 
+
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -137,8 +138,11 @@ public class OdilonJournalService extends BaseService implements JournalService 
     @Override
     public VirtualFileSystemOperation updateBucket(ServerBucket bucket, String newBucketName) {
         Check.requireNonNullArgument(bucket, "bucket is null");
-        return createNew(OperationCode.UPDATE_BUCKET, Optional.of(bucket.getId()), Optional.of(bucket.getName()),
-                Optional.of(newBucketName), Optional.empty());
+        return createNew(   OperationCode.UPDATE_BUCKET, 
+                            Optional.of(bucket.getId()), 
+                            Optional.of(bucket.getName()),
+                            Optional.of(newBucketName), 
+                            Optional.empty());
     }
 
     @Override
@@ -195,6 +199,10 @@ public class OdilonJournalService extends BaseService implements JournalService 
                 Optional.ofNullable(objectName), Optional.of(Integer.valueOf(version)));
     }
 
+    @Override
+    public boolean commit(VirtualFileSystemOperation operation) {
+                return commit(operation, null);
+    }
     /**
      * <p>
      * If there is a replica enabled, 1. save the op into the replica queue 2.
@@ -203,46 +211,69 @@ public class OdilonJournalService extends BaseService implements JournalService 
      * </p>
      */
     @Override
-    public boolean commit(VirtualFileSystemOperation opx) {
-
-        if (opx == null)
+    public boolean commit(VirtualFileSystemOperation operation, Object payload) {
+        
+        if (operation == null)
             return true;
 
         synchronized (this) {
-            getApplicationEventPublisher().publishEvent(new CacheEvent(opx));
+        
+            boolean isOK = false;
+            
             try {
+                
                 if (isStandBy())
-                    getReplicationService().enqueue(opx);
-                getVirtualFileSystemService().removeJournal(opx.getId());
-                getOperations().remove(opx.getId());
+                    getReplicationService().enqueue(operation);
+                
+                getApplicationEventPublisher().publishEvent(new CacheEvent(operation, Action.COMMIT));
+                
+                if (payload instanceof ServerBucket)
+                    getApplicationEventPublisher().publishEvent(new BucketEvent(operation, Action.COMMIT, (ServerBucket) payload));
+                
+                getVirtualFileSystemService().removeJournal(operation.getId());
+                getOperations().remove(operation.getId());
+
+                isOK = true;
+                return isOK;
+                
             } catch (Exception e) {
                 if (isStandBy()) {
-                    getOpsAborted().put(opx.getId(), opx.getId());
-                    logger.debug("rollback replication -> " + opx.toString());
-                    getReplicationService().cancel(opx);
+                    getOpsAborted().put(operation.getId(), operation.getId());
+                    getReplicationService().cancel(operation);
                 }
                 throw e;
             }
-            return true;
         }
     }
 
     @Override
-    public boolean cancel(VirtualFileSystemOperation opx) {
+    public boolean cancel(VirtualFileSystemOperation virtualFileSystemOperation) {
+        return cancel(virtualFileSystemOperation, null);
+    }
+    
+    
+    @Override
+    public boolean cancel(VirtualFileSystemOperation operation, Object payload) {
 
-        if (opx == null)
+        if (operation == null)
             return true;
 
         synchronized (this) {
             try {
-                CacheEvent event = new CacheEvent(opx);
+                
+                CacheEvent event = new CacheEvent(operation, Action.ROLLBACK);
                 getApplicationEventPublisher().publishEvent(event);
-                getVirtualFileSystemService().removeJournal(opx.getId());
+                
+                if (payload instanceof ServerBucket)
+                    getApplicationEventPublisher().publishEvent(new BucketEvent(operation, Action.ROLLBACK, (ServerBucket) payload));
+                
+                getVirtualFileSystemService().removeJournal(operation.getId());
+                
             } catch (InternalCriticalException e) {
                 logger.error(e, "the operation was saved in just some of the drives due to a crash", SharedConstant.NOT_THROWN);
             }
-            logger.debug("Cancel ->" + opx.toString());
-            getOperations().remove(opx.getId());
+            logger.debug("Cancel ->" + operation.toString());
+            getOperations().remove(operation.getId());
         }
         return true;
     }
@@ -302,13 +333,16 @@ public class OdilonJournalService extends BaseService implements JournalService 
         return this.isStandBy;
     }
 
-    private synchronized VirtualFileSystemOperation createNew(OperationCode op, Optional<Long> bucketId,
+    private synchronized VirtualFileSystemOperation createNew(OperationCode code, Optional<Long> bucketId,
             Optional<String> bucketName, Optional<String> objectName, Optional<Integer> iVersion) {
-        final VirtualFileSystemOperation operation = new OdilonVirtualFileSystemOperation(newOperationId(), op, bucketId,
+        
+        final VirtualFileSystemOperation operation = new OdilonVirtualFileSystemOperation(newOperationId(), code, bucketId,
                 bucketName, objectName, iVersion, getRedundancyLevel(), this);
+        
         getVirtualFileSystemService().saveJournal(operation);
         getOperations().put(operation.getId(), operation);
         return operation;
+        
     }
 
     private RedundancyLevel getRedundancyLevel() {
@@ -326,4 +360,7 @@ public class OdilonJournalService extends BaseService implements JournalService 
     private ApplicationEventPublisher getApplicationEventPublisher() {
         return this.applicationEventPublisher;
     }
+
+
+
 }

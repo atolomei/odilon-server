@@ -41,6 +41,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.ApplicationListener;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.stereotype.Service;
 
@@ -78,6 +79,7 @@ import io.odilon.virtualFileSystem.model.DriveStatus;
 import io.odilon.virtualFileSystem.model.IODriver;
 import io.odilon.virtualFileSystem.model.JournalService;
 import io.odilon.virtualFileSystem.model.LockService;
+import io.odilon.virtualFileSystem.model.OperationCode;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemObject;
@@ -111,7 +113,8 @@ import io.odilon.virtualFileSystem.raid6.RAIDSixDriver;
  */
 @ThreadSafe
 @Service
-public class OdilonVirtualFileSystemService extends BaseService implements VirtualFileSystemService, ApplicationContextAware {
+public class OdilonVirtualFileSystemService extends BaseService
+        implements VirtualFileSystemService, ApplicationContextAware, ApplicationListener<BucketEvent> {
 
     static private Logger logger = Logger.getLogger(OdilonVirtualFileSystemService.class.getName());
     static private Logger startuplogger = Logger.getLogger("StartupLogger");
@@ -798,6 +801,28 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
         this.applicationContext = applicationContext;
     }
 
+    @Override
+    public void onApplicationEvent(BucketEvent event) {
+
+        if (event.getAction() == Action.COMMIT && event.getOperation().getOperationCode() == OperationCode.CREATE_BUCKET) {
+            ServerBucket bucket = event.getBucket();
+            getBucketCache().add(bucket);
+            return;
+        }
+
+        if (event.getAction() == Action.COMMIT && event.getOperation().getOperationCode() == OperationCode.UPDATE_BUCKET) {
+            ServerBucket bucket = event.getBucket();
+            getBucketCache().update(event.getOperation().getBucketName(), bucket);
+            return;
+        }
+
+        if (event.getAction() == Action.COMMIT && event.getOperation().getOperationCode() == OperationCode.DELETE_BUCKET) {
+            ServerBucket bucket = event.getBucket();
+            getBucketCache().remove(bucket);
+            return;
+        }
+    }
+
     /**
      * <p>
      * if the object does not exist or is in state {@link ObjectStatus#DELETE} ->
@@ -1323,4 +1348,5 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
     protected AtomicLong getBucketIdGenerator() {
         return this.bucketIdGenerator;
     }
+
 }
