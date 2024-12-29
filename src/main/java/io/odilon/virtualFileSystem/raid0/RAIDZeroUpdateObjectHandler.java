@@ -93,8 +93,10 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
                 ObjectMetadata meta = getMetadata(bucket, objectName, true);
                 beforeHeadVersion = meta.getVersion();
                 operation = updateObject(bucket, objectName, beforeHeadVersion);
+
                 /** backup current head version */
                 versionObject(bucket, objectName, beforeHeadVersion);
+
                 /** copy new version head version */
                 afterHeadVersion = beforeHeadVersion + 1;
                 saveObjectDataFile(bucket, objectName, stream, srcFileName);
@@ -273,7 +275,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
     protected void updateObjectMetadata(ObjectMetadata meta) {
 
         VirtualFileSystemOperation operation = null;
-        boolean done = false;
+        boolean commitOK = false;
         boolean isMainException = false;
 
         objectWriteLock(meta);
@@ -288,19 +290,19 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
                 bucket = getBucketCache().get(meta.getBucketId());
 
                 operation = getJournalService().updateObjectMetadata(bucket, meta.getObjectName(), meta.getVersion());
-
                 backupMetadata(meta, bucket);
                 getWriteDrive(bucket, meta.getObjectName()).saveObjectMetadata(meta);
 
-                done = operation.commit();
+                commitOK = operation.commit();
+
             } catch (Exception e) {
                 isMainException = true;
-                done = false;
+                commitOK = false;
                 throw new InternalCriticalException(e, objectInfo(meta));
 
             } finally {
                 try {
-                    if (!done) {
+                    if (!commitOK) {
                         try {
                             rollback(operation);
                         } catch (Exception e) {
@@ -310,7 +312,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
                                 logger.error(e, objectInfo(meta), SharedConstant.NOT_THROWN);
                         }
                     } else {
-                        /**TODO-> Delete backup Metadata. change to Async */
+                        /** TODO-> Delete backup Metadata. change to Async */
                         try {
                             if (bucket != null)
                                 FileUtils.deleteQuietly(new File(
@@ -496,7 +498,6 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroHandler {
     }
 
     /**
-     * 
      * copy metadata directory
      */
     private void backupMetadata(ObjectMetadata meta, ServerBucket bucket) {

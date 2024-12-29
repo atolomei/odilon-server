@@ -56,7 +56,6 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
         super(driver);
     }
 
-
     /**
      * <p>
      * The procedure is the same whether version control is enabled or not
@@ -93,10 +92,10 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
 
                 int version = 0;
                 operation = createObject(bucket, objectName);
-                
+
                 saveObjectDataFile(bucket, objectName, stream, srcFileName);
                 saveObjectMetadata(bucket, objectName, srcFileName, contentType, version, customTags);
-                
+
                 commitOk = operation.commit();
 
             } catch (InternalCriticalException e1) {
@@ -132,7 +131,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
             objectWriteUnLock(bucket, objectName);
         }
     }
-    
+
     /**
      * <p>
      * This method is <b>not</b> ThreadSafe, callers must ensure proper concurrency
@@ -140,13 +139,13 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
      * </p>
      */
     protected void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
-        
+
         Check.requireNonNullArgument(operation, "operation is null");
         Check.checkTrue(operation.getOperationCode() == OperationCode.CREATE_OBJECT,
                 "Invalid operation ->  " + operation.getOperationCode().getName());
 
         boolean rollbackOK = false;
-        
+
         ServerBucket bucket = getBucketCache().get(operation.getBucketId());
         String objectName = operation.getObjectName();
         try {
@@ -158,6 +157,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
 
             FileUtils.deleteQuietly(path.metadataDirPath().toFile());
             FileUtils.deleteQuietly(path.dataFilePath().toFile());
+
             rollbackOK = true;
 
         } catch (InternalCriticalException e) {
@@ -175,5 +175,4 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
                 operation.cancel();
         }
     }
-
 }
