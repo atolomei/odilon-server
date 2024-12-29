@@ -329,10 +329,6 @@ public class OdilonJournalService extends BaseService implements JournalService 
         }
     }
 
-    private boolean isStandBy() {
-        return this.isStandBy;
-    }
-
     private synchronized VirtualFileSystemOperation createNew(OperationCode code, Optional<Long> bucketId,
             Optional<String> bucketName, Optional<String> objectName, Optional<Integer> iVersion) {
         
@@ -346,7 +342,7 @@ public class OdilonJournalService extends BaseService implements JournalService 
     }
 
     private RedundancyLevel getRedundancyLevel() {
-        return this.virtualFileSystemService.getRedundancyLevel();
+        return getVirtualFileSystemService().getRedundancyLevel();
     }
 
     private Map<String, VirtualFileSystemOperation> getOperations() {
@@ -359,6 +355,10 @@ public class OdilonJournalService extends BaseService implements JournalService 
 
     private ApplicationEventPublisher getApplicationEventPublisher() {
         return this.applicationEventPublisher;
+    }
+
+    private boolean isStandBy() {
+        return this.isStandBy;
     }
 
 

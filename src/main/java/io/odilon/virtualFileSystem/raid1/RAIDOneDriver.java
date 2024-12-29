@@ -34,6 +34,7 @@ import javax.annotation.concurrent.ThreadSafe;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
+import io.odilon.cache.CacheEvent;
 import io.odilon.error.OdilonObjectNotFoundException;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
@@ -47,10 +48,12 @@ import io.odilon.query.BucketIteratorService;
 
 import io.odilon.util.Check;
 import io.odilon.util.OdilonFileUtils;
+import io.odilon.virtualFileSystem.Action;
 import io.odilon.virtualFileSystem.BaseIODriver;
 import io.odilon.virtualFileSystem.ObjectPath;
 import io.odilon.virtualFileSystem.OdilonBucket;
 import io.odilon.virtualFileSystem.OdilonObject;
+import io.odilon.virtualFileSystem.OdilonVirtualFileSystemOperation;
 import io.odilon.virtualFileSystem.model.BucketIterator;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.LockService;
@@ -682,17 +685,17 @@ public class RAIDOneDriver extends BaseIODriver {
      * @param bucket
      * @param objectName
      */
-    
+
     @Override
     public void rollbackJournal(VirtualFileSystemOperation operation) {
         rollbackJournal(operation, null, false);
     }
-    
+
     @Override
-    public void rollbackJournal(VirtualFileSystemOperation operation,  boolean recoveryMode) {
+    public void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
         rollbackJournal(operation, null, recoveryMode);
     }
-    
+
     @Override
     public void rollbackJournal(VirtualFileSystemOperation operation, Object payload, boolean recoveryMode) {
         Check.requireNonNullArgument(operation, "operation is null");
@@ -776,6 +779,12 @@ public class RAIDOneDriver extends BaseIODriver {
         }
     }
 
+    @Override
+    public void syncObject(ObjectMetadata meta) {
+        Check.requireNonNullArgument(meta, "meta is null");
+        logger.error("not done", SharedConstant.NOT_THROWN);
+    }
+    
     /**
      * DATA CONSISTENCY The system crashes before Commit or Cancel -> next time the
      * system starts up it will CANCEL all operations that are incomplete. REDO in
@@ -846,7 +855,12 @@ public class RAIDOneDriver extends BaseIODriver {
                     }
                 }
 
-                getVirtualFileSystemService().getObjectMetadataCacheService().remove(bucket.getId(), objectName);
+                VirtualFileSystemOperation operation = new OdilonVirtualFileSystemOperation();
+                operation.setOperationCode(OperationCode.INTEGRITY_CHECK);
+                operation.setBucketId(bucket.getId());
+                operation.setObjectName(objectName);
+                CacheEvent event = new CacheEvent(operation, Action.COMMIT);
+                getVirtualFileSystemService().getApplicationEventPublisher().publishEvent(event);
 
             } catch (Exception e) {
                 logger.error(e, SharedConstant.NOT_THROWN);
@@ -906,9 +920,5 @@ public class RAIDOneDriver extends BaseIODriver {
         }
     }
 
-    @Override
-    public void syncObject(ObjectMetadata meta) {
-        Check.requireNonNullArgument(meta, "meta is null");
-        logger.error("not done", SharedConstant.NOT_THROWN);
-    }
+
 }

@@ -185,10 +185,6 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
         }
     }
 
-    /**
-     * 
-     * 
-     */
     @Override
     public InputStream getObjectVersionInputStream(ServerBucket bucket, String objectName, int version) {
 
@@ -348,17 +344,16 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
      * locked before calling this
      * 
      */
-    
     @Override
     public void rollbackJournal(VirtualFileSystemOperation operation) {
         rollbackJournal(operation, false);
     }
-    
+
     @Override
-    public void rollbackJournal(VirtualFileSystemOperation operation,  boolean recoveryMode) {
+    public void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
         rollbackJournal(operation, null, recoveryMode);
     }
-    
+
     @Override
     public void rollbackJournal(VirtualFileSystemOperation operation, Object payload, boolean recoveryMode) {
 
@@ -397,7 +392,6 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
         boolean done = false;
 
         try {
-
             if (getServerSettings().isStandByEnabled())
                 getReplicationService().cancel(operation);
 
@@ -696,7 +690,6 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
     public RedundancyLevel getRedundancyLevel() {
         return RedundancyLevel.RAID_6;
     }
-
 
     @Override
     public boolean setUpDrives() {

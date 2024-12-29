@@ -77,26 +77,26 @@ public class OdilonVirtualFileSystemOperation implements VirtualFileSystemOperat
     private OffsetDateTime timestamp;
 
     @JsonProperty("operation")
-    private OperationCode op;
+    private OperationCode operationCode;
 
     @JsonProperty("raid")
     private RedundancyLevel raid;
 
+    
     public OdilonVirtualFileSystemOperation() {
     }
 
-    @Override
-    public String getUUID() {
-
-        return op.getEntityGroupCode() + ":" + ((bucketId != null) ? bucketId.toString() : "null") + ":"
-                + ((objectName != null) ? objectName : "null");
-    }
-
-    public OdilonVirtualFileSystemOperation(String id, OperationCode op, Optional<Long> bucketId, Optional<String> bucketName,
-            Optional<String> objectName, Optional<Integer> iVersion, RedundancyLevel raid, JournalService journalService) {
+    public OdilonVirtualFileSystemOperation(    String id, 
+                                                OperationCode op, 
+                                                Optional<Long> bucketId, 
+                                                Optional<String> bucketName,
+                                                Optional<String> objectName, 
+                                                Optional<Integer> iVersion, 
+                                                RedundancyLevel raid, 
+                                                JournalService journalService) {
 
         this.id = id;
-        this.op = op;
+        this.operationCode = op;
 
         if (iVersion.isPresent())
             version = iVersion.get().intValue();
@@ -137,6 +137,13 @@ public class OdilonVirtualFileSystemOperation implements VirtualFileSystemOperat
         return this.version;
     }
 
+    @Override
+    public String getUUID() {
+        return operationCode.getEntityGroupCode() + ":" + ((bucketId != null) ? bucketId.toString() : "null") + ":"
+                + ((objectName != null) ? objectName : "null");
+    }
+
+    
     protected void setTimestamp(OffsetDateTime date) {
         this.timestamp = date;
     }
@@ -203,11 +210,11 @@ public class OdilonVirtualFileSystemOperation implements VirtualFileSystemOperat
 
     @Override
     public OperationCode getOperationCode() {
-        return op;
+        return operationCode;
     }
 
     public void setOp(OperationCode op) {
-        this.op = op;
+        this.operationCode = op;
     }
 
     @Override
@@ -241,6 +248,11 @@ public class OdilonVirtualFileSystemOperation implements VirtualFileSystemOperat
     @Override
     public String getBucketName() {
         return this.bucketName;
+    }
+
+    @Override
+    public void setOperationCode(OperationCode code) {
+        this.operationCode=code;
     }
 
 }

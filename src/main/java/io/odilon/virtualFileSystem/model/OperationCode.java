@@ -46,7 +46,8 @@ public enum OperationCode {
     CREATE_SERVER_METADATA("create_server_metadata", 70, "s"), // 11
     UPDATE_SERVER_METADATA("update_server_metadata", 88, "s"), // 12
 
-    CREATE_SERVER_MASTERKEY("create_server_key", 90, "s"); // 13
+    CREATE_SERVER_MASTERKEY("create_server_key", 90, "s"), // 13
+    INTEGRITY_CHECK("inttegrity_check", 101, "o"); // 14
 
     static List<OperationCode> ops;
 
@@ -94,6 +95,7 @@ public enum OperationCode {
         ops.add(UPDATE_SERVER_METADATA);
 
         ops.add(CREATE_SERVER_MASTERKEY);
+        ops.add(INTEGRITY_CHECK);
 
         return ops;
     }
@@ -140,6 +142,9 @@ public enum OperationCode {
         if (normalized.equals(CREATE_SERVER_MASTERKEY.getName()))
             return CREATE_SERVER_MASTERKEY;
 
+        if (normalized.equals(INTEGRITY_CHECK.getName()))
+            return INTEGRITY_CHECK;
+        
         throw new IllegalArgumentException("unsuported name -> " + name);
     }
 
@@ -175,6 +180,9 @@ public enum OperationCode {
         if (code == CREATE_SERVER_MASTERKEY.getCode())
             return CREATE_SERVER_MASTERKEY;
 
+        if (code == INTEGRITY_CHECK.getCode())
+            return INTEGRITY_CHECK;
+        
         throw new IllegalArgumentException("unsuported code -> " + String.valueOf(code));
     }
 
@@ -216,7 +224,8 @@ public enum OperationCode {
 
     public boolean isObjectOperation() {
         return (CREATE_OBJECT.equals(this) || UPDATE_OBJECT.equals(this) || DELETE_OBJECT.equals(this)
-                || SYNC_OBJECT_NEW_DRIVE.equals(this) || UPDATE_OBJECT_METADATA.equals(this));
+                || SYNC_OBJECT_NEW_DRIVE.equals(this) || UPDATE_OBJECT_METADATA.equals(this)) ||
+                INTEGRITY_CHECK.equals(this);
     }
 
     public String getEntityGroupCode() {

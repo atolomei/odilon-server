@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationEventPublisher;
 
 import io.odilon.cache.FileCacheService;
 import io.odilon.cache.ObjectMetadataCacheService;
@@ -278,4 +279,6 @@ public interface VirtualFileSystemService extends SystemService {
 
     public BucketCache getBucketCache();
 
+
+    public ApplicationEventPublisher getApplicationEventPublisher();
 }

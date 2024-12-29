@@ -860,6 +860,7 @@ public class OdilonVirtualFileSystemService extends BaseService
         return this.lockService;
     }
 
+    @Override
     public ApplicationEventPublisher getApplicationEventPublisher() {
         return this.applicationEventPublisher;
     }

@@ -33,7 +33,6 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ServiceStatus;
-import io.odilon.model.SharedConstant;
 import io.odilon.service.BaseService;
 import io.odilon.service.ServerSettings;
 import io.odilon.virtualFileSystem.model.ServerBucket;
@@ -56,6 +55,7 @@ import io.odilon.virtualFileSystem.model.OperationCode;
 public class ObjectMetadataCacheService extends BaseService implements ApplicationListener<CacheEvent> {
 
     static private Logger startuplogger = Logger.getLogger("StartupLogger");
+    @SuppressWarnings("unused")
     static private Logger logger = Logger.getLogger(ObjectMetadataCacheService.class.getName());
 
     @JsonIgnore
@@ -118,6 +118,10 @@ public class ObjectMetadataCacheService extends BaseService implements Applicati
             return;
         }
         if (event.getOperation().getOperationCode() == OperationCode.SYNC_OBJECT_NEW_DRIVE) {
+            remove(event.getOperation().getBucketId(), event.getOperation().getObjectName());
+            return;
+        }
+        if (event.getOperation().getOperationCode() == OperationCode.INTEGRITY_CHECK) {
             remove(event.getOperation().getBucketId(), event.getOperation().getObjectName());
             return;
         }

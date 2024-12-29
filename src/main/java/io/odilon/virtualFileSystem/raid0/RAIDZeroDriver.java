@@ -42,6 +42,7 @@ import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import io.odilon.cache.CacheEvent;
 import io.odilon.error.OdilonObjectNotFoundException;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
@@ -58,6 +59,7 @@ import io.odilon.scheduler.DeleteBucketObjectPreviousVersionServiceRequest;
 import io.odilon.scheduler.ServiceRequest;
 import io.odilon.util.Check;
 import io.odilon.util.OdilonFileUtils;
+import io.odilon.virtualFileSystem.Action;
 import io.odilon.virtualFileSystem.BaseIODriver;
 import io.odilon.virtualFileSystem.ObjectPath;
 import io.odilon.virtualFileSystem.OdilonBucket;
@@ -988,8 +990,14 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 
             if (originalSha256 == null) {
                 metadata.setIntegrityCheck(now);
-                getVirtualFileSystemService().getObjectMetadataCacheService().remove(metadata.getBucketId(),
-                        metadata.getObjectName());
+                
+                VirtualFileSystemOperation operation = new OdilonVirtualFileSystemOperation();
+                operation.setOperationCode(OperationCode.INTEGRITY_CHECK);
+                operation.setBucketId(metadata.getBucketId());
+                operation.setObjectName(metadata.getObjectName());
+                CacheEvent event =new CacheEvent(operation, Action.COMMIT);
+                getVirtualFileSystemService().getApplicationEventPublisher().publishEvent(event);
+                
                 readDrive.saveObjectMetadata(metadata);
                 return true;
             }

@@ -59,7 +59,12 @@ public interface VirtualFileSystemOperation {
 
     public int getVersion();
 
-    String getUUID();
+    public String getUUID();
+    
+    public void setOperationCode(OperationCode code);
+    public void setBucketId(Long bucketId);
+    public void setObjectName(String name);
+    
 
 
 
