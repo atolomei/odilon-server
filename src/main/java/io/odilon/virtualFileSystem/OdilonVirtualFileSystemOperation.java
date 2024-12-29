@@ -82,18 +82,11 @@ public class OdilonVirtualFileSystemOperation implements VirtualFileSystemOperat
     @JsonProperty("raid")
     private RedundancyLevel raid;
 
-    
     public OdilonVirtualFileSystemOperation() {
     }
 
-    public OdilonVirtualFileSystemOperation(    String id, 
-                                                OperationCode op, 
-                                                Optional<Long> bucketId, 
-                                                Optional<String> bucketName,
-                                                Optional<String> objectName, 
-                                                Optional<Integer> iVersion, 
-                                                RedundancyLevel raid, 
-                                                JournalService journalService) {
+    public OdilonVirtualFileSystemOperation(String id, OperationCode op, Optional<Long> bucketId, Optional<String> bucketName,
+            Optional<String> objectName, Optional<Integer> iVersion, RedundancyLevel raid, JournalService journalService) {
 
         this.id = id;
         this.operationCode = op;
@@ -143,7 +136,6 @@ public class OdilonVirtualFileSystemOperation implements VirtualFileSystemOperat
                 + ((objectName != null) ? objectName : "null");
     }
 
-    
     protected void setTimestamp(OffsetDateTime date) {
         this.timestamp = date;
     }
@@ -219,24 +211,24 @@ public class OdilonVirtualFileSystemOperation implements VirtualFileSystemOperat
 
     @Override
     public boolean commit(Object payload) {
-        return this. getJournalService() .commit(this, payload);
+        return this.getJournalService().commit(this, payload);
     }
-    
+
     @Override
     public boolean commit() {
-        return this. getJournalService() .commit(this);
+        return this.getJournalService().commit(this);
     }
 
     @Override
     public boolean cancel() {
-        return this. getJournalService() .cancel(this);
+        return this.getJournalService().cancel(this);
     }
 
     @Override
     public boolean cancel(Object payload) {
-        return this. getJournalService() .cancel(this, payload);
+        return this.getJournalService().cancel(this, payload);
     }
-    
+
     public void setJournalService(JournalService journalService) {
         this.journalService = journalService;
     }
@@ -244,7 +236,7 @@ public class OdilonVirtualFileSystemOperation implements VirtualFileSystemOperat
     public JournalService getJournalService() {
         return this.journalService;
     }
-    
+
     @Override
     public String getBucketName() {
         return this.bucketName;
@@ -252,7 +244,7 @@ public class OdilonVirtualFileSystemOperation implements VirtualFileSystemOperat
 
     @Override
     public void setOperationCode(OperationCode code) {
-        this.operationCode=code;
+        this.operationCode = code;
     }
 
 }

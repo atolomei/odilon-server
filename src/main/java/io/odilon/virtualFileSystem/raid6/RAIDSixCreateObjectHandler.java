@@ -84,10 +84,10 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
         VirtualFileSystemOperation operation = null;
         boolean commitOK = false;
         boolean isMainException = false;
-        
+
         objectWriteLock(bucket, objectName);
         try {
-            
+
             bucketReadLock(bucket);
             try (stream) {
 
@@ -143,7 +143,8 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
     protected void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
 
         Check.requireNonNullArgument(operation, "op is null");
-        Check.checkTrue(operation.getOperationCode() == OperationCode.CREATE_OBJECT, "Invalid operation ->  " + operation.getOperationCode().getName());
+        Check.checkTrue(operation.getOperationCode() == OperationCode.CREATE_OBJECT,
+                "Invalid operation ->  " + operation.getOperationCode().getName());
 
         String objectName = operation.getObjectName();
 

@@ -23,8 +23,8 @@ import java.util.Locale;
 
 /**
  * <p>
- * Atomic operations that managed by the {@link JournalService}.
- * Include: Bucket CRUD, Object CRUD and versions, Sync drive, server metadata, server Masterkey
+ * Atomic operations that managed by the {@link JournalService}. Include: Bucket
+ * CRUD, Object CRUD and versions, Sync drive, server metadata, server Masterkey
  * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
@@ -144,7 +144,7 @@ public enum OperationCode {
 
         if (normalized.equals(INTEGRITY_CHECK.getName()))
             return INTEGRITY_CHECK;
-        
+
         throw new IllegalArgumentException("unsuported name -> " + name);
     }
 
@@ -182,7 +182,7 @@ public enum OperationCode {
 
         if (code == INTEGRITY_CHECK.getCode())
             return INTEGRITY_CHECK;
-        
+
         throw new IllegalArgumentException("unsuported code -> " + String.valueOf(code));
     }
 
@@ -224,8 +224,7 @@ public enum OperationCode {
 
     public boolean isObjectOperation() {
         return (CREATE_OBJECT.equals(this) || UPDATE_OBJECT.equals(this) || DELETE_OBJECT.equals(this)
-                || SYNC_OBJECT_NEW_DRIVE.equals(this) || UPDATE_OBJECT_METADATA.equals(this)) ||
-                INTEGRITY_CHECK.equals(this);
+                || SYNC_OBJECT_NEW_DRIVE.equals(this) || UPDATE_OBJECT_METADATA.equals(this)) || INTEGRITY_CHECK.equals(this);
     }
 
     public String getEntityGroupCode() {

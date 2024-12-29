@@ -23,10 +23,11 @@ import io.odilon.model.RedundancyLevel;
 
 /**
  * <p>
- *  information processing that is divided into individual, indivisible operations called transactions. 
- *  Each transaction must succeed or fail as a complete unit; it can never be only partially complete.
- *  They are persisted on the {@link VirtualFileSystem} by the {@link JournalService}.
- *  
+ * information processing that is divided into individual, indivisible
+ * operations called transactions. Each transaction must succeed or fail as a
+ * complete unit; it can never be only partially complete. They are persisted on
+ * the {@link VirtualFileSystem} by the {@link JournalService}.
+ * 
  * </p>
  * 
  * @see {@link OperationCode}
@@ -38,11 +39,13 @@ public interface VirtualFileSystemOperation {
     public OperationCode getOperationCode();
 
     public boolean commit();
+
     public boolean commit(Object payload);
 
     public boolean cancel();
+
     public boolean cancel(Object payload);
-    
+
     public String getId();
 
     public String toJSON();
@@ -60,12 +63,11 @@ public interface VirtualFileSystemOperation {
     public int getVersion();
 
     public String getUUID();
-    
+
     public void setOperationCode(OperationCode code);
+
     public void setBucketId(Long bucketId);
+
     public void setObjectName(String name);
-    
-
-
 
 }

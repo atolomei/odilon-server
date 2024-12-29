@@ -16,7 +16,6 @@
  */
 package io.odilon.virtualFileSystem.raid0;
 
-
 import java.io.File;
 import java.io.IOException;
 import java.time.OffsetDateTime;
@@ -63,7 +62,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler {
      * @param srcFileName
      * @param contentType
      */
-    
+
     protected void delete(ServerBucket bucket, String objectName) {
         Check.requireNonNullArgument(bucket, "bucket is null");
         Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
@@ -73,9 +72,9 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler {
         int headVersion = -1;
         ObjectMetadata meta = null;
         Drive drive = getDriver().getDrive(bucket, objectName);
-        
+
         objectWriteLock(bucket, objectName);
-        
+
         try {
             bucketReadLock(bucket);
             try {
@@ -142,7 +141,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler {
      * @param bucket
      * @param objectName
      */
-    
+
     protected void deleteObjectAllPreviousVersions(ObjectMetadata meta) {
 
         Check.requireNonNullArgument(meta, "meta is null");
@@ -162,17 +161,19 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler {
 
                 /** must be executed inside the critical zone. */
                 checkExistObject(bucket, meta.getObjectName());
-                
+
                 headVersion = meta.getVersion();
-                
+
                 /** not delete the head version, only previous versions */
                 if (headVersion == 0)
                     return;
 
                 operation = getJournalService().deleteObjectPreviousVersions(bucket, meta.getObjectName(), headVersion);
                 backupMetadata(bucket, meta.getObjectName());
-                
-                /** remove all "objectmetadata.json.vn" Files, but keep -> "objectmetadata.json" **/
+
+                /**
+                 * remove all "objectmetadata.json.vn" Files, but keep -> "objectmetadata.json"
+                 **/
                 for (int version = 0; version < headVersion; version++)
                     FileUtils.deleteQuietly(getDriver().getReadDrive(bucket, meta.getObjectName())
                             .getObjectMetadataVersionFile(bucket, meta.getObjectName(), version));
@@ -251,7 +252,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler {
         ServerBucket bucket = getBucketCache().get(operation.getBucketId());
 
         try {
-            
+
             if (isStandByEnabled())
                 getReplicationService().cancel(operation);
 
@@ -326,7 +327,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler {
      * ServiceRequest itself is not transactional, and it can not be rollback
      * </p>
      */
-    protected  void deleteBucketAllPreviousVersions(ServerBucket bucket) {
+    protected void deleteBucketAllPreviousVersions(ServerBucket bucket) {
         getVirtualFileSystemService().getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext()
                 .getBean(DeleteBucketObjectPreviousVersionServiceRequest.class, bucket.getName(), bucket.getId()));
     }
@@ -347,7 +348,6 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler {
     /** do nothing by the moment */
     protected void postObjectDelete(ObjectMetadata meta, int headVersion) {
     }
-    
 
     private void postObjectPreviousVersionDeleteAllCommit(ObjectMetadata meta, ServerBucket bucket, int headVersion) {
         try {
@@ -376,20 +376,20 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler {
      * @param headVersion
      */
     private void postObjectDeleteCommit(ObjectMetadata meta, ServerBucket bucket, int headVersion) {
-        
+
         try {
             ObjectPath path = new ObjectPath(getWriteDrive(bucket, meta.getObjectName()), bucket.getId(), meta.getObjectName());
             /** delete data versions(1..n-1) **/
             for (int version = 0; version <= headVersion; version++)
                 FileUtils.deleteQuietly(path.dataFileVersionPath(version).toFile());
-    
+
             /** delete metadata (head) */
             /** not required because it was done before commit */
-    
+
             /** delete data (head) */
             File file = path.dataFilePath().toFile();
             FileUtils.deleteQuietly(file);
-    
+
             /** delete backup Metadata */
             FileUtils.deleteQuietly(path.metadataWorkFilePath().toFile());
         } catch (Exception e) {
@@ -450,8 +450,8 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler {
         if (meta == null)
             return;
         try {
-            if (        operation.getOperationCode() == OperationCode.DELETE_OBJECT
-                    ||  operation.getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS)
+            if (operation.getOperationCode() == OperationCode.DELETE_OBJECT
+                    || operation.getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS)
                 getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext()
                         .getBean(AfterDeleteObjectServiceRequest.class, operation.getOperationCode(), meta, headVersion));
         } catch (Exception e) {

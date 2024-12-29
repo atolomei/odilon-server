@@ -284,6 +284,10 @@ public class FileCacheService extends BaseService implements ApplicationListener
             remove(event.getOperation().getBucketId(), event.getOperation().getObjectName(), Optional.empty());
             return;
         }
+        if (event.getOperation().getOperationCode() == OperationCode.INTEGRITY_CHECK) {
+            remove(event.getOperation().getBucketId(), event.getOperation().getObjectName(), Optional.empty());
+            return;
+        }
     }
 
     @PostConstruct

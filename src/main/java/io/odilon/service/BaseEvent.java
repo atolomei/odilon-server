@@ -15,14 +15,13 @@ import io.odilon.model.SharedConstant;
 import io.odilon.virtualFileSystem.Action;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
-
 public class BaseEvent extends ApplicationEvent implements JSONObject {
-        
+
     private static final long serialVersionUID = 1L;
 
     @JsonIgnore
     static private Logger logger = Logger.getLogger(BaseEvent.class.getName());
-    
+
     @JsonIgnore
     static final private ObjectMapper mapper = new ObjectMapper();
 
@@ -32,30 +31,25 @@ public class BaseEvent extends ApplicationEvent implements JSONObject {
         mapper.registerModule(new Jdk8Module());
     }
 
-    
     private final VirtualFileSystemOperation operation;
-    
+
     private final Action action;
 
-    
-    
     public BaseEvent(VirtualFileSystemOperation operation, Action action) {
         super(operation);
         this.operation = operation;
-        this.action=action;
-    
+        this.action = action;
+
     }
 
     public Action getAction() {
         return this.action;
     }
-    
-     
+
     public VirtualFileSystemOperation getOperation() {
         return operation;
     }
 
-    
     @Override
     public String toString() {
         StringBuilder str = new StringBuilder();
@@ -77,8 +71,5 @@ public class BaseEvent extends ApplicationEvent implements JSONObject {
     public ObjectMapper getObjectMapper() {
         return mapper;
     }
-    
-    
-
 
 }
