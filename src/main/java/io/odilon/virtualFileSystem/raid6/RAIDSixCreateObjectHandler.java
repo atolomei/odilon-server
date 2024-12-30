@@ -16,7 +16,6 @@
  */
 package io.odilon.virtualFileSystem.raid6;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.NoSuchAlgorithmException;
@@ -26,8 +25,6 @@ import java.util.List;
 import java.util.Optional;
 
 import javax.annotation.concurrent.ThreadSafe;
-
-import org.apache.commons.io.FileUtils;
 
 import io.odilon.OdilonVersion;
 import io.odilon.errors.InternalCriticalException;
@@ -39,7 +36,6 @@ import io.odilon.util.Check;
 import io.odilon.util.OdilonFileUtils;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
-import io.odilon.virtualFileSystem.model.OperationCode;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
@@ -52,7 +48,7 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
  */
 
 @ThreadSafe
-public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
+public class RAIDSixCreateObjectHandler extends RAIDSixTransactionHandler {
 
     private static Logger logger = Logger.getLogger(RAIDSixCreateObjectHandler.class.getName());
 
@@ -60,7 +56,6 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
      * <p>
      * Instances of this class are used internally by {@link RAIDSixDriver}
      * <p>
-     * 
      * @param driver
      */
     protected RAIDSixCreateObjectHandler(RAIDSixDriver driver) {
@@ -103,6 +98,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 
                 RAIDSixBlocks raidSixBlocks = saveObjectDataFile(bucket, objectName, stream);
                 saveObjectMetadata(bucket, objectName, raidSixBlocks, srcFileName, contentType, version, customTags);
+                
                 commitOK = operation.commit();
 
             } catch (InternalCriticalException e) {
@@ -138,7 +134,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
      * <p>
      * VFSop.CREATE_OBJECT
      * </p>
-     */
+     
     @Override
     protected void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
 
@@ -158,7 +154,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
 
             ObjectMetadata meta = null;
 
-            /** remove metadata dir on all drives */
+            // remove metadata dir on all drives 
             for (Drive drive : getDriver().getDrivesAll()) {
                 File f_meta = drive.getObjectMetadataFile(bucket, objectName);
                 if ((meta == null) && (f_meta != null)) {
@@ -171,7 +167,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
                 FileUtils.deleteQuietly(new File(drive.getObjectMetadataDirPath(bucket, objectName)));
             }
 
-            /** remove data dir on all drives */
+            /// remove data dir on all drives 
             if (meta != null)
                 getDriver().getObjectDataFiles(meta, bucket, Optional.empty()).forEach(file -> {
                     FileUtils.deleteQuietly(file);
@@ -196,7 +192,8 @@ public class RAIDSixCreateObjectHandler extends RAIDSixHandler {
             }
         }
     }
-
+    */
+    
     /**
      * @param bucket
      * @param objectName

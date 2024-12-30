@@ -43,10 +43,8 @@ import io.odilon.virtualFileSystem.ObjectPath;
 import io.odilon.virtualFileSystem.RAIDHandler;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
-import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
- * *
  * <p>
  * Base class for {@link RAIDZeroDriver} operations
  * </p>
@@ -71,12 +69,6 @@ public abstract class RAIDZeroHandler extends BaseRAIDHandler implements RAIDHan
     @Override
     public RAIDZeroDriver getDriver() {
         return this.driver;
-    }
-
-    protected void rollback(VirtualFileSystemOperation operation) {
-        if (operation == null)
-            return;
-        rollbackJournal(operation, false);
     }
 
     public Drive getWriteDrive(ServerBucket bucket, String objectName) {
@@ -108,7 +100,7 @@ public abstract class RAIDZeroHandler extends BaseRAIDHandler implements RAIDHan
             throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
         }
     }
-    
+
     /**
      * <p>
      * This method is <b>not</b> ThreadSafe, callers must ensure proper concurrency
@@ -126,7 +118,7 @@ public abstract class RAIDZeroHandler extends BaseRAIDHandler implements RAIDHan
      */
     protected void saveObjectMetadata(ServerBucket bucket, String objectName, String srcFileName, String contentType, int version,
             Optional<List<String>> customTags) {
-        
+
         OffsetDateTime now = OffsetDateTime.now();
         Drive drive = getWriteDrive(bucket, objectName);
         ObjectPath path = new ObjectPath(drive, bucket, objectName);
@@ -144,7 +136,7 @@ public abstract class RAIDZeroHandler extends BaseRAIDHandler implements RAIDHan
             meta.setVersioncreationDate(now);
             meta.setVersion(version);
             meta.setLength(path.dataFilePath().toFile().length());
-            meta.setEtag(sha256); 
+            meta.setEtag(sha256);
             meta.setIntegrityCheck(now);
             meta.setSha256(sha256);
             meta.setStatus(ObjectStatus.ENABLED);
@@ -159,7 +151,7 @@ public abstract class RAIDZeroHandler extends BaseRAIDHandler implements RAIDHan
             throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
         }
     }
-    
+
     /**
      * must be executed inside the critical zone.
      */
@@ -184,6 +176,5 @@ public abstract class RAIDZeroHandler extends BaseRAIDHandler implements RAIDHan
             return true;
         return getDriver().getWriteDrive(bucket, objectName).existsObjectMetadata(bucket, objectName);
     }
-
 
 }

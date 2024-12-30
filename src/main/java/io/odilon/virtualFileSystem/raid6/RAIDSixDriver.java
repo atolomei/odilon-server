@@ -335,7 +335,6 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
     }
 
     /**
-     * 
      * <p>
      * This method is not ThreadSafe. The calling object must ensure concurrency
      * control.
@@ -345,44 +344,46 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
      * 
      */
     @Override
-    public void rollbackJournal(VirtualFileSystemOperation operation) {
-        rollbackJournal(operation, false);
-    }
+    public void rollback(VirtualFileSystemOperation operation, Object payload, boolean recoveryMode) {
 
-    @Override
-    public void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
-        rollbackJournal(operation, null, recoveryMode);
-    }
-
-    @Override
-    public void rollbackJournal(VirtualFileSystemOperation operation, Object payload, boolean recoveryMode) {
-
-        Check.requireNonNullArgument(operation, "peration is null");
+        if (operation == null)
+            return;
 
         switch (operation.getOperationCode()) {
         case CREATE_OBJECT: {
-            RAIDSixCreateObjectHandler handler = new RAIDSixCreateObjectHandler(this);
-            handler.rollbackJournal(operation, recoveryMode);
+            RAIDSixRollbackCreateHandler handler = new RAIDSixRollbackCreateHandler(this, operation, recoveryMode);
+            ;
+            handler.rollback();
             return;
         }
         case UPDATE_OBJECT: {
-            RAIDSixUpdateObjectHandler handler = new RAIDSixUpdateObjectHandler(this);
-            handler.rollbackJournal(operation, recoveryMode);
+            RAIDSixRollbackUpdateHandler handler = new RAIDSixRollbackUpdateHandler(this, operation, recoveryMode);
+            ;
+            handler.rollback();
             return;
         }
         case DELETE_OBJECT: {
-            RAIDSixDeleteObjectHandler handler = new RAIDSixDeleteObjectHandler(this);
-            handler.rollbackJournal(operation, recoveryMode);
+            RAIDSixRollbackDeleteHandler handler = new RAIDSixRollbackDeleteHandler(this, operation, recoveryMode);
+            ;
+            handler.rollback();
             return;
         }
         case DELETE_OBJECT_PREVIOUS_VERSIONS: {
-            RAIDSixDeleteObjectHandler handler = new RAIDSixDeleteObjectHandler(this);
-            handler.rollbackJournal(operation, recoveryMode);
+            RAIDSixRollbackDeleteHandler handler = new RAIDSixRollbackDeleteHandler(this, operation, recoveryMode);
+            ;
+            handler.rollback();
             return;
         }
         case UPDATE_OBJECT_METADATA: {
-            RAIDSixUpdateObjectHandler handler = new RAIDSixUpdateObjectHandler(this);
-            handler.rollbackJournal(operation, recoveryMode);
+            RAIDSixRollbackUpdateHandler handler = new RAIDSixRollbackUpdateHandler(this, operation, recoveryMode);
+            ;
+            handler.rollback();
+            return;
+        }
+        case SYNC_OBJECT_NEW_DRIVE: {
+            RAIDSixRollbackSyncHandler handler = new RAIDSixRollbackSyncHandler(this, operation, recoveryMode);
+            ;
+            handler.rollback();
             return;
         }
         default:

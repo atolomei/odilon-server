@@ -16,6 +16,7 @@
  */
 package io.odilon.virtualFileSystem.raid6;
 
+
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -36,12 +37,10 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
-import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.DriveStatus;
 import io.odilon.virtualFileSystem.model.ServerBucket;
-import io.odilon.virtualFileSystem.model.OperationCode;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
@@ -53,7 +52,7 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @ThreadSafe
-public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
+public class RAIDSixSyncObjectHandler extends RAIDSixTransactionHandler {
 
     private static Logger logger = Logger.getLogger(RAIDSixSyncObjectHandler.class.getName());
 
@@ -185,7 +184,7 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
                 try {
                     if ((!done) && (operation != null)) {
                         try {
-                            rollbackJournal(operation, false);
+                            rollback(operation);
                         } catch (Exception e) {
                             throw new InternalCriticalException(e, objectInfo(meta));
                         }
@@ -196,23 +195,6 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
             }
         } finally {
             objectWriteUnLock(meta.getBucketId(), objectName);
-        }
-    }
-
-    @Override
-    public void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
-        Check.requireNonNullArgument(operation, "operation is null");
-        Check.requireTrue(operation.getOperationCode() == OperationCode.SYNC_OBJECT_NEW_DRIVE, 
-                "operation can not be  ->  op: " + operation.getOperationCode().getName());
-
-        switch (operation.getOperationCode()) {
-        case SYNC_OBJECT_NEW_DRIVE: {
-            execRollback(operation, recoveryMode);
-            break;
-        }
-        default: {
-            break;
-        }
         }
     }
 
@@ -236,6 +218,26 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
         });
         return this.drives;
     }
+
+    
+    /**
+    public void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
+        Check.requireNonNullArgument(operation, "operation is null");
+        Check.requireTrue(operation.getOperationCode() == OperationCode.SYNC_OBJECT_NEW_DRIVE, 
+                "operation can not be  ->  op: " + operation.getOperationCode().getName());
+
+        switch (operation.getOperationCode()) {
+        case SYNC_OBJECT_NEW_DRIVE: {
+            execRollback(operation, recoveryMode);
+            break;
+        }
+        default: {
+            break;
+        }
+        }
+    }
+
+    
 
     private void execRollback(VirtualFileSystemOperation operation, boolean recoveryMode) {
 
@@ -277,7 +279,8 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
             getLockService().getObjectLock(bucket, objectName).writeLock().unlock();
         }
     }
-
+**/
+    
     protected synchronized List<Drive> getDrivesToSync() {
         if (this.drivesToSync != null)
             return this.drivesToSync;
@@ -313,19 +316,5 @@ public class RAIDSixSyncObjectHandler extends RAIDSixHandler {
         }
     }
 
-    private void restoreMetadata(ServerBucket bucket, String objectName) {
-        try {
-            for (Drive drive : getDriver().getDrivesEnabled()) {
-                File dest = new File(drive.getObjectMetadataDirPath(bucket, objectName));
-                File src = new File(drive.getBucketWorkDirPath(bucket) + File.separator + objectName);
-                if (src.exists())
-                    FileUtils.copyDirectory(src, dest);
-                else
-                    throw new InternalCriticalException("backup dir does not exist " + getDriver().objectInfo(bucket, objectName)
-                            + "dir:" + src.getAbsolutePath());
-            }
-        } catch (IOException e) {
-            throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName));
-        }
-    }
+
 }

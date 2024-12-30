@@ -38,7 +38,6 @@ import io.odilon.virtualFileSystem.BaseRAIDHandler;
 import io.odilon.virtualFileSystem.RAIDHandler;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
-import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
@@ -55,18 +54,15 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  */
 @ThreadSafe
 public abstract class RAIDSixHandler extends BaseRAIDHandler implements RAIDHandler {
-                    
+
     private static Logger logger = Logger.getLogger(RAIDSixHandler.class.getName());
-    
+
     private final RAIDSixDriver driver;
 
     public RAIDSixHandler(RAIDSixDriver driver) {
         this.driver = driver;
     }
 
-    
-    
-    
     @Override
     public RAIDSixDriver getDriver() {
         return this.driver;
@@ -75,9 +71,7 @@ public abstract class RAIDSixHandler extends BaseRAIDHandler implements RAIDHand
     public VirtualFileSystemService getVirtualFileSystemService() {
         return getDriver().getVirtualFileSystemService();
     }
-    
-    
-    
+
     /**
      * must be executed inside the critical zone.
      */
@@ -102,25 +96,25 @@ public abstract class RAIDSixHandler extends BaseRAIDHandler implements RAIDHand
             return true;
         return getDriver().getObjectMetadataReadDrive(bucket, objectName).existsObjectMetadata(bucket, objectName);
     }
-    
-    
+
     @Override
     protected Drive getObjectMetadataReadDrive(ServerBucket bucket, String objectName) {
-        return getDriver().getDrivesEnabled().get(Math.abs(getKey(bucket,objectName).hashCode()) % getDriver().getDrivesEnabled().size());
+        return getDriver().getDrivesEnabled()
+                .get(Math.abs(getKey(bucket, objectName).hashCode()) % getDriver().getDrivesEnabled().size());
     }
 
-    
-    protected void saveRAIDOneObjectMetadataToDisk(final List<Drive> drives, final List<ObjectMetadata> list, final boolean isHead) {
-        
+    protected void saveRAIDOneObjectMetadataToDisk(final List<Drive> drives, final List<ObjectMetadata> list,
+            final boolean isHead) {
+
         if (logger.isDebugEnabled()) {
-                Check.requireTrue(drives.size()>0, "no drives");
-                Check.requireTrue(drives.size() == list.size(), "must have the same number of elements." + " Drives -> "
-                + String.valueOf(drives.size()) + " - ObjectMetadata -> " + String.valueOf(list.size()));
+            Check.requireTrue(drives.size() > 0, "no drives");
+            Check.requireTrue(drives.size() == list.size(), "must have the same number of elements." + " Drives -> "
+                    + String.valueOf(drives.size()) + " - ObjectMetadata -> " + String.valueOf(list.size()));
         }
 
         final int size = drives.size();
-        
-        if (size==1) {
+
+        if (size == 1) {
             try {
                 ObjectMetadata meta = list.get(0);
                 if (isHead) {
@@ -128,7 +122,7 @@ public abstract class RAIDSixHandler extends BaseRAIDHandler implements RAIDHand
                 } else {
                     drives.get(0).saveObjectMetadataVersion(meta);
                 }
-                
+
             } catch (Exception e) {
                 throw new InternalCriticalException(e);
             }
@@ -169,6 +163,5 @@ public abstract class RAIDSixHandler extends BaseRAIDHandler implements RAIDHand
             throw new InternalCriticalException(e, ObjectMetadata.class.getSimpleName());
         }
     }
- 
-    protected abstract void rollbackJournal(VirtualFileSystemOperation op, boolean recoveryMode);
+
 }

@@ -510,7 +510,9 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
                 for (int version = 0; version < meta.getVersion(); version++) {
                     ObjectMetadata meta_version = readDrive.getObjectMetadataVersion(bucket, objectName, version);
                     if (meta_version != null) {
-                        /** bucketName is not stored on disk, only bucketId, we must set it explicitly */
+                        /**
+                         * bucketName is not stored on disk, only bucketId, we must set it explicitly
+                         */
                         meta_version.setBucketName(bucket.getName());
                         list.add(meta_version);
                     }
@@ -739,58 +741,45 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 
     /**
      * <p>
-     * Rollback from Journal
-     * Required locks must be applied before calling this method
+     * Rollback from Journal Required locks must be applied before calling this
+     * method
      * </p>
      */
     @Override
-    public void rollbackJournal(VirtualFileSystemOperation operation) {
-        rollbackJournal(operation, null, false);
-    }
+    public void rollback(VirtualFileSystemOperation operation, Object payload, boolean recoveryMode) {
 
-    @Override
-    public void rollbackJournal(VirtualFileSystemOperation operation, boolean recovery) {
-        rollbackJournal(operation, null, recovery);
-    }
-    
-    //public void rollbackJournal(VirtualFileSystemOperation operation, Object payload) {
-    //    rollbackJournal(operation, payload, false);
-    //}
-    
-    @Override
-    public void rollbackJournal(VirtualFileSystemOperation operation, Object payload, boolean recoveryMode) {
-
-        Check.requireNonNullArgument(operation, "operation is null");
+        if (operation == null)
+            return;
 
         switch (operation.getOperationCode()) {
         case CREATE_OBJECT: {
-            RAIDZeroCreateObjectHandler handler = new RAIDZeroCreateObjectHandler(this);
-            handler.rollbackJournal(operation, recoveryMode);
-            return;
-        }
-        case UPDATE_OBJECT: {
-            RAIDZeroUpdateObjectHandler handler = new RAIDZeroUpdateObjectHandler(this);
-            handler.rollbackJournal(operation, recoveryMode);
-            return;
-        }
-        case DELETE_OBJECT: {
-            RAIDZeroDeleteObjectHandler handler = new RAIDZeroDeleteObjectHandler(this);
-            handler.rollbackJournal(operation, recoveryMode);
-            return;
-        }
-        case DELETE_OBJECT_PREVIOUS_VERSIONS: {
-            RAIDZeroDeleteObjectHandler handler = new RAIDZeroDeleteObjectHandler(this);
-            handler.rollbackJournal(operation, recoveryMode);
-            return;
-        }
-        case RESTORE_OBJECT_PREVIOUS_VERSION: {
-            RAIDZeroUpdateObjectHandler handler = new RAIDZeroUpdateObjectHandler(this);
-            handler.rollbackJournal(operation, recoveryMode);
+            RAIDZeroRollbackCreateHandler handler = new RAIDZeroRollbackCreateHandler(this, operation, recoveryMode);
+            handler.rollback();
             return;
         }
         case UPDATE_OBJECT_METADATA: {
-            RAIDZeroUpdateObjectHandler handler = new RAIDZeroUpdateObjectHandler(this);
-            handler.rollbackJournal(operation, recoveryMode);
+            RAIDZeroRollbackUpdateHandler handler = new RAIDZeroRollbackUpdateHandler(this, operation, recoveryMode);
+            handler.rollback();
+            return;
+        }
+        case UPDATE_OBJECT: {
+            RAIDZeroRollbackUpdateHandler handler = new RAIDZeroRollbackUpdateHandler(this, operation, recoveryMode);
+            handler.rollback();
+            return;
+        }
+        case RESTORE_OBJECT_PREVIOUS_VERSION: {
+            RAIDZeroRollbackUpdateHandler handler = new RAIDZeroRollbackUpdateHandler(this, operation, recoveryMode);
+            handler.rollback();
+            return;
+        }
+        case DELETE_OBJECT: {
+            RAIDZeroRollbackDeleteHandler handler = new RAIDZeroRollbackDeleteHandler(this, operation, recoveryMode);
+            handler.rollback();
+            return;
+        }
+        case DELETE_OBJECT_PREVIOUS_VERSIONS: {
+            RAIDZeroRollbackDeleteHandler handler = new RAIDZeroRollbackDeleteHandler(this, operation, recoveryMode);
+            handler.rollback();
             return;
         }
         default:
@@ -926,7 +915,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
                     if (!reqRestoreBackup)
                         op.cancel();
                     else
-                        rollbackJournal(op);
+                        rollback(op);
                 }
 
             } catch (Exception e) {
@@ -990,14 +979,14 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 
             if (originalSha256 == null) {
                 metadata.setIntegrityCheck(now);
-                
+
                 VirtualFileSystemOperation operation = new OdilonVirtualFileSystemOperation();
                 operation.setOperationCode(OperationCode.INTEGRITY_CHECK);
                 operation.setBucketId(metadata.getBucketId());
                 operation.setObjectName(metadata.getObjectName());
-                CacheEvent event =new CacheEvent(operation, Action.COMMIT);
+                CacheEvent event = new CacheEvent(operation, Action.COMMIT);
                 getVirtualFileSystemService().getApplicationEventPublisher().publishEvent(event);
-                
+
                 readDrive.saveObjectMetadata(metadata);
                 return true;
             }
@@ -1136,7 +1125,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
                 if (!mayReqRestoreBackup) {
                     op.cancel();
                 } else if (!done) {
-                    rollbackJournal(op);
+                    rollback(op);
                 }
             } catch (Exception e) {
                 logger.error(e, SharedConstant.NOT_THROWN);
@@ -1265,7 +1254,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         } finally {
             try {
                 if (!done) {
-                    rollbackJournal(op);
+                    rollback(op);
                 }
             } catch (Exception e) {
                 logger.error(e, SharedConstant.NOT_THROWN);
@@ -1331,10 +1320,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
             objectReadUnLock(bucket, objectName);
         }
     }
-    
-    
-    
-    
+
     /**
      * must be executed inside the critical zone.
      */

@@ -686,38 +686,32 @@ public class RAIDOneDriver extends BaseIODriver {
      * @param objectName
      */
 
-    @Override
-    public void rollbackJournal(VirtualFileSystemOperation operation) {
-        rollbackJournal(operation, null, false);
-    }
 
     @Override
-    public void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
-        rollbackJournal(operation, null, recoveryMode);
-    }
-
-    @Override
-    public void rollbackJournal(VirtualFileSystemOperation operation, Object payload, boolean recoveryMode) {
-        Check.requireNonNullArgument(operation, "operation is null");
+    public void rollback(VirtualFileSystemOperation operation, Object payload, boolean recoveryMode) {
+    
+        if (operation == null)
+            return;
+        
         if (operation.getOperationCode() == OperationCode.CREATE_OBJECT) {
-            RAIDOneCreateObjectHandler handler = new RAIDOneCreateObjectHandler(this);
-            handler.rollbackJournal(operation, recoveryMode);
+            RAIDOneRollbackCreateHandler handler = new RAIDOneRollbackCreateHandler(this, operation, recoveryMode);;
+            handler.rollback();
             return;
         } else if (operation.getOperationCode() == OperationCode.UPDATE_OBJECT) {
-            RAIDOneUpdateObjectHandler handler = new RAIDOneUpdateObjectHandler(this);
-            handler.rollbackJournal(operation, recoveryMode);
+            RAIDOneRollbackUpdateHandler handler = new RAIDOneRollbackUpdateHandler(this, operation, recoveryMode);;
+            handler.rollback();
             return;
         } else if (operation.getOperationCode() == OperationCode.DELETE_OBJECT) {
-            RAIDOneDeleteObjectHandler handler = new RAIDOneDeleteObjectHandler(this);
-            handler.rollbackJournal(operation, recoveryMode);
+            RAIDOneRollbackDeleteHandler handler = new RAIDOneRollbackDeleteHandler(this, operation, recoveryMode);;
+            handler.rollback();
             return;
         } else if (operation.getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS) {
-            RAIDOneDeleteObjectHandler handler = new RAIDOneDeleteObjectHandler(this);
-            handler.rollbackJournal(operation, recoveryMode);
+            RAIDOneRollbackDeleteHandler handler = new RAIDOneRollbackDeleteHandler(this, operation, recoveryMode);;
+            handler.rollback();
             return;
         } else if (operation.getOperationCode() == OperationCode.UPDATE_OBJECT_METADATA) {
-            RAIDOneUpdateObjectHandler handler = new RAIDOneUpdateObjectHandler(this);
-            handler.rollbackJournal(operation, recoveryMode);
+            RAIDOneRollbackUpdateHandler handler = new RAIDOneRollbackUpdateHandler(this, operation, recoveryMode);;
+            handler.rollback();
             return;
         }
 

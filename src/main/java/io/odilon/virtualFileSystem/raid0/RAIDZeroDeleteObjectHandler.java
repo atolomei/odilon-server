@@ -34,7 +34,7 @@ import io.odilon.scheduler.DeleteBucketObjectPreviousVersionServiceRequest;
 import io.odilon.scheduler.SchedulerService;
 import io.odilon.util.Check;
 import io.odilon.virtualFileSystem.ObjectPath;
-import io.odilon.virtualFileSystem.model.Drive;
+
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.OperationCode;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
@@ -47,7 +47,7 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @ThreadSafe
-public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler {
+public class RAIDZeroDeleteObjectHandler extends RAIDZeroTransactionHandler {
 
     private static Logger logger = Logger.getLogger(RAIDZeroDeleteObjectHandler.class.getName());
 
@@ -226,66 +226,6 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler {
 
     /**
      * <p>
-     * This method is not Thread Safe, the caller object must get required locks
-     * </p>
-     * 
-     */
-    @Override
-    protected void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
-
-        Check.requireNonNullArgument(operation, "operation is null");
-
-        /** also checked by the calling driver */
-        Check.requireTrue(
-                operation.getOperationCode() == OperationCode.DELETE_OBJECT
-                        || operation.getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS,
-                VirtualFileSystemOperation.class.getName() + " invalid -> op: " + operation.getOperationCode().getName());
-
-        String objectName = operation.getObjectName();
-
-        Check.requireNonNullArgument(operation.getBucketId(), "bucketId is null");
-        Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + operation.getBucketId().toString());
-
-        boolean done = false;
-
-        ServerBucket bucket = getBucketCache().get(operation.getBucketId());
-
-        try {
-
-            if (isStandByEnabled())
-                getReplicationService().cancel(operation);
-
-            /**
-             * Rollback is the same for both operations -> DELETE_OBJECT and
-             * DELETE_OBJECT_PREVIOUS_VERSIONS
-             */
-            if (operation.getOperationCode() == OperationCode.DELETE_OBJECT)
-                restoreMetadata(bucket, objectName);
-
-            else if (operation.getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS)
-                restoreMetadata(bucket, objectName);
-
-            done = true;
-
-        } catch (InternalCriticalException e) {
-            if (!recoveryMode)
-                throw (e);
-            else
-                logger.error(opInfo(operation), SharedConstant.NOT_THROWN);
-
-        } catch (Exception e) {
-            if (!recoveryMode)
-                throw new InternalCriticalException(e, opInfo(operation));
-            else
-                logger.error(opInfo(operation), SharedConstant.NOT_THROWN);
-        } finally {
-            if (done || recoveryMode)
-                operation.cancel();
-        }
-    }
-
-    /**
-     * <p>
      * Adds a {@link DeleteBucketObjectPreviousVersionServiceRequest} to the
      * {@link SchedulerService} to walk through all objects and delete versions.
      * This process is Async and handler returns immediately.
@@ -417,27 +357,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroHandler {
         }
     }
 
-    /**
-     * 
-     * restore metadata directory
-     * 
-     * @param bucketName
-     * @param objectName
-     */
-    private void restoreMetadata(ServerBucket bucket, String objectName) {
-
-        String objectMetadataBackupDirPath = getDriver().getWriteDrive(bucket, objectName).getBucketWorkDirPath(bucket)
-                + File.separator + objectName;
-        String objectMetadataDirPath = getDriver().getWriteDrive(bucket, objectName).getObjectMetadataDirPath(bucket, objectName);
-        try {
-            FileUtils.copyDirectory(new File(objectMetadataBackupDirPath), new File(objectMetadataDirPath));
-        } catch (InternalCriticalException e) {
-            throw e;
-        } catch (IOException e) {
-            throw new InternalCriticalException(e, objectInfo(bucket, objectName));
-        }
-    }
-
+   
     /**
      * <p>
      * This method is called after the TRX commit. It is used to clean temp files,

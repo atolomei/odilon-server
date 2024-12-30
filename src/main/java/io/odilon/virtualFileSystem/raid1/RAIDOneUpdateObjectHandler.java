@@ -67,7 +67,7 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @ThreadSafe
-public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
+public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
 
     private static Logger logger = Logger.getLogger(RAIDOneUpdateObjectHandler.class.getName());
 
@@ -255,7 +255,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
                 try {
                     if ((!done) && (op != null)) {
                         try {
-                            rollbackJournal(op, false);
+                            rollback(op);
 
                         } catch (Exception e) {
                             String msg = getDriver().objectInfo(bucket, objectName);
@@ -331,7 +331,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
                 try {
                     if ((!done) && (op != null)) {
                         try {
-                            rollbackJournal(op, false);
+                            rollback(op);
                         } catch (Exception e) {
                             if (!isMainException)
                                 throw new InternalCriticalException(e, getDriver().objectInfo(meta.bucketId, meta.objectName));
@@ -358,6 +358,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
     protected void onAfterCommit(ServerBucket bucket, String objectName, int previousVersion, int currentVersion) {
     }
 
+    /**
     protected void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
 
         Check.requireNonNullArgument(operation, "operation is null");
@@ -377,6 +378,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneHandler {
         else if (operation.getOperationCode() == OperationCode.RESTORE_OBJECT_PREVIOUS_VERSION)
             rollbackJournalUpdate(operation, recoveryMode);
     }
+*/
 
     @Override
     protected Drive getObjectMetadataReadDrive(ServerBucket bucket, String objectName) {

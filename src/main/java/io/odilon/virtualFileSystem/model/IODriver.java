@@ -97,11 +97,11 @@ public interface IODriver {
 
     public void removeJournal(String id);
 
-    public void rollbackJournal(VirtualFileSystemOperation op);
+    public void rollback(VirtualFileSystemOperation op);
 
-    public void rollbackJournal(VirtualFileSystemOperation op, boolean recoveryMode);
+    public void rollback(VirtualFileSystemOperation op, boolean recoveryMode);
 
-    public void rollbackJournal(VirtualFileSystemOperation op, Object payload, boolean recoveryMode);
+    public void rollback(VirtualFileSystemOperation op, Object payload, boolean recoveryMode);
 
     public List<VirtualFileSystemOperation> getJournalPending(JournalService journalService);
 

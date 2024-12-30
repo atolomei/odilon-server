@@ -1138,7 +1138,7 @@ public class OdilonVirtualFileSystemService extends BaseService
         logger.debug("Processing Journal queue -> " + String.valueOf(list.size()));
         IODriver driver = createVFSIODriver();
         for (VirtualFileSystemOperation op : list)
-            driver.rollbackJournal(op, recoveryMode);
+            driver.rollback(op, recoveryMode);
     }
 
     private void checkServerInfo() {

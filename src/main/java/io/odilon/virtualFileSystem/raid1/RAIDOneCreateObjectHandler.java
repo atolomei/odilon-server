@@ -61,7 +61,7 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @ThreadSafe
-public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
+public class RAIDOneCreateObjectHandler extends RAIDOneTransactionHandler {
 
     private static Logger logger = Logger.getLogger(RAIDOneCreateObjectHandler.class.getName());
 
@@ -147,7 +147,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
      * {@link OperationCode.CREATE_OBJECT}
      * </p>
      * 
-     */
+     
     @Override
     protected void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
 
@@ -192,7 +192,8 @@ public class RAIDOneCreateObjectHandler extends RAIDOneHandler {
                 operation.cancel();
         }
     }
-
+*/
+    
     /**
      * <p>
      * This method is not ThreadSafe. Locks must be applied by the caller

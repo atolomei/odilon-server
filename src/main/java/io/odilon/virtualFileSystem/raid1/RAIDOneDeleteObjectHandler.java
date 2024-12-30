@@ -49,7 +49,7 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @ThreadSafe
-public class RAIDOneDeleteObjectHandler extends RAIDOneHandler {
+public class RAIDOneDeleteObjectHandler extends RAIDOneTransactionHandler {
 
     private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class.getName());
 

@@ -22,14 +22,12 @@ import java.util.Optional;
 
 import javax.annotation.concurrent.ThreadSafe;
 
-import org.apache.commons.io.FileUtils;
 import org.checkerframework.checker.nullness.qual.NonNull;
 
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
-import io.odilon.virtualFileSystem.ObjectPath;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.OperationCode;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
@@ -43,7 +41,7 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @ThreadSafe
-public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
+public class RAIDZeroCreateObjectHandler extends RAIDZeroTransactionHandler {
 
     private static Logger logger = Logger.getLogger(RAIDZeroCreateObjectHandler.class.getName());
 
@@ -110,7 +108,9 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
                 try {
                     if (!commitOk) {
                         try {
+                            
                             rollback(operation);
+                            
                         } catch (InternalCriticalException e) {
                             if (!isMainException)
                                 throw e;
@@ -132,47 +132,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroHandler {
         }
     }
 
-    /**
-     * <p>
-     * This method is <b>not</b> ThreadSafe, callers must ensure proper concurrency
-     * control
-     * </p>
-     */
-    protected void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
-
-        Check.requireNonNullArgument(operation, "operation is null");
-        Check.checkTrue(operation.getOperationCode() == OperationCode.CREATE_OBJECT,
-                "Invalid operation ->  " + operation.getOperationCode().getName());
-
-        boolean rollbackOK = false;
-
-        ServerBucket bucket = getBucketCache().get(operation.getBucketId());
-        String objectName = operation.getObjectName();
-        try {
-
-            if (isStandByEnabled())
-                getReplicationService().cancel(operation);
-
-            ObjectPath path = new ObjectPath(getWriteDrive(bucket, objectName), bucket, objectName);
-
-            FileUtils.deleteQuietly(path.metadataDirPath().toFile());
-            FileUtils.deleteQuietly(path.dataFilePath().toFile());
-
-            rollbackOK = true;
-
-        } catch (InternalCriticalException e) {
-            if (!recoveryMode)
-                throw (e);
-            else
-                logger.error(e, opInfo(operation), SharedConstant.NOT_THROWN);
-        } catch (Exception e) {
-            if (!recoveryMode)
-                throw new InternalCriticalException(e, opInfo(operation));
-            else
-                logger.error(e, opInfo(operation), SharedConstant.NOT_THROWN);
-        } finally {
-            if (rollbackOK || recoveryMode)
-                operation.cancel();
-        }
-    }
+        
+    
+ 
 }

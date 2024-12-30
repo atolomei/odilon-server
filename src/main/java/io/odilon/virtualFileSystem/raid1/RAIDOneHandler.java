@@ -57,7 +57,6 @@ public abstract class RAIDOneHandler extends BaseRAIDHandler implements RAIDHand
 
     private final RAIDOneDriver driver;
 
-    protected abstract void rollbackJournal(VirtualFileSystemOperation op, boolean recoveryMode);
 
     public RAIDOneHandler(RAIDOneDriver driver) {
         this.driver = driver;

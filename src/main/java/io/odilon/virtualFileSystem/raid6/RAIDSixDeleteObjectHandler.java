@@ -52,7 +52,7 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @ThreadSafe
-public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
+public class RAIDSixDeleteObjectHandler extends RAIDSixTransactionHandler {
 
     private static Logger logger = Logger.getLogger(RAIDSixDeleteObjectHandler.class.getName());
 
@@ -119,7 +119,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 
                     if ((!done) && (operation != null)) {
                         try {
-                            rollbackJournal(operation, false);
+                            rollback(operation);
                         } catch (Exception e) {
                             if (!isMainException)
                                 throw new InternalCriticalException(e, objectInfo(bucket, objectName));
@@ -250,7 +250,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 
                     if ((!done) && (operation != null)) {
                         try {
-                            rollbackJournal(operation, false);
+                            rollback(operation);
                         } catch (Exception e) {
                             if (!isMainException)
                                 throw new InternalCriticalException(e, getDriver().objectInfo(bucketName, objectName));
@@ -310,13 +310,13 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
 
     /**
      * 
-     */
+     
     @Override
     protected void rollbackJournal(@NonNull VirtualFileSystemOperation operation, boolean recoveryMode) {
 
         Check.requireNonNullArgument(operation, "operation is null");
 
-        /** checked by the calling driver */
+        
         Check.requireTrue(
                 operation.getOperationCode() == OperationCode.DELETE_OBJECT
                         || operation.getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS,
@@ -337,7 +337,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
             if (getServerSettings().isStandByEnabled())
                 getReplicationService().cancel(operation);
 
-            /** rollback is the same for both operations */
+            // rollback is the same for both operations 
             if (operation.getOperationCode() == OperationCode.DELETE_OBJECT)
                 restoreMetadata(bucket, objectName);
 
@@ -362,7 +362,8 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
                 operation.cancel();
         }
     }
-
+*/
+    
     /**
      * Sync no need to locks
      * 
@@ -432,19 +433,5 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixHandler {
         }
     }
 
-    /**
-     * restore metadata directory
-     */
-    private void restoreMetadata(ServerBucket bucket, String objectName) {
-        for (Drive drive : getDriver().getDrivesAll()) {
-            String objectMetadataBackupDirPath = drive.getBucketWorkDirPath(bucket) + File.separator + objectName;
-            String objectMetadataDirPath = drive.getObjectMetadataDirPath(bucket, objectName);
-            try {
-                if ((new File(objectMetadataBackupDirPath)).exists())
-                    FileUtils.copyDirectory(new File(objectMetadataBackupDirPath), new File(objectMetadataDirPath));
-            } catch (IOException e) {
-                throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName));
-            }
-        }
-    }
+   
 }

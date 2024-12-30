@@ -129,9 +129,6 @@ public class RAIDOneDriveSync implements Runnable {
         return this.notAvailable;
     }
 
-    /**
-     * 
-     */
     @PostConstruct
     public void onInitialize() {
         this.thread = new Thread(this);

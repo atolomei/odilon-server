@@ -43,7 +43,6 @@ public class CacheEvent extends BaseEvent {
     @JsonIgnore
     static private Logger logger = Logger.getLogger(CacheEvent.class.getName());
 
-    
     public CacheEvent(VirtualFileSystemOperation operation, Action action) {
         super(operation, action);
     }

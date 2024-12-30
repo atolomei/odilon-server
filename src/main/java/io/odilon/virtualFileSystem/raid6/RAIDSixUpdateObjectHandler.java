@@ -57,7 +57,7 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @ThreadSafe
-public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
+public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionHandler {
 
     private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class.getName());
 
@@ -225,7 +225,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
                 try {
                     if ((!done) && (operation != null)) {
                         try {
-                            rollbackJournal(operation, false);
+                            rollback(operation);
                         } catch (Exception e) {
                             throw new InternalCriticalException(e, getDriver().objectInfo(meta));
                         }
@@ -343,7 +343,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
 
                     if ((!done) && (operation != null)) {
                         try {
-                            rollbackJournal(operation, false);
+                            rollback(operation);
                         } catch (InternalCriticalException e) {
                             if (isMainException)
                                 throw new InternalCriticalException(e);
@@ -374,7 +374,6 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
 
     /**
      * 
-     */
     @Override
     protected void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
 
@@ -400,7 +399,8 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
         }
         }
     }
-
+ */
+    
     /**
      * 
      * 
@@ -594,36 +594,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
         }
     }
 
-    private void rollbackJournalUpdateMetadata(VirtualFileSystemOperation operation, ServerBucket bucket, boolean recoveryMode) {
-
-        boolean done = false;
-
-        try {
-            if (getServerSettings().isStandByEnabled())
-                getReplicationService().cancel(operation);
-
-            restoreVersionObjectMetadata(bucket, operation.getObjectName(), operation.getVersion());
-
-            done = true;
-
-        } catch (InternalCriticalException e) {
-            if (!recoveryMode)
-                throw (e);
-            else
-                logger.error(opInfo(operation), SharedConstant.NOT_THROWN);
-
-        } catch (Exception e) {
-            if (!recoveryMode)
-                throw new InternalCriticalException(e, opInfo(operation));
-            else
-                logger.error(opInfo(operation), SharedConstant.NOT_THROWN);
-        } finally {
-            if (done || recoveryMode) {
-                operation.cancel();
-            }
-        }
-    }
-
+ 
     /**
      * <p>
      * copy metadata directory <br/>
@@ -762,38 +733,6 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixHandler {
         }
     }
 
-    private void rollbackJournalUpdate(VirtualFileSystemOperation op, ServerBucket bucket, boolean recoveryMode) {
-        boolean done = false;
-        try {
-            if (isStandByEnabled())
-                getReplicationService().cancel(op);
 
-            ObjectMetadata meta = getDriver().getObjectMetadataReadDrive(bucket, op.getObjectName()).getObjectMetadata(bucket,
-                    op.getObjectName());
-
-            if (meta != null) {
-                restoreVersionObjectDataFile(meta, bucket, op.getVersion());
-                restoreVersionObjectMetadata(bucket, op.getObjectName(), op.getVersion());
-            }
-
-            done = true;
-
-        } catch (InternalCriticalException e) {
-            if (!recoveryMode)
-                throw (e);
-            else
-                logger.error(e, opInfo(op), SharedConstant.NOT_THROWN);
-
-        } catch (Exception e) {
-            if (!recoveryMode)
-                throw new InternalCriticalException(e, opInfo(op));
-            else
-                logger.error(e, opInfo(op), SharedConstant.NOT_THROWN);
-        } finally {
-            if (done || recoveryMode) {
-                op.cancel();
-            }
-        }
-    }
 
 }

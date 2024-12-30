@@ -376,14 +376,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
         }
     }
 
-    /**
-     * <p>
-     * Shared by RAID 1 and RAID 6
-     * </p>
-     */
-    public void rollbackJournal(VirtualFileSystemOperation op) {
-        rollbackJournal(op, false);
-    }
 
     /**
      * <p>
@@ -846,7 +838,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
                     if (!reqRestoreBackup)
                         op.cancel();
                     else
-                        rollbackJournal(op);
+                        rollback(op);
                 }
 
             } catch (Exception e) {
@@ -1411,7 +1403,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 
             try {
                 if (!done) {
-                    rollbackJournal(op);
+                    rollback(op);
                 }
             } catch (Exception e) {
                 logger.error(e, SharedConstant.NOT_THROWN);
@@ -1464,7 +1456,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
                 if (!mayReqRestoreBackup) {
                     op.cancel();
                 } else if (!done) {
-                    rollbackJournal(op);
+                    rollback(op);
                 }
             } catch (Exception e) {
                 logger.error(e, SharedConstant.NOT_THROWN);
@@ -1506,14 +1498,22 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
             throw new IllegalArgumentException("bucket does not exist -> " + bucketName);
     }
 
-    protected void rollback(VirtualFileSystemOperation operation) {
-                    rollback(operation);
+
+    public void rollback(VirtualFileSystemOperation operation) {
+                    rollback(operation, null, false);
+    }
+        
+    public void rollback(VirtualFileSystemOperation operation, boolean recoveryMode) {
+        rollback(operation, null, recoveryMode);
     }
     
-    protected void rollback(VirtualFileSystemOperation operation, Object payload) {
-        if (operation == null)
-            return;
-        rollbackJournal(operation, payload, false);
-
+    public void rollback(VirtualFileSystemOperation operation, Object payload) {
+        rollback(operation, payload, false);
     }
+    
+    public abstract void rollback(VirtualFileSystemOperation operation, Object payload, boolean recoveryMode);
+    
+    
+    
+
 }
