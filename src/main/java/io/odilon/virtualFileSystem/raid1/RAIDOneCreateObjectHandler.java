@@ -86,10 +86,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneTransactionHandler {
             Optional<List<String>> customTags) {
 
         Check.requireNonNullArgument(bucket, "bucket is null");
-        Long bucket_id = bucket.getId();
-        Check.requireNonNullArgument(bucket_id, "bucket_id is null");
-        Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucket_id.toString());
-
+        Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucket.toString());
         Check.requireNonNullArgument(stream, "stream is null");
 
         VirtualFileSystemOperation operation = null;
@@ -116,7 +113,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneTransactionHandler {
             } catch (Exception e) {
                 done = false;
                 isMainException = true;
-                throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName, srcFileName));
+                throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
             } finally {
                 try {
                     if (!done) {
@@ -124,9 +121,9 @@ public class RAIDOneCreateObjectHandler extends RAIDOneTransactionHandler {
                             rollback(operation);
                         } catch (Exception e) {
                             if (!isMainException)
-                                throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName, srcFileName));
+                                throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
                             else
-                                logger.error(e, getDriver().objectInfo(bucket, objectName, srcFileName), SharedConstant.NOT_THROWN);
+                                logger.error(e, objectInfo(bucket, objectName, srcFileName), SharedConstant.NOT_THROWN);
                         }
                     }
                 } finally {
@@ -202,7 +199,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneTransactionHandler {
                                 throw new InternalCriticalException(objectInfo(bucket, objectName, srcFileName));
                         }
                     } catch (InterruptedException | ExecutionException e) {
-                        throw new InternalCriticalException(e);
+                        throw new InternalCriticalException(e,objectInfo(bucket, objectName, srcFileName));
                     }
 
                 }
@@ -213,7 +210,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneTransactionHandler {
             throw e;
         } catch (Exception e) {
             isMainException = true;
-            throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName, srcFileName));
+            throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
 
         } finally {
             IOException secEx = null;
@@ -224,7 +221,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneTransactionHandler {
                             out[n].close();
                     }
                 } catch (IOException e) {
-                    logger.error(e, getDriver().objectInfo(bucket, objectName, srcFileName)
+                    logger.error(e, objectInfo(bucket, objectName, srcFileName)
                             + (isMainException ? SharedConstant.NOT_THROWN : ""));
                     secEx = e;
                 }

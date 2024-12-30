@@ -108,14 +108,14 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneTransactionHandler {
 
             } catch (Exception e) {
                 done = false;
-                throw new InternalCriticalException(e, opInfo(operation) + "  " + objectInfo(bucket, objectName));
+                throw new InternalCriticalException(e, opInfo(operation));
             } finally {
                 try {
                     if (!done) {
                         try {
                             rollback(operation);
                         } catch (Exception e) {
-                            throw new InternalCriticalException(e, opInfo(operation) + "  " + objectInfo(bucket, objectName));
+                            throw new InternalCriticalException(e, opInfo(operation));
                         }
                     } else if (done)
                         postObjectDeleteCommit(meta, bucket, headVersion);
@@ -127,7 +127,7 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneTransactionHandler {
                      */
 
                 } catch (Exception e) {
-                    logger.error(e, opInfo(operation) + "  " + objectInfo(bucket, objectName), SharedConstant.NOT_THROWN);
+                    logger.error(e, opInfo(operation), SharedConstant.NOT_THROWN);
                 } finally {
                     bucketReadUnLock(bucket);
                 }
@@ -215,7 +215,7 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneTransactionHandler {
             try {
 
                 /** must be executed inside the critical zone. */
-                checkExistsBucket(bucket);
+                checkExistsBucket(meta.getBucketId());
 
                 bucket = getCacheBucket(meta.getBucketId());
 
@@ -277,9 +277,10 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneTransactionHandler {
             onAfterCommit(operation, meta, headVersion);
     }
 
+    /**
     protected void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
 
-        /** checked by the calling driver */
+        // checked by the calling driver
         Check.requireNonNullArgument(operation, "operation is null");
         Check.requireTrue(
                 operation.getOperationCode() == OperationCode.DELETE_OBJECT
@@ -301,7 +302,7 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneTransactionHandler {
 
             ServerBucket bucket = getCacheBucket(operation.getBucketId());
 
-            /** rollback is the same for both operations */
+            /// rollback is the same for both operations 
             if (operation.getOperationCode() == OperationCode.DELETE_OBJECT)
                 restoreMetadata(bucket, objectName);
 
@@ -326,7 +327,8 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneTransactionHandler {
                 operation.cancel();
         }
     }
-
+*/
+    
     protected void postObjectDelete(ObjectMetadata meta, int headVersion) {
     }
 
@@ -419,8 +421,9 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneTransactionHandler {
         }
     }
 
+    /**
     private void restoreMetadata(ServerBucket bucket, String objectName) {
-        /** restore metadata directory */
+        / restore metadata directory 
         for (Drive drive : getDriver().getDrivesAll()) {
             String objectMetadataBackupDirPath = drive.getBucketWorkDirPath(bucket) + File.separator + objectName;
             String objectMetadataDirPath = drive.getObjectMetadataDirPath(bucket, objectName);
@@ -431,6 +434,7 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneTransactionHandler {
             }
         }
     }
+**/
 
     /**
      * <p>

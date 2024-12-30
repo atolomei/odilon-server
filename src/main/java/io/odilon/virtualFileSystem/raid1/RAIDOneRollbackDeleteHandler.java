@@ -1,5 +1,6 @@
 package io.odilon.virtualFileSystem.raid1;
 
+
 import java.io.File;
 import java.io.IOException;
 
@@ -8,7 +9,6 @@ import org.apache.commons.io.FileUtils;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.SharedConstant;
-import io.odilon.util.Check;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.OperationCode;
 import io.odilon.virtualFileSystem.model.ServerBucket;
@@ -28,12 +28,6 @@ public class RAIDOneRollbackDeleteHandler extends RAIDOneRollbackHandler {
         if (getOperation() == null)
             return;
 
-        String objectName = getOperation().getObjectName();
-        Long bucketId = getOperation().getBucketId();
-
-        Check.requireNonNullArgument(bucketId, "bucketId is null");
-        Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketId.toString());
-
         boolean done = false;
 
         try {
@@ -41,14 +35,12 @@ public class RAIDOneRollbackDeleteHandler extends RAIDOneRollbackHandler {
             if (getServerSettings().isStandByEnabled())
                 getReplicationService().cancel(getOperation());
 
-            ServerBucket bucket = getCacheBucket(getOperation().getBucketId());
-
             /** rollback is the same for both operations */
             if (getOperation().getOperationCode() == OperationCode.DELETE_OBJECT)
-                restoreMetadata(bucket, objectName);
+                restoreMetadata();
 
             else if (getOperation().getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS)
-                restoreMetadata(bucket, objectName);
+                restoreMetadata();
 
             done = true;
 
@@ -69,15 +61,18 @@ public class RAIDOneRollbackDeleteHandler extends RAIDOneRollbackHandler {
         }
     }
 
-    private void restoreMetadata(ServerBucket bucket, String objectName) {
+    private void restoreMetadata() {
+        
+        ServerBucket bucket = getCacheBucket(getOperation().getBucketId());
+        
         /** restore metadata directory */
         for (Drive drive : getDriver().getDrivesAll()) {
-            String objectMetadataBackupDirPath = drive.getBucketWorkDirPath(bucket) + File.separator + objectName;
-            String objectMetadataDirPath = drive.getObjectMetadataDirPath(bucket, objectName);
+            String objectMetadataBackupDirPath = drive.getBucketWorkDirPath(bucket) + File.separator +  getOperation().getObjectName();
+            String objectMetadataDirPath = drive.getObjectMetadataDirPath(bucket,  getOperation().getObjectName());
             try {
                 FileUtils.copyDirectory(new File(objectMetadataBackupDirPath), new File(objectMetadataDirPath));
             } catch (IOException e) {
-                throw new InternalCriticalException(e, objectInfo(bucket, objectName));
+                throw new InternalCriticalException(e, objectInfo(bucket,  getOperation().getObjectName()));
             }
         }
     }
