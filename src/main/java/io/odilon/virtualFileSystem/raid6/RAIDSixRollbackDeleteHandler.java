@@ -27,23 +27,18 @@ public class RAIDSixRollbackDeleteHandler extends RAIDSixRollbackHandler {
         if (getOperation() == null)
             return;
 
-        String objectName = getOperation().getObjectName();
-
         boolean done = false;
 
         try {
-
-            ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
-
             if (getServerSettings().isStandByEnabled())
                 getReplicationService().cancel(getOperation());
 
             // rollback is the same for both operations
             if (getOperation().getOperationCode() == OperationCode.DELETE_OBJECT)
-                restoreMetadata(bucket, objectName);
+                restoreMetadata();
 
             else if (getOperation().getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS)
-                restoreMetadata(bucket, objectName);
+                restoreMetadata();
 
             done = true;
 
@@ -62,13 +57,16 @@ public class RAIDSixRollbackDeleteHandler extends RAIDSixRollbackHandler {
             if (done || isRecovery())
                 getOperation().cancel();
         }
-
     }
 
     /**
      * restore metadata directory
      */
-    private void restoreMetadata(ServerBucket bucket, String objectName) {
+    private void restoreMetadata() {
+        
+        ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
+        String objectName = getOperation().getObjectName();
+        
         for (Drive drive : getDriver().getDrivesAll()) {
             String objectMetadataBackupDirPath = drive.getBucketWorkDirPath(bucket) + File.separator + objectName;
             String objectMetadataDirPath = drive.getObjectMetadataDirPath(bucket, objectName);

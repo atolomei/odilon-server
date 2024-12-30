@@ -22,60 +22,49 @@ public class RAIDSixRollbackSyncHandler extends RAIDSixRollbackHandler {
 
     @Override
     protected void rollback() {
-
-        switch (getOperation().getOperationCode()) {
-        case SYNC_OBJECT_NEW_DRIVE: {
-            execRollback(getOperation(), isRecovery());
-            break;
-        }
-        default: {
-            break;
-        }
-        }
-    }
-
-    private void execRollback(VirtualFileSystemOperation operation, boolean recoveryMode) {
-
+        
         boolean done = false;
 
-        String objectName = operation.getObjectName();
+        String objectName = getOperation().getObjectName();
 
-        ServerBucket bucket = null;
 
-        getLockService().getObjectLock(operation.getBucketId(), objectName).writeLock().lock();
+        getLockService().getObjectLock(getOperation().getBucketId(), getOperation().getObjectName()).writeLock().lock();
         try {
 
-            getLockService().getBucketLock(operation.getBucketId()).readLock().lock();
+            getLockService().getBucketLock(getOperation().getBucketId()).readLock().lock();
             try {
-                bucket = getBucketCache().get(operation.getBucketId());
-                restoreMetadata(bucket, objectName);
+                restoreMetadata();
                 done = true;
 
             } catch (InternalCriticalException e) {
-                if (!recoveryMode)
+                if (!isRecovery())
                     throw (e);
                 else
-                    logger.error(opInfo(operation), SharedConstant.NOT_THROWN);
+                    logger.error(opInfo(getOperation()), SharedConstant.NOT_THROWN);
             } catch (Exception e) {
-                if (!recoveryMode)
-                    throw new InternalCriticalException(e, opInfo(operation));
+                if (!isRecovery())
+                    throw new InternalCriticalException(e, opInfo(getOperation()));
                 else
-                    logger.error(e, opInfo(operation), SharedConstant.NOT_THROWN);
+                    logger.error(e, opInfo(getOperation()), SharedConstant.NOT_THROWN);
             } finally {
                 try {
-                    if (done || recoveryMode) {
-                        operation.cancel();
+                    if (done || isRecovery()) {
+                        getOperation().cancel();
                     }
                 } finally {
-                    getLockService().getBucketLock(bucket).readLock().unlock();
+                    getLockService().getBucketLock(getOperation().getBucketId()).readLock().unlock();
                 }
             }
         } finally {
-            getLockService().getObjectLock(bucket, objectName).writeLock().unlock();
+            getLockService().getObjectLock(getOperation().getBucketId(), objectName).writeLock().unlock();
         }
     }
 
-    private void restoreMetadata(ServerBucket bucket, String objectName) {
+    private void restoreMetadata() {
+        
+        ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
+        String objectName = getOperation().getObjectName();
+        
         try {
             for (Drive drive : getDriver().getDrivesEnabled()) {
                 File dest = new File(drive.getObjectMetadataDirPath(bucket, objectName));

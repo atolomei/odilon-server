@@ -251,16 +251,15 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
             } finally {
 
                 try {
-                    if ((!done) && (op != null)) {
+                    if (!done) {
                         try {
                             rollback(op);
 
                         } catch (Exception e) {
-                            String msg = getDriver().objectInfo(bucket, objectName);
                             if (!isMainException)
-                                throw new InternalCriticalException(e, msg);
+                                throw new InternalCriticalException(e, objectInfo(bucket, objectName));
                             else
-                                logger.error(e, msg, SharedConstant.NOT_THROWN);
+                                logger.error(e, objectInfo(bucket, objectName), SharedConstant.NOT_THROWN);
                         }
                     } else {
                         /** this is after commit, Sync by the moment see how to make it Async */
@@ -303,7 +302,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
             try {
 
                 /** must be executed inside the critical zone */
-                checkExistsBucket(bucket);
+                checkExistsBucket(meta.getBucketId());
 
                 bucket = getBucketCache().get(meta.getBucketId());
 
@@ -351,30 +350,6 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
 
     protected void onAfterCommit(ServerBucket bucket, String objectName, int previousVersion, int currentVersion) {
     }
-
-    /**
-     * protected void rollbackJournal(VirtualFileSystemOperation operation, boolean
-     * recoveryMode) {
-     * 
-     * Check.requireNonNullArgument(operation, "operation is null");
-     * Check.requireTrue( (operation.getOperationCode() ==
-     * OperationCode.UPDATE_OBJECT || operation.getOperationCode() ==
-     * OperationCode.UPDATE_OBJECT_METADATA || operation.getOperationCode() ==
-     * OperationCode.RESTORE_OBJECT_PREVIOUS_VERSION),
-     * VirtualFileSystemOperation.class.getSimpleName() + " can not be -> op: " +
-     * operation.getOperationCode().getName());
-     * 
-     * if (operation.getOperationCode() == OperationCode.UPDATE_OBJECT)
-     * rollbackJournalUpdate(operation, recoveryMode);
-     * 
-     * else if (operation.getOperationCode() ==
-     * OperationCode.UPDATE_OBJECT_METADATA)
-     * rollbackJournalUpdateMetadata(operation, recoveryMode);
-     * 
-     * else if (operation.getOperationCode() ==
-     * OperationCode.RESTORE_OBJECT_PREVIOUS_VERSION)
-     * rollbackJournalUpdate(operation, recoveryMode); }
-     */
 
     @Override
     protected Drive getObjectMetadataReadDrive(ServerBucket bucket, String objectName) {

@@ -28,12 +28,12 @@ public class RAIDSixRollbackCreateHandler extends RAIDSixRollbackHandler {
             return;
 
         String objectName = getOperation().getObjectName();
-
         ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
 
         boolean done = false;
 
         try {
+
             if (getServerSettings().isStandByEnabled())
                 getReplicationService().cancel(getOperation());
 
@@ -64,13 +64,13 @@ public class RAIDSixRollbackCreateHandler extends RAIDSixRollbackHandler {
             if (!isRecovery())
                 throw (e);
             else
-                logger.error(e, getOperation().toString() + SharedConstant.NOT_THROWN);
+                logger.error(e, opInfo(getOperation()), SharedConstant.NOT_THROWN);
 
         } catch (Exception e) {
             if (!isRecovery())
-                throw new InternalCriticalException(e, "Rollback: " + getOperation().toString() + SharedConstant.NOT_THROWN);
+                throw new InternalCriticalException(e, opInfo(getOperation()));
             else
-                logger.error(e, getOperation().toString() + SharedConstant.NOT_THROWN);
+                logger.error(e, opInfo(getOperation()), SharedConstant.NOT_THROWN);
         } finally {
             if (done || isRecovery()) {
                 getOperation().cancel();
