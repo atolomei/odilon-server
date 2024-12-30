@@ -139,54 +139,6 @@ public class RAIDOneCreateObjectHandler extends RAIDOneTransactionHandler {
     }
 
     /**
-     * 
-     * <p>
-     * The only operation that should be called here by {@link RAIDSixDriver} is
-     * {@link OperationCode.CREATE_OBJECT}
-     * </p>
-     * 
-     * 
-     * @Override protected void rollbackJournal(VirtualFileSystemOperation
-     *           operation, boolean recoveryMode) {
-     * 
-     *           Check.requireNonNullArgument(operation, "operation is null");
-     *           Check.checkTrue(operation.getOperationCode() ==
-     *           OperationCode.CREATE_OBJECT, "Invalid op -> " +
-     *           operation.getOperationCode().getName());
-     * 
-     *           String objectName = operation.getObjectName(); Long bucket_id =
-     *           operation.getBucketId();
-     * 
-     *           ServerBucket bucket =
-     *           getBucketCache().get(operation.getBucketId());
-     * 
-     *           Check.requireNonNullArgument(bucket_id, "bucket_id is null");
-     *           Check.requireNonNullStringArgument(objectName, "objectName is null
-     *           or empty | b:" + bucket_id.toString());
-     * 
-     *           boolean done = false;
-     * 
-     *           try { if (getServerSettings().isStandByEnabled())
-     *           getReplicationService().cancel(operation);
-     * 
-     *           for (Drive drive : getDriver().getDrivesAll()) {
-     *           drive.deleteObjectMetadata(bucket, objectName); ObjectPath path =
-     *           new ObjectPath(drive, bucket_id, objectName);
-     *           FileUtils.deleteQuietly(path.dataFilePath().toFile()); } done =
-     *           true;
-     * 
-     *           } catch (InternalCriticalException e) { if (!recoveryMode) throw
-     *           (e); else logger.error(e, getDriver().opInfo(operation),
-     *           SharedConstant.NOT_THROWN);
-     * 
-     *           } catch (Exception e) { if (!recoveryMode) throw new
-     *           InternalCriticalException(e, getDriver().opInfo(operation)); else
-     *           logger.error(e, getDriver().opInfo(operation),
-     *           SharedConstant.NOT_THROWN); } finally { if (done || recoveryMode)
-     *           operation.cancel(); } }
-     */
-
-    /**
      * <p>
      * This method is not ThreadSafe. Locks must be applied by the caller
      * </p>

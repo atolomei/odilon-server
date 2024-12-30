@@ -11,7 +11,6 @@ import io.odilon.model.SharedConstant;
 
 import io.odilon.virtualFileSystem.ObjectPath;
 import io.odilon.virtualFileSystem.model.Drive;
-import io.odilon.virtualFileSystem.model.OperationCode;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.SimpleDrive;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
@@ -33,20 +32,22 @@ public class RAIDZeroRollbackUpdateHandler extends RAIDZeroRollbackHandler {
     @Override
     protected void rollback() {
 
-        if (getOperation() == null)
-            return;
+        if (isStandByEnabled())
+            getReplicationService().cancel(getOperation());
 
+        
         switch (getOperation().getOperationCode()) {
+
         case UPDATE_OBJECT: {
-            rollbackJournalUpdate(getOperation(), isRecovery());
+            rollbackUpdate();
             break;
         }
         case UPDATE_OBJECT_METADATA: {
-            rollbackJournalUpdateMetadata(getOperation(), isRecovery());
+            rollbackUpdateMetadata();
             break;
         }
         case RESTORE_OBJECT_PREVIOUS_VERSION: {
-            rollbackJournalUpdate(getOperation(), isRecovery());
+            rollbackUpdate();
             break;
         }
         default: {
@@ -59,30 +60,30 @@ public class RAIDZeroRollbackUpdateHandler extends RAIDZeroRollbackHandler {
      * @param op
      * @param recoveryMode
      */
-    private void rollbackJournalUpdate(VirtualFileSystemOperation op, boolean recoveryMode) {
+    private void rollbackUpdate() {
 
         boolean done = false;
         try {
-            if (isStandByEnabled())
-                getReplicationService().cancel(op);
-            ServerBucket bucket = getBucketCache().get(op.getBucketId());
-            restoreVersionDataFile(bucket, op.getObjectName(), op.getVersion());
-            restoreVersionMetadata(bucket, op.getObjectName(), op.getVersion());
+
+            restoreVersionDataFile();
+            restoreVersionMetadata();
+            
             done = true;
+
         } catch (InternalCriticalException e) {
-            if (!recoveryMode)
+            if (!isRecovery())
                 throw (e);
             else
-                logger.error(opInfo(op), SharedConstant.NOT_THROWN);
+                logger.error(opInfo(getOperation()), SharedConstant.NOT_THROWN);
 
         } catch (Exception e) {
-            if (!recoveryMode)
-                throw new InternalCriticalException(e, "Rollback | " + getDriver().opInfo(op));
+            if (!isRecovery())
+                throw new InternalCriticalException(e, opInfo(getOperation()));
             else
-                logger.error(opInfo(op), SharedConstant.NOT_THROWN);
+                logger.error(opInfo(getOperation()), SharedConstant.NOT_THROWN);
         } finally {
-            if (done || recoveryMode) {
-                op.cancel();
+            if (done || isRecovery()) {
+                getOperation().cancel();
             }
         }
     }
@@ -91,34 +92,28 @@ public class RAIDZeroRollbackUpdateHandler extends RAIDZeroRollbackHandler {
      * @param operation
      * @param recoveryMode
      */
-    private void rollbackJournalUpdateMetadata(VirtualFileSystemOperation operation, boolean recoveryMode) {
+    private void rollbackUpdateMetadata() {
 
         boolean done = false;
         try {
-            ServerBucket bucket = getBucketCache().get(operation.getBucketId());
 
-            if (getServerSettings().isStandByEnabled())
-                getReplicationService().cancel(operation);
-
-            if (operation.getOperationCode() == OperationCode.UPDATE_OBJECT_METADATA)
-                restoreMetadata(bucket, operation.getObjectName());
-
+            restoreMetadata();
             done = true;
 
         } catch (InternalCriticalException e) {
-            if (!recoveryMode)
+            if (!isRecovery())
                 throw (e);
             else
-                logger.error(e, getDriver().opInfo(operation), SharedConstant.NOT_THROWN);
+                logger.error(e, opInfo(getOperation()), SharedConstant.NOT_THROWN);
 
         } catch (Exception e) {
-            if (!recoveryMode)
-                throw new InternalCriticalException(e, opInfo(operation));
+            if (!isRecovery())
+                throw new InternalCriticalException(e, opInfo(getOperation()));
             else
-                logger.error(e, opInfo(operation), SharedConstant.NOT_THROWN);
+                logger.error(e, opInfo(getOperation()), SharedConstant.NOT_THROWN);
         } finally {
-            if (done || recoveryMode) {
-                operation.cancel();
+            if (done || isRecovery()) {
+                getOperation().cancel();
             }
         }
     }
@@ -128,49 +123,54 @@ public class RAIDZeroRollbackUpdateHandler extends RAIDZeroRollbackHandler {
      * @param objectName
      * @param version
      */
-    private boolean restoreVersionMetadata(ServerBucket bucket, String objectName, int versionToRestore) {
+    private boolean restoreVersionMetadata() {
         try {
-            Drive drive = getWriteDrive(bucket, objectName);
-            File file = drive.getObjectMetadataVersionFile(bucket, objectName, versionToRestore);
+            ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
+            Drive drive = getWriteDrive(bucket, getOperation().getObjectName());
+            File file = drive.getObjectMetadataVersionFile(bucket, getOperation().getObjectName(), getOperation().getVersion());
             if (file.exists()) {
-                drive.putObjectMetadataFile(bucket, objectName, file);
+                drive.putObjectMetadataFile(bucket, getOperation().getObjectName(), file);
                 FileUtils.deleteQuietly(file);
                 return true;
             }
             return false;
         } catch (Exception e) {
-            throw new InternalCriticalException(e, objectInfo(bucket, objectName));
+            throw new InternalCriticalException(e, opInfo(getOperation()));
         }
     }
 
-    private boolean restoreVersionDataFile(ServerBucket bucket, String objectName, int version) {
-        try {
-            Drive drive = getWriteDrive(bucket, objectName);
-            ObjectPath path = new ObjectPath(drive, bucket, objectName);
-            File file = path.dataFileVersionPath(version).toFile();
+    private boolean restoreVersionDataFile() {
 
+        try {
+            ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
+
+            Drive drive = getWriteDrive(bucket, getOperation().getObjectName());
+            ObjectPath path = new ObjectPath(drive, bucket, getOperation().getObjectName());
+            File file = path.dataFileVersionPath(getOperation().getVersion()).toFile();
             if (file.exists()) {
-                ((SimpleDrive) drive).putObjectDataFile(bucket.getId(), objectName, file);
+                ((SimpleDrive) drive).putObjectDataFile(bucket.getId(), getOperation().getObjectName(), file);
                 FileUtils.deleteQuietly(file);
                 return true;
             }
             return false;
         } catch (Exception e) {
-            throw new InternalCriticalException(e, objectInfo(bucket, objectName));
+            throw new InternalCriticalException(e, opInfo(getOperation()));
         }
     }
 
     /**
      * restore metadata directory
      */
-    private void restoreMetadata(ServerBucket bucket, String objectName) {
-        String objectMetadataBackupDirPath = getDriver().getWriteDrive(bucket, objectName).getBucketWorkDirPath(bucket)
-                + File.separator + objectName;
-        String objectMetadataDirPath = getDriver().getWriteDrive(bucket, objectName).getObjectMetadataDirPath(bucket, objectName);
+    private void restoreMetadata() {
+        ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
+        String objectMetadataBackupDirPath = getDriver().getWriteDrive(bucket, getOperation().getObjectName())
+                .getBucketWorkDirPath(bucket) + File.separator + getOperation().getObjectName();
+        String objectMetadataDirPath = getDriver().getWriteDrive(bucket, getOperation().getObjectName())
+                .getObjectMetadataDirPath(bucket, getOperation().getObjectName());
         try {
             FileUtils.copyDirectory(new File(objectMetadataBackupDirPath), new File(objectMetadataDirPath));
         } catch (IOException e) {
-            throw new InternalCriticalException(e, objectInfo(bucket, objectName));
+            throw new InternalCriticalException(e, objectInfo(bucket, getOperation().getObjectName()));
         }
     }
 

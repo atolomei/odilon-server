@@ -694,27 +694,22 @@ public class RAIDOneDriver extends BaseIODriver {
 
         if (operation.getOperationCode() == OperationCode.CREATE_OBJECT) {
             RAIDOneRollbackCreateHandler handler = new RAIDOneRollbackCreateHandler(this, operation, recoveryMode);
-            ;
             handler.rollback();
             return;
         } else if (operation.getOperationCode() == OperationCode.UPDATE_OBJECT) {
             RAIDOneRollbackUpdateHandler handler = new RAIDOneRollbackUpdateHandler(this, operation, recoveryMode);
-            ;
             handler.rollback();
             return;
         } else if (operation.getOperationCode() == OperationCode.DELETE_OBJECT) {
             RAIDOneRollbackDeleteHandler handler = new RAIDOneRollbackDeleteHandler(this, operation, recoveryMode);
-            ;
             handler.rollback();
             return;
         } else if (operation.getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS) {
             RAIDOneRollbackDeleteHandler handler = new RAIDOneRollbackDeleteHandler(this, operation, recoveryMode);
-            ;
             handler.rollback();
             return;
         } else if (operation.getOperationCode() == OperationCode.UPDATE_OBJECT_METADATA) {
             RAIDOneRollbackUpdateHandler handler = new RAIDOneRollbackUpdateHandler(this, operation, recoveryMode);
-            ;
             handler.rollback();
             return;
         }
@@ -814,6 +809,7 @@ public class RAIDOneDriver extends BaseIODriver {
         objectWriteLock(bucket, objectName);
 
         try {
+
             bucketReadLock(bucket);
             try {
 
@@ -879,8 +875,10 @@ public class RAIDOneDriver extends BaseIODriver {
      */
     private ObjectMetadata getOM(ServerBucket bucket, String objectName, Optional<Integer> o_version, boolean addToCacheifMiss) {
         Drive readDrive = null;
+
         objectReadLock(bucket, objectName);
         try {
+
             bucketReadLock(bucket);
             try {
                 /**

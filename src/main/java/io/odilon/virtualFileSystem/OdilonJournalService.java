@@ -16,7 +16,6 @@
  */
 package io.odilon.virtualFileSystem;
 
-
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -138,11 +137,8 @@ public class OdilonJournalService extends BaseService implements JournalService 
     @Override
     public VirtualFileSystemOperation updateBucket(ServerBucket bucket, String newBucketName) {
         Check.requireNonNullArgument(bucket, "bucket is null");
-        return createNew(   OperationCode.UPDATE_BUCKET, 
-                            Optional.of(bucket.getId()), 
-                            Optional.of(bucket.getName()),
-                            Optional.of(newBucketName), 
-                            Optional.empty());
+        return createNew(OperationCode.UPDATE_BUCKET, Optional.of(bucket.getId()), Optional.of(bucket.getName()),
+                Optional.of(newBucketName), Optional.empty());
     }
 
     @Override
@@ -201,8 +197,9 @@ public class OdilonJournalService extends BaseService implements JournalService 
 
     @Override
     public boolean commit(VirtualFileSystemOperation operation) {
-                return commit(operation, null);
+        return commit(operation, null);
     }
+
     /**
      * <p>
      * If there is a replica enabled, 1. save the op into the replica queue 2.
@@ -212,31 +209,31 @@ public class OdilonJournalService extends BaseService implements JournalService 
      */
     @Override
     public boolean commit(VirtualFileSystemOperation operation, Object payload) {
-        
+
         if (operation == null)
             return true;
 
         synchronized (this) {
-        
+
             boolean isOK = false;
-            
+
             try {
-                
+
                 if (isStandBy())
                     getReplicationService().enqueue(operation);
-                
+
                 getApplicationEventPublisher().publishEvent(new CacheEvent(operation, Action.COMMIT));
-                
-                if ((payload !=null) && (payload instanceof ServerBucket)) { 
+
+                if ((payload != null) && (payload instanceof ServerBucket)) {
                     getApplicationEventPublisher().publishEvent(new BucketEvent(operation, Action.COMMIT, (ServerBucket) payload));
                 }
-                
+
                 getVirtualFileSystemService().removeJournal(operation.getId());
                 getOperations().remove(operation.getId());
 
                 isOK = true;
                 return isOK;
-                
+
             } catch (Exception e) {
                 if (isStandBy()) {
                     getOpsAborted().put(operation.getId(), operation.getId());
@@ -251,8 +248,7 @@ public class OdilonJournalService extends BaseService implements JournalService 
     public boolean cancel(VirtualFileSystemOperation virtualFileSystemOperation) {
         return cancel(virtualFileSystemOperation, null);
     }
-    
-    
+
     @Override
     public boolean cancel(VirtualFileSystemOperation operation, Object payload) {
 
@@ -261,15 +257,16 @@ public class OdilonJournalService extends BaseService implements JournalService 
 
         synchronized (this) {
             try {
-                
+
                 CacheEvent event = new CacheEvent(operation, Action.ROLLBACK);
                 getApplicationEventPublisher().publishEvent(event);
-                
+
                 if (payload instanceof ServerBucket)
-                    getApplicationEventPublisher().publishEvent(new BucketEvent(operation, Action.ROLLBACK, (ServerBucket) payload));
-                
+                    getApplicationEventPublisher()
+                            .publishEvent(new BucketEvent(operation, Action.ROLLBACK, (ServerBucket) payload));
+
                 getVirtualFileSystemService().removeJournal(operation.getId());
-                
+
             } catch (InternalCriticalException e) {
                 logger.error(e, "the operation was saved in just some of the drives due to a crash", SharedConstant.NOT_THROWN);
             }
@@ -332,14 +329,14 @@ public class OdilonJournalService extends BaseService implements JournalService 
 
     private synchronized VirtualFileSystemOperation createNew(OperationCode code, Optional<Long> bucketId,
             Optional<String> bucketName, Optional<String> objectName, Optional<Integer> iVersion) {
-        
+
         final VirtualFileSystemOperation operation = new OdilonVirtualFileSystemOperation(newOperationId(), code, bucketId,
                 bucketName, objectName, iVersion, getRedundancyLevel(), this);
-        
+
         getVirtualFileSystemService().saveJournal(operation);
         getOperations().put(operation.getId(), operation);
         return operation;
-        
+
     }
 
     private RedundancyLevel getRedundancyLevel() {
@@ -361,7 +358,5 @@ public class OdilonJournalService extends BaseService implements JournalService 
     private boolean isStandBy() {
         return this.isStandBy;
     }
-
-
 
 }

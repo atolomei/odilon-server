@@ -21,9 +21,6 @@ public class RAIDZeroRollbackCreateHandler extends RAIDZeroRollbackHandler {
     @Override
     protected void rollback() {
         
-        if (getOperation() == null)
-            return;
-               
         boolean rollbackOK = false;
         
         try {

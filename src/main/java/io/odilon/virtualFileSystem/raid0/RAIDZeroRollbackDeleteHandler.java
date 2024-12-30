@@ -28,20 +28,17 @@ public class RAIDZeroRollbackDeleteHandler extends RAIDZeroRollbackHandler {
 
         boolean done = false;
 
-        ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
-
         try {
-
             if (isStandByEnabled())
                 getReplicationService().cancel(getOperation());
 
             // Rollback is the same for both operations -> DELETE_OBJECT and
             // DELETE_OBJECT_PREVIOUS_VERSIONS
             if (getOperation().getOperationCode() == OperationCode.DELETE_OBJECT)
-                restoreMetadata(bucket, getOperation().getObjectName());
+                restoreMetadata();
 
             else if (getOperation().getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS)
-                restoreMetadata(bucket, getOperation().getObjectName());
+                restoreMetadata();
 
             done = true;
 
@@ -70,8 +67,11 @@ public class RAIDZeroRollbackDeleteHandler extends RAIDZeroRollbackHandler {
      * @param bucketName
      * @param objectName
      */
-    private void restoreMetadata(ServerBucket bucket, String objectName) {
+    private void restoreMetadata() {
 
+        ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
+        String objectName = getOperation().getObjectName();
+        
         String objectMetadataBackupDirPath = getDriver().getWriteDrive(bucket, objectName).getBucketWorkDirPath(bucket)
                 + File.separator + objectName;
         String objectMetadataDirPath = getDriver().getWriteDrive(bucket, objectName).getObjectMetadataDirPath(bucket, objectName);

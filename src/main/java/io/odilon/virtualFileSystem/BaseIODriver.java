@@ -1501,10 +1501,18 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 
 
     public void rollback(VirtualFileSystemOperation operation) {
-                    rollback(operation, null, false);
+        
+        if (operation == null)
+            return;
+
+        rollback(operation, null, false);
     }
         
     public void rollback(VirtualFileSystemOperation operation, boolean recoveryMode) {
+        
+        if (operation == null)
+            return;
+        
         rollback(operation, null, recoveryMode);
     }
     
