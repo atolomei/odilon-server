@@ -29,8 +29,8 @@ public class RAIDOneRollbackDeleteHandler extends RAIDOneRollbackHandler {
 
         try {
 
-            if (getServerSettings().isStandByEnabled())
-                getReplicationService().cancel(getOperation());
+            //if (getServerSettings().isStandByEnabled())
+            //    getReplicationService().cancel(getOperation());
 
             /** rollback is the same for both operations */
             if (getOperation().getOperationCode() == OperationCode.DELETE_OBJECT)

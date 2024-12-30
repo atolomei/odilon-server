@@ -25,8 +25,8 @@ public class RAIDOneRollbackCreateHandler extends RAIDOneRollbackHandler {
 
         try {
             
-            if (getServerSettings().isStandByEnabled())
-                getReplicationService().cancel(getOperation());
+            //if (getServerSettings().isStandByEnabled())
+            //    getReplicationService().cancel(getOperation());
 
             ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
             

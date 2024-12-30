@@ -136,7 +136,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
     @Override
     public boolean existsBucket(String bucketName) {
         Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
-        
+
         bucketReadLock(bucketName);
         try {
             /** Bucket cache must be used after locking critical resource */
@@ -231,7 +231,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
         BucketMetadata bucketMeta = null;
         OffsetDateTime now = OffsetDateTime.now();
         String oldName = bucket.getName();
-        
+
         bucketWriteLock(oldName);
         try {
             bucketWriteLock(newBucketName);
@@ -377,7 +377,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
         }
     }
 
-
     /**
      * <p>
      * There is no need to lock resources when rollback is called during server
@@ -396,7 +395,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 
             if (operation.getOperationCode() == OperationCode.CREATE_BUCKET) {
                 removeCacheBucket(bucketId);
-                
+
                 for (Drive drive : getDrivesAll()) {
                     ((OdilonDrive) drive).forceDeleteBucketById(bucketId);
                 }
@@ -1499,30 +1498,43 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
             throw new IllegalArgumentException("bucket does not exist -> " + bucketName);
     }
 
-
     public void rollback(VirtualFileSystemOperation operation) {
-        
+
         if (operation == null)
             return;
+
+        if (isStandByEnabled())
+            getReplicationService().cancel(operation);
 
         rollback(operation, null, false);
     }
-        
+
     public void rollback(VirtualFileSystemOperation operation, boolean recoveryMode) {
-        
+
         if (operation == null)
             return;
-        
+
+        if (isStandByEnabled())
+            getReplicationService().cancel(operation);
+
         rollback(operation, null, recoveryMode);
     }
-    
+
     public void rollback(VirtualFileSystemOperation operation, Object payload) {
+
+        if (operation == null)
+            return;
+
+        if (isStandByEnabled())
+            getReplicationService().cancel(operation);
+
         rollback(operation, payload, false);
     }
-    
+
+    public boolean isStandByEnabled() {
+        return getVirtualFileSystemService().getServerSettings().isStandByEnabled();
+    }
+
     public abstract void rollback(VirtualFileSystemOperation operation, Object payload, boolean recoveryMode);
-    
-    
-    
 
 }

@@ -282,9 +282,10 @@ public class ReplicationService extends BaseService implements ApplicationContex
     }
 
     public void cancel(VirtualFileSystemOperation opx) {
-        this.schedulerService.cancel(opx.getId());
+        if (opx.isReplicates())
+            getSchedulerService().cancel(opx.getId());
     }
-
+        
     /**
      * before starting the operation we must get sure
      * 

@@ -27,9 +27,6 @@ public class RAIDZeroRollbackDeleteHandler extends RAIDZeroRollbackHandler {
 
         try {
             
-            if (isStandByEnabled())
-                getReplicationService().cancel(getOperation());
-
             // Rollback is the same for both operations -> DELETE_OBJECT and
             // DELETE_OBJECT_PREVIOUS_VERSIONS
             if (getOperation().getOperationCode() == OperationCode.DELETE_OBJECT)

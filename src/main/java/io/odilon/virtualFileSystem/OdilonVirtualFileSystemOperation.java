@@ -82,6 +82,9 @@ public class OdilonVirtualFileSystemOperation implements VirtualFileSystemOperat
     @JsonProperty("raid")
     private RedundancyLevel raid;
 
+    @JsonProperty("replicates")
+    private boolean replicates;
+
     public OdilonVirtualFileSystemOperation() {
     }
 
@@ -106,6 +109,15 @@ public class OdilonVirtualFileSystemOperation implements VirtualFileSystemOperat
         this.raid = raid;
         this.journalService = journalService;
         this.timestamp = OffsetDateTime.now();
+        this.replicates = op.isReplicates();
+    }
+
+    public boolean isReplicates() {
+        return replicates;
+    }
+
+    public void setReplicates(boolean replicates) {
+        this.replicates = replicates;
     }
 
     @Override

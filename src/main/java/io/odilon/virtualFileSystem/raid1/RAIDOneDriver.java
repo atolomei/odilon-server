@@ -718,8 +718,8 @@ public class RAIDOneDriver extends BaseIODriver {
 
         try {
 
-            if (getServerSettings().isStandByEnabled())
-                getVirtualFileSystemService().getReplicationService().cancel(operation);
+            //if (getServerSettings().isStandByEnabled())
+            //    getVirtualFileSystemService().getReplicationService().cancel(operation);
 
             if (operation.getOperationCode() == OperationCode.CREATE_BUCKET) {
 

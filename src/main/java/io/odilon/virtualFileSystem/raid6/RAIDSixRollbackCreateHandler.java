@@ -31,8 +31,8 @@ public class RAIDSixRollbackCreateHandler extends RAIDSixRollbackHandler {
 
         try {
 
-            if (getServerSettings().isStandByEnabled())
-                getReplicationService().cancel(getOperation());
+            //if (getServerSettings().isStandByEnabled())
+            //    getReplicationService().cancel(getOperation());
 
             ObjectMetadata meta = null;
 

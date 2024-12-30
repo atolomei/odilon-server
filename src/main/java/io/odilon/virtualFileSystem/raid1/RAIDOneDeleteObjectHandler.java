@@ -277,58 +277,7 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneTransactionHandler {
             onAfterCommit(operation, meta, headVersion);
     }
 
-    /**
-    protected void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
-
-        // checked by the calling driver
-        Check.requireNonNullArgument(operation, "operation is null");
-        Check.requireTrue(
-                operation.getOperationCode() == OperationCode.DELETE_OBJECT
-                        || operation.getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS,
-                "VFSOperation invalid -> op: " + operation.getOperationCode().getName());
-
-        String objectName = operation.getObjectName();
-        Long bucketId = operation.getBucketId();
-
-        Check.requireNonNullArgument(bucketId, "bucketId is null");
-        Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketId.toString());
-
-        boolean done = false;
-
-        try {
-
-            if (getServerSettings().isStandByEnabled())
-                getReplicationService().cancel(operation);
-
-            ServerBucket bucket = getCacheBucket(operation.getBucketId());
-
-            /// rollback is the same for both operations 
-            if (operation.getOperationCode() == OperationCode.DELETE_OBJECT)
-                restoreMetadata(bucket, objectName);
-
-            else if (operation.getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS)
-                restoreMetadata(bucket, objectName);
-
-            done = true;
-
-        } catch (InternalCriticalException e) {
-            if (!recoveryMode)
-                throw (e);
-            else
-                logger.error(opInfo(operation), SharedConstant.NOT_THROWN);
-        } catch (Exception e) {
-            if (!recoveryMode)
-                throw new InternalCriticalException(e, opInfo(operation));
-            else
-                logger.error(opInfo(operation), SharedConstant.NOT_THROWN);
-
-        } finally {
-            if (done || recoveryMode)
-                operation.cancel();
-        }
-    }
-*/
-    
+     
     protected void postObjectDelete(ObjectMetadata meta, int headVersion) {
     }
 

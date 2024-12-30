@@ -790,8 +790,8 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 
         try {
 
-            if (getServerSettings().isStandByEnabled())
-                getReplicationService().cancel(operation);
+            // if (getServerSettings().isStandByEnabled())
+            // getReplicationService().cancel(operation);
 
             if (operation.getOperationCode() == OperationCode.CREATE_BUCKET) {
 

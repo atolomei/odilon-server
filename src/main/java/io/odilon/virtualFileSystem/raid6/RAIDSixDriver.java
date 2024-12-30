@@ -393,8 +393,9 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
         boolean done = false;
 
         try {
-            if (getServerSettings().isStandByEnabled())
-                getReplicationService().cancel(operation);
+            
+            //if (getServerSettings().isStandByEnabled())
+            //    getReplicationService().cancel(operation);
 
             if (operation.getOperationCode() == OperationCode.CREATE_BUCKET) {
 

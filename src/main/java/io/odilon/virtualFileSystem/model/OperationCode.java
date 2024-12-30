@@ -31,29 +31,31 @@ import java.util.Locale;
  */
 public enum OperationCode {
 
-    CREATE_BUCKET("create_bucket", 0, "b"), // 1
-    UPDATE_BUCKET("update_bucket", 1, "b"), // 2
-    DELETE_BUCKET("delete_bucket", 2, "b"), // 3
+    CREATE_BUCKET("create_bucket", 0, "b", true), // 1
+    UPDATE_BUCKET("update_bucket", 1, "b", true), // 2
+    DELETE_BUCKET("delete_bucket", 2, "b", true), // 3
 
-    CREATE_OBJECT("create_object", 10, "o"), // 4
-    UPDATE_OBJECT("update_object", 21, "o"), // 5
-    UPDATE_OBJECT_METADATA("update_object_metadata", 22, "o"), // 6
-    DELETE_OBJECT("delete_object", 23, "o"), // 7
-    DELETE_OBJECT_PREVIOUS_VERSIONS("delete_object_previous_versions", 24, "o"), // 8
-    RESTORE_OBJECT_PREVIOUS_VERSION("restore_object_previous_versions", 25, "o"), // 9
-    SYNC_OBJECT_NEW_DRIVE("sync_object", 26, "o"), // 10
+    CREATE_OBJECT("create_object", 10, "o", true), // 4
+    UPDATE_OBJECT("update_object", 21, "o", true), // 5
+    UPDATE_OBJECT_METADATA("update_object_metadata", 22, "o", true), // 6
+    DELETE_OBJECT("delete_object", 23, "o", true), // 7
+    DELETE_OBJECT_PREVIOUS_VERSIONS("delete_object_previous_versions", 24, "o", true), // 8
+    RESTORE_OBJECT_PREVIOUS_VERSION("restore_object_previous_versions", 25, "o", true), // 9
 
-    CREATE_SERVER_METADATA("create_server_metadata", 70, "s"), // 11
-    UPDATE_SERVER_METADATA("update_server_metadata", 88, "s"), // 12
+    SYNC_OBJECT_NEW_DRIVE("sync_object", 26, "o", false), // 10
 
-    CREATE_SERVER_MASTERKEY("create_server_key", 90, "s"), // 13
-    INTEGRITY_CHECK("inttegrity_check", 101, "o"); // 14
+    CREATE_SERVER_METADATA("create_server_metadata", 70, "s", false), // 11
+    UPDATE_SERVER_METADATA("update_server_metadata", 88, "s", false), // 12
+
+    CREATE_SERVER_MASTERKEY("create_server_key", 90, "s", false), // 13
+    INTEGRITY_CHECK("inttegrity_check", 101, "o", false); // 14
 
     static List<OperationCode> ops;
 
     private String name;
     private int code;
     private String enttiyGroupCode;
+    private boolean replicates;
 
     public static OperationCode fromId(String id) {
 
@@ -231,10 +233,14 @@ public enum OperationCode {
         return enttiyGroupCode;
     }
 
-    private OperationCode(String name, int code, String groupCode) {
+    private OperationCode(String name, int code, String groupCode, boolean replicates) {
         this.name = name;
         this.code = code;
         this.enttiyGroupCode = groupCode;
+        this.replicates = replicates;
     }
 
+    public boolean isReplicates() {
+        return this.replicates;
+    }
 }

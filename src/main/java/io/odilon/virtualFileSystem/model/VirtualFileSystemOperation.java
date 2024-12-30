@@ -46,6 +46,8 @@ public interface VirtualFileSystemOperation {
 
     public boolean cancel(Object payload);
 
+    public boolean isReplicates();
+
     public String getId();
 
     public String toJSON();

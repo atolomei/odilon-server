@@ -29,8 +29,9 @@ public class RAIDSixRollbackUpdateHandler extends RAIDSixRollbackHandler {
     @Override
     protected void rollback() {
 
-        if (isStandByEnabled())
-            getReplicationService().cancel(getOperation());
+        
+        // if (isStandByEnabled())
+        //    getReplicationService().cancel(getOperation());
 
         switch (getOperation().getOperationCode()) {
         case UPDATE_OBJECT: {

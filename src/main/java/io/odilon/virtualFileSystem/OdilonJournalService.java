@@ -235,6 +235,7 @@ public class OdilonJournalService extends BaseService implements JournalService 
                 return isOK;
 
             } catch (Exception e) {
+
                 if (isStandBy()) {
                     getOpsAborted().put(operation.getId(), operation.getId());
                     getReplicationService().cancel(operation);

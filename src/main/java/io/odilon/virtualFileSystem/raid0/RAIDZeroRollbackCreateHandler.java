@@ -11,26 +11,26 @@ import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 public class RAIDZeroRollbackCreateHandler extends RAIDZeroRollbackHandler {
-        
+
     private static Logger logger = Logger.getLogger(RAIDZeroRollbackCreateHandler.class.getName());
 
     public RAIDZeroRollbackCreateHandler(RAIDZeroDriver driver, VirtualFileSystemOperation operation, boolean recoveryMode) {
         super(driver, operation, recoveryMode);
     }
-    
+
     @Override
     protected void rollback() {
-        
+
         boolean rollbackOK = false;
-        
+
         try {
-            
-            if (isStandByEnabled())
-                getReplicationService().cancel(getOperation());
+
+            // if (isStandByEnabled())
+            // getReplicationService().cancel(getOperation());
 
             ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
             String objectName = getOperation().getObjectName();
-            
+
             ObjectPath path = new ObjectPath(getWriteDrive(bucket, objectName), bucket, objectName);
 
             FileUtils.deleteQuietly(path.metadataDirPath().toFile());
