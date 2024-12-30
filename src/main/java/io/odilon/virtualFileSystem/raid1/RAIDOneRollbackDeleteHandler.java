@@ -25,9 +25,6 @@ public class RAIDOneRollbackDeleteHandler extends RAIDOneRollbackHandler {
     @Override
     protected void rollback() {
 
-        if (getOperation() == null)
-            return;
-
         boolean done = false;
 
         try {

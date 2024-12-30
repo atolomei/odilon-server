@@ -27,7 +27,6 @@ public class RAIDSixRollbackSyncHandler extends RAIDSixRollbackHandler {
 
         String objectName = getOperation().getObjectName();
 
-
         getLockService().getObjectLock(getOperation().getBucketId(), getOperation().getObjectName()).writeLock().lock();
         try {
 

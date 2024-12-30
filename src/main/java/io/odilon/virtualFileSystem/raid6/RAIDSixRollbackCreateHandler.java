@@ -24,9 +24,6 @@ public class RAIDSixRollbackCreateHandler extends RAIDSixRollbackHandler {
     @Override
     protected void rollback() {
 
-        if (getOperation() == null)
-            return;
-
         String objectName = getOperation().getObjectName();
         ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
 

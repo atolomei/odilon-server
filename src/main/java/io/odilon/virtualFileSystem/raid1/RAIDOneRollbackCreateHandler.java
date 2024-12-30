@@ -21,23 +21,18 @@ public class RAIDOneRollbackCreateHandler extends RAIDOneRollbackHandler {
     @Override
     protected void rollback() {
 
-        if (getOperation() == null)
-            return;
-
-        String objectName = getOperation().getObjectName();
-        Long bucket_id = getOperation().getBucketId();
-
-        ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
-
         boolean done = false;
 
         try {
+            
             if (getServerSettings().isStandByEnabled())
                 getReplicationService().cancel(getOperation());
 
+            ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
+            
             for (Drive drive : getDriver().getDrivesAll()) {
-                drive.deleteObjectMetadata(bucket, objectName);
-                ObjectPath path = new ObjectPath(drive, bucket_id, objectName);
+                drive.deleteObjectMetadata(bucket, getOperation().getObjectName());
+                ObjectPath path = new ObjectPath(drive, bucket, getOperation().getObjectName());
                 FileUtils.deleteQuietly(path.dataFilePath().toFile());
             }
             done = true;

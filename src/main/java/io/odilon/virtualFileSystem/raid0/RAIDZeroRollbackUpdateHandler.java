@@ -34,7 +34,6 @@ public class RAIDZeroRollbackUpdateHandler extends RAIDZeroRollbackHandler {
 
         if (isStandByEnabled())
             getReplicationService().cancel(getOperation());
-
         
         switch (getOperation().getOperationCode()) {
 

@@ -23,12 +23,10 @@ public class RAIDZeroRollbackDeleteHandler extends RAIDZeroRollbackHandler {
     @Override
     protected void rollback() {
 
-        if (getOperation() == null)
-            return;
-
         boolean done = false;
 
         try {
+            
             if (isStandByEnabled())
                 getReplicationService().cancel(getOperation());
 

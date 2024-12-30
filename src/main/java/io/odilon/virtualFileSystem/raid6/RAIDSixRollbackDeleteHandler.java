@@ -24,9 +24,6 @@ public class RAIDSixRollbackDeleteHandler extends RAIDSixRollbackHandler {
     @Override
     protected void rollback() {
 
-        if (getOperation() == null)
-            return;
-
         boolean done = false;
 
         try {

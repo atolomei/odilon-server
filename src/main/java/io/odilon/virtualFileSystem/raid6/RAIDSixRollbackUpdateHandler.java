@@ -29,98 +29,88 @@ public class RAIDSixRollbackUpdateHandler extends RAIDSixRollbackHandler {
     @Override
     protected void rollback() {
 
-        if (getOperation() == null)
-            return;
+        if (isStandByEnabled())
+            getReplicationService().cancel(getOperation());
 
         switch (getOperation().getOperationCode()) {
         case UPDATE_OBJECT: {
-            rollbackJournalUpdate(getOperation(), getBucketCache().get(getOperation().getBucketId()), isRecovery());
+            rollbackUpdate();
             break;
         }
         case UPDATE_OBJECT_METADATA: {
-
-            rollbackJournalUpdateMetadata(getOperation(), getBucketCache().get(getOperation().getBucketId()), isRecovery());
+            rollbackUpdateMetadata();
             break;
         }
         case RESTORE_OBJECT_PREVIOUS_VERSION: {
-            rollbackJournalUpdate(getOperation(), getBucketCache().get(getOperation().getBucketId()), isRecovery());
+            rollbackUpdate();
             break;
         }
         default: {
-            throw new IllegalArgumentException(
-                    VirtualFileSystemOperation.class.getSimpleName() + " not supported ->  op: " + opInfo(getOperation()));
+            throw new IllegalArgumentException(" not supported -> " + opInfo(getOperation()));
         }
         }
     }
 
-    private void rollbackJournalUpdateMetadata(VirtualFileSystemOperation operation, ServerBucket bucket, boolean recoveryMode) {
+    private void rollbackUpdateMetadata() {
 
         boolean done = false;
-
         try {
-            if (getServerSettings().isStandByEnabled())
-                getReplicationService().cancel(operation);
+            restoreVersionObjectMetadata();
+            done = true;
+        } catch (InternalCriticalException e) {
+            if (!isRecovery())
+                throw (e);
+            else
+                logger.error(opInfo(getOperation()), SharedConstant.NOT_THROWN);
 
-            restoreVersionObjectMetadata(bucket, operation.getObjectName(), operation.getVersion());
+        } catch (Exception e) {
+            if (!isRecovery())
+                throw new InternalCriticalException(e, opInfo(getOperation()));
+            else
+                logger.error(opInfo(getOperation()), SharedConstant.NOT_THROWN);
+        } finally {
+            if (done || isRecovery()) {
+                getOperation().cancel();
+            }
+        }
+    }
 
+    private void rollbackUpdate() {
+        boolean done = false;
+        try {
+            //ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
+            //ObjectMetadata meta = getDriver().getObjectMetadataReadDrive(bucket, getOperation().getObjectName()).getObjectMetadata(bucket,
+            //        getOperation().getObjectName());
+
+            //if (meta != null) {
+            restoreVersionObjectDataFile();
+            restoreVersionObjectMetadata();
+            //}
             done = true;
 
         } catch (InternalCriticalException e) {
-            if (!recoveryMode)
+            if (!isRecovery())
                 throw (e);
             else
-                logger.error(opInfo(operation), SharedConstant.NOT_THROWN);
+                logger.error(e, opInfo(getOperation()), SharedConstant.NOT_THROWN);
 
         } catch (Exception e) {
-            if (!recoveryMode)
-                throw new InternalCriticalException(e, opInfo(operation));
+            if (!isRecovery())
+                throw new InternalCriticalException(e, opInfo(getOperation()));
             else
-                logger.error(opInfo(operation), SharedConstant.NOT_THROWN);
+                logger.error(e, opInfo(getOperation()), SharedConstant.NOT_THROWN);
         } finally {
-            if (done || recoveryMode) {
-                operation.cancel();
+            if (done || isRecovery()) {
+                getOperation().cancel();
             }
         }
     }
 
-    private void rollbackJournalUpdate(VirtualFileSystemOperation op, ServerBucket bucket, boolean recoveryMode) {
-        boolean done = false;
-        try {
-            if (isStandByEnabled())
-                getReplicationService().cancel(op);
-
-            ObjectMetadata meta = getDriver().getObjectMetadataReadDrive(bucket, op.getObjectName()).getObjectMetadata(bucket,
-                    op.getObjectName());
-
-            if (meta != null) {
-                restoreVersionObjectDataFile(meta, bucket, op.getVersion());
-                restoreVersionObjectMetadata(bucket, op.getObjectName(), op.getVersion());
-            }
-
-            done = true;
-
-        } catch (InternalCriticalException e) {
-            if (!recoveryMode)
-                throw (e);
-            else
-                logger.error(e, opInfo(op), SharedConstant.NOT_THROWN);
-
-        } catch (Exception e) {
-            if (!recoveryMode)
-                throw new InternalCriticalException(e, opInfo(op));
-            else
-                logger.error(e, opInfo(op), SharedConstant.NOT_THROWN);
-        } finally {
-            if (done || recoveryMode) {
-                op.cancel();
-            }
-        }
-    }
-
-    private boolean restoreVersionObjectMetadata(ServerBucket bucket, String objectName, int version) {
+    private boolean restoreVersionObjectMetadata() {
         try {
             boolean success = true;
-            ObjectMetadata versionMeta = getDriver().getObjectMetadataVersion(bucket, objectName, version);
+            ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
+            ObjectMetadata versionMeta = getDriver().getObjectMetadataVersion(bucket, getOperation().getObjectName(), getOperation().getVersion());
             for (Drive drive : getDriver().getDrivesAll()) {
                 versionMeta.setDrive(drive.getName());
                 drive.saveObjectMetadata(versionMeta);
@@ -130,13 +120,15 @@ public class RAIDSixRollbackUpdateHandler extends RAIDSixRollbackHandler {
         } catch (InternalCriticalException e) {
             throw e;
         } catch (Exception e) {
-            throw new InternalCriticalException(e, objectInfo(bucket, objectName));
+            throw new InternalCriticalException(e, opInfo(getOperation()));
         }
     }
 
-    private boolean restoreVersionObjectDataFile(ObjectMetadata meta, ServerBucket bucket, int version) {
+    private boolean restoreVersionObjectDataFile() {
         try {
-            Map<Drive, List<String>> versionToRestore = getDriver().getObjectDataFilesNames(meta, Optional.of(version));
+            ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
+            ObjectMetadata meta = getDriver().getObjectMetadataVersion(bucket, getOperation().getObjectName(), getOperation().getVersion());
+            Map<Drive, List<String>> versionToRestore = getDriver().getObjectDataFilesNames(meta, Optional.of(getOperation().getVersion()));
             for (Drive drive : versionToRestore.keySet()) {
                 for (String name : versionToRestore.get(drive)) {
                     String arr[] = name.split(".v");
@@ -152,7 +144,7 @@ public class RAIDSixRollbackUpdateHandler extends RAIDSixRollbackHandler {
                                     StandardCopyOption.REPLACE_EXISTING);
                         }
                     } catch (IOException e) {
-                        throw new InternalCriticalException(e, objectInfo(meta));
+                        throw new InternalCriticalException(e, opInfo(getOperation()));
                     }
                 }
 
@@ -163,7 +155,7 @@ public class RAIDSixRollbackUpdateHandler extends RAIDSixRollbackHandler {
             throw e;
 
         } catch (Exception e) {
-            throw new InternalCriticalException(e, getDriver().objectInfo(meta));
+            throw new InternalCriticalException(e, opInfo(getOperation()));
         }
     }
 

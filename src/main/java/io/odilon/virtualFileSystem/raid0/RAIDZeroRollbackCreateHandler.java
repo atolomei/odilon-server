@@ -24,12 +24,13 @@ public class RAIDZeroRollbackCreateHandler extends RAIDZeroRollbackHandler {
         boolean rollbackOK = false;
         
         try {
-            ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
-            String objectName = getOperation().getObjectName();
             
             if (isStandByEnabled())
                 getReplicationService().cancel(getOperation());
 
+            ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
+            String objectName = getOperation().getObjectName();
+            
             ObjectPath path = new ObjectPath(getWriteDrive(bucket, objectName), bucket, objectName);
 
             FileUtils.deleteQuietly(path.metadataDirPath().toFile());
