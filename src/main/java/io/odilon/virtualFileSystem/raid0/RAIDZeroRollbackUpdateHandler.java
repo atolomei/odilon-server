@@ -27,7 +27,6 @@ public class RAIDZeroRollbackUpdateHandler extends RAIDZeroRollbackHandler {
      * <p>
      * The procedure is the same for Version Control
      * </p>
-     * 
      */
     @Override
     protected void rollback() {
@@ -60,12 +59,9 @@ public class RAIDZeroRollbackUpdateHandler extends RAIDZeroRollbackHandler {
 
         boolean done = false;
         try {
-
-            restoreVersionDataFile();
-            restoreVersionMetadata();
-            
+            restoreVersion();
             done = true;
-
+            
         } catch (InternalCriticalException e) {
             if (!isRecovery())
                 throw (e);
@@ -89,19 +85,15 @@ public class RAIDZeroRollbackUpdateHandler extends RAIDZeroRollbackHandler {
      * @param recoveryMode
      */
     private void rollbackUpdateMetadata() {
-
         boolean done = false;
         try {
-
             restoreMetadata();
             done = true;
-
         } catch (InternalCriticalException e) {
             if (!isRecovery())
                 throw (e);
             else
                 logger.error(e, opInfo(getOperation()), SharedConstant.NOT_THROWN);
-
         } catch (Exception e) {
             if (!isRecovery())
                 throw new InternalCriticalException(e, opInfo(getOperation()));
@@ -114,11 +106,12 @@ public class RAIDZeroRollbackUpdateHandler extends RAIDZeroRollbackHandler {
         }
     }
 
+
     /**
      * @param bucketName
      * @param objectName
      * @param version
-     */
+
     private boolean restoreVersionMetadata() {
         try {
             ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
@@ -134,21 +127,31 @@ public class RAIDZeroRollbackUpdateHandler extends RAIDZeroRollbackHandler {
             throw new InternalCriticalException(e, opInfo(getOperation()));
         }
     }
+     */
+    
+    private void restoreVersion() {
 
-    private boolean restoreVersionDataFile() {
-
+        ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
+        
         try {
-            ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
-
             Drive drive = getWriteDrive(bucket, getOperation().getObjectName());
             ObjectPath path = new ObjectPath(drive, bucket, getOperation().getObjectName());
             File file = path.dataFileVersionPath(getOperation().getVersion()).toFile();
             if (file.exists()) {
                 ((SimpleDrive) drive).putObjectDataFile(bucket.getId(), getOperation().getObjectName(), file);
                 FileUtils.deleteQuietly(file);
-                return true;
             }
-            return false;
+        } catch (Exception e) {
+            throw new InternalCriticalException(e, opInfo(getOperation()));
+        }
+        
+        try {
+            Drive drive = getWriteDrive(bucket, getOperation().getObjectName());
+            File file = drive.getObjectMetadataVersionFile(bucket, getOperation().getObjectName(), getOperation().getVersion());
+            if (file.exists()) {
+                drive.putObjectMetadataFile(bucket, getOperation().getObjectName(), file);
+                FileUtils.deleteQuietly(file);
+            }
         } catch (Exception e) {
             throw new InternalCriticalException(e, opInfo(getOperation()));
         }
