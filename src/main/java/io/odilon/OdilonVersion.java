@@ -18,7 +18,7 @@ package io.odilon;
 
 public class OdilonVersion {
 
-	public static final String VERSION = "1.10";
+	public static final String VERSION = "1.11";
 	
 	private static String[] brand_char = null;
 	

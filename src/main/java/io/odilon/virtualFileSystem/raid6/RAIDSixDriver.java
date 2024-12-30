@@ -162,6 +162,10 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
         try {
             bucketReadLock(bucket);
             try {
+                
+                /** must be executed inside the critical zone */
+                checkExistBucket(bucket);
+
                 checkIsAccesible(bucket);
                 ObjectMetadata meta = getDriverObjectMetadataInternal(bucket, objectName, true);
 
@@ -194,6 +198,10 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
         try {
             bucketReadLock(bucket);
             try {
+                
+                /** must be executed inside the critical zone */
+                checkExistBucket(bucket);
+                
                 checkIsAccesible(bucket);
                 /** RAID 6: read is from any of the drives */
                 Drive readDrive = getObjectMetadataReadDrive(bucket, objectName);
