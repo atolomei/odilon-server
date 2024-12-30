@@ -688,10 +688,7 @@ public class RAIDOneDriver extends BaseIODriver {
 
     @Override
     public void rollback(VirtualFileSystemOperation operation, Object payload, boolean recoveryMode) {
-
-        if (operation == null)
-            return;
-
+ 
         if (operation.getOperationCode() == OperationCode.CREATE_OBJECT) {
             RAIDOneRollbackCreateHandler handler = new RAIDOneRollbackCreateHandler(this, operation, recoveryMode);
             handler.rollback();
@@ -717,9 +714,6 @@ public class RAIDOneDriver extends BaseIODriver {
         boolean done = false;
 
         try {
-
-            //if (getServerSettings().isStandByEnabled())
-            //    getVirtualFileSystemService().getReplicationService().cancel(operation);
 
             if (operation.getOperationCode() == OperationCode.CREATE_BUCKET) {
 

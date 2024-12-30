@@ -748,9 +748,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
     @Override
     public void rollback(VirtualFileSystemOperation operation, Object payload, boolean recoveryMode) {
 
-        if (operation == null)
-            return;
-
         switch (operation.getOperationCode()) {
         case CREATE_OBJECT: {
             RAIDZeroRollbackCreateHandler handler = new RAIDZeroRollbackCreateHandler(this, operation, recoveryMode);
@@ -789,9 +786,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         boolean done = false;
 
         try {
-
-            // if (getServerSettings().isStandByEnabled())
-            // getReplicationService().cancel(operation);
 
             if (operation.getOperationCode() == OperationCode.CREATE_BUCKET) {
 

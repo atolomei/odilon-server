@@ -354,9 +354,6 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
     @Override
     public void rollback(VirtualFileSystemOperation operation, Object payload, boolean recoveryMode) {
 
-        if (operation == null)
-            return;
-
         switch (operation.getOperationCode()) {
         case CREATE_OBJECT: {
             RAIDSixRollbackCreateHandler handler = new RAIDSixRollbackCreateHandler(this, operation, recoveryMode);
@@ -402,9 +399,6 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 
         try {
             
-            //if (getServerSettings().isStandByEnabled())
-            //    getReplicationService().cancel(operation);
-
             if (operation.getOperationCode() == OperationCode.CREATE_BUCKET) {
 
                 done = generalRollbackJournal(operation);
