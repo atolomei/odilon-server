@@ -19,5 +19,4 @@ public abstract class RAIDZeroTransactionHandler extends RAIDZeroHandler {
     protected void rollback(VirtualFileSystemOperation operation, Object payload, boolean recoveryMode) {
         getDriver().rollback(operation, payload, recoveryMode);
     }
-
 }

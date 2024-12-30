@@ -227,8 +227,9 @@ public class OdilonJournalService extends BaseService implements JournalService 
                 
                 getApplicationEventPublisher().publishEvent(new CacheEvent(operation, Action.COMMIT));
                 
-                if (payload instanceof ServerBucket)
+                if ((payload !=null) && (payload instanceof ServerBucket)) { 
                     getApplicationEventPublisher().publishEvent(new BucketEvent(operation, Action.COMMIT, (ServerBucket) payload));
+                }
                 
                 getVirtualFileSystemService().removeJournal(operation.getId());
                 getOperations().remove(operation.getId());

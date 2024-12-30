@@ -231,6 +231,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
         BucketMetadata bucketMeta = null;
         OffsetDateTime now = OffsetDateTime.now();
         String oldName = bucket.getName();
+        
         bucketWriteLock(oldName);
         try {
             bucketWriteLock(newBucketName);

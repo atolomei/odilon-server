@@ -87,14 +87,12 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixTransactionHandler {
             getLockService().getBucketLock(bucket).readLock().lock();
 
             try {
-                /**
-                 * This check must be executed inside the critical section
-                 */
-                if (!existsCacheBucket(bucket))
-                    throw new IllegalArgumentException("bucket does not exist -> " + bucket.getName());
-
-                if (!getDriver().exists(bucket, objectName))
-                    throw new IllegalArgumentException("object does not exist -> " + objectInfo(bucket, objectName));
+                
+                /** must be executed inside the critical zone */
+                checkExistsBucket(bucket);
+                
+                /** must be executed inside the critical zone */
+                checkExistObject(bucket, objectName);
 
                 meta = getDriver().getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucket, objectName);
 

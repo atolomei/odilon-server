@@ -14,7 +14,6 @@ public class RAIDZeroRollbackCreateHandler extends RAIDZeroRollbackHandler {
         
     private static Logger logger = Logger.getLogger(RAIDZeroRollbackCreateHandler.class.getName());
 
-    
     public RAIDZeroRollbackCreateHandler(RAIDZeroDriver driver, VirtualFileSystemOperation operation, boolean recoveryMode) {
         super(driver, operation, recoveryMode);
     }
@@ -28,7 +27,6 @@ public class RAIDZeroRollbackCreateHandler extends RAIDZeroRollbackHandler {
         boolean rollbackOK = false;
         
         try {
-            
             ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
             String objectName = getOperation().getObjectName();
             
@@ -57,5 +55,4 @@ public class RAIDZeroRollbackCreateHandler extends RAIDZeroRollbackHandler {
                 getOperation().cancel();
         }
     }
-
 }

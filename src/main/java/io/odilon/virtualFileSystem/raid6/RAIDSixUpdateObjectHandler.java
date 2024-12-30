@@ -124,8 +124,8 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionHandler {
 
                 meta = getMetadata(bucket, objectName, true);
 
-                // if ((meta == null) || (!meta.isAccesible()))
-                // throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
+                 if (!meta.isAccesible())
+                     throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
 
                 beforeHeadVersion = meta.getVersion();
                 operation = getJournalService().updateObject(bucket, objectName, beforeHeadVersion);
@@ -199,17 +199,13 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionHandler {
             try {
 
                 /** must be executed inside the critical zone. */
-                checkExistsBucket(bucket);
+                checkExistsBucket(meta.getBucketId());
 
+                bucket = getBucketCache().get(meta.getBucketId());
+                
                 /** must be executed inside the critical zone. */
                 checkExistObject(bucket, meta.getObjectName());
 
-                // must be executed inside the critical zone.
-                // if (!existsCacheBucket(meta.getBucketId()))
-                // throw new IllegalArgumentException("bucket does not exist -> " +
-                // meta.getBucketId().toString());
-
-                bucket = getBucketCache().get(meta.getBucketId());
                 operation = getJournalService().updateObjectMetadata(bucket, meta.getObjectName(), meta.getVersion());
 
                 backupMetadata(meta, bucket);
@@ -223,7 +219,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionHandler {
 
             } finally {
                 try {
-                    if ((!done) && (operation != null)) {
+                    if (!done) {
                         try {
                             rollback(operation);
                         } catch (Exception e) {
@@ -276,13 +272,12 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionHandler {
             getLockService().getBucketLock(bucket).readLock().lock();
             try {
 
-                /**
-                 * This check was executed by the VirtualFilySystemService, but it must be
-                 * executed also inside the critical zone.
-                 */
-                if (!existsCacheBucket(bucket))
-                    throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
-
+                /** must be executed inside the critical zone */
+                checkExistsBucket(bucket);
+                
+                /** must be executed inside the critical zone */
+                checkExistObject(bucket, objectName);
+                
                 metaHeadToRemove = getMetadata(bucket, objectName, false);
 
                 if ((metaHeadToRemove == null) || (!metaHeadToRemove.isAccesible()))
@@ -373,30 +368,6 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionHandler {
     }
 
     /**
-     * 
-     * @Override protected void rollbackJournal(VirtualFileSystemOperation
-     *           operation, boolean recoveryMode) {
-     * 
-     *           Check.requireNonNullArgument(operation, "operation is null");
-     * 
-     *           switch (operation.getOperationCode()) { case UPDATE_OBJECT: {
-     *           rollbackJournalUpdate(operation,
-     *           getBucketCache().get(operation.getBucketId()), recoveryMode);
-     *           break; } case UPDATE_OBJECT_METADATA: {
-     * 
-     *           rollbackJournalUpdateMetadata(operation,
-     *           getBucketCache().get(operation.getBucketId()), recoveryMode);
-     *           break; } case RESTORE_OBJECT_PREVIOUS_VERSION: {
-     *           rollbackJournalUpdate(operation,
-     *           getBucketCache().get(operation.getBucketId()), recoveryMode);
-     *           break; } default: { throw new IllegalArgumentException(
-     *           VirtualFileSystemOperation.class.getSimpleName() + " not supported
-     *           -> op: " + opInfo(operation)); } } }
-     */
-
-    /**
-     * 
-     * 
      * @param meta
      * @param versionDiscarded
      */

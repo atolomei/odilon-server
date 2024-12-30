@@ -58,5 +58,4 @@ public class RAIDOneRollbackCreateHandler extends RAIDOneRollbackHandler {
                 getOperation().cancel();
         }
     }
-
 }

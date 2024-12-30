@@ -113,7 +113,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
 
                 ObjectMetadata meta = getMetadata(bucket, objectName, true);
 
-                if ((meta == null) || (!meta.isAccesible()))
+                if (!meta.isAccesible())
                     throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
 
                 beforeHeadVersion = meta.getVersion();
@@ -302,12 +302,8 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
 
             try {
 
-                /**
-                 * This check was executed by the VirtualFilySystemService, but it must be
-                 * executed also inside the critical zone.
-                 */
-                if (!existsCacheBucket(meta.getBucketName()))
-                    throw new IllegalArgumentException("bucket does not exist -> " + meta.getBucketName());
+                /** must be executed inside the critical zone */
+                checkExistsBucket(bucket);
 
                 bucket = getBucketCache().get(meta.getBucketId());
 
@@ -397,70 +393,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
             return true;
         return getDriver().getReadDrive(bucket, objectName).existsObjectMetadata(bucket, objectName);
     }
-
-    private void rollbackJournalUpdate(VirtualFileSystemOperation operation, boolean recoveryMode) {
-
-        boolean done = false;
-
-        try {
-
-            if (getServerSettings().isStandByEnabled())
-                getReplicationService().cancel(operation);
-
-            ServerBucket bucket = getBucketCache().get(operation.getBucketId());
-
-            restoreVersionObjectDataFile(bucket, operation.getObjectName(), operation.getVersion());
-            restoreVersionObjectMetadata(bucket, operation.getObjectName(), operation.getVersion());
-
-            done = true;
-
-        } catch (InternalCriticalException e) {
-            logger.error(getDriver().opInfo(operation));
-            if (!recoveryMode)
-                throw (e);
-
-        } catch (Exception e) {
-            if (!recoveryMode)
-                throw new InternalCriticalException(e, opInfo(operation));
-            else
-                logger.error(e, opInfo(operation), SharedConstant.NOT_THROWN);
-        } finally {
-            if (done || recoveryMode) {
-                operation.cancel();
-            }
-        }
-    }
-
-    private void rollbackJournalUpdateMetadata(VirtualFileSystemOperation operation, boolean recoveryMode) {
-
-        boolean done = false;
-        try {
-            if (getVirtualFileSystemService().getServerSettings().isStandByEnabled())
-                getVirtualFileSystemService().getReplicationService().cancel(operation);
-
-            ServerBucket bucket = getBucketCache().get(operation.getBucketId());
-
-            restoreVersionObjectMetadata(bucket, operation.getObjectName(), operation.getVersion());
-
-            done = true;
-
-        } catch (InternalCriticalException e) {
-            logger.error(opInfo(operation));
-            if (!recoveryMode)
-                throw (e);
-
-        } catch (Exception e) {
-
-            if (!recoveryMode)
-                throw new InternalCriticalException(e, opInfo(operation));
-            else
-                logger.error(opInfo(operation), SharedConstant.NOT_THROWN);
-        } finally {
-            if (done || recoveryMode) {
-                operation.cancel();
-            }
-        }
-    }
+    
 
     private void saveVersionObjectMetadata(ServerBucket bucket, String objectName, int version) {
         // TODO AT: parallel
@@ -481,7 +414,6 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
 
                 ObjectPath path = new ObjectPath(drive, bucket, objectName);
                 File file = path.dataFilePath().toFile();
-
                 // File file = ((SimpleDrive) drive).getObjectDataFile(bucket.getId(),
                 // objectName);
                 ((SimpleDrive) drive).putObjectDataVersionFile(bucket.getId(), objectName, version, file);
