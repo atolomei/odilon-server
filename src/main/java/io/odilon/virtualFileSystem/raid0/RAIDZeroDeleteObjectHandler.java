@@ -326,7 +326,6 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroTransactionHandler {
 
             // delete metadata (head)
             // not required because it was done before commit
-
             // delete data (head)
             FileUtils.deleteQuietly(path.dataFilePath().toFile());
 

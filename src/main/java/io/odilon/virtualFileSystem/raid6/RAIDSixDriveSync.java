@@ -163,8 +163,7 @@ public class RAIDSixDriveSync implements Runnable {
 
         while (getDriver().getVirtualFileSystemService().getStatus() != ServiceStatus.RUNNING) {
             startuplogger.info("waiting for " + VirtualFileSystemService.class.getSimpleName() + " to startup ("
-                    + String.valueOf(Double.valueOf(System.currentTimeMillis() - start) / Double.valueOf(1000.0))
-                    + " secs)");
+                    + String.valueOf(Double.valueOf(System.currentTimeMillis() - start) / Double.valueOf(1000.0)) + " secs)");
 
             try {
                 Thread.sleep(1000 * 2);
@@ -208,8 +207,8 @@ public class RAIDSixDriveSync implements Runnable {
 
         long start_ms = System.currentTimeMillis();
 
-        final int maxProcessingThread = Double
-                .valueOf(Double.valueOf(Runtime.getRuntime().availableProcessors() - 1) / 2.0).intValue() + 1;
+        final int maxProcessingThread = Double.valueOf(Double.valueOf(Runtime.getRuntime().availableProcessors() - 1) / 2.0)
+                .intValue() + 1;
 
         getDriver().getDrivesAll().forEach(d -> drives.add(d));
 
@@ -225,8 +224,7 @@ public class RAIDSixDriveSync implements Runnable {
         });
 
         this.dateConnected = getDriver().getVirtualFileSystemService().getMapDrivesAll().values().stream()
-                .filter(d -> d.getDriveInfo().getStatus() == DriveStatus.NOTSYNC)
-                .map(v -> v.getDriveInfo().getDateConnected())
+                .filter(d -> d.getDriveInfo().getStatus() == DriveStatus.NOTSYNC).map(v -> v.getDriveInfo().getDateConnected())
                 .reduce(OffsetDateTime.MIN, (a, b) -> a.isAfter(b) ? a : b);
 
         ExecutorService executor = null;
@@ -247,9 +245,8 @@ public class RAIDSixDriveSync implements Runnable {
 
                 while (!done) {
 
-                    DataList<Item<ObjectMetadata>> data = getDriver().getVirtualFileSystemService().listObjects(
-                            bucket.getName(), Optional.of(offset), Optional.ofNullable(pageSize), Optional.empty(),
-                            Optional.ofNullable(agentId));
+                    DataList<Item<ObjectMetadata>> data = getDriver().getVirtualFileSystemService().listObjects(bucket.getName(),
+                            Optional.of(offset), Optional.ofNullable(pageSize), Optional.empty(), Optional.ofNullable(agentId));
 
                     if (agentId == null)
                         agentId = data.getAgentId();
@@ -315,8 +312,7 @@ public class RAIDSixDriveSync implements Runnable {
                 startuplogger.info("Not Available: " + String.valueOf(this.notAvailable.get()));
 
             startuplogger.info("Duration: "
-                    + String.valueOf(Double.valueOf(System.currentTimeMillis() - start_ms) / Double.valueOf(1000))
-                    + " secs");
+                    + String.valueOf(Double.valueOf(System.currentTimeMillis() - start_ms) / Double.valueOf(1000)) + " secs");
             startuplogger.info(ServerConstant.SEPARATOR);
 
         }

@@ -37,7 +37,7 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
  * RAID 0 Handler <br/>
  * Creates new Objects ({@link OperationCode.CREATE_OBJECT})
  * </p>
- *
+ * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @ThreadSafe
@@ -108,9 +108,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroTransactionHandler {
                 try {
                     if (!commitOk) {
                         try {
-                            
                             rollback(operation);
-                            
                         } catch (InternalCriticalException e) {
                             if (!isMainException)
                                 throw e;
@@ -131,8 +129,4 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroTransactionHandler {
             objectWriteUnLock(bucket, objectName);
         }
     }
-
-        
-    
- 
 }

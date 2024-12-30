@@ -310,60 +310,55 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixTransactionHandler {
 
     /**
      * 
-     
-    @Override
-    protected void rollbackJournal(@NonNull VirtualFileSystemOperation operation, boolean recoveryMode) {
+     * 
+     * @Override protected void rollbackJournal(@NonNull VirtualFileSystemOperation
+     *           operation, boolean recoveryMode) {
+     * 
+     *           Check.requireNonNullArgument(operation, "operation is null");
+     * 
+     * 
+     *           Check.requireTrue( operation.getOperationCode() ==
+     *           OperationCode.DELETE_OBJECT || operation.getOperationCode() ==
+     *           OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS, "invalid -> op: " +
+     *           operation.getOperationCode().getName());
+     * 
+     *           String objectName = operation.getObjectName(); String bucketName =
+     *           operation.getBucketName();
+     * 
+     *           Check.requireNonNullStringArgument(bucketName, "bucketName is
+     *           null"); Check.requireNonNullStringArgument(objectName, "objectName
+     *           is null or empty | b:" + bucketName);
+     * 
+     *           boolean done = false;
+     * 
+     *           try {
+     * 
+     *           ServerBucket bucket =
+     *           getBucketCache().get(operation.getBucketId());
+     * 
+     *           if (getServerSettings().isStandByEnabled())
+     *           getReplicationService().cancel(operation);
+     * 
+     *           // rollback is the same for both operations if
+     *           (operation.getOperationCode() == OperationCode.DELETE_OBJECT)
+     *           restoreMetadata(bucket, objectName);
+     * 
+     *           else if (operation.getOperationCode() ==
+     *           OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS)
+     *           restoreMetadata(bucket, objectName);
+     * 
+     *           done = true;
+     * 
+     *           } catch (InternalCriticalException e) { if (!recoveryMode) throw
+     *           (e); else logger.error(e, opInfo(operation),
+     *           SharedConstant.NOT_THROWN);
+     * 
+     *           } catch (Exception e) { if (!recoveryMode) throw new
+     *           InternalCriticalException(e); else logger.error(e,
+     *           opInfo(operation), SharedConstant.NOT_THROWN); } finally { if (done
+     *           || recoveryMode) operation.cancel(); } }
+     */
 
-        Check.requireNonNullArgument(operation, "operation is null");
-
-        
-        Check.requireTrue(
-                operation.getOperationCode() == OperationCode.DELETE_OBJECT
-                        || operation.getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS,
-                "invalid -> op: " + operation.getOperationCode().getName());
-
-        String objectName = operation.getObjectName();
-        String bucketName = operation.getBucketName();
-
-        Check.requireNonNullStringArgument(bucketName, "bucketName is null");
-        Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucketName);
-
-        boolean done = false;
-
-        try {
-
-            ServerBucket bucket = getBucketCache().get(operation.getBucketId());
-
-            if (getServerSettings().isStandByEnabled())
-                getReplicationService().cancel(operation);
-
-            // rollback is the same for both operations 
-            if (operation.getOperationCode() == OperationCode.DELETE_OBJECT)
-                restoreMetadata(bucket, objectName);
-
-            else if (operation.getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS)
-                restoreMetadata(bucket, objectName);
-
-            done = true;
-
-        } catch (InternalCriticalException e) {
-            if (!recoveryMode)
-                throw (e);
-            else
-                logger.error(e, opInfo(operation), SharedConstant.NOT_THROWN);
-
-        } catch (Exception e) {
-            if (!recoveryMode)
-                throw new InternalCriticalException(e);
-            else
-                logger.error(e, opInfo(operation), SharedConstant.NOT_THROWN);
-        } finally {
-            if (done || recoveryMode)
-                operation.cancel();
-        }
-    }
-*/
-    
     /**
      * Sync no need to locks
      * 
@@ -433,5 +428,4 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixTransactionHandler {
         }
     }
 
-   
 }

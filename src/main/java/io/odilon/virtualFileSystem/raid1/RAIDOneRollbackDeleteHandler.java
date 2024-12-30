@@ -17,17 +17,17 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 public class RAIDOneRollbackDeleteHandler extends RAIDOneRollbackHandler {
 
     private static Logger logger = Logger.getLogger(RAIDOneRollbackDeleteHandler.class.getName());
-    
+
     public RAIDOneRollbackDeleteHandler(RAIDOneDriver driver, VirtualFileSystemOperation operation, boolean recoveryMode) {
         super(driver, operation, recoveryMode);
     }
 
     @Override
     protected void rollback() {
-        
+
         if (getOperation() == null)
             return;
-        
+
         String objectName = getOperation().getObjectName();
         Long bucketId = getOperation().getBucketId();
 
@@ -68,7 +68,7 @@ public class RAIDOneRollbackDeleteHandler extends RAIDOneRollbackHandler {
                 getOperation().cancel();
         }
     }
-    
+
     private void restoreMetadata(ServerBucket bucket, String objectName) {
         /** restore metadata directory */
         for (Drive drive : getDriver().getDrivesAll()) {

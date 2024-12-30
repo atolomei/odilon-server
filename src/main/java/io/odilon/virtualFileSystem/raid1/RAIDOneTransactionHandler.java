@@ -7,7 +7,7 @@ public class RAIDOneTransactionHandler extends RAIDOneHandler {
     public RAIDOneTransactionHandler(RAIDOneDriver driver) {
         super(driver);
     }
-    
+
     protected void rollback(VirtualFileSystemOperation operation) {
         getDriver().rollback(operation, false);
     }
@@ -19,5 +19,5 @@ public class RAIDOneTransactionHandler extends RAIDOneHandler {
     protected void rollback(VirtualFileSystemOperation operation, Object payload, boolean recoveryMode) {
         getDriver().rollback(operation, payload, recoveryMode);
     }
-    
+
 }

@@ -56,6 +56,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionHandler {
      * <p>
      * Instances of this class are used internally by {@link RAIDSixDriver}
      * <p>
+     * 
      * @param driver
      */
     protected RAIDSixCreateObjectHandler(RAIDSixDriver driver) {
@@ -98,7 +99,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionHandler {
 
                 RAIDSixBlocks raidSixBlocks = saveObjectDataFile(bucket, objectName, stream);
                 saveObjectMetadata(bucket, objectName, raidSixBlocks, srcFileName, contentType, version, customTags);
-                
+
                 commitOK = operation.commit();
 
             } catch (InternalCriticalException e) {
@@ -134,66 +135,54 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionHandler {
      * <p>
      * VFSop.CREATE_OBJECT
      * </p>
-     
-    @Override
-    protected void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
+     * 
+     * @Override protected void rollbackJournal(VirtualFileSystemOperation
+     *           operation, boolean recoveryMode) {
+     * 
+     *           Check.requireNonNullArgument(operation, "op is null");
+     *           Check.checkTrue(operation.getOperationCode() ==
+     *           OperationCode.CREATE_OBJECT, "Invalid operation -> " +
+     *           operation.getOperationCode().getName());
+     * 
+     *           String objectName = operation.getObjectName();
+     * 
+     *           ServerBucket bucket =
+     *           getBucketCache().get(operation.getBucketId());
+     * 
+     *           boolean done = false;
+     * 
+     *           try { if (getServerSettings().isStandByEnabled())
+     *           getReplicationService().cancel(operation);
+     * 
+     *           ObjectMetadata meta = null;
+     * 
+     *           // remove metadata dir on all drives for (Drive drive :
+     *           getDriver().getDrivesAll()) { File f_meta =
+     *           drive.getObjectMetadataFile(bucket, objectName); if ((meta == null)
+     *           && (f_meta != null)) { try { meta = drive.getObjectMetadata(bucket,
+     *           objectName); } catch (Exception e) { logger.warn("can not load meta
+     *           -> d: " + drive.getName() + SharedConstant.NOT_THROWN); } }
+     *           FileUtils.deleteQuietly(new
+     *           File(drive.getObjectMetadataDirPath(bucket, objectName))); }
+     * 
+     *           /// remove data dir on all drives if (meta != null)
+     *           getDriver().getObjectDataFiles(meta, bucket,
+     *           Optional.empty()).forEach(file -> { FileUtils.deleteQuietly(file);
+     *           });
+     * 
+     *           done = true;
+     * 
+     *           } catch (InternalCriticalException e) { if (!recoveryMode) throw
+     *           (e); else logger.error(e, operation.toString() +
+     *           SharedConstant.NOT_THROWN);
+     * 
+     *           } catch (Exception e) { if (!recoveryMode) throw new
+     *           InternalCriticalException(e, "Rollback: " + operation.toString() +
+     *           SharedConstant.NOT_THROWN); else logger.error(e,
+     *           operation.toString() + SharedConstant.NOT_THROWN); } finally { if
+     *           (done || recoveryMode) { operation.cancel(); } } }
+     */
 
-        Check.requireNonNullArgument(operation, "op is null");
-        Check.checkTrue(operation.getOperationCode() == OperationCode.CREATE_OBJECT,
-                "Invalid operation ->  " + operation.getOperationCode().getName());
-
-        String objectName = operation.getObjectName();
-
-        ServerBucket bucket = getBucketCache().get(operation.getBucketId());
-
-        boolean done = false;
-
-        try {
-            if (getServerSettings().isStandByEnabled())
-                getReplicationService().cancel(operation);
-
-            ObjectMetadata meta = null;
-
-            // remove metadata dir on all drives 
-            for (Drive drive : getDriver().getDrivesAll()) {
-                File f_meta = drive.getObjectMetadataFile(bucket, objectName);
-                if ((meta == null) && (f_meta != null)) {
-                    try {
-                        meta = drive.getObjectMetadata(bucket, objectName);
-                    } catch (Exception e) {
-                        logger.warn("can not load meta -> d: " + drive.getName() + SharedConstant.NOT_THROWN);
-                    }
-                }
-                FileUtils.deleteQuietly(new File(drive.getObjectMetadataDirPath(bucket, objectName)));
-            }
-
-            /// remove data dir on all drives 
-            if (meta != null)
-                getDriver().getObjectDataFiles(meta, bucket, Optional.empty()).forEach(file -> {
-                    FileUtils.deleteQuietly(file);
-                });
-
-            done = true;
-
-        } catch (InternalCriticalException e) {
-            if (!recoveryMode)
-                throw (e);
-            else
-                logger.error(e, operation.toString() + SharedConstant.NOT_THROWN);
-
-        } catch (Exception e) {
-            if (!recoveryMode)
-                throw new InternalCriticalException(e, "Rollback: " + operation.toString() + SharedConstant.NOT_THROWN);
-            else
-                logger.error(e, operation.toString() + SharedConstant.NOT_THROWN);
-        } finally {
-            if (done || recoveryMode) {
-                operation.cancel();
-            }
-        }
-    }
-    */
-    
     /**
      * @param bucket
      * @param objectName

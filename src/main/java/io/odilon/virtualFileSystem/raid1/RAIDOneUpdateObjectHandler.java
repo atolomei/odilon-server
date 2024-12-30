@@ -51,7 +51,6 @@ import io.odilon.virtualFileSystem.ObjectPath;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.SimpleDrive;
-import io.odilon.virtualFileSystem.model.OperationCode;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
@@ -79,7 +78,6 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
     protected RAIDOneUpdateObjectHandler(RAIDOneDriver driver) {
         super(driver);
     }
-
 
     /**
      * @param bucket
@@ -359,26 +357,28 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
     }
 
     /**
-    protected void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
-
-        Check.requireNonNullArgument(operation, "operation is null");
-        Check.requireTrue(
-                (operation.getOperationCode() == OperationCode.UPDATE_OBJECT
-                        || operation.getOperationCode() == OperationCode.UPDATE_OBJECT_METADATA
-                        || operation.getOperationCode() == OperationCode.RESTORE_OBJECT_PREVIOUS_VERSION),
-                VirtualFileSystemOperation.class.getSimpleName() + " can not be  ->  op: "
-                        + operation.getOperationCode().getName());
-
-        if (operation.getOperationCode() == OperationCode.UPDATE_OBJECT)
-            rollbackJournalUpdate(operation, recoveryMode);
-
-        else if (operation.getOperationCode() == OperationCode.UPDATE_OBJECT_METADATA)
-            rollbackJournalUpdateMetadata(operation, recoveryMode);
-
-        else if (operation.getOperationCode() == OperationCode.RESTORE_OBJECT_PREVIOUS_VERSION)
-            rollbackJournalUpdate(operation, recoveryMode);
-    }
-*/
+     * protected void rollbackJournal(VirtualFileSystemOperation operation, boolean
+     * recoveryMode) {
+     * 
+     * Check.requireNonNullArgument(operation, "operation is null");
+     * Check.requireTrue( (operation.getOperationCode() ==
+     * OperationCode.UPDATE_OBJECT || operation.getOperationCode() ==
+     * OperationCode.UPDATE_OBJECT_METADATA || operation.getOperationCode() ==
+     * OperationCode.RESTORE_OBJECT_PREVIOUS_VERSION),
+     * VirtualFileSystemOperation.class.getSimpleName() + " can not be -> op: " +
+     * operation.getOperationCode().getName());
+     * 
+     * if (operation.getOperationCode() == OperationCode.UPDATE_OBJECT)
+     * rollbackJournalUpdate(operation, recoveryMode);
+     * 
+     * else if (operation.getOperationCode() ==
+     * OperationCode.UPDATE_OBJECT_METADATA)
+     * rollbackJournalUpdateMetadata(operation, recoveryMode);
+     * 
+     * else if (operation.getOperationCode() ==
+     * OperationCode.RESTORE_OBJECT_PREVIOUS_VERSION)
+     * rollbackJournalUpdate(operation, recoveryMode); }
+     */
 
     @Override
     protected Drive getObjectMetadataReadDrive(ServerBucket bucket, String objectName) {
@@ -398,7 +398,6 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
         return getDriver().getReadDrive(bucket, objectName).existsObjectMetadata(bucket, objectName);
     }
 
-    
     private void rollbackJournalUpdate(VirtualFileSystemOperation operation, boolean recoveryMode) {
 
         boolean done = false;

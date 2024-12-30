@@ -7,7 +7,7 @@ public class RAIDSixTransactionHandler extends RAIDSixHandler {
     public RAIDSixTransactionHandler(RAIDSixDriver driver) {
         super(driver);
     }
-    
+
     protected void rollback(VirtualFileSystemOperation operation) {
         getDriver().rollback(operation, false);
     }

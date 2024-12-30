@@ -16,7 +16,6 @@
  */
 package io.odilon.virtualFileSystem.raid6;
 
-
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -84,7 +83,7 @@ public class RAIDSixSyncObjectHandler extends RAIDSixTransactionHandler {
         boolean done = false;
         ServerBucket bucket;
 
-       objectWriteLock(meta.getBucketId(), objectName);
+        objectWriteLock(meta.getBucketId(), objectName);
         try {
 
             bucketReadLock(meta.getBucketId());
@@ -99,8 +98,8 @@ public class RAIDSixSyncObjectHandler extends RAIDSixTransactionHandler {
                 bucket = getBucketCache().get(meta.getBucketId());
 
                 /**
-                 * backup metadata, there is no need to backup data because 
-                 * existing data files are not touched.
+                 * backup metadata, there is no need to backup data because existing data files
+                 * are not touched.
                  **/
                 backupMetadata(bucket, meta);
 
@@ -151,8 +150,8 @@ public class RAIDSixSyncObjectHandler extends RAIDSixTransactionHandler {
                             try (InputStream in = new BufferedInputStream(new FileInputStream(file.getAbsolutePath()))) {
 
                                 /**
-                                 * encodes version without saving existing blocks, 
-                                 * only the ones that go to the new drive/s
+                                 * encodes version without saving existing blocks, only the ones that go to the
+                                 * new drive/s
                                  */
                                 driveEncoder.encodeVersion(in, bucket, objectName, versionMeta.getVersion());
 
@@ -219,68 +218,44 @@ public class RAIDSixSyncObjectHandler extends RAIDSixTransactionHandler {
         return this.drives;
     }
 
-    
     /**
-    public void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
-        Check.requireNonNullArgument(operation, "operation is null");
-        Check.requireTrue(operation.getOperationCode() == OperationCode.SYNC_OBJECT_NEW_DRIVE, 
-                "operation can not be  ->  op: " + operation.getOperationCode().getName());
+     * public void rollbackJournal(VirtualFileSystemOperation operation, boolean
+     * recoveryMode) { Check.requireNonNullArgument(operation, "operation is null");
+     * Check.requireTrue(operation.getOperationCode() ==
+     * OperationCode.SYNC_OBJECT_NEW_DRIVE, "operation can not be -> op: " +
+     * operation.getOperationCode().getName());
+     * 
+     * switch (operation.getOperationCode()) { case SYNC_OBJECT_NEW_DRIVE: {
+     * execRollback(operation, recoveryMode); break; } default: { break; } } }
+     * 
+     * 
+     * 
+     * private void execRollback(VirtualFileSystemOperation operation, boolean
+     * recoveryMode) {
+     * 
+     * boolean done = false;
+     * 
+     * String objectName = operation.getObjectName();
+     * 
+     * ServerBucket bucket = null;
+     * 
+     * getLockService().getObjectLock(operation.getBucketId(),
+     * objectName).writeLock().lock(); try {
+     * 
+     * getLockService().getBucketLock(operation.getBucketId()).readLock().lock();
+     * try { bucket = getBucketCache().get(operation.getBucketId());
+     * restoreMetadata(bucket, objectName); done = true;
+     * 
+     * } catch (InternalCriticalException e) { if (!recoveryMode) throw (e); else
+     * logger.error(opInfo(operation), SharedConstant.NOT_THROWN); } catch
+     * (Exception e) { if (!recoveryMode) throw new InternalCriticalException(e,
+     * opInfo(operation)); else logger.error(e, opInfo(operation),
+     * SharedConstant.NOT_THROWN); } finally { try { if (done || recoveryMode) {
+     * operation.cancel(); } } finally {
+     * getLockService().getBucketLock(bucket).readLock().unlock(); } } } finally {
+     * getLockService().getObjectLock(bucket, objectName).writeLock().unlock(); } }
+     **/
 
-        switch (operation.getOperationCode()) {
-        case SYNC_OBJECT_NEW_DRIVE: {
-            execRollback(operation, recoveryMode);
-            break;
-        }
-        default: {
-            break;
-        }
-        }
-    }
-
-    
-
-    private void execRollback(VirtualFileSystemOperation operation, boolean recoveryMode) {
-
-        boolean done = false;
-
-        String objectName = operation.getObjectName();
-
-        ServerBucket bucket = null;
-
-        getLockService().getObjectLock(operation.getBucketId(), objectName).writeLock().lock();
-        try {
-
-            getLockService().getBucketLock(operation.getBucketId()).readLock().lock();
-            try {
-                bucket = getBucketCache().get(operation.getBucketId());
-                restoreMetadata(bucket, objectName);
-                done = true;
-
-            } catch (InternalCriticalException e) {
-                if (!recoveryMode)
-                    throw (e);
-                else
-                    logger.error(opInfo(operation), SharedConstant.NOT_THROWN);
-            } catch (Exception e) {
-                if (!recoveryMode)
-                    throw new InternalCriticalException(e, opInfo(operation));
-                else
-                    logger.error(e, opInfo(operation), SharedConstant.NOT_THROWN);
-            } finally {
-                try {
-                    if (done || recoveryMode) {
-                        operation.cancel();
-                    }
-                } finally {
-                    getLockService().getBucketLock(bucket).readLock().unlock();
-                }
-            }
-        } finally {
-            getLockService().getObjectLock(bucket, objectName).writeLock().unlock();
-        }
-    }
-**/
-    
     protected synchronized List<Drive> getDrivesToSync() {
         if (this.drivesToSync != null)
             return this.drivesToSync;
@@ -315,6 +290,5 @@ public class RAIDSixSyncObjectHandler extends RAIDSixTransactionHandler {
             throw new InternalCriticalException(e, getDriver().objectInfo(meta));
         }
     }
-
 
 }

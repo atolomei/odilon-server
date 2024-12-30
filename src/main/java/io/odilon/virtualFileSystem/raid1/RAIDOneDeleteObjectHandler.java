@@ -208,9 +208,9 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneTransactionHandler {
         ServerBucket bucket = null;
 
         objectWriteLock(meta.getBucketId(), objectName);
-        
+
         try {
-        
+
             bucketReadLock(meta.getBucketId());
             try {
 

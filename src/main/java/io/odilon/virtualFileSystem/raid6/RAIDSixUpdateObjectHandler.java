@@ -374,33 +374,26 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionHandler {
 
     /**
      * 
-    @Override
-    protected void rollbackJournal(VirtualFileSystemOperation operation, boolean recoveryMode) {
+     * @Override protected void rollbackJournal(VirtualFileSystemOperation
+     *           operation, boolean recoveryMode) {
+     * 
+     *           Check.requireNonNullArgument(operation, "operation is null");
+     * 
+     *           switch (operation.getOperationCode()) { case UPDATE_OBJECT: {
+     *           rollbackJournalUpdate(operation,
+     *           getBucketCache().get(operation.getBucketId()), recoveryMode);
+     *           break; } case UPDATE_OBJECT_METADATA: {
+     * 
+     *           rollbackJournalUpdateMetadata(operation,
+     *           getBucketCache().get(operation.getBucketId()), recoveryMode);
+     *           break; } case RESTORE_OBJECT_PREVIOUS_VERSION: {
+     *           rollbackJournalUpdate(operation,
+     *           getBucketCache().get(operation.getBucketId()), recoveryMode);
+     *           break; } default: { throw new IllegalArgumentException(
+     *           VirtualFileSystemOperation.class.getSimpleName() + " not supported
+     *           -> op: " + opInfo(operation)); } } }
+     */
 
-        Check.requireNonNullArgument(operation, "operation is null");
-
-        switch (operation.getOperationCode()) {
-        case UPDATE_OBJECT: {
-            rollbackJournalUpdate(operation, getBucketCache().get(operation.getBucketId()), recoveryMode);
-            break;
-        }
-        case UPDATE_OBJECT_METADATA: {
-
-            rollbackJournalUpdateMetadata(operation, getBucketCache().get(operation.getBucketId()), recoveryMode);
-            break;
-        }
-        case RESTORE_OBJECT_PREVIOUS_VERSION: {
-            rollbackJournalUpdate(operation, getBucketCache().get(operation.getBucketId()), recoveryMode);
-            break;
-        }
-        default: {
-            throw new IllegalArgumentException(
-                    VirtualFileSystemOperation.class.getSimpleName() + " not supported ->  op: " + opInfo(operation));
-        }
-        }
-    }
- */
-    
     /**
      * 
      * 
@@ -594,7 +587,6 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionHandler {
         }
     }
 
- 
     /**
      * <p>
      * copy metadata directory <br/>
@@ -732,7 +724,5 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionHandler {
             throw new InternalCriticalException(e, getDriver().objectInfo(meta));
         }
     }
-
-
 
 }

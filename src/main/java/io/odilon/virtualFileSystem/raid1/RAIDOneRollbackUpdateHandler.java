@@ -16,19 +16,19 @@ import io.odilon.virtualFileSystem.model.SimpleDrive;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 public class RAIDOneRollbackUpdateHandler extends RAIDOneRollbackHandler {
-            
+
     private static Logger logger = Logger.getLogger(RAIDOneRollbackUpdateHandler.class.getName());
-    
+
     public RAIDOneRollbackUpdateHandler(RAIDOneDriver driver, VirtualFileSystemOperation operation, boolean recoveryMode) {
         super(driver, operation, recoveryMode);
     }
 
     @Override
     protected void rollback() {
-        
+
         if (getOperation() == null)
             return;
-        
+
         if (getOperation().getOperationCode() == OperationCode.UPDATE_OBJECT)
             rollbackJournalUpdate(getOperation(), isRecovery());
 
@@ -38,7 +38,7 @@ public class RAIDOneRollbackUpdateHandler extends RAIDOneRollbackHandler {
         else if (getOperation().getOperationCode() == OperationCode.RESTORE_OBJECT_PREVIOUS_VERSION)
             rollbackJournalUpdate(getOperation(), isRecovery());
     }
-    
+
     private void rollbackJournalUpdate(VirtualFileSystemOperation operation, boolean recoveryMode) {
 
         boolean done = false;
@@ -71,7 +71,7 @@ public class RAIDOneRollbackUpdateHandler extends RAIDOneRollbackHandler {
             }
         }
     }
-    
+
     private boolean restoreVersionObjectDataFile(ServerBucket bucket, String objectName, int version) {
         try {
             boolean success = true;
@@ -93,7 +93,7 @@ public class RAIDOneRollbackUpdateHandler extends RAIDOneRollbackHandler {
             throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName));
         }
     }
-    
+
     private boolean restoreVersionObjectMetadata(ServerBucket bucket, String objectName, int version) {
         try {
 
@@ -111,8 +111,7 @@ public class RAIDOneRollbackUpdateHandler extends RAIDOneRollbackHandler {
             throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName));
         }
     }
-    
-    
+
     private void rollbackJournalUpdateMetadata(VirtualFileSystemOperation operation, boolean recoveryMode) {
 
         boolean done = false;
@@ -143,6 +142,5 @@ public class RAIDOneRollbackUpdateHandler extends RAIDOneRollbackHandler {
             }
         }
     }
-
 
 }

@@ -686,31 +686,35 @@ public class RAIDOneDriver extends BaseIODriver {
      * @param objectName
      */
 
-
     @Override
     public void rollback(VirtualFileSystemOperation operation, Object payload, boolean recoveryMode) {
-    
+
         if (operation == null)
             return;
-        
+
         if (operation.getOperationCode() == OperationCode.CREATE_OBJECT) {
-            RAIDOneRollbackCreateHandler handler = new RAIDOneRollbackCreateHandler(this, operation, recoveryMode);;
+            RAIDOneRollbackCreateHandler handler = new RAIDOneRollbackCreateHandler(this, operation, recoveryMode);
+            ;
             handler.rollback();
             return;
         } else if (operation.getOperationCode() == OperationCode.UPDATE_OBJECT) {
-            RAIDOneRollbackUpdateHandler handler = new RAIDOneRollbackUpdateHandler(this, operation, recoveryMode);;
+            RAIDOneRollbackUpdateHandler handler = new RAIDOneRollbackUpdateHandler(this, operation, recoveryMode);
+            ;
             handler.rollback();
             return;
         } else if (operation.getOperationCode() == OperationCode.DELETE_OBJECT) {
-            RAIDOneRollbackDeleteHandler handler = new RAIDOneRollbackDeleteHandler(this, operation, recoveryMode);;
+            RAIDOneRollbackDeleteHandler handler = new RAIDOneRollbackDeleteHandler(this, operation, recoveryMode);
+            ;
             handler.rollback();
             return;
         } else if (operation.getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS) {
-            RAIDOneRollbackDeleteHandler handler = new RAIDOneRollbackDeleteHandler(this, operation, recoveryMode);;
+            RAIDOneRollbackDeleteHandler handler = new RAIDOneRollbackDeleteHandler(this, operation, recoveryMode);
+            ;
             handler.rollback();
             return;
         } else if (operation.getOperationCode() == OperationCode.UPDATE_OBJECT_METADATA) {
-            RAIDOneRollbackUpdateHandler handler = new RAIDOneRollbackUpdateHandler(this, operation, recoveryMode);;
+            RAIDOneRollbackUpdateHandler handler = new RAIDOneRollbackUpdateHandler(this, operation, recoveryMode);
+            ;
             handler.rollback();
             return;
         }
@@ -778,7 +782,7 @@ public class RAIDOneDriver extends BaseIODriver {
         Check.requireNonNullArgument(meta, "meta is null");
         logger.error("not done", SharedConstant.NOT_THROWN);
     }
-    
+
     /**
      * DATA CONSISTENCY The system crashes before Commit or Cancel -> next time the
      * system starts up it will CANCEL all operations that are incomplete. REDO in
@@ -913,6 +917,5 @@ public class RAIDOneDriver extends BaseIODriver {
             objectReadUnLock(bucket, objectName);
         }
     }
-
 
 }
