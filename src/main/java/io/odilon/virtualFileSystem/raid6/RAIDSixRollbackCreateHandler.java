@@ -31,9 +31,6 @@ public class RAIDSixRollbackCreateHandler extends RAIDSixRollbackHandler {
 
         try {
 
-            //if (getServerSettings().isStandByEnabled())
-            //    getReplicationService().cancel(getOperation());
-
             ObjectMetadata meta = null;
 
             // remove metadata dir on all drives

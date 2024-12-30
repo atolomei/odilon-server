@@ -26,9 +26,6 @@ public class RAIDOneRollbackUpdateHandler extends RAIDOneRollbackHandler {
     @Override
     protected void rollback() {
 
-        //if (getServerSettings().isStandByEnabled())
-        //    getReplicationService().cancel(getOperation());
-        
         if (getOperation().getOperationCode() == OperationCode.UPDATE_OBJECT)
             rollbackUpdate();
 

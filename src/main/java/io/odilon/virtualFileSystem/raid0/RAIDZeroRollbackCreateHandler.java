@@ -25,9 +25,6 @@ public class RAIDZeroRollbackCreateHandler extends RAIDZeroRollbackHandler {
 
         try {
 
-            // if (isStandByEnabled())
-            // getReplicationService().cancel(getOperation());
-
             ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
             String objectName = getOperation().getObjectName();
 

@@ -28,9 +28,6 @@ public class RAIDSixRollbackDeleteHandler extends RAIDSixRollbackHandler {
 
         try {
             
-            //if (getServerSettings().isStandByEnabled())
-            //    getReplicationService().cancel(getOperation());
-
             // rollback is the same for both operations
             if (getOperation().getOperationCode() == OperationCode.DELETE_OBJECT)
                 restoreMetadata();

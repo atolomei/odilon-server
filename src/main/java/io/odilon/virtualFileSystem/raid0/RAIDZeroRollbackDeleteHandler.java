@@ -26,7 +26,6 @@ public class RAIDZeroRollbackDeleteHandler extends RAIDZeroRollbackHandler {
         boolean done = false;
 
         try {
-            
             // Rollback is the same for both operations -> DELETE_OBJECT and
             // DELETE_OBJECT_PREVIOUS_VERSIONS
             if (getOperation().getOperationCode() == OperationCode.DELETE_OBJECT)
