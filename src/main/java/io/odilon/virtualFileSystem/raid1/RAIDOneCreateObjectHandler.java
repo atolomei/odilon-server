@@ -35,8 +35,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.concurrent.ThreadSafe;
 
-import org.apache.commons.io.FileUtils;
-
 import io.odilon.OdilonVersion;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;

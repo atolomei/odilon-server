@@ -67,8 +67,6 @@ public class RAIDOneRollbackDeleteHandler extends RAIDOneRollbackHandler {
             if (done || isRecovery())
                 getOperation().cancel();
         }
-        
-
     }
     
     private void restoreMetadata(ServerBucket bucket, String objectName) {

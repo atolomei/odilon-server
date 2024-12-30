@@ -37,9 +37,7 @@ public class RAIDOneRollbackUpdateHandler extends RAIDOneRollbackHandler {
 
         else if (getOperation().getOperationCode() == OperationCode.RESTORE_OBJECT_PREVIOUS_VERSION)
             rollbackJournalUpdate(getOperation(), isRecovery());
-
     }
-    
     
     private void rollbackJournalUpdate(VirtualFileSystemOperation operation, boolean recoveryMode) {
 

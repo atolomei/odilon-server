@@ -41,7 +41,6 @@ import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.JournalService;
 import io.odilon.virtualFileSystem.model.LockService;
 import io.odilon.virtualFileSystem.model.ServerBucket;
-import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
  * <p>
@@ -56,7 +55,6 @@ public abstract class RAIDOneHandler extends BaseRAIDHandler implements RAIDHand
     private static Logger logger = Logger.getLogger(RAIDOneHandler.class.getName());
 
     private final RAIDOneDriver driver;
-
 
     public RAIDOneHandler(RAIDOneDriver driver) {
         this.driver = driver;

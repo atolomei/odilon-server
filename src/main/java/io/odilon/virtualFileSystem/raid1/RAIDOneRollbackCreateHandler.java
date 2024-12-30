@@ -21,10 +21,6 @@ public class RAIDOneRollbackCreateHandler extends RAIDOneRollbackHandler {
     @Override
     protected void rollback() {
 
-        // Check.requireNonNullArgument(operation, "operation is null");
-        // Check.checkTrue(operation.getOperationCode() == OperationCode.CREATE_OBJECT,
-        // "Invalid op -> " + operation.getOperationCode().getName());
-
         if (getOperation() == null)
             return;
 
@@ -32,10 +28,6 @@ public class RAIDOneRollbackCreateHandler extends RAIDOneRollbackHandler {
         Long bucket_id = getOperation().getBucketId();
 
         ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
-
-        // Check.requireNonNullArgument(bucket_id, "bucket_id is null");
-        // Check.requireNonNullStringArgument(objectName, "objectName is null or empty |
-        // b:" + bucket_id.toString());
 
         boolean done = false;
 
