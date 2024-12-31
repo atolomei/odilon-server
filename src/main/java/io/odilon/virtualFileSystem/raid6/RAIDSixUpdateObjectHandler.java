@@ -124,8 +124,8 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionHandler {
 
                 meta = getMetadata(bucket, objectName, true);
 
-                 if (!meta.isAccesible())
-                     throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
+                if (!meta.isAccesible())
+                    throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
 
                 beforeHeadVersion = meta.getVersion();
                 operation = getJournalService().updateObject(bucket, objectName, beforeHeadVersion);
@@ -202,7 +202,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionHandler {
                 checkExistsBucket(meta.getBucketId());
 
                 bucket = getBucketCache().get(meta.getBucketId());
-                
+
                 /** must be executed inside the critical zone. */
                 checkExistObject(bucket, meta.getObjectName());
 
@@ -274,10 +274,10 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionHandler {
 
                 /** must be executed inside the critical zone */
                 checkExistsBucket(bucket);
-                
+
                 /** must be executed inside the critical zone */
                 checkExistObject(bucket, objectName);
-                
+
                 metaHeadToRemove = getMetadata(bucket, objectName, false);
 
                 if ((metaHeadToRemove == null) || (!metaHeadToRemove.isAccesible()))

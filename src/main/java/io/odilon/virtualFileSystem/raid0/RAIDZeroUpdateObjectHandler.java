@@ -16,6 +16,7 @@
  */
 package io.odilon.virtualFileSystem.raid0;
 
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -32,7 +33,6 @@ import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.SharedConstant;
-import io.odilon.util.Check;
 import io.odilon.virtualFileSystem.ObjectPath;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
@@ -67,10 +67,6 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionHandler {
     protected void update(ServerBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType,
             Optional<List<String>> customTags) {
 
-        Check.requireNonNullArgument(bucket, "bucket is null");
-        Check.requireNonNullStringArgument(objectName, "objectName is null | " + objectInfo(bucket));
-        Check.requireNonNullArgument(stream, "stream is null");
-
         boolean isMaixException = false;
         boolean commitOK = false;
         int beforeHeadVersion = -1;
@@ -98,8 +94,9 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionHandler {
 
                 /** copy new version head version */
                 afterHeadVersion = beforeHeadVersion + 1;
-                saveObjectDataFile(bucket, objectName, stream, srcFileName);
-                saveObjectMetadata(bucket, objectName, srcFileName, contentType, afterHeadVersion, customTags);
+                
+                saveData(bucket, objectName, stream, srcFileName);
+                saveMetadata(bucket, objectName, srcFileName, contentType, afterHeadVersion, customTags);
 
                 commitOK = operation.commit();
 

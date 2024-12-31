@@ -368,7 +368,6 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
             return true;
         return getDriver().getReadDrive(bucket, objectName).existsObjectMetadata(bucket, objectName);
     }
-    
 
     private void saveVersionObjectMetadata(ServerBucket bucket, String objectName, int version) {
         // TODO AT: parallel

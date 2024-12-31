@@ -20,6 +20,7 @@ import java.io.File;
 
 import org.springframework.lang.NonNull;
 
+import io.odilon.cache.ObjectMetadataCacheService;
 import io.odilon.encryption.EncryptionService;
 import io.odilon.error.OdilonObjectNotFoundException;
 import io.odilon.model.BaseObject;
@@ -55,6 +56,10 @@ public abstract class BaseRAIDHandler extends BaseObject {
 
     protected VirtualFileSystemOperation updateObject(ServerBucket bucket, String objectName, int beforeHeadVersion) {
         return getJournalService().updateObject(bucket, objectName, beforeHeadVersion);
+    }
+    
+    protected VirtualFileSystemOperation deleteObjectPreviousVersions(ServerBucket bucket, String objectName, int headVersion) {
+        return getJournalService().deleteObjectPreviousVersions(bucket, objectName, headVersion);
     }
 
     /**
@@ -265,9 +270,9 @@ public abstract class BaseRAIDHandler extends BaseObject {
         if ((!getServerSettings().isUseObjectCache()))
             return getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucket, objectName);
 
-        if (getVirtualFileSystemService().getObjectMetadataCacheService().containsKey(bucket, objectName)) {
+        if (getObjectMetadataCacheService().containsKey(bucket, objectName)) {
             getVirtualFileSystemService().getSystemMonitorService().getCacheObjectHitCounter().inc();
-            ObjectMetadata meta = getVirtualFileSystemService().getObjectMetadataCacheService().get(bucket, objectName);
+            ObjectMetadata meta = getObjectMetadataCacheService().get(bucket, objectName);
             meta.setBucketName(bucket.getName());
             return meta;
         }
@@ -280,7 +285,12 @@ public abstract class BaseRAIDHandler extends BaseObject {
         getVirtualFileSystemService().getSystemMonitorService().getCacheObjectMissCounter().inc();
 
         if (addToCacheIfmiss)
-            getVirtualFileSystemService().getObjectMetadataCacheService().put(bucket, objectName, meta);
+            getObjectMetadataCacheService().put(bucket, objectName, meta);
         return meta;
+    }
+    
+
+    protected ObjectMetadataCacheService getObjectMetadataCacheService() {
+        return getVirtualFileSystemService().getObjectMetadataCacheService();
     }
 }

@@ -16,6 +16,7 @@
  */
 package io.odilon.virtualFileSystem.raid0;
 
+
 import java.io.InputStream;
 import java.util.List;
 import java.util.Optional;
@@ -27,7 +28,6 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.SharedConstant;
-import io.odilon.util.Check;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.OperationCode;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
@@ -69,8 +69,8 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroTransactionHandler {
     protected void create(@NonNull ServerBucket bucket, @NonNull String objectName, @NonNull InputStream stream, String srcFileName,
             String contentType, Optional<List<String>> customTags) {
 
-        Check.requireNonNullArgument(bucket, "bucket is null");
-        Check.requireNonNullArgument(objectName, "objectName is null or empty " + objectInfo(bucket));
+        //Check.requireNonNullArgument(bucket, "bucket is null");
+        //Check.requireNonNullArgument(objectName, "objectName is null or empty " + objectInfo(bucket));
 
         VirtualFileSystemOperation operation = null;
         boolean commitOk = false;
@@ -91,8 +91,8 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroTransactionHandler {
                 int version = 0;
                 operation = createObject(bucket, objectName);
 
-                saveObjectDataFile(bucket, objectName, stream, srcFileName);
-                saveObjectMetadata(bucket, objectName, srcFileName, contentType, version, customTags);
+                saveData(bucket, objectName, stream, srcFileName);
+                saveMetadata(bucket, objectName, srcFileName, contentType, version, customTags);
 
                 commitOk = operation.commit();
 

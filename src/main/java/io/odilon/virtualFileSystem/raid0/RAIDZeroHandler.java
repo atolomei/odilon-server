@@ -86,7 +86,7 @@ public abstract class RAIDZeroHandler extends BaseRAIDHandler implements RAIDHan
      * @param stream      can not be null
      * @param srcFileName can not be null
      */
-    protected void saveObjectDataFile(ServerBucket bucket, String objectName, InputStream stream, String srcFileName) {
+    protected void saveData(ServerBucket bucket, String objectName, InputStream stream, String srcFileName) {
         byte[] buf = new byte[ServerConstant.BUFFER_SIZE];
         try (InputStream sourceStream = isEncrypt() ? getEncryptionService().encryptStream(stream) : stream) {
             ObjectPath path = new ObjectPath(getWriteDrive(bucket, objectName), bucket, objectName);
@@ -116,7 +116,7 @@ public abstract class RAIDZeroHandler extends BaseRAIDHandler implements RAIDHan
      * @param srcFileName can not be null
      * @param customTags
      */
-    protected void saveObjectMetadata(ServerBucket bucket, String objectName, String srcFileName, String contentType, int version,
+    protected void saveMetadata(ServerBucket bucket, String objectName, String srcFileName, String contentType, int version,
             Optional<List<String>> customTags) {
 
         OffsetDateTime now = OffsetDateTime.now();
