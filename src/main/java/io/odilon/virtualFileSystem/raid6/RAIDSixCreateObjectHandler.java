@@ -74,8 +74,8 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionHandler {
     protected void create(ServerBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType,
             Optional<List<String>> customTags) {
 
-        Check.requireNonNullArgument(bucket, "bucket is null");
-        Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
+        //Check.requireNonNullArgument(bucket, "bucket is null");
+        //Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 
         VirtualFileSystemOperation operation = null;
         boolean commitOK = false;

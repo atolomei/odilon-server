@@ -37,50 +37,33 @@ public class RAIDSixRollbackSyncHandler extends RAIDSixRollbackHandler {
 
     private static Logger logger = Logger.getLogger(RAIDSixRollbackSyncHandler.class.getName());
 
-    public RAIDSixRollbackSyncHandler(RAIDSixDriver driver, VirtualFileSystemOperation operation, boolean recoveryMode) {
-        super(driver, operation, recoveryMode);
+    public RAIDSixRollbackSyncHandler(RAIDSixDriver driver, VirtualFileSystemOperation operation, boolean recovery) {
+        super(driver, operation, recovery);
     }
 
     @Override
     protected void rollback() {
-        
         boolean done = false;
-
-        String objectName = getOperation().getObjectName();
-
-        getLockService().getObjectLock(getOperation().getBucketId(), getOperation().getObjectName()).writeLock().lock();
         try {
-
-            getLockService().getBucketLock(getOperation().getBucketId()).readLock().lock();
-            try {
-                restoreMetadata();
-                done = true;
-
-            } catch (InternalCriticalException e) {
-                if (!isRecovery())
-                    throw (e);
-                else
-                    logger.error(opInfo(getOperation()), SharedConstant.NOT_THROWN);
-            } catch (Exception e) {
-                if (!isRecovery())
-                    throw new InternalCriticalException(e, opInfo(getOperation()));
-                else
-                    logger.error(e, opInfo(getOperation()), SharedConstant.NOT_THROWN);
-            } finally {
-                try {
-                    if (done || isRecovery()) {
-                        getOperation().cancel();
-                    }
-                } finally {
-                    getLockService().getBucketLock(getOperation().getBucketId()).readLock().unlock();
-                }
-            }
+            restore();
+            done = true;
+        } catch (InternalCriticalException e) {
+            if (!isRecovery())
+                throw (e);
+            else
+                logger.error(e, opInfo(getOperation()), SharedConstant.NOT_THROWN);
+        } catch (Exception e) {
+            if (!isRecovery())
+                throw new InternalCriticalException(e);
+            else
+                logger.error(e, opInfo(getOperation()), SharedConstant.NOT_THROWN);
         } finally {
-            getLockService().getObjectLock(getOperation().getBucketId(), objectName).writeLock().unlock();
+            if (done || isRecovery())
+                getOperation().cancel();
         }
     }
-
-    private void restoreMetadata() {
+    
+    private void restore() {
         
         ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
         String objectName = getOperation().getObjectName();
@@ -92,11 +75,11 @@ public class RAIDSixRollbackSyncHandler extends RAIDSixRollbackHandler {
                 if (src.exists())
                     FileUtils.copyDirectory(src, dest);
                 else
-                    throw new InternalCriticalException("backup dir does not exist " + getDriver().objectInfo(bucket, objectName)
+                    throw new InternalCriticalException("backup dir does not exist " + objectInfo(bucket, objectName)
                             + "dir:" + src.getAbsolutePath());
             }
         } catch (IOException e) {
-            throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName));
+            throw new InternalCriticalException(e, objectInfo(bucket, objectName));
         }
     }
 }

@@ -16,6 +16,8 @@
  */
 package io.odilon.virtualFileSystem.raid0;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
@@ -25,14 +27,17 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
  */
 public abstract class RAIDZeroRollbackHandler extends RAIDZeroHandler {
 
+    @JsonProperty("operation")
     final private VirtualFileSystemOperation operation;
-    final private boolean recoveryMode;
+    
+    @JsonProperty("recovery")
+    final private boolean recovery;
 
-    public RAIDZeroRollbackHandler(RAIDZeroDriver driver, VirtualFileSystemOperation operation, boolean recoveryMode) {
+    public RAIDZeroRollbackHandler(RAIDZeroDriver driver, VirtualFileSystemOperation operation, boolean recovery) {
         super(driver);
 
         this.operation = operation;
-        this.recoveryMode = recoveryMode;
+        this.recovery = recovery;
     }
 
     protected VirtualFileSystemOperation getOperation() {
@@ -40,7 +45,7 @@ public abstract class RAIDZeroRollbackHandler extends RAIDZeroHandler {
     }
 
     protected boolean isRecovery() {
-        return this.recoveryMode;
+        return this.recovery;
     }
 
     protected abstract void rollback();

@@ -16,26 +16,29 @@
  */
 package io.odilon.virtualFileSystem.raid6;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 
 /**
+ * <p>Callers of Rollback operations must ensure proper concurrency control before calling</p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
- * 
  */
 public abstract class RAIDSixRollbackHandler extends RAIDSixHandler {
-
     
+    @JsonProperty("operation")
     final private VirtualFileSystemOperation operation;
+    
+    @JsonProperty("recovery")
+    final private boolean recovery;
 
-    final private boolean recoveryMode;
-
-    public RAIDSixRollbackHandler(RAIDSixDriver driver, VirtualFileSystemOperation operation, boolean recoveryMode) {
+    public RAIDSixRollbackHandler(RAIDSixDriver driver, VirtualFileSystemOperation operation, boolean recovery) {
         super(driver);
 
         this.operation = operation;
-        this.recoveryMode = recoveryMode;
+        this.recovery = recovery;
     }
 
     protected VirtualFileSystemOperation getOperation() {
@@ -43,7 +46,7 @@ public abstract class RAIDSixRollbackHandler extends RAIDSixHandler {
     }
 
     protected boolean isRecovery() {
-        return this.recoveryMode;
+        return this.recovery;
     }
 
     protected abstract void rollback();

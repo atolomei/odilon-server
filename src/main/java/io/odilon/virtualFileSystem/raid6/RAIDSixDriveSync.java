@@ -235,7 +235,7 @@ public class RAIDSixDriveSync implements Runnable {
 
             executor = Executors.newFixedThreadPool(maxProcessingThread);
 
-            for (ServerBucket bucket : this.driver.getVirtualFileSystemService().listAllBuckets()) {
+            for (ServerBucket bucket : getDriver().getVirtualFileSystemService().listAllBuckets()) {
 
                 Integer pageSize = Integer.valueOf(ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE);
                 Long offset = Long.valueOf(0);

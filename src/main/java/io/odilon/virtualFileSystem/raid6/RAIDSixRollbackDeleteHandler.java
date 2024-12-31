@@ -46,24 +46,16 @@ public class RAIDSixRollbackDeleteHandler extends RAIDSixRollbackHandler {
     protected void rollback() {
 
         boolean done = false;
-
         try {
-            
-            // rollback is the same for both operations
-            if (getOperation().getOperationCode() == OperationCode.DELETE_OBJECT)
+            if ( ( getOperation().getOperationCode() == OperationCode.DELETE_OBJECT) ||
+                 ( getOperation().getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS))
                 restoreMetadata();
-
-            else if (getOperation().getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS)
-                restoreMetadata();
-
             done = true;
-
         } catch (InternalCriticalException e) {
             if (!isRecovery())
                 throw (e);
             else
                 logger.error(e, opInfo(getOperation()), SharedConstant.NOT_THROWN);
-
         } catch (Exception e) {
             if (!isRecovery())
                 throw new InternalCriticalException(e);
