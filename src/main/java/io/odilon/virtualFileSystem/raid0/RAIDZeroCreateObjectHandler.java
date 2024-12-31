@@ -69,9 +69,6 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroTransactionHandler {
     protected void create(@NonNull ServerBucket bucket, @NonNull String objectName, @NonNull InputStream stream, String srcFileName,
             String contentType, Optional<List<String>> customTags) {
 
-        //Check.requireNonNullArgument(bucket, "bucket is null");
-        //Check.requireNonNullArgument(objectName, "objectName is null or empty " + objectInfo(bucket));
-
         VirtualFileSystemOperation operation = null;
         boolean commitOk = false;
         boolean isMainException = false;

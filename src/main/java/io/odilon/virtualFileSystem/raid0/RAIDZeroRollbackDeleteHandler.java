@@ -28,6 +28,11 @@ import io.odilon.virtualFileSystem.model.OperationCode;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ * 
+ */
 public class RAIDZeroRollbackDeleteHandler extends RAIDZeroRollbackHandler {
 
     private static Logger logger = Logger.getLogger(RAIDZeroRollbackDeleteHandler.class.getName());
@@ -42,14 +47,11 @@ public class RAIDZeroRollbackDeleteHandler extends RAIDZeroRollbackHandler {
         boolean done = false;
 
         try {
-            // Rollback is the same for both operations -> DELETE_OBJECT and
-            // DELETE_OBJECT_PREVIOUS_VERSIONS
-            if (getOperation().getOperationCode() == OperationCode.DELETE_OBJECT)
-                restoreMetadata();
-
-            else if (getOperation().getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS)
-                restoreMetadata();
-
+            /** Rollback is the same for both operations -> DELETE_OBJECT and
+             DELETE_OBJECT_PREVIOUS_VERSIONS */
+            if ((getOperation().getOperationCode() == OperationCode.DELETE_OBJECT) ||
+                (getOperation().getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS))
+                restore();
             done = true;
 
         } catch (InternalCriticalException e) {
@@ -71,13 +73,12 @@ public class RAIDZeroRollbackDeleteHandler extends RAIDZeroRollbackHandler {
     }
 
     /**
-     * 
      * restore metadata directory
      * 
      * @param bucketName
      * @param objectName
      */
-    private void restoreMetadata() {
+    private void restore() {
 
         ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
         String objectName = getOperation().getObjectName();
@@ -93,5 +94,4 @@ public class RAIDZeroRollbackDeleteHandler extends RAIDZeroRollbackHandler {
             throw new InternalCriticalException(e, objectInfo(bucket, objectName));
         }
     }
-
 }

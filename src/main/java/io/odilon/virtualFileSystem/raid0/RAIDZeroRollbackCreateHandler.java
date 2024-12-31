@@ -27,6 +27,11 @@ import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ * 
+ */
 public class RAIDZeroRollbackCreateHandler extends RAIDZeroRollbackHandler {
 
     private static Logger logger = Logger.getLogger(RAIDZeroRollbackCreateHandler.class.getName());

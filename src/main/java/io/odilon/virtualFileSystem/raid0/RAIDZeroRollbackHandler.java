@@ -18,6 +18,11 @@ package io.odilon.virtualFileSystem.raid0;
 
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ * 
+ */
 public abstract class RAIDZeroRollbackHandler extends RAIDZeroHandler {
 
     final private VirtualFileSystemOperation operation;

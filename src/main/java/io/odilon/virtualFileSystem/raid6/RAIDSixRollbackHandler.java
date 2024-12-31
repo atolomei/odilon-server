@@ -18,9 +18,17 @@ package io.odilon.virtualFileSystem.raid6;
 
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
+
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ * 
+ */
 public abstract class RAIDSixRollbackHandler extends RAIDSixHandler {
 
+    
     final private VirtualFileSystemOperation operation;
+
     final private boolean recoveryMode;
 
     public RAIDSixRollbackHandler(RAIDSixDriver driver, VirtualFileSystemOperation operation, boolean recoveryMode) {

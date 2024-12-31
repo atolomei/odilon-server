@@ -28,6 +28,8 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.concurrent.ThreadSafe;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import io.odilon.error.OdilonObjectNotFoundException;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
@@ -57,6 +59,7 @@ public abstract class RAIDSixHandler extends BaseRAIDHandler implements RAIDHand
 
     private static Logger logger = Logger.getLogger(RAIDSixHandler.class.getName());
 
+    @JsonIgnore
     private final RAIDSixDriver driver;
 
     public RAIDSixHandler(RAIDSixDriver driver) {

@@ -34,6 +34,11 @@ import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ * 
+ */
 public class RAIDSixRollbackUpdateHandler extends RAIDSixRollbackHandler {
 
     private static Logger logger = Logger.getLogger(RAIDSixRollbackUpdateHandler.class.getName());

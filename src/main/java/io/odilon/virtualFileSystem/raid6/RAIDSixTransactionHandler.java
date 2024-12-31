@@ -18,6 +18,11 @@ package io.odilon.virtualFileSystem.raid6;
 
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ * 
+ */
 public class RAIDSixTransactionHandler extends RAIDSixHandler {
 
     public RAIDSixTransactionHandler(RAIDSixDriver driver) {

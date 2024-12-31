@@ -64,9 +64,6 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroTransactionHandler {
      */
 
     protected void delete(ServerBucket bucket, String objectName) {
-    
-        //Check.requireNonNullArgument(bucket, "bucket is null");
-        //Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
         
         VirtualFileSystemOperation operation = null;
         boolean commitOK = false;
@@ -373,10 +370,6 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroTransactionHandler {
      * </p>
      */
     private void onAfterCommit(VirtualFileSystemOperation operation, ObjectMetadata meta, int headVersion) {
-        //if (operation == null)
-        //    return;
-        //if (meta == null)
-        //    return;
         try {
             if (        operation.getOperationCode() == OperationCode.DELETE_OBJECT
                     ||  operation.getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS)

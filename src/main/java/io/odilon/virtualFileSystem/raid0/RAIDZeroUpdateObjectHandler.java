@@ -193,8 +193,8 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionHandler {
                 operation = getJournalService().restoreObjectPreviousVersion(bucket, objectName, beforeHeadVersion);
 
                 /**
-                 * save current head version MetadataFile .vN and data File vN - no need to
-                 * additional backup
+                 * save current head version MetadataFile .vN 
+                 * and data File vN - no need to additional backup
                  */
                 versionObject(bucket, objectName, meta.getVersion());
 

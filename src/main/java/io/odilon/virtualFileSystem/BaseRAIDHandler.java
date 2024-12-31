@@ -38,6 +38,14 @@ import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
+/**
+ * <p>
+ * Base class for all RAID handlers
+ * </p>
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ * 
+ */
 public abstract class BaseRAIDHandler extends BaseObject {
 
     public abstract IODriver getDriver();

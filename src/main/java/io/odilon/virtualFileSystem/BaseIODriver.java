@@ -121,6 +121,13 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
     @JsonIgnore
     private ApplicationContext applicationContext;
 
+    
+    public abstract void rollback(VirtualFileSystemOperation operation, Object payload, boolean recoveryMode);
+
+    
+
+    
+    
     /**
      * 
      * @param virtualFileSystemService
@@ -847,7 +854,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
                 getLockService().getServerLock().writeLock().unlock();
             }
         }
-
     }
 
     /**
@@ -892,7 +898,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
                 }
             }
         });
-
         return this.drivesEnabled;
     }
 
@@ -940,7 +945,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
     }
 
     /**
-     * 
      * @return
      */
     public boolean isEncrypt() {
@@ -992,50 +996,44 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
             drive.removeJournal(id);
     }
 
-    protected abstract Drive getObjectMetadataReadDrive(ServerBucket bucket, String objectName);
-
-    /**
-     * <p>
-     * Note that bucketName is not stored on disk, we must set the bucketName
-     * explicitly. Disks identify Buckets by id, the name is stored in the
-     * BucketMetadata file
-     * </p>
-     * 
-     * MUST BE CALLED INSIDE THE CRITICAL ZONE
-     */
-    protected ObjectMetadata getMetadata(ServerBucket bucket, String objectName) {
-        return getDriverObjectMetadataInternal(bucket, objectName, true);
+    public boolean isStandByEnabled() {
+        return getVirtualFileSystemService().getServerSettings().isStandByEnabled();
     }
 
-    protected ObjectMetadata getDriverObjectMetadataInternal(ServerBucket bucket, String objectName, boolean addToCacheIfmiss) {
+    public void rollback(VirtualFileSystemOperation operation) {
 
-        if ((!getServerSettings().isUseObjectCache())) {
-            ObjectMetadata meta = getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucket, objectName);
-            meta.setBucketName(bucket.getName());
-            return meta;
-        }
+        if (operation == null)
+            return;
 
-        if (getObjectMetadataCacheService().containsKey(bucket, objectName)) {
-            getSystemMonitorService().getCacheObjectHitCounter().inc();
-            ObjectMetadata meta = getObjectMetadataCacheService().get(bucket, objectName);
-            meta.setBucketName(bucket.getName());
-            return meta;
-        }
+        if (isStandByEnabled())
+            getReplicationService().cancel(operation);
 
-        ObjectMetadata meta = getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucket, objectName);
-
-        if (meta == null)
-            return meta;
-
-        meta.setBucketName(bucket.getName());
-        getVirtualFileSystemService().getSystemMonitorService().getCacheObjectMissCounter().inc();
-
-        if (addToCacheIfmiss)
-            getObjectMetadataCacheService().put(bucket, objectName, meta);
-
-        return meta;
+        rollback(operation, null, false);
     }
 
+    public void rollback(VirtualFileSystemOperation operation, boolean recoveryMode) {
+
+        if (operation == null)
+            return;
+
+        if (isStandByEnabled())
+            getReplicationService().cancel(operation);
+
+        rollback(operation, null, recoveryMode);
+    }
+
+    public void rollback(VirtualFileSystemOperation operation, Object payload) {
+
+        if (operation == null)
+            return;
+
+        if (isStandByEnabled())
+            getReplicationService().cancel(operation);
+
+        rollback(operation, payload, false);
+    }
+
+    
     public ObjectMapper getObjectMapper() {
         return mapper;
     }
@@ -1143,6 +1141,53 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
                 + (fileName != null ? (" f:" + fileName) : "");
     }
 
+    
+    
+    protected abstract Drive getObjectMetadataReadDrive(ServerBucket bucket, String objectName);
+
+    /**
+     * <p>
+     * Note that bucketName is not stored on disk, we must set the bucketName
+     * explicitly. Disks identify Buckets by id, the name is stored in the
+     * BucketMetadata file
+     * </p>
+     * 
+     * MUST BE CALLED INSIDE THE CRITICAL ZONE
+     */
+    protected ObjectMetadata getMetadata(ServerBucket bucket, String objectName) {
+        return getDriverObjectMetadataInternal(bucket, objectName, true);
+    }
+
+    protected ObjectMetadata getDriverObjectMetadataInternal(ServerBucket bucket, String objectName, boolean addToCacheIfmiss) {
+
+        if ((!getServerSettings().isUseObjectCache())) {
+            ObjectMetadata meta = getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucket, objectName);
+            meta.setBucketName(bucket.getName());
+            return meta;
+        }
+
+        if (getObjectMetadataCacheService().containsKey(bucket, objectName)) {
+            getSystemMonitorService().getCacheObjectHitCounter().inc();
+            ObjectMetadata meta = getObjectMetadataCacheService().get(bucket, objectName);
+            meta.setBucketName(bucket.getName());
+            return meta;
+        }
+
+        ObjectMetadata meta = getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucket, objectName);
+
+        if (meta == null)
+            return meta;
+
+        meta.setBucketName(bucket.getName());
+        getVirtualFileSystemService().getSystemMonitorService().getCacheObjectMissCounter().inc();
+
+        if (addToCacheIfmiss)
+            getObjectMetadataCacheService().put(bucket, objectName, meta);
+
+        return meta;
+    }
+
+    
     /**
      * <p>
      * all drives have all buckets
@@ -1498,43 +1543,5 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
             throw new IllegalArgumentException("bucket does not exist -> " + bucketName);
     }
 
-    public void rollback(VirtualFileSystemOperation operation) {
-
-        if (operation == null)
-            return;
-
-        if (isStandByEnabled())
-            getReplicationService().cancel(operation);
-
-        rollback(operation, null, false);
-    }
-
-    public void rollback(VirtualFileSystemOperation operation, boolean recoveryMode) {
-
-        if (operation == null)
-            return;
-
-        if (isStandByEnabled())
-            getReplicationService().cancel(operation);
-
-        rollback(operation, null, recoveryMode);
-    }
-
-    public void rollback(VirtualFileSystemOperation operation, Object payload) {
-
-        if (operation == null)
-            return;
-
-        if (isStandByEnabled())
-            getReplicationService().cancel(operation);
-
-        rollback(operation, payload, false);
-    }
-
-    public boolean isStandByEnabled() {
-        return getVirtualFileSystemService().getServerSettings().isStandByEnabled();
-    }
-
-    public abstract void rollback(VirtualFileSystemOperation operation, Object payload, boolean recoveryMode);
 
 }
