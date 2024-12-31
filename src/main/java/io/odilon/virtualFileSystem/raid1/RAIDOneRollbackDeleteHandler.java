@@ -39,8 +39,8 @@ public class RAIDOneRollbackDeleteHandler extends RAIDOneRollbackHandler {
 
     private static Logger logger = Logger.getLogger(RAIDOneRollbackDeleteHandler.class.getName());
 
-    public RAIDOneRollbackDeleteHandler(RAIDOneDriver driver, VirtualFileSystemOperation operation, boolean recoveryMode) {
-        super(driver, operation, recoveryMode);
+    public RAIDOneRollbackDeleteHandler(RAIDOneDriver driver, VirtualFileSystemOperation operation, boolean recovery) {
+        super(driver, operation, recovery);
     }
 
     @Override

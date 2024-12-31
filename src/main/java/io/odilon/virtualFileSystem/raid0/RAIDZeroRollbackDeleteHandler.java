@@ -37,8 +37,8 @@ public class RAIDZeroRollbackDeleteHandler extends RAIDZeroRollbackHandler {
 
     private static Logger logger = Logger.getLogger(RAIDZeroRollbackDeleteHandler.class.getName());
 
-    public RAIDZeroRollbackDeleteHandler(RAIDZeroDriver driver, VirtualFileSystemOperation operation, boolean recoveryMode) {
-        super(driver, operation, recoveryMode);
+    public RAIDZeroRollbackDeleteHandler(RAIDZeroDriver driver, VirtualFileSystemOperation operation, boolean recovery) {
+        super(driver, operation, recovery);
     }
 
     @Override

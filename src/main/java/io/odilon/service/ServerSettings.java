@@ -130,10 +130,10 @@ public class ServerSettings implements JSONObject {
 
     /** Version Control. by default not enabled **/
     @Value("${server.versioncontrol:false}")
-    protected boolean versioncontrol;
+    protected boolean versionControl;
 
-    @Value("${recoveryMode:false}")
-    protected boolean isRecoverMode = false;
+    @Value("${recovery:false}")
+    protected boolean recovery = false;
 
     @Value("${server.ssl.enabled:false}")
     protected String ishttps;
@@ -368,9 +368,6 @@ public class ServerSettings implements JSONObject {
         str.append(", \"encrypt\":\"" + "\"" + (isEncryptionEnabled() ? "true" : "false") + "\"");
         str.append(", \"keyAlgorithm\":" + (Optional.ofNullable(keyAlgorithm).isPresent() ? ("\"" + keyAlgorithm + "\"") : "null"));
 
-        // str.append(", \"encryptionAlgorithm\":" +
-        // (Optional.ofNullable(encryptionAlgorithm).isPresent() ?
-        // ("\""+encryptionAlgorithm+"\"") :"null"));
         str.append(", \"lockRateMillisecs\":" + String.format("%6.2f", getLockRateMillisecs()).trim());
 
         // Scheduler
@@ -388,7 +385,7 @@ public class ServerSettings implements JSONObject {
         str.append(", \"timeZone\":\"" + getTimeZone() + "\"");
 
         str.append(", \"trafficTokens\":" + String.valueOf(tokens) + "");
-        str.append(", \"versionControl\":\"" + (this.versioncontrol ? "true" : "false") + "\"");
+        str.append(", \"versionControl\":\"" + (this.versionControl ? "true" : "false") + "\"");
 
         str.append("\"objectMetadataCache.maxCapacity\":\"" + String.valueOf(objectCacheMaxCapacity) + "\"");
         str.append("\"objectMetadataCache.durationDays\":\"" + String.valueOf(objectExpireDays) + "\"");
@@ -427,9 +424,6 @@ public class ServerSettings implements JSONObject {
         map.put("https", isHTTPS() ? "true" : "false");
 
         map.put("keyAlgorithm", (Optional.ofNullable(keyAlgorithm).isPresent() ? (keyAlgorithm) : "null"));
-        // map.put("encryptionAlgorithm",
-        // (Optional.ofNullable(encryptionAlgorithm).isPresent() ? (encryptionAlgorithm)
-        // :"null"));
         map.put("lockRateMillisecs", String.format("%6.2f", getLockRateMillisecs()).trim());
 
         map.put("standby.enabled", isStandByEnabled() ? "true" : "false");
@@ -731,7 +725,7 @@ public class ServerSettings implements JSONObject {
     }
 
     public boolean isVersionControl() {
-        return this.versioncontrol;
+        return this.versionControl;
     }
 
     public boolean isHTTPS() {
@@ -832,12 +826,12 @@ public class ServerSettings implements JSONObject {
      * @return
      */
 
-    public void setRecoveryMode(boolean isRecoveryMode) {
-        this.isRecoverMode = isRecoveryMode;
+    public void setRecovery(boolean isRecovery) {
+        this.recovery = isRecovery;
     }
 
-    public boolean isRecoverMode() {
-        return isRecoverMode;
+    public boolean isRecovery() {
+        return recovery;
     }
 
     public boolean isVaultEnabled() {

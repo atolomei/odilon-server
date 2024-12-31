@@ -1134,7 +1134,7 @@ public class OdilonVirtualFileSystemService extends BaseService
      * operations
      * 
      */
-    private synchronized void processJournalQueue(boolean recoveryMode) {
+    private synchronized void processJournalQueue(boolean recovery) {
 
         /** Rollback TRX uncompleted */
         List<VirtualFileSystemOperation> list = getJournalPendingOperations();
@@ -1143,7 +1143,7 @@ public class OdilonVirtualFileSystemService extends BaseService
         logger.debug("Processing Journal queue -> " + String.valueOf(list.size()));
         IODriver driver = createVFSIODriver();
         for (VirtualFileSystemOperation op : list)
-            driver.rollback(op, recoveryMode);
+            driver.rollback(op, recovery);
     }
 
     private void checkServerInfo() {

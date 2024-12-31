@@ -38,8 +38,8 @@ public class RAIDSixRollbackDeleteHandler extends RAIDSixRollbackHandler {
 
     private static Logger logger = Logger.getLogger(RAIDSixRollbackDeleteHandler.class.getName());
 
-    public RAIDSixRollbackDeleteHandler(RAIDSixDriver driver, VirtualFileSystemOperation operation, boolean recoveryMode) {
-        super(driver, operation, recoveryMode);
+    public RAIDSixRollbackDeleteHandler(RAIDSixDriver driver, VirtualFileSystemOperation operation, boolean recovery) {
+        super(driver, operation, recovery);
     }
 
     @Override

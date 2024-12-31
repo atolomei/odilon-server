@@ -746,36 +746,36 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
      * </p>
      */
     @Override
-    public void rollback(VirtualFileSystemOperation operation, Object payload, boolean recoveryMode) {
+    public void rollback(VirtualFileSystemOperation operation, Object payload, boolean recovery) {
 
         switch (operation.getOperationCode()) {
         case CREATE_OBJECT: {
-            RAIDZeroRollbackCreateHandler handler = new RAIDZeroRollbackCreateHandler(this, operation, recoveryMode);
+            RAIDZeroRollbackCreateHandler handler = new RAIDZeroRollbackCreateHandler(this, operation, recovery);
             handler.rollback();
             return;
         }
         case UPDATE_OBJECT_METADATA: {
-            RAIDZeroRollbackUpdateHandler handler = new RAIDZeroRollbackUpdateHandler(this, operation, recoveryMode);
+            RAIDZeroRollbackUpdateHandler handler = new RAIDZeroRollbackUpdateHandler(this, operation, recovery);
             handler.rollback();
             return;
         }
         case UPDATE_OBJECT: {
-            RAIDZeroRollbackUpdateHandler handler = new RAIDZeroRollbackUpdateHandler(this, operation, recoveryMode);
+            RAIDZeroRollbackUpdateHandler handler = new RAIDZeroRollbackUpdateHandler(this, operation, recovery);
             handler.rollback();
             return;
         }
         case RESTORE_OBJECT_PREVIOUS_VERSION: {
-            RAIDZeroRollbackUpdateHandler handler = new RAIDZeroRollbackUpdateHandler(this, operation, recoveryMode);
+            RAIDZeroRollbackUpdateHandler handler = new RAIDZeroRollbackUpdateHandler(this, operation, recovery);
             handler.rollback();
             return;
         }
         case DELETE_OBJECT: {
-            RAIDZeroRollbackDeleteHandler handler = new RAIDZeroRollbackDeleteHandler(this, operation, recoveryMode);
+            RAIDZeroRollbackDeleteHandler handler = new RAIDZeroRollbackDeleteHandler(this, operation, recovery);
             handler.rollback();
             return;
         }
         case DELETE_OBJECT_PREVIOUS_VERSIONS: {
-            RAIDZeroRollbackDeleteHandler handler = new RAIDZeroRollbackDeleteHandler(this, operation, recoveryMode);
+            RAIDZeroRollbackDeleteHandler handler = new RAIDZeroRollbackDeleteHandler(this, operation, recovery);
             handler.rollback();
             return;
         }
@@ -813,21 +813,21 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
             }
 
         } catch (InternalCriticalException e) {
-            if (!recoveryMode)
+            if (!recovery)
                 throw (e);
             else
                 logger.error(opInfo(operation), SharedConstant.NOT_THROWN);
 
         } catch (Exception e) {
-            if (!recoveryMode)
+            if (!recovery)
                 throw new InternalCriticalException(e, opInfo(operation));
             else
                 logger.error(opInfo(operation), SharedConstant.NOT_THROWN);
         } finally {
-            if (done || recoveryMode) {
+            if (done || recovery) {
                 operation.cancel();
             } else {
-                if (getServerSettings().isRecoverMode()) {
+                if (getServerSettings().isRecovery()) {
                     logger.error("---------------------------------------------------------------");
                     logger.error("Cancelling failed operation -> " + opInfo(operation));
                     logger.error("---------------------------------------------------------------");

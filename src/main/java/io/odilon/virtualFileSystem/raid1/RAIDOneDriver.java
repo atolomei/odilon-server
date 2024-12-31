@@ -687,26 +687,26 @@ public class RAIDOneDriver extends BaseIODriver {
      */
 
     @Override
-    public void rollback(VirtualFileSystemOperation operation, Object payload, boolean recoveryMode) {
+    public void rollback(VirtualFileSystemOperation operation, Object payload, boolean recovery) {
  
         if (operation.getOperationCode() == OperationCode.CREATE_OBJECT) {
-            RAIDOneRollbackCreateHandler handler = new RAIDOneRollbackCreateHandler(this, operation, recoveryMode);
+            RAIDOneRollbackCreateHandler handler = new RAIDOneRollbackCreateHandler(this, operation, recovery);
             handler.rollback();
             return;
         } else if (operation.getOperationCode() == OperationCode.UPDATE_OBJECT) {
-            RAIDOneRollbackUpdateHandler handler = new RAIDOneRollbackUpdateHandler(this, operation, recoveryMode);
+            RAIDOneRollbackUpdateHandler handler = new RAIDOneRollbackUpdateHandler(this, operation, recovery);
             handler.rollback();
             return;
         } else if (operation.getOperationCode() == OperationCode.DELETE_OBJECT) {
-            RAIDOneRollbackDeleteHandler handler = new RAIDOneRollbackDeleteHandler(this, operation, recoveryMode);
+            RAIDOneRollbackDeleteHandler handler = new RAIDOneRollbackDeleteHandler(this, operation, recovery);
             handler.rollback();
             return;
         } else if (operation.getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS) {
-            RAIDOneRollbackDeleteHandler handler = new RAIDOneRollbackDeleteHandler(this, operation, recoveryMode);
+            RAIDOneRollbackDeleteHandler handler = new RAIDOneRollbackDeleteHandler(this, operation, recovery);
             handler.rollback();
             return;
         } else if (operation.getOperationCode() == OperationCode.UPDATE_OBJECT_METADATA) {
-            RAIDOneRollbackUpdateHandler handler = new RAIDOneRollbackUpdateHandler(this, operation, recoveryMode);
+            RAIDOneRollbackUpdateHandler handler = new RAIDOneRollbackUpdateHandler(this, operation, recovery);
             handler.rollback();
             return;
         }
@@ -741,22 +741,22 @@ public class RAIDOneDriver extends BaseIODriver {
             }
 
         } catch (InternalCriticalException e) {
-            if (!recoveryMode)
+            if (!recovery)
                 throw (e);
             else
                 logger.error(opInfo(operation), SharedConstant.NOT_THROWN);
 
         } catch (Exception e) {
-            if (!recoveryMode)
+            if (!recovery)
                 throw new InternalCriticalException(e, opInfo(operation));
             else
                 logger.error(opInfo(operation), SharedConstant.NOT_THROWN);
 
         } finally {
-            if (done || recoveryMode) {
+            if (done || recovery) {
                 operation.cancel();
             } else {
-                if (getServerSettings().isRecoverMode()) {
+                if (getServerSettings().isRecovery()) {
                     logger.error("---------------------------------------------------------------");
                     logger.error("Cancelling failed operation -> " + opInfo(operation));
                     logger.error("---------------------------------------------------------------");

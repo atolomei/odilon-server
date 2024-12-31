@@ -436,7 +436,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
             if (done || recoveryMode) {
                 operation.cancel();
             } else {
-                if (getVirtualFileSystemService().getServerSettings().isRecoverMode()) {
+                if (getVirtualFileSystemService().getServerSettings().isRecovery()) {
                     logger.error("---------------------------------------------------------------");
                     logger.error("Cancelling failed operation -> " + operation.toString());
                     logger.error("---------------------------------------------------------------");

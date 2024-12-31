@@ -33,11 +33,11 @@ public abstract class RAIDOneRollbackHandler extends RAIDOneHandler {
     @JsonProperty("recovery")
     final private boolean recovery;
 
-    public RAIDOneRollbackHandler(RAIDOneDriver driver, VirtualFileSystemOperation operation, boolean recoveryMode) {
+    public RAIDOneRollbackHandler(RAIDOneDriver driver, VirtualFileSystemOperation operation, boolean recovery) {
         super(driver);
 
         this.operation = operation;
-        this.recovery = recoveryMode;
+        this.recovery = recovery;
     }
 
     protected VirtualFileSystemOperation getOperation() {
