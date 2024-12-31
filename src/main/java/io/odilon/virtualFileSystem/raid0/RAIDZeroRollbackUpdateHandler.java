@@ -129,28 +129,6 @@ public class RAIDZeroRollbackUpdateHandler extends RAIDZeroRollbackHandler {
     }
 
 
-    /**
-     * @param bucketName
-     * @param objectName
-     * @param version
-
-    private boolean restoreVersionMetadata() {
-        try {
-            ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
-            Drive drive = getWriteDrive(bucket, getOperation().getObjectName());
-            File file = drive.getObjectMetadataVersionFile(bucket, getOperation().getObjectName(), getOperation().getVersion());
-            if (file.exists()) {
-                drive.putObjectMetadataFile(bucket, getOperation().getObjectName(), file);
-                FileUtils.deleteQuietly(file);
-                return true;
-            }
-            return false;
-        } catch (Exception e) {
-            throw new InternalCriticalException(e, opInfo(getOperation()));
-        }
-    }
-     */
-    
     private void restoreVersion() {
 
         ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
