@@ -223,7 +223,7 @@ public class StandByReplicaSchedulerWorker extends SchedulerWorker {
     protected synchronized void onInitialize() {
 
         this.queue = getApplicationContext().getBean(ServiceRequestQueue.class, getId());
-        this.queue.setVFS(getVirtualFileSystemService());
+        this.queue.setVirtualFileSystemService(getVirtualFileSystemService());
         this.queue.loadFSQueue();
 
         if (this.queue.size() > 0)

@@ -208,7 +208,7 @@ public class ServiceRequestQueue extends BaseService implements Queue<ServiceReq
 
     }
 
-    public synchronized void setVFS(VirtualFileSystemService virtualFileSystemService) {
+    public synchronized void setVirtualFileSystemService(VirtualFileSystemService virtualFileSystemService) {
         this.virtualFileSystemService = virtualFileSystemService;
     }
 
