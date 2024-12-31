@@ -346,29 +346,9 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroTransactionHandler {
      * @param objectName
      */
     private void backup(ServerBucket bucket, String objectName) {
-        
         try {
-            
             ObjectPath path = new ObjectPath(getDriver().getWriteDrive(bucket, objectName), bucket, objectName);
-        
             FileUtils.copyDirectory(path.metadataDirPath().toFile(), path.metadataBackupDirPath().toFile());
-            
-            if (logger.isDebugEnabled() ) {
-                String objectMetadataDirPath = getDriver().getWriteDrive(bucket, objectName).getObjectMetadataDirPath(bucket,
-                        objectName);
-                
-                String objectMetadataBackupDirPath = getDriver().getWriteDrive(bucket, objectName).getBucketWorkDirPath(bucket)
-                        + File.separator + objectName;
-                
-                logger.debug(objectMetadataDirPath + " - " + path.metadataDirPath().toString());
-                logger.debug(objectMetadataBackupDirPath + " - " + path.metadataBackupDirPath().toString());
-                
-                Check.requireTrue(objectMetadataDirPath.equals(path.metadataDirPath().toString()), "path error");
-                Check.requireTrue(objectMetadataBackupDirPath.equals(path.metadataBackupDirPath().toString()), "path error");
-            }
-            
-            // FileUtils.copyDirectory(new File(objectMetadataDirPath), new File(objectMetadataBackupDirPath));
-            
         } catch (IOException e) {
             throw new InternalCriticalException(e, objectInfo(bucket, objectName));
         }
