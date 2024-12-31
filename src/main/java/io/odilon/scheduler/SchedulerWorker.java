@@ -35,13 +35,15 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
  * <p>
- * A Scheduler Worker is the main component of the Scheduler. It is a job queue
- * with its' own policies and Thread pool to process the queue. It creates a
+ * A {@code SchedulerWorker} is the main component of the
+ * {@link SchedulerService}. It is a job queue that runs on a Thread and has
+ * its' own policies and Thread pool to process the job queue. It creates a
  * dependency graph with the jobs that are to be executed in parallel in each
  * batch in order to warrant that after the execution of the batch the end
  * result will be equivalent to a sequential execution.
  * </p>
- * 
+ * <p>See article Odilon Architecture: {@linkplain https://odilon.io/architecture.html}
+ * </p>
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public abstract class SchedulerWorker implements Runnable {

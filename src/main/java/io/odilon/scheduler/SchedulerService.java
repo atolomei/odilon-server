@@ -78,6 +78,9 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  * to a sequential execution.
  * </p>
  * 
+ * <p>See article Odilon Architecture: {@linkplain https://odilon.io/architecture.html}
+ * </p>
+ * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  * @author aferraria@novamens.com (Alejo Feraria)
  */

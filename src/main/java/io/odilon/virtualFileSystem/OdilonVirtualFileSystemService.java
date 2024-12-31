@@ -109,6 +109,11 @@ import io.odilon.virtualFileSystem.raid6.RAIDSixDriver;
  * Status: Stopped -> Starting -> Running -> Stopping
  * </p>
  * 
+ * <p>
+ * See article Odilon Architecture:
+ * {@linkplain https://odilon.io/architecture.html}
+ * </p>
+ * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @ThreadSafe
