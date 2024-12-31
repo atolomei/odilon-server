@@ -94,13 +94,13 @@ public class ObjectPath extends PathBuilder {
         return metadataDirPath(context).resolve(getObjectName() + ServerConstant.JSON);
     }
 
-    // return getObjectMetadataDirPathById(bucketId, objectName) + File.separator +
-    // objectName
-    // + VirtualFileSystemService.VERSION_EXTENSION + String.valueOf(version) +
-    // ServerConstant.JSON;
-    //
-    //
+    public Path metadataBackupDirPath() {
+        return Paths.get(getBucketWorkDirPath(), getObjectName());
+    }
 
+    
+    
+    
     public String getBucketsDirPath() {
         return getDrive().getBucketsDirPath();
     }
@@ -157,6 +157,7 @@ public class ObjectPath extends PathBuilder {
     private Drive getDrive() {
         return this.drive;
     }
+
 
     // private String getObjectMetadataDir() {
     // return getBucketsDir() + File.separator +

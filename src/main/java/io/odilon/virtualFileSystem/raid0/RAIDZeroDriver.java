@@ -227,8 +227,8 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
             updateAgent.update(bucket, objectName, stream, fileName, contentType, customTags);
             getSystemMonitorService().getUpdateObjectCounter().inc();
         } else {
-            RAIDZeroCreateObjectHandler createAgent = new RAIDZeroCreateObjectHandler(this);
-            createAgent.create(bucket, objectName, stream, fileName, contentType, customTags);
+            RAIDZeroCreateObjectHandler createAgent = new RAIDZeroCreateObjectHandler(this, bucket, objectName);
+            createAgent.create(stream, fileName, contentType, customTags);
             getSystemMonitorService().getCreateObjectCounter().inc();
         }
     }

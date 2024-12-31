@@ -33,6 +33,7 @@ import io.odilon.model.SharedConstant;
 import io.odilon.scheduler.AfterDeleteObjectServiceRequest;
 import io.odilon.scheduler.DeleteBucketObjectPreviousVersionServiceRequest;
 import io.odilon.scheduler.SchedulerService;
+import io.odilon.util.Check;
 import io.odilon.virtualFileSystem.ObjectPath;
 
 import io.odilon.virtualFileSystem.model.ServerBucket;
@@ -141,8 +142,6 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroTransactionHandler {
 
     protected void deleteObjectAllPreviousVersions(ObjectMetadata meta) {
 
-        // Check.requireNonNullArgument(meta, "meta is null");
-        
         ServerBucket bucket = null;
         boolean isMainExcetion = false;
         int headVersion = -1;
@@ -175,11 +174,8 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroTransactionHandler {
                 /**
                  * remove all "objectmetadata.json.vn" Files, but keep -> "objectmetadata.json"
                  **/
-                for (int version = 0; version < headVersion; version++) {
+                for (int version = 0; version < headVersion; version++)
                     FileUtils.deleteQuietly(path.metadataFileVersionPath(version).toFile());
-                        // FileUtils.deleteQuietly(getDriver().getReadDrive(bucket, meta.getObjectName())
-                        //    .getObjectMetadataVersionFile(bucket, meta.getObjectName(), version));
-                }
                 
                 meta.addSystemTag("delete versions");
                 meta.setLastModified(OffsetDateTime.now());
@@ -350,14 +346,29 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroTransactionHandler {
      * @param objectName
      */
     private void backup(ServerBucket bucket, String objectName) {
+        
         try {
-            // ObjectPath path = new ObjectPath( getDriver().getWriteDrive(bucket,
-            // objectName), bucket,objectName);
-            String objectMetadataDirPath = getDriver().getWriteDrive(bucket, objectName).getObjectMetadataDirPath(bucket,
-                    objectName);
-            String objectMetadataBackupDirPath = getDriver().getWriteDrive(bucket, objectName).getBucketWorkDirPath(bucket)
-                    + File.separator + objectName;
-            FileUtils.copyDirectory(new File(objectMetadataDirPath), new File(objectMetadataBackupDirPath));
+            
+            ObjectPath path = new ObjectPath(getDriver().getWriteDrive(bucket, objectName), bucket, objectName);
+        
+            FileUtils.copyDirectory(path.metadataDirPath().toFile(), path.metadataBackupDirPath().toFile());
+            
+            if (logger.isDebugEnabled() ) {
+                String objectMetadataDirPath = getDriver().getWriteDrive(bucket, objectName).getObjectMetadataDirPath(bucket,
+                        objectName);
+                
+                String objectMetadataBackupDirPath = getDriver().getWriteDrive(bucket, objectName).getBucketWorkDirPath(bucket)
+                        + File.separator + objectName;
+                
+                logger.debug(objectMetadataDirPath + " - " + path.metadataDirPath().toString());
+                logger.debug(objectMetadataBackupDirPath + " - " + path.metadataBackupDirPath().toString());
+                
+                Check.requireTrue(objectMetadataDirPath.equals(path.metadataDirPath().toString()), "path error");
+                Check.requireTrue(objectMetadataBackupDirPath.equals(path.metadataBackupDirPath().toString()), "path error");
+            }
+            
+            // FileUtils.copyDirectory(new File(objectMetadataDirPath), new File(objectMetadataBackupDirPath));
+            
         } catch (IOException e) {
             throw new InternalCriticalException(e, objectInfo(bucket, objectName));
         }
