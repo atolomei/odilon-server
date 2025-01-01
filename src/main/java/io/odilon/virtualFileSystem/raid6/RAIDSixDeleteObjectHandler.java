@@ -18,9 +18,6 @@ package io.odilon.virtualFileSystem.raid6;
 
 import java.io.File;
 import java.io.IOException;
-import java.time.OffsetDateTime;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 
 import javax.annotation.concurrent.ThreadSafe;
@@ -28,7 +25,6 @@ import javax.annotation.concurrent.ThreadSafe;
 import org.apache.commons.io.FileUtils;
 import org.checkerframework.checker.nullness.qual.NonNull;
 
-import io.odilon.error.OdilonObjectNotFoundException;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
@@ -52,7 +48,7 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @ThreadSafe
-public class RAIDSixDeleteObjectHandler extends RAIDSixTransactionHandler {
+public class RAIDSixDeleteObjectHandler extends RAIDSixTransactionObjectHandler {
 
     private static Logger logger = Logger.getLogger(RAIDSixDeleteObjectHandler.class.getName());
 
@@ -63,54 +59,46 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixTransactionHandler {
      * 
      * @param driver
      */
-    protected RAIDSixDeleteObjectHandler(RAIDSixDriver driver) {
-        super(driver);
+    protected RAIDSixDeleteObjectHandler(RAIDSixDriver driver, ServerBucket bucket, String objectName) {
+        super(driver, bucket, objectName);
     }
 
     /**
      * @param bucket
      * @param objectName
      */
-    protected void delete(@NonNull ServerBucket bucket, @NonNull String objectName) {
-
-        Check.requireNonNullArgument(bucket, "bucket is null");
-        Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
+    protected void delete() {
 
         VirtualFileSystemOperation operation = null;
         boolean done = false;
         boolean isMainException = false;
-        int headVersion = -1;
         ObjectMetadata meta = null;
 
-        getLockService().getObjectLock(bucket, objectName).writeLock().lock();
+        objectWriteLock();
         try {
-            getLockService().getBucketLock(bucket).readLock().lock();
 
+            bucketReadLock();
             try {
-                
-                /** must be executed inside the critical zone */
-                checkExistsBucket(bucket);
-                
-                /** must be executed inside the critical zone */
-                checkExistObject(bucket, objectName);
 
-                meta = getDriver().getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucket, objectName);
+                checkExistsBucket();
+                checkExistObject();
 
-                headVersion = meta.getVersion();
+                meta = getDriver().getObjectMetadataReadDrive(getBucket(), getObjectName()).getObjectMetadata(getBucket(),
+                        getObjectName());
 
-                operation = getJournalService().deleteObject(bucket, objectName, headVersion);
+                operation = deleteObject(meta.getVersion());
 
-                backupMetadata(meta, bucket);
+                backupMetadata(meta);
 
                 for (Drive drive : getDriver().getDrivesAll())
-                    drive.deleteObjectMetadata(bucket, objectName);
+                    drive.deleteObjectMetadata(getBucket(), getObjectName());
 
                 done = operation.commit();
 
             } catch (Exception e) {
                 done = false;
                 isMainException = true;
-                throw new InternalCriticalException(e, opInfo(operation) + " | " + objectInfo(bucket, objectName));
+                throw new InternalCriticalException(e, info());
             } finally {
 
                 try {
@@ -120,13 +108,13 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixTransactionHandler {
                             rollback(operation);
                         } catch (Exception e) {
                             if (!isMainException)
-                                throw new InternalCriticalException(e, objectInfo(bucket, objectName));
+                                throw new InternalCriticalException(e, info());
                             else
-                                logger.error(e, objectInfo(bucket, objectName), SharedConstant.NOT_THROWN);
+                                logger.error(e, info(), SharedConstant.NOT_THROWN);
                         }
                     } else if (done) {
                         /** inside the thread */
-                        postObjectDeleteCommit(meta, bucket, headVersion);
+                        postObjectDeleteCommit(meta, getBucket(), meta.getVersion());
                     }
 
                     /**
@@ -138,174 +126,26 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixTransactionHandler {
                 } catch (Exception e) {
                     logger.error(e, opInfo(operation), SharedConstant.NOT_THROWN);
                 } finally {
-                    getLockService().getBucketLock(bucket).readLock().unlock();
+                    bucketReadUnLock();
                 }
             }
         } finally {
-            getLockService().getObjectLock(bucket, objectName).writeLock().unlock();
+            objectWriteUnLock();
         }
 
         if (done) {
-            onAfterCommit(operation, meta, headVersion);
+            onAfterCommit(operation, meta, meta.getVersion());
         }
-
     }
 
-    protected void wipeAllPreviousVersions() {
-        getVirtualFileSystemService().getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext()
-                .getBean(DeleteBucketObjectPreviousVersionServiceRequest.class));
+    private VirtualFileSystemOperation deleteObject(int version) {
+        return getJournalService().deleteObject(getBucket(), getObjectName(), version);
     }
 
     protected void deleteBucketAllPreviousVersions(ServerBucket bucket) {
         getVirtualFileSystemService().getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext()
                 .getBean(DeleteBucketObjectPreviousVersionServiceRequest.class, bucket.getName(), bucket.getId()));
     }
-
-    /**
-     *
-     * 
-     */
-    protected void deleteObjectAllPreviousVersions(ObjectMetadata headMeta) {
-
-        Check.requireNonNullArgument(headMeta, "headMeta is null");
-
-        VirtualFileSystemOperation operation = null;
-        boolean done = false;
-        boolean isMainException = false;
-
-        int headVersion = -1;
-
-        String bucketName = headMeta.getBucketName();
-        String objectName = headMeta.getObjectName();
-        Long bucketId = headMeta.getBucketId();
-
-        ServerBucket bucket = null;
-
-        getLockService().getObjectLock(bucketId, objectName).writeLock().lock();
-        try {
-
-            getLockService().getBucketLock(bucketId).readLock().lock();
-            try {
-                /**
-                 * This check was executed by the VirtualFilySystemService, but it must be
-                 * executed also inside the critical zone.
-                 */
-                if (!existsCacheBucket(bucketId))
-                    throw new IllegalArgumentException("bucket does not exist -> " + bucketId);
-
-                bucket = getCacheBucket(bucketId);
-
-                if (!getDriver().getObjectMetadataReadDrive(bucket, objectName).existsObjectMetadata(headMeta))
-                    throw new OdilonObjectNotFoundException(
-                            "object does not exist -> " + getDriver().objectInfo(bucketId, objectName));
-
-                headVersion = headMeta.version;
-
-                /** It does not delete the head version, only previous versions */
-                if (headVersion == 0)
-                    return;
-
-                operation = getJournalService().deleteObjectPreviousVersions(bucket, objectName, headVersion);
-
-                backupMetadata(headMeta, bucket);
-
-                /**
-                 * remove all "objectmetadata.json.vn" Files, but keep -> "objectmetadata.json"
-                 **/
-                for (int version = 0; version < headVersion; version++) {
-                    for (Drive drive : getDriver().getDrivesAll()) {
-                        FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(bucket, objectName, version));
-                    }
-                }
-
-                /** update head metadata with the tag */
-                headMeta.addSystemTag("delete versions");
-                headMeta.setLastModified(OffsetDateTime.now());
-
-                final List<Drive> drives = getDriver().getDrivesAll();
-                final List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
-
-                final ServerBucket f_bucket = bucket;
-                getDriver().getDrivesAll().forEach(d -> list.add(d.getObjectMetadata(f_bucket, objectName)));
-                saveRAIDOneObjectMetadataToDisk(drives, list, true);
-
-                done = operation.commit();
-
-            } catch (OdilonObjectNotFoundException e1) {
-                done = false;
-                isMainException = true;
-                throw (e1);
-
-            } catch (Exception e) {
-                done = false;
-                isMainException = true;
-                throw new InternalCriticalException(e);
-            }
-
-            finally {
-
-                try {
-
-                    if ((!done) && (operation != null)) {
-                        try {
-                            rollback(operation);
-                        } catch (Exception e) {
-                            if (!isMainException)
-                                throw new InternalCriticalException(e, getDriver().objectInfo(bucketName, objectName));
-                            else
-                                logger.error(e, getDriver().objectInfo(bucketName, objectName), SharedConstant.NOT_THROWN);
-                        }
-                    } else if (done && bucket != null) {
-                        postObjectPreviousVersionDeleteAllCommit(headMeta, bucket, headVersion);
-                    }
-                } finally {
-                    getLockService().getBucketLock(bucketId).readLock().unlock();
-                }
-            }
-        } finally {
-            getLockService().getObjectLock(bucketId, objectName).writeLock().unlock();
-        }
-
-        if (done) {
-            onAfterCommit(operation, headMeta, headVersion);
-        }
-
-    }
-
-    /** not used by de moment */
-    protected void postObjectDelete(ObjectMetadata meta, int headVersion) {
-    }
-
-    protected void postObjectPreviousVersionDeleteAll(ObjectMetadata meta, int headVersion) {
-    }
-
-    private void postObjectPreviousVersionDeleteAllCommit(@NonNull ObjectMetadata meta, ServerBucket bucket, int headVersion) {
-
-        Check.requireNonNullArgument(meta, "meta is null");
-
-        String bucketName = meta.getBucketName();
-        String objectName = meta.getObjectName();
-
-        Check.requireNonNullArgument(bucketName, "bucket is null");
-        Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketName);
-
-        try {
-            /** delete data versions(0..headVersion-1). keep headVersion **/
-            for (int n = 0; n < headVersion; n++) {
-                getDriver().getObjectDataFiles(meta, bucket, Optional.of(n)).forEach(item -> {
-                    FileUtils.deleteQuietly(item);
-                });
-            }
-
-            /** delete backup Metadata */
-            for (Drive drive : getDriver().getDrivesAll())
-                FileUtils.deleteQuietly(new File(drive.getBucketWorkDirPath(bucket), objectName));
-
-        } catch (Exception e) {
-            logger.error(e, SharedConstant.NOT_THROWN);
-        }
-    }
-
 
     /**
      * Sync no need to locks
@@ -346,11 +186,12 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixTransactionHandler {
      * @param bucket
      * @param objectName
      */
-    private void backupMetadata(ObjectMetadata meta, ServerBucket bucket) {
+    private void backupMetadata(ObjectMetadata meta) {
         try {
             for (Drive drive : getDriver().getDrivesAll()) {
-                String objectMetadataDirPath = drive.getObjectMetadataDirPath(bucket, meta.getObjectName());
-                String objectMetadataBackupDirPath = drive.getBucketWorkDirPath(bucket) + File.separator + meta.getObjectName();
+                String objectMetadataDirPath = drive.getObjectMetadataDirPath(getBucket(), meta.getObjectName());
+                String objectMetadataBackupDirPath = drive.getBucketWorkDirPath(getBucket()) + File.separator
+                        + meta.getObjectName();
                 File src = new File(objectMetadataDirPath);
                 if (src.exists())
                     FileUtils.copyDirectory(src, new File(objectMetadataBackupDirPath));
@@ -375,5 +216,4 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixTransactionHandler {
             logger.error(e, SharedConstant.NOT_THROWN);
         }
     }
-
 }

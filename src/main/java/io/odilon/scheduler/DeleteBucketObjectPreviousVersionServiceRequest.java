@@ -122,14 +122,10 @@ public class DeleteBucketObjectPreviousVersionServiceRequest extends AbstractSer
     }
 
     private void processBucket(Long bucketId) {
-
         Integer pageSize = Integer.valueOf(PAGESIZE);
         Long offset = Long.valueOf(0);
         String agentId = null;
         boolean done = false;
-
-        // ServerBucket bucket = getVirtualFileSystemService().getBucketById(bucketId);
-
         while (!done) {
 
             DataList<Item<ObjectMetadata>> data = getVirtualFileSystemService().listObjects(getBucketName(), Optional.of(offset),
@@ -141,9 +137,7 @@ public class DeleteBucketObjectPreviousVersionServiceRequest extends AbstractSer
             List<Callable<Object>> tasks = new ArrayList<>(data.getList().size());
 
             for (Item<ObjectMetadata> item : data.getList()) {
-
                 tasks.add(() -> {
-
                     try {
                         this.counter.getAndIncrement();
                         if (item.isOk()) {
@@ -250,13 +244,11 @@ public class DeleteBucketObjectPreviousVersionServiceRequest extends AbstractSer
 
     private void process(Item<ObjectMetadata> item) {
         try {
-            getVirtualFileSystemService().deleteObjectAllPreviousVersions(item.getObject());
+            getVirtualFileSystemService().deleteObjectAllPreviousVersions(item.getObject().getBucketName(), item.getObject().getObjectName());
             this.checkOk.incrementAndGet();
         } catch (Exception e) {
             this.errors.getAndIncrement();
-            logger.error(e, "Could not process -> " + item.getObject().bucketId.toString() + " - " + item.getObject().objectName
-                    + " " + SharedConstant.NOT_THROWN);
-
+            logger.error(e, item.getObject().getBucketName() + " - " + item.getObject().getObjectName()+ " " + SharedConstant.NOT_THROWN);
         }
     }
 

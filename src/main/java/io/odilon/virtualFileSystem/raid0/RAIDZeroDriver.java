@@ -139,12 +139,12 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
      * @see {@link RAIDZeroUpdateObjectHandler}
      */
     @Override
-    public void deleteObjectAllPreviousVersions(ObjectMetadata meta) {
-        Check.requireNonNullArgument(meta, "meta is null");
-        Check.requireNonNullArgument(meta.bucketId, "bucketId is null");
-        Check.requireNonNullArgument(meta.objectName, "objectName is null or empty | b:" + meta.bucketId.toString());
-        RAIDZeroDeleteObjectHandler agent = new RAIDZeroDeleteObjectHandler(this);
-        agent.deleteObjectAllPreviousVersions(meta);
+    public void deleteObjectAllPreviousVersions(ServerBucket bucket, String objectName) {
+        Check.requireNonNullArgument(bucket, "bucket is null");
+        Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucket.getName());
+        Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible " + objectInfo(bucket));
+        RAIDZeroDeleteObjectAllPreviousVersionsHandler agent = new RAIDZeroDeleteObjectAllPreviousVersionsHandler(this, bucket, objectName);
+        agent.delete();
     }
 
     /**
@@ -169,24 +169,28 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 
     /**
      * <p>
-     * Creates a ServiceRequest to walk through all objects and delete versions.
+     * Adds a {@link DeleteBucketObjectPreviousVersionServiceRequest} to the
+     * {@link SchedulerService} to walk through all objects and delete versions.
      * This process is Async and handler returns immediately.
      * </p>
+     * 
      * <p>
-     * The ServiceRequest {@link DeleteBucketObjectPreviousVersionServiceRequest}
-     * creates N Threads to scan all Objects and remove previous versions. In case
-     * of failure (for example. the server is shutdown before completion), it is
-     * retried up to 5 times.
+     * The {@link DeleteBucketObjectPreviousVersionServiceRequest} creates n Threads
+     * to scan all Objects and remove previous versions.In case of failure (for
+     * example. the server is shutdown before completion), it is retried up to 5
+     * times.
      * </p>
      * <p>
-     * Although the removal of all versions for every Object is Transactional, the
-     * ServiceRequest itself is not Transactional, and it can not be Rollback
+     * Although the removal of all versions for every Object is transactional, the
+     * {@link ServiceRequest} itself is not transactional, and it can not be
+     * rollback
      * </p>
      */
     @Override
     public void wipeAllPreviousVersions() {
-        RAIDZeroDeleteObjectHandler agent = new RAIDZeroDeleteObjectHandler(this);
-        agent.wipeAllPreviousVersions();
+        getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext()
+                .getBean(DeleteBucketObjectPreviousVersionServiceRequest.class));
+        
     }
 
     /**
@@ -210,8 +214,8 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         Check.requireNonNullArgument(bucket, "bucket is null");
         Check.requireNonNullArgument(bucket, "bucket does not exist ->" + objectInfo(bucket));
         Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible " + objectInfo(bucket));
-        RAIDZeroDeleteObjectHandler agent = new RAIDZeroDeleteObjectHandler(this);
-        agent.deleteBucketAllPreviousVersions(bucket);
+        getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext()
+                .getBean(DeleteBucketObjectPreviousVersionServiceRequest.class, bucket.getName(), bucket.getId()));
     }
 
     @Override
@@ -250,8 +254,8 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         Check.requireNonNullArgument(bucket, "bucket is null");
         Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible " + objectInfo(bucket));
         Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
-        RAIDZeroDeleteObjectHandler agent = new RAIDZeroDeleteObjectHandler(this);
-        agent.delete(bucket, objectName);
+        RAIDZeroDeleteObjectHandler agent = new RAIDZeroDeleteObjectHandler(this, bucket, objectName);
+        agent.delete();
     }
 
     /**
@@ -262,9 +266,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
      */
     @Override
     public void postObjectDeleteTransaction(ObjectMetadata meta, int headVersion) {
-        Check.requireNonNullArgument(meta, "meta is null");
-        RAIDZeroDeleteObjectHandler createAgent = new RAIDZeroDeleteObjectHandler(this);
-        createAgent.postObjectDelete(meta, headVersion);
+        logger.debug("do nothing");
     }
 
     /**
@@ -274,9 +276,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
      */
     @Override
     public void postObjectPreviousVersionDeleteAllTransaction(ObjectMetadata meta, int headVersion) {
-        Check.requireNonNullArgument(meta, "meta is null");
-        RAIDZeroDeleteObjectHandler createAgent = new RAIDZeroDeleteObjectHandler(this);
-        createAgent.postObjectPreviousVersionDeleteAll(meta, headVersion);
+        logger.debug("do nothing");
     }
 
     /**

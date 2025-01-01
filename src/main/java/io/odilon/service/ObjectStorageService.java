@@ -86,8 +86,9 @@ public interface ObjectStorageService extends SystemService {
 
     /** Object version - delete/restore */
 
-    public void deleteObjectAllPreviousVersions(ObjectMetadata meta);
-
+    //public void deleteObjectAllPreviousVersions(ObjectMetadata meta);
+    public void deleteObjectAllPreviousVersions(String bucketName, String objectName);
+    
     public ObjectMetadata restorePreviousVersion(String bucketName, String objectName);
 
     /**
@@ -119,5 +120,7 @@ public interface ObjectStorageService extends SystemService {
     public SystemInfo getSystemInfo();
 
     public boolean hasVersions(String bucketName, String objectName);
+
+    
 
 }

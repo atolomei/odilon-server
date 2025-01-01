@@ -106,7 +106,7 @@ public abstract class RAIDSixHandler extends BaseRAIDHandler implements RAIDHand
                 .get(Math.abs(getKey(bucket, objectName).hashCode()) % getDriver().getDrivesEnabled().size());
     }
 
-    protected void saveRAIDOneObjectMetadataToDisk(final List<Drive> drives, final List<ObjectMetadata> list,
+    protected void saveRAIDSixObjectMetadataToDisk(final List<Drive> drives, final List<ObjectMetadata> list,
             final boolean isHead) {
 
         if (logger.isDebugEnabled()) {

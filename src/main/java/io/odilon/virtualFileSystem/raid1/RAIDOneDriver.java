@@ -45,7 +45,7 @@ import io.odilon.model.RedundancyLevel;
 import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
 import io.odilon.query.BucketIteratorService;
-
+import io.odilon.scheduler.DeleteBucketObjectPreviousVersionServiceRequest;
 import io.odilon.util.Check;
 import io.odilon.util.OdilonFileUtils;
 import io.odilon.virtualFileSystem.Action;
@@ -83,6 +83,8 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  * {@link RAIDOneDeleteObjectHandler}, {@link RAIDOneUpdateObjectHandler} and
  * other
  * </p>
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @ThreadSafe
 @Component
@@ -102,21 +104,44 @@ public class RAIDOneDriver extends BaseIODriver {
     @Override
     public boolean hasVersions(ServerBucket bucket, String objectName) {
         Check.requireNonNullArgument(bucket, "bucket is null");
+        checkIsAccesible(bucket);
         return !getObjectMetadataVersionAll(bucket, objectName).isEmpty();
     }
 
+    /**
+     * <p>
+     * Adds a {@link DeleteBucketObjectPreviousVersionServiceRequest} to the
+     * {@link SchedulerService} to walk through all objects and delete versions.
+     * This process is Async and handler returns immediately.
+     * </p>
+     * 
+     * <p>
+     * The {@link DeleteBucketObjectPreviousVersionServiceRequest} creates n Threads
+     * to scan all Objects and remove previous versions. In case of failure (for
+     * example. the server is shutdown before completion), it is retried up to 5
+     * times.
+     * </p>
+     * 
+     * <p>
+     * Although the removal of all versions for every Object is transactional, the
+     * {@link ServiceRequest} itself is not transactional, and it can not be
+     * rollback
+     * </p>
+     */
+
     @Override
     public void wipeAllPreviousVersions() {
-        RAIDOneDeleteObjectHandler agent = new RAIDOneDeleteObjectHandler(this);
-        agent.wipeAllPreviousVersions();
+        getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext()
+                .getBean(DeleteBucketObjectPreviousVersionServiceRequest.class));
     }
 
     @Override
     public void deleteBucketAllPreviousVersions(ServerBucket bucket) {
         Check.requireNonNullArgument(bucket, "bucket is null");
         checkIsAccesible(bucket);
-        RAIDOneDeleteObjectHandler agent = new RAIDOneDeleteObjectHandler(this);
-        agent.deleteBucketAllPreviousVersions(bucket);
+        getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext()
+                .getBean(DeleteBucketObjectPreviousVersionServiceRequest.class, bucket.getName(), bucket.getId()));
+        
     }
 
     @Override
@@ -179,15 +204,19 @@ public class RAIDOneDriver extends BaseIODriver {
         }
     }
 
+    
+    
     @Override
-    public void deleteObjectAllPreviousVersions(ObjectMetadata meta) {
-        Check.requireNonNullArgument(meta, "meta is null");
-        Check.requireNonNullArgument(meta.bucketId, "bucketId is null");
-        Check.requireNonNullArgument(meta.objectName, "objectName is null or empty | b:" + meta.bucketId.toString());
-        RAIDOneDeleteObjectHandler agent = new RAIDOneDeleteObjectHandler(this);
-        agent.deleteObjectAllPreviousVersions(meta);
+    public void deleteObjectAllPreviousVersions(ServerBucket bucket, String objectName) {
+        Check.requireNonNullArgument(bucket, "bucket is null");
+        Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + objectInfo(bucket));
+        checkIsAccesible(bucket);
+        
+        RAIDOneDeleteObjectAllPreviousVersionsHandler agent = new RAIDOneDeleteObjectAllPreviousVersionsHandler(this, bucket, objectName);
+        agent.delete();
     }
 
+    
     @Override
     public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName, String contentType,
             Optional<List<String>> customTags) {
@@ -195,7 +224,6 @@ public class RAIDOneDriver extends BaseIODriver {
         Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucket.getId());
         Check.requireNonNullStringArgument(fileName, "fileName is null | b: " + bucket.getId() + " o:" + objectName);
         Check.requireNonNullArgument(stream, "InpuStream can not null -> b:" + bucket.getId() + " | o:" + objectName);
-
         checkIsAccesible(bucket);
 
         if (exists(bucket, objectName)) {
@@ -203,8 +231,8 @@ public class RAIDOneDriver extends BaseIODriver {
             updateAgent.update(bucket, objectName, stream, fileName, contentType, customTags);
             getVirtualFileSystemService().getSystemMonitorService().getUpdateObjectCounter().inc();
         } else {
-            RAIDOneCreateObjectHandler createAgent = new RAIDOneCreateObjectHandler(this);
-            createAgent.create(bucket, objectName, stream, fileName, contentType, customTags);
+            RAIDOneCreateObjectHandler createAgent = new RAIDOneCreateObjectHandler(this, bucket, objectName);
+            createAgent.create(stream, fileName, contentType, customTags);
             getVirtualFileSystemService().getSystemMonitorService().getCreateObjectCounter().inc();
         }
     }
@@ -218,11 +246,10 @@ public class RAIDOneDriver extends BaseIODriver {
     public void delete(ServerBucket bucket, String objectName) {
         Check.requireNonNullArgument(bucket, "bucket is null");
         Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getId());
+        checkIsAccesible(bucket);
 
-        Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible " + objectInfo(bucket));
-
-        RAIDOneDeleteObjectHandler agent = new RAIDOneDeleteObjectHandler(this);
-        agent.delete(bucket, objectName);
+        RAIDOneDeleteObjectHandler agent = new RAIDOneDeleteObjectHandler(this, bucket, objectName);
+        agent.delete();
     }
 
     /**
@@ -232,17 +259,12 @@ public class RAIDOneDriver extends BaseIODriver {
      */
     @Override
     public void postObjectDeleteTransaction(ObjectMetadata meta, int headVersion) {
-        Check.requireNonNullArgument(meta, "meta is null");
-        RAIDOneDeleteObjectHandler deleteAgent = new RAIDOneDeleteObjectHandler(this);
-        deleteAgent.postObjectDelete(meta, headVersion);
     }
 
     @Override
     public void postObjectPreviousVersionDeleteAllTransaction(ObjectMetadata meta, int headVersion) {
-        Check.requireNonNullArgument(meta, "meta is null");
-        RAIDOneDeleteObjectHandler deleteAgent = new RAIDOneDeleteObjectHandler(this);
-        deleteAgent.postObjectPreviousVersionDeleteAll(meta, headVersion);
     }
+    
 
     @Override
     public void putObjectMetadata(ObjectMetadata meta) {

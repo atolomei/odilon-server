@@ -18,7 +18,6 @@ package io.odilon.virtualFileSystem.raid1;
 
 import java.io.File;
 import java.io.IOException;
-import java.time.OffsetDateTime;
 
 import javax.annotation.concurrent.ThreadSafe;
 
@@ -30,8 +29,6 @@ import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.SharedConstant;
 import io.odilon.scheduler.AfterDeleteObjectServiceRequest;
-import io.odilon.scheduler.DeleteBucketObjectPreviousVersionServiceRequest;
-import io.odilon.util.Check;
 
 import io.odilon.virtualFileSystem.ObjectPath;
 import io.odilon.virtualFileSystem.model.Drive;
@@ -49,7 +46,7 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @ThreadSafe
-public class RAIDOneDeleteObjectHandler extends RAIDOneTransactionHandler {
+public class RAIDOneDeleteObjectHandler extends RAIDOneTransactionObjectHandler {
 
     private static Logger logger = Logger.getLogger(RAIDOneDeleteObjectHandler.class.getName());
 
@@ -58,8 +55,8 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneTransactionHandler {
      * 
      * @param driver
      */
-    protected RAIDOneDeleteObjectHandler(RAIDOneDriver driver) {
-        super(driver);
+    protected RAIDOneDeleteObjectHandler(RAIDOneDriver driver, ServerBucket bucket, String objectName) {
+        super(driver, bucket, objectName);
     }
 
     /**
@@ -69,56 +66,48 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneTransactionHandler {
      * @param srcFileName
      * @param contentType
      */
-    protected void delete(ServerBucket bucket, String objectName) {
-
-        Check.requireNonNullArgument(bucket, "bucket is null");
-        Check.requireNonNullArgument(bucket.getId(), "bucketId is null");
-        Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
+    protected void delete() {
 
         VirtualFileSystemOperation operation = null;
-        boolean done = false;
+        boolean commitOK = false;
         int headVersion = -1;
         ObjectMetadata meta = null;
 
-        objectWriteLock(bucket, objectName);
+        objectWriteLock();
         try {
-            bucketReadLock(bucket);
+            bucketReadLock();
             try {
 
-                /** must be executed inside the critical zone. */
-                checkExistsBucket(bucket);
+                checkExistsBucket();
+                checkExistObject();
 
-                /** must be executed inside the critical zone. */
-                checkExistObject(bucket, objectName);
-
-                meta = getDriver().getReadDrive(bucket, objectName).getObjectMetadata(bucket, objectName);
+                meta = getDriver().getReadDrive(getBucket(), getObjectName()).getObjectMetadata(getBucket(), getObjectName());
                 headVersion = meta.getVersion();
-                operation = deleteObject(bucket, objectName, headVersion);
-                backupMetadata(meta, bucket);
+                operation = deleteObject(headVersion);
+                backupMetadata(meta, getBucket());
 
                 // TODO AT: parallel
                 for (Drive drive : getDriver().getDrivesAll())
-                    ((SimpleDrive) drive).deleteObjectMetadata(bucket, objectName);
-
-                done = operation.commit();
+                    ((SimpleDrive) drive).deleteObjectMetadata(getBucket(), getObjectName());
+                commitOK = operation.commit();
 
             } catch (OdilonObjectNotFoundException e1) {
-                done = false;
+                commitOK = false;
                 throw e1;
 
             } catch (Exception e) {
-                done = false;
+                commitOK = false;
                 throw new InternalCriticalException(e, opInfo(operation));
             } finally {
                 try {
-                    if (!done) {
+                    if (!commitOK) {
                         try {
                             rollback(operation);
                         } catch (Exception e) {
                             throw new InternalCriticalException(e, opInfo(operation));
                         }
-                    } else if (done)
-                        postObjectDeleteCommit(meta, bucket, headVersion);
+                    } else if (commitOK)
+                        postObjectDeleteCommit(headVersion);
                     /**
                      * DATA CONSISTENCY: If The system crashes before Commit or Cancel -> next time
                      * the system starts up it will REDO all stored operations. Also, the if there
@@ -129,187 +118,22 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneTransactionHandler {
                 } catch (Exception e) {
                     logger.error(e, opInfo(operation), SharedConstant.NOT_THROWN);
                 } finally {
-                    bucketReadUnLock(bucket);
+                    bucketReadUnLock();
                 }
             }
         } finally {
-            objectWriteUnLock(bucket, objectName);
+            objectWriteUnLock();
         }
 
-        if (done)
+        if (commitOK)
             onAfterCommit(operation, meta, headVersion);
     }
 
-    /**
-     * <p>
-     * Adds a {@link DeleteBucketObjectPreviousVersionServiceRequest} to the
-     * {@link SchedulerService} to walk through all objects and delete versions.
-     * This process is Async and handler returns immediately.
-     * </p>
-     * 
-     * <p>
-     * The {@link DeleteBucketObjectPreviousVersionServiceRequest} creates n Threads
-     * to scan all Objects and remove previous versions. In case of failure (for
-     * example. the server is shutdown before completion), it is retried up to 5
-     * times.
-     * </p>
-     * 
-     * <p>
-     * Although the removal of all versions for every Object is transactional, the
-     * {@link ServiceRequest} itself is not transactional, and it can not be
-     * rollback
-     * </p>
-     */
-    protected void wipeAllPreviousVersions() {
-        getVirtualFileSystemService().getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext()
-                .getBean(DeleteBucketObjectPreviousVersionServiceRequest.class));
+    private VirtualFileSystemOperation deleteObject(int headVersion) {
+        return deleteObject(getBucket(), getObjectName(), headVersion);
     }
 
     /**
-     * <p>
-     * Adds a {@link DeleteBucketObjectPreviousVersionServiceRequest} to the
-     * {@link SchedulerService} to walk through all objects and delete versions.
-     * This process is Async and handler returns immediately.
-     * </p>
-     * 
-     * <p>
-     * The {@link DeleteBucketObjectPreviousVersionServiceRequest} creates n Threads
-     * to scan all Objects and remove previous versions. In case of failure (for
-     * example. the server is shutdown before completion), it is retried up to 5
-     * times.
-     * </p>
-     * 
-     * <p>
-     * Although the removal of all versions for every Object is transactional, the
-     * ServiceRequest itself is not transactional, and it can not be rollback
-     * </p>
-     */
-    protected void deleteBucketAllPreviousVersions(ServerBucket bucket) {
-        getVirtualFileSystemService().getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext()
-                .getBean(DeleteBucketObjectPreviousVersionServiceRequest.class, bucket.getName(), bucket.getId()));
-    }
-
-    /**
-     * 
-     * @param bucket
-     * @param objectName
-     */
-    protected void deleteObjectAllPreviousVersions(ObjectMetadata meta) {
-
-        Check.requireNonNullArgument(meta, "meta is null");
-
-        VirtualFileSystemOperation operation = null;
-        boolean done = false;
-        boolean isMainException = false;
-
-        int headVersion = -1;
-        String objectName = meta.getObjectName();
-
-        ServerBucket bucket = null;
-
-        objectWriteLock(meta.getBucketId(), objectName);
-
-        try {
-
-            bucketReadLock(meta.getBucketId());
-            try {
-
-                /** must be executed inside the critical zone. */
-                checkExistsBucket(meta.getBucketId());
-
-                bucket = getCacheBucket(meta.getBucketId());
-
-                /** must be executed inside the critical zone. */
-                checkExistObject(bucket, objectName);
-
-                headVersion = meta.getVersion();
-
-                /** It does not delete the head version, only previous versions */
-                if (headVersion == 0)
-                    return;
-
-                operation = getJournalService().deleteObjectPreviousVersions(bucket, objectName, headVersion);
-                backupMetadata(meta, bucket);
-                /**
-                 * remove all "objectmetadata.json.vn" Files, but keep -> "objectmetadata.json"
-                 **/
-                for (int version = 0; version < headVersion; version++) {
-                    for (Drive drive : getDriver().getDrivesAll()) {
-                        FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(bucket, objectName, version));
-                    }
-                }
-                /** update head metadata with the tag */
-                meta.addSystemTag("delete versions");
-                meta.lastModified = OffsetDateTime.now();
-                for (Drive drive : getDriver().getDrivesAll()) {
-                    ObjectMetadata metaDrive = drive.getObjectMetadata(bucket, objectName);
-                    meta.drive = drive.getName();
-                    drive.saveObjectMetadata(metaDrive);
-                }
-                done = operation.commit();
-
-            } catch (Exception e) {
-                done = false;
-                isMainException = true;
-                throw new InternalCriticalException(e);
-            } finally {
-                try {
-                    if (done) {
-                        try {
-                            rollback(operation);
-                        } catch (Exception e) {
-                            if (!isMainException)
-                                throw new InternalCriticalException(e, objectInfo(meta));
-                            else
-                                logger.error(e, objectInfo(meta), SharedConstant.NOT_THROWN);
-                        }
-                    } else if (done) {
-                        postObjectPreviousVersionDeleteAllCommit(meta, bucket, headVersion);
-                    }
-                } finally {
-                    bucketReadUnLock(meta.getBucketId());
-                }
-            }
-        } finally {
-            objectWriteUnLock(meta.getBucketId(), objectName);
-        }
-        if (done)
-            onAfterCommit(operation, meta, headVersion);
-    }
-
-     
-    protected void postObjectDelete(ObjectMetadata meta, int headVersion) {
-    }
-
-    protected void postObjectPreviousVersionDeleteAll(ObjectMetadata meta, int headVersion) {
-    }
-
-    private void postObjectPreviousVersionDeleteAllCommit(ObjectMetadata meta, ServerBucket bucket, int headVersion) {
-
-        String bucketName = meta.getBucketName();
-        String objectName = meta.getObjectName();
-
-        Check.requireNonNullArgument(bucketName, "bucket is null");
-        Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketName);
-        try {
-            /** delete data versions(1..n-1). keep headVersion **/
-            for (int version = 0; version < headVersion; version++) {
-                for (Drive drive : getDriver().getDrivesAll()) {
-                    ObjectPath path = new ObjectPath(drive, bucket, objectName);
-                    FileUtils.deleteQuietly(path.dataFileVersionPath(version).toFile());
-                }
-            }
-            /** delete backup Metadata */
-            for (Drive drive : getDriver().getDrivesAll()) {
-                FileUtils.deleteQuietly(new File(drive.getBucketWorkDirPath(bucket) + File.separator + objectName));
-            }
-        } catch (Exception e) {
-            logger.error(e, SharedConstant.NOT_THROWN);
-        }
-    }
-
-    /**
-     * 
      * <p>
      * This method is called <b>Async</b> by the Scheduler after the transaction is
      * committed It does not require locking <br/>
@@ -327,25 +151,25 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneTransactionHandler {
      * @param headVersion newest version of the Object just deleted
      */
 
-    private void postObjectDeleteCommit(ObjectMetadata meta, ServerBucket bucket, int headVersion) {
-        String objectName = meta.getObjectName();
+    private void postObjectDeleteCommit(int headVersion) {
+        
         try {
             /** delete data versions(1..n-1) */
             for (int version = 0; version <= headVersion; version++) {
                 for (Drive drive : getDriver().getDrivesAll()) {
-                    ObjectPath path = new ObjectPath(drive, bucket, objectName);
+                    ObjectPath path = new ObjectPath(drive, getBucket(), getObjectName());
                     FileUtils.deleteQuietly(path.dataFileVersionPath(version).toFile());
                 }
             }
             /** delete data (head) */
             for (Drive drive : getDriver().getDrivesAll()) {
-                ObjectPath path = new ObjectPath(drive, bucket, objectName);
+                ObjectPath path = new ObjectPath(drive, getBucket(), getObjectName());
                 File file = path.dataFilePath().toFile();
                 FileUtils.deleteQuietly(file);
             }
             /** delete backup Metadata */
             for (Drive drive : getDriver().getDrivesAll())
-                FileUtils.deleteQuietly(new File(drive.getBucketWorkDirPath(bucket) + File.separator + objectName));
+                FileUtils.deleteQuietly(new File(drive.getBucketWorkDirPath(getBucket()) + File.separator + getObjectName()));
         } catch (Exception e) {
             logger.error(e, SharedConstant.NOT_THROWN);
         }
@@ -371,21 +195,6 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneTransactionHandler {
     }
 
     /**
-    private void restoreMetadata(ServerBucket bucket, String objectName) {
-        / restore metadata directory 
-        for (Drive drive : getDriver().getDrivesAll()) {
-            String objectMetadataBackupDirPath = drive.getBucketWorkDirPath(bucket) + File.separator + objectName;
-            String objectMetadataDirPath = drive.getObjectMetadataDirPath(bucket, objectName);
-            try {
-                FileUtils.copyDirectory(new File(objectMetadataBackupDirPath), new File(objectMetadataDirPath));
-            } catch (IOException e) {
-                throw new InternalCriticalException(e, objectInfo(bucket, objectName));
-            }
-        }
-    }
-**/
-
-    /**
      * <p>
      * This method is called after the TRX commit. It is used to clean temp files,
      * if the system crashes those temp files will be removed on system startup
@@ -393,10 +202,8 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneTransactionHandler {
      */
     private void onAfterCommit(VirtualFileSystemOperation op, ObjectMetadata meta, int headVersion) {
         try {
-            if (op.getOperationCode() == OperationCode.DELETE_OBJECT
-                    || op.getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS)
-                getVirtualFileSystemService().getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext()
-                        .getBean(AfterDeleteObjectServiceRequest.class, op.getOperationCode(), meta, headVersion));
+            getVirtualFileSystemService().getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext()
+                    .getBean(AfterDeleteObjectServiceRequest.class, op.getOperationCode(), meta, headVersion));
         } catch (Exception e) {
             logger.error(e, SharedConstant.NOT_THROWN);
         }

@@ -161,9 +161,9 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
     }
 
     @Override
-    public void deleteObjectAllPreviousVersions(ObjectMetadata meta) {
+    public void deleteObjectAllPreviousVersions(String bucketName, String objectName) {
         Check.requireTrue(isVirtualFileSystemServiceEnabled(), invalidStateMsg());
-        getVirtualFileSystemService().deleteObjectAllPreviousVersions(meta);
+        getVirtualFileSystemService().deleteObjectAllPreviousVersions(bucketName, objectName);
     }
 
     @Override

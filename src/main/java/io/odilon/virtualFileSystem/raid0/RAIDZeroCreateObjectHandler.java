@@ -16,15 +16,12 @@
  */
 package io.odilon.virtualFileSystem.raid0;
 
+
 import java.io.InputStream;
 import java.util.List;
 import java.util.Optional;
 
 import javax.annotation.concurrent.ThreadSafe;
-
-import org.checkerframework.checker.nullness.qual.NonNull;
-
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
@@ -42,15 +39,9 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @ThreadSafe
-public class RAIDZeroCreateObjectHandler extends RAIDZeroTransactionHandler {
+public class RAIDZeroCreateObjectHandler extends RAIDZeroTransactionObjectHandler {
 
     private static Logger logger = Logger.getLogger(RAIDZeroCreateObjectHandler.class.getName());
-
-    @JsonProperty("bucket")
-    private final ServerBucket bucket;
-
-    @JsonProperty("objectName")
-    private final String objectName;
 
     /**
      * <p>
@@ -58,9 +49,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroTransactionHandler {
      * </p>
      */
     protected RAIDZeroCreateObjectHandler(RAIDZeroDriver driver, ServerBucket bucket, String objectName) {
-        super(driver);
-        this.bucket = bucket;
-        this.objectName = objectName;
+        super(driver, bucket, objectName);
     }
 
     /**
@@ -71,44 +60,38 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroTransactionHandler {
      * @param bucket
      * @param objectName
      * @param stream
-     * @param srcFileName
+     * @param sourceFileName
      * @param contentType
      * @param customTags
      */
-    protected void create(InputStream stream, String srcFileName, String contentType, Optional<List<String>> customTags) {
+    protected void create(InputStream stream, String sourceFileName, String contentType, Optional<List<String>> customTags) {
 
         VirtualFileSystemOperation operation = null;
         boolean commitOk = false;
         boolean isMainException = false;
 
-        objectWriteLock(getBucket(), getObjectName());
+        objectWriteLock();
         try {
 
-            bucketReadLock(getBucket());
+            bucketReadLock();
             try (stream) {
 
-                /** must be executed inside the critical zone. */
-                checkExistsBucket(getBucket());
-
-                /** must be executed inside the critical zone. */
-                checkNotExistObject(getBucket(), getObjectName());
-
-                int version = 0;
+                checkExistsBucket();
+                checkNotExistObject();
+                
                 operation = createObject();
 
-                saveData(stream, srcFileName);
-                saveMetadata(srcFileName, contentType, version, customTags);
+                saveData(stream, sourceFileName);
+                saveMetadata(sourceFileName, contentType, customTags);
 
                 commitOk = operation.commit();
 
             } catch (InternalCriticalException e1) {
-                commitOk = false;
                 isMainException = true;
                 throw e1;
             } catch (Exception e) {
-                commitOk = false;
                 isMainException = true;
-                throw new InternalCriticalException(e, info(srcFileName));
+                throw new InternalCriticalException(e, info(sourceFileName));
             } finally {
                 try {
                     if (!commitOk) {
@@ -118,44 +101,32 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroTransactionHandler {
                             if (!isMainException)
                                 throw e;
                             else
-                                logger.error(e, info(srcFileName), SharedConstant.NOT_THROWN);
+                                logger.error(e, info(sourceFileName), SharedConstant.NOT_THROWN);
                         } catch (Exception e) {
                             if (!isMainException)
-                                throw new InternalCriticalException(e, info(srcFileName));
+                                throw new InternalCriticalException(e, info(sourceFileName));
                             else
-                                logger.error(e, info(srcFileName), SharedConstant.NOT_THROWN);
+                                logger.error(e, info(sourceFileName), SharedConstant.NOT_THROWN);
                         }
                     }
                 } finally {
-                    bucketReadUnLock(getBucket());
+                    bucketReadUnLock();
                 }
             }
         } finally {
-            objectWriteUnLock(getBucket(), getObjectName());
+            objectWriteUnLock();
         }
-    }
-
-    private ServerBucket getBucket() {
-        return bucket;
-    }
-
-    private String getObjectName() {
-        return objectName;
     }
 
     private VirtualFileSystemOperation createObject() {
         return createObject(getBucket(), getObjectName());
     }
 
-    private void saveMetadata(String srcFileName, String contentType, int version, Optional<List<String>> customTags) {
-        saveMetadata(getBucket(), getObjectName(), srcFileName, contentType, version, customTags);
+    private void saveMetadata(String srcFileName, String contentType, Optional<List<String>> customTags) {
+        saveMetadata(getBucket(), getObjectName(), srcFileName, contentType, VERSION_ZERO, customTags);
     }
 
-    private void saveData(@NonNull InputStream stream, String srcFileName) {
+    private void saveData(InputStream stream, String srcFileName) {
         saveData(getBucket(), getObjectName(), stream, srcFileName);
-    }
-
-    private String info(String str) {
-        return objectInfo(getBucket(), getObjectName(), str);
     }
 }

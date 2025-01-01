@@ -517,7 +517,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionHandler {
             }
         }
 
-        saveRAIDOneObjectMetadataToDisk(getDriver().getDrivesAll(), list, true);
+        saveRAIDSixObjectMetadataToDisk(getDriver().getDrivesAll(), list, true);
     }
 
     /**
@@ -631,7 +631,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionHandler {
         final List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
 
         getDriver().getDrivesAll().forEach(d -> list.add(meta));
-        saveRAIDOneObjectMetadataToDisk(drives, list, isHead);
+        saveRAIDSixObjectMetadataToDisk(drives, list, isHead);
     }
 
     /**

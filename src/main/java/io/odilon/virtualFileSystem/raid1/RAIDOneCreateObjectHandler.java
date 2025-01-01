@@ -42,7 +42,6 @@ import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ObjectStatus;
 import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
-import io.odilon.util.Check;
 import io.odilon.util.OdilonFileUtils;
 import io.odilon.virtualFileSystem.ObjectPath;
 import io.odilon.virtualFileSystem.model.Drive;
@@ -59,7 +58,7 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @ThreadSafe
-public class RAIDOneCreateObjectHandler extends RAIDOneTransactionHandler {
+public class RAIDOneCreateObjectHandler extends RAIDOneTransactionObjectHandler {
 
     private static Logger logger = Logger.getLogger(RAIDOneCreateObjectHandler.class.getName());
 
@@ -70,8 +69,8 @@ public class RAIDOneCreateObjectHandler extends RAIDOneTransactionHandler {
      * 
      * @param driver
      */
-    protected RAIDOneCreateObjectHandler(RAIDOneDriver driver) {
-        super(driver);
+    protected RAIDOneCreateObjectHandler(RAIDOneDriver driver, ServerBucket bucket, String objectName) {
+        super(driver, bucket, objectName);
     }
 
     /**
@@ -82,56 +81,48 @@ public class RAIDOneCreateObjectHandler extends RAIDOneTransactionHandler {
      * @param contentType
      * @param customTags
      */
-    protected void create(ServerBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType,
-            Optional<List<String>> customTags) {
-
-        Check.requireNonNullArgument(bucket, "bucket is null");
-        Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucket.toString());
-        Check.requireNonNullArgument(stream, "stream is null");
+    protected void create(InputStream stream, String srcFileName, String contentType, Optional<List<String>> customTags) {
 
         VirtualFileSystemOperation operation = null;
-        boolean done = false;
+        boolean commitOK = false;
         boolean isMainException = false;
 
-        objectWriteLock(bucket, objectName);
+        objectWriteLock();
         try {
-            bucketReadLock(bucket);
+            bucketReadLock();
             try (stream) {
 
                 /** must be executed inside the critical zone. */
-                checkExistsBucket(bucket);
+                checkExistsBucket();
+                checkNotExistObject();
 
-                /** must be executed inside the critical zone. */
-                checkNotExistObject(bucket, objectName);
-
-                int version = 0;
-                operation = createObject(bucket, objectName);
-                saveObjectDataFile(bucket, objectName, stream, srcFileName);
-                saveObjectMetadata(bucket, objectName, srcFileName, contentType, version, customTags);
-                done = operation.commit();
+                operation = createObject();
+                saveData(stream, srcFileName);
+                saveMetadata(srcFileName, contentType, customTags);
+                commitOK = operation.commit();
 
             } catch (Exception e) {
-                done = false;
+                commitOK = false;
                 isMainException = true;
-                throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
+                throw new InternalCriticalException(e, info());
             } finally {
                 try {
-                    if (!done) {
+                    if (!commitOK) {
                         try {
                             rollback(operation);
                         } catch (Exception e) {
                             if (!isMainException)
-                                throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
+                                throw new InternalCriticalException(e, info(srcFileName));
                             else
-                                logger.error(e, objectInfo(bucket, objectName, srcFileName), SharedConstant.NOT_THROWN);
+                                logger.error(e, info(srcFileName), SharedConstant.NOT_THROWN);
                         }
                     }
                 } finally {
-                    bucketReadUnLock(bucket);
+                    bucketReadUnLock();
                 }
             }
         } finally {
-            objectWriteUnLock(bucket, objectName);
+            objectWriteUnLock();
         }
     }
 
@@ -145,7 +136,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneTransactionHandler {
      * @param stream
      * @param srcFileName
      */
-    private void saveObjectDataFile(ServerBucket bucket, String objectName, InputStream stream, String srcFileName) {
+    private void saveData(InputStream stream, String srcFileName) {
 
         int total_drives = getDriver().getDrivesAll().size();
 
@@ -158,7 +149,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneTransactionHandler {
             int n_d = 0;
             for (Drive drive : getDriver().getDrivesAll()) {
 
-                ObjectPath path = new ObjectPath(drive, bucket.getId(), objectName);
+                ObjectPath path = new ObjectPath(drive, getBucket().getId(), getObjectName());
                 String sPath = path.dataFilePath().toString();
                 out[n_d++] = new BufferedOutputStream(new FileOutputStream(sPath), ServerConstant.BUFFER_SIZE);
             }
@@ -196,10 +187,10 @@ public class RAIDOneCreateObjectHandler extends RAIDOneTransactionHandler {
                         Iterator<Future<Boolean>> it = future.iterator();
                         while (it.hasNext()) {
                             if (!it.next().get())
-                                throw new InternalCriticalException(objectInfo(bucket, objectName, srcFileName));
+                                throw new InternalCriticalException(info(srcFileName));
                         }
                     } catch (InterruptedException | ExecutionException e) {
-                        throw new InternalCriticalException(e,objectInfo(bucket, objectName, srcFileName));
+                        throw new InternalCriticalException(e, info(srcFileName));
                     }
 
                 }
@@ -210,7 +201,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneTransactionHandler {
             throw e;
         } catch (Exception e) {
             isMainException = true;
-            throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
+            throw new InternalCriticalException(e, info(srcFileName));
 
         } finally {
             IOException secEx = null;
@@ -221,8 +212,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneTransactionHandler {
                             out[n].close();
                     }
                 } catch (IOException e) {
-                    logger.error(e, objectInfo(bucket, objectName, srcFileName)
-                            + (isMainException ? SharedConstant.NOT_THROWN : ""));
+                    logger.error(e, info(srcFileName) + (isMainException ? SharedConstant.NOT_THROWN : ""));
                     secEx = e;
                 }
             }
@@ -244,8 +234,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneTransactionHandler {
      * @param stream
      * @param srcFileName
      */
-    private void saveObjectMetadata(ServerBucket bucket, String objectName, String srcFileName, String contentType, int version,
-            Optional<List<String>> customTags) {
+    private void saveMetadata(String srcFileName, String contentType, Optional<List<String>> customTags) {
 
         String sha = null;
         String baseDrive = null;
@@ -255,7 +244,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneTransactionHandler {
         final List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
 
         for (Drive drive : getDriver().getDrivesAll()) {
-            ObjectPath path = new ObjectPath(drive, bucket, objectName);
+            ObjectPath path = new ObjectPath(drive, getBucket(), getObjectName());
             File file = path.dataFilePath().toFile();
             try {
                 String sha256 = OdilonFileUtils.calculateSHA256String(file);
@@ -267,12 +256,12 @@ public class RAIDOneCreateObjectHandler extends RAIDOneTransactionHandler {
                         throw new InternalCriticalException("SHA 256 are not equal for -> d:" + baseDrive + " ->" + sha + " vs d:"
                                 + drive.getName() + " -> " + sha256);
                 }
-                ObjectMetadata meta = new ObjectMetadata(bucket.getId(), objectName);
+                ObjectMetadata meta = new ObjectMetadata(getBucket().getId(), getObjectName());
                 meta.setFileName(srcFileName);
                 meta.setAppVersion(OdilonVersion.VERSION);
                 meta.setContentType(contentType);
                 meta.setCreationDate(now);
-                meta.setVersion(version);
+                meta.setVersion(VERSION_ZERO);
                 meta.setVersioncreationDate(now);
                 meta.setLength(file.length());
                 meta.setEtag(sha256);
@@ -286,11 +275,15 @@ public class RAIDOneCreateObjectHandler extends RAIDOneTransactionHandler {
                     meta.setCustomTags(customTags.get());
                 list.add(meta);
             } catch (Exception e) {
-                throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName, srcFileName));
+                throw new InternalCriticalException(e, info(srcFileName));
             }
         }
         /** save in parallel */
         saveRAIDOneObjectMetadataToDisk(getDriver().getDrivesAll(), list, true);
+    }
+
+    private VirtualFileSystemOperation createObject() {
+        return createObject(getBucket(), getObjectName());
     }
 
 }

@@ -32,7 +32,6 @@ import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ObjectStatus;
 import io.odilon.model.SharedConstant;
-import io.odilon.util.Check;
 import io.odilon.util.OdilonFileUtils;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
@@ -48,7 +47,7 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
  */
 
 @ThreadSafe
-public class RAIDSixCreateObjectHandler extends RAIDSixTransactionHandler {
+public class RAIDSixCreateObjectHandler extends RAIDSixTransactionObjectHandler {
 
     private static Logger logger = Logger.getLogger(RAIDSixCreateObjectHandler.class.getName());
 
@@ -59,8 +58,8 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionHandler {
      * 
      * @param driver
      */
-    protected RAIDSixCreateObjectHandler(RAIDSixDriver driver) {
-        super(driver);
+    protected RAIDSixCreateObjectHandler(RAIDSixDriver driver, ServerBucket bucket, String objectName) {
+        super(driver, bucket, objectName);
     }
 
     /**
@@ -71,34 +70,29 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionHandler {
      * @param contentType
      * @param customTags
      */
-    protected void create(ServerBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType,
+    protected void create(InputStream stream, String srcFileName, String contentType,
             Optional<List<String>> customTags) {
-
-        //Check.requireNonNullArgument(bucket, "bucket is null");
-        //Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 
         VirtualFileSystemOperation operation = null;
         boolean commitOK = false;
         boolean isMainException = false;
 
-        objectWriteLock(bucket, objectName);
+        objectWriteLock();
         try {
 
-            bucketReadLock(bucket);
+            bucketReadLock();
             try (stream) {
 
-                /** must be executed inside the critical zone. */
-                checkExistsBucket(bucket);
-
-                /** must be executed inside the critical zone. */
-                checkNotExistObject(bucket, objectName);
+                
+                checkExistsBucket();
+                checkNotExistObject();
 
                 int version = 0;
 
-                operation = createObject(bucket, objectName);
+                operation = createObject();
 
-                RAIDSixBlocks raidSixBlocks = saveObjectDataFile(bucket, objectName, stream);
-                saveObjectMetadata(bucket, objectName, raidSixBlocks, srcFileName, contentType, version, customTags);
+                RAIDSixBlocks raidSixBlocks = saveObjectDataFile(stream);
+                saveObjectMetadata(raidSixBlocks, srcFileName, contentType, version, customTags);
 
                 commitOK = operation.commit();
 
@@ -109,7 +103,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionHandler {
             } catch (Exception e) {
                 commitOK = false;
                 isMainException = true;
-                throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName, srcFileName));
+                throw new InternalCriticalException(e, info(srcFileName));
             } finally {
                 try {
                     if (!commitOK) {
@@ -117,18 +111,22 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionHandler {
                             rollback(operation);
                         } catch (Exception e) {
                             if (isMainException)
-                                logger.error(objectInfo(bucket, objectName, srcFileName), SharedConstant.NOT_THROWN);
+                                logger.error(info(srcFileName), SharedConstant.NOT_THROWN);
                             else
-                                throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
+                                throw new InternalCriticalException(e, info());
                         }
                     }
                 } finally {
-                    bucketReadUnLock(bucket);
+                    bucketReadUnLock();
                 }
             }
         } finally {
-            objectWriteUnLock(bucket, objectName);
+            objectWriteUnLock();
         }
+    }
+
+    private VirtualFileSystemOperation createObject() {
+        return createObject( getBucket(), getObjectName());
     }
 
     /**
@@ -137,12 +135,12 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionHandler {
      * @param stream
      * @param srcFileName
      */
-    private RAIDSixBlocks saveObjectDataFile(ServerBucket bucket, String objectName, InputStream stream) {
+    private RAIDSixBlocks saveObjectDataFile(InputStream stream) {
         try (InputStream sourceStream = isEncrypt() ? (getVirtualFileSystemService().getEncryptionService().encryptStream(stream))
                 : stream) {
-            return (new RAIDSixEncoder(getDriver())).encodeHead(sourceStream, bucket, objectName);
+            return (new RAIDSixEncoder(getDriver())).encodeHead(sourceStream, getBucket(), getObjectName());
         } catch (Exception e) {
-            throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName));
+            throw new InternalCriticalException(e, info());
         }
     }
 
@@ -151,12 +149,8 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionHandler {
      * @param objectName
      * @param stream
      * @param srcFileName
-     * 
-     * 
-     *                    todo en el object metadata o cada file por separado
-     * 
      */
-    private void saveObjectMetadata(ServerBucket bucket, String objectName, RAIDSixBlocks ei, String srcFileName,
+    private void saveObjectMetadata(RAIDSixBlocks ei, String srcFileName,
             String contentType, int version, Optional<List<String>> customTags) {
 
         List<String> shaBlocks = new ArrayList<String>();
@@ -166,7 +160,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionHandler {
             try {
                 shaBlocks.add(OdilonFileUtils.calculateSHA256String(item));
             } catch (Exception e) {
-                throw new InternalCriticalException(e, objectInfo(bucket, objectName) + ", f:"
+                throw new InternalCriticalException(e, info() + ", f:"
                         + (Optional.ofNullable(item).isPresent() ? (item.getName()) : "null"));
             }
         });
@@ -178,7 +172,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionHandler {
         try {
             etag = OdilonFileUtils.calculateSHA256String(etag_b.toString());
         } catch (NoSuchAlgorithmException | IOException e) {
-            throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
+            throw new InternalCriticalException(e, info(srcFileName));
         }
 
         OffsetDateTime creationDate = OffsetDateTime.now();
@@ -188,7 +182,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionHandler {
 
         for (Drive drive : getDriver().getDrivesAll()) {
             try {
-                ObjectMetadata meta = new ObjectMetadata(bucket.getId(), objectName);
+                ObjectMetadata meta = new ObjectMetadata(getBucket().getId(), getObjectName());
                 meta.setFileName(srcFileName);
                 meta.setAppVersion(OdilonVersion.VERSION);
                 meta.setContentType(contentType);
@@ -208,11 +202,11 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionHandler {
                     meta.setCustomTags(customTags.get());
                 list.add(meta);
             } catch (Exception e) {
-                throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName, srcFileName));
+                throw new InternalCriticalException(e, info(srcFileName));
             }
         }
         /** save in parallel */
-        saveRAIDOneObjectMetadataToDisk(drives, list, true);
+        saveRAIDSixObjectMetadataToDisk(drives, list, true);
     }
 
 }

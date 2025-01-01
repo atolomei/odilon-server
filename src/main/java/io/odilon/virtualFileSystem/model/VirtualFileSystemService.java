@@ -197,8 +197,9 @@ public interface VirtualFileSystemService extends SystemService {
 
     public ObjectMetadata restorePreviousVersion(String bucketName, String objectName);
 
-    public void deleteObjectAllPreviousVersions(ObjectMetadata meta);
-
+    //public void deleteObjectAllPreviousVersions(ObjectMetadata meta);
+    public void deleteObjectAllPreviousVersions(String bucketName, String objectName);
+    
     public void deleteBucketAllPreviousVersions(String bucketName);
 
     public void wipeAllPreviousVersions();
@@ -281,4 +282,6 @@ public interface VirtualFileSystemService extends SystemService {
 
 
     public ApplicationEventPublisher getApplicationEventPublisher();
+
+
 }

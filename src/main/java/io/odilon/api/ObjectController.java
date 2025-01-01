@@ -541,9 +541,13 @@ public class ObjectController extends BaseApiController {
                 throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED,
                         "Version Control not enabled");
 
-            ObjectMetadata meta = getObjectStorageService().getObjectMetadata(bucketName, objectName);
-            getObjectStorageService().deleteObjectAllPreviousVersions(meta);
+            // ObjectMetadata meta = getObjectStorageService().getObjectMetadata(bucketName, objectName);
+            //getObjectStorageService().deleteObjectAllPreviousVersions(meta);
 
+            
+            getObjectStorageService().deleteObjectAllPreviousVersions(bucketName, objectName);
+            
+            
             getSystemMonitorService().getObjectDeleteAllVersionsCounter().inc();
 
         } catch (OdilonServerAPIException e) {

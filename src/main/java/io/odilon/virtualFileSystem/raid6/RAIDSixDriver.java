@@ -49,6 +49,7 @@ import io.odilon.model.SharedConstant;
 import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
 import io.odilon.query.BucketIteratorService;
+import io.odilon.scheduler.DeleteBucketObjectPreviousVersionServiceRequest;
 import io.odilon.util.Check;
 import io.odilon.virtualFileSystem.BaseIODriver;
 import io.odilon.virtualFileSystem.OdilonObject;
@@ -162,7 +163,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
         try {
             bucketReadLock(bucket);
             try {
-                
+
                 /** must be executed inside the critical zone */
                 checkExistBucket(bucket);
 
@@ -198,10 +199,10 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
         try {
             bucketReadLock(bucket);
             try {
-                
+
                 /** must be executed inside the critical zone */
                 checkExistBucket(bucket);
-                
+
                 checkIsAccesible(bucket);
                 /** RAID 6: read is from any of the drives */
                 Drive readDrive = getObjectMetadataReadDrive(bucket, objectName);
@@ -398,7 +399,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
         boolean done = false;
 
         try {
-            
+
             if (operation.getOperationCode() == OperationCode.CREATE_BUCKET) {
 
                 done = generalRollbackJournal(operation);
@@ -501,8 +502,8 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
             updateAgent.update(bucket, objectName, stream, fileName, contentType, customTags);
             getVirtualFileSystemService().getSystemMonitorService().getUpdateObjectCounter().inc();
         } else {
-            RAIDSixCreateObjectHandler createAgent = new RAIDSixCreateObjectHandler(this);
-            createAgent.create(bucket, objectName, stream, fileName, contentType, customTags);
+            RAIDSixCreateObjectHandler createAgent = new RAIDSixCreateObjectHandler(this, bucket, objectName);
+            createAgent.create(stream, fileName, contentType, customTags);
             getVirtualFileSystemService().getSystemMonitorService().getCreateObjectCounter().inc();
         }
     }
@@ -556,13 +557,15 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
      */
     @Override
     public void postObjectDeleteTransaction(ObjectMetadata meta, int headVersion) {
-        Check.requireNonNullArgument(meta, "meta is null");
-        String bucketName = meta.getBucketName();
-        String objectName = meta.getObjectName();
-        Check.requireNonNullArgument(bucketName, "bucketName is null");
-        Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketName);
-        RAIDSixDeleteObjectHandler deleteAgent = new RAIDSixDeleteObjectHandler(this);
-        deleteAgent.postObjectDelete(meta, headVersion);
+        /**
+         * Check.requireNonNullArgument(meta, "meta is null"); String bucketName =
+         * meta.getBucketName(); String objectName = meta.getObjectName();
+         * Check.requireNonNullArgument(bucketName, "bucketName is null");
+         * Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" +
+         * bucketName); RAIDSixDeleteObjectHandler deleteAgent = new
+         * RAIDSixDeleteObjectHandler(this); deleteAgent.postObjectDelete(meta,
+         * headVersion);
+         **/
     }
 
     /**
@@ -570,13 +573,15 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
      */
     @Override
     public void postObjectPreviousVersionDeleteAllTransaction(ObjectMetadata meta, int headVersion) {
-        Check.requireNonNullArgument(meta, "meta is null");
-        String bucketName = meta.getBucketName();
-        String objectName = meta.getObjectName();
-        Check.requireNonNullArgument(bucketName, "bucket is null");
-        Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketName);
-        RAIDSixDeleteObjectHandler deleteAgent = new RAIDSixDeleteObjectHandler(this);
-        deleteAgent.postObjectPreviousVersionDeleteAll(meta, headVersion);
+        /**
+         * Check.requireNonNullArgument(meta, "meta is null"); String bucketName =
+         * meta.getBucketName(); String objectName = meta.getObjectName();
+         * Check.requireNonNullArgument(bucketName, "bucket is null");
+         * Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" +
+         * bucketName); RAIDSixDeleteObjectHandler deleteAgent = new
+         * RAIDSixDeleteObjectHandler(this);
+         * deleteAgent.postObjectPreviousVersionDeleteAll(meta, headVersion);
+         **/
     }
 
     @Override
@@ -649,16 +654,16 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 
     @Override
     public void wipeAllPreviousVersions() {
-        RAIDSixDeleteObjectHandler agent = new RAIDSixDeleteObjectHandler(this);
-        agent.wipeAllPreviousVersions();
+        getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext()
+                .getBean(DeleteBucketObjectPreviousVersionServiceRequest.class));
     }
 
     @Override
     public void delete(ServerBucket bucket, String objectName) {
         Check.requireNonNullArgument(bucket, "bucket is null");
         Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
-        RAIDSixDeleteObjectHandler agent = new RAIDSixDeleteObjectHandler(this);
-        agent.delete(bucket, objectName);
+        RAIDSixDeleteObjectHandler agent = new RAIDSixDeleteObjectHandler(this, bucket, objectName);
+        agent.delete();
     }
 
     @Override
@@ -674,20 +679,24 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
     }
 
     @Override
-    public void deleteObjectAllPreviousVersions(ObjectMetadata meta) {
-        Check.requireNonNullArgument(meta, "meta is null");
-        Check.requireNonNullArgument(meta.bucketId, "bucketId is null");
-        Check.requireNonNullArgument(meta.objectName, "objectName is null or empty | b:" + meta.bucketId.toString());
-        RAIDSixDeleteObjectHandler agent = new RAIDSixDeleteObjectHandler(this);
-        agent.deleteObjectAllPreviousVersions(meta);
+    public void deleteObjectAllPreviousVersions(ServerBucket bucket, String objectName) {
+        Check.requireNonNullArgument(bucket, "bucket is null");
+        Check.requireNonNullArgument(bucket, "bucket does not exist ->" + objectInfo(bucket));
+        Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + objectInfo(bucket));
+        RAIDSixDeleteObjectAllPreviousVersionsHandler agent = new RAIDSixDeleteObjectAllPreviousVersionsHandler(this, bucket,
+                objectName);
+        agent.delete();
+
     }
 
     @Override
     public void deleteBucketAllPreviousVersions(ServerBucket bucket) {
         Check.requireNonNullArgument(bucket, "bucket is null");
-        Check.requireNonNullArgument(bucket, "bucket does not exist -> b:" + bucket.getName());
-        RAIDSixDeleteObjectHandler agent = new RAIDSixDeleteObjectHandler(this);
-        agent.deleteBucketAllPreviousVersions(bucket);
+        Check.requireNonNullArgument(bucket, "bucket does not exist ->" + objectInfo(bucket));
+        Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible " + objectInfo(bucket));
+        getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext()
+                .getBean(DeleteBucketObjectPreviousVersionServiceRequest.class, bucket.getName(), bucket.getId()));
+
     }
 
     @Override

@@ -159,8 +159,10 @@ public interface IODriver {
 
     public InputStream getObjectVersionInputStream(ServerBucket bucket, String objectName, int version);
 
-    public void deleteObjectAllPreviousVersions(ObjectMetadata meta);
+    //public void deleteObjectAllPreviousVersions(ObjectMetadata meta);
+    public void deleteObjectAllPreviousVersions(ServerBucket bucket, String objectName);
 
+    
     public void deleteBucketAllPreviousVersions(ServerBucket bucket);
 
     public void wipeAllPreviousVersions();
@@ -197,6 +199,7 @@ public interface IODriver {
     public List<Drive> getDrivesEnabled();
 
     public List<Drive> getDrivesAll();
+
 
     /**
      * <p>

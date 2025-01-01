@@ -317,15 +317,17 @@ public class OdilonVirtualFileSystemService extends BaseService
     }
 
     @Override
-    public void deleteObjectAllPreviousVersions(ObjectMetadata meta) {
-        Check.requireNonNullArgument(meta, "meta can not be null or empty");
+    public void deleteObjectAllPreviousVersions(String bucketName, String objectName)  {
+        Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
+        Check.requireNonNullStringArgument(objectName, "objectName can not be null or empty | b:" + bucketName);
 
         IODriver driver = createVFSIODriver();
 
         /** must be repeated inside the critical section */
-        Check.requireTrue(driver.existsBucket(meta.getBucketName()), "bucket does not exist -> " + meta.getBucketName());
-
-        driver.deleteObjectAllPreviousVersions(meta);
+        Check.requireTrue(driver.existsBucket(bucketName), "bucket does not exist -> " + bucketName);
+        
+        driver.deleteObjectAllPreviousVersions(driver.getBucket(bucketName), objectName);
+        
     }
 
     @Override
