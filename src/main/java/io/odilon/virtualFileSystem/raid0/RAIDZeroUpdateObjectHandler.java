@@ -168,15 +168,12 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionHandler {
             bucketReadLock(bucket);
             try {
 
-                /** must be executed inside the critical zone. */
                 checkExistsBucket(bucket);
-
-                /** must be executed inside the critical zone. */
                 checkExistObject(bucket, objectName);
 
                 ObjectMetadata meta = getMetadata(bucket, objectName, false);
 
-                if (meta.getVersion() == 0)
+                if (meta.getVersion() == VERSION_ZERO)
                     throw new IllegalArgumentException("Object does not have versions -> " + objectInfo(bucket, objectName));
 
                 beforeHeadVersion = meta.getVersion();

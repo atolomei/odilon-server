@@ -107,7 +107,7 @@ public class RAIDZeroDeleteObjectAllPreviousVersionsHandler extends RAIDZeroTran
                         }
                     } else {
                         try {
-                            postCommit(meta, getBucket(), meta.getVersion());
+                            postCommit(meta.getVersion());
                         } catch (Exception e) {
                             logger.error(e, info(), SharedConstant.NOT_THROWN);
                         }
@@ -153,7 +153,7 @@ public class RAIDZeroDeleteObjectAllPreviousVersionsHandler extends RAIDZeroTran
         }
     }
 
-    private void postCommit(ObjectMetadata meta, ServerBucket bucket, int headVersion) {
+    private void postCommit(int headVersion) {
         try {
             /** delete data versions(1..n-1). keep headVersion **/
             for (int n = 0; n < headVersion; n++)
@@ -163,7 +163,7 @@ public class RAIDZeroDeleteObjectAllPreviousVersionsHandler extends RAIDZeroTran
             FileUtils.deleteQuietly(getObjectPath().metadataWorkFilePath().toFile());
 
         } catch (Exception e) {
-            logger.error(e, objectInfo(meta), SharedConstant.NOT_THROWN);
+            logger.error(e, info(), SharedConstant.NOT_THROWN);
         }
     }
 

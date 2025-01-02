@@ -169,32 +169,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 
     /**
      * <p>
-     * Adds a {@link DeleteBucketObjectPreviousVersionServiceRequest} to the
-     * {@link SchedulerService} to walk through all objects and delete versions.
-     * This process is Async and handler returns immediately.
-     * </p>
-     * 
-     * <p>
-     * The {@link DeleteBucketObjectPreviousVersionServiceRequest} creates n Threads
-     * to scan all Objects and remove previous versions.In case of failure (for
-     * example. the server is shutdown before completion), it is retried up to 5
-     * times.
-     * </p>
-     * <p>
-     * Although the removal of all versions for every Object is transactional, the
-     * {@link ServiceRequest} itself is not transactional, and it can not be
-     * rollback
-     * </p>
-     */
-    @Override
-    public void wipeAllPreviousVersions() {
-        getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext()
-                .getBean(DeleteBucketObjectPreviousVersionServiceRequest.class));
-        
-    }
-
-    /**
-     * <p>
      * Creates a ServiceRequest to walk through all objects and delete versions.
      * This process is Async and handler returns immediately.
      * </p>
@@ -260,13 +234,38 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 
     /**
      * <p>
+     * Adds a {@link DeleteBucketObjectPreviousVersionServiceRequest} to the
+     * {@link SchedulerService} to walk through all objects and delete versions.
+     * This process is Async and handler returns immediately.
+     * </p>
+     * 
+     * <p>
+     * The {@link DeleteBucketObjectPreviousVersionServiceRequest} creates n Threads
+     * to scan all Objects and remove previous versions.In case of failure (for
+     * example. the server is shutdown before completion), it is retried up to 5
+     * times.
+     * </p>
+     * <p>
+     * Although the removal of all versions for every Object is transactional, the
+     * {@link ServiceRequest} itself is not transactional, and it can not be
+     * rollback
+     * </p>
+     */
+    @Override
+    public void wipeAllPreviousVersions() {
+        getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext()
+                .getBean(DeleteBucketObjectPreviousVersionServiceRequest.class));
+    }
+
+    /**
+     * <p>
      * This method is executed Async by the {@link SchedulerService} to cleanup work
      * files after a Object is deleted
      * </p>
      */
     @Override
     public void postObjectDeleteTransaction(ObjectMetadata meta, int headVersion) {
-        logger.debug("do nothing");
+        logger.debug((meta!=null?meta.toString():"null") + "| do nothing by the moment");
     }
 
     /**
@@ -276,7 +275,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
      */
     @Override
     public void postObjectPreviousVersionDeleteAllTransaction(ObjectMetadata meta, int headVersion) {
-        logger.debug("do nothing");
+        logger.debug((meta!=null?meta.toString():"null") + "| do nothing by the moment");
     }
 
     /**

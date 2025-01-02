@@ -7,19 +7,17 @@ import io.odilon.model.ObjectMetadata;
 import io.odilon.virtualFileSystem.ObjectPath;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 
-public class RAIDZeroTransactionObjectHandler extends RAIDZeroTransactionHandler {
+public abstract class RAIDZeroTransactionObjectHandler extends RAIDZeroTransactionHandler {
 
     @JsonProperty("bucket")
     private final ServerBucket bucket;
 
     @JsonProperty("objectName")
     private final String objectName;
-    
-    
+
     @JsonIgnore
     private ObjectPath path = null;
 
-    
     public RAIDZeroTransactionObjectHandler(RAIDZeroDriver driver, ServerBucket bucket, String objectName) {
         super(driver);
         this.bucket = bucket;
@@ -33,13 +31,13 @@ public class RAIDZeroTransactionObjectHandler extends RAIDZeroTransactionHandler
     protected String getObjectName() {
         return objectName;
     }
-    
+
     protected ObjectPath getObjectPath() {
-        if (path==null)
-            path= new ObjectPath(getDriver().getDrive(getBucket(), getObjectName()), getBucket(), getObjectName());
+        if (path == null)
+            path = new ObjectPath(getDriver().getDrive(getBucket(), getObjectName()), getBucket(), getObjectName());
         return path;
     }
-    
+
     protected void bucketReadLock() {
         bucketReadLock(getBucket());
     }
@@ -47,21 +45,20 @@ public class RAIDZeroTransactionObjectHandler extends RAIDZeroTransactionHandler
     protected void objectWriteLock() {
         objectWriteLock(getBucket(), getObjectName());
     }
-    
-    
+
     protected String info() {
         return objectInfo(getBucket(), getObjectName());
     }
-    
+
     protected String info(String str) {
         return objectInfo(getBucket(), getObjectName(), str);
     }
-    
+
     /** must be executed inside the critical zone. */
     protected ObjectMetadata getMetadata() {
-        return getMetadata( getBucket(), getObjectName(), false);
+        return getMetadata(getBucket(), getObjectName(), false);
     }
-    
+
     /** must be executed inside the critical zone. */
     protected void objectWriteUnLock() {
         objectWriteUnLock(getBucket(), getObjectName());
@@ -76,16 +73,15 @@ public class RAIDZeroTransactionObjectHandler extends RAIDZeroTransactionHandler
     protected void checkNotExistObject() {
         checkNotExistObject(getBucket(), getObjectName());
     }
-    
+
     /** must be executed inside the critical zone. */
     protected void checkExistObject() {
         checkExistObject(getBucket(), getObjectName());
     }
-    
+
     /** must be executed inside the critical zone. */
     protected void checkExistsBucket() {
         checkExistsBucket(getBucket());
     }
-
 
 }

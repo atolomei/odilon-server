@@ -50,9 +50,7 @@ public abstract class BaseRAIDHandler extends BaseObject {
 
     public abstract IODriver getDriver();
 
-    public VirtualFileSystemService getVirtualFileSystemService() {
-        return getDriver().getVirtualFileSystemService();
-    }
+    protected abstract Drive getObjectMetadataReadDrive(ServerBucket bucket, String objectName);
 
     protected VirtualFileSystemOperation deleteObject(ServerBucket bucket, String objectName, int headVersion) {
         return getJournalService().deleteObject(bucket, objectName, headVersion);
@@ -65,25 +63,9 @@ public abstract class BaseRAIDHandler extends BaseObject {
     protected VirtualFileSystemOperation updateObject(ServerBucket bucket, String objectName, int beforeHeadVersion) {
         return getJournalService().updateObject(bucket, objectName, beforeHeadVersion);
     }
-    
+
     protected VirtualFileSystemOperation deleteObjectPreviousVersions(ServerBucket bucket, String objectName, int headVersion) {
         return getJournalService().deleteObjectPreviousVersions(bucket, objectName, headVersion);
-    }
-
-    /**
-     * must be executed inside the critical zone.
-     */
-    protected void checkExistsBucket(ServerBucket bucket) {
-        if (!existsCacheBucket(bucket))
-            throw new OdilonObjectNotFoundException("bucket does not exist -> " + objectInfo(bucket));
-    }
-
-    /**
-     * must be executed inside the critical zone.
-     */
-    protected void checkExistsBucket(Long bucketId) {
-        if (!existsCacheBucket(bucketId))
-            throw new IllegalArgumentException("bucket does not exist -> " + bucketId.toString());
     }
 
     protected SchedulerService getSchedulerService() {
@@ -100,6 +82,22 @@ public abstract class BaseRAIDHandler extends BaseObject {
 
     protected String getKey(ServerBucket bucket, String objectName) {
         return bucket.getId().toString() + File.separator + objectName;
+    }
+
+    /**
+     * must be executed inside the critical zone.
+     */
+    protected void checkExistsBucket(ServerBucket bucket) {
+        if (!existsCacheBucket(bucket))
+            throw new OdilonObjectNotFoundException("bucket does not exist -> " + objectInfo(bucket));
+    }
+
+    /**
+     * must be executed inside the critical zone.
+     */
+    protected void checkExistsBucket(Long bucketId) {
+        if (!existsCacheBucket(bucketId))
+            throw new IllegalArgumentException("bucket does not exist -> " + bucketId.toString());
     }
 
     /**
@@ -135,6 +133,45 @@ public abstract class BaseRAIDHandler extends BaseObject {
      */
     protected boolean existsCacheObject(ServerBucket bucket, String objectName) {
         return getVirtualFileSystemService().getObjectMetadataCacheService().containsKey(bucket, objectName);
+    }
+
+    /**
+     * <p>
+     * Note that bucketName is not stored on disk, we must set the bucketName
+     * explicitly. Disks identify Buckets by id, the name is stored in the
+     * BucketMetadata file.
+     * </p>
+     * <p>
+     * <b>This method must be called inside the critical zone</b>
+     * </p>
+     */
+    protected ObjectMetadata getMetadata(ServerBucket bucket, String objectName) {
+        return getMetadata(bucket, objectName, true);
+    }
+
+    /** This method must be called inside the critical zone */
+    protected ObjectMetadata getMetadata(ServerBucket bucket, String objectName, boolean addToCacheIfmiss) {
+
+        if ((!getServerSettings().isUseObjectCache()))
+            return getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucket, objectName);
+
+        if (getObjectMetadataCacheService().containsKey(bucket, objectName)) {
+            getVirtualFileSystemService().getSystemMonitorService().getCacheObjectHitCounter().inc();
+            ObjectMetadata meta = getObjectMetadataCacheService().get(bucket, objectName);
+            meta.setBucketName(bucket.getName());
+            return meta;
+        }
+        ObjectMetadata meta = getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucket, objectName);
+
+        if (meta == null)
+            return meta;
+
+        meta.setBucketName(bucket.getName());
+        getVirtualFileSystemService().getSystemMonitorService().getCacheObjectMissCounter().inc();
+
+        if (addToCacheIfmiss)
+            getObjectMetadataCacheService().put(bucket, objectName, meta);
+        return meta;
     }
 
     protected EncryptionService getEncryptionService() {
@@ -257,46 +294,9 @@ public abstract class BaseRAIDHandler extends BaseObject {
         return getVirtualFileSystemService().isUseVaultNewFiles();
     }
 
-    protected abstract Drive getObjectMetadataReadDrive(ServerBucket bucket, String objectName);
-
-    /**
-     * <p>
-     * Note that bucketName is not stored on disk, we must set the bucketName
-     * explicitly. Disks identify Buckets by id, the name is stored in the
-     * BucketMetadata file
-     * </p>
-     * 
-     * MUST BE CALLED INSIDE THE CRITICAL ZONE
-     */
-
-    protected ObjectMetadata getMetadata(ServerBucket bucket, String objectName) {
-        return getMetadata(bucket, objectName, true);
+    protected VirtualFileSystemService getVirtualFileSystemService() {
+        return getDriver().getVirtualFileSystemService();
     }
-
-    protected ObjectMetadata getMetadata(ServerBucket bucket, String objectName, boolean addToCacheIfmiss) {
-
-        if ((!getServerSettings().isUseObjectCache()))
-            return getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucket, objectName);
-
-        if (getObjectMetadataCacheService().containsKey(bucket, objectName)) {
-            getVirtualFileSystemService().getSystemMonitorService().getCacheObjectHitCounter().inc();
-            ObjectMetadata meta = getObjectMetadataCacheService().get(bucket, objectName);
-            meta.setBucketName(bucket.getName());
-            return meta;
-        }
-        ObjectMetadata meta = getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucket, objectName);
-
-        if (meta == null)
-            return meta;
-
-        meta.setBucketName(bucket.getName());
-        getVirtualFileSystemService().getSystemMonitorService().getCacheObjectMissCounter().inc();
-
-        if (addToCacheIfmiss)
-            getObjectMetadataCacheService().put(bucket, objectName, meta);
-        return meta;
-    }
-    
 
     protected ObjectMetadataCacheService getObjectMetadataCacheService() {
         return getVirtualFileSystemService().getObjectMetadataCacheService();

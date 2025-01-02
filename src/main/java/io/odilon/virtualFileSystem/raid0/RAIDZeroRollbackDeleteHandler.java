@@ -24,22 +24,24 @@ import org.apache.commons.io.FileUtils;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.SharedConstant;
+import io.odilon.virtualFileSystem.ObjectPath;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
  * 
- * <p> Rollback is the same for both operations  
+ * <p>
+ * Rollback is the same for both operations
  * <ul>
  * <li>{@code DELETE_OBJECT}</li>
-   <li>{@code DELETE_OBJECT_PREVIOUS_VERSIONS}</li>
-   </ul>
-   </p> 
-
+ * <li>{@code DELETE_OBJECT_PREVIOUS_VERSIONS}</li>
+ * </ul>
+ * </p>
+ * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  * 
  */
-public class RAIDZeroRollbackDeleteHandler extends RAIDZeroRollbackHandler {
+public class RAIDZeroRollbackDeleteHandler extends RAIDZeroRollbackObjectHandler {
 
     private static Logger logger = Logger.getLogger(RAIDZeroRollbackDeleteHandler.class.getName());
 
@@ -49,13 +51,10 @@ public class RAIDZeroRollbackDeleteHandler extends RAIDZeroRollbackHandler {
 
     @Override
     protected void rollback() {
-
         boolean done = false;
-
         try {
             restore();
             done = true;
-
         } catch (InternalCriticalException e) {
             if (!isRecovery())
                 throw (e);
@@ -64,14 +63,13 @@ public class RAIDZeroRollbackDeleteHandler extends RAIDZeroRollbackHandler {
 
         } catch (Exception e) {
             if (!isRecovery())
-                throw new InternalCriticalException(e, opInfo(getOperation()));
+                throw new InternalCriticalException(e, info());
             else
                 logger.error(e, info(), SharedConstant.NOT_THROWN);
         } finally {
             if (done || isRecovery())
                 getOperation().cancel();
         }
-
     }
 
     /**
@@ -81,14 +79,8 @@ public class RAIDZeroRollbackDeleteHandler extends RAIDZeroRollbackHandler {
      * @param objectName
      */
     private void restore() {
-
-        ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
-        
-        String objectMetadataBackupDirPath = getDriver().getWriteDrive(bucket, getOperation().getObjectName()).getBucketWorkDirPath(bucket)
-                + File.separator + getOperation().getObjectName();
-        String objectMetadataDirPath = getDriver().getWriteDrive(bucket, getOperation().getObjectName()).getObjectMetadataDirPath(bucket, getOperation().getObjectName());
         try {
-            FileUtils.copyDirectory(new File(objectMetadataBackupDirPath), new File(objectMetadataDirPath));
+            FileUtils.copyDirectory(getObjectPath().metadataBackupDirPath().toFile(), getObjectPath().metadataDirPath().toFile());
         } catch (InternalCriticalException e) {
             throw e;
         } catch (IOException e) {
@@ -96,3 +88,10 @@ public class RAIDZeroRollbackDeleteHandler extends RAIDZeroRollbackHandler {
         }
     }
 }
+
+//ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
+//String objectMetadataBackupDirPath = 
+//        getDriver().getWriteDrive(bucket, getOperation().getObjectName()).getBucketWorkDirPath(bucket)
+//        + File.separator + getOperation().getObjectName();
+//String objectMetadataDirPath = getDriver().getWriteDrive(bucket, getOperation().getObjectName()).getObjectMetadataDirPath(bucket, getOperation().getObjectName());
+//FileUtils.copyDirectory(new File(objectMetadataBackupDirPath), new File(objectMetadataDirPath));
