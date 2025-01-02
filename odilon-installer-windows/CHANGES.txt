@@ -67,6 +67,9 @@ This is the first release of Odilon Object Storage
 
 2024.12.22 Clean up source code
 
+==================  1.11 ==================
+
+2025.01.02 Clean up source code
 
 
 
