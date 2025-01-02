@@ -32,7 +32,7 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
  * <p>
- * RAID 0. Delete Object Previous Versions 
+ * RAID 0. Delete Object Previous Versions
  * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
@@ -58,19 +58,17 @@ public class RAIDZeroDeleteObjectAllPreviousVersionsHandler extends RAIDZeroTran
             bucketReadLock();
             try {
 
-                /** must be executed inside the critical zone. */
                 checkExistsBucket();
                 checkExistObject();
 
                 meta = getMetadata();
 
-                /** not delete the head version, only previous versions */
                 if (meta.getVersion() == VERSION_ZERO)
                     return;
 
-
                 backup();
                 operation = deleteObjectPreviousVersions(meta.getVersion());
+
                 /**
                  * remove all "objectmetadata.json.vn" Files, but keep -> "objectmetadata.json"
                  **/

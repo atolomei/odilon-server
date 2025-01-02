@@ -48,5 +48,9 @@ public abstract class RAIDZeroRollbackHandler extends RAIDZeroHandler {
         return this.recovery;
     }
 
+    protected String info() {
+        return opInfo(getOperation());
+    }
+    
     protected abstract void rollback();
 }

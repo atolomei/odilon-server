@@ -18,6 +18,8 @@ package io.odilon.virtualFileSystem.raid0;
 
 import org.apache.commons.io.FileUtils;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.SharedConstant;
@@ -40,6 +42,10 @@ public class RAIDZeroRollbackCreateHandler extends RAIDZeroRollbackHandler {
         super(driver, operation, recovery);
     }
 
+    @JsonIgnore
+    private ObjectPath path;
+    
+    
     @Override
     protected void rollback() {
 
@@ -47,13 +53,8 @@ public class RAIDZeroRollbackCreateHandler extends RAIDZeroRollbackHandler {
 
         try {
 
-            ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
-            String objectName = getOperation().getObjectName();
-
-            ObjectPath path = new ObjectPath(getWriteDrive(bucket, objectName), bucket, objectName);
-
-            FileUtils.deleteQuietly(path.metadataDirPath().toFile());
-            FileUtils.deleteQuietly(path.dataFilePath().toFile());
+            FileUtils.deleteQuietly(getObjectPath().metadataDirPath().toFile());
+            FileUtils.deleteQuietly(getObjectPath().dataFilePath().toFile());
 
             rollbackOK = true;
 
@@ -61,15 +62,26 @@ public class RAIDZeroRollbackCreateHandler extends RAIDZeroRollbackHandler {
             if (!isRecovery())
                 throw (e);
             else
-                logger.error(e, opInfo(getOperation()), SharedConstant.NOT_THROWN);
+                logger.error(e, info(), SharedConstant.NOT_THROWN);
         } catch (Exception e) {
             if (!isRecovery())
-                throw new InternalCriticalException(e, opInfo(getOperation()));
+                throw new InternalCriticalException(e, info());
             else
-                logger.error(e, opInfo(getOperation()), SharedConstant.NOT_THROWN);
+                logger.error(e, info(), SharedConstant.NOT_THROWN);
         } finally {
             if (rollbackOK || isRecovery())
                 getOperation().cancel();
         }
+    }
+    
+    
+
+    protected ObjectPath getObjectPath() {
+        if (path==null) {
+            ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
+            String objectName = getOperation().getObjectName();
+            path= new ObjectPath(getWriteDrive(bucket, objectName), bucket, objectName);
+        }
+        return path;
     }
 }

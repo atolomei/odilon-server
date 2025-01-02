@@ -92,7 +92,7 @@ public class RAIDZeroRollbackUpdateHandler extends RAIDZeroRollbackHandler {
 
         } catch (Exception e) {
             if (!isRecovery())
-                throw new InternalCriticalException(e, opInfo(getOperation()));
+                throw new InternalCriticalException(e, info());
             else
                 logger.error(opInfo(getOperation()), SharedConstant.NOT_THROWN);
         } finally {
@@ -115,12 +115,12 @@ public class RAIDZeroRollbackUpdateHandler extends RAIDZeroRollbackHandler {
             if (!isRecovery())
                 throw (e);
             else
-                logger.error(e, opInfo(getOperation()), SharedConstant.NOT_THROWN);
+                logger.error(e, info(), SharedConstant.NOT_THROWN);
         } catch (Exception e) {
             if (!isRecovery())
-                throw new InternalCriticalException(e, opInfo(getOperation()));
+                throw new InternalCriticalException(e, info());
             else
-                logger.error(e, opInfo(getOperation()), SharedConstant.NOT_THROWN);
+                logger.error(e, info(), SharedConstant.NOT_THROWN);
         } finally {
             if (done || isRecovery()) {
                 getOperation().cancel();
@@ -142,7 +142,7 @@ public class RAIDZeroRollbackUpdateHandler extends RAIDZeroRollbackHandler {
                 FileUtils.deleteQuietly(file);
             }
         } catch (Exception e) {
-            throw new InternalCriticalException(e, opInfo(getOperation()));
+            throw new InternalCriticalException(e, info());
         }
         
         try {
@@ -153,7 +153,7 @@ public class RAIDZeroRollbackUpdateHandler extends RAIDZeroRollbackHandler {
                 FileUtils.deleteQuietly(file);
             }
         } catch (Exception e) {
-            throw new InternalCriticalException(e, opInfo(getOperation()));
+            throw new InternalCriticalException(e, info());
         }
     }
 
@@ -169,7 +169,7 @@ public class RAIDZeroRollbackUpdateHandler extends RAIDZeroRollbackHandler {
         try {
             FileUtils.copyDirectory(new File(objectMetadataBackupDirPath), new File(objectMetadataDirPath));
         } catch (IOException e) {
-            throw new InternalCriticalException(e, objectInfo(bucket, getOperation().getObjectName()));
+            throw new InternalCriticalException(e, info());
         }
     }
 
