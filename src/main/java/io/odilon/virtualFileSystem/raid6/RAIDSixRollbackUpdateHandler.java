@@ -96,14 +96,8 @@ public class RAIDSixRollbackUpdateHandler extends RAIDSixRollbackHandler {
     private void rollbackUpdate() {
         boolean done = false;
         try {
-            //ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
-            //ObjectMetadata meta = getDriver().getObjectMetadataReadDrive(bucket, getOperation().getObjectName()).getObjectMetadata(bucket,
-            //        getOperation().getObjectName());
-
-            //if (meta != null) {
             restoreVersionObjectDataFile();
             restoreVersionObjectMetadata();
-            //}
             done = true;
 
         } catch (InternalCriticalException e) {

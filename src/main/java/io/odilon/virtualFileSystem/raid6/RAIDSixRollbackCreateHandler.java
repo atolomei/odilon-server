@@ -45,7 +45,6 @@ public class RAIDSixRollbackCreateHandler extends RAIDSixRollbackHandler {
     @Override
     protected void rollback() {
 
-        String objectName = getOperation().getObjectName();
         ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
 
         boolean done = false;
@@ -56,15 +55,15 @@ public class RAIDSixRollbackCreateHandler extends RAIDSixRollbackHandler {
 
             // remove metadata dir on all drives
             for (Drive drive : getDriver().getDrivesAll()) {
-                File f_meta = drive.getObjectMetadataFile(bucket, objectName);
+                File f_meta = drive.getObjectMetadataFile(bucket, getOperation().getObjectName());
                 if ((meta == null) && (f_meta != null)) {
                     try {
-                        meta = drive.getObjectMetadata(bucket, objectName);
+                        meta = drive.getObjectMetadata(bucket, getOperation().getObjectName());
                     } catch (Exception e) {
-                        logger.warn("can not load meta -> d: " + drive.getName() + SharedConstant.NOT_THROWN);
+                        logger.error("can not load meta -> d: " + drive.getName() + SharedConstant.NOT_THROWN);
                     }
                 }
-                FileUtils.deleteQuietly(new File(drive.getObjectMetadataDirPath(bucket, objectName)));
+                FileUtils.deleteQuietly(new File(drive.getObjectMetadataDirPath(bucket, getOperation().getObjectName())));
             }
 
             /// remove data dir on all drives
@@ -79,11 +78,11 @@ public class RAIDSixRollbackCreateHandler extends RAIDSixRollbackHandler {
             if (!isRecovery())
                 throw (e);
             else
-                logger.error(e, opInfo(getOperation()), SharedConstant.NOT_THROWN);
+                logger.error(e, info(), SharedConstant.NOT_THROWN);
 
         } catch (Exception e) {
             if (!isRecovery())
-                throw new InternalCriticalException(e, opInfo(getOperation()));
+                throw new InternalCriticalException(e, info());
             else
                 logger.error(e, opInfo(getOperation()), SharedConstant.NOT_THROWN);
         } finally {
@@ -91,5 +90,9 @@ public class RAIDSixRollbackCreateHandler extends RAIDSixRollbackHandler {
                 getOperation().cancel();
             }
         }
+    }
+
+    private String info() {
+        return opInfo(getOperation());
     }
 }

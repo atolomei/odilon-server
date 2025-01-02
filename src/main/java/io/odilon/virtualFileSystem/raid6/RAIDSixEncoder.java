@@ -262,23 +262,3 @@ public class RAIDSixEncoder extends RAIDSixCoder {
         return zDrives;
     }
 }
-
-/**
- * for (int disk = 0; disk < total_shards; disk++) {
- * 
- * if (isWrite(disk)) { String dirPath =
- * getDrives().get(disk).getBucketObjectDataDirPath(bucketId) +
- * ((o_version.isEmpty()) ? "" : (File.separator +
- * VirtualFileSystemService.VERSION_DIR)); String name = objectName+ "." +
- * String.valueOf(chunk) +"." + String.valueOf(disk) + (o_version.isEmpty() ? ""
- * : "v." + String.valueOf(o_version.get().intValue()));
- * 
- * File outputFile = new File(dirPath, name); try (OutputStream out = new
- * BufferedOutputStream(new FileOutputStream(outputFile))) {
- * out.write(shards[disk]); } catch (FileNotFoundException e) { throw new
- * InternalCriticalException(e, "b:" +bucketId.toString() + ", o:" + objectName
- * +" f: " + name); } catch (IOException e) { throw new
- * InternalCriticalException(e, "b:" +bucketId.toString() + ", o:" + objectName
- * +" f: " + name); } this.encodedInfo.encodedBlocks.add(outputFile); } } return
- * eof;
- **/

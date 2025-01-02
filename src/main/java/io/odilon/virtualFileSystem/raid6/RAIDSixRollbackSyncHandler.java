@@ -62,12 +62,12 @@ public class RAIDSixRollbackSyncHandler extends RAIDSixRollbackHandler {
                 getOperation().cancel();
         }
     }
-    
+
     private void restore() {
-        
+
         ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
         String objectName = getOperation().getObjectName();
-        
+
         try {
             for (Drive drive : getDriver().getDrivesEnabled()) {
                 File dest = new File(drive.getObjectMetadataDirPath(bucket, objectName));
@@ -75,8 +75,8 @@ public class RAIDSixRollbackSyncHandler extends RAIDSixRollbackHandler {
                 if (src.exists())
                     FileUtils.copyDirectory(src, dest);
                 else
-                    throw new InternalCriticalException("backup dir does not exist " + objectInfo(bucket, objectName)
-                            + "dir:" + src.getAbsolutePath());
+                    throw new InternalCriticalException(
+                            "backup dir does not exist " + objectInfo(bucket, objectName) + "dir:" + src.getAbsolutePath());
             }
         } catch (IOException e) {
             throw new InternalCriticalException(e, objectInfo(bucket, objectName));

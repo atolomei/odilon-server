@@ -70,8 +70,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionObjectHandler 
      * @param contentType
      * @param customTags
      */
-    protected void create(InputStream stream, String srcFileName, String contentType,
-            Optional<List<String>> customTags) {
+    protected void create(InputStream stream, String srcFileName, String contentType, Optional<List<String>> customTags) {
 
         VirtualFileSystemOperation operation = null;
         boolean commitOK = false;
@@ -83,25 +82,20 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionObjectHandler 
             bucketReadLock();
             try (stream) {
 
-                
                 checkExistsBucket();
                 checkNotExistObject();
 
-                int version = 0;
-
                 operation = createObject();
 
-                RAIDSixBlocks raidSixBlocks = saveObjectDataFile(stream);
-                saveObjectMetadata(raidSixBlocks, srcFileName, contentType, version, customTags);
+                RAIDSixBlocks blocks = saveData(stream);
+                saveMetadata(blocks, srcFileName, contentType, customTags);
 
                 commitOK = operation.commit();
 
             } catch (InternalCriticalException e) {
-                commitOK = false;
                 isMainException = true;
                 throw e;
             } catch (Exception e) {
-                commitOK = false;
                 isMainException = true;
                 throw new InternalCriticalException(e, info(srcFileName));
             } finally {
@@ -126,7 +120,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionObjectHandler 
     }
 
     private VirtualFileSystemOperation createObject() {
-        return createObject( getBucket(), getObjectName());
+        return createObject(getBucket(), getObjectName());
     }
 
     /**
@@ -135,7 +129,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionObjectHandler 
      * @param stream
      * @param srcFileName
      */
-    private RAIDSixBlocks saveObjectDataFile(InputStream stream) {
+    private RAIDSixBlocks saveData(InputStream stream) {
         try (InputStream sourceStream = isEncrypt() ? (getVirtualFileSystemService().getEncryptionService().encryptStream(stream))
                 : stream) {
             return (new RAIDSixEncoder(getDriver())).encodeHead(sourceStream, getBucket(), getObjectName());
@@ -150,8 +144,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionObjectHandler 
      * @param stream
      * @param srcFileName
      */
-    private void saveObjectMetadata(RAIDSixBlocks ei, String srcFileName,
-            String contentType, int version, Optional<List<String>> customTags) {
+    private void saveMetadata(RAIDSixBlocks ei, String srcFileName, String contentType, Optional<List<String>> customTags) {
 
         List<String> shaBlocks = new ArrayList<String>();
         StringBuilder etag_b = new StringBuilder();
@@ -160,8 +153,8 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionObjectHandler 
             try {
                 shaBlocks.add(OdilonFileUtils.calculateSHA256String(item));
             } catch (Exception e) {
-                throw new InternalCriticalException(e, info() + ", f:"
-                        + (Optional.ofNullable(item).isPresent() ? (item.getName()) : "null"));
+                throw new InternalCriticalException(e,
+                        info() + ", f:" + (Optional.ofNullable(item).isPresent() ? (item.getName()) : "null"));
             }
         });
 
@@ -187,7 +180,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionObjectHandler 
                 meta.setAppVersion(OdilonVersion.VERSION);
                 meta.setContentType(contentType);
                 meta.setCreationDate(creationDate);
-                meta.setVersion(version);
+                meta.setVersion(VERSION_ZERO);
                 meta.setVersioncreationDate(meta.getCreationDate());
                 meta.setLength(ei.getFileSize());
                 meta.setSha256Blocks(shaBlocks);
@@ -208,5 +201,4 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionObjectHandler 
         /** save in parallel */
         saveRAIDSixObjectMetadataToDisk(drives, list, true);
     }
-
 }

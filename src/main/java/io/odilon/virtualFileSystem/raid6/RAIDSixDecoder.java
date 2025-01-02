@@ -87,7 +87,6 @@ public class RAIDSixDecoder extends RAIDSixCoder {
 
     private File decode(ObjectMetadata meta, ServerBucket bucket, boolean isHead) {
 
-        // Long bucketId = meta.getBucketId();
         String bucketName = meta.getBucketName();
         String objectName = meta.getObjectName();
 

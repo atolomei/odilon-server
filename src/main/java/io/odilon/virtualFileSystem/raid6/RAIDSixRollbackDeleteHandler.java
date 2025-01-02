@@ -16,6 +16,7 @@
  */
 package io.odilon.virtualFileSystem.raid6;
 
+
 import java.io.File;
 import java.io.IOException;
 
@@ -25,7 +26,6 @@ import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.SharedConstant;
 import io.odilon.virtualFileSystem.model.Drive;
-import io.odilon.virtualFileSystem.model.OperationCode;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
@@ -47,9 +47,7 @@ public class RAIDSixRollbackDeleteHandler extends RAIDSixRollbackHandler {
 
         boolean done = false;
         try {
-            if ( ( getOperation().getOperationCode() == OperationCode.DELETE_OBJECT) ||
-                 ( getOperation().getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS))
-                restoreMetadata();
+            restoreMetadata();
             done = true;
         } catch (InternalCriticalException e) {
             if (!isRecovery())
@@ -71,10 +69,10 @@ public class RAIDSixRollbackDeleteHandler extends RAIDSixRollbackHandler {
      * restore metadata directory
      */
     private void restoreMetadata() {
-        
+
         ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
         String objectName = getOperation().getObjectName();
-        
+
         for (Drive drive : getDriver().getDrivesAll()) {
             String objectMetadataBackupDirPath = drive.getBucketWorkDirPath(bucket) + File.separator + objectName;
             String objectMetadataDirPath = drive.getObjectMetadataDirPath(bucket, objectName);

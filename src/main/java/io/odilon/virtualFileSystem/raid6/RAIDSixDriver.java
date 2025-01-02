@@ -121,8 +121,6 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  * Each file is stored only on 6 Drives. If a file does not have the file's
  * Metadata Directory -> the file is considered "non existent"
  * </p>
- * 
- * 
  * <p>
  * This Class is works as a
  * <a href="https://en.wikipedia.org/wiki/Facade_pattern">Facade pattern</a>

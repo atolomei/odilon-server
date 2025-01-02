@@ -23,7 +23,6 @@ import java.util.Optional;
 import javax.annotation.concurrent.ThreadSafe;
 
 import org.apache.commons.io.FileUtils;
-import org.checkerframework.checker.nullness.qual.NonNull;
 
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
@@ -34,7 +33,6 @@ import io.odilon.scheduler.DeleteBucketObjectPreviousVersionServiceRequest;
 import io.odilon.util.Check;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
-import io.odilon.virtualFileSystem.model.OperationCode;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
@@ -83,8 +81,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixTransactionObjectHandler 
                 checkExistsBucket();
                 checkExistObject();
 
-                meta = getDriver().getObjectMetadataReadDrive(getBucket(), getObjectName()).getObjectMetadata(getBucket(),
-                        getObjectName());
+                meta = getMetadata();
 
                 operation = deleteObject(meta.getVersion());
 
@@ -114,7 +111,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixTransactionObjectHandler 
                         }
                     } else if (done) {
                         /** inside the thread */
-                        postObjectDeleteCommit(meta, getBucket(), meta.getVersion());
+                        postCommit(meta, getBucket(), meta.getVersion());
                     }
 
                     /**
@@ -143,7 +140,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixTransactionObjectHandler 
     }
 
     protected void deleteBucketAllPreviousVersions(ServerBucket bucket) {
-        getVirtualFileSystemService().getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext()
+        getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext()
                 .getBean(DeleteBucketObjectPreviousVersionServiceRequest.class, bucket.getName(), bucket.getId()));
     }
 
@@ -154,9 +151,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixTransactionObjectHandler 
      * @param objectName
      * @param headVersion newest version of the Object just deleted
      */
-    private void postObjectDeleteCommit(@NonNull ObjectMetadata meta, ServerBucket bucket, int headVersion) {
-
-        Check.requireNonNullArgument(meta, "meta is null");
+    private void postCommit(ObjectMetadata meta, ServerBucket bucket, int headVersion) {
 
         String bucketName = meta.getBucketName();
         String objectName = meta.getObjectName();
@@ -207,11 +202,9 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixTransactionObjectHandler 
      */
     private void onAfterCommit(VirtualFileSystemOperation operation, ObjectMetadata meta, int headVersion) {
         try {
-            if (operation.getOperationCode() == OperationCode.DELETE_OBJECT
-                    || operation.getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS) {
-                getVirtualFileSystemService().getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext()
-                        .getBean(AfterDeleteObjectServiceRequest.class, operation.getOperationCode(), meta, headVersion));
-            }
+            getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext()
+                    .getBean(AfterDeleteObjectServiceRequest.class, operation.getOperationCode(), meta, headVersion));
+
         } catch (Exception e) {
             logger.error(e, SharedConstant.NOT_THROWN);
         }
