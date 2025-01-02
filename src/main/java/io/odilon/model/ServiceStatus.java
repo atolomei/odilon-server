@@ -39,6 +39,11 @@ public enum ServiceStatus {
     private String name;
     private int code;
 
+    private ServiceStatus(String name, int code) {
+        this.name = name;
+        this.code = code;
+    }
+
     public String getDescription() {
         return getDescription(Locale.getDefault());
     }
@@ -71,11 +76,6 @@ public enum ServiceStatus {
 
     public int getCode() {
         return code;
-    }
-
-    private ServiceStatus(String name, int code) {
-        this.name = name;
-        this.code = code;
     }
 
     public static List<ServiceStatus> getValues() {

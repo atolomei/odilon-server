@@ -42,6 +42,9 @@ import io.odilon.util.Check;
 import io.odilon.util.DateTimeUtil;
 
 /**
+ * 
+ * <p>Used by {@link RAIDSixEncoder}</p>
+ * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public class ParallelFileCoypAgent extends FileCopyAgent {
@@ -64,28 +67,26 @@ public class ParallelFileCoypAgent extends FileCopyAgent {
     private OffsetDateTime end;
 
     public ParallelFileCoypAgent(byte[][] source, List<File> destination) {
-
         Check.requireNonNull(source);
         Check.requireNonNull(destination);
-
         this.source = source;
         this.destination = destination;
     }
 
     @Override
     public long durationMillisecs() {
-        if (this.start == null || this.end == null)
+        if (getStart() == null || getEnd() == null)
             return -1;
-        return DateTimeUtil.dateTimeDifference(start, end, ChronoUnit.MILLIS);
+        return DateTimeUtil.dateTimeDifference(getStart(), getEnd(), ChronoUnit.MILLIS);
     }
 
     @Override
     public boolean execute() {
 
         try {
-            this.start = OffsetDateTime.now();
+            setStart(OffsetDateTime.now());
 
-            int size = this.destination.size();
+            int size = getDestination().size();
 
             /** Thread pool */
             this.executor = Executors.newFixedThreadPool(size);
@@ -98,7 +99,7 @@ public class ParallelFileCoypAgent extends FileCopyAgent {
 
                 tasks.add(() -> {
                     try {
-                        File outputFile = this.destination.get(val);
+                        File outputFile = getDestination().get(val);
                         try (OutputStream out = new BufferedOutputStream(new FileOutputStream(outputFile))) {
                             out.write(this.source[val]);
                         } catch (FileNotFoundException e) {
@@ -118,7 +119,7 @@ public class ParallelFileCoypAgent extends FileCopyAgent {
             }
             /** process buffer in parallel */
             try {
-                List<Future<Boolean>> future = this.executor.invokeAll(tasks, 10, TimeUnit.MINUTES);
+                List<Future<Boolean>> future = this.executor.invokeAll(tasks, 15, TimeUnit.MINUTES);
                 Iterator<Future<Boolean>> it = future.iterator();
                 while (it.hasNext()) {
                     if (!it.next().get())
@@ -136,7 +137,32 @@ public class ParallelFileCoypAgent extends FileCopyAgent {
             return false;
 
         } finally {
-            this.end = OffsetDateTime.now();
+            setEnd(OffsetDateTime.now());
         }
     }
+
+    public OffsetDateTime getStart() {
+        return start;
+    }
+
+    public void setStart(OffsetDateTime start) {
+        this.start = start;
+    }
+
+    public OffsetDateTime getEnd() {
+        return end;
+    }
+
+    public void setEnd(OffsetDateTime end) {
+        this.end = end;
+    }
+
+    public byte[][] getSource() {
+        return source;
+    }
+
+    public List<File> getDestination() {
+        return destination;
+    }
+
 }

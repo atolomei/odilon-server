@@ -45,6 +45,9 @@ public class RAIDZeroDeleteObjectAllPreviousVersionsHandler extends RAIDZeroTran
         super(driver, bucket, objectName);
     }
 
+    /**
+     * remove all "objectmetadata.json.vn" Files, but keep -> "objectmetadata.json"
+     */
     protected void delete() {
 
         boolean isMainExcetion = false;
@@ -69,9 +72,6 @@ public class RAIDZeroDeleteObjectAllPreviousVersionsHandler extends RAIDZeroTran
                 backup();
                 operation = deleteObjectPreviousVersions(meta.getVersion());
 
-                /**
-                 * remove all "objectmetadata.json.vn" Files, but keep -> "objectmetadata.json"
-                 **/
                 for (int version = 0; version < meta.getVersion(); version++)
                     FileUtils.deleteQuietly(getObjectPath().metadataFileVersionPath(version).toFile());
 

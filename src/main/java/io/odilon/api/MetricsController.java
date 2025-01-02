@@ -27,7 +27,6 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import io.odilon.log.Logger;
 import io.odilon.model.MetricsValues;
 import io.odilon.model.SystemInfo;
 import io.odilon.monitor.SystemMonitorService;
