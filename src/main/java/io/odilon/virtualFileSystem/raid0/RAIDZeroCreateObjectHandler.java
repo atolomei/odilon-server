@@ -78,10 +78,9 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroTransactionObjectHandle
                 checkExistsBucket();
                 checkNotExistObject();
 
-                operation = createObject();
+                operation = createObjectOperation();
 
-                saveData(stream, sourceFileName);
-                saveMetadata(sourceFileName, contentType, customTags);
+                save(stream, sourceFileName, contentType, customTags);
 
                 commitOk = operation.commit();
 
@@ -117,15 +116,13 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroTransactionObjectHandle
         }
     }
 
-    private VirtualFileSystemOperation createObject() {
+    private VirtualFileSystemOperation createObjectOperation() {
         return createObject(getBucket(), getObjectName());
     }
 
-    private void saveMetadata(String srcFileName, String contentType, Optional<List<String>> customTags) {
+    private void save(InputStream stream, String srcFileName, String contentType, Optional<List<String>> customTags) {
+        saveData(getBucket(), getObjectName(), stream, srcFileName);
         saveMetadata(getBucket(), getObjectName(), srcFileName, contentType, VERSION_ZERO, customTags);
     }
 
-    private void saveData(InputStream stream, String srcFileName) {
-        saveData(getBucket(), getObjectName(), stream, srcFileName);
-    }
 }

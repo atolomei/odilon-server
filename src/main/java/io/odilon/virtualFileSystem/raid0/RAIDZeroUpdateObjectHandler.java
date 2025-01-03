@@ -63,8 +63,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionObjectHandle
         super(driver, bucket, objectName);
     }
 
-    protected void update(InputStream stream, String srcFileName, String contentType,
-            Optional<List<String>> customTags) {
+    protected void update(InputStream stream, String srcFileName, String contentType, Optional<List<String>> customTags) {
 
         boolean isMaixException = false;
         boolean commitOK = false;
@@ -77,7 +76,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionObjectHandle
 
             bucketReadLock();
             try (stream) {
-                
+
                 checkExistsBucket();
                 checkExistObject();
 
@@ -86,12 +85,12 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionObjectHandle
                 operation = updateObject(beforeHeadVersion);
 
                 /** backup current head version */
-                versionObject(beforeHeadVersion);
+                backup(beforeHeadVersion);
 
                 /** copy new version head version */
                 afterHeadVersion = beforeHeadVersion + 1;
                 saveData(stream, srcFileName);
-                saveMetadata( srcFileName, contentType, afterHeadVersion, customTags);
+                saveMetadata(srcFileName, contentType, afterHeadVersion, customTags);
 
                 commitOK = operation.commit();
 
@@ -124,9 +123,8 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionObjectHandle
                          */
                         try {
                             if (!getServerSettings().isVersionControl()) {
-                                ObjectPath path = getObjectPath();
-                                FileUtils.deleteQuietly(path.metadataFileVersionPath(beforeHeadVersion).toFile());
-                                FileUtils.deleteQuietly(path.dataFileVersionPath(beforeHeadVersion).toFile());
+                                FileUtils.deleteQuietly(getObjectPath().metadataFileVersionPath(beforeHeadVersion).toFile());
+                                FileUtils.deleteQuietly(getObjectPath().dataFileVersionPath(beforeHeadVersion).toFile());
                             }
                         } catch (Exception e) {
                             logger.error(e, SharedConstant.NOT_THROWN);
@@ -146,7 +144,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionObjectHandle
     }
 
     private void saveData(InputStream stream, String srcFileName) {
-        saveData( getBucket(), getObjectName(), stream, srcFileName);
+        saveData(getBucket(), getObjectName(), stream, srcFileName);
     }
 
     private VirtualFileSystemOperation updateObject(int beforeHeadVersion) {
@@ -197,7 +195,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionObjectHandle
                  * save current head version MetadataFile .vN and data File vN - no need to
                  * additional backup
                  */
-                versionObject(meta.getVersion());
+                backup(meta.getVersion());
 
                 /** save previous version as head */
                 ObjectMetadata metaToRestore = metaVersions.get(metaVersions.size() - 1);
@@ -329,14 +327,11 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionObjectHandle
     }
 
     /**
-     * </p>
-     * There is nothing to do here by the moment
-     * </p>
+     * backup current head version
      */
+    private void backup(int version) {
 
-    
-
-    private void versionObject(int version) {
+        /** version data */
         Drive drive = getWriteDrive(getBucket(), getObjectName());
         try {
             ObjectPath path = getObjectPath();
@@ -346,6 +341,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionObjectHandle
             throw new InternalCriticalException(e, info());
         }
 
+        /** version metadata */
         try {
             File file = drive.getObjectMetadataFile(getBucket(), getObjectName());
             drive.putObjectMetadataVersionFile(getBucket(), getObjectName(), version, file);

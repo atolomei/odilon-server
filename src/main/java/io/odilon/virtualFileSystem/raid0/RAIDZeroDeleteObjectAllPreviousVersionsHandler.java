@@ -16,7 +16,7 @@
  */
 package io.odilon.virtualFileSystem.raid0;
 
-import java.io.IOException;
+import java.nio.file.Files;
 import java.time.OffsetDateTime;
 
 import org.apache.commons.io.FileUtils;
@@ -26,7 +26,6 @@ import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.SharedConstant;
 import io.odilon.scheduler.AfterDeleteObjectServiceRequest;
-import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
@@ -68,18 +67,21 @@ public class RAIDZeroDeleteObjectAllPreviousVersionsHandler extends RAIDZeroTran
 
                 if (meta.getVersion() == VERSION_ZERO)
                     return;
+                
+                /** backup */
+                FileUtils.copyDirectory(getObjectPath().metadataDirPath().toFile(), getObjectPath().metadataBackupDirPath().toFile());
+                
+                operation = deleteObjectPreviousVersionsOperation(meta.getVersion());
 
-                backup();
-                operation = deleteObjectPreviousVersions(meta.getVersion());
-
+                /** delete versions (metadata) */
                 for (int version = 0; version < meta.getVersion(); version++)
                     FileUtils.deleteQuietly(getObjectPath().metadataFileVersionPath(version).toFile());
 
                 meta.addSystemTag("delete versions");
                 meta.setLastModified(OffsetDateTime.now());
+                Files.writeString(getObjectPath().metadataFilePath(), getObjectMapper().writeValueAsString(meta));
 
-                getDrive().saveObjectMetadata(meta);
-
+                /** commit */
                 commitOK = operation.commit();
 
             } catch (InternalCriticalException e) {
@@ -107,7 +109,8 @@ public class RAIDZeroDeleteObjectAllPreviousVersionsHandler extends RAIDZeroTran
                         }
                     } else {
                         try {
-                            postCommit(meta.getVersion());
+                            /** after commit is ok -> remove all data files  */
+                            removeVersionDataFiles(meta.getVersion());
                         } catch (Exception e) {
                             logger.error(e, info(), SharedConstant.NOT_THROWN);
                         }
@@ -131,29 +134,11 @@ public class RAIDZeroDeleteObjectAllPreviousVersionsHandler extends RAIDZeroTran
         }
     }
 
-    private Drive getDrive() {
-        return getDriver().getWriteDrive(getBucket(), getObjectName());
-    }
-
-    private VirtualFileSystemOperation deleteObjectPreviousVersions(int headVersion) {
+    private VirtualFileSystemOperation deleteObjectPreviousVersionsOperation(int headVersion) {
         return deleteObjectPreviousVersions(getBucket(), getObjectName(), headVersion);
     }
 
-    /**
-     * copy metadata directory
-     * 
-     * @param bucket
-     * @param objectName
-     */
-    private void backup() {
-        try {
-            FileUtils.copyDirectory(getObjectPath().metadataDirPath().toFile(), getObjectPath().metadataBackupDirPath().toFile());
-        } catch (IOException e) {
-            throw new InternalCriticalException(e, info());
-        }
-    }
-
-    private void postCommit(int headVersion) {
+    private void removeVersionDataFiles(int headVersion) {
         try {
             /** delete data versions(1..n-1). keep headVersion **/
             for (int n = 0; n < headVersion; n++)

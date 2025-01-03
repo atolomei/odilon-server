@@ -16,9 +16,6 @@
  */
 package io.odilon.virtualFileSystem.raid0;
 
-
-import java.io.IOException;
-
 import javax.annotation.concurrent.ThreadSafe;
 
 import org.apache.commons.io.FileUtils;
@@ -71,9 +68,11 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroTransactionObjectHandle
                 checkExistsBucket();
                 checkExistObject();
 
-                operation = deleteObject(getMetadata().getVersion());
+                operation = deleteObjectOperation(getMetadata().getVersion());
 
-                backup();
+                /** backup */
+                FileUtils.copyDirectory(getObjectPath().metadataDirPath().toFile(),
+                        getObjectPath().metadataBackupDirPath().toFile());
 
                 /** Delete Metadata directory */
                 FileUtils.deleteQuietly(getObjectPath().metadataDirPath().toFile());
@@ -137,21 +136,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroTransactionObjectHandle
         }
     }
 
-    /**
-     * copy metadata directory
-     * 
-     * @param bucket
-     * @param objectName
-     */
-    private void backup() {
-        try {
-            FileUtils.copyDirectory(getObjectPath().metadataDirPath().toFile(), getObjectPath().metadataBackupDirPath().toFile());
-        } catch (IOException e) {
-            throw new InternalCriticalException(e, info());
-        }
-    }
-
-    private VirtualFileSystemOperation deleteObject(int headVersion) {
+    private VirtualFileSystemOperation deleteObjectOperation(int headVersion) {
         return deleteObject(getBucket(), getObjectName(), headVersion);
     }
 }

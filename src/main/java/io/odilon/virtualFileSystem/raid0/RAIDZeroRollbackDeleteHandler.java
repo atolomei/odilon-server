@@ -16,8 +16,6 @@
  */
 package io.odilon.virtualFileSystem.raid0;
 
-import java.io.IOException;
-
 import org.apache.commons.io.FileUtils;
 
 import io.odilon.errors.InternalCriticalException;
@@ -26,7 +24,6 @@ import io.odilon.model.SharedConstant;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
- * 
  * <p>
  * Rollback is the same for both operations
  * <ul>
@@ -36,7 +33,6 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
  * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
- * 
  */
 public class RAIDZeroRollbackDeleteHandler extends RAIDZeroRollbackObjectHandler {
 
@@ -50,8 +46,10 @@ public class RAIDZeroRollbackDeleteHandler extends RAIDZeroRollbackObjectHandler
     protected void rollback() {
         boolean rollbackOK = false;
         try {
-            restore();
+            /** restore */
+            FileUtils.copyDirectory(getObjectPath().metadataBackupDirPath().toFile(), getObjectPath().metadataDirPath().toFile());
             rollbackOK = true;
+
         } catch (InternalCriticalException e) {
             if (!isRecovery())
                 throw (e);
@@ -66,22 +64,6 @@ public class RAIDZeroRollbackDeleteHandler extends RAIDZeroRollbackObjectHandler
         } finally {
             if (rollbackOK || isRecovery())
                 getOperation().cancel();
-        }
-    }
-
-    /**
-     * restore metadata directory
-     * 
-     * @param bucketName
-     * @param objectName
-     */
-    private void restore() {
-        try {
-            FileUtils.copyDirectory(getObjectPath().metadataBackupDirPath().toFile(), getObjectPath().metadataDirPath().toFile());
-        } catch (InternalCriticalException e) {
-            throw e;
-        } catch (IOException e) {
-            throw new InternalCriticalException(e, info());
         }
     }
 }

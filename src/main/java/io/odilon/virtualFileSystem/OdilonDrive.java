@@ -1362,8 +1362,6 @@ public class OdilonDrive extends BaseObject implements Drive {
         }
     }
 
-    
-    
     /** Delete Metadata directory */
     @Override
     public void deleteObjectMetadata(ServerBucket bucket, String objectName) {
