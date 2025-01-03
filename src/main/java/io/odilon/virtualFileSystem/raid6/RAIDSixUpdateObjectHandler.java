@@ -283,7 +283,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionHandler {
                 if ((metaHeadToRemove == null) || (!metaHeadToRemove.isAccesible()))
                     throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
 
-                if (metaHeadToRemove.getVersion() == 0)
+                if (metaHeadToRemove.getVersion() == VERSION_ZERO)
                     throw new IllegalArgumentException(
                             "Object does not have any previous version | " + objectInfo(bucket, objectName));
 

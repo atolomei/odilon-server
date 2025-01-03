@@ -16,7 +16,6 @@
  */
 package io.odilon.virtualFileSystem.raid0;
 
-
 import java.io.InputStream;
 import java.util.List;
 import java.util.Optional;
@@ -78,7 +77,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroTransactionObjectHandle
 
                 checkExistsBucket();
                 checkNotExistObject();
-                
+
                 operation = createObject();
 
                 saveData(stream, sourceFileName);

@@ -16,7 +16,6 @@
  */
 package io.odilon.virtualFileSystem.raid0;
 
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -94,7 +93,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionHandler {
 
                 /** copy new version head version */
                 afterHeadVersion = beforeHeadVersion + 1;
-                
+
                 saveData(bucket, objectName, stream, srcFileName);
                 saveMetadata(bucket, objectName, srcFileName, contentType, afterHeadVersion, customTags);
 
@@ -190,8 +189,8 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionHandler {
                 operation = getJournalService().restoreObjectPreviousVersion(bucket, objectName, beforeHeadVersion);
 
                 /**
-                 * save current head version MetadataFile .vN 
-                 * and data File vN - no need to additional backup
+                 * save current head version MetadataFile .vN and data File vN - no need to
+                 * additional backup
                  */
                 versionObject(bucket, objectName, meta.getVersion());
 

@@ -89,16 +89,18 @@ public class RAIDOneCreateObjectHandler extends RAIDOneTransactionObjectHandler 
 
         objectWriteLock();
         try {
+            
             bucketReadLock();
             try (stream) {
 
-                /** must be executed inside the critical zone. */
                 checkExistsBucket();
                 checkNotExistObject();
 
                 operation = createObject();
+            
                 saveData(stream, srcFileName);
                 saveMetadata(srcFileName, contentType, customTags);
+                
                 commitOK = operation.commit();
 
             } catch (Exception e) {

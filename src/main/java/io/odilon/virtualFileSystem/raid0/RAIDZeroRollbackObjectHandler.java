@@ -10,22 +10,17 @@ public abstract class RAIDZeroRollbackObjectHandler extends RAIDZeroRollbackHand
 
     @JsonIgnore
     private ObjectPath path;
-    
+
     public RAIDZeroRollbackObjectHandler(RAIDZeroDriver driver, VirtualFileSystemOperation operation, boolean recovery) {
         super(driver, operation, recovery);
     }
 
-    
     protected ObjectPath getObjectPath() {
-        if (this.path==null) {
+        if (this.path == null) {
             ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
             String objectName = getOperation().getObjectName();
-            this.path= new ObjectPath(getWriteDrive(bucket, objectName), bucket, objectName);
+            this.path = new ObjectPath(getWriteDrive(bucket, objectName), bucket, objectName);
         }
         return this.path;
     }
-    
-    
-
-
 }

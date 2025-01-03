@@ -26,12 +26,14 @@ import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.SharedConstant;
 import io.odilon.virtualFileSystem.model.Drive;
-import io.odilon.virtualFileSystem.model.OperationCode;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
- * 
+ * Rollback is the same for both operations
+ *  
+ * OperationCode.DELETE_OBJECT
+ * OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
@@ -43,21 +45,16 @@ public class RAIDOneRollbackDeleteHandler extends RAIDOneRollbackHandler {
         super(driver, operation, recovery);
     }
 
+    /**
+     * Rollback is the same for both operations OperationCode.DELETE_OBJECT
+     * OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS
+     */
     @Override
     protected void rollback() {
 
-        boolean done = false;
-
+        boolean rollbackOK = false;
         try {
-
-            /** rollback is the same for both operations */
-            if (getOperation().getOperationCode() == OperationCode.DELETE_OBJECT)
-                restoreMetadata();
-
-            else if (getOperation().getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS)
-                restoreMetadata();
-
-            done = true;
+            rollbackOK = restore();
 
         } catch (InternalCriticalException e) {
             if (!isRecovery())
@@ -71,15 +68,14 @@ public class RAIDOneRollbackDeleteHandler extends RAIDOneRollbackHandler {
                 logger.error(opInfo(getOperation()), SharedConstant.NOT_THROWN);
 
         } finally {
-            if (done || isRecovery())
+            if (rollbackOK || isRecovery())
                 getOperation().cancel();
         }
     }
 
-    private void restoreMetadata() {
+    private boolean restore() {
 
         ServerBucket bucket = getCacheBucket(getOperation().getBucketId());
-
         /** restore metadata directory */
         for (Drive drive : getDriver().getDrivesAll()) {
             String objectMetadataBackupDirPath = drive.getBucketWorkDirPath(bucket) + File.separator
@@ -91,6 +87,6 @@ public class RAIDOneRollbackDeleteHandler extends RAIDOneRollbackHandler {
                 throw new InternalCriticalException(e, objectInfo(bucket, getOperation().getObjectName()));
             }
         }
+        return true;
     }
-
 }

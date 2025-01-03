@@ -16,7 +16,6 @@
  */
 package io.odilon.virtualFileSystem.raid0;
 
-import java.io.File;
 import java.io.IOException;
 
 import org.apache.commons.io.FileUtils;
@@ -24,8 +23,6 @@ import org.apache.commons.io.FileUtils;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.SharedConstant;
-import io.odilon.virtualFileSystem.ObjectPath;
-import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
@@ -51,10 +48,10 @@ public class RAIDZeroRollbackDeleteHandler extends RAIDZeroRollbackObjectHandler
 
     @Override
     protected void rollback() {
-        boolean done = false;
+        boolean rollbackOK = false;
         try {
             restore();
-            done = true;
+            rollbackOK = true;
         } catch (InternalCriticalException e) {
             if (!isRecovery())
                 throw (e);
@@ -67,7 +64,7 @@ public class RAIDZeroRollbackDeleteHandler extends RAIDZeroRollbackObjectHandler
             else
                 logger.error(e, info(), SharedConstant.NOT_THROWN);
         } finally {
-            if (done || isRecovery())
+            if (rollbackOK || isRecovery())
                 getOperation().cancel();
         }
     }
@@ -88,10 +85,3 @@ public class RAIDZeroRollbackDeleteHandler extends RAIDZeroRollbackObjectHandler
         }
     }
 }
-
-//ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
-//String objectMetadataBackupDirPath = 
-//        getDriver().getWriteDrive(bucket, getOperation().getObjectName()).getBucketWorkDirPath(bucket)
-//        + File.separator + getOperation().getObjectName();
-//String objectMetadataDirPath = getDriver().getWriteDrive(bucket, getOperation().getObjectName()).getObjectMetadataDirPath(bucket, getOperation().getObjectName());
-//FileUtils.copyDirectory(new File(objectMetadataBackupDirPath), new File(objectMetadataDirPath));

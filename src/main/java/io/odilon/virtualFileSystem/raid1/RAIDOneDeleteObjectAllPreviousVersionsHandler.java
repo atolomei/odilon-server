@@ -47,6 +47,9 @@ public class RAIDOneDeleteObjectAllPreviousVersionsHandler extends RAIDOneTransa
         super(driver, bucket, objectName);
     }
     
+    /**
+     * remove all "objectmetadata.json.vn" Files, but keep -> "objectmetadata.json"
+     **/
     protected void delete() {
         
         VirtualFileSystemOperation operation = null;
@@ -59,6 +62,7 @@ public class RAIDOneDeleteObjectAllPreviousVersionsHandler extends RAIDOneTransa
 
             bucketReadLock();
             try {
+                
                 checkExistsBucket();
                 checkExistObject();
 
@@ -69,9 +73,7 @@ public class RAIDOneDeleteObjectAllPreviousVersionsHandler extends RAIDOneTransa
 
                 operation = deleteObjectPreviousVersions(meta.getVersion());
                 backupMetadata();
-                /**
-                 * remove all "objectmetadata.json.vn" Files, but keep -> "objectmetadata.json"
-                 **/
+                
                 for (int version = 0; version < meta.getVersion(); version++) {
                     for (Drive drive : getDriver().getDrivesAll()) {
                         FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile( getBucket(), getObjectName(), version));
@@ -90,7 +92,7 @@ public class RAIDOneDeleteObjectAllPreviousVersionsHandler extends RAIDOneTransa
             } catch (Exception e) {
                 commitOK = false;
                 isMainException = true;
-                throw new InternalCriticalException(e);
+                throw new InternalCriticalException(e, info());
             } finally {
                 try {
                     if (commitOK) {
@@ -112,8 +114,18 @@ public class RAIDOneDeleteObjectAllPreviousVersionsHandler extends RAIDOneTransa
         } finally {
             objectWriteUnLock();
         }
-        if (commitOK)
-            onAfterCommit(operation, meta, meta.getVersion());
+        
+        if (commitOK) {
+            try {
+                /** after the TRX commit. It is used to clean temp files,
+                * if the system crashes those temp files will be removed on system startup
+                */
+                getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext()
+                        .getBean(AfterDeleteObjectServiceRequest.class, operation.getOperationCode(), meta, meta.getVersion()));
+            } catch (Exception e) {
+                logger.error(e, SharedConstant.NOT_THROWN);
+            }   
+        }
     }
 
     /**
@@ -153,21 +165,6 @@ public class RAIDOneDeleteObjectAllPreviousVersionsHandler extends RAIDOneTransa
         }
     }
 
-    /**
-     * <p>
-     * This method is called after the TRX commit. It is used to clean temp files,
-     * if the system crashes those temp files will be removed on system startup
-     * </p>
-     */
-    private void onAfterCommit(VirtualFileSystemOperation op, ObjectMetadata meta, int headVersion) {
-        try {
-                getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext()
-                        .getBean(AfterDeleteObjectServiceRequest.class, op.getOperationCode(), meta, headVersion));
-        } catch (Exception e) {
-            logger.error(e, SharedConstant.NOT_THROWN);
-        }
-    }
-    
     private VirtualFileSystemOperation deleteObjectPreviousVersions(int headVersion) {
         return getJournalService().deleteObjectPreviousVersions(getBucket(), getObjectName(), headVersion);
     }

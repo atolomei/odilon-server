@@ -80,7 +80,7 @@ public class RAIDZeroRollbackUpdateHandler extends RAIDZeroRollbackObjectHandler
         try {
             restoreVersion();
             done = true;
-            
+
         } catch (InternalCriticalException e) {
             if (!isRecovery())
                 throw (e);
@@ -125,7 +125,6 @@ public class RAIDZeroRollbackUpdateHandler extends RAIDZeroRollbackObjectHandler
         }
     }
 
-
     private void restoreVersion() {
         ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
         try {
@@ -139,7 +138,7 @@ public class RAIDZeroRollbackUpdateHandler extends RAIDZeroRollbackObjectHandler
         } catch (Exception e) {
             throw new InternalCriticalException(e, info());
         }
-        
+
         try {
             Drive drive = getWriteDrive(bucket, getOperation().getObjectName());
             File file = drive.getObjectMetadataVersionFile(bucket, getOperation().getObjectName(), getOperation().getVersion());
@@ -166,15 +165,14 @@ public class RAIDZeroRollbackUpdateHandler extends RAIDZeroRollbackObjectHandler
     }
 }
 
-/**ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
-String objectMetadataBackupDirPath = getDriver().getWriteDrive(bucket, getOperation().getObjectName())
-        .getBucketWorkDirPath(bucket) + File.separator + getOperation().getObjectName();
-String objectMetadataDirPath = getDriver().getWriteDrive(bucket, getOperation().getObjectName())
-        .getObjectMetadataDirPath(bucket, getOperation().getObjectName());
-try {
-    FileUtils.copyDirectory(new File(objectMetadataBackupDirPath), new File(objectMetadataDirPath));
-} catch (IOException e) {
-    throw new InternalCriticalException(e, info());
-}
-**/
-
+/**
+ * ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
+ * String objectMetadataBackupDirPath = getDriver().getWriteDrive(bucket,
+ * getOperation().getObjectName()) .getBucketWorkDirPath(bucket) +
+ * File.separator + getOperation().getObjectName(); String objectMetadataDirPath
+ * = getDriver().getWriteDrive(bucket, getOperation().getObjectName())
+ * .getObjectMetadataDirPath(bucket, getOperation().getObjectName()); try {
+ * FileUtils.copyDirectory(new File(objectMetadataBackupDirPath), new
+ * File(objectMetadataDirPath)); } catch (IOException e) { throw new
+ * InternalCriticalException(e, info()); }
+ **/

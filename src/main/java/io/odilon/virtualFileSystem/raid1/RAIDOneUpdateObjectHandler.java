@@ -103,18 +103,12 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
         try {
             bucketReadLock(bucket);
 
-            try {
+            try (stream) {
 
-                /** must be executed inside the critical zone */
                 checkExistsBucket(bucket);
-
-                /** must be executed inside the critical zone */
                 checkExistObject(bucket, objectName);
 
                 ObjectMetadata meta = getMetadata(bucket, objectName, true);
-
-                if (!meta.isAccesible())
-                    throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
 
                 beforeHeadVersion = meta.getVersion();
 
@@ -126,6 +120,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
 
                 /** copy new version as head version */
                 afterHeadVersion = meta.getVersion() + 1;
+                
                 saveObjectDataFile(bucket, objectName, stream, srcFileName, afterHeadVersion);
                 saveObjectMetadata(bucket, objectName, srcFileName, contentType, afterHeadVersion, customTags);
 
@@ -144,13 +139,6 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
             } finally {
 
                 try {
-                    try {
-                        if (stream != null)
-                            stream.close();
-                    } catch (IOException e) {
-                        logger.error(e, objectInfo(bucket, objectName, srcFileName), SharedConstant.NOT_THROWN);
-                    }
-
                     if (!done) {
                         try {
                             rollback(operation);
@@ -195,7 +183,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
                 if ((meta == null) || (!meta.isAccesible()))
                     throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
 
-                if (meta.getVersion() == 0)
+                if (meta.getVersion() == VERSION_ZERO) 
                     throw new IllegalArgumentException("Object does not have any previous version | " + "b:"
                             + (Optional.ofNullable(bucket).isPresent() ? (bucket.getId()) : "null") + ", o:"
                             + (Optional.ofNullable(objectName).isPresent() ? (objectName) : "null"));
