@@ -163,7 +163,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         Check.requireNonNullArgument(bucket, "bucket is null");
         Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucket.getName());
         Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible " + objectInfo(bucket));
-        RAIDZeroUpdateObjectHandler agent = new RAIDZeroUpdateObjectHandler(this);
+        RAIDZeroUpdateObjectHandler agent = new RAIDZeroUpdateObjectHandler(this, bucket, objectName);
         return agent.restorePreviousVersion(bucket, objectName);
     }
 
@@ -201,8 +201,8 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         Check.requireNonNullStringArgument(fileName, "fileName is null " + objectInfo(bucket, objectName));
         Check.requireNonNullArgument(stream, "InpuStream can not null " + objectInfo(bucket, objectName));
         if (exists(bucket, objectName)) {
-            RAIDZeroUpdateObjectHandler updateAgent = new RAIDZeroUpdateObjectHandler(this);
-            updateAgent.update(bucket, objectName, stream, fileName, contentType, customTags);
+            RAIDZeroUpdateObjectHandler updateAgent = new RAIDZeroUpdateObjectHandler(this, bucket, objectName);;
+            updateAgent.update(stream, fileName, contentType, customTags);
             getSystemMonitorService().getUpdateObjectCounter().inc();
         } else {
             RAIDZeroCreateObjectHandler createAgent = new RAIDZeroCreateObjectHandler(this, bucket, objectName);
@@ -219,7 +219,10 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
     @Override
     public void putObjectMetadata(ObjectMetadata meta) {
         Check.requireNonNullArgument(meta, "meta is null");
-        RAIDZeroUpdateObjectHandler updateAgent = new RAIDZeroUpdateObjectHandler(this);
+        ServerBucket bucket = getBucket(meta.getBucketName());
+        
+        Check.requireNonNullArgument(bucket, "bucket is null");
+        RAIDZeroUpdateObjectHandler updateAgent = new RAIDZeroUpdateObjectHandler(this, bucket, meta.getObjectName());
         updateAgent.updateObjectMetadata(meta);
     }
 

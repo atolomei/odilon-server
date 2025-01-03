@@ -49,7 +49,7 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @ThreadSafe
-public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionHandler {
+public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionObjectHandler {
 
     private static Logger logger = Logger.getLogger(RAIDZeroUpdateObjectHandler.class.getName());
 
@@ -59,11 +59,11 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionHandler {
      * in this case by {@code RAIDZeroDriver}
      * </p>
      */
-    protected RAIDZeroUpdateObjectHandler(RAIDZeroDriver driver) {
-        super(driver);
+    protected RAIDZeroUpdateObjectHandler(RAIDZeroDriver driver, ServerBucket bucket, String objectName) {
+        super(driver, bucket, objectName);
     }
 
-    protected void update(ServerBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType,
+    protected void update(InputStream stream, String srcFileName, String contentType,
             Optional<List<String>> customTags) {
 
         boolean isMaixException = false;
@@ -72,45 +72,38 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionHandler {
         int afterHeadVersion = -1;
         VirtualFileSystemOperation operation = null;
 
-        objectWriteLock(bucket, objectName);
+        objectWriteLock();
         try {
 
-            bucketReadLock(bucket);
+            bucketReadLock();
             try (stream) {
+                
+                checkExistsBucket();
+                checkExistObject();
 
-                /** must be executed inside the critical zone */
-                checkExistsBucket(bucket);
-
-                /** must be executed inside the critical zone */
-                checkExistObject(bucket, objectName);
-
-                ObjectMetadata meta = getMetadata(bucket, objectName, true);
+                ObjectMetadata meta = getMetadata();
                 beforeHeadVersion = meta.getVersion();
-                operation = updateObject(bucket, objectName, beforeHeadVersion);
+                operation = updateObject(beforeHeadVersion);
 
                 /** backup current head version */
-                versionObject(bucket, objectName, beforeHeadVersion);
+                versionObject(beforeHeadVersion);
 
                 /** copy new version head version */
                 afterHeadVersion = beforeHeadVersion + 1;
-
-                saveData(bucket, objectName, stream, srcFileName);
-                saveMetadata(bucket, objectName, srcFileName, contentType, afterHeadVersion, customTags);
+                saveData(stream, srcFileName);
+                saveMetadata( srcFileName, contentType, afterHeadVersion, customTags);
 
                 commitOK = operation.commit();
 
             } catch (OdilonObjectNotFoundException e1) {
-                commitOK = false;
                 isMaixException = true;
                 throw e1;
             } catch (InternalCriticalException e2) {
-                commitOK = false;
                 isMaixException = true;
                 throw e2;
             } catch (Exception e) {
-                commitOK = false;
                 isMaixException = true;
-                throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
+                throw new InternalCriticalException(e, info());
 
             } finally {
                 try {
@@ -119,9 +112,9 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionHandler {
                             rollback(operation);
                         } catch (Exception e) {
                             if (!isMaixException)
-                                throw new InternalCriticalException(objectInfo(bucket, objectName, srcFileName));
+                                throw new InternalCriticalException(e, info());
                             else
-                                logger.error(e, objectInfo(bucket, objectName, srcFileName), SharedConstant.NOT_THROWN);
+                                logger.error(e, info(), SharedConstant.NOT_THROWN);
                         }
                     } else {
                         /**
@@ -131,7 +124,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionHandler {
                          */
                         try {
                             if (!getServerSettings().isVersionControl()) {
-                                ObjectPath path = new ObjectPath(getWriteDrive(bucket, objectName), bucket, objectName);
+                                ObjectPath path = getObjectPath();
                                 FileUtils.deleteQuietly(path.metadataFileVersionPath(beforeHeadVersion).toFile());
                                 FileUtils.deleteQuietly(path.dataFileVersionPath(beforeHeadVersion).toFile());
                             }
@@ -140,12 +133,24 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionHandler {
                         }
                     }
                 } finally {
-                    bucketReadUnLock(bucket);
+                    bucketReadUnLock();
                 }
             }
         } finally {
-            objectWriteUnLock(bucket, objectName);
+            objectWriteUnLock();
         }
+    }
+
+    private void saveMetadata(String srcFileName, String contentType, int afterHeadVersion, Optional<List<String>> customTags) {
+        saveMetadata(getBucket(), getObjectName(), srcFileName, contentType, afterHeadVersion, customTags);
+    }
+
+    private void saveData(InputStream stream, String srcFileName) {
+        saveData( getBucket(), getObjectName(), stream, srcFileName);
+    }
+
+    private VirtualFileSystemOperation updateObject(int beforeHeadVersion) {
+        return updateObject(getBucket(), getObjectName(), beforeHeadVersion);
     }
 
     /**
@@ -192,7 +197,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionHandler {
                  * save current head version MetadataFile .vN and data File vN - no need to
                  * additional backup
                  */
-                versionObject(bucket, objectName, meta.getVersion());
+                versionObject(meta.getVersion());
 
                 /** save previous version as head */
                 ObjectMetadata metaToRestore = metaVersions.get(metaVersions.size() - 1);
@@ -276,7 +281,6 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionHandler {
             ServerBucket bucket = null;
             try {
 
-                /** must be executed inside the critical zone */
                 checkExistsBucket(meta.getBucketId());
 
                 bucket = getBucketCache().get(meta.getBucketId());
@@ -330,24 +334,23 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionHandler {
      * </p>
      */
 
-    protected void onAfterCommit(ServerBucket bucket, String objectName, int previousVersion, int currentVersion) {
-    }
+    
 
-    private void versionObject(ServerBucket bucket, String objectName, int version) {
-        Drive drive = getWriteDrive(bucket, objectName);
+    private void versionObject(int version) {
+        Drive drive = getWriteDrive(getBucket(), getObjectName());
         try {
-            ObjectPath path = new ObjectPath(drive, bucket.getId(), objectName);
+            ObjectPath path = getObjectPath();
             File file = path.dataFilePath().toFile();
-            ((SimpleDrive) drive).putObjectDataVersionFile(bucket.getId(), objectName, version, file);
+            ((SimpleDrive) drive).putObjectDataVersionFile(getBucket().getId(), getObjectName(), version, file);
         } catch (Exception e) {
-            throw new InternalCriticalException(e, objectInfo(bucket, objectName));
+            throw new InternalCriticalException(e, info());
         }
 
         try {
-            File file = drive.getObjectMetadataFile(bucket, objectName);
-            drive.putObjectMetadataVersionFile(bucket, objectName, version, file);
+            File file = drive.getObjectMetadataFile(getBucket(), getObjectName());
+            drive.putObjectMetadataVersionFile(getBucket(), getObjectName(), version, file);
         } catch (Exception e) {
-            throw new InternalCriticalException(e, objectInfo(bucket, objectName));
+            throw new InternalCriticalException(e, info());
         }
     }
 
@@ -367,7 +370,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionHandler {
             }
             return false;
         } catch (Exception e) {
-            throw new InternalCriticalException(e, objectInfo(bucket, objectName));
+            throw new InternalCriticalException(e, info());
         }
     }
 
@@ -384,7 +387,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionHandler {
             }
             return false;
         } catch (Exception e) {
-            throw new InternalCriticalException(e, objectInfo(bucket, objectName));
+            throw new InternalCriticalException(e, info());
         }
     }
 
@@ -401,7 +404,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionHandler {
             if (src.exists())
                 FileUtils.copyDirectory(src, new File(objectMetadataBackupDirPath));
         } catch (IOException e) {
-            throw new InternalCriticalException(e, objectInfo(bucket, meta.getObjectName()));
+            throw new InternalCriticalException(e, info());
         }
     }
 

@@ -56,7 +56,7 @@ public abstract class RAIDZeroTransactionObjectHandler extends RAIDZeroTransacti
 
     /** must be executed inside the critical zone. */
     protected ObjectMetadata getMetadata() {
-        return getMetadata(getBucket(), getObjectName(), false);
+        return getMetadata(getBucket(), getObjectName(), true);
     }
 
     /** must be executed inside the critical zone. */
