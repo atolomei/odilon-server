@@ -1,0 +1,27 @@
+
+RAID ZERO FAQ
+-------------
+
+ADDING DISKS
+
+If I add a new disk is it necessary to restart the server ?
+----------------------------------------------------------
+Yes.
+
+If I add a new disk will the server be operational immediately  ?
+-----------------------------------------------------------------
+No. The server will start a process to move some of the objects
+from the existing disks to the new disk. 
+This process is executed in parallel by multiple threads.
+Only after completing it the server will be operational.
+
+
+Can the server continue to work if a disk is lost ?
+--------------------------------------------------- 
+The server will work after restart but the objects stored on the lost disk are gone. 
+RAID 0 is a configuration that has not redundancy.
+  
+
+
+
+

@@ -103,16 +103,4 @@ public class RAIDZeroUpdateObjectMetadataHandler extends RAIDZeroTransactionObje
     private VirtualFileSystemOperation updateObjectMetadata(int version) {
         return getJournalService().updateObjectMetadata(getBucket(), getObjectName(), version);
     }
-
-    /**
-     * private void backup() { try { ServerBucket bucket = getBucket(); String
-     * objectMetadataDirPath = getDriver().getWriteDrive(bucket,
-     * getObjectName()).getObjectMetadataDirPath(bucket, getObjectName()); String
-     * objectMetadataBackupDirPath = getDriver().getWriteDrive(bucket,
-     * getObjectName()) .getBucketWorkDirPath(bucket) + File.separator +
-     * getObjectName(); File src = new File(objectMetadataDirPath); if
-     * (src.exists()) FileUtils.copyDirectory(src, new
-     * File(objectMetadataBackupDirPath)); } catch (IOException e) { throw new
-     * InternalCriticalException(e, info()); } }
-     **/
 }

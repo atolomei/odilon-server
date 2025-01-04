@@ -81,8 +81,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionObjectHandle
                 checkExistObject();
 
                 ObjectMetadata meta = getMetadata();
-                beforeHeadVersion = meta.getVersion();
-                operation = updateObject(beforeHeadVersion);
+                operation = updateObject(meta.getVersion());
 
                 /** backup current head version */
                 backup(beforeHeadVersion);
@@ -259,74 +258,6 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionObjectHandle
     }
 
     /**
-     * <p>
-     * This update does not generate a new Version of the ObjectMetadata. It
-     * maintains the same ObjectMetadata version.<br/>
-     * The only way to version Object is when the Object Data is updated
-     * </p>
-     * 
-     * @param meta
-     
-    protected void updateObjectMetadata(ObjectMetadata meta) {
-
-        VirtualFileSystemOperation operation = null;
-        boolean commitOK = false;
-        boolean isMainException = false;
-
-        objectWriteLock(meta);
-        try {
-            bucketReadLock(meta.getBucketId());
-            ServerBucket bucket = null;
-            try {
-
-                checkExistsBucket(meta.getBucketId());
-
-                bucket = getBucketCache().get(meta.getBucketId());
-
-                operation = getJournalService().updateObjectMetadata(bucket, meta.getObjectName(), meta.getVersion());
-                backupMetadata(meta, bucket);
-                getWriteDrive(bucket, meta.getObjectName()).saveObjectMetadata(meta);
-
-                commitOK = operation.commit();
-
-            } catch (Exception e) {
-                isMainException = true;
-                commitOK = false;
-                throw new InternalCriticalException(e, objectInfo(meta));
-
-            } finally {
-                try {
-                    if (!commitOK) {
-                        try {
-                            rollback(operation);
-                        } catch (Exception e) {
-                            if (!isMainException)
-                                throw new InternalCriticalException(e, objectInfo(meta));
-                            else
-                                logger.error(e, objectInfo(meta), SharedConstant.NOT_THROWN);
-                        }
-                    } else {
-                        try {
-                            if (bucket != null)
-                                FileUtils.deleteQuietly(new File(
-                                        getDriver().getWriteDrive(bucket, meta.getObjectName()).getBucketWorkDirPath(bucket)
-                                                + File.separator + meta.getObjectName()));
-                        } catch (Exception e) {
-                            logger.error(e, SharedConstant.NOT_THROWN);
-                        }
-
-                    }
-                } finally {
-                    bucketReadUnLock(meta.getBucketId());
-                }
-            }
-        } finally {
-            objectWriteUnLock(meta);
-        }
-    }
-*/
-    
-    /**
      * backup current head version
      */
     private void backup(int version) {
@@ -386,22 +317,4 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionObjectHandle
             throw new InternalCriticalException(e, info());
         }
     }
-
-    /**
-     * copy metadata directory
-     
-    private void backupMetadata(ObjectMetadata meta, ServerBucket bucket) {
-        try {
-            String objectMetadataDirPath = getDriver().getWriteDrive(bucket, meta.getObjectName()).getObjectMetadataDirPath(bucket,
-                    meta.getObjectName());
-            String objectMetadataBackupDirPath = getDriver().getWriteDrive(bucket, meta.getObjectName())
-                    .getBucketWorkDirPath(bucket) + File.separator + meta.getObjectName();
-            File src = new File(objectMetadataDirPath);
-            if (src.exists())
-                FileUtils.copyDirectory(src, new File(objectMetadataBackupDirPath));
-        } catch (IOException e) {
-            throw new InternalCriticalException(e, info());
-        }
-    }
-*/
 }
