@@ -220,9 +220,13 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
     public void putObjectMetadata(ObjectMetadata meta) {
         Check.requireNonNullArgument(meta, "meta is null");
         ServerBucket bucket = getBucket(meta.getBucketName());
-        
         Check.requireNonNullArgument(bucket, "bucket is null");
-        RAIDZeroUpdateObjectHandler updateAgent = new RAIDZeroUpdateObjectHandler(this, bucket, meta.getObjectName());
+        Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible " + objectInfo(bucket));
+        
+        //RAIDZeroUpdateObjectHandler updateAgent = new RAIDZeroUpdateObjectHandler(this, bucket, meta.getObjectName());
+        //updateAgent.updateObjectMetadata(meta);
+        
+        RAIDZeroUpdateObjectMetadataHandler updateAgent = new RAIDZeroUpdateObjectMetadataHandler(this, bucket, meta.getObjectName());
         updateAgent.updateObjectMetadata(meta);
     }
 

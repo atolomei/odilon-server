@@ -16,8 +16,8 @@
  */
 package io.odilon.virtualFileSystem.raid0;
 
+
 import java.io.File;
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -266,7 +266,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionObjectHandle
      * </p>
      * 
      * @param meta
-     */
+     
     protected void updateObjectMetadata(ObjectMetadata meta) {
 
         VirtualFileSystemOperation operation = null;
@@ -306,7 +306,6 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionObjectHandle
                                 logger.error(e, objectInfo(meta), SharedConstant.NOT_THROWN);
                         }
                     } else {
-                        /** TODO-> Delete backup Metadata. change to Async */
                         try {
                             if (bucket != null)
                                 FileUtils.deleteQuietly(new File(
@@ -325,7 +324,8 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionObjectHandle
             objectWriteUnLock(meta);
         }
     }
-
+*/
+    
     /**
      * backup current head version
      */
@@ -389,7 +389,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionObjectHandle
 
     /**
      * copy metadata directory
-     */
+     
     private void backupMetadata(ObjectMetadata meta, ServerBucket bucket) {
         try {
             String objectMetadataDirPath = getDriver().getWriteDrive(bucket, meta.getObjectName()).getObjectMetadataDirPath(bucket,
@@ -403,5 +403,5 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionObjectHandle
             throw new InternalCriticalException(e, info());
         }
     }
-
+*/
 }

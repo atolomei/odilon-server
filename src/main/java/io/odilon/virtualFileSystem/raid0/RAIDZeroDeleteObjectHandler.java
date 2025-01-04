@@ -112,7 +112,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroTransactionObjectHandle
      * <p>
      * This method is executed by the delete thread. It does not need to control
      * concurrent access because the caller method does it. It must be fast since it
-     * is part of the main transaction
+     * is part of the main transaction.
      * </p>
      * 
      * @param meta
