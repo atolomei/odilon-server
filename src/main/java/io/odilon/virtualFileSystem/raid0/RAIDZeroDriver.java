@@ -163,8 +163,10 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         Check.requireNonNullArgument(bucket, "bucket is null");
         Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucket.getName());
         Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible " + objectInfo(bucket));
-        RAIDZeroUpdateObjectHandler agent = new RAIDZeroUpdateObjectHandler(this, bucket, objectName);
-        return agent.restorePreviousVersion(bucket, objectName);
+        
+        //RAIDZeroUpdateObjectHandler agent = new RAIDZeroUpdateObjectHandler(this, bucket, objectName);
+        RAIDZeroRestoreObjectPreviousVersionHandler agent = new RAIDZeroRestoreObjectPreviousVersionHandler(this, bucket, objectName);
+        return agent.restorePreviousVersion();
     }
 
     /**

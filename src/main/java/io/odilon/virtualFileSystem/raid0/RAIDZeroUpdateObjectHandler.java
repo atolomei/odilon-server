@@ -16,10 +16,8 @@
  */
 package io.odilon.virtualFileSystem.raid0;
 
-
 import java.io.File;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -151,11 +149,30 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionObjectHandle
     }
 
     /**
-     * <p>
-     * . The Object does not have a previous version (ie. version=0) . The Object
-     * previous versions were deleted by a {@code deleteObjectAllPreviousVersions}
-     * </p>
+     * backup current head version
      */
+    private void backup(int version) {
+
+        /** version data */
+        Drive drive = getWriteDrive(getBucket(), getObjectName());
+        try {
+            ObjectPath path = getObjectPath();
+            File file = path.dataFilePath().toFile();
+            ((SimpleDrive) drive).putObjectDataVersionFile(getBucket().getId(), getObjectName(), version, file);
+        } catch (Exception e) {
+            throw new InternalCriticalException(e, info());
+        }
+
+        /** version metadata */
+        try {
+            File file = drive.getObjectMetadataFile(getBucket(), getObjectName());
+            drive.putObjectMetadataVersionFile(getBucket(), getObjectName(), version, file);
+        } catch (Exception e) {
+            throw new InternalCriticalException(e, info());
+        }
+    }
+
+    /**
     protected ObjectMetadata restorePreviousVersion(ServerBucket bucket, String objectName) {
 
         boolean commitOK = false;
@@ -190,13 +207,10 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionObjectHandle
 
                 operation = getJournalService().restoreObjectPreviousVersion(bucket, objectName, beforeHeadVersion);
 
-                /**
-                 * save current head version MetadataFile .vN and data File vN - no need to
-                 * additional backup
-                 */
+                
                 backup(meta.getVersion());
 
-                /** save previous version as head */
+                
                 ObjectMetadata metaToRestore = metaVersions.get(metaVersions.size() - 1);
                 metaToRestore.setBucketName(bucket.getName());
 
@@ -232,16 +246,11 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionObjectHandle
                                 logger.error(e, objectInfo(bucket, objectName) + SharedConstant.NOT_THROWN);
                         }
                     } else {
-                        /**
-                         * TODO AT ->Sync by the moment see how to make it Async
-                         */
                         if ((operation != null) && ((beforeHeadVersion >= 0))) {
                             try {
                                 ObjectPath path = new ObjectPath(getDriver().getWriteDrive(bucket, objectName), bucket, objectName);
-                                /** metadata file */
                                 FileUtils.deleteQuietly(getDriver().getWriteDrive(bucket, objectName)
                                         .getObjectMetadataVersionFile(bucket, objectName, beforeHeadVersion));
-                                /** data file */
                                 FileUtils.deleteQuietly(path.dataFileVersionPath(beforeHeadVersion).toFile());
                             } catch (Exception e) {
                                 logger.error(e, SharedConstant.NOT_THROWN);
@@ -256,36 +265,12 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionObjectHandle
             objectWriteUnLock(bucket, objectName);
         }
     }
-
-    /**
-     * backup current head version
      */
-    private void backup(int version) {
-
-        /** version data */
-        Drive drive = getWriteDrive(getBucket(), getObjectName());
-        try {
-            ObjectPath path = getObjectPath();
-            File file = path.dataFilePath().toFile();
-            ((SimpleDrive) drive).putObjectDataVersionFile(getBucket().getId(), getObjectName(), version, file);
-        } catch (Exception e) {
-            throw new InternalCriticalException(e, info());
-        }
-
-        /** version metadata */
-        try {
-            File file = drive.getObjectMetadataFile(getBucket(), getObjectName());
-            drive.putObjectMetadataVersionFile(getBucket(), getObjectName(), version, file);
-        } catch (Exception e) {
-            throw new InternalCriticalException(e, info());
-        }
-    }
-
     /**
      * @param bucketName
      * @param objectName
      * @param version
-     */
+
     private boolean restoreVersionMetadata(ServerBucket bucket, String objectName, int versionToRestore) {
         try {
             Drive drive = getWriteDrive(bucket, objectName);
@@ -300,7 +285,8 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionObjectHandle
             throw new InternalCriticalException(e, info());
         }
     }
-
+     */
+    /**
     private boolean restoreVersionDataFile(ServerBucket bucket, String objectName, int version) {
         try {
             Drive drive = getWriteDrive(bucket, objectName);
@@ -317,4 +303,5 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionObjectHandle
             throw new InternalCriticalException(e, info());
         }
     }
+    */
 }
