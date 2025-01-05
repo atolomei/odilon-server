@@ -93,13 +93,19 @@ public class RAIDOneDeleteObjectAllPreviousVersionsHandler extends RAIDOneTransa
                 /** commit */
                 commitOK = operation.commit();
 
+            
+            } catch (InternalCriticalException e1) {
+                isMainException = true;
+                throw e1;
             } catch (Exception e) {
-                commitOK = false;
                 isMainException = true;
                 throw new InternalCriticalException(e, info());
             } finally {
                 try {
                     if (commitOK) {
+                        postObjectPreviousVersionDeleteAllCommit(meta.getVersion());
+                    }
+                    else {
                         try {
                             rollback(operation);
                         } catch (Exception e) {
@@ -108,9 +114,7 @@ public class RAIDOneDeleteObjectAllPreviousVersionsHandler extends RAIDOneTransa
                             else
                                 logger.error(e, info(), SharedConstant.NOT_THROWN);
                         }
-                    } else if (commitOK) {
-                        postObjectPreviousVersionDeleteAllCommit(meta.getVersion());
-                    }
+                    } 
                 } finally {
                     bucketReadUnLock();
                 }

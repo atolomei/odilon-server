@@ -274,7 +274,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
      */
     @Override
     public void postObjectDeleteTransaction(ObjectMetadata meta, int headVersion) {
-        logger.debug((meta!=null?meta.toString():"null") + "| do nothing by the moment");
+        //logger.debug((meta!=null?meta.toString():"null") + "| do nothing by the moment");
     }
 
     /**
@@ -284,7 +284,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
      */
     @Override
     public void postObjectPreviousVersionDeleteAllTransaction(ObjectMetadata meta, int headVersion) {
-        logger.debug((meta!=null?meta.toString():"null") + "| do nothing by the moment");
+        //logger.debug((meta!=null?meta.toString():"null") + "| do nothing by the moment");
     }
 
     /**

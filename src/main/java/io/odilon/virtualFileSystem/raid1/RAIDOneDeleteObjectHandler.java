@@ -60,6 +60,12 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneTransactionObjectHandler 
     }
 
     /**
+     * 
+     * DATA CONSISTENCY: If The system crashes before Commit or Cancel -> next time
+     * the system starts up it will REDO all stored operations. Also, the if there
+     * are error buckets in the drives, they will be normalized when the system
+     * starts.
+     * 
      * @param bucket
      * @param objectName
      * @param stream
@@ -70,6 +76,7 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneTransactionObjectHandler 
 
         VirtualFileSystemOperation operation = null;
         boolean commitOK = false;
+        boolean isMainException = false;
         int headVersion = -1;
         ObjectMetadata meta = null;
 
@@ -83,27 +90,29 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneTransactionObjectHandler 
 
                 meta = getDriver().getReadDrive(getBucket(), getObjectName()).getObjectMetadata(getBucket(), getObjectName());
                 headVersion = meta.getVersion();
-                
-                
+
                 backupMetadata(meta, getBucket());
-                
-                
+
                 /** start operation */
                 operation = deleteObject(headVersion);
-                
+
                 // TODO AT: parallel
                 for (Drive drive : getDriver().getDrivesAll())
                     ((SimpleDrive) drive).deleteObjectMetadata(getBucket(), getObjectName());
-                
+
                 /** commit */
                 commitOK = operation.commit();
 
             } catch (OdilonObjectNotFoundException e1) {
-                commitOK = false;
+                isMainException = true;
+                throw e1;
+
+            } catch (InternalCriticalException e1) {
+                isMainException = true;
                 throw e1;
 
             } catch (Exception e) {
-                commitOK = false;
+                isMainException = true;
                 throw new InternalCriticalException(e, opInfo(operation));
             } finally {
                 try {
@@ -111,16 +120,13 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneTransactionObjectHandler 
                         try {
                             rollback(operation);
                         } catch (Exception e) {
-                            throw new InternalCriticalException(e, opInfo(operation));
+                            if (!isMainException)
+                                throw new InternalCriticalException(e, opInfo(operation));
+                            else
+                                logger.error(e, opInfo(operation), SharedConstant.NOT_THROWN);
                         }
-                    } else if (commitOK)
+                    } else
                         postObjectDeleteCommit(headVersion);
-                    /**
-                     * DATA CONSISTENCY: If The system crashes before Commit or Cancel -> next time
-                     * the system starts up it will REDO all stored operations. Also, the if there
-                     * are error buckets in the drives, they will be normalized when the system
-                     * starts.
-                     */
 
                 } catch (Exception e) {
                     logger.error(e, opInfo(operation), SharedConstant.NOT_THROWN);
@@ -159,7 +165,7 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneTransactionObjectHandler 
      */
 
     private void postObjectDeleteCommit(int headVersion) {
-        
+
         try {
             /** delete data versions(1..n-1) */
             for (int version = 0; version <= headVersion; version++) {

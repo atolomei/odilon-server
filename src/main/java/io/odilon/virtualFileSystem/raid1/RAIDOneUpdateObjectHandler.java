@@ -113,7 +113,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
                 beforeHeadVersion = meta.getVersion();
                 afterHeadVersion = meta.getVersion() + 1;
                 
-                /** backup current head version */
+                /** backup (current head version) */
                 saveVersionObjectDataFile(bucket, objectName, meta.getVersion());
                 saveVersionObjectMetadata(bucket, objectName, meta.getVersion());
                 
@@ -167,7 +167,6 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
         VirtualFileSystemOperation op = null;
         boolean done = false;
         boolean isMainException = false;
-
         int beforeHeadVersion = -1;
 
         getLockService().getObjectLock(bucket, objectName).writeLock().lock();
@@ -177,24 +176,20 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
 
             try {
 
+                checkExistsBucket(bucket);
+                checkExistObject(bucket, objectName);
+                
                 ObjectMetadata meta = getMetadata(bucket, objectName, false);
 
-                if ((meta == null) || (!meta.isAccesible()))
-                    throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
-
                 if (meta.getVersion() == VERSION_ZERO) 
-                    throw new IllegalArgumentException("Object does not have any previous version | " + "b:"
-                            + (Optional.ofNullable(bucket).isPresent() ? (bucket.getId()) : "null") + ", o:"
-                            + (Optional.ofNullable(objectName).isPresent() ? (objectName) : "null"));
+                    throw new IllegalArgumentException("Object does not have versions | " + objectInfo(bucket, objectName));
 
-                beforeHeadVersion = meta.version;
+                beforeHeadVersion = meta.getVersion();
                 List<ObjectMetadata> metaVersions = new ArrayList<ObjectMetadata>();
 
                 for (int version = 0; version < beforeHeadVersion; version++) {
-
                     ObjectMetadata mv = getDriver().getReadDrive(bucket, objectName).getObjectMetadataVersion(bucket, objectName,
                             version);
-
                     if (mv != null)
                         metaVersions.add(mv);
                 }
@@ -202,15 +197,17 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
                 if (metaVersions.isEmpty())
                     throw new OdilonObjectNotFoundException(Optional.of(meta.getSystemTags()).orElse("previous versions deleted"));
 
-                op = getJournalService().restoreObjectPreviousVersion(bucket, objectName, beforeHeadVersion);
-
                 /**
-                 * save current head version MetadataFile .vN and data File vN - no need to
-                 * additional backup
+                 * save current head version 
+                 * MetadataFile .vN and data File vN - no need to additional backup
                  */
                 saveVersionObjectDataFile(bucket, objectName, meta.getVersion());
                 saveVersionObjectMetadata(bucket, objectName, meta.getVersion());
 
+                
+                /** start operation */
+                op = getJournalService().restoreObjectPreviousVersion(bucket, objectName, beforeHeadVersion);
+                
                 /** save previous version as head */
                 ObjectMetadata metaToRestore = metaVersions.get(metaVersions.size() - 1);
 
@@ -220,16 +217,22 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
                 if (!restoreVersionObjectMetadata(bucket, metaToRestore.getObjectName(), metaToRestore.getVersion()))
                     throw new OdilonObjectNotFoundException(Optional.of(meta.systemTags).orElse("previous versions deleted"));
 
+                /** commit */
                 done = op.commit();
 
                 return metaToRestore;
 
+                
             } catch (OdilonObjectNotFoundException e1) {
                 done = false;
                 isMainException = true;
                 e1.setErrorMessage(e1.getErrorMessage() + " | " + objectInfo(bucket, objectName));
                 throw e1;
 
+            } catch (InternalCriticalException e1) {
+                isMainException = true;
+                throw e1;
+                
             } catch (Exception e) {
                 done = false;
                 isMainException = true;
@@ -241,7 +244,6 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
                     if (!done) {
                         try {
                             rollback(op);
-
                         } catch (Exception e) {
                             if (!isMainException)
                                 throw new InternalCriticalException(e, objectInfo(bucket, objectName));
@@ -272,9 +274,6 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
      */
     protected void updateObjectMetadata(ObjectMetadata meta) {
 
-        Check.requireNonNullArgument(meta, "meta is null");
-        Check.requireNonNullArgument(meta.bucketId, "meta.bucketId is null");
-
         VirtualFileSystemOperation op = null;
         boolean done = false;
         boolean isMainException = false;
@@ -287,43 +286,49 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
             getLockService().getBucketLock(meta.getBucketId()).readLock().lock();
 
             try {
-
-                /** must be executed inside the critical zone */
+                
                 checkExistsBucket(meta.getBucketId());
-
                 bucket = getBucketCache().get(meta.getBucketId());
-
+                
+                checkExistObject(bucket, meta.getObjectName());
+                
+                /**backup */
+                backupMetadata(meta, bucket);
+                
+                /** start operation */
                 op = getJournalService().updateObjectMetadata(getBucketCache().get(meta.getBucketId()), meta.getObjectName(),
                         meta.getVersion());
-
-                backupMetadata(meta, bucket);
+                
                 saveObjectMetadata(meta);
 
+                /** commit */
                 done = op.commit();
 
+            } catch (InternalCriticalException e1) {
+                isMainException = true;
+                throw e1;
+          
             } catch (Exception e) {
-                done = false;
                 isMainException = true;
                 throw new InternalCriticalException(e);
 
             } finally {
 
                 try {
-                    if ((!done) && (op != null)) {
+                    if (!done) {
                         try {
                             rollback(op);
                         } catch (Exception e) {
                             if (!isMainException)
                                 throw new InternalCriticalException(e, getDriver().objectInfo(meta.bucketId, meta.objectName));
                             else
-                                logger.error(e, "b:" + meta.bucketId.toString() + " o:" + meta.objectName,
-                                        SharedConstant.NOT_THROWN);
+                                logger.error(e, objectInfo(meta), SharedConstant.NOT_THROWN);
                         }
                     } else {
                         /**
                          * TODO AT -> Sync by the moment see how to make it Async
                          */
-                        cleanUpBackupMetadataDir(bucket, meta.objectName);
+                        cleanUpBackupMetadataDir(bucket, meta.getObjectName());
                     }
 
                 } finally {
@@ -680,6 +685,9 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
 
     private void cleanUpBackupMetadataDir(ServerBucket bucket, String objectName) {
         try {
+            
+            if (bucket==null)
+                return;
             /** delete backup Metadata */
             for (Drive drive : getDriver().getDrivesAll()) {
                 FileUtils.deleteQuietly(new File(drive.getBucketWorkDirPath(bucket) + File.separator + objectName));

@@ -104,7 +104,9 @@ public class RAIDOneCreateObjectHandler extends RAIDOneTransactionObjectHandler 
                 
                 /** commit */
                 commitOK = operation.commit();
-
+            } catch (InternalCriticalException e1) {
+                isMainException = true;
+                throw e1;
             } catch (Exception e) {
                 commitOK = false;
                 isMainException = true;
