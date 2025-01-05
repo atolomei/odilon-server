@@ -179,9 +179,6 @@ public class DeleteBucketObjectPreviousVersionServiceRequest extends AbstractSer
 
             instanceRunning.set(true);
 
-            logger.info(
-                    "Starting -> " + getClass().getSimpleName() + " | b: " + (this.bucketName != null ? this.bucketName : "null"));
-
             this.start_ms = System.currentTimeMillis();
             this.counter = new AtomicLong(0);
             this.errors = new AtomicLong(0);
@@ -224,14 +221,14 @@ public class DeleteBucketObjectPreviousVersionServiceRequest extends AbstractSer
     }
 
     private void logResults(Logger lg) {
-        lg.info("Threads: " + String.valueOf(this.maxProcessingThread));
-        lg.info("Total: " + String.valueOf(this.counter.get()));
-        lg.info("Checked OK: " + String.valueOf(this.checkOk.get()));
-        lg.info("Errors: " + String.valueOf(this.errors.get()));
-        lg.info("Not Available: " + String.valueOf(this.notAvailable.get()));
-        lg.info("Duration: " + String.valueOf(Double.valueOf(System.currentTimeMillis() - start_ms) / Double.valueOf(1000))
+        lg.debug("Threads: " + String.valueOf(this.maxProcessingThread));
+        lg.debug("Total: " + String.valueOf(this.counter.get()));
+        lg.debug("Checked OK: " + String.valueOf(this.checkOk.get()));
+        lg.debug("Errors: " + String.valueOf(this.errors.get()));
+        lg.debug("Not Available: " + String.valueOf(this.notAvailable.get()));
+        lg.debug("Duration: " + String.valueOf(Double.valueOf(System.currentTimeMillis() - start_ms) / Double.valueOf(1000))
                 + " secs");
-        lg.info("---------");
+        lg.debug("---------");
     }
 
     private ServerSettings getServerSettings() {
