@@ -65,10 +65,8 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionObjectHandle
 
         boolean isMaixException = false;
         boolean commitOK = false;
-        int beforeHeadVersion = -1;
-        int afterHeadVersion = -1;
         VirtualFileSystemOperation operation = null;
-
+        int beforeHeadVersion = -1;
         objectWriteLock();
         try {
 
@@ -81,13 +79,14 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionObjectHandle
                 ObjectMetadata meta = getMetadata();
                 operation = updateObject(meta.getVersion());
 
+                beforeHeadVersion = meta.getVersion(); 
+                
                 /** backup current head version */
-                backup(beforeHeadVersion);
+                backup(meta.getVersion());
 
                 /** copy new version head version */
-                afterHeadVersion = beforeHeadVersion + 1;
                 saveData(stream, srcFileName);
-                saveMetadata(srcFileName, contentType, afterHeadVersion, customTags);
+                saveMetadata(srcFileName, contentType, meta.getVersion() + 1, customTags);
 
                 commitOK = operation.commit();
 
@@ -119,7 +118,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionObjectHandle
                          * locks are still applied. Also it is required to be fast<br/>
                          */
                         try {
-                            if (!getServerSettings().isVersionControl()) {
+                            if ((!getServerSettings().isVersionControl()) && (beforeHeadVersion>-1)) {
                                 FileUtils.deleteQuietly(getObjectPath().metadataFileVersionPath(beforeHeadVersion).toFile());
                                 FileUtils.deleteQuietly(getObjectPath().dataFileVersionPath(beforeHeadVersion).toFile());
                             }
