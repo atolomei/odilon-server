@@ -71,6 +71,10 @@ This is the first release of Odilon Object Storage
 
 2025.01.02 Clean up source code
 
+==================  1.12 ==================
+
+2025.01.05 bug RAID 0 delete object fixed
+
 
 
 
