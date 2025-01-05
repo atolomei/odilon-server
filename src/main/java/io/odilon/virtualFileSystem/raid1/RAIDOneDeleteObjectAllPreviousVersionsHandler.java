@@ -71,8 +71,10 @@ public class RAIDOneDeleteObjectAllPreviousVersionsHandler extends RAIDOneTransa
                 if (meta.getVersion() == VERSION_ZERO)
                     return;
 
-                operation = deleteObjectPreviousVersions(meta.getVersion());
                 backupMetadata();
+                
+                /** start operation */
+                operation = deleteObjectPreviousVersions(meta.getVersion());
                 
                 for (int version = 0; version < meta.getVersion(); version++) {
                     for (Drive drive : getDriver().getDrivesAll()) {
@@ -87,6 +89,8 @@ public class RAIDOneDeleteObjectAllPreviousVersionsHandler extends RAIDOneTransa
                     meta.drive = drive.getName();
                     drive.saveObjectMetadata(metaDrive);
                 }
+
+                /** commit */
                 commitOK = operation.commit();
 
             } catch (Exception e) {

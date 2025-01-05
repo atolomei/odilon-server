@@ -68,9 +68,11 @@ public class RAIDSixDeleteObjectAllPreviousVersionsHandler extends RAIDSixTransa
                 if (meta.getVersion() == VERSION_ZERO)
                     return;
 
+                /** backup */
+                backup();
+                
+                /** start operation */
                 operation = deleteObjectPreviousVersions(meta.getVersion());
-
-                backupMetadata();
 
                 // remove all "objectmetadata.json.vn" Files, but keep -> "objectmetadata.json"
                 for (int version = 0; version < meta.getVersion(); version++) {
@@ -88,6 +90,7 @@ public class RAIDSixDeleteObjectAllPreviousVersionsHandler extends RAIDSixTransa
                 getDriver().getDrivesAll().forEach(d -> list.add(d.getObjectMetadata(getBucket(), getObjectName())));
                 saveRAIDSixObjectMetadataToDisk(drives, list, true);
 
+                /** commit */
                 commitOK = operation.commit();
 
             } catch (OdilonObjectNotFoundException e1) {
@@ -132,7 +135,7 @@ public class RAIDSixDeleteObjectAllPreviousVersionsHandler extends RAIDSixTransa
      * @param bucket
      * @param objectName
      */
-    private void backupMetadata() {
+    private void backup() {
         try {
             for (Drive drive : getDriver().getDrivesAll()) {
                 String objectMetadataDirPath = drive.getObjectMetadataDirPath(getBucket(), getObjectName());

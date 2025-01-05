@@ -96,11 +96,13 @@ public class RAIDOneCreateObjectHandler extends RAIDOneTransactionObjectHandler 
                 checkExistsBucket();
                 checkNotExistObject();
 
+                /** start operation */
                 operation = createObject();
             
                 saveData(stream, srcFileName);
                 saveMetadata(srcFileName, contentType, customTags);
                 
+                /** commit */
                 commitOK = operation.commit();
 
             } catch (Exception e) {

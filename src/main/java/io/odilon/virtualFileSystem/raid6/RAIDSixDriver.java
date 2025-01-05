@@ -356,37 +356,31 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
         switch (operation.getOperationCode()) {
         case CREATE_OBJECT: {
             RAIDSixRollbackCreateHandler handler = new RAIDSixRollbackCreateHandler(this, operation, recoveryMode);
-            ;
             handler.rollback();
             return;
         }
         case UPDATE_OBJECT: {
             RAIDSixRollbackUpdateHandler handler = new RAIDSixRollbackUpdateHandler(this, operation, recoveryMode);
-            ;
             handler.rollback();
             return;
         }
         case DELETE_OBJECT: {
             RAIDSixRollbackDeleteHandler handler = new RAIDSixRollbackDeleteHandler(this, operation, recoveryMode);
-            ;
             handler.rollback();
             return;
         }
         case DELETE_OBJECT_PREVIOUS_VERSIONS: {
             RAIDSixRollbackDeleteHandler handler = new RAIDSixRollbackDeleteHandler(this, operation, recoveryMode);
-            ;
             handler.rollback();
             return;
         }
         case UPDATE_OBJECT_METADATA: {
             RAIDSixRollbackUpdateHandler handler = new RAIDSixRollbackUpdateHandler(this, operation, recoveryMode);
-            ;
             handler.rollback();
             return;
         }
         case SYNC_OBJECT_NEW_DRIVE: {
             RAIDSixRollbackSyncHandler handler = new RAIDSixRollbackSyncHandler(this, operation, recoveryMode);
-            ;
             handler.rollback();
             return;
         }

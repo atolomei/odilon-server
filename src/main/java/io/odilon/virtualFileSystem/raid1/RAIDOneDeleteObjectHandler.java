@@ -83,12 +83,19 @@ public class RAIDOneDeleteObjectHandler extends RAIDOneTransactionObjectHandler 
 
                 meta = getDriver().getReadDrive(getBucket(), getObjectName()).getObjectMetadata(getBucket(), getObjectName());
                 headVersion = meta.getVersion();
-                operation = deleteObject(headVersion);
+                
+                
                 backupMetadata(meta, getBucket());
-
+                
+                
+                /** start operation */
+                operation = deleteObject(headVersion);
+                
                 // TODO AT: parallel
                 for (Drive drive : getDriver().getDrivesAll())
                     ((SimpleDrive) drive).deleteObjectMetadata(getBucket(), getObjectName());
+                
+                /** commit */
                 commitOK = operation.commit();
 
             } catch (OdilonObjectNotFoundException e1) {

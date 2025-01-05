@@ -68,7 +68,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixTransactionObjectHandler 
     protected void delete() {
 
         VirtualFileSystemOperation operation = null;
-        boolean done = false;
+        boolean commitOK = false;
         boolean isMainException = false;
         ObjectMetadata meta = null;
 
@@ -83,24 +83,30 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixTransactionObjectHandler 
 
                 meta = getMetadata();
 
+                /** backup */
+                backup(meta);
+                
+                /** start operation */
                 operation = deleteObject(meta.getVersion());
-
-                backupMetadata(meta);
 
                 for (Drive drive : getDriver().getDrivesAll())
                     drive.deleteObjectMetadata(getBucket(), getObjectName());
+                
+                /** commit */
+                commitOK = operation.commit();
 
-                done = operation.commit();
-
+                
+            } catch (InternalCriticalException e) {
+                isMainException = true;
+                throw new InternalCriticalException(e);
             } catch (Exception e) {
-                done = false;
                 isMainException = true;
                 throw new InternalCriticalException(e, info());
             } finally {
 
                 try {
 
-                    if ((!done) && (operation != null)) {
+                    if (!commitOK) {
                         try {
                             rollback(operation);
                         } catch (Exception e) {
@@ -109,7 +115,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixTransactionObjectHandler 
                             else
                                 logger.error(e, info(), SharedConstant.NOT_THROWN);
                         }
-                    } else if (done) {
+                    } else if (commitOK) {
                         /** inside the thread */
                         postCommit(meta, getBucket(), meta.getVersion());
                     }
@@ -130,7 +136,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixTransactionObjectHandler 
             objectWriteUnLock();
         }
 
-        if (done) {
+        if (commitOK) {
             onAfterCommit(operation, meta, meta.getVersion());
         }
     }
@@ -181,7 +187,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixTransactionObjectHandler 
      * @param bucket
      * @param objectName
      */
-    private void backupMetadata(ObjectMetadata meta) {
+    private void backup(ObjectMetadata meta) {
         try {
             for (Drive drive : getDriver().getDrivesAll()) {
                 String objectMetadataDirPath = drive.getObjectMetadataDirPath(getBucket(), meta.getObjectName());

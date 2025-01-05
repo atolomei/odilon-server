@@ -124,12 +124,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
     
     public abstract void rollback(VirtualFileSystemOperation operation, Object payload, boolean recoveryMode);
 
-    
-
-    
-    
     /**
-     * 
      * @param virtualFileSystemService
      * @param lockService
      */
@@ -1419,6 +1414,38 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
     }
 
     /**
+     * must be executed inside the critical zone.
+     */
+    protected void checkNotExistsBucket(ServerBucket bucket) {
+        if (existsCacheBucket(bucket))
+            throw new IllegalArgumentException("bucket already exists -> " + objectInfo(bucket));
+    }
+
+    /**
+     * must be executed inside the critical zone.
+     */
+    protected void checkNotExistsBucket(String bucketName) {
+        if (getVirtualFileSystemService().getBucketCache().contains(bucketName))
+            throw new IllegalArgumentException("bucket already exists -> " + bucketName);
+    }
+
+    /**
+     * must be executed inside the critical zone.
+     */
+    protected void checkExistsBucket(ServerBucket bucket) {
+        if (!existsCacheBucket(bucket))
+            throw new OdilonObjectNotFoundException("bucket does not exist -> " + objectInfo(bucket));
+    }
+
+    /**
+     * must be executed inside the critical zone.
+     */
+    protected void checkExistsBucket(String bucketName) {
+        if (!getVirtualFileSystemService().getBucketCache().contains(bucketName))
+            throw new IllegalArgumentException("bucket does not exist -> " + bucketName);
+    }
+
+    /**
      * @param serverInfo
      */
     private void saveNewServerInfo(OdilonServerInfo serverInfo) {
@@ -1511,36 +1538,5 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
         }
     }
 
-    /**
-     * must be executed inside the critical zone.
-     */
-    protected void checkNotExistsBucket(ServerBucket bucket) {
-        if (existsCacheBucket(bucket))
-            throw new IllegalArgumentException("bucket already exists -> " + objectInfo(bucket));
-    }
-
-    /**
-     * must be executed inside the critical zone.
-     */
-    protected void checkNotExistsBucket(String bucketName) {
-        if (getVirtualFileSystemService().getBucketCache().contains(bucketName))
-            throw new IllegalArgumentException("bucket already exists -> " + bucketName);
-    }
-
-    /**
-     * must be executed inside the critical zone.
-     */
-    protected void checkExistsBucket(ServerBucket bucket) {
-        if (!existsCacheBucket(bucket))
-            throw new OdilonObjectNotFoundException("bucket does not exist -> " + objectInfo(bucket));
-    }
-
-    /**
-     * must be executed inside the critical zone.
-     */
-    protected void checkExistsBucket(String bucketName) {
-        if (!getVirtualFileSystemService().getBucketCache().contains(bucketName))
-            throw new IllegalArgumentException("bucket does not exist -> " + bucketName);
-    }
 
 }

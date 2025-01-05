@@ -85,11 +85,13 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionObjectHandler 
                 checkExistsBucket();
                 checkNotExistObject();
 
+                /** start operation */
                 operation = createObject();
 
                 RAIDSixBlocks blocks = saveData(stream);
                 saveMetadata(blocks, srcFileName, contentType, customTags);
 
+                /** commit */
                 commitOK = operation.commit();
 
             } catch (InternalCriticalException e) {

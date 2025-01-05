@@ -92,7 +92,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
             Optional<List<String>> customTags) {
 
         VirtualFileSystemOperation operation = null;
-        boolean done = false;
+        boolean commitOK = false;
 
         int beforeHeadVersion = -1;
         int afterHeadVersion = -1;
@@ -111,35 +111,34 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
                 ObjectMetadata meta = getMetadata(bucket, objectName, true);
 
                 beforeHeadVersion = meta.getVersion();
-
-                operation = updateObject(bucket, objectName, beforeHeadVersion);
-
+                afterHeadVersion = meta.getVersion() + 1;
+                
                 /** backup current head version */
                 saveVersionObjectDataFile(bucket, objectName, meta.getVersion());
                 saveVersionObjectMetadata(bucket, objectName, meta.getVersion());
+                
+                /** start operation */
+                operation = updateObject(bucket, objectName, beforeHeadVersion);
 
                 /** copy new version as head version */
-                afterHeadVersion = meta.getVersion() + 1;
-                
                 saveObjectDataFile(bucket, objectName, stream, srcFileName, afterHeadVersion);
                 saveObjectMetadata(bucket, objectName, srcFileName, contentType, afterHeadVersion, customTags);
 
-                done = operation.commit();
+                /** commit */
+                commitOK = operation.commit();
 
             } catch (InternalCriticalException e) {
-                done = false;
                 isMainException = true;
                 throw e;
 
             } catch (Exception e) {
-                done = false;
                 isMainException = true;
                 throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
 
             } finally {
 
                 try {
-                    if (!done) {
+                    if (!commitOK) {
                         try {
                             rollback(operation);
                         } catch (Exception e) {
