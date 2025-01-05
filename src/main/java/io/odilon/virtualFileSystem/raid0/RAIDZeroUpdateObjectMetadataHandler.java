@@ -52,6 +52,7 @@ public class RAIDZeroUpdateObjectMetadataHandler extends RAIDZeroTransactionObje
 
             bucketReadLock();
             try {
+                
                 checkExistsBucket();
                 checkExistObject();
 
@@ -59,14 +60,19 @@ public class RAIDZeroUpdateObjectMetadataHandler extends RAIDZeroTransactionObje
                 FileUtils.copyDirectory(getObjectPath().metadataDirPath().toFile(),
                         getObjectPath().metadataBackupDirPath().toFile());
 
+                
+                /** start operation */
                 operation = updateObjectMetadata(meta.getVersion());
+                
                 /** save metadata */
                 Files.writeString(getObjectPath().metadataFilePath(), getObjectMapper().writeValueAsString(meta));
+
+                
+                /** commit */
                 commitOK = operation.commit();
 
             } catch (Exception e) {
                 isMainException = true;
-                commitOK = false;
                 throw new InternalCriticalException(e, info());
 
             } finally {

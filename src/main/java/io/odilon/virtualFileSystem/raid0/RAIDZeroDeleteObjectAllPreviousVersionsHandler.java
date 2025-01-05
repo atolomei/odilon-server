@@ -70,8 +70,9 @@ public class RAIDZeroDeleteObjectAllPreviousVersionsHandler extends RAIDZeroTran
                 
                 /** backup */
                 FileUtils.copyDirectory(getObjectPath().metadataDirPath().toFile(), getObjectPath().metadataBackupDirPath().toFile());
-                
-                operation = deleteObjectPreviousVersionsOperation(meta.getVersion());
+
+                /** start operation */
+                operation = deleteObjectPreviousVersions(meta.getVersion());
 
                 /** delete versions (metadata) */
                 for (int version = 0; version < meta.getVersion(); version++)
@@ -134,7 +135,7 @@ public class RAIDZeroDeleteObjectAllPreviousVersionsHandler extends RAIDZeroTran
         }
     }
 
-    private VirtualFileSystemOperation deleteObjectPreviousVersionsOperation(int headVersion) {
+    private VirtualFileSystemOperation deleteObjectPreviousVersions(int headVersion) {
         return deleteObjectPreviousVersions(getBucket(), getObjectName(), headVersion);
     }
 

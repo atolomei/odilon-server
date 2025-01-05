@@ -68,15 +68,19 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroTransactionObjectHandle
                 checkExistsBucket();
                 checkExistObject();
 
-                operation = deleteObjectOperation(getMetadata().getVersion());
-
+                headVersion = getMetadata().getVersion();
+                
                 /** backup */
                 FileUtils.copyDirectory(getObjectPath().metadataDirPath().toFile(),
                         getObjectPath().metadataBackupDirPath().toFile());
 
+                /** start operation */
+                operation = deleteObjectOperation(getMetadata().getVersion());
+                
                 /** Delete Metadata directory */
                 FileUtils.deleteQuietly(getObjectPath().metadataDirPath().toFile());
 
+                /** commit */
                 commitOK = operation.commit();
 
             } catch (OdilonObjectNotFoundException e1) {

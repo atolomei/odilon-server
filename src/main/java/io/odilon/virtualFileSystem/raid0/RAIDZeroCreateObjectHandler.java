@@ -78,10 +78,11 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroTransactionObjectHandle
                 checkExistsBucket();
                 checkNotExistObject();
 
-                operation = createObjectOperation();
-
+                /** start operation */
+                operation = createObject();
                 save(stream, sourceFileName, contentType, customTags);
-
+                
+                /** commit */
                 commitOk = operation.commit();
 
             } catch (InternalCriticalException e1) {
@@ -116,7 +117,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroTransactionObjectHandle
         }
     }
 
-    private VirtualFileSystemOperation createObjectOperation() {
+    private VirtualFileSystemOperation createObject() {
         return createObject(getBucket(), getObjectName());
     }
 

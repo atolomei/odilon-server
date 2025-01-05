@@ -76,7 +76,6 @@ public class RAIDZeroRestoreObjectPreviousVersionHandler extends RAIDZeroTransac
 
                 beforeHeadVersion = meta.getVersion();
                 List<ObjectMetadata> metaVersions = new ArrayList<ObjectMetadata>();
-
                 for (int version = 0; version < beforeHeadVersion; version++) {
                     ObjectMetadata metaVersion = getDriver().getReadDrive(getBucket(), getObjectName())
                             .getObjectMetadataVersion(getBucket(), getObjectName(), version);
@@ -86,13 +85,10 @@ public class RAIDZeroRestoreObjectPreviousVersionHandler extends RAIDZeroTransac
                 if (metaVersions.isEmpty())
                     throw new OdilonObjectNotFoundException(Optional.of(meta.getSystemTags()).orElse("previous versions deleted"));
 
-                operation = getJournalService().restoreObjectPreviousVersion(getBucket(), getObjectName(), beforeHeadVersion);
-
-                /**
-                 * save current head version MetadataFile .vN and data File vN - no need to
-                 * additional backup
-                 */
                 backup(meta.getVersion());
+                
+                /** start operation */
+                operation = restoreObjectPreviousVersion(beforeHeadVersion);
 
                 /** save previous version as head */
                 ObjectMetadata metaToRestore = metaVersions.get(metaVersions.size() - 1);
@@ -104,7 +100,9 @@ public class RAIDZeroRestoreObjectPreviousVersionHandler extends RAIDZeroTransac
                 if (!restoreVersionMetadata(getBucket(), metaToRestore.getObjectName(), metaToRestore.getVersion()))
                     throw new OdilonObjectNotFoundException(Optional.of(meta.getSystemTags()).orElse("previous versions deleted"));
 
+                /** commit */
                 commitOK = operation.commit();
+                
                 return metaToRestore;
 
             } catch (OdilonObjectNotFoundException e1) {
@@ -154,8 +152,13 @@ public class RAIDZeroRestoreObjectPreviousVersionHandler extends RAIDZeroTransac
         }
     }
 
+    private VirtualFileSystemOperation restoreObjectPreviousVersion(int beforeHeadVersion) {
+        return getJournalService().restoreObjectPreviousVersion(getBucket(), getObjectName(), beforeHeadVersion);
+    }
+
     /**
      * backup current head version
+     * save current head version MetadataFile .vN and data File vN - no need to additional backup
      */
     private void backup(int version) {
 
