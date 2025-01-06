@@ -38,13 +38,11 @@ public class RAIDZeroRollbackCreateHandler extends RAIDZeroRollbackObjectHandler
 
     @Override
     protected void rollback() {
-
         boolean rollbackOK = false;
         try {
             FileUtils.deleteQuietly(getObjectPath().metadataDirPath().toFile());
             FileUtils.deleteQuietly(getObjectPath().dataFilePath().toFile());
             rollbackOK = true;
-
         } catch (InternalCriticalException e) {
             if (!isRecovery())
                 throw (e);

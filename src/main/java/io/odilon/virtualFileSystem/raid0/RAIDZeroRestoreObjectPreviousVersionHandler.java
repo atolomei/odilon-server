@@ -52,7 +52,6 @@ public class RAIDZeroRestoreObjectPreviousVersionHandler extends RAIDZeroTransac
      * previous versions were deleted by a {@code deleteObjectAllPreviousVersions}
      * </p>
      */
-
     protected ObjectMetadata restorePreviousVersion() {
 
         boolean commitOK = false;
@@ -77,14 +76,17 @@ public class RAIDZeroRestoreObjectPreviousVersionHandler extends RAIDZeroTransac
                 beforeHeadVersion = meta.getVersion();
                 List<ObjectMetadata> metaVersions = new ArrayList<ObjectMetadata>();
                 for (int version = 0; version < beforeHeadVersion; version++) {
-                    ObjectMetadata metaVersion = getDriver().getReadDrive(getBucket(), getObjectName())
-                            .getObjectMetadataVersion(getBucket(), getObjectName(), version);
+                    ObjectMetadata metaVersion = getObjectMapper().readValue(getObjectPath().metadataFileVersionPath(version).toFile(), ObjectMetadata.class);
+                    //        ObjectMetadata metaVersion = getDriver().getReadDrive(getBucket(), getObjectName())
+                    //        .getObjectMetadataVersion(getBucket(), getObjectName(), version);
+                    
                     if (metaVersion != null)
                         metaVersions.add(metaVersion);
                 }
                 if (metaVersions.isEmpty())
                     throw new OdilonObjectNotFoundException(Optional.of(meta.getSystemTags()).orElse("previous versions deleted"));
 
+                /** backup */
                 backup(meta.getVersion());
 
                 /** start operation */
@@ -94,7 +96,7 @@ public class RAIDZeroRestoreObjectPreviousVersionHandler extends RAIDZeroTransac
                 ObjectMetadata metaToRestore = metaVersions.get(metaVersions.size() - 1);
                 metaToRestore.setBucketName(getBucket().getName());
 
-                if (!restoreVersionDataFile(getBucket(), metaToRestore.getObjectName(), metaToRestore.getVersion()))
+                if (!restoreVersionDataFile(metaToRestore.getVersion()))
                     throw new OdilonObjectNotFoundException(Optional.of(meta.getSystemTags()).orElse("previous versions deleted"));
 
                 if (!restoreVersionMetadata(getBucket(), metaToRestore.getObjectName(), metaToRestore.getVersion()))
@@ -134,13 +136,13 @@ public class RAIDZeroRestoreObjectPreviousVersionHandler extends RAIDZeroTransac
                          */
                         if ((operation != null) && ((beforeHeadVersion >= 0))) {
                             try {
-                                ObjectPath path = new ObjectPath(getDriver().getWriteDrive(getBucket(), getObjectName()),
-                                        getBucket(), getObjectName());
+                                
                                 /** metadata file */
-                                FileUtils.deleteQuietly(getDriver().getWriteDrive(getBucket(), getObjectName())
-                                        .getObjectMetadataVersionFile(getBucket(), getObjectName(), beforeHeadVersion));
+                                FileUtils.deleteQuietly( getObjectPath().metadataFileVersionPath(beforeHeadVersion).toFile());
+                                //FileUtils.deleteQuietly(getDriver().getWriteDrive(getBucket(), getObjectName())
+                                //        .getObjectMetadataVersionFile(getBucket(), getObjectName(), beforeHeadVersion));
                                 /** data file */
-                                FileUtils.deleteQuietly(path.dataFileVersionPath(beforeHeadVersion).toFile());
+                                FileUtils.deleteQuietly(getObjectPath().dataFileVersionPath(beforeHeadVersion).toFile());
                             } catch (Exception e) {
                                 logger.error(e, SharedConstant.NOT_THROWN);
                             }
@@ -168,8 +170,8 @@ public class RAIDZeroRestoreObjectPreviousVersionHandler extends RAIDZeroTransac
         /** version data */
         Drive drive = getWriteDrive(getBucket(), getObjectName());
         try {
-            ObjectPath path = getObjectPath();
-            File file = path.dataFilePath().toFile();
+            File file = getObjectPath().dataFilePath().toFile();
+            //getObjectPath().dataFileVersionPath(version)
             ((SimpleDrive) drive).putObjectDataVersionFile(getBucket().getId(), getObjectName(), version, file);
         } catch (Exception e) {
             throw new InternalCriticalException(e, info());
@@ -199,13 +201,13 @@ public class RAIDZeroRestoreObjectPreviousVersionHandler extends RAIDZeroTransac
         }
     }
 
-    private boolean restoreVersionDataFile(ServerBucket bucket, String objectName, int version) {
+    private boolean restoreVersionDataFile(int version) {
         try {
-            Drive drive = getWriteDrive(bucket, objectName);
-            ObjectPath path = new ObjectPath(drive, bucket, objectName);
+            Drive drive = getWriteDrive(getBucket(), getObjectName());
+            ObjectPath path = getObjectPath();
             File file = path.dataFileVersionPath(version).toFile();
             if (file.exists()) {
-                ((SimpleDrive) drive).putObjectDataFile(bucket.getId(), objectName, file);
+                ((SimpleDrive) drive).putObjectDataFile(getBucket().getId(), getObjectName(), file);
                 FileUtils.deleteQuietly(file);
                 return true;
             }

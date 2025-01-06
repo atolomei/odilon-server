@@ -67,9 +67,10 @@ public class RAIDZeroDeleteObjectAllPreviousVersionsHandler extends RAIDZeroTran
 
                 if (meta.getVersion() == VERSION_ZERO)
                     return;
-                
+
                 /** backup */
-                FileUtils.copyDirectory(getObjectPath().metadataDirPath().toFile(), getObjectPath().metadataBackupDirPath().toFile());
+                FileUtils.copyDirectory(getObjectPath().metadataDirPath().toFile(),
+                        getObjectPath().metadataBackupDirPath().toFile());
 
                 /** start operation */
                 operation = deleteObjectPreviousVersions(meta.getVersion());
@@ -110,8 +111,18 @@ public class RAIDZeroDeleteObjectAllPreviousVersionsHandler extends RAIDZeroTran
                         }
                     } else {
                         try {
-                            /** after commit is ok -> remove all data files  */
-                            removeVersionDataFiles(meta.getVersion());
+
+                            /** after commit is ok -> remove all data files */
+                            /** delete data versions(1..n-1). keep headVersion **/
+                            for (int version = 0; version < meta.getVersion(); version++)
+                                FileUtils.deleteQuietly(getObjectPath().dataFileVersionPath(version).toFile());
+
+                            /** delete backup Metadata */
+                            FileUtils.deleteQuietly(getObjectPath().metadataWorkFilePath().toFile());
+
+                            getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext().getBean(
+                                    AfterDeleteObjectServiceRequest.class, operation.getOperationCode(), meta, meta.getVersion()));
+
                         } catch (Exception e) {
                             logger.error(e, info(), SharedConstant.NOT_THROWN);
                         }
@@ -124,33 +135,30 @@ public class RAIDZeroDeleteObjectAllPreviousVersionsHandler extends RAIDZeroTran
             objectWriteUnLock();
         }
 
-        if (commitOK) {
-            try {
-                getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext()
-                        .getBean(AfterDeleteObjectServiceRequest.class, operation.getOperationCode(), meta, meta.getVersion()));
-
-            } catch (Exception e) {
-                logger.error(e, opInfo(operation), SharedConstant.NOT_THROWN);
-            }
-        }
+        /**
+         * if (commitOK) { try {
+         * getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext()
+         * .getBean(AfterDeleteObjectServiceRequest.class, operation.getOperationCode(),
+         * meta, meta.getVersion()));
+         * 
+         * } catch (Exception e) { logger.error(e, opInfo(operation),
+         * SharedConstant.NOT_THROWN); } }
+         **/
     }
 
     private VirtualFileSystemOperation deleteObjectPreviousVersions(int headVersion) {
         return deleteObjectPreviousVersions(getBucket(), getObjectName(), headVersion);
     }
 
-    private void removeVersionDataFiles(int headVersion) {
-        try {
-            /** delete data versions(1..n-1). keep headVersion **/
-            for (int n = 0; n < headVersion; n++)
-                FileUtils.deleteQuietly(getObjectPath().dataFileVersionPath(n).toFile());
-
-            /** delete backup Metadata */
-            FileUtils.deleteQuietly(getObjectPath().metadataWorkFilePath().toFile());
-
-        } catch (Exception e) {
-            logger.error(e, info(), SharedConstant.NOT_THROWN);
-        }
-    }
-
+    /**
+     * private void removeVersionDataFiles(int headVersion) { try { // delete data
+     * versions(1..n-1). keep headVersion for (int n = 0; n < headVersion; n++)
+     * FileUtils.deleteQuietly(getObjectPath().dataFileVersionPath(n).toFile());
+     * 
+     * // delete backup Metadata
+     * FileUtils.deleteQuietly(getObjectPath().metadataWorkFilePath().toFile());
+     * 
+     * } catch (Exception e) { logger.error(e, info(), SharedConstant.NOT_THROWN); }
+     * }
+     **/
 }

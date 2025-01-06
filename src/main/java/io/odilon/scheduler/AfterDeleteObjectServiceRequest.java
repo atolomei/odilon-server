@@ -78,8 +78,8 @@ public class AfterDeleteObjectServiceRequest extends AbstractServiceRequest impl
     @JsonProperty("headVersion")
     int headVersion = 0;
 
-    @JsonProperty("vfsop")
-    OperationCode vfsop;
+    @JsonProperty("operationCode")
+    OperationCode operationCode;
 
     @JsonIgnore
     private boolean isSuccess = false;
@@ -94,7 +94,7 @@ public class AfterDeleteObjectServiceRequest extends AbstractServiceRequest impl
 
     public AfterDeleteObjectServiceRequest(OperationCode vfsop, ObjectMetadata meta, int headVersion) {
 
-        this.vfsop = vfsop;
+        this.operationCode = vfsop;
         this.meta = meta;
         this.headVersion = headVersion;
     }
@@ -142,6 +142,10 @@ public class AfterDeleteObjectServiceRequest extends AbstractServiceRequest impl
         this.isSuccess = true;
     }
 
+    public OperationCode getOperationCode() {
+        return this.operationCode;
+    }
+
     /**
      * <p>
      * There is nothing to do if the VFSOp or ObjectMetadata are null at this point.
@@ -153,7 +157,7 @@ public class AfterDeleteObjectServiceRequest extends AbstractServiceRequest impl
 
         VirtualFileSystemService vfs = getApplicationContext().getBean(VirtualFileSystemService.class);
 
-        if (this.vfsop == null) {
+        if (getOperationCode() == null) {
             logger.error("Invalid " + OperationCode.class.getName() + " is null ", SharedConstant.NOT_THROWN);
             return;
         }
@@ -163,13 +167,14 @@ public class AfterDeleteObjectServiceRequest extends AbstractServiceRequest impl
             return;
         }
 
-        if (this.vfsop == OperationCode.DELETE_OBJECT)
+        if (this.getOperationCode() == OperationCode.DELETE_OBJECT)
             vfs.createVFSIODriver().postObjectDeleteTransaction(meta, headVersion);
 
-        else if (this.vfsop == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS)
+        else if (getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS)
             vfs.createVFSIODriver().postObjectPreviousVersionDeleteAllTransaction(meta, headVersion);
         else
-            logger.error("Invalid " + OperationCode.class.getName() + " -> " + this.vfsop.getName(), SharedConstant.NOT_THROWN);
+            logger.error("Invalid " + OperationCode.class.getName() + " -> " + this.operationCode.getName(),
+                    SharedConstant.NOT_THROWN);
     }
 
 }

@@ -16,7 +16,6 @@
  */
 package io.odilon.virtualFileSystem.raid0;
 
-import java.io.File;
 import java.nio.file.Files;
 
 import org.apache.commons.io.FileUtils;
@@ -25,12 +24,10 @@ import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.SharedConstant;
-
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
- * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public class RAIDZeroUpdateObjectMetadataHandler extends RAIDZeroTransactionObjectHandler {
@@ -89,9 +86,7 @@ public class RAIDZeroUpdateObjectMetadataHandler extends RAIDZeroTransactionObje
                     } else {
                         /** TODO-> Delete backup Metadata. change to Async */
                         try {
-                            FileUtils.deleteQuietly(new File(
-                                    getDriver().getWriteDrive(getBucket(), getObjectName()).getBucketWorkDirPath(getBucket())
-                                            + File.separator + getObjectName()));
+                            FileUtils.deleteQuietly(getObjectPath().metadataWorkFilePath().toFile());
                         } catch (Exception e) {
                             logger.error(e, SharedConstant.NOT_THROWN);
                         }

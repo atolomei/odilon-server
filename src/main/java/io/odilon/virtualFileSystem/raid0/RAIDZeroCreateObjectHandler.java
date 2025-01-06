@@ -80,8 +80,10 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroTransactionObjectHandle
 
                 /** start operation */
                 operation = createObject();
+
+                /** save metadata and data */
                 save(stream, sourceFileName, contentType, customTags);
-                
+
                 /** commit */
                 commitOk = operation.commit();
 
