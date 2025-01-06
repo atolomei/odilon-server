@@ -67,6 +67,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionObjectHandle
         boolean commitOK = false;
         VirtualFileSystemOperation operation = null;
         int beforeHeadVersion = -1;
+        
         objectWriteLock();
         try {
 
@@ -86,8 +87,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionObjectHandle
                 operation = updateObject(meta.getVersion());
 
                 /** copy new version head version */
-                saveData(stream, srcFileName);
-                saveMetadata(srcFileName, contentType, meta.getVersion() + 1, customTags);
+                save(stream, srcFileName, contentType, meta.getVersion() + 1, customTags);
 
                 /** commit */
                 commitOK = operation.commit();
@@ -120,7 +120,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionObjectHandle
                          * locks are still applied. Also it is required to be fast<br/>
                          */
                         try {
-                            if ((!getServerSettings().isVersionControl()) && (beforeHeadVersion > -1)) {
+                            if ((!isVersionControl()) && (beforeHeadVersion > -1)) {
                                 FileUtils.deleteQuietly(getObjectPath().metadataFileVersionPath(beforeHeadVersion).toFile());
                                 FileUtils.deleteQuietly(getObjectPath().dataFileVersionPath(beforeHeadVersion).toFile());
                             }
@@ -137,13 +137,12 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionObjectHandle
         }
     }
 
-    private void saveMetadata(String srcFileName, String contentType, int afterHeadVersion, Optional<List<String>> customTags) {
+
+    private void save(InputStream stream, String srcFileName, String contentType, int afterHeadVersion, Optional<List<String>> customTags) {
+        saveData(getBucket(), getObjectName(), stream, srcFileName);
         saveMetadata(getBucket(), getObjectName(), srcFileName, contentType, afterHeadVersion, customTags);
     }
 
-    private void saveData(InputStream stream, String srcFileName) {
-        saveData(getBucket(), getObjectName(), stream, srcFileName);
-    }
 
     private VirtualFileSystemOperation updateObject(int beforeHeadVersion) {
         return updateObject(getBucket(), getObjectName(), beforeHeadVersion);
@@ -160,6 +159,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionObjectHandle
             ObjectPath path = getObjectPath();
             File file = path.dataFilePath().toFile();
             ((SimpleDrive) drive).putObjectDataVersionFile(getBucket().getId(), getObjectName(), version, file);
+            
         } catch (Exception e) {
             throw new InternalCriticalException(e, info());
         }

@@ -84,6 +84,10 @@ public abstract class BaseRAIDHandler extends BaseObject {
         return bucket.getId().toString() + File.separator + objectName;
     }
 
+    protected boolean isVersionControl() {
+        return getServerSettings().isVersionControl();
+    }
+    
     /**
      * must be executed inside the critical zone.
      */

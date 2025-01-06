@@ -55,10 +55,10 @@ public class RAIDZeroRollbackUpdateHandler extends RAIDZeroRollbackObjectHandler
             rollbackUpdateMetadata();
             break;
         }
-        case RESTORE_OBJECT_PREVIOUS_VERSION: {
-            rollbackUpdate();
-            break;
-        }
+        //case RESTORE_OBJECT_PREVIOUS_VERSION: {
+        //    rollbackUpdate();
+        //    break;
+        //}
         default: {
             break;
         }

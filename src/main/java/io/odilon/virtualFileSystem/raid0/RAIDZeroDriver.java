@@ -773,7 +773,8 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
             return;
         }
         case RESTORE_OBJECT_PREVIOUS_VERSION: {
-            RAIDZeroRollbackUpdateHandler handler = new RAIDZeroRollbackUpdateHandler(this, operation, recovery);
+            //RAIDZeroRollbackUpdateHandler handler = new RAIDZeroRollbackUpdateHandler(this, operation, recovery);
+            RAIDZeroRollbackRestorePreviousVersionHandler handler = new RAIDZeroRollbackRestorePreviousVersionHandler(this, operation, recovery);
             handler.rollback();
             return;
         }

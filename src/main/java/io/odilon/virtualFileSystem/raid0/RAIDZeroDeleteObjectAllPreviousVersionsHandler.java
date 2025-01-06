@@ -120,6 +120,7 @@ public class RAIDZeroDeleteObjectAllPreviousVersionsHandler extends RAIDZeroTran
                             /** delete backup Metadata */
                             FileUtils.deleteQuietly(getObjectPath().metadataWorkFilePath().toFile());
 
+                            /** async job that sweeps away temporary files (not doing anything by the moment though) */
                             getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext().getBean(
                                     AfterDeleteObjectServiceRequest.class, operation.getOperationCode(), meta, meta.getVersion()));
 

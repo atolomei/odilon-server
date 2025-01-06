@@ -69,14 +69,14 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroTransactionObjectHandle
                 checkExistObject();
 
                 headVersion = getMetadata().getVersion();
-                
+
                 /** backup */
                 FileUtils.copyDirectory(getObjectPath().metadataDirPath().toFile(),
                         getObjectPath().metadataBackupDirPath().toFile());
 
                 /** start operation */
                 operation = deleteObjectOperation(getMetadata().getVersion());
-                
+
                 /** Delete Metadata directory */
                 FileUtils.deleteQuietly(getObjectPath().metadataDirPath().toFile());
 
