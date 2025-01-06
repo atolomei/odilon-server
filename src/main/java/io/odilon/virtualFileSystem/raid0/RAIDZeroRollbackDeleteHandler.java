@@ -55,7 +55,6 @@ public class RAIDZeroRollbackDeleteHandler extends RAIDZeroRollbackObjectHandler
                 throw (e);
             else
                 logger.error(e, info(), SharedConstant.NOT_THROWN);
-
         } catch (Exception e) {
             if (!isRecovery())
                 throw new InternalCriticalException(e, info());

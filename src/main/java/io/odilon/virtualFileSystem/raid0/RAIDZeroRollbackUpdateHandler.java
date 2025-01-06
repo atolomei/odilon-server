@@ -42,11 +42,6 @@ public class RAIDZeroRollbackUpdateHandler extends RAIDZeroRollbackObjectHandler
         super(driver, operation, recoveryMode);
     }
 
-    /**
-     * <p>
-     * The procedure is the same for Version Control
-     * </p>
-     */
     @Override
     protected void rollback() {
 

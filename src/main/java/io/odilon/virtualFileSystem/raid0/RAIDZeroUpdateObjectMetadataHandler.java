@@ -52,29 +52,29 @@ public class RAIDZeroUpdateObjectMetadataHandler extends RAIDZeroTransactionObje
 
             bucketReadLock();
             try {
-                
+
                 checkExistsBucket();
                 checkExistObject();
 
-                /** backup existing metadata */
+                /** backup (existing metadata) */
                 FileUtils.copyDirectory(getObjectPath().metadataDirPath().toFile(),
                         getObjectPath().metadataBackupDirPath().toFile());
 
-                
                 /** start operation */
                 operation = updateObjectMetadata(meta.getVersion());
-                
+
                 /** save metadata */
                 Files.writeString(getObjectPath().metadataFilePath(), getObjectMapper().writeValueAsString(meta));
 
-                
                 /** commit */
                 commitOK = operation.commit();
 
+            } catch (InternalCriticalException e2) {
+                isMainException = true;
+                throw e2;
             } catch (Exception e) {
                 isMainException = true;
                 throw new InternalCriticalException(e, info());
-
             } finally {
                 try {
                     if (!commitOK) {

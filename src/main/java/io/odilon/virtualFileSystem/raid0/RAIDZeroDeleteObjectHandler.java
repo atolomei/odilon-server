@@ -86,6 +86,9 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroTransactionObjectHandle
             } catch (OdilonObjectNotFoundException e1) {
                 isMainException = true;
                 throw e1;
+            } catch (InternalCriticalException e) {
+                isMainException = true;
+                throw e;
             } catch (Exception e) {
                 isMainException = true;
                 throw new InternalCriticalException(e, info());

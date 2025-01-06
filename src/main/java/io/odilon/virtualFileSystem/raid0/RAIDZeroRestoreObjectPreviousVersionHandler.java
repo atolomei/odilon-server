@@ -86,7 +86,7 @@ public class RAIDZeroRestoreObjectPreviousVersionHandler extends RAIDZeroTransac
                     throw new OdilonObjectNotFoundException(Optional.of(meta.getSystemTags()).orElse("previous versions deleted"));
 
                 backup(meta.getVersion());
-                
+
                 /** start operation */
                 operation = restoreObjectPreviousVersion(beforeHeadVersion);
 
@@ -102,7 +102,7 @@ public class RAIDZeroRestoreObjectPreviousVersionHandler extends RAIDZeroTransac
 
                 /** commit */
                 commitOK = operation.commit();
-                
+
                 return metaToRestore;
 
             } catch (OdilonObjectNotFoundException e1) {
@@ -110,6 +110,9 @@ public class RAIDZeroRestoreObjectPreviousVersionHandler extends RAIDZeroTransac
                 e1.setErrorMessage(e1.getErrorMessage() + " | " + info());
                 throw e1;
 
+            } catch (InternalCriticalException e) {
+                isMainException = true;
+                throw e;
             } catch (Exception e) {
                 isMainException = true;
                 throw new InternalCriticalException(e, info());
@@ -157,8 +160,8 @@ public class RAIDZeroRestoreObjectPreviousVersionHandler extends RAIDZeroTransac
     }
 
     /**
-     * backup current head version
-     * save current head version MetadataFile .vN and data File vN - no need to additional backup
+     * backup current head version save current head version MetadataFile .vN and
+     * data File vN - no need to additional backup
      */
     private void backup(int version) {
 

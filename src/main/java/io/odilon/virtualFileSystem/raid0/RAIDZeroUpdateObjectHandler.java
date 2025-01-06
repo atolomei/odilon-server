@@ -77,15 +77,14 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionObjectHandle
                 checkExistObject();
 
                 ObjectMetadata meta = getMetadata();
-                beforeHeadVersion = meta.getVersion(); 
-                
-                /** backup current head version */
+                beforeHeadVersion = meta.getVersion();
+
+                /** backup (current head version) */
                 backup(meta.getVersion());
 
-                
                 /** start operation */
                 operation = updateObject(meta.getVersion());
-                
+
                 /** copy new version head version */
                 saveData(stream, srcFileName);
                 saveMetadata(srcFileName, contentType, meta.getVersion() + 1, customTags);
@@ -121,7 +120,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionObjectHandle
                          * locks are still applied. Also it is required to be fast<br/>
                          */
                         try {
-                            if ((!getServerSettings().isVersionControl()) && (beforeHeadVersion>-1)) {
+                            if ((!getServerSettings().isVersionControl()) && (beforeHeadVersion > -1)) {
                                 FileUtils.deleteQuietly(getObjectPath().metadataFileVersionPath(beforeHeadVersion).toFile());
                                 FileUtils.deleteQuietly(getObjectPath().dataFileVersionPath(beforeHeadVersion).toFile());
                             }
