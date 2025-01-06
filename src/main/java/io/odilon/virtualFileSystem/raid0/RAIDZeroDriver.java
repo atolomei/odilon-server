@@ -227,10 +227,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         Check.requireNonNullArgument(bucket, "bucket is null");
         Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible " + objectInfo(bucket));
 
-        // RAIDZeroUpdateObjectHandler updateAgent = new
-        // RAIDZeroUpdateObjectHandler(this, bucket, meta.getObjectName());
-        // updateAgent.updateObjectMetadata(meta);
-
         RAIDZeroUpdateObjectMetadataHandler updateAgent = new RAIDZeroUpdateObjectMetadataHandler(this, bucket,
                 meta.getObjectName());
         updateAgent.updateObjectMetadata(meta);
@@ -779,8 +775,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
             return;
         }
         case RESTORE_OBJECT_PREVIOUS_VERSION: {
-            // RAIDZeroRollbackUpdateHandler handler = new
-            // RAIDZeroRollbackUpdateHandler(this, operation, recovery);
             RAIDZeroRollbackRestorePreviousVersionHandler handler = new RAIDZeroRollbackRestorePreviousVersionHandler(this,
                     operation, recovery);
             handler.rollback();
