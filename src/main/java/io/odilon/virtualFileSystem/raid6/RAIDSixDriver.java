@@ -64,7 +64,28 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
  * <p>
- * RAID 6. Driver
+ * <b>RAID 6 / Erasure Coding Driver</b> <br/>
+ * It is a method of encoding data into blocks that can be distributed across
+ * multiple disks or nodes and then reconstructed from a subset of those blocks.
+ * </p>
+ * <p>
+ * It has great flexibility since you can adjust the number and size of the
+ * blocks and the minimum required for recovery. It uses less disk space than
+ * RAID 1 and can withstand multiple full disk failures. 
+ * </p>
+ * <p>
+ * Odilon implements this architecture using Reed Solomon error-correction codes. 
+ * </p>
+ * <p>
+ * The configurations
+ * are: 
+ * <ul>
+ * <li>3 disks (2 data and 1 parity, supports 1 full disk failure)</li> 
+ * <li>6 disks (4 data and 2 parity, supports up to 2 full disks failure)</li> 
+ * <li>12 disks (8 data and 4 parity, supports up to 4 full disk failure)</li> 
+ * <li>24 disks (16 data and 8 parity, supports up to 8 full disk failure)</li> 
+ * <li>48 disks (32 data and 16 parity, supports up to 16 full disk failure)</li>
+ * </ul>
  * </p>
  * <p>
  * The coding convention for RS blocks is:
@@ -157,14 +178,15 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
     public InputStream getInputStream(ServerBucket bucket, String objectName) throws IOException {
         Check.requireNonNullArgument(bucket, "bucket is null");
         Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
+        
         objectReadLock(bucket, objectName);
         try {
+
             bucketReadLock(bucket);
             try {
 
-                /** must be executed inside the critical zone */
+            
                 checkExistBucket(bucket);
-
                 checkIsAccesible(bucket);
                 ObjectMetadata meta = getDriverObjectMetadataInternal(bucket, objectName, true);
 
@@ -188,6 +210,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
         }
     }
 
+    
     @Override
     public InputStream getObjectVersionInputStream(ServerBucket bucket, String objectName, int version) {
 

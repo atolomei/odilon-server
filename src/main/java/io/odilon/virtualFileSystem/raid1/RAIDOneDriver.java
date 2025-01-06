@@ -51,7 +51,6 @@ import io.odilon.util.OdilonFileUtils;
 import io.odilon.virtualFileSystem.Action;
 import io.odilon.virtualFileSystem.BaseIODriver;
 import io.odilon.virtualFileSystem.ObjectPath;
-import io.odilon.virtualFileSystem.OdilonBucket;
 import io.odilon.virtualFileSystem.OdilonObject;
 import io.odilon.virtualFileSystem.OdilonVirtualFileSystemOperation;
 import io.odilon.virtualFileSystem.model.BucketIterator;
@@ -66,22 +65,17 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
  * <p>
- * <b>RAID 1</b>
+ * <b>RAID 1</b><br/>
+ * For each object, 1 or more exact copies (or mirrors) are created on two or
+ * more disks. This provides redundancy in case of disk failure. At least 2
+ * disks are required, Odilon also supports 3 or more for greater redundancy.
  * </p>
- * <p>
- * {@link OdilonBucket} structure is the same for all drives <br/>
- * {@link VirtualFileSystemService} checks consistency during startup.
- * </p>
- * <p>
- * For each object, a copy is created on each {@link Drive}.
- * </p>
- * 
  * <p>
  * This Class is works as a
  * <a href="https://en.wikipedia.org/wiki/Facade_pattern">Facade pattern</a>
  * that uses {@link RAIDOneCreateObjectHandler},
  * {@link RAIDOneDeleteObjectHandler}, {@link RAIDOneUpdateObjectHandler} and
- * other
+ * others
  * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
@@ -141,7 +135,7 @@ public class RAIDOneDriver extends BaseIODriver {
         checkIsAccesible(bucket);
         getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext()
                 .getBean(DeleteBucketObjectPreviousVersionServiceRequest.class, bucket.getName(), bucket.getId()));
-        
+
     }
 
     @Override
@@ -204,19 +198,17 @@ public class RAIDOneDriver extends BaseIODriver {
         }
     }
 
-    
-    
     @Override
     public void deleteObjectAllPreviousVersions(ServerBucket bucket, String objectName) {
         Check.requireNonNullArgument(bucket, "bucket is null");
         Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + objectInfo(bucket));
         checkIsAccesible(bucket);
-        
-        RAIDOneDeleteObjectAllPreviousVersionsHandler agent = new RAIDOneDeleteObjectAllPreviousVersionsHandler(this, bucket, objectName);
+
+        RAIDOneDeleteObjectAllPreviousVersionsHandler agent = new RAIDOneDeleteObjectAllPreviousVersionsHandler(this, bucket,
+                objectName);
         agent.delete();
     }
 
-    
     @Override
     public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName, String contentType,
             Optional<List<String>> customTags) {
@@ -264,7 +256,6 @@ public class RAIDOneDriver extends BaseIODriver {
     @Override
     public void postObjectPreviousVersionDeleteAllTransaction(ObjectMetadata meta, int headVersion) {
     }
-    
 
     @Override
     public void putObjectMetadata(ObjectMetadata meta) {
@@ -710,7 +701,7 @@ public class RAIDOneDriver extends BaseIODriver {
 
     @Override
     public void rollback(VirtualFileSystemOperation operation, Object payload, boolean recovery) {
- 
+
         if (operation.getOperationCode() == OperationCode.CREATE_OBJECT) {
             RAIDOneRollbackCreateHandler handler = new RAIDOneRollbackCreateHandler(this, operation, recovery);
             handler.rollback();

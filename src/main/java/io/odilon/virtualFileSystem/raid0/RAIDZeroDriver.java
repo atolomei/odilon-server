@@ -143,7 +143,8 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         Check.requireNonNullArgument(bucket, "bucket is null");
         Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucket.getName());
         Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible " + objectInfo(bucket));
-        RAIDZeroDeleteObjectAllPreviousVersionsHandler agent = new RAIDZeroDeleteObjectAllPreviousVersionsHandler(this, bucket, objectName);
+        RAIDZeroDeleteObjectAllPreviousVersionsHandler agent = new RAIDZeroDeleteObjectAllPreviousVersionsHandler(this, bucket,
+                objectName);
         agent.delete();
     }
 
@@ -163,9 +164,9 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         Check.requireNonNullArgument(bucket, "bucket is null");
         Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucket.getName());
         Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible " + objectInfo(bucket));
-        
-        //RAIDZeroUpdateObjectHandler agent = new RAIDZeroUpdateObjectHandler(this, bucket, objectName);
-        RAIDZeroRestoreObjectPreviousVersionHandler agent = new RAIDZeroRestoreObjectPreviousVersionHandler(this, bucket, objectName);
+
+        RAIDZeroRestoreObjectPreviousVersionHandler agent = new RAIDZeroRestoreObjectPreviousVersionHandler(this, bucket,
+                objectName);
         return agent.restorePreviousVersion();
     }
 
@@ -203,7 +204,8 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         Check.requireNonNullStringArgument(fileName, "fileName is null " + objectInfo(bucket, objectName));
         Check.requireNonNullArgument(stream, "InpuStream can not null " + objectInfo(bucket, objectName));
         if (exists(bucket, objectName)) {
-            RAIDZeroUpdateObjectHandler updateAgent = new RAIDZeroUpdateObjectHandler(this, bucket, objectName);;
+            RAIDZeroUpdateObjectHandler updateAgent = new RAIDZeroUpdateObjectHandler(this, bucket, objectName);
+            ;
             updateAgent.update(stream, fileName, contentType, customTags);
             getSystemMonitorService().getUpdateObjectCounter().inc();
         } else {
@@ -224,11 +226,13 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         ServerBucket bucket = getBucket(meta.getBucketName());
         Check.requireNonNullArgument(bucket, "bucket is null");
         Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible " + objectInfo(bucket));
-        
-        //RAIDZeroUpdateObjectHandler updateAgent = new RAIDZeroUpdateObjectHandler(this, bucket, meta.getObjectName());
-        //updateAgent.updateObjectMetadata(meta);
-        
-        RAIDZeroUpdateObjectMetadataHandler updateAgent = new RAIDZeroUpdateObjectMetadataHandler(this, bucket, meta.getObjectName());
+
+        // RAIDZeroUpdateObjectHandler updateAgent = new
+        // RAIDZeroUpdateObjectHandler(this, bucket, meta.getObjectName());
+        // updateAgent.updateObjectMetadata(meta);
+
+        RAIDZeroUpdateObjectMetadataHandler updateAgent = new RAIDZeroUpdateObjectMetadataHandler(this, bucket,
+                meta.getObjectName());
         updateAgent.updateObjectMetadata(meta);
     }
 
@@ -274,7 +278,8 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
      */
     @Override
     public void postObjectDeleteTransaction(ObjectMetadata meta, int headVersion) {
-        //logger.debug((meta!=null?meta.toString():"null") + "| do nothing by the moment");
+        // logger.debug((meta!=null?meta.toString():"null") + "| do nothing by the
+        // moment");
     }
 
     /**
@@ -284,7 +289,8 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
      */
     @Override
     public void postObjectPreviousVersionDeleteAllTransaction(ObjectMetadata meta, int headVersion) {
-        //logger.debug((meta!=null?meta.toString():"null") + "| do nothing by the moment");
+        // logger.debug((meta!=null?meta.toString():"null") + "| do nothing by the
+        // moment");
     }
 
     /**
@@ -773,8 +779,10 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
             return;
         }
         case RESTORE_OBJECT_PREVIOUS_VERSION: {
-            //RAIDZeroRollbackUpdateHandler handler = new RAIDZeroRollbackUpdateHandler(this, operation, recovery);
-            RAIDZeroRollbackRestorePreviousVersionHandler handler = new RAIDZeroRollbackRestorePreviousVersionHandler(this, operation, recovery);
+            // RAIDZeroRollbackUpdateHandler handler = new
+            // RAIDZeroRollbackUpdateHandler(this, operation, recovery);
+            RAIDZeroRollbackRestorePreviousVersionHandler handler = new RAIDZeroRollbackRestorePreviousVersionHandler(this,
+                    operation, recovery);
             handler.rollback();
             return;
         }
