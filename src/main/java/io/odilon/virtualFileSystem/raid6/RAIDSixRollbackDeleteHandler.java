@@ -80,7 +80,7 @@ public class RAIDSixRollbackDeleteHandler extends RAIDSixRollbackHandler {
                 if ((new File(objectMetadataBackupDirPath)).exists())
                     FileUtils.copyDirectory(new File(objectMetadataBackupDirPath), new File(objectMetadataDirPath));
             } catch (IOException e) {
-                throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName));
+                throw new InternalCriticalException(e, objectInfo(bucket, objectName));
             }
         }
     }

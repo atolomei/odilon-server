@@ -77,9 +77,6 @@ public class RAIDZeroRestoreObjectPreviousVersionHandler extends RAIDZeroTransac
                 List<ObjectMetadata> metaVersions = new ArrayList<ObjectMetadata>();
                 for (int version = 0; version < beforeHeadVersion; version++) {
                     ObjectMetadata metaVersion = getObjectMapper().readValue(getObjectPath().metadataFileVersionPath(version).toFile(), ObjectMetadata.class);
-                    //        ObjectMetadata metaVersion = getDriver().getReadDrive(getBucket(), getObjectName())
-                    //        .getObjectMetadataVersion(getBucket(), getObjectName(), version);
-                    
                     if (metaVersion != null)
                         metaVersions.add(metaVersion);
                 }
@@ -139,8 +136,7 @@ public class RAIDZeroRestoreObjectPreviousVersionHandler extends RAIDZeroTransac
                                 
                                 /** metadata file */
                                 FileUtils.deleteQuietly( getObjectPath().metadataFileVersionPath(beforeHeadVersion).toFile());
-                                //FileUtils.deleteQuietly(getDriver().getWriteDrive(getBucket(), getObjectName())
-                                //        .getObjectMetadataVersionFile(getBucket(), getObjectName(), beforeHeadVersion));
+
                                 /** data file */
                                 FileUtils.deleteQuietly(getObjectPath().dataFileVersionPath(beforeHeadVersion).toFile());
                             } catch (Exception e) {

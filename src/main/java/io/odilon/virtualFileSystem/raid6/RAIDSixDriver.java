@@ -64,7 +64,7 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
  * <p>
- * <b>RAID 6 / Erasure Coding Driver</b> <br/>
+ * <b>RAID 6 / Erasure Coding </b> <br/>
  * It is a method of encoding data into blocks that can be distributed across
  * multiple disks or nodes and then reconstructed from a subset of those blocks.
  * </p>

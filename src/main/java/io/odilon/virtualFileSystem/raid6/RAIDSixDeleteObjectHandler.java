@@ -103,9 +103,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixTransactionObjectHandler 
                 isMainException = true;
                 throw new InternalCriticalException(e, info());
             } finally {
-
                 try {
-
                     if (!commitOK) {
                         try {
                             rollback(operation);
@@ -119,13 +117,11 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixTransactionObjectHandler 
                         /** inside the thread */
                         postCommit(meta, getBucket(), meta.getVersion());
                     }
-
                     /**
                      * DATA CONSISTENCY: If The system crashes before Commit or Cancel -> next time
                      * the system starts up it will REDO all stored operations. Also, if there are
                      * error buckets in the drives, they will be normalized when the system starts.
                      */
-
                 } catch (Exception e) {
                     logger.error(e, opInfo(operation), SharedConstant.NOT_THROWN);
                 } finally {

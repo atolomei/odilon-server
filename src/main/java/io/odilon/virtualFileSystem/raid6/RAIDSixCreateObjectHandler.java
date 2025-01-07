@@ -88,7 +88,10 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionObjectHandler 
                 /** start operation */
                 operation = createObject();
 
+                /** save data */
                 RAIDSixBlocks blocks = saveData(stream);
+                
+                /** save metadata */
                 saveMetadata(blocks, srcFileName, contentType, customTags);
 
                 /** commit */
@@ -155,8 +158,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionObjectHandler 
             try {
                 shaBlocks.add(OdilonFileUtils.calculateSHA256String(item));
             } catch (Exception e) {
-                throw new InternalCriticalException(e,
-                        info() + ", f:" + (Optional.ofNullable(item).isPresent() ? (item.getName()) : "null"));
+                throw new InternalCriticalException(e,info());
             }
         });
 

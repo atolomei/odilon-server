@@ -162,14 +162,11 @@ public class RAIDSixEncoder extends RAIDSixCoder {
         boolean done = false;
 
         try (is) {
-
             while (!done)
                 done = encodeChunk(is, bucket, objectName, chunk++, version);
-
         } catch (Exception e) {
             throw new InternalCriticalException(e, "o:" + objectName);
         }
-
         this.encodedInfo.setFileSize(this.fileSize);
         return this.encodedInfo;
     }

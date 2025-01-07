@@ -211,13 +211,13 @@ public class RAIDSixSyncObjectHandler extends RAIDSixTransactionHandler {
     protected synchronized List<Drive> getDrivesToSync() {
         if (this.drivesToSync != null)
             return this.drivesToSync;
-        drivesToSync = new ArrayList<Drive>();
+        this.drivesToSync = new ArrayList<Drive>();
         getDrives().forEach(d -> {
             if (d.getDriveInfo().getStatus() == DriveStatus.NOTSYNC)
-                drivesToSync.add(d);
+                this.drivesToSync.add(d);
         });
 
-        return drivesToSync;
+        return this.drivesToSync;
     }
 
     /**

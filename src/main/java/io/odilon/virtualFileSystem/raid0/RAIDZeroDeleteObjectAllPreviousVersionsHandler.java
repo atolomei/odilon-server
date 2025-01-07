@@ -135,31 +135,9 @@ public class RAIDZeroDeleteObjectAllPreviousVersionsHandler extends RAIDZeroTran
         } finally {
             objectWriteUnLock();
         }
-
-        /**
-         * if (commitOK) { try {
-         * getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext()
-         * .getBean(AfterDeleteObjectServiceRequest.class, operation.getOperationCode(),
-         * meta, meta.getVersion()));
-         * 
-         * } catch (Exception e) { logger.error(e, opInfo(operation),
-         * SharedConstant.NOT_THROWN); } }
-         **/
     }
 
     private VirtualFileSystemOperation deleteObjectPreviousVersions(int headVersion) {
         return deleteObjectPreviousVersions(getBucket(), getObjectName(), headVersion);
     }
-
-    /**
-     * private void removeVersionDataFiles(int headVersion) { try { // delete data
-     * versions(1..n-1). keep headVersion for (int n = 0; n < headVersion; n++)
-     * FileUtils.deleteQuietly(getObjectPath().dataFileVersionPath(n).toFile());
-     * 
-     * // delete backup Metadata
-     * FileUtils.deleteQuietly(getObjectPath().metadataWorkFilePath().toFile());
-     * 
-     * } catch (Exception e) { logger.error(e, info(), SharedConstant.NOT_THROWN); }
-     * }
-     **/
 }

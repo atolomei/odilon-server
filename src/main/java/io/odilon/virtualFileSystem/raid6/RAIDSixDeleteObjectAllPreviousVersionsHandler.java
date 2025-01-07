@@ -101,7 +101,6 @@ public class RAIDSixDeleteObjectAllPreviousVersionsHandler extends RAIDSixTransa
                 isMainException = true;
                 throw new InternalCriticalException(e);
             }
-
             finally {
                 try {
                     if (!commitOK) {

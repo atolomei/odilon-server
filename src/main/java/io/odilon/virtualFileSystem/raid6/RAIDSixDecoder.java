@@ -112,9 +112,9 @@ public class RAIDSixDecoder extends RAIDSixCoder {
                     decodeChunk(meta, bucket, chunk++, out, isHead);
                 }
             } catch (FileNotFoundException e) {
-                throw new InternalCriticalException(e, getDriver().objectInfo(bucketName, objectName, tempPath));
+                throw new InternalCriticalException(e, objectInfo(bucketName, objectName, tempPath));
             } catch (IOException e) {
-                throw new InternalCriticalException(e, getDriver().objectInfo(bucketName, objectName, tempPath));
+                throw new InternalCriticalException(e, objectInfo(bucketName, objectName, tempPath));
             }
             File decodedFile = new File(tempPath);
             getFileCacheService().put(bucket.getId(), objectName, ver, decodedFile, false);
@@ -123,6 +123,10 @@ public class RAIDSixDecoder extends RAIDSixCoder {
         } finally {
             getLockService().getFileCacheLock(bucket.getId(), objectName, ver).writeLock().unlock();
         }
+    }
+
+    private String objectInfo(String bucketName, String objectName, String tempPath) {
+        return getDriver().objectInfo(bucketName, objectName, tempPath);
     }
 
     private LockService getLockService() {
