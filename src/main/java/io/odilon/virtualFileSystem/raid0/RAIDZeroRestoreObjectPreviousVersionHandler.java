@@ -76,7 +76,8 @@ public class RAIDZeroRestoreObjectPreviousVersionHandler extends RAIDZeroTransac
                 beforeHeadVersion = meta.getVersion();
                 List<ObjectMetadata> metaVersions = new ArrayList<ObjectMetadata>();
                 for (int version = 0; version < beforeHeadVersion; version++) {
-                    ObjectMetadata metaVersion = getObjectMapper().readValue(getObjectPath().metadataFileVersionPath(version).toFile(), ObjectMetadata.class);
+                    ObjectMetadata metaVersion = getObjectMapper()
+                            .readValue(getObjectPath().metadataFileVersionPath(version).toFile(), ObjectMetadata.class);
                     if (metaVersion != null)
                         metaVersions.add(metaVersion);
                 }
@@ -133,12 +134,13 @@ public class RAIDZeroRestoreObjectPreviousVersionHandler extends RAIDZeroTransac
                          */
                         if ((operation != null) && ((beforeHeadVersion >= 0))) {
                             try {
-                                
+
                                 /** metadata file */
-                                FileUtils.deleteQuietly( getObjectPath().metadataFileVersionPath(beforeHeadVersion).toFile());
+                                FileUtils.deleteQuietly(getObjectPath().metadataFileVersionPath(beforeHeadVersion).toFile());
 
                                 /** data file */
                                 FileUtils.deleteQuietly(getObjectPath().dataFileVersionPath(beforeHeadVersion).toFile());
+                                
                             } catch (Exception e) {
                                 logger.error(e, SharedConstant.NOT_THROWN);
                             }
@@ -167,7 +169,7 @@ public class RAIDZeroRestoreObjectPreviousVersionHandler extends RAIDZeroTransac
         Drive drive = getWriteDrive(getBucket(), getObjectName());
         try {
             File file = getObjectPath().dataFilePath().toFile();
-            //getObjectPath().dataFileVersionPath(version)
+            // getObjectPath().dataFileVersionPath(version)
             ((SimpleDrive) drive).putObjectDataVersionFile(getBucket().getId(), getObjectName(), version, file);
         } catch (Exception e) {
             throw new InternalCriticalException(e, info());

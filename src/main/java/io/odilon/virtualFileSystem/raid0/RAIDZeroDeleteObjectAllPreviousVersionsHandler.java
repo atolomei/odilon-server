@@ -111,16 +111,15 @@ public class RAIDZeroDeleteObjectAllPreviousVersionsHandler extends RAIDZeroTran
                         }
                     } else {
                         try {
-
-                            /** after commit is ok -> remove all data files */
+                            /** after commit is OK */
                             /** delete data versions(1..n-1). keep headVersion **/
                             for (int version = 0; version < meta.getVersion(); version++)
                                 FileUtils.deleteQuietly(getObjectPath().dataFileVersionPath(version).toFile());
 
-                            /** delete backup Metadata */
+                            /** delete backup metadata */
                             FileUtils.deleteQuietly(getObjectPath().metadataWorkFilePath().toFile());
 
-                            /** async job that sweeps away temporary files (not doing anything by the moment though) */
+                            /** async job that sweeps away temporary files (not doing anything by the moment) */
                             getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext().getBean(
                                     AfterDeleteObjectServiceRequest.class, operation.getOperationCode(), meta, meta.getVersion()));
 

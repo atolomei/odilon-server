@@ -52,12 +52,14 @@ public class RAIDZeroRollbackRestorePreviousVersionHandler extends RAIDZeroRollb
             Drive drive = getWriteDrive(bucket, getOperation().getObjectName());
             ObjectPath path = new ObjectPath(drive, bucket, getOperation().getObjectName());
 
+            /** restore data file */
             File file = path.dataFileVersionPath(getOperation().getVersion()).toFile();
             if (file.exists()) {
                 ((SimpleDrive) drive).putObjectDataFile(bucket.getId(), getOperation().getObjectName(), file);
                 FileUtils.deleteQuietly(file);
             }
 
+            /** restore metadata */
             File file2 = drive.getObjectMetadataVersionFile(bucket, getOperation().getObjectName(), getOperation().getVersion());
             if (file2.exists()) {
                 drive.putObjectMetadataFile(bucket, getOperation().getObjectName(), file2);

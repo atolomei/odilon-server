@@ -44,14 +44,6 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroTransactionObjectHandle
         super(driver, bucket, objectName);
     }
 
-    /**
-     * @param bucket
-     * @param objectName
-     * @param stream
-     * @param srcFileName
-     * @param contentType
-     */
-
     protected void delete() {
 
         VirtualFileSystemOperation operation = null;
@@ -77,7 +69,7 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroTransactionObjectHandle
                 /** start operation */
                 operation = deleteObjectOperation(getMetadata().getVersion());
 
-                /** Delete Metadata directory */
+                /** Delete metadata directory */
                 FileUtils.deleteQuietly(getObjectPath().metadataDirPath().toFile());
 
                 /** commit */
@@ -121,23 +113,22 @@ public class RAIDZeroDeleteObjectHandler extends RAIDZeroTransactionObjectHandle
      * concurrent access because the caller method does it. It must be fast since it
      * is part of the main transaction.
      * </p>
-     * 
-     * @param meta
-     * @param headVersion
      */
     private void remove(int headVersion) {
         try {
+
+            /** delete metadata (head) not required because it was done before commit */
+
             /** delete data versions(1..n-1) */
             for (int version = 0; version <= headVersion; version++)
                 FileUtils.deleteQuietly(getObjectPath().dataFileVersionPath(version).toFile());
-            /**
-             * delete metadata (head) not required because it was done before commit delete
-             * data (head)
-             */
+
+            /** delete data (head) */
             FileUtils.deleteQuietly(getObjectPath().dataFilePath().toFile());
 
-            /** delete backup Metadata */
+            /** delete backup metadata */
             FileUtils.deleteQuietly(getObjectPath().metadataWorkFilePath().toFile());
+
         } catch (Exception e) {
             logger.error(e, info(), SharedConstant.NOT_THROWN);
         }

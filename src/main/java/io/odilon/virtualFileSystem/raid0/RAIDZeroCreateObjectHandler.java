@@ -81,7 +81,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroTransactionObjectHandle
                 /** start operation */
                 operation = createObject();
 
-                /** save metadata and data */
+                /** save (metadata and data) */
                 save(stream, sourceFileName, contentType, customTags);
 
                 /** commit */
@@ -90,9 +90,9 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroTransactionObjectHandle
             } catch (InternalCriticalException e1) {
                 isMainException = true;
                 throw e1;
-            } catch (Exception e) {
+            } catch (Exception e2) {
                 isMainException = true;
-                throw new InternalCriticalException(e, info(sourceFileName));
+                throw new InternalCriticalException(e2, info(sourceFileName));
             } finally {
                 try {
                     if (!commitOk) {

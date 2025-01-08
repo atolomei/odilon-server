@@ -120,7 +120,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionObjectHandle
                          * locks are still applied. Also it is required to be fast<br/>
                          */
                         try {
-                            if ((!isVersionControl()) && (beforeHeadVersion > -1)) {
+                            if ((!isVersionControl()) && (beforeHeadVersion >= 0)) {
                                 FileUtils.deleteQuietly(getObjectPath().metadataFileVersionPath(beforeHeadVersion).toFile());
                                 FileUtils.deleteQuietly(getObjectPath().dataFileVersionPath(beforeHeadVersion).toFile());
                             }

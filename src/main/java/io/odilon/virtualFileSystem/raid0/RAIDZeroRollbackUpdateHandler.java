@@ -46,7 +46,6 @@ public class RAIDZeroRollbackUpdateHandler extends RAIDZeroRollbackObjectHandler
     protected void rollback() {
 
         switch (getOperation().getOperationCode()) {
-
         case UPDATE_OBJECT: {
             rollbackUpdate();
             break;
@@ -55,10 +54,6 @@ public class RAIDZeroRollbackUpdateHandler extends RAIDZeroRollbackObjectHandler
             rollbackUpdateMetadata();
             break;
         }
-        //case RESTORE_OBJECT_PREVIOUS_VERSION: {
-        //    rollbackUpdate();
-        //    break;
-        //}
         default: {
             break;
         }
@@ -101,7 +96,7 @@ public class RAIDZeroRollbackUpdateHandler extends RAIDZeroRollbackObjectHandler
     private void rollbackUpdateMetadata() {
         boolean done = false;
         try {
-            restoreMetadata();
+            FileUtils.copyDirectory(getObjectPath().metadataBackupDirPath().toFile(), getObjectPath().metadataDirPath().toFile());
             done = true;
         } catch (InternalCriticalException e) {
             if (!isRecovery())
@@ -148,7 +143,7 @@ public class RAIDZeroRollbackUpdateHandler extends RAIDZeroRollbackObjectHandler
 
     /**
      * restore metadata directory
-     */
+
     private void restoreMetadata() {
         try {
             FileUtils.copyDirectory(getObjectPath().metadataBackupDirPath().toFile(), getObjectPath().metadataDirPath().toFile());
@@ -158,4 +153,5 @@ public class RAIDZeroRollbackUpdateHandler extends RAIDZeroRollbackObjectHandler
             throw new InternalCriticalException(e, info());
         }
     }
+         */
 }
