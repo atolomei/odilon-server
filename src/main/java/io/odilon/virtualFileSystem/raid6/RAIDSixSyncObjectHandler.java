@@ -168,10 +168,14 @@ public class RAIDSixSyncObjectHandler extends RAIDSixTransactionHandler {
                         }
                     }
                 }
+                
+                /** ---------------------------------------------------------------------- */
+                
                 done = operation.commit();
+                
             } finally {
                 try {
-                    if ((!done) && (operation != null)) {
+                    if ((!done)) {
                         try {
                             rollback(operation);
                         } catch (Exception e) {

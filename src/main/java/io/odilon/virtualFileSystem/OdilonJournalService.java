@@ -88,6 +88,9 @@ public class OdilonJournalService extends BaseService implements JournalService 
     private Map<String, String> ops_aborted = new ConcurrentHashMap<String, String>();
 
     @JsonIgnore
+    private boolean isStandBy;
+
+    @JsonIgnore
     @Autowired
     private ReplicationService replicationService;
 
@@ -102,9 +105,6 @@ public class OdilonJournalService extends BaseService implements JournalService 
     @Autowired
     @JsonIgnore
     private ApplicationEventPublisher applicationEventPublisher;
-
-    @JsonIgnore
-    private boolean isStandBy;
 
     public OdilonJournalService() {
     }

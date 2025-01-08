@@ -118,11 +118,11 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionHandler {
                 meta = getMetadata(bucket, objectName, true);
 
                 beforeHeadVersion = meta.getVersion();
-                
+
                 /** backup */
                 backupVersionObjectDataFile(meta, bucket, meta.getVersion());
                 backupVersionObjectMetadata(bucket, objectName, meta.getVersion());
-                
+
                 /** start operation */
                 operation = getJournalService().updateObject(bucket, objectName, beforeHeadVersion);
 
@@ -131,7 +131,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionHandler {
                 RAIDSixBlocks ei = saveObjectDataFile(bucket, objectName, stream);
                 saveObjectMetadata(bucket, objectName, ei, srcFileName, contentType, afterHeadVersion, meta.getCreationDate(),
                         customTags);
-                
+
                 /** commit */
                 commitOK = operation.commit();
 
@@ -187,18 +187,17 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionHandler {
             getLockService().getBucketLock(meta.getBucketId()).readLock().lock();
             try {
 
-                
                 checkExistsBucket(meta.getBucketId());
                 bucket = getBucketCache().get(meta.getBucketId());
-                
+
                 checkExistObject(bucket, meta.getObjectName());
 
                 /** backup */
                 backup(meta, bucket);
-                
+
                 /** start operation */
                 operation = getJournalService().updateObjectMetadata(bucket, meta.getObjectName(), meta.getVersion());
-                
+
                 saveObjectMetadata(meta, isHead);
 
                 /** commit */
@@ -289,7 +288,6 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionHandler {
                     throw new OdilonObjectNotFoundException(
                             Optional.of(metaHeadToRemove.systemTags).orElse("previous versions deleted"));
 
-                
                 /** backup */
                 /**
                  * save current head version MetadataFile .vN and data File vN - no need to
@@ -297,10 +295,10 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionHandler {
                  */
                 backupVersionObjectDataFile(metaHeadToRemove, bucket, metaHeadToRemove.getVersion());
                 backupVersionObjectMetadata(bucket, objectName, metaHeadToRemove.getVersion());
-                
+
                 /** start operation */
                 operation = getJournalService().restoreObjectPreviousVersion(bucket, objectName, beforeHeadVersion);
-                
+
                 /** save previous version as head */
                 metaToRestore = metaVersions.get(metaVersions.size() - 1);
 
@@ -441,16 +439,6 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionHandler {
         }
     }
 
-    /**
-     * 
-     * @param bucket
-     * @param objectName
-     * @param ei
-     * @param srcFileName
-     * @param contentType
-     * @param version
-     * @param headCreationDate
-     */
     private void saveObjectMetadata(ServerBucket bucket, String objectName, RAIDSixBlocks ei, String srcFileName,
             String contentType, int version, OffsetDateTime headCreationDate, Optional<List<String>> customTags) {
 
@@ -591,11 +579,6 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionHandler {
         }
     }
 
-    /**
-     * @param meta
-     * @param previousVersion
-     * @param currentVersion
-     */
     private void cleanUpUpdate(ObjectMetadata meta, ServerBucket bucket, int previousVersion, int currentVersion) {
         if (meta == null)
             return;
@@ -625,12 +608,6 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionHandler {
         saveRAIDSixObjectMetadataToDisk(drives, list, isHead);
     }
 
-    /**
-     * @param bucketName
-     * @param objectName
-     * @param version
-     * @return
-     */
     private boolean restoreVersionObjectMetadata(ServerBucket bucket, String objectName, int version) {
 
         Check.requireNonNullArgument(bucket, "bucket is null");

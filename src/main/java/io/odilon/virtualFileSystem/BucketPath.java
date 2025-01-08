@@ -11,7 +11,9 @@ public class BucketPath extends PathBuilder {
     
     static final String BUCKET_METADATA = "bucketmetadata-";
     
+    
     private final Drive drive;
+    
     private final ServerBucket bucket;
     
     public BucketPath(Drive drive, ServerBucket bucket) {

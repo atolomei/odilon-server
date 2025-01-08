@@ -66,7 +66,7 @@ public class RAIDSixBucketIterator extends BucketIterator implements Closeable {
     private long cumulativeIndex = 0;
 
     @JsonIgnore
-    private Iterator<Path> it;
+    private Iterator<Path> iterator;
 
     @JsonIgnore
     private Stream<Path> stream;
@@ -108,7 +108,7 @@ public class RAIDSixBucketIterator extends BucketIterator implements Closeable {
         } catch (IOException e) {
             throw new InternalCriticalException(e);
         }
-        this.it = this.stream.iterator();
+        this.iterator = this.stream.iterator();
         skipOffset();
         setInitiated(true);
     }
@@ -159,6 +159,6 @@ public class RAIDSixBucketIterator extends BucketIterator implements Closeable {
     }
 
     private Iterator<Path> getIterator() {
-        return this.it;
+        return this.iterator;
     }
 }

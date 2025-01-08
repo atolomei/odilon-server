@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.odilon.model.BaseObject;
 
@@ -37,7 +38,8 @@ public class RAIDSixBlocks extends BaseObject {
     @JsonIgnore
     private List<File> encodedBlocks = new ArrayList<File>();
 
-    @JsonIgnore
+
+    @JsonProperty("fileSize")
     private long fileSize;
 
     public RAIDSixBlocks() {

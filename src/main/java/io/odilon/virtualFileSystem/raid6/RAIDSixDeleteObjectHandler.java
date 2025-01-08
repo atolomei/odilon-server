@@ -30,7 +30,6 @@ import io.odilon.model.ObjectMetadata;
 import io.odilon.model.SharedConstant;
 import io.odilon.scheduler.AfterDeleteObjectServiceRequest;
 import io.odilon.scheduler.DeleteBucketObjectPreviousVersionServiceRequest;
-import io.odilon.util.Check;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
@@ -94,7 +93,6 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixTransactionObjectHandler 
                 
                 /** commit */
                 commitOK = operation.commit();
-
                 
             } catch (InternalCriticalException e) {
                 isMainException = true;
@@ -133,7 +131,12 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixTransactionObjectHandler 
         }
 
         if (commitOK) {
-            onAfterCommit(operation, meta, meta.getVersion());
+            try {
+                getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext()
+                        .getBean(AfterDeleteObjectServiceRequest.class, operation.getOperationCode(), meta, meta.getVersion()));
+            } catch (Exception e) {
+                logger.error(e, SharedConstant.NOT_THROWN);
+            }
         }
     }
 
@@ -154,13 +157,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixTransactionObjectHandler 
      * @param headVersion newest version of the Object just deleted
      */
     private void postCommit(ObjectMetadata meta, ServerBucket bucket, int headVersion) {
-
-        String bucketName = meta.getBucketName();
         String objectName = meta.getObjectName();
-
-        Check.requireNonNullArgument(bucketName, "bucket is null");
-        Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucketName);
-
         try {
             /** delete data versions(0..head-1) */
             for (int n = 0; n < headVersion; n++)
@@ -194,21 +191,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixTransactionObjectHandler 
                     FileUtils.copyDirectory(src, new File(objectMetadataBackupDirPath));
             }
         } catch (IOException e) {
-            throw new InternalCriticalException(e, getDriver().objectInfo(meta));
-        }
-    }
-
-    /**
-     * @param operation
-     * @param headVersion
-     */
-    private void onAfterCommit(VirtualFileSystemOperation operation, ObjectMetadata meta, int headVersion) {
-        try {
-            getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext()
-                    .getBean(AfterDeleteObjectServiceRequest.class, operation.getOperationCode(), meta, headVersion));
-
-        } catch (Exception e) {
-            logger.error(e, SharedConstant.NOT_THROWN);
+            throw new InternalCriticalException(e, objectInfo(meta));
         }
     }
 }

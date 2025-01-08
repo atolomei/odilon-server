@@ -62,14 +62,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionObjectHandler 
         super(driver, bucket, objectName);
     }
 
-    /**
-     * @param bucket
-     * @param objectName
-     * @param stream
-     * @param srcFileName
-     * @param contentType
-     * @param customTags
-     */
+    
     protected void create(InputStream stream, String srcFileName, String contentType, Optional<List<String>> customTags) {
 
         VirtualFileSystemOperation operation = null;
@@ -88,10 +81,8 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionObjectHandler 
                 /** start operation */
                 operation = createObject();
 
-                /** save data */
+                /** save data and metadata */
                 RAIDSixBlocks blocks = saveData(stream);
-                
-                /** save metadata */
                 saveMetadata(blocks, srcFileName, contentType, customTags);
 
                 /** commit */

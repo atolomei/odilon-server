@@ -35,8 +35,6 @@ import io.odilon.model.ObjectMetadata;
  */
 public class OdilonObject extends BaseObject implements VirtualFileSystemObject {
 
-    @SuppressWarnings("unused")
-    private static Logger logger = Logger.getLogger(OdilonObject.class.getName());
 
     private ObjectMetadata objectMetadata;
 

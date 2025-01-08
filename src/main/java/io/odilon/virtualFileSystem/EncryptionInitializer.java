@@ -88,10 +88,6 @@ public class EncryptionInitializer extends BaseObject {
         return this.vfs;
     }
 
-    /**
-     * 
-     * 
-     */
     public void execute() {
         if (getProvidedMasterKey().isPresent())
             rekey();
