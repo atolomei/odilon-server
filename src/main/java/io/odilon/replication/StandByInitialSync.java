@@ -97,7 +97,7 @@ public class StandByInitialSync implements Runnable {
     private LockService vfsLockService;
 
     @JsonIgnore
-    VirtualFileSystemService vfs;
+    VirtualFileSystemService virtualFileSystemService;
 
     @JsonIgnore
     ReplicationService replicationService;
@@ -114,8 +114,10 @@ public class StandByInitialSync implements Runnable {
     public StandByInitialSync(IODriver driver) {
         this.driver = driver;
         this.vfsLockService = this.driver.getLockService();
-        this.vfs = this.driver.getVirtualFileSystemService();
-        this.replicationService = this.vfs.getReplicationService();
+        this.virtualFileSystemService = this.driver.getVirtualFileSystemService();
+        this.replicationService = this.virtualFileSystemService.getReplicationService();
+        this.setMaxProcessingThread();
+        
     }
 
     public void start() {
@@ -149,13 +151,31 @@ public class StandByInitialSync implements Runnable {
     }
 
     protected VirtualFileSystemService getVirtualFileSystemService() {
-        return this.vfs;
+        return this.virtualFileSystemService;
     }
 
     protected ReplicationService getReplicationService() {
         return this.replicationService;
     }
 
+    
+    
+    private void setMaxProcessingThread() {
+        
+        this.maxProcessingThread = Double.valueOf(Double.valueOf(Runtime.getRuntime().availableProcessors() - 1) / 2.0).intValue()
+                + 1 - 2;
+
+        if (this.maxProcessingThread < 1)
+            this.maxProcessingThread = 1;
+
+        if (getVirtualFileSystemService().getServerSettings().getStandbySyncThreads() > 0)
+            this.maxProcessingThread = this.getVirtualFileSystemService().getServerSettings().getStandbySyncThreads();
+    }
+    
+    private int getMaxProcessingThread() {
+        return this.maxProcessingThread; 
+    }
+    
     private void sync() {
 
         this.start_ms = System.currentTimeMillis();
@@ -173,24 +193,15 @@ public class StandByInitialSync implements Runnable {
 
         getReplicationService().setInitialSync(new AtomicBoolean(true));
 
-        this.maxProcessingThread = Double.valueOf(Double.valueOf(Runtime.getRuntime().availableProcessors() - 1) / 2.0).intValue()
-                + 1 - 2;
-
-        if (this.maxProcessingThread < 1)
-            this.maxProcessingThread = 1;
-
-        if (this.vfs.getServerSettings().getStandbySyncThreads() > 0)
-            this.maxProcessingThread = this.vfs.getServerSettings().getStandbySyncThreads();
-
         ExecutorService executor = null;
 
         try {
 
             this.errors = new AtomicLong(0);
 
-            executor = Executors.newFixedThreadPool(maxProcessingThread);
+            executor = Executors.newFixedThreadPool(getMaxProcessingThread());
 
-            List<ServerBucket> buckets = this.driver.getVirtualFileSystemService().listAllBuckets();
+            List<ServerBucket> buckets = getVirtualFileSystemService().listAllBuckets();
             boolean completed = buckets.isEmpty();
 
             for (ServerBucket bucket : buckets) {
@@ -203,7 +214,7 @@ public class StandByInitialSync implements Runnable {
 
                 while ((!done) && (this.errors.get() <= 10)) {
 
-                    DataList<Item<ObjectMetadata>> data = this.driver.getVirtualFileSystemService().listObjects(bucket.getName(),
+                    DataList<Item<ObjectMetadata>> data = getVirtualFileSystemService().listObjects(bucket.getName(),
                             Optional.of(offset), Optional.ofNullable(pageSize), Optional.empty(), Optional.ofNullable(agentId));
 
                     if (agentId == null)
@@ -322,7 +333,7 @@ public class StandByInitialSync implements Runnable {
 
                 if (completed) {
                     info.setStandBySyncedDate(OffsetDateTime.now());
-                    this.vfs.setOdilonServerInfo(info);
+                    this.virtualFileSystemService.setOdilonServerInfo(info);
 
                     logger.info(ServerConstant.SEPARATOR);
                     logger.info("Intial Sync completed");
@@ -345,6 +356,7 @@ public class StandByInitialSync implements Runnable {
             logResults(intialSynclogger);
         }
     }
+
 
     /**
      * @param logger

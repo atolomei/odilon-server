@@ -23,6 +23,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ThreadPoolExecutor;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
@@ -238,16 +239,26 @@ public class RAIDSixEncoder extends RAIDSixCoder {
             }
         }
 
-        /** save in parallel */
+        /** save in parallel (using the VirtualFileSystem 's ExecutorService) */
         ParallelFileCoypAgent agent = new ParallelFileCoypAgent(shards, destination);
-
+        agent.setExecutor(getVirtualFileSystemService().getExecutorService());
+        
         boolean isOk = agent.execute();
 
         destination.forEach(file -> this.encodedInfo.getEncodedBlocks().add(file));
 
         if (!isOk)
-            throw new InternalCriticalException(getDriver().objectInfo(bucket, objectName));
-
+            throw new InternalCriticalException(objectInfo(bucket, objectName));
+        
+        /**
+        if (logger.isDebugEnabled()) {
+            if (getVirtualFileSystemService().getExecutorService() instanceof ThreadPoolExecutor) {
+                logger.debug("Pool active count -> " + ((ThreadPoolExecutor) getVirtualFileSystemService().getExecutorService()).getActiveCount());
+                logger.debug("Pool size -> " + ((ThreadPoolExecutor) getVirtualFileSystemService().getExecutorService()).getPoolSize());
+            } 
+        }
+        **/
+        
         return eof;
     }
 

@@ -422,7 +422,8 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
             } else {
 
                 final int size = getDriver().getDrivesAll().size();
-                ExecutorService executor = Executors.newFixedThreadPool(size);
+                //ExecutorService executor = Executors.newFixedThreadPool(size);
+                ExecutorService executor = getVirtualFileSystemService().getExecutorService();
 
                 while ((bytes_read = sourceStream.read(buf, 0, buf.length)) >= 0) {
 

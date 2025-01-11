@@ -29,6 +29,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 
 import jakarta.annotation.PostConstruct;
@@ -172,6 +174,11 @@ public class OdilonVirtualFileSystemService extends BaseService
     @JsonIgnore
     private final ApplicationEventPublisher applicationEventPublisher;
 
+    
+    @JsonIgnore
+    private final ExecutorService executorService;
+    
+    
     /**
      * <p>
      * File System cache of decoded {@link File} in File System, used only in
@@ -247,6 +254,9 @@ public class OdilonVirtualFileSystemService extends BaseService
         this.odilonKeyEncryptorService = odilonKeyEncryptorService;
         this.applicationEventPublisher = applicationEventPublisher;
         this.raid = serverSettings.getRedundancyLevel();
+        
+        this.executorService = Executors.newCachedThreadPool();
+        
     }
 
     @Override
@@ -867,6 +877,11 @@ public class OdilonVirtualFileSystemService extends BaseService
         return this.lockService;
     }
 
+    @Override
+    public ExecutorService getExecutorService() {
+        return executorService;
+    }
+    
     @Override
     public ApplicationEventPublisher getApplicationEventPublisher() {
         return this.applicationEventPublisher;

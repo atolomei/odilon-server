@@ -121,46 +121,6 @@ public class DeleteBucketObjectPreviousVersionServiceRequest extends AbstractSer
         return this.bucketId;
     }
 
-    private void processBucket(Long bucketId) {
-        Integer pageSize = Integer.valueOf(PAGESIZE);
-        Long offset = Long.valueOf(0);
-        String agentId = null;
-        boolean done = false;
-        while (!done) {
-
-            DataList<Item<ObjectMetadata>> data = getVirtualFileSystemService().listObjects(getBucketName(), Optional.of(offset),
-                    Optional.ofNullable(pageSize), Optional.empty(), Optional.ofNullable(agentId));
-
-            if (agentId == null)
-                agentId = data.getAgentId();
-
-            List<Callable<Object>> tasks = new ArrayList<>(data.getList().size());
-
-            for (Item<ObjectMetadata> item : data.getList()) {
-                tasks.add(() -> {
-                    try {
-                        this.counter.getAndIncrement();
-                        if (item.isOk()) {
-                            process(item);
-                        } else
-                            this.notAvailable.getAndIncrement();
-
-                    } catch (Exception e) {
-                        logger.error(e, SharedConstant.NOT_THROWN);
-                    }
-                    return null;
-                });
-            }
-
-            try {
-                executor.invokeAll(tasks, 20, TimeUnit.MINUTES);
-            } catch (InterruptedException e) {
-                logger.error(e, SharedConstant.NOT_THROWN);
-            }
-            offset += Long.valueOf(Integer.valueOf(data.getList().size()).longValue());
-            done = data.isEOD();
-        }
-    }
 
     /**
      *
@@ -220,6 +180,48 @@ public class DeleteBucketObjectPreviousVersionServiceRequest extends AbstractSer
         isSuccess = false;
     }
 
+    private void processBucket(Long bucketId) {
+        Integer pageSize = Integer.valueOf(PAGESIZE);
+        Long offset = Long.valueOf(0);
+        String agentId = null;
+        boolean done = false;
+        while (!done) {
+
+            DataList<Item<ObjectMetadata>> data = getVirtualFileSystemService().listObjects(getBucketName(), Optional.of(offset),
+                    Optional.ofNullable(pageSize), Optional.empty(), Optional.ofNullable(agentId));
+
+            if (agentId == null)
+                agentId = data.getAgentId();
+
+            List<Callable<Object>> tasks = new ArrayList<>(data.getList().size());
+
+            for (Item<ObjectMetadata> item : data.getList()) {
+                tasks.add(() -> {
+                    try {
+                        this.counter.getAndIncrement();
+                        if (item.isOk()) {
+                            process(item);
+                        } else
+                            this.notAvailable.getAndIncrement();
+
+                    } catch (Exception e) {
+                        logger.error(e, SharedConstant.NOT_THROWN);
+                    }
+                    return null;
+                });
+            }
+
+            try {
+                executor.invokeAll(tasks, 20, TimeUnit.MINUTES);
+            } catch (InterruptedException e) {
+                logger.error(e, SharedConstant.NOT_THROWN);
+            }
+            offset += Long.valueOf(Integer.valueOf(data.getList().size()).longValue());
+            done = data.isEOD();
+        }
+    }
+
+    
     private void logResults(Logger lg) {
         lg.debug("Threads: " + String.valueOf(this.maxProcessingThread));
         lg.debug("Total: " + String.valueOf(this.counter.get()));

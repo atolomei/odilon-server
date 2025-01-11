@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -132,7 +132,10 @@ public abstract class RAIDSixHandler extends BaseRAIDHandler implements RAIDHand
             return;
         }
 
-        ExecutorService executor = Executors.newFixedThreadPool(size);
+        //ExecutorService executor = Executors.newFixedThreadPool(size);
+        
+        ExecutorService executor = getDriver().getVirtualFileSystemService().getExecutorService();
+        
         List<Callable<Boolean>> tasks = new ArrayList<Callable<Boolean>>(size);
 
         for (int index = 0; index < size; index++) {
@@ -155,6 +158,7 @@ public abstract class RAIDSixHandler extends BaseRAIDHandler implements RAIDHand
                 }
             });
         }
+        
         try {
             List<Future<Boolean>> future = executor.invokeAll(tasks, 10, TimeUnit.MINUTES);
             Iterator<Future<Boolean>> it = future.iterator();

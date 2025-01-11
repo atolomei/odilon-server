@@ -134,7 +134,9 @@ public abstract class RAIDOneHandler extends BaseRAIDHandler implements RAIDHand
             return;
         }
 
-        ExecutorService executor = Executors.newFixedThreadPool(size);
+        //ExecutorService executor = Executors.newFixedThreadPool(size);
+        ExecutorService executor = getVirtualFileSystemService().getExecutorService();
+        
         List<Callable<Boolean>> tasks = new ArrayList<Callable<Boolean>>(size);
 
         for (int index = 0; index < size; index++) {

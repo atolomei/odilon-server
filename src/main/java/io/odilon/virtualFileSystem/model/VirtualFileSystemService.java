@@ -26,6 +26,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
 
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEventPublisher;
@@ -282,6 +283,8 @@ public interface VirtualFileSystemService extends SystemService {
 
 
     public ApplicationEventPublisher getApplicationEventPublisher();
+
+    public ExecutorService getExecutorService();
 
 
 }

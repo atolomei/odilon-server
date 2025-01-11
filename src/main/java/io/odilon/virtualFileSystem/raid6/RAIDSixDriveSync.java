@@ -292,7 +292,7 @@ public class RAIDSixDriveSync implements Runnable {
 
             try {
                 executor.shutdown();
-                executor.awaitTermination(10, TimeUnit.MINUTES);
+                executor.awaitTermination(15, TimeUnit.MINUTES);
 
             } catch (InterruptedException e) {
             }

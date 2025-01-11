@@ -80,6 +80,14 @@ public class ParallelFileCoypAgent extends FileCopyAgent {
         return DateTimeUtil.dateTimeDifference(getStart(), getEnd(), ChronoUnit.MILLIS);
     }
 
+    public ExecutorService getExecutor() {
+        return executor;
+    }
+
+    public void setExecutor(ExecutorService executor) {
+        this.executor = executor;
+    }
+
     @Override
     public boolean execute() {
 
@@ -88,8 +96,8 @@ public class ParallelFileCoypAgent extends FileCopyAgent {
 
             int size = getDestination().size();
 
-            /** Thread pool */
-            this.executor = Executors.newFixedThreadPool(size);
+            if (getExecutor()==null)
+                   setExecutor(Executors.newFixedThreadPool(size));
 
             List<Callable<Boolean>> tasks = new ArrayList<Callable<Boolean>>(size);
 
@@ -119,7 +127,7 @@ public class ParallelFileCoypAgent extends FileCopyAgent {
             }
             /** process buffer in parallel */
             try {
-                List<Future<Boolean>> future = this.executor.invokeAll(tasks, 15, TimeUnit.MINUTES);
+                List<Future<Boolean>> future = this.getExecutor().invokeAll(tasks, 15, TimeUnit.MINUTES);
                 Iterator<Future<Boolean>> it = future.iterator();
                 while (it.hasNext()) {
                     if (!it.next().get())

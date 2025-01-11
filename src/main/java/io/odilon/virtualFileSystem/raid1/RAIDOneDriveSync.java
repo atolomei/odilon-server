@@ -354,7 +354,7 @@ public class RAIDOneDriveSync implements Runnable {
 
             try {
                 executor.shutdown();
-                executor.awaitTermination(10, TimeUnit.MINUTES);
+                executor.awaitTermination(15, TimeUnit.MINUTES);
 
                 logger.debug("scanned (copy) so far -> " + String.valueOf(this.counter.get()));
 

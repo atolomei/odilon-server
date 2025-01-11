@@ -196,7 +196,7 @@ public class DataIntegrityChecker implements Runnable, ApplicationContextAware {
 
             try {
                 executor.shutdown();
-                executor.awaitTermination(10, TimeUnit.MINUTES);
+                executor.awaitTermination(15, TimeUnit.MINUTES);
 
             } catch (InterruptedException e) {
             }
