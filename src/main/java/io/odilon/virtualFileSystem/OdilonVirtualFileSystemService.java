@@ -174,11 +174,6 @@ public class OdilonVirtualFileSystemService extends BaseService
     @JsonIgnore
     private final ApplicationEventPublisher applicationEventPublisher;
 
-    
-    @JsonIgnore
-    private final ExecutorService executorService;
-    
-    
     /**
      * <p>
      * File System cache of decoded {@link File} in File System, used only in
@@ -192,6 +187,20 @@ public class OdilonVirtualFileSystemService extends BaseService
 
     @JsonIgnore
     private AtomicLong bucketIdGenerator;
+
+    /**
+     * Thread pool to be used by {@link IODriver} to save {@link ObjectMetadata} and
+     * data files, the pool will * that create new threads as needed,but will reuse
+     * previously constructed threads when they are available. These pools will
+     * typically improve the performance of programs that execute many short-lived
+     * asynchronous tasks. Calls to execute will reuse previously constructed
+     * threads if available. If no existing thread is available, a new thread will
+     * be created and added to the pool. Threads that have not been used for sixty
+     * seconds are terminated and removed from the cache.
+     */
+    @JsonIgnore
+    private final ExecutorService executorService;
+
 
     /**
      * All Drives, either {@link DriveStatus.ENABLED} or
@@ -254,9 +263,9 @@ public class OdilonVirtualFileSystemService extends BaseService
         this.odilonKeyEncryptorService = odilonKeyEncryptorService;
         this.applicationEventPublisher = applicationEventPublisher;
         this.raid = serverSettings.getRedundancyLevel();
-        
+
         this.executorService = Executors.newCachedThreadPool();
-        
+
     }
 
     @Override
@@ -327,7 +336,7 @@ public class OdilonVirtualFileSystemService extends BaseService
     }
 
     @Override
-    public void deleteObjectAllPreviousVersions(String bucketName, String objectName)  {
+    public void deleteObjectAllPreviousVersions(String bucketName, String objectName) {
         Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
         Check.requireNonNullStringArgument(objectName, "objectName can not be null or empty | b:" + bucketName);
 
@@ -335,9 +344,9 @@ public class OdilonVirtualFileSystemService extends BaseService
 
         /** must be repeated inside the critical section */
         Check.requireTrue(driver.existsBucket(bucketName), "bucket does not exist -> " + bucketName);
-        
+
         driver.deleteObjectAllPreviousVersions(driver.getBucket(bucketName), objectName);
-        
+
     }
 
     @Override
@@ -881,7 +890,7 @@ public class OdilonVirtualFileSystemService extends BaseService
     public ExecutorService getExecutorService() {
         return executorService;
     }
-    
+
     @Override
     public ApplicationEventPublisher getApplicationEventPublisher() {
         return this.applicationEventPublisher;
