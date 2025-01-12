@@ -188,6 +188,10 @@ public class OdilonVirtualFileSystemService extends BaseService
     @JsonIgnore
     private AtomicLong bucketIdGenerator;
 
+    @JsonIgnore
+    private Optional<String> providedMasterKey = Optional.empty();
+
+    
     /**
      * Thread pool to be used by {@link IODriver} to save {@link ObjectMetadata} and
      * data files, the pool will * that create new threads as needed,but will reuse
@@ -949,6 +953,11 @@ public class OdilonVirtualFileSystemService extends BaseService
         }
     }
 
+    private Optional<String> getProvidedMasterKey() {
+        return this.providedMasterKey;
+    }
+
+    
     private void loadDrives() {
 
         List<Drive> baselist = new ArrayList<Drive>();
@@ -1279,11 +1288,7 @@ public class OdilonVirtualFileSystemService extends BaseService
         return true;
     }
 
-    private Optional<String> providedMasterKey = Optional.empty();
 
-    protected Optional<String> getProvidedMasterKey() {
-        return this.providedMasterKey;
-    }
 
     /**
      * 
@@ -1345,7 +1350,7 @@ public class OdilonVirtualFileSystemService extends BaseService
             startuplogger.info(ServerConstant.SEPARATOR);
             String keyHex = getServerSettings().getInternalMasterKeyEncryptor();
             byte[] key = ByteToString.hexStringToByte(keyHex);
-            this.odilonKeyEncryptorService.setMasterKey(key);
+            getKeyEncryptorService().setMasterKey(key);
             return;
         }
 
@@ -1365,13 +1370,14 @@ public class OdilonVirtualFileSystemService extends BaseService
         try {
 
             byte[] key = driver.getServerMasterKey();
-            this.odilonKeyEncryptorService.setMasterKey(key);
+            getKeyEncryptorService().setMasterKey(key);
         } catch (Exception e) {
             logger.error(e.getClass().getName() + " | " + e.getMessage(), SharedConstant.NOT_THROWN);
             throw new InternalCriticalException(e, "error with encryption key");
         }
 
     }
+
 
     private String getEnableEncryptionScriptName() {
         return isLinux() ? ServerConstant.ENABLE_ENCRYPTION_SCRIPT_LINUX : ServerConstant.ENABLE_ENCRYPTION_SCRIPT_WINDOWS;
@@ -1380,5 +1386,10 @@ public class OdilonVirtualFileSystemService extends BaseService
     protected AtomicLong getBucketIdGenerator() {
         return this.bucketIdGenerator;
     }
+    
+    private OdilonKeyEncryptorService getKeyEncryptorService() {
+        return this.odilonKeyEncryptorService;
+    }
+
 
 }
