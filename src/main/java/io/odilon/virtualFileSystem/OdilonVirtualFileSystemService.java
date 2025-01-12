@@ -191,7 +191,6 @@ public class OdilonVirtualFileSystemService extends BaseService
     @JsonIgnore
     private Optional<String> providedMasterKey = Optional.empty();
 
-    
     /**
      * Thread pool to be used by {@link IODriver} to save {@link ObjectMetadata} and
      * data files, the pool will * that create new threads as needed,but will reuse
@@ -204,7 +203,6 @@ public class OdilonVirtualFileSystemService extends BaseService
      */
     @JsonIgnore
     private final ExecutorService executorService;
-
 
     /**
      * All Drives, either {@link DriveStatus.ENABLED} or
@@ -957,7 +955,6 @@ public class OdilonVirtualFileSystemService extends BaseService
         return this.providedMasterKey;
     }
 
-    
     private void loadDrives() {
 
         List<Drive> baselist = new ArrayList<Drive>();
@@ -1288,8 +1285,6 @@ public class OdilonVirtualFileSystemService extends BaseService
         return true;
     }
 
-
-
     /**
      * 
      * 
@@ -1378,7 +1373,6 @@ public class OdilonVirtualFileSystemService extends BaseService
 
     }
 
-
     private String getEnableEncryptionScriptName() {
         return isLinux() ? ServerConstant.ENABLE_ENCRYPTION_SCRIPT_LINUX : ServerConstant.ENABLE_ENCRYPTION_SCRIPT_WINDOWS;
     }
@@ -1386,10 +1380,9 @@ public class OdilonVirtualFileSystemService extends BaseService
     protected AtomicLong getBucketIdGenerator() {
         return this.bucketIdGenerator;
     }
-    
+
     private OdilonKeyEncryptorService getKeyEncryptorService() {
         return this.odilonKeyEncryptorService;
     }
-
 
 }
