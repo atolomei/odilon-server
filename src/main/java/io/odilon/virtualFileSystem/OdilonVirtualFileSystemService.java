@@ -192,17 +192,15 @@ public class OdilonVirtualFileSystemService extends BaseService
     private Optional<String> providedMasterKey = Optional.empty();
 
     /**
-     * Thread pool to be used by {@link IODriver} to save {@link ObjectMetadata} and
-     * data files, the pool will * that create new threads as needed,but will reuse
-     * previously constructed threads when they are available. These pools will
-     * typically improve the performance of programs that execute many short-lived
-     * asynchronous tasks. Calls to execute will reuse previously constructed
-     * threads if available. If no existing thread is available, a new thread will
-     * be created and added to the pool. Threads that have not been used for sixty
-     * seconds are terminated and removed from the cache.
+     * Thread pool to be used by the {@link IODriver} to save {@link ObjectMetadata}
+     * and data files, the pool creates new threads as needed, but reuses previously
+     * constructed threads when they are available. If no existing thread is
+     * available, a new thread will be created and added to the pool. Threads that
+     * have not been used for sixty seconds are terminated and removed from the
+     * cache.
      */
     @JsonIgnore
-    private final ExecutorService executorService;
+    private final ExecutorService fileExecutorService;
 
     /**
      * All Drives, either {@link DriveStatus.ENABLED} or
@@ -266,8 +264,7 @@ public class OdilonVirtualFileSystemService extends BaseService
         this.applicationEventPublisher = applicationEventPublisher;
         this.raid = serverSettings.getRedundancyLevel();
 
-        this.executorService = Executors.newCachedThreadPool();
-
+        this.fileExecutorService = Executors.newCachedThreadPool();
     }
 
     @Override
@@ -890,7 +887,7 @@ public class OdilonVirtualFileSystemService extends BaseService
 
     @Override
     public ExecutorService getExecutorService() {
-        return executorService;
+        return fileExecutorService;
     }
 
     @Override
@@ -1280,7 +1277,7 @@ public class OdilonVirtualFileSystemService extends BaseService
     }
 
     private boolean isLinux() {
-        if (System.getenv("OS") != null && System.getenv("OS").toLowerCase().contains("windows"))
+        if ((System.getenv("OS") != null) && System.getenv("OS").toLowerCase().contains("windows"))
             return false;
         return true;
     }
@@ -1377,7 +1374,7 @@ public class OdilonVirtualFileSystemService extends BaseService
         return isLinux() ? ServerConstant.ENABLE_ENCRYPTION_SCRIPT_LINUX : ServerConstant.ENABLE_ENCRYPTION_SCRIPT_WINDOWS;
     }
 
-    protected AtomicLong getBucketIdGenerator() {
+    private AtomicLong getBucketIdGenerator() {
         return this.bucketIdGenerator;
     }
 
