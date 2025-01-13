@@ -132,8 +132,6 @@ public abstract class RAIDSixHandler extends BaseRAIDHandler implements RAIDHand
             return;
         }
 
-        //ExecutorService executor = Executors.newFixedThreadPool(size);
-        
         ExecutorService executor = getDriver().getVirtualFileSystemService().getExecutorService();
         
         List<Callable<Boolean>> tasks = new ArrayList<Callable<Boolean>>(size);
@@ -141,8 +139,9 @@ public abstract class RAIDSixHandler extends BaseRAIDHandler implements RAIDHand
         for (int index = 0; index < size; index++) {
             final int val = index;
             tasks.add(() -> {
+                ObjectMetadata meta = null;
                 try {
-                    ObjectMetadata meta = list.get(val);
+                    meta = list.get(val);
                     if (isHead) {
                         drives.get(val).saveObjectMetadata(meta);
                     } else {
@@ -151,7 +150,7 @@ public abstract class RAIDSixHandler extends BaseRAIDHandler implements RAIDHand
                     return Boolean.valueOf(true);
 
                 } catch (Exception e) {
-                    logger.error(e, SharedConstant.NOT_THROWN);
+                    logger.error(e, objectInfo(meta), SharedConstant.NOT_THROWN);
                     return Boolean.valueOf(false);
                 } finally {
 

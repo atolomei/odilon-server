@@ -95,84 +95,11 @@ public class RAIDSixSyncObjectHandler extends RAIDSixTransactionHandler {
 
                 operation = getJournalService().syncObject(bucket, meta.getObjectName());
 
-                /** HEAD VERSION --------------------------------------------------------- */
+                syncHead(meta, bucket);
+                syncVersions(meta, bucket);
 
-                {
-                    /** Data (head) */
-                    RAIDSixDecoder decoder = new RAIDSixDecoder(getDriver());
-                    File file = decoder.decodeHead(meta, bucket);
-
-                    RAIDSixSDriveSyncEncoder driveInitEncoder = new RAIDSixSDriveSyncEncoder(getDriver(), getDrives());
-
-                    try (InputStream in = new BufferedInputStream(new FileInputStream(file.getAbsolutePath()))) {
-                        driveInitEncoder.encodeHead(in, bucket, meta.getObjectName());
-                    } catch (FileNotFoundException e) {
-                        throw new InternalCriticalException(e, getDriver().objectInfo(meta));
-                    } catch (IOException e) {
-                        throw new InternalCriticalException(e, getDriver().objectInfo(meta));
-                    }
-
-                    /** MetaData (head) */
-                    meta.setDateSynced(OffsetDateTime.now());
-
-                    List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
-                    getDrivesToSync().forEach(d -> list.add(meta));
-                    saveRAIDSixObjectMetadataToDisk(getDrivesToSync(), list, true);
-                }
-
-                /** PREVIOUS VERSIONS ---------------------------------------------------- */
-
-                if (getDriver().getVirtualFileSystemService().getServerSettings().isVersionControl()) {
-
-                    for (int version = 0; version < meta.getVersion(); version++) {
-
-                        ObjectMetadata versionMeta = getDriver().getObjectMetadataReadDrive(bucket, meta.getObjectName())
-                                .getObjectMetadataVersion(bucket, meta.getObjectName(), version);
-
-                        if (versionMeta != null) {
-
-                            /** Data (version) */
-                            RAIDSixDecoder decoder = new RAIDSixDecoder(getDriver());
-                            File file = decoder.decodeVersion(versionMeta, bucket);
-
-                            RAIDSixSDriveSyncEncoder driveEncoder = new RAIDSixSDriveSyncEncoder(getDriver(), getDrives());
-
-                            try (InputStream in = new BufferedInputStream(new FileInputStream(file.getAbsolutePath()))) {
-
-                                /**
-                                 * encodes version without saving existing blocks, only the ones that go to the
-                                 * new drive/s
-                                 */
-                                driveEncoder.encodeVersion(in, bucket, meta.getObjectName(), versionMeta.getVersion());
-
-                            } catch (FileNotFoundException e) {
-                                throw new InternalCriticalException(e, getDriver().objectInfo(meta));
-                            } catch (IOException e) {
-                                throw new InternalCriticalException(e, getDriver().objectInfo(meta));
-                            }
-
-                            /** Metadata (version) */
-                            /**
-                             * changes the date of sync in order to prevent this object's sync if the
-                             * process is re run
-                             */
-                            versionMeta.setDateSynced(OffsetDateTime.now());
-
-                            List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
-                            getDrives().forEach(d -> list.add(versionMeta));
-                            saveRAIDSixObjectMetadataToDisk(getDrives(), list, false);
-
-                        } else {
-                            logger.warn("previous version was deleted for Object -> " + String.valueOf(version) + " |  head "
-                                    + objectInfo(meta) + "  head version:" + String.valueOf(meta.getVersion()));
-                        }
-                    }
-                }
-                
-                /** ---------------------------------------------------------------------- */
-                
                 done = operation.commit();
-                
+
             } finally {
                 try {
                     if ((!done)) {
@@ -243,6 +170,77 @@ public class RAIDSixSyncObjectHandler extends RAIDSixTransactionHandler {
             }
         } catch (IOException e) {
             throw new InternalCriticalException(e, getDriver().objectInfo(meta));
+        }
+    }
+
+    private void syncHead(ObjectMetadata meta, ServerBucket bucket) {
+
+        {
+            /** Data (head) */
+            RAIDSixDecoder decoder = new RAIDSixDecoder(getDriver());
+            File file = decoder.decodeHead(meta, bucket);
+
+            RAIDSixSDriveSyncEncoder driveInitEncoder = new RAIDSixSDriveSyncEncoder(getDriver(), getDrives());
+
+            try (InputStream in = new BufferedInputStream(new FileInputStream(file.getAbsolutePath()))) {
+                driveInitEncoder.encodeHead(in, bucket, meta.getObjectName());
+            } catch (FileNotFoundException e) {
+                throw new InternalCriticalException(e, getDriver().objectInfo(meta));
+            } catch (IOException e) {
+                throw new InternalCriticalException(e, getDriver().objectInfo(meta));
+            }
+
+            /** MetaData (head) */
+            meta.setDateSynced(OffsetDateTime.now());
+
+            List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
+            getDrivesToSync().forEach(d -> list.add(meta));
+            saveRAIDSixObjectMetadataToDisk(getDrivesToSync(), list, true);
+        }
+    }
+
+    private void syncVersions(ObjectMetadata meta, ServerBucket bucket) {
+
+        if (getDriver().getVirtualFileSystemService().getServerSettings().isVersionControl()) {
+        
+            for (int version = 0; version < meta.getVersion(); version++) {
+            
+                ObjectMetadata versionMeta = getDriver().getObjectMetadataReadDrive(bucket, meta.getObjectName())
+                        .getObjectMetadataVersion(bucket, meta.getObjectName(), version);
+
+                if (versionMeta != null) {
+
+                    /** Data (version) */
+                    RAIDSixDecoder decoder = new RAIDSixDecoder(getDriver());
+                    RAIDSixSDriveSyncEncoder driveEncoder = new RAIDSixSDriveSyncEncoder(getDriver(), getDrives());
+                    try (InputStream in = new BufferedInputStream(new FileInputStream(decoder.decodeVersion(versionMeta, bucket).getAbsolutePath()))) {
+                        /**
+                         * encodes version without saving existing blocks, only the ones that go to the
+                         * new drive/s
+                         */
+                        driveEncoder.encodeVersion(in, bucket, meta.getObjectName(), versionMeta.getVersion());
+                    } catch (FileNotFoundException e) {
+                        throw new InternalCriticalException(e, getDriver().objectInfo(meta));
+                    } catch (IOException e) {
+                        throw new InternalCriticalException(e, getDriver().objectInfo(meta));
+                    }
+
+                    /** Metadata (version) */
+                    /**
+                     * changes the date of sync in order to prevent this object's sync if the
+                     * process is re run
+                     */
+                    versionMeta.setDateSynced(OffsetDateTime.now());
+
+                    List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
+                    getDrives().forEach(d -> list.add(versionMeta));
+                    saveRAIDSixObjectMetadataToDisk(getDrives(), list, false);
+
+                } else {
+                    logger.warn("previous version was deleted for Object -> " + String.valueOf(version) + " |  head "
+                            + objectInfo(meta) + "  head version:" + String.valueOf(meta.getVersion()));
+                }
+            }
         }
     }
 
