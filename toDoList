@@ -4,8 +4,13 @@ To do list
 . Replication Service -> replicate previous versions on initial sync
 . bit rot detection in RAID 6
 . Allow to Rename Bucket
-. Optimization RAID 1. putObject in parallel, one Thread per disk
 . Optimization RAID 6. Decoding is copying a buffer in RAM redundant
 . Merge classes Bucket and BucketMetadata
+. Encrypt ObjectMetadata on disk
+
+
+. client sdk for C#, php, python, erlang
+
+
 
  
