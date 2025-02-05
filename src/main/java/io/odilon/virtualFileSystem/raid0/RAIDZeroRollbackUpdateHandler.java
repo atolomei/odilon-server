@@ -17,7 +17,6 @@
 package io.odilon.virtualFileSystem.raid0;
 
 import java.io.File;
-import java.io.IOException;
 
 import org.apache.commons.io.FileUtils;
 
