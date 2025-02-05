@@ -140,18 +140,4 @@ public class RAIDZeroRollbackUpdateHandler extends RAIDZeroRollbackObjectHandler
             throw new InternalCriticalException(e, info());
         }
     }
-
-    /**
-     * restore metadata directory
-
-    private void restoreMetadata() {
-        try {
-            FileUtils.copyDirectory(getObjectPath().metadataBackupDirPath().toFile(), getObjectPath().metadataDirPath().toFile());
-        } catch (InternalCriticalException e) {
-            throw e;
-        } catch (IOException e) {
-            throw new InternalCriticalException(e, info());
-        }
-    }
-         */
 }
