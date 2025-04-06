@@ -27,7 +27,7 @@ import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
- * @author atolomei@novamens.com (Alejandro Tolomei) 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public class RAIDSixCoder extends BaseObject {
 
@@ -54,14 +54,13 @@ public class RAIDSixCoder extends BaseObject {
     protected FileCacheService getFileCacheService() {
         return getVirtualFileSystemService().getFileCacheService();
     }
-    
+
     public String objectInfo(ServerBucket bucket, String objectName, String fileName) {
         return getDriver().objectInfo(bucket, objectName, fileName);
     }
-    
+
     public String objectInfo(ServerBucket bucket, String objectName) {
         return getDriver().objectInfo(bucket, objectName);
     }
 
-    
 }

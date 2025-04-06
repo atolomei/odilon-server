@@ -52,7 +52,7 @@ public class RAIDSixRollbackCreateHandler extends RAIDSixRollbackHandler {
 
             ObjectMetadata meta = null;
 
-            // remove metadata dir on all drives
+            /** remove metadata dir on all drives */
             for (Drive drive : getDriver().getDrivesAll()) {
                 File f_meta = drive.getObjectMetadataFile(bucket, getOperation().getObjectName());
                 if ((meta == null) && (f_meta != null)) {

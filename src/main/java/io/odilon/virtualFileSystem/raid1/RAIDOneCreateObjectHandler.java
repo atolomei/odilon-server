@@ -88,7 +88,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneTransactionObjectHandler 
 
         objectWriteLock();
         try {
-            
+
             bucketReadLock();
             try (stream) {
 
@@ -97,10 +97,10 @@ public class RAIDOneCreateObjectHandler extends RAIDOneTransactionObjectHandler 
 
                 /** start operation */
                 operation = createObject();
-            
+
                 saveData(stream, srcFileName);
                 saveMetadata(srcFileName, contentType, customTags);
-                
+
                 /** commit */
                 commitOK = operation.commit();
             } catch (InternalCriticalException e1) {
@@ -171,9 +171,9 @@ public class RAIDOneCreateObjectHandler extends RAIDOneTransactionObjectHandler 
             } else {
                 /** for 2 or more disks copy in parallel */
                 final int size = getDriver().getDrivesAll().size();
-                
+
                 ExecutorService executor = getVirtualFileSystemService().getExecutorService();
-                
+
                 while ((bytes_read = sourceStream.read(buf, 0, buf.length)) >= 0) {
                     List<Callable<Boolean>> tasks = new ArrayList<Callable<Boolean>>(size);
                     for (int index = 0; index < total_drives; index++) {

@@ -23,6 +23,8 @@ import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
+ *
+ * <p>RAID 0. base rollback Handler for Object's operations</p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  * 

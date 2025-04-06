@@ -62,7 +62,6 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionObjectHandler 
         super(driver, bucket, objectName);
     }
 
-    
     protected void create(InputStream stream, String srcFileName, String contentType, Optional<List<String>> customTags) {
 
         VirtualFileSystemOperation operation = null;
@@ -149,7 +148,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionObjectHandler 
             try {
                 shaBlocks.add(OdilonFileUtils.calculateSHA256String(item));
             } catch (Exception e) {
-                throw new InternalCriticalException(e,info());
+                throw new InternalCriticalException(e, info());
             }
         });
 

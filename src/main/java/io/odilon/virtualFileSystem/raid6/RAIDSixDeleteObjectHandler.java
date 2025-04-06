@@ -84,16 +84,16 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixTransactionObjectHandler 
 
                 /** backup */
                 backup(meta);
-                
+
                 /** start operation */
                 operation = deleteObject(meta.getVersion());
 
                 for (Drive drive : getDriver().getDrivesAll())
                     drive.deleteObjectMetadata(getBucket(), getObjectName());
-                
+
                 /** commit */
                 commitOK = operation.commit();
-                
+
             } catch (InternalCriticalException e) {
                 isMainException = true;
                 throw new InternalCriticalException(e);

@@ -23,10 +23,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.ThreadPoolExecutor;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
-
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.file.ParallelFileCoypAgent;
 import io.odilon.log.Logger;
@@ -242,23 +239,24 @@ public class RAIDSixEncoder extends RAIDSixCoder {
         /** save in parallel (using the VirtualFileSystem 's ExecutorService) */
         ParallelFileCoypAgent agent = new ParallelFileCoypAgent(shards, destination);
         agent.setExecutor(getVirtualFileSystemService().getExecutorService());
-        
+
         boolean isOk = agent.execute();
 
         destination.forEach(file -> this.encodedInfo.getEncodedBlocks().add(file));
 
         if (!isOk)
             throw new InternalCriticalException(objectInfo(bucket, objectName));
-        
+
         /**
-        if (logger.isDebugEnabled()) {
-            if (getVirtualFileSystemService().getExecutorService() instanceof ThreadPoolExecutor) {
-                logger.debug("Pool active count -> " + ((ThreadPoolExecutor) getVirtualFileSystemService().getExecutorService()).getActiveCount());
-                logger.debug("Pool size -> " + ((ThreadPoolExecutor) getVirtualFileSystemService().getExecutorService()).getPoolSize());
-            } 
-        }
-        **/
-        
+         * if (logger.isDebugEnabled()) { if
+         * (getVirtualFileSystemService().getExecutorService() instanceof
+         * ThreadPoolExecutor) { logger.debug("Pool active count -> " +
+         * ((ThreadPoolExecutor)
+         * getVirtualFileSystemService().getExecutorService()).getActiveCount());
+         * logger.debug("Pool size -> " + ((ThreadPoolExecutor)
+         * getVirtualFileSystemService().getExecutorService()).getPoolSize()); } }
+         **/
+
         return eof;
     }
 

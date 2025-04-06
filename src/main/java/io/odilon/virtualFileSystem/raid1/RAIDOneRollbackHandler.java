@@ -29,7 +29,7 @@ public abstract class RAIDOneRollbackHandler extends RAIDOneHandler {
 
     @JsonProperty("operation")
     final private VirtualFileSystemOperation operation;
-    
+
     @JsonProperty("recovery")
     final private boolean recovery;
 

@@ -20,17 +20,19 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
-
 /**
- * <p>Callers of Rollback operations must ensure proper concurrency control before calling</p>
+ * <p>
+ * Callers of Rollback operations must ensure proper concurrency control before
+ * calling
+ * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public abstract class RAIDSixRollbackHandler extends RAIDSixHandler {
-    
+
     @JsonProperty("operation")
     final private VirtualFileSystemOperation operation;
-    
+
     @JsonProperty("recovery")
     final private boolean recovery;
 

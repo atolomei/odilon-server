@@ -133,7 +133,7 @@ public abstract class RAIDSixHandler extends BaseRAIDHandler implements RAIDHand
         }
 
         ExecutorService executor = getDriver().getVirtualFileSystemService().getExecutorService();
-        
+
         List<Callable<Boolean>> tasks = new ArrayList<Callable<Boolean>>(size);
 
         for (int index = 0; index < size; index++) {
@@ -157,7 +157,7 @@ public abstract class RAIDSixHandler extends BaseRAIDHandler implements RAIDHand
                 }
             });
         }
-        
+
         try {
             List<Future<Boolean>> future = executor.invokeAll(tasks, 10, TimeUnit.MINUTES);
             Iterator<Future<Boolean>> it = future.iterator();

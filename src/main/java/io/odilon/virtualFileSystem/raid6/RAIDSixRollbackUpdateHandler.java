@@ -122,7 +122,8 @@ public class RAIDSixRollbackUpdateHandler extends RAIDSixRollbackHandler {
         try {
             boolean success = true;
             ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
-            ObjectMetadata versionMeta = getDriver().getObjectMetadataVersion(bucket, getOperation().getObjectName(), getOperation().getVersion());
+            ObjectMetadata versionMeta = getDriver().getObjectMetadataVersion(bucket, getOperation().getObjectName(),
+                    getOperation().getVersion());
             for (Drive drive : getDriver().getDrivesAll()) {
                 versionMeta.setDrive(drive.getName());
                 drive.saveObjectMetadata(versionMeta);
@@ -139,8 +140,10 @@ public class RAIDSixRollbackUpdateHandler extends RAIDSixRollbackHandler {
     private boolean restoreVersionObjectDataFile() {
         try {
             ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
-            ObjectMetadata meta = getDriver().getObjectMetadataVersion(bucket, getOperation().getObjectName(), getOperation().getVersion());
-            Map<Drive, List<String>> versionToRestore = getDriver().getObjectDataFilesNames(meta, Optional.of(getOperation().getVersion()));
+            ObjectMetadata meta = getDriver().getObjectMetadataVersion(bucket, getOperation().getObjectName(),
+                    getOperation().getVersion());
+            Map<Drive, List<String>> versionToRestore = getDriver().getObjectDataFilesNames(meta,
+                    Optional.of(getOperation().getVersion()));
             for (Drive drive : versionToRestore.keySet()) {
                 for (String name : versionToRestore.get(drive)) {
                     String arr[] = name.split(".v");

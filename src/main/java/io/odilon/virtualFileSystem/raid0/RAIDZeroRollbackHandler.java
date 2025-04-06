@@ -22,6 +22,8 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
  * 
+ * <p>Base rollback Handler for RAID 0</p>
+ * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  * 
  */
@@ -29,7 +31,7 @@ public abstract class RAIDZeroRollbackHandler extends RAIDZeroHandler {
 
     @JsonProperty("operation")
     final private VirtualFileSystemOperation operation;
-    
+
     @JsonProperty("recovery")
     final private boolean recovery;
 
@@ -51,6 +53,6 @@ public abstract class RAIDZeroRollbackHandler extends RAIDZeroHandler {
     protected String info() {
         return opInfo(getOperation());
     }
-    
+
     protected abstract void rollback();
 }

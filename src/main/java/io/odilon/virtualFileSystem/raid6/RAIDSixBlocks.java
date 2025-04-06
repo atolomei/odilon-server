@@ -38,7 +38,6 @@ public class RAIDSixBlocks extends BaseObject {
     @JsonIgnore
     private List<File> encodedBlocks = new ArrayList<File>();
 
-
     @JsonProperty("fileSize")
     private long fileSize;
 

@@ -128,8 +128,7 @@ public class RAIDSixDriveSetup implements IODriveSetup, ApplicationContextAware 
         startuplogger.info("The background process will copy all objects into the newly added drives");
 
         final OdilonServerInfo serverInfo = getDriver().getServerInfo();
-        final File keyFile = getDriver().getDrivesEnabled().get(0)
-                .getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE);
+        final File keyFile = getDriver().getDrivesEnabled().get(0).getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE);
         final String jsonString;
 
         try {
@@ -159,8 +158,7 @@ public class RAIDSixDriveSetup implements IODriveSetup, ApplicationContextAware 
                 startuplogger.info("2. Copying -> " + VirtualFileSystemService.ENCRYPTION_KEY_FILE);
                 getDriver().getDrivesAll().forEach(item -> {
                     File file = item.getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE);
-                    if ((item.getDriveInfo().getStatus() == DriveStatus.NOTSYNC)
-                            && ((file == null) || (!file.exists()))) {
+                    if ((item.getDriveInfo().getStatus() == DriveStatus.NOTSYNC) && ((file == null) || (!file.exists()))) {
                         try {
                             Files.copy(keyFile, file);
                         } catch (Exception e) {
@@ -169,8 +167,7 @@ public class RAIDSixDriveSetup implements IODriveSetup, ApplicationContextAware 
                     }
                 });
             } else {
-                startuplogger.info("2. Copying -> " + VirtualFileSystemService.ENCRYPTION_KEY_FILE
-                        + " | file not exist. skipping");
+                startuplogger.info("2. Copying -> " + VirtualFileSystemService.ENCRYPTION_KEY_FILE + " | file not exist. skipping");
             }
 
         } catch (Exception e) {

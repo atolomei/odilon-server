@@ -31,9 +31,8 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
  * Rollback is the same for both operations
- *  
- * OperationCode.DELETE_OBJECT
- * OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS
+ * 
+ * OperationCode.DELETE_OBJECT OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */

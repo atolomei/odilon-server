@@ -92,12 +92,9 @@ public class RAIDSixSyncObjectHandler extends RAIDSixTransactionHandler {
                  * are not touched.
                  **/
                 backup(bucket, meta);
-
                 operation = getJournalService().syncObject(bucket, meta.getObjectName());
-
                 syncHead(meta, bucket);
                 syncVersions(meta, bucket);
-
                 done = operation.commit();
 
             } finally {

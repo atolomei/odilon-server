@@ -169,7 +169,6 @@ public class RAIDZeroRestoreObjectPreviousVersionHandler extends RAIDZeroTransac
         Drive drive = getWriteDrive(getBucket(), getObjectName());
         try {
             File file = getObjectPath().dataFilePath().toFile();
-            // getObjectPath().dataFileVersionPath(version)
             ((SimpleDrive) drive).putObjectDataVersionFile(getBucket().getId(), getObjectName(), version, file);
         } catch (Exception e) {
             throw new InternalCriticalException(e, info());

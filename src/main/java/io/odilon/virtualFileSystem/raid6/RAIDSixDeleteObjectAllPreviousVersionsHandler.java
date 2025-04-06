@@ -70,11 +70,13 @@ public class RAIDSixDeleteObjectAllPreviousVersionsHandler extends RAIDSixTransa
 
                 /** backup */
                 backup();
-                
+
                 /** start operation */
                 operation = deleteObjectPreviousVersions(meta.getVersion());
 
-                // remove all "objectmetadata.json.vn" Files, but keep -> "objectmetadata.json"
+                /**
+                 * remove all "objectmetadata.json.vn" Files, but keep -> "objectmetadata.json"
+                 */
                 for (int version = 0; version < meta.getVersion(); version++) {
                     for (Drive drive : getDriver().getDrivesAll()) {
                         FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(getBucket(), getObjectName(), version));
@@ -100,8 +102,7 @@ public class RAIDSixDeleteObjectAllPreviousVersionsHandler extends RAIDSixTransa
             } catch (Exception e) {
                 isMainException = true;
                 throw new InternalCriticalException(e);
-            }
-            finally {
+            } finally {
                 try {
                     if (!commitOK) {
                         try {

@@ -463,13 +463,9 @@ public class RAIDOneDriver extends BaseIODriver {
                 bucketIterator = new RAIDOneBucketIterator(this, bucket, offset, prefix);
                 walkerService.register(bucketIterator);
             }
-
             List<Item<ObjectMetadata>> list = new ArrayList<Item<ObjectMetadata>>();
-
             int size = pageSize.orElseGet(() -> ServerConstant.DEFAULT_PAGE_SIZE);
-
             int counter = 0;
-
             while (bucketIterator.hasNext() && counter++ < size) {
                 Item<ObjectMetadata> item;
                 try {
@@ -610,9 +606,9 @@ public class RAIDOneDriver extends BaseIODriver {
 
                 ObjectMetadata meta = drive.getObjectMetadata(bucket, objectName);
 
-                if ((forceCheck) || (meta.integrityCheck == null) || (meta.integrityCheck.isBefore(thresholdDate))) {
+                if ((forceCheck) || (meta.getIntegrityCheck() == null) || (meta.getIntegrityCheck().isBefore(thresholdDate))) {
 
-                    String originalSha256 = meta.sha256;
+                    String originalSha256 = meta.getSha256();
                     String sha256 = null;
                     ObjectPath path = new ObjectPath(drive, bucket, objectName);
                     File file = path.dataFilePath().toFile();
@@ -627,7 +623,7 @@ public class RAIDOneDriver extends BaseIODriver {
                         if (originalSha256.equals(sha256)) {
                             if (goodDrive == null)
                                 goodDrive = drive;
-                            meta.integrityCheck = OffsetDateTime.now();
+                            meta.setIntegrityCheck(OffsetDateTime.now());
                             drive.saveObjectMetadata(meta);
                             iCheck[n] = Boolean.valueOf(true);
                         } else {
