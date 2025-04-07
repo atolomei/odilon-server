@@ -140,7 +140,7 @@ public class RAIDZeroRestoreObjectPreviousVersionHandler extends RAIDZeroTransac
 
                                 /** data file */
                                 FileUtils.deleteQuietly(getObjectPath().dataFileVersionPath(beforeHeadVersion).toFile());
-                                
+
                             } catch (Exception e) {
                                 logger.error(e, SharedConstant.NOT_THROWN);
                             }

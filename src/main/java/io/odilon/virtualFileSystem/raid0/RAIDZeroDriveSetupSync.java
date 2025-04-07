@@ -365,7 +365,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
             try {
                 executor.shutdown();
                 executor.awaitTermination(20, TimeUnit.MINUTES);
-                
+
             } catch (InterruptedException e) {
             }
         } finally {
