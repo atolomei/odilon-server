@@ -22,8 +22,7 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
  * <p>
- * Callers of Rollback operations must ensure proper concurrency control before
- * calling
+ * Callers must ensure proper concurrency control before calling
  * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
@@ -38,7 +37,6 @@ public abstract class RAIDSixRollbackHandler extends RAIDSixHandler {
 
     public RAIDSixRollbackHandler(RAIDSixDriver driver, VirtualFileSystemOperation operation, boolean recovery) {
         super(driver);
-
         this.operation = operation;
         this.recovery = recovery;
     }

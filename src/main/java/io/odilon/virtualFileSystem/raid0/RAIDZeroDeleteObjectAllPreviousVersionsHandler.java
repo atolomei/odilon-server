@@ -64,7 +64,6 @@ public class RAIDZeroDeleteObjectAllPreviousVersionsHandler extends RAIDZeroTran
                 checkExistObject();
 
                 meta = getMetadata();
-
                 if (meta.getVersion() == VERSION_ZERO)
                     return;
 

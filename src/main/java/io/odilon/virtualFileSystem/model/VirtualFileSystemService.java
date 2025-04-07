@@ -138,8 +138,6 @@ public interface VirtualFileSystemService extends SystemService {
 
     public ServerBucket getBucketByName(String bucketName);
 
-    // public ServerBucket getBucketById(Long bucketId);
-
     public boolean existsBucket(String bucketName);
 
     public boolean isEmpty(ServerBucket bucket);
@@ -173,11 +171,7 @@ public interface VirtualFileSystemService extends SystemService {
 
     public boolean existsObject(String bucketName, String objectName);
 
-    // public boolean existsObject(Long bucketId, String objectName);
-
     public void deleteObject(ServerBucket bucket, String objectName);
-
-    // public void deleteObject(String bucketName, String objectName);
 
     public InputStream getObjectStream(ServerBucket bucket, String objectName) throws IOException;
 
@@ -198,9 +192,8 @@ public interface VirtualFileSystemService extends SystemService {
 
     public ObjectMetadata restorePreviousVersion(String bucketName, String objectName);
 
-    //public void deleteObjectAllPreviousVersions(ObjectMetadata meta);
     public void deleteObjectAllPreviousVersions(String bucketName, String objectName);
-    
+
     public void deleteBucketAllPreviousVersions(String bucketName);
 
     public void wipeAllPreviousVersions();
@@ -281,10 +274,8 @@ public interface VirtualFileSystemService extends SystemService {
 
     public BucketCache getBucketCache();
 
-
     public ApplicationEventPublisher getApplicationEventPublisher();
 
     public ExecutorService getExecutorService();
-
 
 }

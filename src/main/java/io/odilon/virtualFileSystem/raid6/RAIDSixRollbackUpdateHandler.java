@@ -162,7 +162,6 @@ public class RAIDSixRollbackUpdateHandler extends RAIDSixRollbackHandler {
                         throw new InternalCriticalException(e, opInfo(getOperation()));
                     }
                 }
-
             }
             return true;
 

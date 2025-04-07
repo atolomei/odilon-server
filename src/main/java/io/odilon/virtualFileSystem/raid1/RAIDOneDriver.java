@@ -246,7 +246,7 @@ public class RAIDOneDriver extends BaseIODriver {
 
     /**
      * <p>
-     * THis method is executed Async by the {@link SchedulerService}
+     * THis method is executed <i>Async</i> by the {@link SchedulerService}
      * </p>
      */
     @Override
@@ -267,7 +267,7 @@ public class RAIDOneDriver extends BaseIODriver {
 
     /**
      * <p>
-     * The process is Async for RAID 1
+     * The process is <i>Async</i> for RAID 1
      * </p>
      */
     @Override
@@ -286,10 +286,8 @@ public class RAIDOneDriver extends BaseIODriver {
         Check.requireNonNullArgument(bucket, "bucket is null");
         bucketReadLock(bucket);
         try {
-            /**
-             * This check was executed by the VirtualFilySystemService, but it must be
-             * executed also inside the critical zone.
-             */
+
+            /** must be executed also inside the critical zone */
             if (!existsCacheBucket(bucket.getName()))
                 throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
 
@@ -318,10 +316,7 @@ public class RAIDOneDriver extends BaseIODriver {
         try {
             bucketReadLock(bucket);
             try {
-                /**
-                 * This check was executed by the VirtualFilySystemService, but it must be
-                 * executed also inside the critical zone.
-                 */
+                /** must be executed also inside the critical zone */
                 if (!existsCacheBucket(bucket))
                     throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
 
@@ -381,10 +376,7 @@ public class RAIDOneDriver extends BaseIODriver {
         try {
             bucketReadLock(bucket);
             try {
-                /**
-                 * This check was executed by the VirtualFilySystemService, but it must be
-                 * executed also inside the critical zone.
-                 */
+                /** must be executed also inside the critical zone */
                 if (!existsCacheBucket(bucket))
                     throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
 
@@ -423,10 +415,7 @@ public class RAIDOneDriver extends BaseIODriver {
         try {
             bucketReadLock(bucket);
             try {
-                /**
-                 * This check was executed by the VirtualFilySystemService, but it must be
-                 * executed also inside the critical zone.
-                 */
+                /** must be executed also inside the critical zone */
                 if (!existsCacheBucket(bucket.getName()))
                     throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
                 return getReadDrive(bucket, objectName).existsObjectMetadata(bucket, objectName);
@@ -518,10 +507,7 @@ public class RAIDOneDriver extends BaseIODriver {
         try {
             bucketReadLock(bucket);
             try {
-                /**
-                 * This check was executed by the VirtualFilySystemService, but it must be
-                 * executed also inside the critical zone.
-                 */
+                /** must be executed also inside the critical zone */
                 if (!existsCacheBucket(bucket.getName()))
                     throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
 
@@ -581,7 +567,7 @@ public class RAIDOneDriver extends BaseIODriver {
             try {
                 objectLock = getLockService().getObjectLock(bucket, objectName).readLock().tryLock(20, TimeUnit.SECONDS);
                 if (!objectLock) {
-                    logger.warn("Can not acquire read Lock for Object. Assumes check is ok -> " + objectName);
+                    logger.warn("Can not acquire read Lock. Assumes check is ok -> " + objectName);
                     return true;
                 }
             } catch (InterruptedException e) {
@@ -592,8 +578,7 @@ public class RAIDOneDriver extends BaseIODriver {
             try {
                 bucketLock = getLockService().getBucketLock(bucket).readLock().tryLock(20, TimeUnit.SECONDS);
                 if (!bucketLock) {
-                    logger.warn("Can not acquire read Lock for Bucket. Assumes check is ok -> " + bucket.getName(),
-                            SharedConstant.NOT_THROWN);
+                    logger.warn("Can not acquire read Lock. Assumes check is ok -> " + bucket.getName(), SharedConstant.NOT_THROWN);
                     return true;
                 }
             } catch (InterruptedException e) {
@@ -616,7 +601,7 @@ public class RAIDOneDriver extends BaseIODriver {
                     try {
                         sha256 = OdilonFileUtils.calculateSHA256String(file);
                         if (originalSha256 == null) {
-                            meta.sha256 = sha256;
+                            meta.setSha256(sha256);
                             originalSha256 = sha256;
                         }
 
@@ -872,9 +857,7 @@ public class RAIDOneDriver extends BaseIODriver {
     }
 
     /**
-     * <p>
      * RAID 1. read is from only 1 drive, selected randomly from all drives
-     * </p>
      */
     private ObjectMetadata getOM(ServerBucket bucket, String objectName, Optional<Integer> o_version, boolean addToCacheifMiss) {
         Drive readDrive = null;
@@ -884,10 +867,7 @@ public class RAIDOneDriver extends BaseIODriver {
 
             bucketReadLock(bucket);
             try {
-                /**
-                 * This check was executed by the VirtualFilySystemService, but it must be
-                 * executed also inside the critical zone.
-                 */
+                /** This check must be executed inside the critical zone */
                 if (!existsCacheBucket(bucket.getName()))
                     throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
 

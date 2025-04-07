@@ -76,7 +76,7 @@ public class RAIDSixRollbackSyncHandler extends RAIDSixRollbackHandler {
                     FileUtils.copyDirectory(src, dest);
                 else
                     throw new InternalCriticalException(
-                            "backup dir does not exist " + objectInfo(bucket, objectName) + "dir:" + src.getAbsolutePath());
+                            "dir does not exist " + objectInfo(bucket, objectName) + " | dir:" + src.getAbsolutePath());
             }
         } catch (IOException e) {
             throw new InternalCriticalException(e, objectInfo(bucket, objectName));

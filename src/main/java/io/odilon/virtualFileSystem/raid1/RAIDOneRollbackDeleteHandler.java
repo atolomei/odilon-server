@@ -44,10 +44,6 @@ public class RAIDOneRollbackDeleteHandler extends RAIDOneRollbackHandler {
         super(driver, operation, recovery);
     }
 
-    /**
-     * Rollback is the same for both operations OperationCode.DELETE_OBJECT
-     * OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS
-     */
     @Override
     protected void rollback() {
 

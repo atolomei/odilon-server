@@ -164,7 +164,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         Check.requireNonNullArgument(bucket, "bucket is null");
         Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucket.getName());
         Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible " + objectInfo(bucket));
-
         RAIDZeroRestoreObjectPreviousVersionHandler agent = new RAIDZeroRestoreObjectPreviousVersionHandler(this, bucket,
                 objectName);
         return agent.restorePreviousVersion();
@@ -205,7 +204,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         Check.requireNonNullArgument(stream, "InpuStream can not null " + objectInfo(bucket, objectName));
         if (exists(bucket, objectName)) {
             RAIDZeroUpdateObjectHandler updateAgent = new RAIDZeroUpdateObjectHandler(this, bucket, objectName);
-            ;
             updateAgent.update(stream, fileName, contentType, customTags);
             getSystemMonitorService().getUpdateObjectCounter().inc();
         } else {
@@ -226,7 +224,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         ServerBucket bucket = getBucket(meta.getBucketName());
         Check.requireNonNullArgument(bucket, "bucket is null");
         Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible " + objectInfo(bucket));
-
         RAIDZeroUpdateObjectMetadataHandler updateAgent = new RAIDZeroUpdateObjectMetadataHandler(this, bucket,
                 meta.getObjectName());
         updateAgent.updateObjectMetadata(meta);
@@ -270,23 +267,21 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
      * <p>
      * This method is executed Async by the {@link SchedulerService} to cleanup work
      * files after a Object is deleted
+     * does nothing by the moment
      * </p>
      */
     @Override
     public void postObjectDeleteTransaction(ObjectMetadata meta, int headVersion) {
-        // logger.debug((meta!=null?meta.toString():"null") + "| do nothing by the
-        // moment");
     }
 
     /**
      * <p>
      * This method is executed Async by the {@link SchedulerService}
+     * does nothing by the moment
      * </p>
      */
     @Override
     public void postObjectPreviousVersionDeleteAllTransaction(ObjectMetadata meta, int headVersion) {
-        // logger.debug((meta!=null?meta.toString():"null") + "| do nothing by the
-        // moment");
     }
 
     /**
@@ -500,7 +495,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 
             bucketReadLock(bucket);
             try {
-
                 list = new ArrayList<ObjectMetadata>();
 
                 /** must be executed inside the critical zone */
@@ -520,9 +514,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
                 for (int version = 0; version < meta.getVersion(); version++) {
                     ObjectMetadata meta_version = readDrive.getObjectMetadataVersion(bucket, objectName, version);
                     if (meta_version != null) {
-                        /**
-                         * bucketName is not stored on disk, only bucketId, we must set it explicitly
-                         */
+                        /** bucketName not stored on disk, only bucketId, we must set it explicitly */
                         meta_version.setBucketName(bucket.getName());
                         list.add(meta_version);
                     }
@@ -626,15 +618,13 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
         try {
             bucketReadLock(bucket);
             try {
-
                 /** must be executed inside the critical zone */
                 checkExistBucket(bucket);
 
                 /** RAID 0: read is from only 1 drive */
                 Drive readDrive = getReadDrive(bucket, objectName);
-
                 ObjectMetadata meta = getDriverObjectMetadataInternal(bucket, objectName, true);
-
+                
                 if ((meta == null) || (!meta.isAccesible()))
                     throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
 
@@ -1271,26 +1261,19 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 
     /**
      * <p>
-     * If the bucket does not exist on the selected Drive -> the system is in an
-     * illegal state
+     * If the bucket does not exist on the selected Drive -> 
+     * the system is in an illegal state
      * </p>
      */
     private ObjectMetadata getOM(ServerBucket bucket, String objectName, Optional<Integer> o_version, boolean addToCacheifMiss) {
-
         Check.requireNonNullArgument(bucket, "bucket is null");
         Check.requireNonNullStringArgument(objectName, "objectName can not be null " + objectInfo(bucket));
-
         Drive readDrive = null;
-
         objectReadLock(bucket, objectName);
         try {
-
             bucketReadLock(bucket);
             try {
-                /**
-                 * This check was executed by the VirtualFilySystemService, but it must be
-                 * executed also inside the critical zone.
-                 */
+                /** must be executed inside the critical zone */
                 if (!existsCacheBucket(bucket.getName()))
                     throw new IllegalArgumentException("bucket does not exist -> " + bucket.getName());
 

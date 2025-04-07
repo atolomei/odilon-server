@@ -55,6 +55,8 @@ public interface IODriver {
 
     public ServerBucket renameBucket(ServerBucket bucket, String newBucketName);
 
+    public ServerBucket getBucket(String bucketName);
+
     public boolean isEmpty(ServerBucket bucket);
 
     /**
@@ -139,8 +141,6 @@ public interface IODriver {
 
     public byte[] getServerMasterKey();
 
-    // public byte[] getServerAESIV();
-
     public LockService getLockService();
 
     public VirtualFileSystemService getVirtualFileSystemService();
@@ -159,10 +159,8 @@ public interface IODriver {
 
     public InputStream getObjectVersionInputStream(ServerBucket bucket, String objectName, int version);
 
-    //public void deleteObjectAllPreviousVersions(ObjectMetadata meta);
     public void deleteObjectAllPreviousVersions(ServerBucket bucket, String objectName);
 
-    
     public void deleteBucketAllPreviousVersions(ServerBucket bucket);
 
     public void wipeAllPreviousVersions();
@@ -189,22 +187,10 @@ public interface IODriver {
     public String opInfo(VirtualFileSystemOperation op);
 
     /**
-     * 
-     */
-    public ServerBucket getBucket(String bucketName);
-
-    /**
      * Drive
      */
     public List<Drive> getDrivesEnabled();
 
     public List<Drive> getDrivesAll();
-
-
-    /**
-     * <p>
-     * Shared by RAID 1 and RAID 6
-     * </p>
-     */
 
 }
