@@ -21,8 +21,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
- * 
- * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public abstract class RAIDOneRollbackHandler extends RAIDOneHandler {
@@ -35,7 +33,6 @@ public abstract class RAIDOneRollbackHandler extends RAIDOneHandler {
 
     public RAIDOneRollbackHandler(RAIDOneDriver driver, VirtualFileSystemOperation operation, boolean recovery) {
         super(driver);
-
         this.operation = operation;
         this.recovery = recovery;
     }

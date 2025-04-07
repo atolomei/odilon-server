@@ -27,8 +27,6 @@ import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
- * 
- * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public class RAIDOneRollbackCreateHandler extends RAIDOneRollbackHandler {
@@ -41,26 +39,20 @@ public class RAIDOneRollbackCreateHandler extends RAIDOneRollbackHandler {
 
     @Override
     protected void rollback() {
-
         boolean done = false;
-
         try {
-
             ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
-
             for (Drive drive : getDriver().getDrivesAll()) {
                 drive.deleteObjectMetadata(bucket, getOperation().getObjectName());
                 ObjectPath path = new ObjectPath(drive, bucket, getOperation().getObjectName());
                 FileUtils.deleteQuietly(path.dataFilePath().toFile());
             }
             done = true;
-
         } catch (InternalCriticalException e) {
             if (!isRecovery())
                 throw (e);
             else
                 logger.error(e, opInfo(getOperation()), SharedConstant.NOT_THROWN);
-
         } catch (Exception e) {
             if (!isRecovery())
                 throw new InternalCriticalException(e, opInfo(getOperation()));

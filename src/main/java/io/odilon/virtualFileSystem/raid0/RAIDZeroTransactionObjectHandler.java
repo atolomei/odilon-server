@@ -43,20 +43,6 @@ public abstract class RAIDZeroTransactionObjectHandler extends RAIDZeroTransacti
         this.objectName = objectName;
     }
 
-    protected ServerBucket getBucket() {
-        return bucket;
-    }
-
-    protected String getObjectName() {
-        return objectName;
-    }
-
-    protected ObjectPath getObjectPath() {
-        if (path == null)
-            path = new ObjectPath(getDriver().getDrive(getBucket(), getObjectName()), getBucket(), getObjectName());
-        return path;
-    }
-
     protected void bucketReadLock() {
         bucketReadLock(getBucket());
     }
@@ -102,4 +88,19 @@ public abstract class RAIDZeroTransactionObjectHandler extends RAIDZeroTransacti
     protected void checkExistsBucket() {
         checkExistsBucket(getBucket());
     }
+
+    protected ServerBucket getBucket() {
+        return bucket;
+    }
+
+    protected String getObjectName() {
+        return objectName;
+    }
+
+    protected ObjectPath getObjectPath() {
+        if (path == null)
+            path = new ObjectPath(getDriver().getDrive(getBucket(), getObjectName()), getBucket(), getObjectName());
+        return path;
+    }
+
 }

@@ -137,15 +137,9 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionObjectHandle
         }
     }
 
-
     private void save(InputStream stream, String srcFileName, String contentType, int afterHeadVersion, Optional<List<String>> customTags) {
         saveData(getBucket(), getObjectName(), stream, srcFileName);
         saveMetadata(getBucket(), getObjectName(), srcFileName, contentType, afterHeadVersion, customTags);
-    }
-
-
-    private VirtualFileSystemOperation updateObject(int beforeHeadVersion) {
-        return updateObject(getBucket(), getObjectName(), beforeHeadVersion);
     }
 
     /**
@@ -159,17 +153,21 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionObjectHandle
             ObjectPath path = getObjectPath();
             File file = path.dataFilePath().toFile();
             ((SimpleDrive) drive).putObjectDataVersionFile(getBucket().getId(), getObjectName(), version, file);
-            
         } catch (Exception e) {
             throw new InternalCriticalException(e, info());
         }
 
         /** version metadata */
         try {
-            File file = drive.getObjectMetadataFile(getBucket(), getObjectName());
-            drive.putObjectMetadataVersionFile(getBucket(), getObjectName(), version, file);
+            drive.putObjectMetadataVersionFile(getBucket(), getObjectName(), version, drive.getObjectMetadataFile(getBucket(), getObjectName()));
         } catch (Exception e) {
             throw new InternalCriticalException(e, info());
         }
     }
+    
+    private VirtualFileSystemOperation updateObject(int beforeHeadVersion) {
+        return updateObject(getBucket(), getObjectName(), beforeHeadVersion);
+    }
+
+
 }

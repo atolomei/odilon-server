@@ -30,10 +30,12 @@ import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
- * Rollback is the same for both operations
- * 
- * OperationCode.DELETE_OBJECT OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS
- * 
+ * <p>Rollback is the same for both operations <br/>
+ * <ul>
+ * <li>{@link OperationCode.DELETE_OBJECT}</li>
+ * <li>{@link OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS}</li>
+ * </ul>
+ * </p>
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public class RAIDOneRollbackDeleteHandler extends RAIDOneRollbackHandler {
@@ -48,9 +50,9 @@ public class RAIDOneRollbackDeleteHandler extends RAIDOneRollbackHandler {
     protected void rollback() {
 
         boolean rollbackOK = false;
+        
         try {
             rollbackOK = restore();
-
         } catch (InternalCriticalException e) {
             if (!isRecovery())
                 throw (e);
@@ -61,7 +63,6 @@ public class RAIDOneRollbackDeleteHandler extends RAIDOneRollbackHandler {
                 throw new InternalCriticalException(e, opInfo(getOperation()));
             else
                 logger.error(opInfo(getOperation()), SharedConstant.NOT_THROWN);
-
         } finally {
             if (rollbackOK || isRecovery())
                 getOperation().cancel();
@@ -69,7 +70,6 @@ public class RAIDOneRollbackDeleteHandler extends RAIDOneRollbackHandler {
     }
 
     private boolean restore() {
-
         ServerBucket bucket = getCacheBucket(getOperation().getBucketId());
         /** restore metadata directory */
         for (Drive drive : getDriver().getDrivesAll()) {

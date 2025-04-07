@@ -32,8 +32,6 @@ import io.odilon.virtualFileSystem.model.SimpleDrive;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
- * 
- * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public class RAIDOneRollbackUpdateHandler extends RAIDOneRollbackHandler {
@@ -110,8 +108,6 @@ public class RAIDOneRollbackUpdateHandler extends RAIDOneRollbackHandler {
             for (Drive drive : getDriver().getDrivesAll()) {
                 ObjectPath path = new ObjectPath(drive, bucket, getOperation().getObjectName());
                 File file = path.dataFileVersionPath(getOperation().getVersion()).toFile();
-                // File file = ((SimpleDrive) drive).getObjectDataVersionFile(bucket.getId(),
-                // objectName, version);
                 if (file.exists()) {
                     ((SimpleDrive) drive).putObjectDataFile(bucket.getId(), getOperation().getObjectName(), file);
                     FileUtils.deleteQuietly(file);
