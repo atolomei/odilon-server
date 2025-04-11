@@ -24,6 +24,9 @@ import io.odilon.model.SharedConstant;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
+ * <p>
+ * Rollback for {@link RAIDZeroCreateObjectHandler}
+ * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  * 
