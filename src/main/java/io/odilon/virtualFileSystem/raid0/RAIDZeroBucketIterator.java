@@ -64,6 +64,11 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
         this(driver, bucket, opOffset, opPrefix, Optional.empty());
     }
 
+    /**
+     * <p>after the {@link VirtualFileService} starts up all drives are in state
+     * {@link DriveStatus.ENABLED} in RAID 0
+     * </p>
+     */
     public RAIDZeroBucketIterator(RAIDZeroDriver driver, ServerBucket bucket, Optional<Long> opOffset, Optional<String> opPrefix,
             Optional<String> serverAgentId) {
         super(driver, bucket);
@@ -72,10 +77,6 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
         serverAgentId.ifPresent(x -> setAgentId(x));
         opPrefix.ifPresent(x -> setPrefix(x.toLowerCase().trim()));
 
-        /**
-         * after the {@link VirtualFileService} starts up all drives are in state
-         * {@link DriveStatus.ENABLED} in RAID 0
-         */
         this.drives = new ArrayList<Drive>();
         this.drives.addAll(getDriver().getDrivesEnabled());
 
@@ -214,5 +215,4 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
     private List<Drive> getDrives() {
         return this.drives;
     }
-
 }

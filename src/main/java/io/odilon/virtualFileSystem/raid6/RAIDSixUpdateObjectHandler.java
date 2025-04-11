@@ -231,14 +231,11 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionHandler {
     }
 
     /**
-     * 
      * @param bucket     can not be null
      * @param objectName can not be null
      * 
      * @return ObjectMetadata of the restored object
-     * 
      */
-
     protected ObjectMetadata restorePreviousVersion(ServerBucket bucket, String objectName) {
 
         Check.requireNonNullArgument(bucket, "bucket is null");
@@ -271,7 +268,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionHandler {
                     throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
 
                 if (metaHeadToRemove.getVersion() == VERSION_ZERO)
-                    throw new IllegalArgumentException("Object does not have versions | " + objectInfo(bucket, objectName));
+                    throw new IllegalArgumentException("Object does not have versions -> " + objectInfo(bucket, objectName));
 
                 beforeHeadVersion = metaHeadToRemove.getVersion();
 
@@ -472,23 +469,23 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionHandler {
 
             try {
                 ObjectMetadata meta = new ObjectMetadata(bucket.getId(), objectName);
-                meta.fileName = srcFileName;
-                meta.appVersion = OdilonVersion.VERSION;
-                meta.contentType = contentType;
-                meta.creationDate = headCreationDate;
-                meta.version = version;
-                meta.versioncreationDate = versionCreationDate;
-                meta.length = ei.getFileSize();
-                meta.totalBlocks = ei.getEncodedBlocks().size();
-                meta.sha256Blocks = shaBlocks;
-                meta.etag = etag;
-                meta.encrypt = getVirtualFileSystemService().isEncrypt();
-                meta.integrityCheck = meta.creationDate;
-                meta.status = ObjectStatus.ENABLED;
-                meta.drive = drive.getName();
-                meta.raid = String.valueOf(getRedundancyLevel().getCode()).trim();
+                meta.setFileName(srcFileName);
+                meta.setAppVersion(OdilonVersion.VERSION);
+                meta.setContentType(contentType);
+                meta.setCreationDate(headCreationDate);
+                meta.setVersion(version);
+                meta.setVersioncreationDate(versionCreationDate);
+                meta.setLength(ei.getFileSize());
+                meta.setTotalBlocks(ei.getEncodedBlocks().size());
+                meta.setSha256Blocks(shaBlocks);
+                meta.setEtag(etag);
+                meta.setEncrypt(getVirtualFileSystemService().isEncrypt());
+                meta.setIntegrityCheck(meta.getCreationDate());
+                meta.setStatus(ObjectStatus.ENABLED);
+                meta.setDrive(drive.getName());
+                meta.setRaid(String.valueOf(getRedundancyLevel().getCode()).trim());
                 if (customTags.isPresent())
-                    meta.customTags = customTags.get();
+                    meta.setCustomTags(customTags.get());
                 list.add(meta);
 
             } catch (Exception e) {
@@ -521,9 +518,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionHandler {
             throw new InternalCriticalException(e, objectInfo(bucket, objectName));
 
         } finally {
-
             IOException secEx = null;
-
             try {
                 if (sourceStream != null)
                     sourceStream.close();
@@ -549,12 +544,11 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionHandler {
     private void backup(ObjectMetadata meta, ServerBucket bucket) {
         try {
             for (Drive drive : getDriver().getDrivesAll()) {
-                String objectMetadataDirPath = drive.getObjectMetadataDirPath(bucket, meta.getObjectName());
-                File src = new File(objectMetadataDirPath);
-                if (src.exists())
-                    FileUtils.copyDirectory(src,
-                            new File(drive.getBucketWorkDirPath(bucket) + File.separator + meta.getObjectName()));
-
+                File src  = new File(drive.getObjectMetadataDirPath(bucket, meta.getObjectName()));
+                if (src.exists()) {
+                    File dest = new File(drive.getBucketWorkDirPath(bucket) + File.separator + meta.getObjectName());                 
+                    FileUtils.copyDirectory(src,dest);
+                }
             }
         } catch (IOException e) {
             throw new InternalCriticalException(e, getDriver().objectInfo(meta));
@@ -652,7 +646,6 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionHandler {
                         throw new InternalCriticalException(e, objectInfo(meta));
                     }
                 }
-
             }
             return true;
 

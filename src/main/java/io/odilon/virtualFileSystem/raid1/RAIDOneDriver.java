@@ -173,20 +173,13 @@ public class RAIDOneDriver extends BaseIODriver {
                 ObjectMetadata meta = getObjectMetadataVersion(bucket, objectName, version);
 
                 if ((meta == null) || (!meta.isAccesible()))
-                    throw new OdilonObjectNotFoundException(
-                            "object version does not exists -> " + objectInfo(bucket, objectName, version));
+                    throw new OdilonObjectNotFoundException("version does not exists -> " + objectInfo(bucket, objectName, version));
 
-                ObjectPath path = new ObjectPath(readDrive, bucket, objectName);
-                InputStream is = Files.newInputStream(path.dataFileVersionPath(version));
+                InputStream is = Files.newInputStream((new ObjectPath(readDrive, bucket, objectName)).dataFileVersionPath(version));
 
-                if (meta.isEncrypt()) {
-                    return getEncryptionService().decryptStream(is);
-                } else {
-                    return is;
-                }
+                return (meta.isEncrypt() ? getEncryptionService().decryptStream(is) : is);
 
             } catch (OdilonObjectNotFoundException e) {
-                logger.error(e, SharedConstant.NOT_THROWN);
                 throw e;
             } catch (Exception e) {
                 throw new InternalCriticalException(e, objectInfo(bucket, objectName, version));

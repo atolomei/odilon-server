@@ -122,7 +122,7 @@ public class RAIDSixSyncObjectHandler extends RAIDSixTransactionHandler {
 
         this.drives = new ArrayList<Drive>();
 
-        getDriver().getDrivesAll().forEach(d -> drives.add(d));
+        getDriver().getDrivesAll().forEach(d -> this.drives.add(d));
         this.drives.sort(new Comparator<Drive>() {
             @Override
             public int compare(Drive o1, Drive o2) {
