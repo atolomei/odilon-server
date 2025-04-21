@@ -45,7 +45,8 @@ public class RAIDZeroDeleteObjectAllPreviousVersionsHandler extends RAIDZeroTran
     }
 
     /**
-     * remove all "objectmetadata.json.vn" Files, but keep -> "objectmetadata.json"
+     * remove all "objectmetadata.json.vn" Files, 
+     * but keep -> "objectmetadata.json"
      */
     protected void delete() {
 

@@ -213,6 +213,6 @@ public class OdilonBucketIteratorService extends BaseService implements BucketIt
     }
 
     private String newAgentId() {
-        return System.currentTimeMillis() + "-" + String.valueOf(Double.valueOf(Math.abs(Math.random() * 100000)).intValue());
+        return System.currentTimeMillis() + "-" + String.valueOf(Double.valueOf(Math.abs(Math.random() * 1000000)).intValue());
     }
 }
