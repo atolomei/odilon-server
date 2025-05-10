@@ -82,6 +82,8 @@ This is the first release of Odilon Object Storage
 ==================  1.13 ==================
 
 2025.01.08 Spring Boot 3.4.1
+2025.05.09 fix bug RAID 6 restore disk when fails disk number 2 of the RAID.
+
 
 
 
