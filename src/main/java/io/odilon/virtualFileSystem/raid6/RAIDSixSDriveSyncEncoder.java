@@ -82,6 +82,10 @@ public class RAIDSixSDriveSyncEncoder extends RAIDSixEncoder {
      */
     protected boolean isWrite(int disk) {
         return (getDrives().get(disk).getDriveInfo().getStatus() == DriveStatus.NOTSYNC);
+        //return true;
+        
+        
+        
     }
 
 }

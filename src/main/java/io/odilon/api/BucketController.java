@@ -177,9 +177,7 @@ public class BucketController extends BaseApiController {
      */
     @RequestMapping(value = "/exists/{name}", produces = "application/json", method = RequestMethod.GET)
     public ResponseEntity<Boolean> exists(@PathVariable("name") String name) {
-
         TrafficPass pass = null;
-
         try {
             pass = getTrafficControlService().getPass();
             return new ResponseEntity<Boolean>(Boolean.valueOf(getObjectStorageService().existsBucket(name) ? true : false),

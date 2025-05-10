@@ -208,6 +208,7 @@ public class RAIDSixEncoder extends RAIDSixCoder {
         // BUFFER 2
         byte[][] shards = new byte[total_shards][shardSize];
 
+        
         /** Fill in the data shards */
         for (int i = 0; i < data_shards; i++)
             System.arraycopy(allBytes, i * shardSize, shards[i], 0, shardSize);
@@ -225,19 +226,27 @@ public class RAIDSixEncoder extends RAIDSixCoder {
         /**
          * Parallel copy
          */
-        List<File> destination = new ArrayList<File>();
+        List<File> destination  = new ArrayList<File>();
+        Boolean requiresCopy [] = new Boolean[total_shards];
+        
+        
         for (int disk = 0; disk < total_shards; disk++) {
+            
             if (isWrite(disk)) {
                 String dirPath = getDrives().get(disk).getBucketObjectDataDirPath(bucket)
                         + ((o_version.isEmpty()) ? "" : (File.separator + VirtualFileSystemService.VERSION_DIR));
                 String name = objectName + "." + String.valueOf(chunk) + "." + String.valueOf(disk)
                         + (o_version.isEmpty() ? "" : "v." + String.valueOf(o_version.get().intValue()));
                 destination.add(new File(dirPath, name));
+                requiresCopy[disk]=Boolean.valueOf(true);
+            }
+            else {
+                requiresCopy[disk]=Boolean.valueOf(false);
             }
         }
 
         /** save in parallel (using the VirtualFileSystem 's ExecutorService) */
-        ParallelFileCoypAgent agent = new ParallelFileCoypAgent(shards, destination);
+        ParallelFileCoypAgent agent = new ParallelFileCoypAgent(shards, destination, requiresCopy);
         agent.setExecutor(getVirtualFileSystemService().getExecutorService());
 
         boolean isOk = agent.execute();
@@ -246,17 +255,7 @@ public class RAIDSixEncoder extends RAIDSixCoder {
 
         if (!isOk)
             throw new InternalCriticalException(objectInfo(bucket, objectName));
-
-        /**
-         * if (logger.isDebugEnabled()) { if
-         * (getVirtualFileSystemService().getExecutorService() instanceof
-         * ThreadPoolExecutor) { logger.debug("Pool active count -> " +
-         * ((ThreadPoolExecutor)
-         * getVirtualFileSystemService().getExecutorService()).getActiveCount());
-         * logger.debug("Pool size -> " + ((ThreadPoolExecutor)
-         * getVirtualFileSystemService().getExecutorService()).getPoolSize()); } }
-         **/
-
+ 
         return eof;
     }
 

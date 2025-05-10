@@ -927,15 +927,15 @@ public class OdilonVirtualFileSystemService extends BaseService
 
         /** check if the installation is new, mark all drives as ENABLED */
         {
-            boolean noneSync = true;
+            boolean noneToSync = true;
             for (Entry<String, Drive> entry : drivesAll.entrySet()) {
                 Drive drive = entry.getValue();
                 if (drive.getDriveInfo().getStatus() != DriveStatus.NOTSYNC) {
-                    noneSync = false;
+                    noneToSync = false;
                     break;
                 }
             }
-            if (noneSync) {
+            if (noneToSync) {
                 this.drivesEnabled.clear();
                 for (Drive drive : baselist) {
                     DriveInfo info = drive.getDriveInfo();
@@ -947,10 +947,20 @@ public class OdilonVirtualFileSystemService extends BaseService
             }
         }
         /** set up drives for RS Decoding */
-        this.drivesEnabled.values()
-                .forEach(drive -> this.drivesRSDecode.put(Integer.valueOf(drive.getDriveInfo().getOrder()), drive));
+        this.drivesEnabled.values().forEach(drive -> this.drivesRSDecode.put(Integer.valueOf(drive.getDriveInfo().getOrder()), drive));
+        
+        if (logger.isDebugEnabled()) {
+            logger.debug(ServerConstant.SEPARATOR);
+            logger.debug("Drives enabled");
+            this.drivesEnabled.forEach( (k,v) -> logger.debug(v.getRootDirPath()));
+            logger.debug(ServerConstant.SEPARATOR);
+            logger.debug("Drives used for Reed Solomon decode");
+            this.drivesRSDecode.forEach( (k,v) -> logger.debug( k.toString() + " -> " + v.getRootDirPath()));
+            logger.debug(ServerConstant.SEPARATOR);
+        }
     }
 
+    
     /**
      * 
      * 

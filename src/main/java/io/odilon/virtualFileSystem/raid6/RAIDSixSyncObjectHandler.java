@@ -88,7 +88,8 @@ public class RAIDSixSyncObjectHandler extends RAIDSixTransactionHandler {
                 bucket = getBucketCache().get(meta.getBucketId());
 
                 /**
-                 * backup metadata, there is no need to backup data because existing data files
+                 * backup metadata, there is no need to 
+                 * backup data because existing data files
                  * are not touched.
                  **/
                 backup(bucket, meta);
@@ -165,6 +166,9 @@ public class RAIDSixSyncObjectHandler extends RAIDSixTransactionHandler {
                 if (src.exists())
                     FileUtils.copyDirectory(src, dest);
             }
+            
+            
+            
         } catch (IOException e) {
             throw new InternalCriticalException(e, getDriver().objectInfo(meta));
         }
@@ -212,7 +216,8 @@ public class RAIDSixSyncObjectHandler extends RAIDSixTransactionHandler {
                     RAIDSixSDriveSyncEncoder driveEncoder = new RAIDSixSDriveSyncEncoder(getDriver(), getDrives());
                     try (InputStream in = new BufferedInputStream(new FileInputStream(decoder.decodeVersion(versionMeta, bucket).getAbsolutePath()))) {
                         /**
-                         * encodes version without saving existing blocks, only the ones that go to the
+                         * encodes version without saving existing blocks, 
+                         * only the ones that go to the
                          * new drive/s
                          */
                         driveEncoder.encodeVersion(in, bucket, meta.getObjectName(), versionMeta.getVersion());

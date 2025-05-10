@@ -43,7 +43,9 @@ import io.odilon.util.DateTimeUtil;
 
 /**
  * 
- * <p>Used by {@link RAIDSixEncoder}</p>
+ * <p>
+ * Used by {@link RAIDSixEncoder}
+ * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
@@ -52,10 +54,13 @@ public class ParallelFileCoypAgent extends FileCopyAgent {
     static private Logger logger = Logger.getLogger(ParallelFileCoypAgent.class.getName());
 
     @JsonIgnore
-    final byte[][] source;
+    private final byte[][] source;
 
     @JsonIgnore
-    final List<File> destination;
+    private final List<File> destination;
+
+    @JsonIgnore
+    private final Boolean[] requiresCopy;
 
     @JsonIgnore
     private ExecutorService executor;
@@ -66,11 +71,24 @@ public class ParallelFileCoypAgent extends FileCopyAgent {
     @JsonIgnore
     private OffsetDateTime end;
 
-    public ParallelFileCoypAgent(byte[][] source, List<File> destination) {
+    public ParallelFileCoypAgent(byte[][] source, List<File> destination, Boolean[] requiresCopy) {
+
         Check.requireNonNull(source);
         Check.requireNonNull(destination);
+        Check.requireTrue(requiresCopy.length == source.length, "Error not true -> requiresCopy.length == source.length");
+        Check.requireTrue(source.length >= destination.size(), "Error not true -> source.length >= destination.size()");
+        if (logger.isDebugEnabled()) {
+            int toCopy = 0;
+            for (int n = 0; n < requiresCopy.length; n++) {
+                if (requiresCopy[n].booleanValue())
+                    toCopy++;
+            }
+            Check.requireTrue(toCopy == destination.size(), "Error toCopy must be equal to destination.size()");
+        }
+
         this.source = source;
         this.destination = destination;
+        this.requiresCopy = requiresCopy;
     }
 
     @Override
@@ -96,34 +114,43 @@ public class ParallelFileCoypAgent extends FileCopyAgent {
 
             int size = getDestination().size();
 
-            if (getExecutor()==null)
-                   setExecutor(Executors.newFixedThreadPool(size));
+            int total = this.source.length;
+
+            if (getExecutor() == null)
+                setExecutor(Executors.newFixedThreadPool(size));
 
             List<Callable<Boolean>> tasks = new ArrayList<Callable<Boolean>>(size);
 
-            for (int index = 0; index < size; index++) {
+            int toCopy = 0;
 
-                final int val = index;
+            for (int index = 0; index < total; index++) {
 
-                tasks.add(() -> {
-                    try {
-                        File outputFile = getDestination().get(val);
-                        try (OutputStream out = new BufferedOutputStream(new FileOutputStream(outputFile))) {
-                            out.write(this.source[val]);
-                        } catch (FileNotFoundException e) {
-                            throw new InternalCriticalException(e, "f: " + outputFile.getName());
-                        } catch (IOException e) {
-                            throw new InternalCriticalException(e, "f: " + outputFile.getName());
+                if (requiresCopy[index].booleanValue()) {
+
+                    final int f_val = index;
+                    final int f_toCopy = toCopy++;
+
+                    tasks.add(() -> {
+                        try {
+
+                            File outputFile = getDestination().get(f_toCopy);
+                            try (OutputStream out = new BufferedOutputStream(new FileOutputStream(outputFile))) {
+                                out.write(this.source[f_val]);
+                            } catch (FileNotFoundException e) {
+                                throw new InternalCriticalException(e, "f: " + outputFile.getName());
+                            } catch (IOException e) {
+                                throw new InternalCriticalException(e, "f: " + outputFile.getName());
+                            }
+                            return Boolean.valueOf(true);
+
+                        } catch (Exception e) {
+                            logger.error(e, SharedConstant.NOT_THROWN);
+                            return Boolean.valueOf(false);
+                        } finally {
+
                         }
-                        return Boolean.valueOf(true);
-
-                    } catch (Exception e) {
-                        logger.error(e, SharedConstant.NOT_THROWN);
-                        return Boolean.valueOf(false);
-                    } finally {
-
-                    }
-                });
+                    });
+                }
             }
             /** process buffer in parallel */
             try {
