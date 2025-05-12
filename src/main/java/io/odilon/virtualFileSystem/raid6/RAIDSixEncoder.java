@@ -26,7 +26,6 @@ import java.util.Optional;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.file.ParallelFileCoypAgent;
-import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ServerConstant;
 import io.odilon.util.Check;
@@ -47,9 +46,6 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  */
 public class RAIDSixEncoder extends RAIDSixCoder {
 
-    @SuppressWarnings("unused")
-    static private Logger logger = Logger.getLogger(RAIDSixEncoder.class.getName());
-
     @JsonIgnore
     private long fileSize = 0;
 
@@ -69,7 +65,7 @@ public class RAIDSixEncoder extends RAIDSixCoder {
     private RAIDSixBlocks encodedInfo;
 
     @JsonIgnore
-    private List<Drive> zDrives;
+    private List<Drive> r6Drives;
 
     /**
      * <p>
@@ -94,9 +90,7 @@ public class RAIDSixEncoder extends RAIDSixCoder {
      */
     protected RAIDSixEncoder(RAIDSixDriver driver, List<Drive> udrives) {
         super(driver);
-
-        this.zDrives = (udrives != null) ? udrives : driver.getDrivesAll();
-
+        this.r6Drives = (udrives != null) ? udrives : driver.getDrivesAll();
         this.data_shards = getVirtualFileSystemService().getServerSettings().getRAID6DataDrives();
         this.partiy_shards = getVirtualFileSystemService().getServerSettings().getRAID6ParityDrives();
         this.total_shards = data_shards + partiy_shards;
@@ -141,7 +135,6 @@ public class RAIDSixEncoder extends RAIDSixCoder {
     protected RAIDSixBlocks encode(InputStream is, ServerBucket bucket, String objectName, Optional<Integer> version) {
 
         Check.requireNonNull(is);
-
         Check.requireNonNull(objectName);
         Check.requireNonNull(bucket);
 
@@ -149,8 +142,8 @@ public class RAIDSixEncoder extends RAIDSixCoder {
             throw new InternalCriticalException("Incorrect configuration for RAID 6 -> data: " + String.valueOf(data_shards)
                     + " | parity:" + String.valueOf(partiy_shards));
 
-        if (getDrives().size() < total_shards)
-            throw new InternalCriticalException("There are not enough drives to encode the file in RAID 6 -> "
+        if (getDrives().size() < getTotalShards())
+            throw new InternalCriticalException("There are not enough drives to encode the file in RAID 6 -> drives: "
                     + String.valueOf(getDrives().size()) + " | required: " + String.valueOf(total_shards));
 
         this.fileSize = 0;
@@ -192,7 +185,7 @@ public class RAIDSixEncoder extends RAIDSixCoder {
                 done = eof || (totalBytesRead == maxBytesToRead);
             }
         } catch (IOException e) {
-            throw new InternalCriticalException(e, " reading inputStream | " + getDriver().objectInfo(bucket, objectName));
+            throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName));
         }
 
         if (totalBytesRead == 0)
@@ -206,15 +199,19 @@ public class RAIDSixEncoder extends RAIDSixCoder {
         final int shardSize = (storedSize + data_shards - 1) / data_shards;
 
         // BUFFER 2
-        byte[][] shards = new byte[total_shards][shardSize];
-
+        int totalShards = getTotalShards();
+        int dataShards = getDataShards();
+        int parityShards = getPartityShards();
         
+        
+        byte[][] shards = new byte[totalShards][shardSize];
+
         /** Fill in the data shards */
-        for (int i = 0; i < data_shards; i++)
-            System.arraycopy(allBytes, i * shardSize, shards[i], 0, shardSize);
+        for (int n = 0; n < dataShards ; n++)
+            System.arraycopy(allBytes, n * shardSize, shards[n], 0, shardSize);
 
         /** Use Reed-Solomon to calculate the parity. */
-        ReedSolomon reedSolomon = new ReedSolomon(data_shards, partiy_shards);
+        ReedSolomon reedSolomon = new ReedSolomon(dataShards, parityShards);
         reedSolomon.encodeParity(shards, 0, shardSize);
 
         /**
@@ -226,22 +223,24 @@ public class RAIDSixEncoder extends RAIDSixCoder {
         /**
          * Parallel copy
          */
-        List<File> destination  = new ArrayList<File>();
-        Boolean requiresCopy [] = new Boolean[total_shards];
-        
-        
-        for (int disk = 0; disk < total_shards; disk++) {
-            
-            if (isWrite(disk)) {
-                String dirPath = getDrives().get(disk).getBucketObjectDataDirPath(bucket)
+        List<File> destination = new ArrayList<File>();
+        int total = getTotalShards();
+        Boolean requiresCopy[] = new Boolean[total];
+
+        for (int diskOrder = 0; diskOrder < getTotalShards(); diskOrder++) {
+
+            if (isWrite(diskOrder)) {
+                
+                String dirPath = getDrives().get(diskOrder).getBucketObjectDataDirPath(bucket)
                         + ((o_version.isEmpty()) ? "" : (File.separator + VirtualFileSystemService.VERSION_DIR));
-                String name = objectName + "." + String.valueOf(chunk) + "." + String.valueOf(disk)
+                
+                String name = objectName + "." + String.valueOf(chunk) + "." + String.valueOf(diskOrder)
                         + (o_version.isEmpty() ? "" : "v." + String.valueOf(o_version.get().intValue()));
+                
                 destination.add(new File(dirPath, name));
-                requiresCopy[disk]=Boolean.valueOf(true);
-            }
-            else {
-                requiresCopy[disk]=Boolean.valueOf(false);
+                requiresCopy[diskOrder] = Boolean.valueOf(true);
+            } else {
+                requiresCopy[diskOrder] = Boolean.valueOf(false);
             }
         }
 
@@ -249,21 +248,41 @@ public class RAIDSixEncoder extends RAIDSixCoder {
         ParallelFileCoypAgent agent = new ParallelFileCoypAgent(shards, destination, requiresCopy);
         agent.setExecutor(getVirtualFileSystemService().getExecutorService());
 
+
         boolean isOk = agent.execute();
-
+        
         destination.forEach(file -> this.encodedInfo.getEncodedBlocks().add(file));
-
+        
         if (!isOk)
             throw new InternalCriticalException(objectInfo(bucket, objectName));
- 
+        
         return eof;
+        
     }
-
-    protected boolean isWrite(int disk) {
+    /**
+     * For normal encoding all disk must be written with RS blocks.
+     * However, this method is overriden by {@link RAIDSixSDriveSyncEncoder} the class that syncs new disks,
+     * this class just writes blocks on the newly installed disks, leaving existing blocks untouched. 
+     * 
+     * @param diskOrder
+     * @return
+     */
+    protected boolean isWrite(int diskOrder) {
         return true;
     }
 
     protected List<Drive> getDrives() {
-        return zDrives;
+        return r6Drives;
+    }
+
+    private int getTotalShards() {
+        return this.total_shards;
+    }
+
+    private int getDataShards() {
+        return this.data_shards;
+    }
+    private int getPartityShards() {
+        return this.partiy_shards;
     }
 }

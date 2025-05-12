@@ -27,8 +27,8 @@ import io.odilon.model.BaseObject;
 
 /**
  * <p>
- * List of encoded blocks stored in File System See the coding convention:
- * {@link RAIDSixDriver}
+ * List of encoded blocks stored in File System.
+ *  See the coding convention here {@link RAIDSixDriver}
  * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)

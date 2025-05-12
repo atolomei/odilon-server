@@ -296,6 +296,9 @@ public class ServerSettings implements JSONObject {
     @Value("${retryFailedSeconds:20}")
     protected long retryFailedSeconds;
 
+    
+    private int totalDisks;
+    
     @Autowired
     public ServerSettings() {
     }
@@ -349,6 +352,7 @@ public class ServerSettings implements JSONObject {
         if (rootDirs != null && rootDirs.size() > 0)
             str.append(rootDirs.stream().map((s) -> "\"" + s + "\"").collect(Collectors.joining(", ")));
         str.append("]");
+        
 
         // STAND BY --------------
 
@@ -666,15 +670,13 @@ public class ServerSettings implements JSONObject {
         if (this.standbyUrl == null)
             this.isStandByEnabled = false;
 
-        if (fileCacheMaxCapacity == -1) {
-
-        }
-
         if (fileCacheDurationDays < 1)
             fileCacheDurationDays = 7;
 
         if (this.objectCacheInitialCapacity < 1)
             this.objectCacheInitialCapacity = 10000;
+        
+        this.totalDisks=getRootDirs().size();
 
         startuplogger.debug("Started -> " + ServerSettings.class.getSimpleName());
 
@@ -934,6 +936,14 @@ public class ServerSettings implements JSONObject {
         return this.timeZone;
     }
 
+    public @NonNegative int getObjectCacheInitialCapacity() {
+        return objectCacheInitialCapacity;
+    }
+
+    public int getTotalDisks() {
+        return totalDisks;
+    }
+    
     public synchronized OdilonServerInfo getDefaultOdilonServerInfo() {
 
         OffsetDateTime now = OffsetDateTime.now();
@@ -1005,8 +1015,6 @@ public class ServerSettings implements JSONObject {
         System.exit(1);
     }
 
-    public @NonNegative int getObjectCacheInitialCapacity() {
-        return objectCacheInitialCapacity;
-    }
+    
 
 }

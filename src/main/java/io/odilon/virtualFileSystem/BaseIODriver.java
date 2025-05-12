@@ -1136,7 +1136,9 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
                 + (fileName != null ? (" f:" + fileName) : "");
     }
 
-    
+    public int getTotalDisks() {
+        return getVirtualFileSystemService().getServerSettings().getTotalDisks();
+    }
     
     protected abstract Drive getObjectMetadataReadDrive(ServerBucket bucket, String objectName);
 

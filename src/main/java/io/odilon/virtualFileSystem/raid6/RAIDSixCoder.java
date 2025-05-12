@@ -27,6 +27,10 @@ import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
+ * 
+ * @see RAIDSixDecoder
+ * @see RAIDSixEncoder
+ * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public class RAIDSixCoder extends BaseObject {

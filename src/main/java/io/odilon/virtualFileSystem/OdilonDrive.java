@@ -20,6 +20,7 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -511,6 +512,8 @@ public class OdilonDrive extends BaseObject implements Drive {
     public ObjectMetadata getObjectMetadata(ServerBucket bucket, String objectName) {
         try {
             return getObjectMapper().readValue(getObjectMetadataFileById(bucket.getId(), objectName), ObjectMetadata.class);
+        } catch (FileNotFoundException e) {
+            throw new InternalCriticalException(e);
         } catch (Exception e) {
             throw new InternalCriticalException(e);
         }

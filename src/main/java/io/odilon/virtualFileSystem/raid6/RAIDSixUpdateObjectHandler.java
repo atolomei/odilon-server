@@ -484,6 +484,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionHandler {
                 meta.setStatus(ObjectStatus.ENABLED);
                 meta.setDrive(drive.getName());
                 meta.setRaid(String.valueOf(getRedundancyLevel().getCode()).trim());
+                meta.setRaidDrives(getDriver().getTotalDisks());
                 if (customTags.isPresent())
                     meta.setCustomTags(customTags.get());
                 list.add(meta);

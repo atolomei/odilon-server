@@ -910,7 +910,7 @@ public class OdilonVirtualFileSystemService extends BaseService
             this.drivesRSDecode.clear();
             for (String dir : getServerSettings().getRootDirs()) {
                 Drive drive = null;
-                if (getServerSettings().getRedundancyLevel() == RedundancyLevel.RAID_6) {
+                if (getRedundancyLevel() == RedundancyLevel.RAID_6) {
                     drive = new OdilonDrive(String.valueOf(configOrder), dir, configOrder);
                     configOrder++;
                 } else {

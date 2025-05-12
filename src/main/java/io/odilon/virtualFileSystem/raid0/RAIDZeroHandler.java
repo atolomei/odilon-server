@@ -144,6 +144,8 @@ public abstract class RAIDZeroHandler extends BaseRAIDHandler implements RAIDHan
             if (customTags.isPresent())
                 meta.setCustomTags(customTags.get());
             meta.setRaid(String.valueOf(getRedundancyLevel().getCode()).trim());
+            meta.setRaidDrives(getDriver().getTotalDisks());
+            
             if (!path.metadataDirPath().toFile().exists())
                 FileUtils.forceMkdir(path.metadataDirPath().toFile());
             Files.writeString(path.metadataFilePath(), getObjectMapper().writeValueAsString(meta));

@@ -18,6 +18,7 @@ package io.odilon;
 
 import java.io.File;
 import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -101,7 +102,7 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
         if (iStandby)
             startupLogger.info(ServerConstant.SEPARATOR);
 
-        startupLogger.info("Startup at -> " + OffsetDateTime.now().toString());
+        startupLogger.info("Startup at -> " +  DateTimeFormatter.RFC_1123_DATE_TIME.format(OffsetDateTime.now()));
     }
 
     public SchedulerService getSchedulerService() {
