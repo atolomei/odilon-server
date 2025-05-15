@@ -18,7 +18,9 @@ package io.odilon.virtualFileSystem;
 
 import java.time.OffsetDateTime;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
 import io.odilon.model.BaseObject;
 import io.odilon.model.BucketMetadata;
@@ -34,6 +36,7 @@ import io.odilon.virtualFileSystem.model.ServerBucket;
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
+@JsonInclude(Include.NON_NULL)
 public class OdilonBucket extends BaseObject implements ServerBucket {
 
     @JsonProperty("bucketMetadata")

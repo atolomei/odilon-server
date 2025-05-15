@@ -28,6 +28,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+
 import io.odilon.log.Logger;
 import io.odilon.util.Check;
 import io.odilon.virtualFileSystem.model.SimpleDrive;
@@ -44,6 +47,8 @@ import io.odilon.virtualFileSystem.model.SimpleDrive;
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 
+
+@JsonInclude(Include.NON_NULL)
 @NotThreadSafe
 @Component
 @Scope("prototype")
@@ -68,8 +73,8 @@ public class OdilonSimpleDrive extends OdilonDrive implements SimpleDrive {
      * @param driveNanme
      * @param rootDir
      */
-    protected OdilonSimpleDrive(String driveName, String rootDir, int configOrder) {
-        super(driveName, rootDir, configOrder);
+    protected OdilonSimpleDrive(String driveName, String rootDir, int configOrder, String raidSetup, int raidDrives) {
+        super(driveName, rootDir, configOrder, raidSetup,  raidDrives);
     }
 
     /**

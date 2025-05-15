@@ -19,7 +19,9 @@ package io.odilon.virtualFileSystem;
 import java.io.Serializable;
 import java.time.OffsetDateTime;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
 import io.odilon.model.BaseObject;
 import io.odilon.virtualFileSystem.model.DriveStatus;
@@ -29,6 +31,7 @@ import io.odilon.virtualFileSystem.model.DriveStatus;
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
+@JsonInclude(Include.NON_NULL)
 public class DriveInfo extends BaseObject implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -48,17 +51,26 @@ public class DriveInfo extends BaseObject implements Serializable {
     @JsonProperty("order")
     private int order;
 
+    @JsonProperty("raidSetup")
+    private String raidSetup;
+
+    @JsonProperty("raidDrives")
+    private int raidDrives;
+
     public DriveInfo() {
     }
 
-    public DriveInfo(String name, String driveId, OffsetDateTime dateConnected, DriveStatus status, int configOrder) {
+    public DriveInfo(String name, String driveId, OffsetDateTime dateConnected, DriveStatus status, int configOrder, String raidSetup, int raidDrives) {
         this.name = name;
         this.driveId = driveId;
         this.dateConnected = dateConnected;
         this.driveStatus = status;
         this.order = configOrder;
+        this.raidSetup=raidSetup;
+        this.raidDrives=raidDrives;
     }
 
+    
     public DriveStatus getStatus() {
         return this.driveStatus;
     }
@@ -97,6 +109,30 @@ public class DriveInfo extends BaseObject implements Serializable {
 
     public void setDateConnected(OffsetDateTime dateConnected) {
         this.dateConnected = dateConnected;
+    }
+
+    //public DriveStatus getDriveStatus() {
+    //    return driveStatus;
+    //}
+
+    //public void setDriveStatus(DriveStatus driveStatus) {
+    //    this.driveStatus = driveStatus;
+    //}
+
+    public String getRaidSetup() {
+        return raidSetup;
+    }
+
+    public void setRaidSetup(String raidSetup) {
+        this.raidSetup = raidSetup;
+    }
+
+    public int getRaidDrives() {
+        return raidDrives;
+    }
+
+    public void setRaidDrives(int raidDrives) {
+        this.raidDrives = raidDrives;
     }
 
 }

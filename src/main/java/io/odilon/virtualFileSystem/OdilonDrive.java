@@ -47,7 +47,10 @@ import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.BaseObject;
@@ -92,6 +95,7 @@ import org.springframework.context.annotation.Scope;
  *
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
+@JsonInclude(Include.NON_NULL)
 @Component
 @Scope("prototype")
 public class OdilonDrive extends BaseObject implements Drive {
@@ -126,6 +130,12 @@ public class OdilonDrive extends BaseObject implements Drive {
     @JsonProperty("driveInfo")
     DriveInfo driveInfo;
 
+    @JsonProperty("raidDrives")
+    private int raidDrives;
+    
+    @JsonProperty("raidSetup")
+    private String raidSetup;
+    
     @Autowired
     protected OdilonDrive(String rootDir) {
         this.name = rootDir;
@@ -141,10 +151,12 @@ public class OdilonDrive extends BaseObject implements Drive {
      * @param name
      * @param rootDir
      */
-    protected OdilonDrive(String name, String rootDir, int configOrder) {
+    protected OdilonDrive(String name, String rootDir, int configOrder, String raidSetup, int raidDrives) {
         this.name = name;
         this.rootDir = rootDir;
         this.configOrder = configOrder;
+        this.raidDrives=raidDrives;
+        this.raidSetup=raidSetup;
         onInitialize();
     }
 
@@ -353,9 +365,6 @@ public class OdilonDrive extends BaseObject implements Drive {
         ObjectPath path = new ObjectPath(this, bucket, objectName);
 
         File objectMetadataDir = path.metadataDirPath().toFile();
-
-        // File objectMetadataDir = new File(this.getObjectMetadataDirPath(bucket,
-        // objectName));
 
         if (!objectMetadataDir.exists())
             return false;
@@ -963,7 +972,7 @@ public class OdilonDrive extends BaseObject implements Drive {
             DriveInfo info = readDriveMetadata();
 
             if (readDriveMetadata() == null) {
-                info = new DriveInfo(getName(), randomString(12), OffsetDateTime.now(), DriveStatus.NOTSYNC, getConfigOrder());
+                info = new DriveInfo(getName(), randomString(12), OffsetDateTime.now(), DriveStatus.NOTSYNC, getConfigOrder(), this.raidSetup, this.raidDrives);
                 saveDriveMetadata(info);
             }
 

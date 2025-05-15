@@ -911,10 +911,10 @@ public class OdilonVirtualFileSystemService extends BaseService
             for (String dir : getServerSettings().getRootDirs()) {
                 Drive drive = null;
                 if (getRedundancyLevel() == RedundancyLevel.RAID_6) {
-                    drive = new OdilonDrive(String.valueOf(configOrder), dir, configOrder);
+                    drive = new OdilonDrive(String.valueOf(configOrder), dir, configOrder, getRedundancyLevel().getName(), getServerSettings().getTotalDisks());
                     configOrder++;
                 } else {
-                    drive = new OdilonSimpleDrive(String.valueOf(configOrder), dir, configOrder);
+                    drive = new OdilonSimpleDrive(String.valueOf(configOrder), dir, configOrder, getRedundancyLevel().getName(), getServerSettings().getTotalDisks());
                     configOrder++;
                 }
                 baselist.add(drive);

@@ -25,6 +25,8 @@ package io.odilon.model;
  */
 public class ServerConstant {
 
+    static public final String applicationName = "Odilon";
+    
     static public final String SEPARATOR = "---------------------------------";
 
     static public final String MASTER_MODE = "master";

@@ -1455,8 +1455,8 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
         boolean done = false;
         VirtualFileSystemOperation op = null;
 
+        getLockService().getServerLock().writeLock().lock();
         try {
-            getLockService().getServerLock().writeLock().lock();
             op = getJournalService().createServerMetadata();
             String jsonString = getObjectMapper().writeValueAsString(serverInfo);
 
@@ -1496,7 +1496,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
         getLockService().getServerLock().writeLock().lock();
 
         try {
-
             op = getJournalService().updateServerMetadata();
             String jsonString = getObjectMapper().writeValueAsString(serverInfo);
 

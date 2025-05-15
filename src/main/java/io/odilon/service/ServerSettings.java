@@ -79,10 +79,6 @@ public class ServerSettings implements JSONObject {
     @Value("${ping.enabled:true}")
     protected boolean pingEnabled;
 
-    public boolean isPingEnabled() {
-        return this.pingEnabled;
-    }
-
     @Value("${ping.email.enabled:false}")
     protected boolean pingEmailEnabled;
 
@@ -950,7 +946,7 @@ public class ServerSettings implements JSONObject {
 
         OdilonServerInfo si = new OdilonServerInfo();
         si.setCreationDate(now);
-        si.setName("Odilon");
+        si.setName(ServerConstant.applicationName);
         si.setVersionControl(isVersionControl());
 
         si.setEncryptionIntialized(false);
@@ -964,6 +960,7 @@ public class ServerSettings implements JSONObject {
         si.setStandbyUrl(getStandbyUrl());
         si.setStandbyPort(getStandbyPort());
         si.setStandBySyncedDate(null);
+        si.setRedundancyLevel( this.getRedundancyLevel().getName());
 
         if (isStandByEnabled())
             si.setStandByStartDate(now);
@@ -994,13 +991,19 @@ public class ServerSettings implements JSONObject {
     }
 
     public boolean isRAID6ConfigurationValid(int dataShards, int parityShards) {
-        return (dataShards == 32 && parityShards == 16) || (dataShards == 16 && parityShards == 8)
-                || (dataShards == 8 && parityShards == 4) || (dataShards == 4 && parityShards == 2)
-                || (dataShards == 2 && parityShards == 1);
+        return  (       dataShards == 32  && parityShards == 16) 
+                    || (dataShards == 16  && parityShards ==  8)
+                    || (dataShards ==  8  && parityShards ==  4) 
+                    || (dataShards ==  4  && parityShards ==  2)
+                    || (dataShards ==  2  && parityShards ==  1);
     }
 
     public DataStorage getDataStorage() {
         return this.dataStorage;
+    }
+
+    public boolean isPingEnabled() {
+        return this.pingEnabled;
     }
 
     protected String randomString(final int size) {
@@ -1014,7 +1017,5 @@ public class ServerSettings implements JSONObject {
         logger.error(ServerConstant.SEPARATOR);
         System.exit(1);
     }
-
-    
 
 }

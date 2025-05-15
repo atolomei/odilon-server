@@ -20,8 +20,9 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
-import io.odilon.log.Logger;
 import io.odilon.model.ServerConstant;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemObject;
@@ -33,8 +34,9 @@ import io.odilon.model.ObjectMetadata;
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
-public class OdilonObject extends BaseObject implements VirtualFileSystemObject {
 
+@JsonInclude(Include.NON_NULL)
+public class OdilonObject extends BaseObject implements VirtualFileSystemObject {
 
     private ObjectMetadata objectMetadata;
 
