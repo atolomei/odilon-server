@@ -1,4 +1,7 @@
 ![spring-gaede65182_1280](https://github.com/atolomei/odilon-server/assets/29349757/f1c6f491-9d1f-4e4d-af87-f7e57713542a)
+
+<p><b>NEWS</b>: Odilon Server 1.13 available (10 May 2025). Odilon client SDK 1.14.1 available (25 June 2025)</p>
+
 <h1>Odilon Object Storage</h2>
 
 <h2>Lightweight and scalable</h2>
@@ -106,9 +109,8 @@ and only supports very simple queries, ie. to retrieve an object and to list the
 <br/>
 <br/>
 </li>
-<li class="list-item"><b>Odilon API is not fully S3 compatible</b><br/>
-Although it is simple to migrate from Odilon to S3, Odilon API is much simpler than S3. 
-The only thing it has in common with AWS S3 it that uses the bucket/object methafor to organize the object space.
+<li class="list-item"><b>S3 compatibility</b><br/>
+Odilon API is simpler than S3. It supports a subset of th the AWS S3 API, ie.the bucket/object methafor to organize the object space.
 <br/>
 <br/>
 </li>
