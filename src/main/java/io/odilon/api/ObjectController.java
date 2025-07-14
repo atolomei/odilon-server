@@ -354,6 +354,7 @@ public class ObjectController extends BaseApiController {
                     ? this.tokenService.encrypt(new AuthToken(bucketName, objectName, durationSeconds.get()))
                     : this.tokenService.encrypt(new AuthToken(bucketName, objectName));
 
+            
             getSystemMonitorService().getGetObjectMeter().mark();
 
             return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(token);

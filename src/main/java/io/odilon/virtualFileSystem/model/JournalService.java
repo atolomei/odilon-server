@@ -18,7 +18,6 @@ package io.odilon.virtualFileSystem.model;
 
 import io.odilon.model.BucketMetadata;
 import io.odilon.service.SystemService;
-import io.odilon.virtualFileSystem.OdilonVirtualFileSystemOperation;
 
 /**
  * <p>

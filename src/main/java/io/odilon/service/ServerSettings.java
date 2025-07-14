@@ -732,15 +732,18 @@ public class ServerSettings implements JSONObject {
 
     private List<String> getDefaultRootDirs() {
 
+    	
         if (isWindows()) {
 
             /** Windows */
 
             List<String> list = new ArrayList<String>();
-            list.add("c:" + File.separator + "odilon-data" + File.separator + "drive0");
 
-            if (getRedundancyLevel() == RedundancyLevel.RAID_1 || getRedundancyLevel() == RedundancyLevel.RAID_0)
-                return list;
+            if (getRedundancyLevel() == RedundancyLevel.RAID_1 || getRedundancyLevel() == RedundancyLevel.RAID_0) {
+                list.add("c:" + File.separator + "odilon-data" + File.separator + "drive0");
+            	return list;
+
+            }
 
             // for RAID 6 default is 3,1
             list.add("c:" + File.separator + "odilon-data" + File.separator + "drive0");
@@ -754,15 +757,15 @@ public class ServerSettings implements JSONObject {
             /** Linux */
 
             List<String> list = new ArrayList<String>();
-            list.add(File.separator + "var" + File.separator + "lib" + File.separator + "odilon-data" + File.separator + "drive0");
 
-            if (getRedundancyLevel() == RedundancyLevel.RAID_1 || getRedundancyLevel() == RedundancyLevel.RAID_0)
-                return list;
+            if (getRedundancyLevel() == RedundancyLevel.RAID_1 || getRedundancyLevel() == RedundancyLevel.RAID_0) {
+                list.add(File.separator + "var" + File.separator + "lib" + File.separator + "odilon-data" + File.separator + "drive0");
+            	return list;
+            }
 
             list.add(File.separator + "opt" + File.separator + "odilon-data" + File.separator + "drive0");
             list.add(File.separator + "opt" + File.separator + "odilon-data" + File.separator + "drive1");
             list.add(File.separator + "opt" + File.separator + "odilon-data" + File.separator + "drive2");
-
             return list;
         }
     }

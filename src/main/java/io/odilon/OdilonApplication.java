@@ -82,54 +82,54 @@ import io.odilon.model.ServerConstant;
 @ComponentScan({ "io.odilon" })
 public class OdilonApplication {
 
-    static private Logger std_logger = Logger.getLogger("StartupLogger");
+	static private Logger std_logger = Logger.getLogger("StartupLogger");
 
-    @SuppressWarnings("unused")
-    static private Logger logger = Logger.getLogger(OdilonApplication.class.getName());
+	@SuppressWarnings("unused")
+	static private Logger logger = Logger.getLogger(OdilonApplication.class.getName());
 
-    static public String[] cmdArgs = null;
+	static public String[] cmdArgs = null;
 
-    public static void main(String[] args) {
-        SpringApplication application = new SpringApplication(OdilonApplication.class);
-        application.setBannerMode(Banner.Mode.OFF);
-        cmdArgs = args;
-        application.run(args);
-    }
+	public static void main(String[] args) {
+		SpringApplication application = new SpringApplication(OdilonApplication.class);
+		application.setBannerMode(Banner.Mode.OFF);
+		cmdArgs = args;
+		application.run(args);
+	}
 
-    public OdilonApplication() {
-    }
+	public OdilonApplication() {
+	}
 
-    @PostConstruct
-    public void onInitialize() {
+	@PostConstruct
+	public void onInitialize() {
 
-        std_logger.info("");
-        for (String s : OdilonVersion.getAppCharacterName())
-            std_logger.info(s);
-        std_logger.info(ServerConstant.SEPARATOR);
-        std_logger.info("This software is licensed under the Apache License, Version 2.0");
-        std_logger.info("http://www.apache.org/licenses/LICENSE-2.0");
-        initShutdownMessage();
-    }
+		std_logger.info("");
+		for (String s : OdilonVersion.getAppCharacterName())
+			std_logger.info(s);
+		std_logger.info(ServerConstant.SEPARATOR);
+		std_logger.info("This software is licensed under the Apache License, Version 2.0");
+		std_logger.info("http://www.apache.org/licenses/LICENSE-2.0");
+		initShutdownMessage();
+	}
 
-    private void initShutdownMessage() {
-        Runtime.getRuntime().addShutdownHook(new Thread() {
-            public void run() {
-                std_logger.info("");
-                std_logger.info("As the roman legionaries used to say when falling in battle");
-                std_logger.info("'Dulce et decorum est pro patria mori'...Shuting down... goodbye.");
-                std_logger.info("");
-            }
-        });
-    }
+	private void initShutdownMessage() {
+		Runtime.getRuntime().addShutdownHook(new Thread() {
+			public void run() {
+				std_logger.info("");
+				std_logger.info("As the roman legionaries used to say when falling in battle");
+				std_logger.info("'Dulce et decorum est pro patria mori'...Shuting down... goodbye.");
+				std_logger.info("");
+			}
+		});
+	}
 
-    /**
-     * @Bean public FilterRegistrationBean<Filter> filterRegistrationBean() {
-     *       CharacterEncodingFilter filter = new CharacterEncodingFilter();
-     *       filter.setEncoding("UTF-8"); filter.setForceEncoding(true);
-     * 
-     *       FilterRegistrationBean<Filter> registrationBean = new
-     *       FilterRegistrationBean<Filter>(); registrationBean.setFilter(filter);
-     *       registrationBean.addUrlPatterns("/*"); return registrationBean; }
-     **/
+	/**
+	 * @Bean public FilterRegistrationBean<Filter> filterRegistrationBean() {
+	 *       CharacterEncodingFilter filter = new CharacterEncodingFilter();
+	 *       filter.setEncoding("UTF-8"); filter.setForceEncoding(true);
+	 * 
+	 *       FilterRegistrationBean<Filter> registrationBean = new
+	 *       FilterRegistrationBean<Filter>(); registrationBean.setFilter(filter);
+	 *       registrationBean.addUrlPatterns("/*"); return registrationBean; }
+	 **/
 
 }

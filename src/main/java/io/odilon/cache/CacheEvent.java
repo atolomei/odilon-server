@@ -38,12 +38,12 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
  */
 public class CacheEvent extends BaseEvent {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    @JsonIgnore
-    static private Logger logger = Logger.getLogger(CacheEvent.class.getName());
+	@JsonIgnore
+	static private Logger logger = Logger.getLogger(CacheEvent.class.getName());
 
-    public CacheEvent(VirtualFileSystemOperation operation, Action action) {
-        super(operation, action);
-    }
+	public CacheEvent(VirtualFileSystemOperation operation, Action action) {
+		super(operation, action);
+	}
 }

@@ -43,45 +43,46 @@ import io.odilon.service.ServerSettings;
 @EnableWebSecurity
 public class BasicAuthWebSecurityConfiguration {
 
-    @JsonIgnore
-    @Autowired
-    private final BasicAuthenticationEntryPoint authenticationEntryPoint;
+	@JsonIgnore
+	@Autowired
+	private final BasicAuthenticationEntryPoint authenticationEntryPoint;
 
-    @JsonIgnore
-    @Autowired
-    private final ServerSettings serverSettings;
+	@JsonIgnore
+	@Autowired
+	private final ServerSettings serverSettings;
 
-    @Autowired
-    public BasicAuthWebSecurityConfiguration(ServerSettings serverSettings,
-            BasicAuthenticationEntryPoint authenticationEntryPoint) {
+	@Autowired
+	public BasicAuthWebSecurityConfiguration(ServerSettings serverSettings,
+			BasicAuthenticationEntryPoint authenticationEntryPoint) {
 
-        this.serverSettings = serverSettings;
-        this.authenticationEntryPoint = authenticationEntryPoint;
-    }
+		this.serverSettings = serverSettings;
+		this.authenticationEntryPoint = authenticationEntryPoint;
+	}
 
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+	@Bean
+	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
-        // http.requiresChannel(channel -> channel.anyRequest().requiresSecure())
+		// http.requiresChannel(channel -> channel.anyRequest().requiresSecure())
 
-        http.authorizeHttpRequests(
-                (authorize) -> authorize.requestMatchers("/presigned/", "/presigned/object", "/public/").permitAll())
-                .authorizeHttpRequests(authorizeRequests -> authorizeRequests.anyRequest().authenticated())
-                .httpBasic(Customizer.withDefaults()).formLogin(Customizer.withDefaults()).csrf(AbstractHttpConfigurer::disable);
+		http.authorizeHttpRequests(
+				(authorize) -> authorize.requestMatchers("/presigned/", "/presigned/object", "/public/").permitAll())
+				.authorizeHttpRequests(authorizeRequests -> authorizeRequests.anyRequest().authenticated())
+				.httpBasic(Customizer.withDefaults()).formLogin(Customizer.withDefaults())
+				.csrf(AbstractHttpConfigurer::disable);
 
-        return http.build();
-    }
+		return http.build();
+	}
 
-    @Bean
-    public InMemoryUserDetailsManager userDetailsService() {
+	@Bean
+	public InMemoryUserDetailsManager userDetailsService() {
 
-        UserDetails user = User.withUsername(this.serverSettings.getAccessKey())
-                .password(passwordEncoder().encode(this.serverSettings.getSecretKey())).roles("USER").build();
-        return new InMemoryUserDetailsManager(user);
-    }
+		UserDetails user = User.withUsername(this.serverSettings.getAccessKey())
+				.password(passwordEncoder().encode(this.serverSettings.getSecretKey())).roles("USER").build();
+		return new InMemoryUserDetailsManager(user);
+	}
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+	@Bean
+	public PasswordEncoder passwordEncoder() {
+		return new BCryptPasswordEncoder();
+	}
 }

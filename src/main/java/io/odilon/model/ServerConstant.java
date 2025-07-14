@@ -72,4 +72,6 @@ public class ServerConstant {
 
     public static final int BUFFER_SIZE = 8192;
 
+	public static final long DEFAULT_SLEEP_TIME = 1 * 60 * 1000; // 1 minute;
+
 }

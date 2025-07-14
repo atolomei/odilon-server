@@ -464,10 +464,6 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
         }
     }
 
-    // private SystemMonitorService getSystemMonitorService() {
-    // return this.monitoringService;
-    // }
-
     private boolean isVirtualFileSystemServiceEnabled() {
         return (getVirtualFileSystemService().getStatus() == ServiceStatus.RUNNING);
     }

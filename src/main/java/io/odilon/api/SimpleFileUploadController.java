@@ -25,6 +25,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
@@ -39,6 +40,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.odilon.log.Logger;
 import io.odilon.monitor.SystemMonitorService;
 import io.odilon.service.ObjectStorageService;
+import io.odilon.service.ServerSettings;
 import io.odilon.traffic.TrafficControlService;
 import io.odilon.util.RandomIDGenerator;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
@@ -50,88 +52,104 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 @RequestMapping(value = "/dev")
 public class SimpleFileUploadController extends BaseApiController {
 
-    @SuppressWarnings("unused")
-    static private Logger logger = Logger.getLogger(SimpleFileUploadController.class.getName());
+	@SuppressWarnings("unused")
+	static private Logger logger = Logger.getLogger(SimpleFileUploadController.class.getName());
 
-    @JsonIgnore
-    RandomIDGenerator idGenerator = new RandomIDGenerator();
+	@JsonIgnore
+	RandomIDGenerator idGenerator = new RandomIDGenerator();
 
-    public SimpleFileUploadController(ObjectStorageService objectStorageService, VirtualFileSystemService virtualFileSystemService,
-            SystemMonitorService monitoringService, TrafficControlService trafficControlService) {
-        super(objectStorageService, virtualFileSystemService, monitoringService, trafficControlService);
+	@JsonIgnore
+	@Autowired
+	private final ServerSettings serverSettings;
+	  
+	public SimpleFileUploadController(ObjectStorageService objectStorageService,
+			VirtualFileSystemService virtualFileSystemService, SystemMonitorService monitoringService,
+			TrafficControlService trafficControlService, ServerSettings serverSettings) {
+		super(objectStorageService, virtualFileSystemService, monitoringService, trafficControlService);
+		this.serverSettings=serverSettings;
 
-    }
+	}
 
-    public class FileUploadResponse {
+	public class FileUploadResponse {
 
-        private String fileName;
-        private String downloadUri;
-        private long size;
+		private String fileName;
+		private String downloadUri;
+		private long size;
 
-        public String getFileName() {
-            return fileName;
-        }
+		public String getFileName() {
+			return fileName;
+		}
 
-        public void setFileName(String fileName) {
-            this.fileName = fileName;
-        }
+		public void setFileName(String fileName) {
+			this.fileName = fileName;
+		}
 
-        public String getDownloadUri() {
-            return downloadUri;
-        }
+		public String getDownloadUri() {
+			return downloadUri;
+		}
 
-        public void setDownloadUri(String downloadUri) {
-            this.downloadUri = downloadUri;
-        }
+		public void setDownloadUri(String downloadUri) {
+			this.downloadUri = downloadUri;
+		}
 
-        public long getSize() {
-            return size;
-        }
+		public long getSize() {
+			return size;
+		}
 
-        public void setSize(long size) {
-            this.size = size;
-        }
-    }
+		public void setSize(long size) {
+			this.size = size;
+		}
+	}
 
-    @RequestMapping(value = "/upload", produces = "application/json", method = RequestMethod.POST)
-    public ResponseEntity<FileUploadResponse> uploadFile(@RequestParam("file") MultipartFile multipartFile) throws IOException {
+	@RequestMapping(value = "/upload", produces = "application/json", method = RequestMethod.POST)
+	public ResponseEntity<FileUploadResponse> uploadFile(@RequestParam("file") MultipartFile multipartFile)
+			throws IOException {
 
-        try {
-            String fileName = StringUtils.cleanPath(multipartFile.getOriginalFilename());
-            long size = multipartFile.getSize();
+		try {
+			
+			String fileName = StringUtils.cleanPath(multipartFile.getOriginalFilename());
+			long size = multipartFile.getSize();
 
-            String filecode = saveFile(fileName, multipartFile);
+			String filecode = saveFile(fileName, multipartFile);
 
-            FileUploadResponse response = new FileUploadResponse();
-            response.setFileName(fileName);
-            response.setSize(size);
-            response.setDownloadUri("/downloadFile/" + filecode);
+			FileUploadResponse response = new FileUploadResponse();
+			response.setFileName(fileName);
+			response.setSize(size);
+			response.setDownloadUri("/downloadFile/" + filecode);
 
-            return new ResponseEntity<>(response, HttpStatus.OK);
-        } finally {
-            mark();
-        }
+			return new ResponseEntity<>(response, HttpStatus.OK);
+		} finally {
+			mark();
+		}
 
-    }
+	}
 
-    private String saveFile(String fileName, MultipartFile multipartFile) throws IOException {
+	
+	private String saveFile(String fileName, MultipartFile multipartFile) throws IOException {
 
-        Path uploadPath = Paths.get("c:" + File.separator + "temp" + File.separator + "odilon-upload");
+		String currentDirectory = System.getProperty("user.dir");
+		File temp = new File(currentDirectory, "temp");
 
-        if (!Files.exists(uploadPath)) {
-            Files.createDirectories(uploadPath);
-        }
+		if (!Files.exists(temp.toPath())) {
+			Files.createDirectories(temp.toPath());
+		}
+		
+		Path uploadPath = Paths.get(temp.getAbsolutePath(), "odilon-upload");
 
-        String fileCode = idGenerator.randomString(8);
+		if (!Files.exists(uploadPath)) {
+			Files.createDirectories(uploadPath);
+		}
 
-        try (InputStream inputStream = multipartFile.getInputStream()) {
-            Path filePath = uploadPath.resolve(fileCode + "-" + fileName);
-            Files.copy(inputStream, filePath, StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException ioe) {
-            throw new IOException("Could not save file: " + fileName, ioe);
-        }
+		String fileCode = idGenerator.randomString(8);
 
-        return fileCode;
-    }
+		try (InputStream inputStream = multipartFile.getInputStream()) {
+			Path filePath = uploadPath.resolve(fileCode + "-" + fileName);
+			Files.copy(inputStream, filePath, StandardCopyOption.REPLACE_EXISTING);
+		} catch (IOException ioe) {
+			throw new IOException("Could not save file: " + fileName, ioe);
+		}
 
+		return fileCode;
+	}
+	
 }

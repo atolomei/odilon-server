@@ -100,7 +100,7 @@
 			<AppenderRef ref="Console"/>
 		</Asynclogger>´
 		
-		<Asynclogger name="io.odilon"  level="debug" additivity="false">
+		<Asynclogger name="io.odilon"  level="error" additivity="false">
 			<appender-ref ref="odilon"/>
 			<AppenderRef ref="Console"/>
 		</Asynclogger>´
