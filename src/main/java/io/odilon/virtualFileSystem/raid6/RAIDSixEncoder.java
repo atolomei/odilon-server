@@ -185,7 +185,7 @@ public class RAIDSixEncoder extends RAIDSixCoder {
                 done = eof || (totalBytesRead == maxBytesToRead);
             }
         } catch (IOException e) {
-            throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName));
+            throw new InternalCriticalException(e, objectInfo(bucket, objectName));
         }
 
         if (totalBytesRead == 0)

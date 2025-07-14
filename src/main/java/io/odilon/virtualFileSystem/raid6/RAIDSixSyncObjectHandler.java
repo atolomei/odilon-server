@@ -170,7 +170,7 @@ public class RAIDSixSyncObjectHandler extends RAIDSixTransactionHandler {
             
             
         } catch (IOException e) {
-            throw new InternalCriticalException(e, getDriver().objectInfo(meta));
+            throw new InternalCriticalException(e, objectInfo(meta));
         }
     }
 
@@ -186,9 +186,9 @@ public class RAIDSixSyncObjectHandler extends RAIDSixTransactionHandler {
             try (InputStream in = new BufferedInputStream(new FileInputStream(file.getAbsolutePath()))) {
                 driveInitEncoder.encodeHead(in, bucket, meta.getObjectName());
             } catch (FileNotFoundException e) {
-                throw new InternalCriticalException(e, getDriver().objectInfo(meta));
+                throw new InternalCriticalException(e, objectInfo(meta));
             } catch (IOException e) {
-                throw new InternalCriticalException(e, getDriver().objectInfo(meta));
+                throw new InternalCriticalException(e, objectInfo(meta));
             }
 
             /** MetaData (head) */
@@ -222,9 +222,9 @@ public class RAIDSixSyncObjectHandler extends RAIDSixTransactionHandler {
                          */
                         driveEncoder.encodeVersion(in, bucket, meta.getObjectName(), versionMeta.getVersion());
                     } catch (FileNotFoundException e) {
-                        throw new InternalCriticalException(e, getDriver().objectInfo(meta));
+                        throw new InternalCriticalException(e, objectInfo(meta));
                     } catch (IOException e) {
-                        throw new InternalCriticalException(e, getDriver().objectInfo(meta));
+                        throw new InternalCriticalException(e, objectInfo(meta));
                     }
 
                     /** Metadata (version) */

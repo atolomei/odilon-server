@@ -137,7 +137,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionHandler {
 
 			} catch (Exception e) {
 				isMainException = true;
-				throw new InternalCriticalException(e, getDriver().objectInfo(bucketName, objectName, srcFileName));
+				throw new InternalCriticalException(e, objectInfo(bucketName, objectName, srcFileName));
 
 			} finally {
 				try {
@@ -206,7 +206,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionHandler {
 
 			} catch (Exception e) {
 				done = false;
-				throw new InternalCriticalException(e, getDriver().objectInfo(meta));
+				throw new InternalCriticalException(e, objectInfo(meta));
 
 			} finally {
 				try {
@@ -214,7 +214,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionHandler {
 						try {
 							rollback(operation);
 						} catch (Exception e) {
-							throw new InternalCriticalException(e, getDriver().objectInfo(meta));
+							throw new InternalCriticalException(e, objectInfo(meta));
 						}
 					} else {
 						/**
@@ -331,7 +331,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionHandler {
 							if (!isMainException)
 								throw new InternalCriticalException(e);
 							else
-								logger.error(e, getDriver().objectInfo(bucketName, objectName),
+								logger.error(e, objectInfo(bucketName, objectName),
 										SharedConstant.NOT_THROWN);
 
 						} catch (Exception e) {
@@ -558,7 +558,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionHandler {
 				}
 			}
 		} catch (IOException e) {
-			throw new InternalCriticalException(e, getDriver().objectInfo(meta));
+			throw new InternalCriticalException(e, objectInfo(meta));
 		}
 	}
 
@@ -660,7 +660,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionHandler {
 			throw e;
 
 		} catch (Exception e) {
-			throw new InternalCriticalException(e, getDriver().objectInfo(meta));
+			throw new InternalCriticalException(e, objectInfo(meta));
 		}
 	}
 

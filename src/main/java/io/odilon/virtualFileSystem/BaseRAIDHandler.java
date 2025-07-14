@@ -226,6 +226,11 @@ public abstract class BaseRAIDHandler extends BaseObject {
         return getDriver().objectInfo(bucket, objectName);
     }
 
+    protected String objectInfo(@NonNull String bucketName, @NonNull String objectName) {
+        return getDriver().objectInfo(bucketName, objectName);
+    }
+
+    
     protected void objectReadLock(ServerBucket bucket, String objectName) {
         getLockService().getObjectLock(bucket, objectName).readLock().lock();
     }
