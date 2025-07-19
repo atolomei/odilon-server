@@ -54,8 +54,13 @@ public class MulticastFileCopyAgent extends FileCopyAgent {
     private OffsetDateTime start;
     private OffsetDateTime end;
 
+    @JsonIgnore
     List<File> destination;
+    
+    @JsonIgnore
     File source;
+    
+    @JsonIgnore
     InputStream sourceStream;
 
     @Override

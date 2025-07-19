@@ -350,10 +350,17 @@ public class ObjectController extends BaseApiController {
                 throw new OdilonObjectNotFoundException(String.format("object not found -> b: %s | o:%s",
                         Optional.ofNullable(bucketName).orElse("null"), Optional.ofNullable(objectName).orElse("null")));
 
-            String token = durationSeconds.isPresent()
-                    ? this.tokenService.encrypt(new AuthToken(bucketName, objectName, durationSeconds.get()))
-                    : this.tokenService.encrypt(new AuthToken(bucketName, objectName));
-
+            
+            AuthToken atoken = null;
+            
+            if (durationSeconds.isPresent()) 
+            	atoken = new AuthToken(bucketName, objectName, durationSeconds.get());
+            else
+            	atoken = new AuthToken(bucketName, objectName);            		
+            	
+            logger.debug(atoken.toString());
+            
+            String token = this.tokenService.encrypt(atoken);
             
             getSystemMonitorService().getGetObjectMeter().mark();
 

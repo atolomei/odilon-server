@@ -111,15 +111,7 @@ public class DriveInfo extends BaseObject implements Serializable {
         this.dateConnected = dateConnected;
     }
 
-    //public DriveStatus getDriveStatus() {
-    //    return driveStatus;
-    //}
-
-    //public void setDriveStatus(DriveStatus driveStatus) {
-    //    this.driveStatus = driveStatus;
-    //}
-
-    public String getRaidSetup() {
+      public String getRaidSetup() {
         return raidSetup;
     }
 
@@ -135,4 +127,11 @@ public class DriveInfo extends BaseObject implements Serializable {
         this.raidDrives = raidDrives;
     }
 
+    @Override
+    public String toString() {
+        StringBuilder str = new StringBuilder();
+        str.append(this.getClass().getSimpleName());
+        str.append(toJSON());
+        return str.toString();
+    }
 }

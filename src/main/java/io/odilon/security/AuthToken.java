@@ -18,6 +18,7 @@ package io.odilon.security;
 
 import java.io.Serializable;
 import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.odilon.model.ServerConstant;
@@ -34,6 +35,7 @@ import io.odilon.model.BaseObject;
  */
 public class AuthToken extends BaseObject implements Serializable {
 
+	@SuppressWarnings("unused")
 	static private Logger logger = Logger.getLogger(AuthToken.class.getName());
 
 	static final int VERSION = 1;
@@ -52,6 +54,10 @@ public class AuthToken extends BaseObject implements Serializable {
 	@JsonProperty("keyVersion")
 	public int keyVersion;
 
+	
+	private static final DateTimeFormatter HTTP_DATE = DateTimeFormatter.RFC_1123_DATE_TIME;
+
+	  
 	public AuthToken() {
 	}
 
@@ -69,7 +75,6 @@ public class AuthToken extends BaseObject implements Serializable {
 		this.objectName = objectName;
 		this.expirationDate = expirationDate;
 		this.keyVersion = keyVersion;
-		logger.debug(this.toString());
 	}
 
 	/**
@@ -129,4 +134,19 @@ public class AuthToken extends BaseObject implements Serializable {
 	public void setKeyVersion(int keyVersion) {
 		this.keyVersion = keyVersion;
 	}
+	
+	@JsonProperty("expirationDateString")
+	public String expirationDateString() {
+		if (this.expirationDate==null)
+			return null;
+		return HTTP_DATE.format(expirationDate);
+	}
+	
+	 @Override
+	    public String toString() {
+	        StringBuilder str = new StringBuilder();
+	        str.append(this.getClass().getSimpleName());
+	        str.append(toJSON());
+	        return str.toString();
+	    }
 }

@@ -152,6 +152,12 @@ public class ServerSettings implements JSONObject {
 
     @Value("${encryption.keyAlgorithm:AES}")
     protected String keyAlgorithm;
+    
+    
+    @Value("${presignedSalt:pxerktu3opo$dfgh9rl!}")
+    @NonNull
+    protected String presignedSalt;
+    
 
     // DATA STORAGE -------------------------------------------
     // by default RAID 0 with 1 directory
@@ -471,6 +477,12 @@ public class ServerSettings implements JSONObject {
             exit("secretKey can not be null");
         }
 
+        if (this.presignedSalt.length()<20)
+        	exit("presignedSalt must be at least 20 characters (it has " + String.valueOf( this.presignedSalt.length() )+ ")");
+
+        if (this.presignedSalt.length()>20)
+        	this.presignedSalt=this.presignedSalt.substring(0,20);
+               
         if (this.rootDirs == null || this.rootDirs.size() < 1) {
             startuplogger.error(
                     "No rootDirs are defined. \n" + "for RAID 0. at least 1 dataDir must be defined in file -> odilon.properties \n"
@@ -1020,5 +1032,10 @@ public class ServerSettings implements JSONObject {
         logger.error(ServerConstant.SEPARATOR);
         System.exit(1);
     }
+
+    
+	public String getPresignedSalt() {
+		return this.presignedSalt;
+	}
 
 }

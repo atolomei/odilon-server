@@ -131,6 +131,14 @@ public class BucketCache extends BaseObject {
         return getIdMap().containsKey(bucket.getId());
     }
 
+    @Override
+    public String toString() {
+        StringBuilder str = new StringBuilder();
+        str.append(this.getClass().getSimpleName());
+        str.append(toJSON());
+        return str.toString();
+    }
+    
     protected Map<String, ServerBucket> getNameMap() {
         return this.buckets_by_name;
     }
@@ -162,4 +170,5 @@ public class BucketCache extends BaseObject {
         return this.bucketCacheLock;
     }
 
+    
 }

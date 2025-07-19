@@ -54,7 +54,7 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
  * <p>
- * This service is used to generate tokens for presigned urls
+ * This service is used to generate tokens for presigned urls. Presigned urls are valid until their expiration date, even though the server is restarted
  * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
@@ -64,8 +64,11 @@ public class OdilonTokenService extends BaseService implements TokenService, App
 
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 
-	static private String salt = randomString(20);
+	//static private String salt = randomString(20);
 
+	@JsonIgnore
+	private String s_salt;
+	
 	@JsonIgnore
 	@Autowired
 	private final ServerSettings serverSettings;
@@ -171,7 +174,9 @@ public class OdilonTokenService extends BaseService implements TokenService, App
 		synchronized (this) {
 			try {
 				setStatus(ServiceStatus.STARTING);
-
+				
+				this.s_salt = this.serverSettings.getPresignedSalt();
+				
 				String str = this.serverSettings.getSecretKey();
 
 				if (str.length() < 8) {
@@ -180,6 +185,7 @@ public class OdilonTokenService extends BaseService implements TokenService, App
 						sb.append("0");
 					str = str + sb.toString();
 				}
+				
 				this.secretKey = str.substring(0, 8);
 
 				// Key has to be of length 8
@@ -190,7 +196,10 @@ public class OdilonTokenService extends BaseService implements TokenService, App
 				byte[] iv = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 				this.ivspec = new IvParameterSpec(iv);
 				this.factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
-				this.spec = new PBEKeySpec(this.secretKey.toCharArray(), salt.getBytes(), 65536, 256);
+				
+				//this.spec = new PBEKeySpec(this.secretKey.toCharArray(), salt.getBytes(), 65536, 256);
+				this.spec = new PBEKeySpec(this.secretKey.toCharArray(), s_salt.getBytes(), 65536, 256);
+				
 				this.secretKeySpec = new SecretKeySpec(factory.generateSecret(this.spec).getEncoded(), "AES");
 
 				startuplogger.debug("Started -> " + TokenService.class.getSimpleName());

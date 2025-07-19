@@ -201,4 +201,12 @@ public class Dispatcher extends BaseObject {
         this.threadPool.setMaximumPoolSize(maxPoolSize);
         this.threadPool.waitWhenBlocked(); // Wait for a free thread when blocked.
     }
+    
+    @Override
+    public String toString() {
+        StringBuilder str = new StringBuilder();
+        str.append(this.getClass().getSimpleName());
+        str.append(toJSON());
+        return str.toString();
+    }
 }

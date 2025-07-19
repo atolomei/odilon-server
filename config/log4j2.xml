@@ -4,7 +4,7 @@
     monitorInterval=60 		[reload file every seconds]
  - -->
 
-<configuration status="OFF"  monitorInterval="30" packages="io.odilon">
+<configuration status="OFF"  monitorInterval="30">
 	
 	<Properties>
 		<Property name="log-path">logs</Property>
@@ -100,7 +100,7 @@
 			<AppenderRef ref="Console"/>
 		</Asynclogger>´
 		
-		<Asynclogger name="io.odilon"  level="error" additivity="false">
+		<Asynclogger name="io.odilon"  level="debug" additivity="false">
 			<appender-ref ref="odilon"/>
 			<AppenderRef ref="Console"/>
 		</Asynclogger>´

@@ -49,256 +49,257 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  */
 public class StandByReplicaSchedulerWorker extends SchedulerWorker {
 
-    static private Logger logger = Logger.getLogger(StandByReplicaSchedulerWorker.class.getName());
+	static private Logger logger = Logger.getLogger(StandByReplicaSchedulerWorker.class.getName());
 
-    static private Logger startuplogger = Logger.getLogger("StartupLogger");
+	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 
-    @JsonIgnore
-    private ServiceRequestQueue queue;
+	@JsonIgnore
+	private ServiceRequestQueue queue;
 
-    @JsonIgnore
-    private Map<Serializable, ServiceRequest> executing;
+	@JsonIgnore
+	private Map<Serializable, ServiceRequest> executing;
 
-    @JsonIgnore
-    private Map<Serializable, ServiceRequest> failed;
+	@JsonIgnore
+	private Map<Serializable, ServiceRequest> failed;
 
-    @JsonIgnore
-    private OffsetDateTime lastFailedTry = OffsetDateTime.MIN;
+	@JsonIgnore
+	private OffsetDateTime lastFailedTry = OffsetDateTime.MIN;
 
-    /**
-     * 
-     * @param id
-     * @param virtualFileSystemService
-     */
-    public StandByReplicaSchedulerWorker(String id, VirtualFileSystemService virtualFileSystemService) {
-        super(id, virtualFileSystemService);
-    }
+	/**
+	 * 
+	 * @param id
+	 * @param virtualFileSystemService
+	 */
+	public StandByReplicaSchedulerWorker(String id, VirtualFileSystemService virtualFileSystemService) {
+		super(id, virtualFileSystemService);
+	}
 
-    @Override
-    public void add(ServiceRequest request) {
-        Check.requireNonNullArgument(request, " request is null");
-        Check.requireTrue(request instanceof StandByReplicaServiceRequest,
-                "request is not instance of -> " + StandByReplicaServiceRequest.class.getName());
-        getServiceRequestQueue().add(request);
-    }
+	@Override
+	public void add(ServiceRequest request) {
+		Check.requireNonNullArgument(request, " request is null");
+		Check.requireTrue(request instanceof StandByReplicaServiceRequest,
+				"request is not instance of -> " + StandByReplicaServiceRequest.class.getName());
+		getServiceRequestQueue().add(request);
+	}
 
-    public void close(ServiceRequest request) {
-        Check.requireNonNullArgument(request, "request is null");
-        try {
-            if (getExecuting().containsKey(request.getId()))
-                getExecuting().remove(request.getId());
+	public void close(ServiceRequest request) {
+		Check.requireNonNullArgument(request, "request is null");
+		try {
+			if (getExecuting().containsKey(request.getId()))
+				getExecuting().remove(request.getId());
 
-            if (getFailed().containsKey(request.getId()))
-                getFailed().remove(request.getId());
+			if (getFailed().containsKey(request.getId()))
+				getFailed().remove(request.getId());
 
-            getServiceRequestQueue().remove(request);
+			getServiceRequestQueue().remove(request);
 
-        } catch (Exception e) {
-            logger.error(e, SharedConstant.NOT_THROWN);
-        }
-    }
+		} catch (Exception e) {
+			logger.error(e, SharedConstant.NOT_THROWN);
+		}
+	}
 
-    public void cancel(ServiceRequest request) {
-        Check.requireNonNullArgument(request, "request is null");
-        try {
-            if (getExecuting().containsKey(request.getId()))
-                getExecuting().remove(request.getId());
+	public void cancel(ServiceRequest request) {
+		Check.requireNonNullArgument(request, "request is null");
+		try {
+			if (getExecuting().containsKey(request.getId()))
+				getExecuting().remove(request.getId());
 
-            if (getFailed().containsKey(request.getId()))
-                getFailed().remove(request.getId());
+			if (getFailed().containsKey(request.getId()))
+				getFailed().remove(request.getId());
 
-            getServiceRequestQueue().remove(request);
+			getServiceRequestQueue().remove(request);
 
-        } catch (Exception e) {
-            logger.error(e, SharedConstant.NOT_THROWN);
-        }
-    }
+		} catch (Exception e) {
+			logger.error(e, SharedConstant.NOT_THROWN);
+		}
+	}
 
-    public void cancel(VirtualFileSystemOperation opx) {
-        Check.requireNonNullArgument(opx, "opx is null");
-        Iterator<ServiceRequest> it = getServiceRequestQueue().iterator();
-        while (it.hasNext()) {
-            ServiceRequest req = it.next();
-            if (((StandByReplicaServiceRequest) req).getVFSOperation().getId().equals(opx.getId())) {
-                this.cancel(req);
-                return;
-            }
-        }
-    }
+	public void cancel(VirtualFileSystemOperation opx) {
+		Check.requireNonNullArgument(opx, "opx is null");
+		Iterator<ServiceRequest> it = getServiceRequestQueue().iterator();
+		while (it.hasNext()) {
+			ServiceRequest req = it.next();
+			if (((StandByReplicaServiceRequest) req).getVFSOperation().getId().equals(opx.getId())) {
+				this.cancel(req);
+				return;
+			}
+		}
+	}
 
-    public void cancel(Serializable id) {
-        Check.requireNonNullArgument(id, "id is null");
-        Iterator<ServiceRequest> it = getServiceRequestQueue().iterator();
-        while (it.hasNext()) {
-            ServiceRequest req = it.next();
-            if (((StandByReplicaServiceRequest) req).getId().equals(id)) {
-                this.cancel(req);
-                return;
-            }
-        }
-    }
+	public void cancel(Serializable id) {
+		Check.requireNonNullArgument(id, "id is null");
+		Iterator<ServiceRequest> it = getServiceRequestQueue().iterator();
+		while (it.hasNext()) {
+			ServiceRequest req = it.next();
+			if (((StandByReplicaServiceRequest) req).getId().equals(id)) {
+				this.cancel(req);
+				return;
+			}
+		}
+	}
 
-    public void fail(ServiceRequest request) {
-        Check.requireNonNullArgument(request, "request is null");
-        try {
+	public void fail(ServiceRequest request) {
+		Check.requireNonNullArgument(request, "request is null");
+		try {
 
-            if (getExecuting().containsKey(request.getId()))
-                getExecuting().remove(request.getId());
+			if (getExecuting().containsKey(request.getId()))
+				getExecuting().remove(request.getId());
 
-            request.setStatus(ServiceRequestStatus.ERROR);
-            request.setRetries(request.getRetries() + 1);
+			request.setStatus(ServiceRequestStatus.ERROR);
+			request.setRetries(request.getRetries() + 1);
 
-            getFailed().put(request.getId(), request);
+			getFailed().put(request.getId(), request);
 
-        } catch (Exception e) {
-            logger.error(e, SharedConstant.NOT_THROWN);
-        }
-    }
+		} catch (Exception e) {
+			logger.error(e, SharedConstant.NOT_THROWN);
+		}
+	}
 
-    /**
-     * 
-     */
-    @Override
-    protected void doJobs() {
+	/**
+	 * 
+	 */
+	@Override
+	protected void doJobs() {
 
-        if (isFullCapacity()) {
-            logger.debug(this.getClass().getSimpleName() + " operating at full capacity -> "
-                    + String.valueOf(getDispatcher().getPoolSize()) + " Threads");
-            return;
-        }
+		if (isFullCapacity()) {
+			logger.debug(this.getClass().getSimpleName() + " operating at full capacity -> "
+					+ String.valueOf(getDispatcher().getPoolSize()) + " Threads");
+			return;
+		}
 
-        List<ServiceRequest> list = new ArrayList<ServiceRequest>();
-        Map<String, ServiceRequest> map = new HashMap<String, ServiceRequest>();
+		List<ServiceRequest> list = new ArrayList<ServiceRequest>();
+		Map<String, ServiceRequest> map = new HashMap<String, ServiceRequest>();
 
-        int numThreads = getDispatcher().getPoolSize() - getExecuting().size() + 1;
+		int numThreads = getDispatcher().getPoolSize() - getExecuting().size() + 1;
 
-        /** Failed retry ------------ */
+		/** Failed retry ------------ */
 
-        if (!getFailed().isEmpty()) {
+		if (!getFailed().isEmpty()) {
 
-            int n = 0;
-            Iterator<Entry<Serializable, ServiceRequest>> it = getFailed().entrySet().iterator();
-            boolean done = false;
+			int n = 0;
+			Iterator<Entry<Serializable, ServiceRequest>> it = getFailed().entrySet().iterator();
+			boolean done = false;
 
-            while ((n++ < numThreads) && it.hasNext() && (!done)) {
-                ServiceRequest request = it.next().getValue();
-                if (isCompatible(request, map)) {
-                    list.add(request);
-                    map.put(((StandByReplicaServiceRequest) request).getVFSOperation().getUUID(), request);
-                } else
-                    done = true;
-            }
-            this.lastFailedTry = OffsetDateTime.now();
-            
-        } else {
-            
-        	/** New Requests ------------ */
-        	
-            int n = 0;
-            Iterator<ServiceRequest> it = getServiceRequestQueue().iterator();
-            boolean done = false;
+			while ((n++ < numThreads) && it.hasNext() && (!done)) {
+				ServiceRequest request = it.next().getValue();
+				if (isCompatible(request, map)) {
+					list.add(request);
+					map.put(((StandByReplicaServiceRequest) request).getVFSOperation().getUUID(), request);
+				} else
+					done = true;
+			}
+			this.lastFailedTry = OffsetDateTime.now();
 
-            while ((n++ < numThreads) && (it.hasNext()) && (!done)) {
-                ServiceRequest request = it.next();
-                if (isCompatible(request, map)) {
-                    list.add(request);
-                    map.put(((StandByReplicaServiceRequest) request).getVFSOperation().getUUID(), request);
-                } else
-                    done = true;
-            }
-        }
+		} else {
 
-        if (list.isEmpty())
-            return;
-        {
-            for (int n = 0; n < list.size(); n++) {
-                ServiceRequest request = list.get(n);
-                /** moveOut -> removes from the Queue without deleting the file in disk */
-                getServiceRequestQueue().moveOut(request);
-                request.setApplicationContext(getApplicationContext());
-                getExecuting().put(request.getId(), request);
-                dispatch(request);
-            }
-        }
-    }
+			/** New Requests ------------ */
 
-    @Override
-    protected synchronized void onInitialize() {
+			int n = 0;
+			Iterator<ServiceRequest> it = getServiceRequestQueue().iterator();
+			boolean done = false;
 
-        this.queue = getApplicationContext().getBean(ServiceRequestQueue.class, getId());
-        this.queue.setVirtualFileSystemService(getVirtualFileSystemService());
-        this.queue.loadFSQueue();
+			while ((n++ < numThreads) && (it.hasNext()) && (!done)) {
+				ServiceRequest request = it.next();
+				if (isCompatible(request, map)) {
+					list.add(request);
+					map.put(((StandByReplicaServiceRequest) request).getVFSOperation().getUUID(), request);
+				} else
+					done = true;
+			}
+		}
 
-        if (this.queue.size() > 0)
-            startuplogger.info(this.getClass().getSimpleName() + " Queue size -> " + String.valueOf(this.queue.size()));
+		if (list.isEmpty())
+			return;
+		{
+			for (int n = 0; n < list.size(); n++) {
+				ServiceRequest request = list.get(n);
+				/** moveOut -> removes from the Queue without deleting the file in disk */
+				getServiceRequestQueue().moveOut(request);
+				request.setApplicationContext(getApplicationContext());
+				getExecuting().put(request.getId(), request);
+				dispatch(request);
+			}
+		}
+	}
 
-        this.executing = new ConcurrentHashMap<Serializable, ServiceRequest>(16, 0.9f, 1);
-        this.failed = new ConcurrentSkipListMap<Serializable, ServiceRequest>();
-    }
+	@Override
+	protected synchronized void onInitialize() {
 
-    @Override
-    protected void restFullCapacity() {
-        rest(ONE_SECOND);
-    }
+		this.queue = getApplicationContext().getBean(ServiceRequestQueue.class, getId());
+		this.queue.setVirtualFileSystemService(getVirtualFileSystemService());
+		this.queue.loadFSQueue();
 
-    @Override
-    protected void restNoWork() {
-        rest(getSiestaMillisecs());
-    }
+		if (this.queue.size() > 0)
+			startuplogger.info(this.getClass().getSimpleName() + " Queue size -> " + String.valueOf(this.queue.size()));
 
-    @Override
-    protected boolean isFullCapacity() {
-        return (getExecuting().size() >= (getDispatcher().getPoolSize()));
-    }
+		this.executing = new ConcurrentHashMap<Serializable, ServiceRequest>(16, 0.9f, 1);
+		this.failed = new ConcurrentSkipListMap<Serializable, ServiceRequest>();
+	}
 
-    @Override
-    protected boolean isWork() {
+	@Override
+	protected void restFullCapacity() {
+		rest(ONE_SECOND);
+	}
 
-        if (!getFailed().isEmpty()) {
-            if (this.lastFailedTry.plusSeconds(getVirtualFileSystemService().getServerSettings().getRetryFailedSeconds())
-                    .isBefore(OffsetDateTime.now()))
-                return true;
-            else
-                return false;
-        }
+	@Override
+	protected void restNoWork() {
+		rest(getSiestaMillisecs());
+	}
 
-        if (!getServiceRequestQueue().isEmpty())
-            return true;
+	@Override
+	protected boolean isFullCapacity() {
+		return (getExecuting().size() >= (getDispatcher().getPoolSize()));
+	}
 
-        return false;
-    }
+	@Override
+	protected boolean isWork() {
 
-    protected ServiceRequestQueue getServiceRequestQueue() {
-        return this.queue;
-    }
+		if (!getFailed().isEmpty()) {
+			if (this.lastFailedTry
+					.plusSeconds(getVirtualFileSystemService().getServerSettings().getRetryFailedSeconds())
+					.isBefore(OffsetDateTime.now()))
+				return true;
+			else
+				return false;
+		}
 
-    protected Map<Serializable, ServiceRequest> getExecuting() {
-        return executing;
-    }
+		if (!getServiceRequestQueue().isEmpty())
+			return true;
 
-    protected Map<Serializable, ServiceRequest> getFailed() {
-        return failed;
-    }
+		return false;
+	}
 
-    private boolean isCompatible(ServiceRequest request, Map<String, ServiceRequest> map) {
+	protected ServiceRequestQueue getServiceRequestQueue() {
+		return this.queue;
+	}
 
-        if (!(request instanceof StandByReplicaServiceRequest)) {
-            logger.error("invalid class -> " + request.getClass().getName(), SharedConstant.NOT_THROWN);
-            return false;
-        }
+	protected Map<Serializable, ServiceRequest> getExecuting() {
+		return executing;
+	}
 
-        if (map.isEmpty())
-            return true;
+	protected Map<Serializable, ServiceRequest> getFailed() {
+		return failed;
+	}
 
-        StandByReplicaServiceRequest repRequest = (StandByReplicaServiceRequest) request;
+	private boolean isCompatible(ServiceRequest request, Map<String, ServiceRequest> map) {
 
-        if (!repRequest.getVFSOperation().getOperationCode().isObjectOperation())
-            return false;
+		if (!(request instanceof StandByReplicaServiceRequest)) {
+			logger.error("invalid class -> " + request.getClass().getName(), SharedConstant.NOT_THROWN);
+			return false;
+		}
 
-        if (map.containsKey(repRequest.getVFSOperation().getUUID()))
-            return false;
+		if (map.isEmpty())
+			return true;
 
-        return true;
-    }
+		StandByReplicaServiceRequest repRequest = (StandByReplicaServiceRequest) request;
+
+		if (!repRequest.getVFSOperation().getOperationCode().isObjectOperation())
+			return false;
+
+		if (map.containsKey(repRequest.getVFSOperation().getUUID()))
+			return false;
+
+		return true;
+	}
 
 }
