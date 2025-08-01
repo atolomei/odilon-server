@@ -20,11 +20,13 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 import jakarta.annotation.PostConstruct;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -52,6 +54,7 @@ import io.odilon.net.ODHttpStatus;
 import io.odilon.security.AuthToken;
 import io.odilon.security.TokenService;
 import io.odilon.service.ObjectStorageService;
+import io.odilon.service.ServerSettings;
 import io.odilon.traffic.TrafficControlService;
 import io.odilon.traffic.TrafficPass;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
@@ -87,13 +90,21 @@ public class ObjectController extends BaseApiController {
 
     @JsonIgnore
     @Autowired
-    private TokenService tokenService;
+    private final TokenService tokenService;
 
+    @JsonIgnore
+    @Autowired
+    private final ServerSettings settings;
+
+    
     public ObjectController(ObjectStorageService objectStorageService, VirtualFileSystemService virtualFileSystemService,
-            SystemMonitorService monitoringService, TrafficControlService trafficControlService, TokenService tokenService) {
+            SystemMonitorService monitoringService, TrafficControlService trafficControlService, TokenService tokenService, ServerSettings settings) {
 
         super(objectStorageService, virtualFileSystemService, monitoringService, trafficControlService);
+    
         this.tokenService = tokenService;
+        this.settings=settings;
+        
     }
 
     @RequestMapping(value = "/exists/{bucketName}/{objectName}", method = RequestMethod.GET)
@@ -185,9 +196,12 @@ public class ObjectController extends BaseApiController {
 
             InputStream in = getObjectStorageService().getObjectStream(bucketName, objectName);
 
+            
+            int cacheDurationSecs = this.settings.getserverObjectstreamCacheSecs();
+            
             getSystemMonitorService().getGetObjectMeter().mark();
 
-            return ResponseEntity.ok().contentType(contentType).body(new InputStreamResource(in));
+            return ResponseEntity.ok().cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)).contentType(contentType).body(new InputStreamResource(in));
 
         } catch (OdilonServerAPIException e1) {
             throw e1;
@@ -252,7 +266,10 @@ public class ObjectController extends BaseApiController {
 
             getSystemMonitorService().getGetObjectMeter().mark();
 
-            return ResponseEntity.ok().contentType(contentType).body(new InputStreamResource(in));
+            int cacheDurationSecs = this.settings.getserverObjectstreamCacheSecs();
+            
+            
+            return ResponseEntity.ok().cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)).contentType(contentType).body(new InputStreamResource(in));
 
         } catch (OdilonServerAPIException e) {
             throw e;
@@ -309,7 +326,10 @@ public class ObjectController extends BaseApiController {
             InputStream in = getObjectStorageService().getObjectPreviousVersionStream(bucketName, objectName,
                     list.get(list.size() - 1).version);
 
-            return ResponseEntity.ok().contentType(contentType).body(new InputStreamResource(in));
+            int cacheDurationSecs = this.settings.getserverObjectstreamCacheSecs();
+            
+            
+            return ResponseEntity.ok().cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)).contentType(contentType).body(new InputStreamResource(in));
 
         } catch (OdilonServerAPIException e1) {
             logger.error(e1);
@@ -358,7 +378,6 @@ public class ObjectController extends BaseApiController {
             else
             	atoken = new AuthToken(bucketName, objectName);            		
             	
-            logger.debug(atoken.toString());
             
             String token = this.tokenService.encrypt(atoken);
             

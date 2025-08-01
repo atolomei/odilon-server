@@ -54,7 +54,9 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
  * <p>
- * This service is used to generate tokens for presigned urls. Presigned urls are valid until their expiration date, even though the server is restarted
+ * This service is used to generate tokens for presigned urls. 
+ * Presigned urls are valid until their expiration date, even if 
+ * the server is restarted.
  * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)

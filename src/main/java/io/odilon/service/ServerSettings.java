@@ -134,6 +134,11 @@ public class ServerSettings implements JSONObject {
     @Value("${server.ssl.enabled:false}")
     protected String ishttps;
 
+    @Value("${server.objectstream.cache.secs:360}")
+    protected int serverObjectstreamCacheSecs;
+
+     
+    
     // ENCRYPTION -----------------------------------------------
     //
     // by default encryption is not enabled
@@ -154,7 +159,7 @@ public class ServerSettings implements JSONObject {
     protected String keyAlgorithm;
     
     
-    @Value("${presignedSalt:pxerktu3opo$dfgh9rl!}")
+    @Value("${presignedSalt:pxUrktu3oMo$dfgh9rl!}")
     @NonNull
     protected String presignedSalt;
     
@@ -396,9 +401,13 @@ public class ServerSettings implements JSONObject {
         str.append("\"objectMetadataCache.maxCapacity\":\"" + String.valueOf(objectCacheMaxCapacity) + "\"");
         str.append("\"objectMetadataCache.durationDays\":\"" + String.valueOf(objectExpireDays) + "\"");
 
+        str.append("\"objectstream.cache.secs\":\"" +  String.valueOf(getserverObjectstreamCacheSecs()) + "\"");
+        
         str.append("\"fileCache.maxCapacity\":\"" + String.valueOf(fileCacheMaxCapacity) + "\"");
         str.append("\"fileCache.durationDays\":\"" + String.valueOf(fileCacheDurationDays) + "\"");
+        
 
+        
         return str.toString();
     }
 
@@ -415,6 +424,9 @@ public class ServerSettings implements JSONObject {
         Map<String, Object> map = new HashMap<String, Object>();
 
         map.put("port", getPort());
+
+        map.put("serverObjectstreamCacheSecs",       String.valueOf(getserverObjectstreamCacheSecs()));
+        
         map.put("accessKey", accessKey);
         map.put("secretKey", secretKey);
         map.put("redundancyLevel", Optional.ofNullable(redundancyLevel).isPresent() ? (redundancyLevel.getName()) : "null");
@@ -717,6 +729,11 @@ public class ServerSettings implements JSONObject {
     public void setInternalMasterKeyEncryptor(String masterKey) {
         this.masterKey = masterKey;
     }
+
+    public int getserverObjectstreamCacheSecs() {
+    	return this.serverObjectstreamCacheSecs;
+    }
+    
 
     public String getStandBySecretKey() {
         return standbySecretKey;

@@ -18,9 +18,11 @@ package io.odilon.api;
 
 import java.io.InputStream;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -31,6 +33,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import io.odilon.error.OdilonServerAPIException;
 import io.odilon.error.OdilonObjectNotFoundException;
 import io.odilon.log.Logger;
@@ -72,11 +75,11 @@ public class ObjectControllerPresigned extends BaseApiController {
 
     @JsonIgnore
     @Autowired
-    private TokenService tokenService;
+    private final TokenService tokenService;
 
     @JsonIgnore
     @Autowired
-    ServerSettings serverSettings;
+    private final ServerSettings serverSettings;
 
     public ObjectControllerPresigned(ObjectStorageService objectStorageService, VirtualFileSystemService virtualFileSystemService,
             SystemMonitorService monitoringService, TrafficControlService trafficControlService, TokenService tokenService,
@@ -93,6 +96,8 @@ public class ObjectControllerPresigned extends BaseApiController {
      * @return @PathVariable("token") String stringToken
      * 
      */
+    
+    
     @RequestMapping(method = RequestMethod.GET)
     @ResponseBody
     public ResponseEntity<InputStreamResource> getPresignedObjectStream(@RequestParam("token") String stringToken) {
@@ -141,7 +146,9 @@ public class ObjectControllerPresigned extends BaseApiController {
 
             getSystemMonitorService().getGetObjectMeter().mark();
 
-            return ResponseEntity.ok().headers(responseHeaders).contentType(contentType).body(new InputStreamResource(in));
+            int cacheDurationSecs = this.serverSettings.getserverObjectstreamCacheSecs();
+            
+            return ResponseEntity.ok().cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)).headers(responseHeaders).contentType(contentType).body(new InputStreamResource(in));
 
         } catch (Exception e) {
             throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));

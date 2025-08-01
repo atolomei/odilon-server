@@ -85,6 +85,12 @@ This is the first release of Odilon Object Storage
 2025.05.09 fix bug RAID 6 restore disk when fails disk number 2 of the RAID.
 
 
+==================  1.14 ==================
+
+2025.07.21 Presigned urls stay valid until their expiration date even if the server is restarted
+2025.07.31 ObjectStream can be served with a http header cache ( default value is 5m, set up in odilon.properties -> server.objectstream.cache.secs )
+
+
 
 
 
