@@ -75,10 +75,6 @@ This is the first release of Odilon Object Storage
 
 2025.01.05 bug RAID 0 delete object fixed
 
-==================  1.12 ==================
-
-2025.01.05 bug RAID 0 delete object fixed
-
 ==================  1.13 ==================
 
 2025.01.08 Spring Boot 3.4.1
