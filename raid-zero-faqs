@@ -19,7 +19,9 @@ Only after completing it the server will be operational.
 Can the server continue to work if a disk is lost ?
 --------------------------------------------------- 
 The server will work after restart but the objects stored on the lost disk are gone. 
-RAID 0 is a configuration that has not redundancy.
+RAID 0 is a configuration that has no redundancy.
+
+
   
 
 

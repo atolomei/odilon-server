@@ -8,8 +8,7 @@ To do list
 . Merge classes Bucket and BucketMetadata
 . Encrypt ObjectMetadata on disk
 
-
-. client sdk for C#, php, python, erlang
+. client sdk for C#, php, Python, Erlang, go
 
 
 
