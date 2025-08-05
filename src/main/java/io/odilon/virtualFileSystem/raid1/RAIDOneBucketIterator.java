@@ -1,6 +1,6 @@
 /*
  * Odilon Object Storage
- * (C) Novamens 
+ * (c) kbee 
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -56,101 +56,103 @@ import io.odilon.virtualFileSystem.model.ServerBucket;
 @ThreadSafe
 public class RAIDOneBucketIterator extends BucketIterator implements Closeable {
 
-    @JsonProperty("drive")
-    private final Drive drive;
+	@JsonProperty("drive")
+	private final Drive drive;
 
-    @JsonIgnore
-    private Iterator<Path> it;
+	@JsonIgnore
+	private Iterator<Path> it;
 
-    @JsonIgnore
-    private Stream<Path> stream;
+	@JsonIgnore
+	private Stream<Path> stream;
 
-    public RAIDOneBucketIterator(RAIDOneDriver driver, ServerBucket bucket, Optional<Long> opOffset, Optional<String> opPrefix) {
-        super(driver, bucket);
+	public RAIDOneBucketIterator(RAIDOneDriver driver, ServerBucket bucket, Optional<Long> opOffset,
+			Optional<String> opPrefix) {
+		super(driver, bucket);
 
-        opPrefix.ifPresent(x -> setPrefix(x.toLowerCase().trim()));
-        opOffset.ifPresent(x -> setOffset(x));
+		opPrefix.ifPresent(x -> setPrefix(x.toLowerCase().trim()));
+		opOffset.ifPresent(x -> setOffset(x));
 
-        this.drive = getDriver().getDrivesEnabled()
-                .get(Double.valueOf(Math.abs(Math.random() * 10000)).intValue() % getDriver().getDrivesEnabled().size());
-    }
+		this.drive = getDriver().getDrivesEnabled().get(
+				Double.valueOf(Math.abs(Math.random() * 10000)).intValue() % getDriver().getDrivesEnabled().size());
+	}
 
-    @Override
-    public synchronized void close() throws IOException {
-        if (getStream() != null)
-            getStream().close();
-    }
+	@Override
+	public synchronized void close() throws IOException {
+		if (getStream() != null)
+			getStream().close();
+	}
 
-    /**
-     * <p>
-     * No need to synchronize because it is called from the synchronized method
-     * {@link BucketIterator#hasNext}
-     * </p>
-     */
+	/**
+	 * <p>
+	 * No need to synchronize because it is called from the synchronized method
+	 * {@link BucketIterator#hasNext}
+	 * </p>
+	 */
 
-    @Override
-    protected void init() {
-        Path start = new File(getDrive().getBucketMetadataDirPath(getBucket())).toPath();
-        try {
-            this.stream = Files.walk(start, 1).skip(1).filter(file -> Files.isDirectory(file))
-                    .filter(file -> (getPrefix() == null) || file.getFileName().toString().toLowerCase().startsWith(getPrefix()))
-                    .filter(file -> isValidState(file));
+	@Override
+	protected void init() {
+		Path start = new File(getDrive().getBucketMetadataDirPath(getBucket())).toPath();
+		try {
+			this.stream = Files.walk(start, 1).skip(1).filter(file -> Files.isDirectory(file))
+					.filter(file -> (getPrefix() == null)
+							|| file.getFileName().toString().toLowerCase().startsWith(getPrefix()))
+					.filter(file -> isValidState(file));
 
-        } catch (IOException e) {
-            throw new InternalCriticalException(e);
-        }
-        this.it = this.stream.iterator();
-        skipOffset();
-        setInitiated(true);
-    }
+		} catch (IOException e) {
+			throw new InternalCriticalException(e);
+		}
+		this.it = this.stream.iterator();
+		skipOffset();
+		setInitiated(true);
+	}
 
-    /**
-     * <p>
-     * No need to synchronize because it is called from the synchronized method
-     * {@link BucketIterator#hasNext}
-     * </p>
-     * 
-     * @return false if there are no more items
-     */
-    @Override
-    protected boolean fetch() {
-        setRelativeIndex(0);
-        setBuffer(new ArrayList<Path>());
-        boolean isItems = true;
-        while (isItems && getBuffer().size() < defaultBufferSize()) {
-            if (getIt().hasNext())
-                getBuffer().add(getIt().next());
-            else
-                isItems = false;
-        }
-        return !getBuffer().isEmpty();
-    }
+	/**
+	 * <p>
+	 * No need to synchronize because it is called from the synchronized method
+	 * {@link BucketIterator#hasNext}
+	 * </p>
+	 * 
+	 * @return false if there are no more items
+	 */
+	@Override
+	protected boolean fetch() {
+		setRelativeIndex(0);
+		setBuffer(new ArrayList<Path>());
+		boolean isItems = true;
+		while (isItems && getBuffer().size() < defaultBufferSize()) {
+			if (getIt().hasNext())
+				getBuffer().add(getIt().next());
+			else
+				isItems = false;
+		}
+		return !getBuffer().isEmpty();
+	}
 
-    private void skipOffset() {
-        if (getOffset() == 0)
-            return;
-        boolean isItems = true;
-        int skipped = 0;
-        while (isItems && skipped < getOffset()) {
-            if (getIt().hasNext()) {
-                getIt().next();
-                skipped++;
-            } else {
-                break;
-            }
-        }
-    }
+	private void skipOffset() {
+		if (getOffset() == 0)
+			return;
+		boolean isItems = true;
+		int skipped = 0;
+		while (isItems && skipped < getOffset()) {
+			if (getIt().hasNext()) {
+				getIt().next();
+				skipped++;
+			} else {
+				break;
+			}
+		}
+	}
 
-    private Drive getDrive() {
-        return this.drive;
-    }
+	private Drive getDrive() {
+		return this.drive;
+	}
 
-    private Iterator<Path> getIt() {
-        return it;
-    }
+	private Iterator<Path> getIt() {
+		return it;
+	}
 
-    private Stream<Path> getStream() {
-        return stream;
-    }
+	private Stream<Path> getStream() {
+		return stream;
+	}
 
 }

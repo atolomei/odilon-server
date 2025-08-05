@@ -1,6 +1,6 @@
 /*
  * Odilon Object Storage
- * (C) Novamens 
+ * (c) kbee 
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -54,6 +54,9 @@ public class AuthToken extends BaseObject implements Serializable {
 	@JsonProperty("keyVersion")
 	public int keyVersion;
 
+	@JsonProperty("objectCacheDurationSecs")
+	public int objectCacheDurationSecs = 0;
+
 	
 	private static final DateTimeFormatter HTTP_DATE = DateTimeFormatter.RFC_1123_DATE_TIME;
 
@@ -62,19 +65,20 @@ public class AuthToken extends BaseObject implements Serializable {
 	}
 
 	public AuthToken(String bucketName, String objectName) {
-		this(bucketName, objectName, OffsetDateTime.now().plusSeconds(ServerConstant.DEFAULT_EXPIRY_TIME), VERSION);
+		this(bucketName, objectName, OffsetDateTime.now().plusSeconds(ServerConstant.DEFAULT_EXPIRY_TIME), VERSION, 0);
 	}
 
 	public AuthToken(String bucketName, String objectName, int durationSeconds) {
 		this(bucketName, objectName, (durationSeconds > 0) ? OffsetDateTime.now().plusSeconds(durationSeconds)
-				: OffsetDateTime.now().plusSeconds(ServerConstant.DEFAULT_EXPIRY_TIME), VERSION);
+				: OffsetDateTime.now().plusSeconds(ServerConstant.DEFAULT_EXPIRY_TIME), VERSION, 0);
 	}
 
-	public AuthToken(String bucketName, String objectName, OffsetDateTime expirationDate, int keyVersion) {
+	public AuthToken(String bucketName, String objectName, OffsetDateTime expirationDate, int keyVersion, int objectCacheDurationSecs) {
 		this.bucketName = bucketName;
 		this.objectName = objectName;
 		this.expirationDate = expirationDate;
 		this.keyVersion = keyVersion;
+		this.objectCacheDurationSecs=objectCacheDurationSecs;
 	}
 
 	/**
@@ -142,11 +146,19 @@ public class AuthToken extends BaseObject implements Serializable {
 		return HTTP_DATE.format(expirationDate);
 	}
 	
-	 @Override
-	    public String toString() {
+	@Override
+	public String toString() {
 	        StringBuilder str = new StringBuilder();
 	        str.append(this.getClass().getSimpleName());
 	        str.append(toJSON());
 	        return str.toString();
-	    }
+	}
+
+	public int getObjectCacheDurationSecs() {
+		 return objectCacheDurationSecs;
+	}
+
+	public void setObjectCacheDurationSecs(int objectCacheDurationSecs) {
+		this.objectCacheDurationSecs = objectCacheDurationSecs;
+	}
 }

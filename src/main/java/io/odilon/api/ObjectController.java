@@ -1,6 +1,6 @@
 /*
  * Odilon Object Storage
- * (C) Novamens 
+ * (c) kbee 
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
  */
 package io.odilon.api;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -177,6 +178,7 @@ public class ObjectController extends BaseApiController {
             @PathVariable("objectName") String objectName) {
 
         TrafficPass pass = null;
+        InputStream in = null;
 
         try {
 
@@ -194,7 +196,7 @@ public class ObjectController extends BaseApiController {
 
             MediaType contentType = MediaType.APPLICATION_OCTET_STREAM;
 
-            InputStream in = getObjectStorageService().getObjectStream(bucketName, objectName);
+            in = getObjectStorageService().getObjectStream(bucketName, objectName);
 
             
             int cacheDurationSecs = this.settings.getserverObjectstreamCacheSecs();
@@ -204,9 +206,25 @@ public class ObjectController extends BaseApiController {
             return ResponseEntity.ok().cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)).contentType(contentType).body(new InputStreamResource(in));
 
         } catch (OdilonServerAPIException e1) {
+        	
+        	if (in!=null) {
+				try {
+					in.close();
+				} catch (IOException e2) {
+					logger.error(e2, SharedConstant.NOT_THROWN);
+				}
+        	}
             throw e1;
         } catch (Exception e) {
-            throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));
+            
+        	if (in!=null) {
+				try {
+					in.close();
+				} catch (IOException e1) {
+					logger.error(e1, SharedConstant.NOT_THROWN);
+				}
+        	}
+        	throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));
 
         } finally {
             getTrafficControlService().release(pass);
@@ -236,6 +254,8 @@ public class ObjectController extends BaseApiController {
             @PathVariable("objectName") String objectName, @RequestParam("version") Optional<Integer> version) {
         TrafficPass pass = null;
 
+        InputStream in = null;
+        		
         try {
 
             pass = getTrafficControlService().getPass();
@@ -261,7 +281,7 @@ public class ObjectController extends BaseApiController {
                 throw new IllegalArgumentException("version must be 0 or greater");
 
             MediaType contentType = MediaType.APPLICATION_OCTET_STREAM;
-            InputStream in = getObjectStorageService().getObjectPreviousVersionStream(bucketName, objectName,
+            in = getObjectStorageService().getObjectPreviousVersionStream(bucketName, objectName,
                     version.get().intValue());
 
             getSystemMonitorService().getGetObjectMeter().mark();
@@ -272,9 +292,27 @@ public class ObjectController extends BaseApiController {
             return ResponseEntity.ok().cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)).contentType(contentType).body(new InputStreamResource(in));
 
         } catch (OdilonServerAPIException e) {
+        	
+        	if (in!=null) {
+				try {
+					in.close();
+				} catch (IOException e1) {
+					logger.error(e1, SharedConstant.NOT_THROWN);
+				}
+        	}
+        	
             throw e;
 
         } catch (Exception e) {
+        	
+        	if (in!=null) {
+				try {
+					in.close();
+				} catch (IOException e1) {
+					logger.error(e1, SharedConstant.NOT_THROWN);
+				}
+        	}
+        	
             throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));
 
         } finally {
@@ -293,7 +331,8 @@ public class ObjectController extends BaseApiController {
     public ResponseEntity<InputStreamResource> getObjectPreviousVersionStream(@PathVariable("bucketName") String bucketName,
             @PathVariable("objectName") String objectName) {
         TrafficPass pass = null;
-
+        InputStream in = null;
+        
         try {
 
             pass = getTrafficControlService().getPass();
@@ -323,7 +362,7 @@ public class ObjectController extends BaseApiController {
             getSystemMonitorService().getGetObjectMeter().mark();
 
             MediaType contentType = MediaType.APPLICATION_OCTET_STREAM;
-            InputStream in = getObjectStorageService().getObjectPreviousVersionStream(bucketName, objectName,
+            in = getObjectStorageService().getObjectPreviousVersionStream(bucketName, objectName,
                     list.get(list.size() - 1).version);
 
             int cacheDurationSecs = this.settings.getserverObjectstreamCacheSecs();
@@ -332,10 +371,27 @@ public class ObjectController extends BaseApiController {
             return ResponseEntity.ok().cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)).contentType(contentType).body(new InputStreamResource(in));
 
         } catch (OdilonServerAPIException e1) {
-            logger.error(e1);
+ 
+        	if (in!=null) {
+				try {
+					in.close();
+				} catch (IOException e2) {
+					logger.error(e2, SharedConstant.NOT_THROWN);
+				}
+        	}
+        	logger.error(e1);
             throw e1;
 
         } catch (Exception e) {
+        	
+        	if (in!=null) {
+				try {
+					in.close();
+				} catch (IOException e2) {
+					logger.error(e2, SharedConstant.NOT_THROWN);
+				}
+        	}
+        	
             throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));
 
         } finally {
@@ -351,8 +407,11 @@ public class ObjectController extends BaseApiController {
      */
     @RequestMapping(path = "/get/presignedurl/{bucketName}/{objectName}", method = RequestMethod.GET)
     @ResponseBody
-    public ResponseEntity<String> getPresignedUrl(@PathVariable("bucketName") String bucketName,
-            @PathVariable("objectName") String objectName, @RequestParam("durationSeconds") Optional<Integer> durationSeconds) {
+    public ResponseEntity<String> getPresignedUrl(
+    		@PathVariable("bucketName") String bucketName,
+            @PathVariable("objectName") String objectName, 
+            @RequestParam("durationSeconds") Optional<Integer> durationSeconds, 
+            @RequestParam("objectCacheExpiresSeconds") Optional<Integer> objectCacheExpiresSeconds) {
 
         TrafficPass pass = null;
 
@@ -378,8 +437,13 @@ public class ObjectController extends BaseApiController {
             else
             	atoken = new AuthToken(bucketName, objectName);            		
             	
+            if (objectCacheExpiresSeconds.isPresent())
+            	atoken.setObjectCacheDurationSecs(objectCacheExpiresSeconds.get());
+            else
+            	atoken.setObjectCacheDurationSecs(0);
             
-            String token = this.tokenService.encrypt(atoken);
+            
+            String token = this.getTokenService().encrypt(atoken);
             
             getSystemMonitorService().getGetObjectMeter().mark();
 
@@ -396,7 +460,9 @@ public class ObjectController extends BaseApiController {
         }
     }
 
-    /**
+    
+    
+	/**
      * 
      * @param bucketName
      * @param objectName
@@ -703,5 +769,9 @@ public class ObjectController extends BaseApiController {
     @PostConstruct
     public void init() {
     }
+
+    private TokenService getTokenService() {
+		return this.tokenService;
+	}
 
 }

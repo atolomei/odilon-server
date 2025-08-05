@@ -1,6 +1,6 @@
 /*
  * Odilon Object Storage
- * (C) Novamens 
+ * (c) kbee 
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
  */
 package io.odilon.api;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -37,6 +38,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.odilon.error.OdilonServerAPIException;
 import io.odilon.error.OdilonObjectNotFoundException;
 import io.odilon.log.Logger;
+import io.odilon.model.SharedConstant;
 import io.odilon.monitor.SystemMonitorService;
 import io.odilon.net.ErrorCode;
 import io.odilon.net.ODHttpStatus;
@@ -103,7 +105,8 @@ public class ObjectControllerPresigned extends BaseApiController {
     public ResponseEntity<InputStreamResource> getPresignedObjectStream(@RequestParam("token") String stringToken) {
 
         TrafficPass pass = null;
-
+        InputStream in = null;
+        
         try {
 
             pass = getTrafficControlService().getPass();
@@ -114,15 +117,15 @@ public class ObjectControllerPresigned extends BaseApiController {
             AuthToken authToken = this.tokenService.decrypt(stringToken);
 
             if (authToken == null)
-                throw new OdilonServerAPIException("AuthToken is null");
+                throw new OdilonServerAPIException(AuthToken.class.getSimpleName() + " is null");
 
             if (!authToken.isValid()) {
                 logger.error(String.format("token expired -> t: %s", authToken.toString()));
                 throw new OdilonServerAPIException(String.format("token expired -> t: %s", authToken.toString()));
             }
 
-            String bucketName = authToken.bucketName;
-            String objectName = authToken.objectName;
+            String bucketName = authToken.getBucketName();
+            String objectName = authToken.getObjectName();
 
             VirtualFileSystemObject object = getObjectStorageService().getObject(bucketName, objectName);
 
@@ -138,19 +141,34 @@ public class ObjectControllerPresigned extends BaseApiController {
             MediaType contentType = MediaType.valueOf(object.getObjectMetadata().contentType);
 
             if (object.getObjectMetadata().contentType() == null
-                    || object.getObjectMetadata().contentType.equals("application/octet-stream")) {
+                    || object.getObjectMetadata().getContentType().equals("application/octet-stream")) {
                 contentType = estimateContentType(f_name);
             }
 
-            InputStream in = object.getInputStream();
+            in = object.getInputStream();
 
             getSystemMonitorService().getGetObjectMeter().mark();
 
-            int cacheDurationSecs = this.serverSettings.getserverObjectstreamCacheSecs();
-            
-            return ResponseEntity.ok().cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)).headers(responseHeaders).contentType(contentType).body(new InputStreamResource(in));
+            int cacheDurationSecs = this.getServerSettings().getserverObjectstreamCacheSecs();
 
+            if (authToken.getObjectCacheDurationSecs()>0)
+            	cacheDurationSecs = authToken.getObjectCacheDurationSecs();
+            else
+            	cacheDurationSecs = this.getServerSettings().getserverObjectstreamCacheSecs();
+            
+           return ResponseEntity.ok().cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)).headers(responseHeaders).contentType(contentType).body(new InputStreamResource(in));
+
+            
         } catch (Exception e) {
+
+        	if (in!=null) {
+				try {
+					in.close();
+				} catch (IOException e1) {
+					logger.error(e1, SharedConstant.NOT_THROWN);
+				}
+        	}
+        	
             throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));
 
         } finally {
@@ -159,7 +177,13 @@ public class ObjectControllerPresigned extends BaseApiController {
         }
     }
 
-    private MediaType estimateContentType(String f_name) {
+    
+    public ServerSettings getServerSettings() {
+		return this.serverSettings;
+	}
+
+    
+	private MediaType estimateContentType(String f_name) {
 
         if (f_name == null)
             return MediaType.valueOf("application/octet-stream");

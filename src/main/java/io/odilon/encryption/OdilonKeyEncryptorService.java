@@ -1,6 +1,6 @@
 /*
  * Odilon Object Storage
- * (C) Novamens 
+ * (c) kbee 
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,7 +33,8 @@ import org.springframework.stereotype.Service;
 
 /**
  * <p>
- * Encrypts key for each file using the Master Key
+ * Encrypts key for each file using the Master Key.
+ * This service is used when there is no Key Management Service 
  * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
@@ -41,67 +42,66 @@ import org.springframework.stereotype.Service;
 @Service
 public class OdilonKeyEncryptorService extends BaseService implements KeyEncryptor {
 
-    private static final Logger logger = Logger.getLogger(OdilonKeyEncryptorService.class.getName());
+	private static final Logger logger = Logger.getLogger(OdilonKeyEncryptorService.class.getName());
 
-    static private Logger startuplogger = Logger.getLogger("StartupLogger");
+	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 
-    @JsonIgnore
-    @Autowired
-    private final ServerSettings serverSettings;
+	@JsonIgnore
+	@Autowired
+	private final ServerSettings serverSettings;
 
-    @JsonIgnore
-    private byte[] masterKey = null;
+	@JsonIgnore
+	private byte[] masterKey = null;
 
-    public OdilonKeyEncryptorService(ServerSettings serverSettings) {
-        this.serverSettings = serverSettings;
-    }
+	public OdilonKeyEncryptorService(ServerSettings serverSettings) {
+		this.serverSettings = serverSettings;
+	}
 
-    public void setMasterKey(byte[] key) {
-        synchronized (this) {
-            this.masterKey = key;
-            startuplogger.debug("Started -> " + this.getClass().getSimpleName());
-            setStatus(ServiceStatus.RUNNING);
-        }
-    }
+	public void setMasterKey(byte[] key) {
+		synchronized (this) {
+			this.masterKey = key;
+			startuplogger.debug("Started -> " + this.getClass().getSimpleName());
+			setStatus(ServiceStatus.RUNNING);
+		}
+	}
 
-    @Override
-    public byte[] encryptKey(byte[] key, byte[] iv) {
-        try {
-            SecretKeySpec secretKeySpec = new SecretKeySpec(masterKey, EncryptionService.ENCRYPTION_ALGORITHM);
-            Cipher enc = Cipher.getInstance(EncryptionService.ENCRYPTION_ALGORITHM_METHOD);
-            enc.init(Cipher.ENCRYPT_MODE, secretKeySpec, new GCMParameterSpec(EncryptionService.IV_LENGTH_BIT, iv));
-            return enc.doFinal(key);
-        } catch (Exception e) {
-            throw new InternalCriticalException(e, "encryptKey");
-        }
-    }
+	@Override
+	public byte[] encryptKey(byte[] key, byte[] iv) {
+		try {
+			SecretKeySpec secretKeySpec = new SecretKeySpec(masterKey, EncryptionService.ENCRYPTION_ALGORITHM);
+			Cipher enc = Cipher.getInstance(EncryptionService.ENCRYPTION_ALGORITHM_METHOD);
+			enc.init(Cipher.ENCRYPT_MODE, secretKeySpec, new GCMParameterSpec(EncryptionService.IV_LENGTH_BIT, iv));
+			return enc.doFinal(key);
+		} catch (Exception e) {
+			throw new InternalCriticalException(e, "encryptKey");
+		}
+	}
 
-    @Override
-    public byte[] decryptKey(byte[] key, byte[] iv) {
-        try {
-            SecretKeySpec secretKeySpec = new SecretKeySpec(masterKey, EncryptionService.ENCRYPTION_ALGORITHM);
-            Cipher dec = Cipher.getInstance(EncryptionService.ENCRYPTION_ALGORITHM_METHOD);
-            dec.init(Cipher.DECRYPT_MODE, secretKeySpec, new GCMParameterSpec(EncryptionService.IV_LENGTH_BIT, iv));
-            byte[] decKey = dec.doFinal(key);
-            return decKey;
+	@Override
+	public byte[] decryptKey(byte[] key, byte[] iv) {
+		try {
+			SecretKeySpec secretKeySpec = new SecretKeySpec(masterKey, EncryptionService.ENCRYPTION_ALGORITHM);
+			Cipher dec = Cipher.getInstance(EncryptionService.ENCRYPTION_ALGORITHM_METHOD);
+			dec.init(Cipher.DECRYPT_MODE, secretKeySpec, new GCMParameterSpec(EncryptionService.IV_LENGTH_BIT, iv));
+			byte[] decKey = dec.doFinal(key);
+			return decKey;
 
-        } catch (Exception e) {
-            throw new InternalCriticalException(e, "decryptKey");
-        }
-    }
+		} catch (Exception e) {
+			throw new InternalCriticalException(e, "decryptKey");
+		}
+	}
 
-    @PostConstruct
-    protected void onInitialize() {
-        synchronized (this) {
-            try {
-                setStatus(ServiceStatus.STARTING);
-            } catch (Exception e) {
-                startuplogger.error(e.getClass().getName() + " | " + e.getMessage());
-                logger.error(e.getClass().getName() + " | " + e.getMessage());
-                setStatus(ServiceStatus.STOPPED);
-                throw new InternalCriticalException(e, "onInitialize");
-            }
-        }
-    }
-
+	@PostConstruct
+	protected void onInitialize() {
+		synchronized (this) {
+			try {
+				setStatus(ServiceStatus.STARTING);
+			} catch (Exception e) {
+				startuplogger.error(e.getClass().getName() + " | " + e.getMessage());
+				logger.error(e.getClass().getName() + " | " + e.getMessage());
+				setStatus(ServiceStatus.STOPPED);
+				throw new InternalCriticalException(e, "onInitialize");
+			}
+		}
+	}
 }

@@ -1,6 +1,6 @@
 /*
  * Odilon Object Storage
- * (C) Novamens 
+ * (c) kbee 
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 
 import jakarta.annotation.PostConstruct;
 
-import org.checkerframework.checker.index.qual.NonNegative;
+//import org.checkerframework.checker.index.qual.NonNegative;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
@@ -952,11 +952,11 @@ public class ServerSettings implements JSONObject {
         return this.standbySyncThreads;
     }
 
-    public @NonNegative int getFileCacheInitialCapacity() {
+    public int getFileCacheInitialCapacity() {
         return fileCacheIntialCapacity;
     }
 
-    public @NonNegative long getRetryFailedSeconds() {
+    public long getRetryFailedSeconds() {
         return retryFailedSeconds;
     }
 
@@ -964,7 +964,7 @@ public class ServerSettings implements JSONObject {
         return this.timeZone;
     }
 
-    public @NonNegative int getObjectCacheInitialCapacity() {
+    public int getObjectCacheInitialCapacity() {
         return objectCacheInitialCapacity;
     }
 
@@ -1010,7 +1010,7 @@ public class ServerSettings implements JSONObject {
         return this.objectCacheMaxCapacity;
     }
 
-    public @NonNegative long getObjectCacheExpireDays() {
+    public long getObjectCacheExpireDays() {
         return this.objectExpireDays;
     }
 
