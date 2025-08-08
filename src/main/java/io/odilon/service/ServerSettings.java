@@ -270,7 +270,7 @@ public class ServerSettings implements JSONObject {
 
     // TRAFFIC PASS --------------------------------------
 
-    @JsonProperty("traffic.tokens:12")
+    @JsonProperty("traffic.tokens:32")
     private int tokens;
 
     // OBJECT CACHES --------------------------------------
@@ -405,9 +405,7 @@ public class ServerSettings implements JSONObject {
         
         str.append("\"fileCache.maxCapacity\":\"" + String.valueOf(fileCacheMaxCapacity) + "\"");
         str.append("\"fileCache.durationDays\":\"" + String.valueOf(fileCacheDurationDays) + "\"");
-        
-
-        
+          
         return str.toString();
     }
 

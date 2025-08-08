@@ -3,7 +3,6 @@
 <!-- status=OFF  			[do not log internal log4 status events]
     monitorInterval=60 		[reload file every seconds]
  - -->
-
 <configuration status="OFF"  monitorInterval="30">
 	
 	<Properties>
@@ -34,7 +33,6 @@
 			  </DefaultRolloverStrategy>
 		</RollingFile>
 
-
 		<!--Startup.log prints all info and error of the StartUp process  %logger{36}  (immediateFlush="false" is not working) -->
 		
 		<RollingFile name="startup" fileName="${sys:log-path}/startup.log" immediateFlush="true" append="false" filePattern="${sys:log-path}/startup-%d{yyyy-MM-dd}.log" >
@@ -54,8 +52,6 @@
 			</Policies>
 			<DefaultRolloverStrategy max="10"/>
 		</RollingFile>
-
-
 
 		<RollingFile name="dataIntegrityCheck" fileName="${sys:log-path}/dataIntegrityCheck.log" immediateFlush="true" append="false" filePattern="${sys:log-path}/dataIntegrityCheck-%d{yyyy-MM-dd}.log" >
 			<PatternLayout pattern="%d{MM.dd.yyyy HH:mm:ss.SSS} %-5level - %msg%n"/>
@@ -100,7 +96,7 @@
 			<AppenderRef ref="Console"/>
 		</Asynclogger>´
 		
-		<Asynclogger name="io.odilon"  level="debug" additivity="false">
+		<Asynclogger name="io.odilon"  level="error" additivity="false">
 			<appender-ref ref="odilon"/>
 			<AppenderRef ref="Console"/>
 		</Asynclogger>´
