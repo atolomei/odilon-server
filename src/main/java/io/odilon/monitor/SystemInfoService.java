@@ -162,6 +162,9 @@ public class SystemInfoService extends BaseService implements SystemService {
             info.redundancyLevelDetail = "[data:" + String.valueOf(serverSettings.getRAID6DataDrives()) + ", parity:"
                     + String.valueOf(serverSettings.getRAID6ParityDrives()) + "] ";
         }
+        
+        info.rootDirs = new ArrayList<String>();
+        virtualFileSystemService.getMapDrivesEnabled().forEach ( (k,v) -> info.rootDirs.add( v.getName() + ": " + v.getRootDirPath()));
 
         OperatingSystemMXBean os = ManagementFactory.getOperatingSystemMXBean();
 

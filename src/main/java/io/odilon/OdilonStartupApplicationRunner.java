@@ -18,6 +18,7 @@ package io.odilon;
 
 import java.io.File;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
@@ -165,13 +166,16 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 			if (startupLogger.isDebugEnabled()) {
 				o_service.getSystemInfo().getColloquial().forEach((k, v) -> startupLogger.debug(k + " -> " + v));
 			} else {
-				startupLogger.info("javaVendor: " + o_service.getSystemInfo().getColloquial().get("javaVendor"));
-				startupLogger.info("javaVersion: " + o_service.getSystemInfo().getColloquial().get("javaVersion"));
-				startupLogger.info("osName: " + o_service.getSystemInfo().getColloquial().get("osName"));
-				startupLogger.info("osArch: " + o_service.getSystemInfo().getColloquial().get("osArch"));
-				startupLogger.info("serverHost: " + o_service.getSystemInfo().getColloquial().get("serverHost"));
-				startupLogger.info("serverStorage: " + o_service.getSystemInfo().getColloquial().get("serverStorage"));
-	
+				startupLogger.info("javaVendor -> " + o_service.getSystemInfo().getColloquial().get("javaVendor"));
+				startupLogger.info("javaVersion -> " + o_service.getSystemInfo().getColloquial().get("javaVersion"));
+				startupLogger.info("osName -> " + o_service.getSystemInfo().getColloquial().get("osName"));
+				startupLogger.info("osArch -> " + o_service.getSystemInfo().getColloquial().get("osArch"));
+				startupLogger.info("serverHost -> " + o_service.getSystemInfo().getColloquial().get("serverHost"));
+				startupLogger.info("serverStorage -> " + o_service.getSystemInfo().getColloquial().get("serverStorage"));
+				startupLogger.info("TimeZone -> " +   ZoneId.systemDefault().toString());
+				//startupLogger.info("Locale -> " +   Locale.getDefault().toString());
+
+				
 			}
 		} catch (Exception e) {
 			startupLogger.error(e);

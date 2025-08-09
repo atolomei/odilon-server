@@ -44,59 +44,62 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 @RestController
 public class InfoController extends BaseApiController {
 
-    @SuppressWarnings("unused")
-    static private Logger logger = Logger.getLogger(InfoController.class.getName());
+	@SuppressWarnings("unused")
+	static private Logger logger = Logger.getLogger(InfoController.class.getName());
 
-    private ServerSettings settings;
+	private ServerSettings settings;
 
-    @Autowired
-    public InfoController(ObjectStorageService objectStorageService, VirtualFileSystemService virtualFileSystemService,
-            SystemMonitorService monitoringService, ServerSettings settings, TrafficControlService trafficControlService) {
+	@Autowired
+	public InfoController(ObjectStorageService objectStorageService, VirtualFileSystemService virtualFileSystemService,
+			SystemMonitorService monitoringService, ServerSettings settings,
+			TrafficControlService trafficControlService) {
 
-        super(objectStorageService, virtualFileSystemService, monitoringService, trafficControlService);
-        this.settings = settings;
-    }
+		super(objectStorageService, virtualFileSystemService, monitoringService, trafficControlService);
+		this.settings = settings;
+	}
 
-    /**
-     * <p>
-     * in JSON format
-     * </p>
-     */
-    @RequestMapping(value = "/info", produces = "application/json", method = RequestMethod.GET)
-    public ResponseEntity<String> getMetrics() {
+	/**
+	 * <p>
+	 * in JSON format
+	 * </p>
+	 */
+	@RequestMapping(value = "/info", produces = "application/json", method = RequestMethod.GET)
+	public ResponseEntity<String> getMetrics() {
 
-        TrafficPass pass = null;
+		TrafficPass pass = null;
 
-        try {
+		try {
 
-            pass = getTrafficControlService().getPass();
+			pass = getTrafficControlService().getPass();
 
-            StringBuilder str = new StringBuilder();
+			StringBuilder str = new StringBuilder();
 
-            SystemInfo info = getObjectStorageService().getSystemInfo();
+			SystemInfo info = getObjectStorageService().getSystemInfo();
 
-            str.append("\n");
-            str.append("\n");
+			str.append("\n");
+			str.append("\n");
 
-            for (String s : this.settings.getAppCharacterName())
-                str.append("    " + s + "\n");
+			for (String s : getServerSettings().getAppCharacterName())
+				str.append("    " + s + "\n");
 
-            str.append("\n");
-            str.append("\n");
+			str.append("\n");
 
-            Map<String, String> map = info.getColloquial();
+			Map<String, String> map = info.getColloquial();
 
-            map.forEach((k, v) -> str.append("    " + k + " -> " + v + "\n\n"));
+			map.forEach((k, v) -> str.append("    " + k + " -> " + v + "\n"));
+			str.append("\n");
 
-            str.append("\n");
-            str.append("\n");
+			return new ResponseEntity<String>(str.toString(), HttpStatus.OK);
 
-            return new ResponseEntity<String>(str.toString(), HttpStatus.OK);
+		} finally {
+			getTrafficControlService().release(pass);
+			mark();
+		}
+	}
 
-        } finally {
-            getTrafficControlService().release(pass);
-            mark();
-        }
-    }
-
+ 
+	
+	protected ServerSettings getServerSettings() {
+		return this.settings;
+	}
 }

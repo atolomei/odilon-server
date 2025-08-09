@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.TimeZone;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import jakarta.annotation.PostConstruct;
@@ -134,6 +135,8 @@ public class ServerSettings implements JSONObject {
     @Value("${server.ssl.enabled:false}")
     protected String ishttps;
 
+    
+    
     @Value("${server.objectstream.cache.secs:360}")
     protected int serverObjectstreamCacheSecs;
 
@@ -419,35 +422,39 @@ public class ServerSettings implements JSONObject {
 
     public Map<String, Object> toMap() {
 
-        Map<String, Object> map = new HashMap<String, Object>();
+        Map<String, Object> map = new TreeMap<String, Object>();
 
-        map.put("port", getPort());
-
-        map.put("serverObjectstreamCacheSecs",       String.valueOf(getserverObjectstreamCacheSecs()));
         
-        map.put("accessKey", accessKey);
-        map.put("secretKey", secretKey);
-        map.put("redundancyLevel", Optional.ofNullable(redundancyLevel).isPresent() ? (redundancyLevel.getName()) : "null");
+        
+        
+        
+        
+        
+        
+        map.put("server.port", getPort());
+        map.put("server.https", isHTTPS() ? "true" : "false");
+
+        map.put("security.accessKey", accessKey);
+        map.put("security.secretKey", secretKey.substring(0, 3)+"...");
+        
+        map.put("raid.redundancyLevel", Optional.ofNullable(redundancyLevel).isPresent() ? (redundancyLevel.getName()) : "null");
         int n = 0;
         if (rootDirs != null && rootDirs.size() > 0) {
             for (String s : rootDirs) {
-                map.put("rootDir_" + String.valueOf(n++), s);
+                map.put("raid.rootDir_" + String.valueOf(n++), s);
             }
         }
 
-        map.put("dataStorage", getDataStorage().getName());
+        map.put("cache.serverObjectstreamCacheSecs",       String.valueOf(getserverObjectstreamCacheSecs()));
+        
+        map.put("dataStorage.mode", getDataStorage().getName());
 
-        map.put("https", isHTTPS() ? "true" : "false");
-
-        map.put("keyAlgorithm", (Optional.ofNullable(keyAlgorithm).isPresent() ? (keyAlgorithm) : "null"));
-        map.put("lockRateMillisecs", String.format("%6.2f", getLockRateMillisecs()).trim());
 
         map.put("standby.enabled", isStandByEnabled() ? "true" : "false");
-
         if (isStandByEnabled()) {
             map.put("standby.url", standbyUrl);
             map.put("standby.accesskey", standbyAccessKey);
-            map.put("standby.secretkey", standbySecretKey);
+            map.put("standby.secretkey", standbySecretKey.subSequence(0, 3)+"...");
             map.put("standby.port", String.format("%6d", standbyPort).trim());
         }
 
