@@ -27,7 +27,8 @@ import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
- * 
+ * <p>Base class to encode and decode using Reed Solomon codes </p>
+ *  
  * @see RAIDSixDecoder
  * @see RAIDSixEncoder
  * 

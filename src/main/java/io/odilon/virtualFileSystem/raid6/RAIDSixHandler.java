@@ -57,117 +57,117 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 @ThreadSafe
 public abstract class RAIDSixHandler extends BaseRAIDHandler implements RAIDHandler {
 
-    private static Logger logger = Logger.getLogger(RAIDSixHandler.class.getName());
+	private static Logger logger = Logger.getLogger(RAIDSixHandler.class.getName());
 
-    @JsonIgnore
-    private final RAIDSixDriver driver;
+	@JsonIgnore
+	private final RAIDSixDriver driver;
 
-    public RAIDSixHandler(RAIDSixDriver driver) {
-        this.driver = driver;
-    }
+	public RAIDSixHandler(RAIDSixDriver driver) {
+		this.driver = driver;
+	}
 
-    @Override
-    public RAIDSixDriver getDriver() {
-        return this.driver;
-    }
+	@Override
+	public RAIDSixDriver getDriver() {
+		return this.driver;
+	}
 
-    public VirtualFileSystemService getVirtualFileSystemService() {
-        return getDriver().getVirtualFileSystemService();
-    }
+	public VirtualFileSystemService getVirtualFileSystemService() {
+		return getDriver().getVirtualFileSystemService();
+	}
 
-    /**
-     * must be executed inside the critical zone.
-     */
-    protected void checkNotExistObject(ServerBucket bucket, String objectName) {
-        if (existsObjectMetadata(bucket, objectName))
-            throw new IllegalArgumentException("Object already exist -> " + objectInfo(bucket, objectName));
-    }
+	/**
+	 * must be executed inside the critical zone.
+	 */
+	protected void checkNotExistObject(ServerBucket bucket, String objectName) {
+		if (existsObjectMetadata(bucket, objectName))
+			throw new IllegalArgumentException("Object already exist -> " + objectInfo(bucket, objectName));
+	}
 
-    /**
-     * must be executed inside the critical zone.
-     */
-    protected void checkExistObject(ServerBucket bucket, String objectName) {
-        if (!existsObjectMetadata(bucket, objectName))
-            throw new OdilonObjectNotFoundException("Object does not exist -> " + objectInfo(bucket, objectName));
-    }
+	/**
+	 * must be executed inside the critical zone.
+	 */
+	protected void checkExistObject(ServerBucket bucket, String objectName) {
+		if (!existsObjectMetadata(bucket, objectName))
+			throw new OdilonObjectNotFoundException("Object does not exist -> " + objectInfo(bucket, objectName));
+	}
 
-    /**
-     * This check must be executed inside the critical section
-     */
-    protected boolean existsObjectMetadata(ServerBucket bucket, String objectName) {
-        if (existsCacheObject(bucket, objectName))
-            return true;
-        return getDriver().getObjectMetadataReadDrive(bucket, objectName).existsObjectMetadata(bucket, objectName);
-    }
+	/**
+	 * This check must be executed inside the critical section
+	 */
+	protected boolean existsObjectMetadata(ServerBucket bucket, String objectName) {
+		if (existsCacheObject(bucket, objectName))
+			return true;
+		return getDriver().getObjectMetadataReadDrive(bucket, objectName).existsObjectMetadata(bucket, objectName);
+	}
 
-    @Override
-    protected Drive getObjectMetadataReadDrive(ServerBucket bucket, String objectName) {
-        return getDriver().getDrivesEnabled()
-                .get(Math.abs(getKey(bucket, objectName).hashCode()) % getDriver().getDrivesEnabled().size());
-    }
+	@Override
+	protected Drive getObjectMetadataReadDrive(ServerBucket bucket, String objectName) {
+		return getDriver().getDrivesEnabled()
+				.get(Math.abs(getKey(bucket, objectName).hashCode()) % getDriver().getDrivesEnabled().size());
+	}
 
-    protected void saveRAIDSixObjectMetadataToDisk(final List<Drive> drives, final List<ObjectMetadata> list,
-            final boolean isHead) {
+	protected void saveRAIDSixObjectMetadataToDisk(final List<Drive> drives, final List<ObjectMetadata> list,
+			final boolean isHead) {
 
-        if (logger.isDebugEnabled()) {
-            Check.requireTrue(drives.size() > 0, "no drives");
-            Check.requireTrue(drives.size() == list.size(), "must have the same number of elements." + " Drives -> "
-                    + String.valueOf(drives.size()) + " - ObjectMetadata -> " + String.valueOf(list.size()));
-        }
+		if (logger.isDebugEnabled()) {
+			Check.requireTrue(drives.size() > 0, "no drives");
+			Check.requireTrue(drives.size() == list.size(), "must have the same number of elements." + " Drives -> "
+					+ String.valueOf(drives.size()) + " - ObjectMetadata -> " + String.valueOf(list.size()));
+		}
 
-        final int size = drives.size();
+		final int size = drives.size();
 
-        if (size == 1) {
-            try {
-                ObjectMetadata meta = list.get(0);
-                if (isHead) {
-                    drives.get(0).saveObjectMetadata(meta);
-                } else {
-                    drives.get(0).saveObjectMetadataVersion(meta);
-                }
+		if (size == 1) {
+			try {
+				ObjectMetadata meta = list.get(0);
+				if (isHead) {
+					drives.get(0).saveObjectMetadata(meta);
+				} else {
+					drives.get(0).saveObjectMetadataVersion(meta);
+				}
 
-            } catch (Exception e) {
-                throw new InternalCriticalException(e);
-            }
-            return;
-        }
+			} catch (Exception e) {
+				throw new InternalCriticalException(e);
+			}
+			return;
+		}
 
-        ExecutorService executor = getDriver().getVirtualFileSystemService().getExecutorService();
+		ExecutorService executor = getDriver().getVirtualFileSystemService().getExecutorService();
 
-        List<Callable<Boolean>> tasks = new ArrayList<Callable<Boolean>>(size);
+		List<Callable<Boolean>> tasks = new ArrayList<Callable<Boolean>>(size);
 
-        for (int index = 0; index < size; index++) {
-            final int val = index;
-            tasks.add(() -> {
-                ObjectMetadata meta = null;
-                try {
-                    meta = list.get(val);
-                    if (isHead) {
-                        drives.get(val).saveObjectMetadata(meta);
-                    } else {
-                        drives.get(val).saveObjectMetadataVersion(meta);
-                    }
-                    return Boolean.valueOf(true);
+		for (int index = 0; index < size; index++) {
+			final int val = index;
+			tasks.add(() -> {
+				ObjectMetadata meta = null;
+				try {
+					meta = list.get(val);
+					if (isHead) {
+						drives.get(val).saveObjectMetadata(meta);
+					} else {
+						drives.get(val).saveObjectMetadataVersion(meta);
+					}
+					return Boolean.valueOf(true);
 
-                } catch (Exception e) {
-                    logger.error(e, objectInfo(meta), SharedConstant.NOT_THROWN);
-                    return Boolean.valueOf(false);
-                } finally {
+				} catch (Exception e) {
+					logger.error(e, objectInfo(meta), SharedConstant.NOT_THROWN);
+					return Boolean.valueOf(false);
+				} finally {
 
-                }
-            });
-        }
+				}
+			});
+		}
 
-        try {
-            List<Future<Boolean>> future = executor.invokeAll(tasks, 10, TimeUnit.MINUTES);
-            Iterator<Future<Boolean>> it = future.iterator();
-            while (it.hasNext()) {
-                if (!it.next().get())
-                    throw new InternalCriticalException(ObjectMetadata.class.getSimpleName());
-            }
-        } catch (InterruptedException | ExecutionException e) {
-            throw new InternalCriticalException(e, ObjectMetadata.class.getSimpleName());
-        }
-    }
+		try {
+			List<Future<Boolean>> future = executor.invokeAll(tasks, 10, TimeUnit.MINUTES);
+			Iterator<Future<Boolean>> it = future.iterator();
+			while (it.hasNext()) {
+				if (!it.next().get())
+					throw new InternalCriticalException(ObjectMetadata.class.getSimpleName());
+			}
+		} catch (InterruptedException | ExecutionException e) {
+			throw new InternalCriticalException(e, ObjectMetadata.class.getSimpleName());
+		}
+	}
 
 }

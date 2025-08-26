@@ -26,69 +26,69 @@ import io.odilon.virtualFileSystem.model.ServerBucket;
  */
 public class RAIDSixTransactionObjectHandler extends RAIDSixTransactionHandler {
 
-    @JsonProperty("bucket")
-    private final ServerBucket bucket;
+	@JsonProperty("bucket")
+	private final ServerBucket bucket;
 
-    @JsonProperty("objectName")
-    private final String objectName;
+	@JsonProperty("objectName")
+	private final String objectName;
 
-    public RAIDSixTransactionObjectHandler(RAIDSixDriver driver, ServerBucket bucket, String objectName) {
-        super(driver);
-        this.bucket = bucket;
-        this.objectName = objectName;
-    }
+	public RAIDSixTransactionObjectHandler(RAIDSixDriver driver, ServerBucket bucket, String objectName) {
+		super(driver);
+		this.bucket = bucket;
+		this.objectName = objectName;
+	}
 
-    protected ServerBucket getBucket() {
-        return bucket;
-    }
+	protected ServerBucket getBucket() {
+		return bucket;
+	}
 
-    protected String getObjectName() {
-        return objectName;
-    }
+	protected String getObjectName() {
+		return objectName;
+	}
 
-    protected void bucketReadLock() {
-        bucketReadLock(getBucket());
-    }
+	protected void bucketReadLock() {
+		bucketReadLock(getBucket());
+	}
 
-    protected void objectWriteLock() {
-        objectWriteLock(getBucket(), getObjectName());
-    }
+	protected void objectWriteLock() {
+		objectWriteLock(getBucket(), getObjectName());
+	}
 
-    protected String info() {
-        return objectInfo(getBucket(), getObjectName());
-    }
+	protected String info() {
+		return objectInfo(getBucket(), getObjectName());
+	}
 
-    protected String info(String str) {
-        return objectInfo(getBucket(), getObjectName(), str);
-    }
+	protected String info(String str) {
+		return objectInfo(getBucket(), getObjectName(), str);
+	}
 
-    /** must be executed inside the critical zone. */
-    protected ObjectMetadata getMetadata() {
-        return getMetadata(getBucket(), getObjectName(), false);
-    }
+	/** must be executed inside the critical zone. */
+	protected ObjectMetadata getMetadata() {
+		return getMetadata(getBucket(), getObjectName(), false);
+	}
 
-    /** must be executed inside the critical zone. */
-    protected void objectWriteUnLock() {
-        objectWriteUnLock(getBucket(), getObjectName());
-    }
+	/** must be executed inside the critical zone. */
+	protected void objectWriteUnLock() {
+		objectWriteUnLock(getBucket(), getObjectName());
+	}
 
-    /** must be executed inside the critical zone. */
-    protected void bucketReadUnLock() {
-        bucketReadUnLock(getBucket());
-    }
+	/** must be executed inside the critical zone. */
+	protected void bucketReadUnLock() {
+		bucketReadUnLock(getBucket());
+	}
 
-    /** must be executed inside the critical zone. */
-    protected void checkNotExistObject() {
-        checkNotExistObject(getBucket(), getObjectName());
-    }
+	/** must be executed inside the critical zone. */
+	protected void checkNotExistObject() {
+		checkNotExistObject(getBucket(), getObjectName());
+	}
 
-    /** must be executed inside the critical zone. */
-    protected void checkExistObject() {
-        checkExistObject(getBucket(), getObjectName());
-    }
+	/** must be executed inside the critical zone. */
+	protected void checkExistObject() {
+		checkExistObject(getBucket(), getObjectName());
+	}
 
-    /** must be executed inside the critical zone. */
-    protected void checkExistsBucket() {
-        checkExistsBucket(getBucket());
-    }
+	/** must be executed inside the critical zone. */
+	protected void checkExistsBucket() {
+		checkExistsBucket(getBucket());
+	}
 }

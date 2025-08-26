@@ -331,8 +331,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionHandler {
 							if (!isMainException)
 								throw new InternalCriticalException(e);
 							else
-								logger.error(e, objectInfo(bucketName, objectName),
-										SharedConstant.NOT_THROWN);
+								logger.error(e, objectInfo(bucketName, objectName), SharedConstant.NOT_THROWN);
 
 						} catch (Exception e) {
 							if (!isMainException)
