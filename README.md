@@ -184,7 +184,9 @@ Current version of Odilon Server is 1.12.
 <ul>
 <li><a href="https://odilon.io/configuration-linux.html" target="_blank">Installation, Configuration and Operation on Linux</a></li>	
 <li><a href="https://odilon.io/configuration-windows.html" target="_blank">Installation, Configuration and Operation on Windows</a></li>
-<li><a href="https://odilon.io/configuration-advanced.html" target="_blank">Advanced configuration (encryption, master-standby, version control)</a></li>		
+<li><a href="https://odilon.io/configuration-encryption.html" target="_blank">Encryption</a></li>		
+<li><a href="https://odilon.io/configuration-version-control.html" target="_blank">Version Control</a></li>		
+<li><a href="https://odilon.io/configuration-replication.html" target="_blank">Master - Standby replication</a></li>		
 <li><a href="https://odilon.io/configuration-https.html" target="_blank">Configuring HTTPS</a></li>		
 </ul>
 </p>
