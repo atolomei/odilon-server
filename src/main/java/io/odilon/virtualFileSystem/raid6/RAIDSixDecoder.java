@@ -113,12 +113,13 @@ public class RAIDSixDecoder extends RAIDSixCoder {
 		File file = getFileCacheService().get(bucket.getId(), objectName, ver);
 
 		/** if the file is in cache, return this file */
-		if (file != null) {
+		if ( (file != null) && file.exists()) {
 			getSystemMonitorService().getCacheFileHitCounter().inc();
 			return file;
 		}
 
 		getSystemMonitorService().getCacheFileMissCounter().inc();
+	
 		getLockService().getFileCacheLock(bucket.getId(), objectName, ver).writeLock().lock();
 
 		try {

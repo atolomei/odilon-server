@@ -97,8 +97,6 @@ public class InfoController extends BaseApiController {
 		}
 	}
 
- 
-	
 	protected ServerSettings getServerSettings() {
 		return this.settings;
 	}

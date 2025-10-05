@@ -43,112 +43,113 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  */
 public abstract class BaseApiController extends BaseObject implements ApplicationContextAware {
 
-    static private ObjectMapper mapper = new ObjectMapper();
+	static private ObjectMapper mapper = new ObjectMapper();
 
-    static protected ObjectMapper getMapper() {
-        return mapper;
-    }
+	static protected ObjectMapper getMapper() {
+		return mapper;
+	}
 
-    static {
-        mapper.registerModule(new JavaTimeModule());
-        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        mapper.registerModule(new Jdk8Module());
-    }
+	static {
+		mapper.registerModule(new JavaTimeModule());
+		mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+		mapper.registerModule(new Jdk8Module());
+	}
 
-    @JsonIgnore
-    private ApplicationContext applicationContext;
+	@JsonIgnore
+	private ApplicationContext applicationContext;
 
-    @JsonIgnore
-    @Autowired
-    private SystemMonitorService monitoringService;
+	@JsonIgnore
+	@Autowired
+	private SystemMonitorService monitoringService;
 
-    @JsonIgnore
-    @Autowired
-    protected ObjectStorageService objectStorageService;
+	@JsonIgnore
+	@Autowired
+	protected ObjectStorageService objectStorageService;
 
-    @JsonIgnore
-    @Autowired
-    protected VirtualFileSystemService virtualFileSystemService;
+	@JsonIgnore
+	@Autowired
+	protected VirtualFileSystemService virtualFileSystemService;
 
-    @JsonIgnore
-    @Autowired
-    TrafficControlService trafficControlService;
+	@JsonIgnore
+	@Autowired
+	TrafficControlService trafficControlService;
 
-    @Autowired
-    public BaseApiController(ObjectStorageService objectStorageService, VirtualFileSystemService virtualFileSystemService,
-            SystemMonitorService monitoringService) {
+	@Autowired
+	public BaseApiController(ObjectStorageService objectStorageService,
+			VirtualFileSystemService virtualFileSystemService, SystemMonitorService monitoringService) {
 
-        this(objectStorageService, virtualFileSystemService, monitoringService, null);
-    }
+		this(objectStorageService, virtualFileSystemService, monitoringService, null);
+	}
 
-    @Autowired
-    public BaseApiController(ObjectStorageService objectStorageService, VirtualFileSystemService virtualFileSystemService,
-            SystemMonitorService monitoringService, TrafficControlService trafficControlService) {
+	@Autowired
+	public BaseApiController(ObjectStorageService objectStorageService,
+			VirtualFileSystemService virtualFileSystemService, SystemMonitorService monitoringService,
+			TrafficControlService trafficControlService) {
 
-        this.objectStorageService = objectStorageService;
-        this.virtualFileSystemService = virtualFileSystemService;
-        this.monitoringService = monitoringService;
-    }
+		this.objectStorageService = objectStorageService;
+		this.virtualFileSystemService = virtualFileSystemService;
+		this.monitoringService = monitoringService;
+	}
 
-    @PostConstruct
-    protected void init() {
-    }
+	@PostConstruct
+	protected void init() {
+	}
 
-    public ApplicationContext getApplicationContext() {
-        return applicationContext;
-    }
+	public ApplicationContext getApplicationContext() {
+		return applicationContext;
+	}
 
-    public TrafficControlService getTrafficControlService() {
-        return trafficControlService;
-    }
+	public TrafficControlService getTrafficControlService() {
+		return trafficControlService;
+	}
 
-    public VirtualFileSystemService getVirtualFileSystemService() {
-        return virtualFileSystemService;
-    }
+	public VirtualFileSystemService getVirtualFileSystemService() {
+		return virtualFileSystemService;
+	}
 
-    public void setVirtualFileSystemService(VirtualFileSystemService virtualFileSystemService) {
-        this.virtualFileSystemService = virtualFileSystemService;
-    }
+	public void setVirtualFileSystemService(VirtualFileSystemService virtualFileSystemService) {
+		this.virtualFileSystemService = virtualFileSystemService;
+	}
 
-    public SystemMonitorService getSystemMonitorService() {
-        return this.monitoringService;
-    }
+	public SystemMonitorService getSystemMonitorService() {
+		return this.monitoringService;
+	}
 
-    @Override
-    public void setApplicationContext(ApplicationContext applicationContext) {
-        this.applicationContext = applicationContext;
-    }
+	@Override
+	public void setApplicationContext(ApplicationContext applicationContext) {
+		this.applicationContext = applicationContext;
+	}
 
-    public ObjectStorageService getObjectStorageService() {
-        return objectStorageService;
-    }
+	public ObjectStorageService getObjectStorageService() {
+		return objectStorageService;
+	}
 
-    @Override
-    public String toString() {
-        StringBuilder str = new StringBuilder();
-        str.append(toJSON());
-        return str.toString();
-    }
+	@Override
+	public String toString() {
+		StringBuilder str = new StringBuilder();
+		str.append(toJSON());
+		return str.toString();
+	}
 
-    protected void mark() {
-        getSystemMonitorService().getAllAPICallMeter().mark();
-    }
+	protected void mark() {
+		getSystemMonitorService().getAllAPICallMeter().mark();
+	}
 
-    protected String getMessage(Throwable e) {
+	protected String getMessage(Throwable e) {
 
-        if (e == null)
-            return "null";
+		if (e == null)
+			return "null";
 
-        StringBuilder str = new StringBuilder();
+		StringBuilder str = new StringBuilder();
 
-        str.append(e.getClass().getName());
+		str.append(e.getClass().getName());
 
-        if (e.getMessage() != null)
-            str.append(" | " + e.getMessage());
+		if (e.getMessage() != null)
+			str.append(" | " + e.getMessage());
 
-        if (e.getCause() != null)
-            str.append(" | " + e.getCause());
+		if (e.getCause() != null)
+			str.append(" | " + e.getCause());
 
-        return str.toString();
-    }
+		return str.toString();
+	}
 }

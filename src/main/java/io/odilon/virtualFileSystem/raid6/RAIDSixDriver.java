@@ -188,6 +188,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 
 				checkExistBucket(bucket);
 				checkIsAccesible(bucket);
+				
 				ObjectMetadata meta = getDriverObjectMetadataInternal(bucket, objectName, true);
 
 				if ((meta != null) && meta.isAccesible()) {

@@ -134,7 +134,6 @@ public class FileCacheService extends BaseService implements ApplicationListener
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucketId.toString());
 
 		getLockService().getFileCacheLock(bucketId, objectName, version).readLock().lock();
-
 		try {
 			return getCache().getIfPresent(getKey(bucketId, objectName, version));
 		} finally {
@@ -327,9 +326,14 @@ public class FileCacheService extends BaseService implements ApplicationListener
 				Optional<Integer> version = ((verr.length == 1) ? Optional.empty()
 						: Optional.of(Integer.valueOf(verr[1]).intValue()));
 
+				
 				getLockService().getFileCacheLock(bucketId, objectName, version).writeLock().lock();
 				try {
+				
+					logger.debug("delete cached file -> b:"+ bucketId.toString()+ " o:" + objectName +" v: "+String.valueOf(version));
+					
 					FileUtils.deleteQuietly((File) value);
+
 					this.cacheSizeBytes.getAndAdd(-((File) value).length());
 				} finally {
 					getLockService().getFileCacheLock(bucketId, objectName, version).writeLock().unlock();

@@ -114,7 +114,7 @@ public class ObjectControllerPresigned extends BaseApiController {
             if (stringToken == null)
                 throw new OdilonServerAPIException("token is null");
 
-            AuthToken authToken = this.tokenService.decrypt(stringToken);
+            AuthToken authToken = getTokenService().decrypt(stringToken);
 
             if (authToken == null)
                 throw new OdilonServerAPIException(AuthToken.class.getSimpleName() + " is null");
@@ -135,10 +135,10 @@ public class ObjectControllerPresigned extends BaseApiController {
 
             HttpHeaders responseHeaders = new HttpHeaders();
 
-            String f_name = object.getObjectMetadata().fileName.replace("[", "").replace("]", "");
+            String f_name = object.getObjectMetadata().getFileName().replace("[", "").replace("]", "");
             responseHeaders.set("Content-Disposition", "inline; filename=\"" + f_name + "\"");
 
-            MediaType contentType = MediaType.valueOf(object.getObjectMetadata().contentType);
+            MediaType contentType = MediaType.valueOf(object.getObjectMetadata().getContentType());
 
             if (object.getObjectMetadata().contentType() == null
                     || object.getObjectMetadata().getContentType().equals("application/octet-stream")) {
@@ -178,7 +178,11 @@ public class ObjectControllerPresigned extends BaseApiController {
     }
 
     
-    public ServerSettings getServerSettings() {
+    public TokenService getTokenService() {
+		return this.tokenService;
+	}
+
+	public ServerSettings getServerSettings() {
 		return this.serverSettings;
 	}
 
