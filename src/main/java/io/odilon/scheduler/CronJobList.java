@@ -73,6 +73,7 @@ public class CronJobList implements SortedSet<CronJobRequest> {
 	@JsonIgnore
 	private TreeSet<CronJobRequest> jobs = new TreeSet<CronJobRequest>(new CronJobComparator());
 
+
 	public synchronized CronJobRequest pollFirst() {
 
 		CronJobRequest job = getJobs().pollFirst();
