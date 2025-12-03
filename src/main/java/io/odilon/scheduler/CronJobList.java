@@ -22,6 +22,7 @@ import java.util.Iterator;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import io.odilon.json.OdilonObjectMapper;
 import io.odilon.log.Logger;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -39,151 +40,148 @@ import io.odilon.model.SharedConstant;
  */
 public class CronJobList implements SortedSet<CronJobRequest> {
 
-    static private Logger logger = Logger.getLogger(CronJobList.class.getName());
+	static private Logger logger = Logger.getLogger(CronJobList.class.getName());
 
-    @JsonIgnore
-    static private ObjectMapper mapper = new ObjectMapper();
+	@JsonIgnore
+	static private ObjectMapper mapper = new OdilonObjectMapper();
 
-    static {
-        mapper.registerModule(new ParameterNamesModule());
-        mapper.registerModule(new JavaTimeModule());
-        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        mapper.registerModule(new Jdk8Module());
-    }
+	static {
+		mapper.registerModule(new ParameterNamesModule());
+	}
 
-    /**
-     * 
-     */
-    private class CronJobComparator implements Comparator<CronJobRequest> {
-        @Override
-        public int compare(CronJobRequest a, CronJobRequest b) {
-            try {
-                if (a.getTime() == null && b.getTime() == null)
-                    return 0;
-                if (a.getTime() == null)
-                    return -1;
-                if (b.getTime() == null)
-                    return 1;
-                return a.getTime().isBefore(b.getTime()) ? -1 : 1;
-            } catch (Exception e) {
-                logger.error(e, SharedConstant.NOT_THROWN);
-                return 0;
-            }
-        }
-    }
+	/**
+	 * 
+	 */
+	private class CronJobComparator implements Comparator<CronJobRequest> {
+		@Override
+		public int compare(CronJobRequest a, CronJobRequest b) {
+			try {
+				if (a.getTime() == null && b.getTime() == null)
+					return 0;
+				if (a.getTime() == null)
+					return -1;
+				if (b.getTime() == null)
+					return 1;
+				return a.getTime().isBefore(b.getTime()) ? -1 : 1;
+			} catch (Exception e) {
+				logger.error(e, SharedConstant.NOT_THROWN);
+				return 0;
+			}
+		}
+	}
 
-    @JsonIgnore
-    private TreeSet<CronJobRequest> jobs = new TreeSet<CronJobRequest>(new CronJobComparator());
+	@JsonIgnore
+	private TreeSet<CronJobRequest> jobs = new TreeSet<CronJobRequest>(new CronJobComparator());
 
-    public synchronized CronJobRequest pollFirst() {
+	public synchronized CronJobRequest pollFirst() {
 
-        CronJobRequest job = getJobs().pollFirst();
-        CronJobRequest nextjob = job.clone();
+		CronJobRequest job = getJobs().pollFirst();
+		CronJobRequest nextjob = job.clone();
 
-        nextjob.setId(job.getId());
-        nextjob.setTime(job.getNextTime());
-        getJobs().add(nextjob);
-        return job;
-    }
+		nextjob.setId(job.getId());
+		nextjob.setTime(job.getNextTime());
+		getJobs().add(nextjob);
+		return job;
+	}
 
-    @Override
-    public int size() {
-        return getJobs().size();
-    }
+	@Override
+	public int size() {
+		return getJobs().size();
+	}
 
-    @Override
-    public boolean isEmpty() {
-        return getJobs().isEmpty();
-    }
+	@Override
+	public boolean isEmpty() {
+		return getJobs().isEmpty();
+	}
 
-    @Override
-    public boolean contains(Object o) {
-        return getJobs().contains(o);
-    }
+	@Override
+	public boolean contains(Object o) {
+		return getJobs().contains(o);
+	}
 
-    @Override
-    public Iterator<CronJobRequest> iterator() {
-        return getJobs().iterator();
-    }
+	@Override
+	public Iterator<CronJobRequest> iterator() {
+		return getJobs().iterator();
+	}
 
-    @Override
-    public Object[] toArray() {
-        return getJobs().toArray();
-    }
+	@Override
+	public Object[] toArray() {
+		return getJobs().toArray();
+	}
 
-    @Override
-    public <T> T[] toArray(T[] a) {
-        return getJobs().toArray(a);
-    }
+	@Override
+	public <T> T[] toArray(T[] a) {
+		return getJobs().toArray(a);
+	}
 
-    @Override
-    public boolean add(CronJobRequest cre) {
-        return getJobs().add(cre);
-    }
+	@Override
+	public boolean add(CronJobRequest cre) {
+		return getJobs().add(cre);
+	}
 
-    @Override
-    public boolean remove(Object o) {
-        return getJobs().remove(o);
-    }
+	@Override
+	public boolean remove(Object o) {
+		return getJobs().remove(o);
+	}
 
-    @Override
-    public boolean containsAll(Collection<?> c) {
-        return getJobs().containsAll(c);
-    }
+	@Override
+	public boolean containsAll(Collection<?> c) {
+		return getJobs().containsAll(c);
+	}
 
-    @Override
-    public boolean addAll(Collection<? extends CronJobRequest> c) {
-        c.forEach(i -> getJobs().add(i));
-        return true;
-    }
+	@Override
+	public boolean addAll(Collection<? extends CronJobRequest> c) {
+		c.forEach(i -> getJobs().add(i));
+		return true;
+	}
 
-    @Override
-    public boolean retainAll(Collection<?> c) {
-        return getJobs().retainAll(c);
-    }
+	@Override
+	public boolean retainAll(Collection<?> c) {
+		return getJobs().retainAll(c);
+	}
 
-    @Override
-    public boolean removeAll(Collection<?> c) {
-        c.forEach(i -> getJobs().remove(i));
-        return true;
-    }
+	@Override
+	public boolean removeAll(Collection<?> c) {
+		c.forEach(i -> getJobs().remove(i));
+		return true;
+	}
 
-    @Override
-    public void clear() {
-        getJobs().clear();
-    }
+	@Override
+	public void clear() {
+		getJobs().clear();
+	}
 
-    @Override
-    public Comparator<? super CronJobRequest> comparator() {
-        return new CronJobComparator();
-    }
+	@Override
+	public Comparator<? super CronJobRequest> comparator() {
+		return new CronJobComparator();
+	}
 
-    @Override
-    public SortedSet<CronJobRequest> subSet(CronJobRequest fromElement, CronJobRequest toElement) {
-        return getJobs().subSet(fromElement, toElement);
-    }
+	@Override
+	public SortedSet<CronJobRequest> subSet(CronJobRequest fromElement, CronJobRequest toElement) {
+		return getJobs().subSet(fromElement, toElement);
+	}
 
-    @Override
-    public SortedSet<CronJobRequest> headSet(CronJobRequest toElement) {
-        return getJobs().headSet(toElement);
-    }
+	@Override
+	public SortedSet<CronJobRequest> headSet(CronJobRequest toElement) {
+		return getJobs().headSet(toElement);
+	}
 
-    @Override
-    public SortedSet<CronJobRequest> tailSet(CronJobRequest fromElement) {
-        return getJobs().tailSet(fromElement);
-    }
+	@Override
+	public SortedSet<CronJobRequest> tailSet(CronJobRequest fromElement) {
+		return getJobs().tailSet(fromElement);
+	}
 
-    @Override
-    public CronJobRequest first() {
-        return this.jobs.first();
-    }
+	@Override
+	public CronJobRequest first() {
+		return this.jobs.first();
+	}
 
-    @Override
-    public CronJobRequest last() {
-        return this.jobs.last();
-    }
+	@Override
+	public CronJobRequest last() {
+		return this.jobs.last();
+	}
 
-    protected TreeSet<CronJobRequest> getJobs() {
-        return this.jobs;
-    }
+	protected TreeSet<CronJobRequest> getJobs() {
+		return this.jobs;
+	}
 }

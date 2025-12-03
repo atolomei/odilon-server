@@ -76,13 +76,19 @@ public class BasicAuthWebSecurityConfiguration {
 	@Bean
 	public InMemoryUserDetailsManager userDetailsService() {
 
-		UserDetails user = User.withUsername(this.serverSettings.getAccessKey())
-				.password(passwordEncoder().encode(this.serverSettings.getSecretKey())).roles("USER").build();
+		UserDetails user = User.withUsername(this.getServerSettings().getAccessKey())
+				.password(passwordEncoder().encode(this.getServerSettings().getSecretKey())).roles("USER").build();
 		return new InMemoryUserDetailsManager(user);
 	}
+
 
 	@Bean
 	public PasswordEncoder passwordEncoder() {
 		return new BCryptPasswordEncoder();
 	}
+
+	private ServerSettings getServerSettings() {
+		return this.serverSettings;
+	}
+
 }

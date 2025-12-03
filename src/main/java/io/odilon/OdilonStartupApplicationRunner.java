@@ -17,10 +17,21 @@
 package io.odilon;
 
 import java.io.File;
+import java.io.InputStream;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Enumeration;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
+import java.util.Properties;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
@@ -56,7 +67,7 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 @Component
 public class OdilonStartupApplicationRunner implements ApplicationRunner {
 
-	static private Logger logger = Logger.getLogger(OdilonApplication.class.getName());
+	static private Logger logger = Logger.getLogger(OdilonStartupApplicationRunner.class.getName());
 	static private Logger startupLogger = Logger.getLogger("StartupLogger");
 
 	@JsonIgnore
@@ -109,8 +120,89 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 			startupLogger.info(ServerConstant.SEPARATOR);
 
 		startupLogger.info("Startup at -> " + DateTimeFormatter.RFC_1123_DATE_TIME.format(OffsetDateTime.now()));
+	
 	}
+	
+	
+	/*
+	
+	public class KV {
+		
+		public KV (String key, String value) {
+			this.key=key;
+			this.value=value;
+		}
+		
+		public String key;
+		public String value;
+	}
+	
+	
+	
+	
+	private List<KV> versionInfo() {
 
+		List<KV> data = new ArrayList<KV>();
+ 
+		
+		
+		
+		
+		
+		try {
+			
+			
+			
+			ClassLoader cl = ClassLoader.getSystemClassLoader();
+			
+			Set<URL> urls = new HashSet<>();
+		    
+			
+			for (Package packageName: cl.getDefinedPackages()) {
+				
+			    ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+		        String path = packageName.getName().replace('.', '/'); // Convert package name to path
+		        Enumeration<URL> resources = classLoader.getResources(path);
+
+		        while (resources.hasMoreElements()) {
+		            urls.add(resources.nextElement());
+		        }	
+
+			
+			}
+			
+	          for (URL url : urls) {
+	            String path = url.getPath();
+	            if (url.getProtocol().equals("jar")) {
+	            	String s[]=path.split("!");
+	                data.add( new KV(s[0], s[0]));
+	            }
+	        }
+	    	
+			
+			Collections.sort(data, new Comparator<KV>() {
+				@Override
+				public int compare(KV o1, KV o2) {
+					try {
+						return o1.key.compareToIgnoreCase(o2.key);
+					} catch (Exception e) {
+						return 0;
+					}
+				}
+				
+			});
+		
+		} catch (Exception e) {
+			logger.error(e);
+		}
+		
+		return data;
+		
+	}
+	 
+	*/
+	
+	
 	public SchedulerService getSchedulerService() {
 		return schedulerService;
 	}
@@ -174,8 +266,6 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 				startupLogger.info("serverStorage -> " + o_service.getSystemInfo().getColloquial().get("serverStorage"));
 				startupLogger.info("TimeZone -> " +   ZoneId.systemDefault().toString());
 				//startupLogger.info("Locale -> " +   Locale.getDefault().toString());
-
-				
 			}
 		} catch (Exception e) {
 			startupLogger.error(e);
@@ -215,7 +305,7 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 		boolean isOk = true;
 
 		startupLogger.info("Vault enabled -> " + String.valueOf(settingsService.isVaultEnabled()));
-		startupLogger.info("Vault use for new files -> " + String.valueOf(settingsService.isUseVaultNewFiles()));
+		startupLogger.info("Vault use for new files if enabled -> " + String.valueOf(settingsService.isUseVaultNewFiles()));
 
 		if (settingsService.isVaultEnabled()) {
 			if (settingsService.getVaultUrl().isPresent()) {

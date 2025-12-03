@@ -178,7 +178,7 @@ public class OdilonDrive extends BaseObject implements Drive {
         try {
             return getObjectMapper().readValue(Paths.get(this.getBucketsDirPath() + File.separator + bucketId.toString()
                     + File.separator + bucketId.toString() + ServerConstant.JSON).toFile(), BucketMetadata.class);
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new InternalCriticalException(e, "b:" + bucketId.toString() + ", d:" + getName());
         }
     }
@@ -521,8 +521,6 @@ public class OdilonDrive extends BaseObject implements Drive {
     public ObjectMetadata getObjectMetadata(ServerBucket bucket, String objectName) {
         try {
             return getObjectMapper().readValue(getObjectMetadataFileById(bucket.getId(), objectName), ObjectMetadata.class);
-        } catch (FileNotFoundException e) {
-            throw new InternalCriticalException(e);
         } catch (Exception e) {
             throw new InternalCriticalException(e);
         }
@@ -1323,8 +1321,11 @@ public class OdilonDrive extends BaseObject implements Drive {
 
             if (!file.exists())
                 return null;
-
-            return getObjectMapper().readValue(file, DriveInfo.class);
+            
+            String str = Files.readString(file.toPath());
+            DriveInfo d = getObjectMapper().readValue(str, DriveInfo.class);
+            return d;
+           // return getObjectMapper().readValue(file, DriveInfo.class);
 
         } catch (Exception e) {
             throw new InternalCriticalException(e, "f:" + (Optional.ofNullable(file).isPresent() ? file.getName() : "null"));
@@ -1334,13 +1335,7 @@ public class OdilonDrive extends BaseObject implements Drive {
     private String getObjectMetadataFilePathById(Long bucketId, String objectName) {
         return getObjectMetadataDirPathById(bucketId, objectName) + File.separator + objectName + ServerConstant.JSON;
     }
-
-    // private String getObjectMetadataFilePath(ServerBucket bucket, String
-    // objectName) {
-    // return getObjectMetadataDirPath(bucket, objectName) + File.separator +
-    // objectName + ServerConstant.JSON;
-    // }
-
+ 
     private String getObjectMetadataVersionFilePath(ServerBucket bucket, String objectName, int version) {
         return getObjectMetadataDirPath(bucket, objectName) + File.separator + objectName
                 + VirtualFileSystemService.VERSION_EXTENSION + String.valueOf(version) + ServerConstant.JSON;

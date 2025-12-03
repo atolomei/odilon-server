@@ -64,274 +64,285 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 @Service
 public class SystemInfoService extends BaseService implements SystemService {
 
-    static private Logger logger = Logger.getLogger(SystemInfoService.class.getName());
-    static private Logger startuplogger = Logger.getLogger("StartupLogger");
+	static private Logger logger = Logger.getLogger(SystemInfoService.class.getName());
+	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 
-    private final OffsetDateTime started = OffsetDateTime.now();
+	private final OffsetDateTime started = OffsetDateTime.now();
 
-    private Integer availableProcessors;
-    private Long maxMemory;
-    private Long totalMemory;
-    private String osName;
-    private String osVersion;
-    private String userName;
-    private String userProfile;
-    private String javaVersion;
-    private String appVersion;
-    private String serverHost;
+	private Integer availableProcessors;
+	private Long maxMemory;
+	private Long totalMemory;
+	private String osName;
+	private String osVersion;
+	private String userName;
+	private String userProfile;
+	private String javaVersion;
+	private String appVersion;
+	private String serverHost;
 
-    private String serverMode;
-    private String serverDataStorageMode;
+	private String serverMode;
+	private String serverDataStorageMode;
 
-    private String isEncryptEnabled;
-    private String isEncryptionInitialized;
+	private String isEncryptEnabled;
+	private String isEncryptionInitialized;
 
-    private String isStandby;
-    private String standbyUrl;
-    private String standbyPort;
+	private String isStandby;
+	private String standbyUrl;
+	private String standbyPort;
 
-    private String isVaultEnabled;
-    private String vaultUrl;
+	private String isVaultEnabled;
+	private String vaultUrl;
 
-    private String isVersionControl;
+	private String isVersionControl;
 
-    @JsonIgnore
-    @Autowired
-    private ServerSettings serverSettings;
+	private String trafficTokens;
 
-    @JsonIgnore
-    private VirtualFileSystemService virtualFileSystemService;
+	@JsonIgnore
+	@Autowired
+	private ServerSettings serverSettings;
 
-    public SystemInfoService(ServerSettings serverSettings, VirtualFileSystemService virtualFileSystemService) {
-        this.serverSettings = serverSettings;
-        this.virtualFileSystemService = virtualFileSystemService;
-    }
+	@JsonIgnore
+	private VirtualFileSystemService virtualFileSystemService;
 
-    /**
-     * 
-     */
-    public SystemInfo getSystemInfo() {
+	public SystemInfoService(ServerSettings serverSettings, VirtualFileSystemService virtualFileSystemService) {
+		this.serverSettings = serverSettings;
+		this.virtualFileSystemService = virtualFileSystemService;
+	}
 
-        SystemInfo info = new SystemInfo();
+	Map<String, String> libraries = null;
 
-        info.javaHome = System.getProperty("java.home");
-        info.javaVendor = System.getProperty("java.vendor");
-        info.userHome = System.getProperty("user.home");
-        info.osArch = System.getProperty("os.arch");
+	public Map<String, String> getSystemLibrariesInfo() {
+		if (libraries == null) {
+			synchronized (this) {
+				libraries = new HashMap<String, String>();
+			}
+		}
+		return libraries;
+	}
 
-        info.availableProcessors = availableProcessors;
-        info.maxMemory = maxMemory;
-        info.totalMemory = totalMemory;
-        info.osName = osName;
-        info.osVersion = osVersion;
-        info.started = started;
+	/**
+	 * 
+	 */
+	public SystemInfo getSystemInfo() {
 
-        info.userName = userName;
-        info.userProfile = userProfile;
-        info.userDir = System.getProperty("user.dir");
-        info.userProfile = System.getProperty("user.profile");
+		SystemInfo info = new SystemInfo();
 
-        info.javaVersion = javaVersion;
-        info.appVersion = appVersion;
-        info.serverHost = serverHost;
-        info.javaHome = System.getProperty("java.home");
+		info.trafficTokens = trafficTokens;
 
-        info.serverMode = serverMode;
+		info.javaHome = System.getProperty("java.home");
+		info.javaVendor = System.getProperty("java.vendor");
+		info.userHome = System.getProperty("user.home");
+		info.osArch = System.getProperty("os.arch");
 
-        info.serverDataStorageMode = serverDataStorageMode;
+		info.availableProcessors = availableProcessors;
+		info.maxMemory = maxMemory;
+		info.totalMemory = totalMemory;
+		info.osName = osName;
+		info.osVersion = osVersion;
+		info.started = started;
 
-        info.isVaultEnabled = isVaultEnabled;
-        info.vaultUrl = vaultUrl;
+		info.userName = userName;
+		info.userProfile = userProfile;
+		info.userDir = System.getProperty("user.dir");
+		info.userProfile = System.getProperty("user.profile");
 
-        info.isVersionControl = isVersionControl;
+		info.javaVersion = javaVersion;
+		info.appVersion = appVersion;
+		info.serverHost = serverHost;
+		info.javaHome = System.getProperty("java.home");
 
-        info.isEncryptEnabled = isEncryptEnabled;
+		info.serverMode = serverMode;
 
-        info.isEncryptionInitialized = isEncryptionInitialized;
+		info.serverDataStorageMode = serverDataStorageMode;
 
-        info.isStandby = isStandby;
-        info.standbyUrl = standbyUrl;
-        info.standbyPort = standbyPort;
+		info.isVaultEnabled = isVaultEnabled;
+		info.vaultUrl = vaultUrl;
 
-        info.isHttps = serverSettings.isHTTPS() ? "yes" : "no";
+		info.isVersionControl = isVersionControl;
 
-        info.freeMemory = Runtime.getRuntime().freeMemory();
-        info.redundancyLevel = serverSettings.getRedundancyLevel();
+		info.isEncryptEnabled = isEncryptEnabled;
 
-        if (serverSettings.getRedundancyLevel() == RedundancyLevel.RAID_6) {
-            info.redundancyLevelDetail = "[data:" + String.valueOf(serverSettings.getRAID6DataDrives()) + ", parity:"
-                    + String.valueOf(serverSettings.getRAID6ParityDrives()) + "] ";
-        }
-        
-        info.rootDirs = new ArrayList<String>();
-        virtualFileSystemService.getMapDrivesEnabled().forEach ( (k,v) -> info.rootDirs.add( v.getName() + ": " + v.getRootDirPath()));
+		info.isEncryptionInitialized = isEncryptionInitialized;
 
-        OperatingSystemMXBean os = ManagementFactory.getOperatingSystemMXBean();
+		info.isStandby = isStandby;
+		info.standbyUrl = standbyUrl;
+		info.standbyPort = standbyPort;
 
-        if (os.getSystemLoadAverage() > 0)
-            info.cpuLoadAverage = Double.valueOf(os.getSystemLoadAverage());
+		info.isHttps = serverSettings.isHTTPS() ? "yes" : "no";
 
-        List<Long> available = new ArrayList<Long>();
-        Long total;
+		info.freeMemory = Runtime.getRuntime().freeMemory();
+		info.redundancyLevel = serverSettings.getRedundancyLevel();
 
-        if (serverSettings.getRedundancyLevel() == RedundancyLevel.RAID_0) {
-            /**
-             * for RAID 0 the total storage is the smallest disk by the number of disks
-             */
-            this.virtualFileSystemService.getMapDrivesEnabled().values()
-                    .forEach(item -> available.add(Long.valueOf(item.getAvailableSpace())));
-            Long min = available.stream().map(d -> d).reduce((available.size() > 0 ? available.get(0) : 0),
-                    (a, b) -> (a < b ? a : b));
-            total = min * available.size();
-            info.availableDisk = total;
-        } else if (serverSettings.getRedundancyLevel() == RedundancyLevel.RAID_1) {
-            /**
-             * for RAID 1 the total storage is the smallest disk
-             */
-            this.virtualFileSystemService.getMapDrivesEnabled().values()
-                    .forEach(item -> available.add(Long.valueOf(item.getAvailableSpace())));
-            Long min = available.stream().map(d -> d).reduce((available.size() > 0 ? available.get(0) : 0),
-                    (a, b) -> (a < b ? a : b));
-            info.availableDisk = min;
-        } else if (serverSettings.getRedundancyLevel() == RedundancyLevel.RAID_6) {
-            /**
-             * RAID 6 TBA
-             * 
-             */
-            total = Long.valueOf(0); // Long.valueOf(available.stream().map(d -> d).reduce(Long.valueOf(0), (a, b) ->
-                                     // (a<b?a:b)) * available.size() * 2/3 );
-            info.availableDisk = total;
-        }
+		if (serverSettings.getRedundancyLevel() == RedundancyLevel.RAID_6) {
+			info.redundancyLevelDetail = "[data:" + String.valueOf(serverSettings.getRAID6DataDrives()) + ", parity:" + String.valueOf(serverSettings.getRAID6ParityDrives()) + "] ";
+		}
 
-        Map<String, Long> totalStorage = new HashMap<String, Long>();
-        Map<String, Long> availableStorage = new HashMap<String, Long>();
+		info.rootDirs = new ArrayList<String>();
+		virtualFileSystemService.getMapDrivesEnabled().forEach((k, v) -> info.rootDirs.add(v.getName() + ": " + v.getRootDirPath()));
 
-        for (Path root : FileSystems.getDefault().getRootDirectories()) {
-            try {
-                FileStore store = Files.getFileStore(root);
-                totalStorage.put(root.toFile().getAbsolutePath(), Long.valueOf(store.getTotalSpace()));
-                availableStorage.put(root.toFile().getAbsolutePath(), Long.valueOf(store.getUsableSpace()));
-            } catch (IOException e) {
-                logger.warn(e, SharedConstant.NOT_THROWN);
-            }
-        }
+		OperatingSystemMXBean os = ManagementFactory.getOperatingSystemMXBean();
 
-        info.totalStorage = totalStorage;
-        info.serverStorage = availableStorage;
+		if (os.getSystemLoadAverage() > 0)
+			info.cpuLoadAverage = Double.valueOf(os.getSystemLoadAverage());
 
-        /**
-         * ----------------------- info.odilonServerId; -------------------------
-         **/
+		List<Long> available = new ArrayList<Long>();
+		Long total;
 
-        Map<String, Long> driveTotalStorage = new HashMap<String, Long>();
-        Map<String, Long> driveAvailableStorage = new HashMap<String, Long>();
+		if (serverSettings.getRedundancyLevel() == RedundancyLevel.RAID_0) {
+			/**
+			 * for RAID 0 the total storage is the smallest disk by the number of disks
+			 */
+			this.virtualFileSystemService.getMapDrivesEnabled().values().forEach(item -> available.add(Long.valueOf(item.getAvailableSpace())));
+			Long min = available.stream().map(d -> d).reduce((available.size() > 0 ? available.get(0) : 0), (a, b) -> (a < b ? a : b));
+			total = min * available.size();
+			info.availableDisk = total;
+		} else if (serverSettings.getRedundancyLevel() == RedundancyLevel.RAID_1) {
+			/**
+			 * for RAID 1 the total storage is the smallest disk
+			 */
+			this.virtualFileSystemService.getMapDrivesEnabled().values().forEach(item -> available.add(Long.valueOf(item.getAvailableSpace())));
+			Long min = available.stream().map(d -> d).reduce((available.size() > 0 ? available.get(0) : 0), (a, b) -> (a < b ? a : b));
+			info.availableDisk = min;
+		} else if (serverSettings.getRedundancyLevel() == RedundancyLevel.RAID_6) {
+			/**
+			 * RAID 6 TBA
+			 * 
+			 */
+			total = Long.valueOf(0); // Long.valueOf(available.stream().map(d -> d).reduce(Long.valueOf(0), (a, b) ->
+										// (a<b?a:b)) * available.size() * 2/3 );
+			info.availableDisk = total;
+		}
 
-        for (Drive drive : this.virtualFileSystemService.getMapDrivesEnabled().values()) {
-            try {
-                Path path = (new File(drive.getRootDirPath())).toPath();
-                FileStore store = Files.getFileStore(path);
-                driveTotalStorage.put(path.toFile().getName(), Long.valueOf(store.getTotalSpace()));
-                driveAvailableStorage.put(path.toFile().getName(), Long.valueOf(store.getUsableSpace()));
-            } catch (IOException e) {
-                logger.warn(e, SharedConstant.NOT_THROWN);
-            }
-        }
-        return info;
-    }
+		Map<String, Long> totalStorage = new HashMap<String, Long>();
+		Map<String, Long> availableStorage = new HashMap<String, Long>();
 
-    /**
-     * 
-     */
-    @PostConstruct
-    private void onInitialize() {
+		for (Path root : FileSystems.getDefault().getRootDirectories()) {
+			try {
+				FileStore store = Files.getFileStore(root);
+				totalStorage.put(root.toFile().getAbsolutePath(), Long.valueOf(store.getTotalSpace()));
+				availableStorage.put(root.toFile().getAbsolutePath(), Long.valueOf(store.getUsableSpace()));
+			} catch (IOException e) {
+				logger.warn(e, SharedConstant.NOT_THROWN);
+			}
+		}
 
-        synchronized (this) {
+		info.totalStorage = totalStorage;
+		info.serverStorage = availableStorage;
 
-            setStatus(ServiceStatus.STARTING);
+		/**
+		 * ----------------------- info.odilonServerId; -------------------------
+		 **/
 
-            try {
-                this.availableProcessors = Integer.valueOf(Runtime.getRuntime().availableProcessors());
-                this.maxMemory = Long.valueOf(Runtime.getRuntime().maxMemory());
-                this.totalMemory = Long.valueOf(Runtime.getRuntime().totalMemory());
-                this.osName = System.getProperty("os.name");
-                this.osVersion = System.getProperty("os.version");
+		Map<String, Long> driveTotalStorage = new HashMap<String, Long>();
+		Map<String, Long> driveAvailableStorage = new HashMap<String, Long>();
 
-                this.userName = System.getenv().get("USERNAME");
-                this.userProfile = System.getenv().get("USERPROFILE");
+		for (Drive drive : this.virtualFileSystemService.getMapDrivesEnabled().values()) {
+			try {
+				Path path = (new File(drive.getRootDirPath())).toPath();
+				FileStore store = Files.getFileStore(path);
+				driveTotalStorage.put(path.toFile().getName(), Long.valueOf(store.getTotalSpace()));
+				driveAvailableStorage.put(path.toFile().getName(), Long.valueOf(store.getUsableSpace()));
+			} catch (IOException e) {
+				logger.warn(e, SharedConstant.NOT_THROWN);
+			}
+		}
+		return info;
+	}
 
-                this.javaVersion = System.getProperty("java.specification.version");
-                this.appVersion = OdilonVersion.VERSION;
-                this.serverHost = getServerHost();
+	/**
+	 * 
+	 */
+	@PostConstruct
+	private void onInitialize() {
 
-                this.serverMode = serverSettings.getServerMode();
+		synchronized (this) {
 
-                this.serverDataStorageMode = serverSettings.getDataStorage().getName();
+			setStatus(ServiceStatus.STARTING);
 
-                this.isVersionControl = serverSettings.isVersionControl() ? "true" : "false";
-                this.isEncryptEnabled = serverSettings.isEncryptionEnabled() ? "true" : "false";
+			try {
 
-                this.isVaultEnabled = serverSettings.isVaultEnabled() ? "true" : "false";
-                if (serverSettings.isVaultEnabled()) {
-                    this.vaultUrl = serverSettings.getVaultUrl().isPresent() ? serverSettings.getVaultUrl().get() : "";
-                }
+				this.trafficTokens = String.valueOf(this.serverSettings.getMaxTrafficTokens());
+				this.availableProcessors = Integer.valueOf(Runtime.getRuntime().availableProcessors());
+				this.maxMemory = Long.valueOf(Runtime.getRuntime().maxMemory());
+				this.totalMemory = Long.valueOf(Runtime.getRuntime().totalMemory());
+				this.osName = System.getProperty("os.name");
+				this.osVersion = System.getProperty("os.version");
 
-                this.isStandby = serverSettings.isStandByEnabled() ? "true" : "false";
+				this.userName = System.getenv().get("USERNAME");
+				this.userProfile = System.getenv().get("USERPROFILE");
 
-                if (serverSettings.isStandByEnabled()) {
-                    this.standbyUrl = serverSettings.getStandbyUrl();
-                    this.standbyPort = String.valueOf(serverSettings.getStandbyPort());
-                }
+				this.javaVersion = System.getProperty("java.specification.version");
+				this.appVersion = OdilonVersion.VERSION;
+				this.serverHost = getServerHost();
 
-                if (this.virtualFileSystemService.getOdilonServerInfo() != null)
-                    this.isEncryptionInitialized = this.virtualFileSystemService.getOdilonServerInfo().isEncryptionIntialized()
-                            ? "true"
-                            : "false";
+				this.serverMode = serverSettings.getServerMode();
 
-            } catch (Exception e) {
-                logger.error(e, SharedConstant.NOT_THROWN);
-            }
-            startuplogger.debug("Started -> " + SystemInfoService.class.getSimpleName());
-            setStatus(ServiceStatus.RUNNING);
-        }
-    }
+				this.serverDataStorageMode = serverSettings.getDataStorage().getName();
 
-    /**
-     * @return
-     */
-    @SuppressWarnings("unused")
-    private String getServerHost() {
+				this.isVersionControl = serverSettings.isVersionControl() ? "true" : "false";
+				this.isEncryptEnabled = serverSettings.isEncryptionEnabled() ? "true" : "false";
 
-        StringBuilder output = new StringBuilder();
+				this.isVaultEnabled = serverSettings.isVaultEnabled() ? "true" : "false";
+				if (serverSettings.isVaultEnabled()) {
+					this.vaultUrl = serverSettings.getVaultUrl().isPresent() ? serverSettings.getVaultUrl().get() : "";
+				}
 
-        try {
+				this.isStandby = serverSettings.isStandByEnabled() ? "true" : "false";
 
-            ProcessBuilder processBuilder = new ProcessBuilder();
+				if (serverSettings.isStandByEnabled()) {
+					this.standbyUrl = serverSettings.getStandbyUrl();
+					this.standbyPort = String.valueOf(serverSettings.getStandbyPort());
+				}
 
-            if (isLinux())
-                processBuilder.command("bash", "-c", "hostname");
-            else
-                processBuilder.command("cmd.exe", "/c", "hostname");
+				if (this.virtualFileSystemService.getOdilonServerInfo() != null)
+					this.isEncryptionInitialized = this.virtualFileSystemService.getOdilonServerInfo().isEncryptionIntialized() ? "true" : "false";
 
-            Process process = processBuilder.start();
+			} catch (Exception e) {
+				logger.error(e, SharedConstant.NOT_THROWN);
+			}
+			startuplogger.debug("Started -> " + SystemInfoService.class.getSimpleName());
+			setStatus(ServiceStatus.RUNNING);
+		}
+	}
 
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+	/**
+	 * @return
+	 */
+	@SuppressWarnings("unused")
+	private String getServerHost() {
 
-            String line;
+		StringBuilder output = new StringBuilder();
 
-            while ((line = reader.readLine()) != null) {
-                output.append(line);
-            }
-            int exitVal = process.waitFor();
+		try {
 
-        } catch (Exception e) {
-            return e.getClass().getName();
-        }
-        return output.toString();
-    }
+			ProcessBuilder processBuilder = new ProcessBuilder();
 
-    private static boolean isLinux() {
-        if (System.getenv("OS") != null && System.getenv("OS").toLowerCase().contains("windows"))
-            return false;
-        return true;
-    }
+			if (isLinux())
+				processBuilder.command("bash", "-c", "hostname");
+			else
+				processBuilder.command("cmd.exe", "/c", "hostname");
+
+			Process process = processBuilder.start();
+
+			BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+
+			String line;
+
+			while ((line = reader.readLine()) != null) {
+				output.append(line);
+			}
+			int exitVal = process.waitFor();
+
+		} catch (Exception e) {
+			return e.getClass().getName();
+		}
+		return output.toString();
+	}
+
+	private static boolean isLinux() {
+		if (System.getenv("OS") != null && System.getenv("OS").toLowerCase().contains("windows"))
+			return false;
+		return true;
+	}
+
 }

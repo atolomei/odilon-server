@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configuration status="OFF" monitorInterval="30">
+
+<!-- status=OFF  			[do not log internal log4 status events]
+    monitorInterval=60 		[reload file every seconds]
+ - -->
+
+<configuration status="OFF"  monitorInterval="30" packages="io.odilon">
+	
 	<Properties>
 		<Property name="log-path">logs</Property>
 	</Properties>
@@ -27,6 +33,9 @@
 			    </Delete>
 			  </DefaultRolloverStrategy>
 		</RollingFile>
+
+
+		<!--Startup.log prints all info and error of the StartUp process  %logger{36}  (immediateFlush="false" is not working) -->
 		
 		<RollingFile name="startup" fileName="${sys:log-path}/startup.log" immediateFlush="true" append="false" filePattern="${sys:log-path}/startup-%d{yyyy-MM-dd}.log" >
 			<PatternLayout pattern="%d{MM.dd.yyyy HH:mm:ss.SSS} %-5level - %msg%n"/>

@@ -28,6 +28,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
+import io.odilon.json.OdilonObjectMapper;
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ObjectStatus;
@@ -46,12 +47,14 @@ public abstract class BucketIterator implements Iterator<Path> {
 
     private static final Logger logger = Logger.getLogger(BucketIterator.class.getName());
 
-    static private ObjectMapper mapper = new ObjectMapper();
+    static private ObjectMapper mapper = new OdilonObjectMapper();
 
+    /**
     static {
         mapper.registerModule(new JavaTimeModule());
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
+    **/
 
     @JsonProperty("cumulativeIndex")
     private long cumulativeIndex = 0;

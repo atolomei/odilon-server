@@ -20,6 +20,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import io.odilon.util.Check;
 
 
@@ -54,6 +57,21 @@ public enum DriveStatus {
 		return this.getName();
 	}
 	
+	
+	 @JsonCreator
+	 public static DriveStatus fromValue(@JsonProperty("status") String statusValue) {
+	   
+		 
+		 for ( DriveStatus status :  DriveStatus.values()) {
+	            if (status.name.equals(statusValue) || status.name.equals(statusValue.toLowerCase())) {
+	                return status;
+	            }
+	        }
+	        // Handle cases where the value is not found, e.g., return a default or throw an exception
+	        throw new IllegalArgumentException("Unknown status value: " + statusValue);
+	 }
+	 
+	 
 	public String toJSON() {
 		StringBuilder str = new StringBuilder();
 		str.append("\"name\": \"" + name + "\"");

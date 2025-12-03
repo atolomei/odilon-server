@@ -68,7 +68,7 @@
 		<!-- =============================================================================================================== -->
 		<!-- Root Logger -->
 
-		<Asyncroot level="error">
+		<Asyncroot level="info">
 			<AppenderRef ref="Console" />
 			<appender-ref ref="odilon"/>
 		</Asyncroot>
@@ -76,7 +76,7 @@
 		<!-- =============================================================================================================== -->
 		<!-- Startup. This logger is just used by the services at startup  													 -->
  			
-		<Logger name="StartupLogger" level="info" additivity="false">
+		<Logger name="StartupLogger" level="debug" additivity="false">
 			<AppenderRef ref="Console"/>
 			<appender-ref ref="startup"/>
 		</Logger>
@@ -96,7 +96,7 @@
 			<AppenderRef ref="Console"/>
 		</Asynclogger>´
 		
-		<Asynclogger name="io.odilon"  level="error" additivity="false">
+		<Asynclogger name="io.odilon"  level="debug" additivity="false">
 			<appender-ref ref="odilon"/>
 			<AppenderRef ref="Console"/>
 		</Asynclogger>´

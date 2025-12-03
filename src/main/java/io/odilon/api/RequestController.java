@@ -70,7 +70,8 @@ public class RequestController extends BaseApiController {
 
         try {
 
-            pass = getTrafficControlService().getPass();
+            pass =  getTrafficControlService().getPass(this.getClass().getSimpleName());
+
 
             if (name == null)
                 throw new OdilonObjectNotFoundException(ErrorCode.INTERNAL_ERROR, String.format("parameter request is null"));

@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
+import io.odilon.json.OdilonObjectMapper;
 import io.odilon.log.Logger;
 import io.odilon.model.JSONObject;
 import io.odilon.model.ServiceStatus;
@@ -41,13 +42,8 @@ public abstract class BaseService implements JSONObject {
     static final private RandomIDGenerator idGenerator = new RandomIDGenerator();
 
     @JsonIgnore
-    static final private ObjectMapper mapper = new ObjectMapper();
-
-    static {
-        mapper.registerModule(new JavaTimeModule());
-        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        mapper.registerModule(new Jdk8Module());
-    }
+    static final private ObjectMapper mapper = new OdilonObjectMapper();
+ 
 
     static protected String randomString(final int size) {
         return idGenerator.randomString(size);

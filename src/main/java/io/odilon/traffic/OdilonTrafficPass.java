@@ -16,21 +16,70 @@
  */
 package io.odilon.traffic;
 
+import java.util.Optional;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.odilon.json.OdilonObjectMapper;
+import io.odilon.log.Logger;
+import io.odilon.model.JSONObject;
+import io.odilon.model.SharedConstant;
+
 /**
- * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
-public class OdilonTrafficPass implements TrafficPass {
 
-    private static final long serialVersionUID = 1L;
+@JsonInclude(Include.NON_NULL)
+public class OdilonTrafficPass implements TrafficPass, JSONObject {
 
-    final int id;
+	static private Logger logger = Logger.getLogger(OdilonTrafficPass.class.getName());
 
-    public OdilonTrafficPass(int id) {
-        this.id = id;
-    }
+	static final private ObjectMapper mapper = new OdilonObjectMapper();
 
-    public int getId() {
-        return id;
-    }
+	private static final long serialVersionUID = 1L;
+
+	private final int id;
+	private String caller;
+
+	public OdilonTrafficPass(int id) {
+		this.id = id;
+	}
+
+	public int getId() {
+		return id;
+	}
+
+	public void setCaller(String caller) {
+		this.caller = caller;
+	}
+
+	public Optional<String> getCaller() {
+		return (this.caller == null) ? Optional.empty() : Optional.of(this.caller);
+	}
+
+	public String toJSON() {
+		try {
+			return getObjectMapper().writeValueAsString(this);
+		} catch (Exception e) {
+			logger.error(e, SharedConstant.NOT_THROWN);
+			return "\"error\":\"" + e.getClass().getName() + " | " + e.getMessage() + "\"";
+		}
+	}
+
+	@JsonIgnore
+	public ObjectMapper getObjectMapper() {
+		return mapper;
+	}
+
+	@Override
+	public String toString() {
+		StringBuilder str = new StringBuilder();
+		str.append(this.getClass().getSimpleName());
+		str.append(toJSON());
+		return str.toString();
+	}
+
 }

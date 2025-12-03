@@ -263,7 +263,8 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullArgument(objectName, "objectName is null");
 
-		logger.error("integrity check not completed for RAID 6");
+		// TODO
+		logger.warn("integrity check not completed for RAID 6");
 
 		OffsetDateTime thresholdDate = OffsetDateTime.now()
 				.minusDays(getVirtualFileSystemService().getServerSettings().getIntegrityCheckDays());

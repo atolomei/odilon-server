@@ -109,7 +109,8 @@ public class ObjectControllerPresigned extends BaseApiController {
         
         try {
 
-            pass = getTrafficControlService().getPass();
+            pass =  getTrafficControlService().getPass(this.getClass().getSimpleName());
+
 
             if (stringToken == null)
                 throw new OdilonServerAPIException("token is null");

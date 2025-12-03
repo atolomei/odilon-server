@@ -28,6 +28,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
+import io.odilon.json.OdilonObjectMapper;
 import io.odilon.log.Logger;
 import io.odilon.model.RedundancyLevel;
 import io.odilon.model.SharedConstant;
@@ -44,13 +45,7 @@ public class OdilonVirtualFileSystemOperation implements VirtualFileSystemOperat
     static private Logger logger = Logger.getLogger(OdilonVirtualFileSystemOperation.class.getName());
 
     @JsonIgnore
-    static private ObjectMapper mapper = new ObjectMapper();
-
-    static {
-        mapper.registerModule(new JavaTimeModule());
-        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        mapper.registerModule(new Jdk8Module());
-    }
+    static private ObjectMapper mapper = new OdilonObjectMapper();
 
     @JsonIgnore
     static final private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("YYYY-MM-dd'T'HH:mm:ss.XXX-z", Locale.ENGLISH);

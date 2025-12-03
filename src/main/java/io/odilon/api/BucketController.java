@@ -88,7 +88,7 @@ public class BucketController extends BaseApiController {
 		TrafficPass pass = null;
 
 		try {
-			pass = getTrafficControlService().getPass();
+			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
 			List<Bucket> list = new ArrayList<Bucket>();
 			getObjectStorageService().findAllBuckets().forEach(item -> list.add(new Bucket(item.getName(), item.getId(),
 					item.getCreationDate(), item.getLastModifiedDate(), item.getStatus())));
@@ -120,7 +120,7 @@ public class BucketController extends BaseApiController {
 
 		try {
 
-			pass = getTrafficControlService().getPass();
+			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
 
 			DataList<Item<ObjectMetadata>> result = getObjectStorageService().listObjects(bucketName, offset, pageSize,
 					prefix, serverAgentId);
@@ -153,7 +153,8 @@ public class BucketController extends BaseApiController {
 		TrafficPass pass = null;
 
 		try {
-			pass = getTrafficControlService().getPass();
+			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
+
 			ServerBucket bucket = getObjectStorageService().findBucketName(name);
 
 			if (bucket == null)
@@ -181,7 +182,9 @@ public class BucketController extends BaseApiController {
 	public ResponseEntity<Boolean> exists(@PathVariable("name") String name) {
 		TrafficPass pass = null;
 		try {
-			pass = getTrafficControlService().getPass();
+			
+			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
+
 			return new ResponseEntity<Boolean>(
 					Boolean.valueOf(getObjectStorageService().existsBucket(name) ? true : false), HttpStatus.OK);
 
@@ -204,7 +207,8 @@ public class BucketController extends BaseApiController {
 		TrafficPass pass = null;
 
 		try {
-			pass = getTrafficControlService().getPass();
+			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
+
 
 			ServerBucket bucket = getObjectStorageService().findBucketName(name);
 
@@ -239,7 +243,8 @@ public class BucketController extends BaseApiController {
 
 		try {
 
-			pass = getTrafficControlService().getPass();
+			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
+
 
 			if (getObjectStorageService().existsBucket(name))
 				throw new OdilonServerAPIException(ODHttpStatus.CONFLICT, ErrorCode.OBJECT_ALREADY_EXIST,
@@ -269,7 +274,8 @@ public class BucketController extends BaseApiController {
 
 		try {
 
-			pass = getTrafficControlService().getPass();
+			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
+
 
 			ServerBucket bucket = getObjectStorageService().findBucketName(name);
 
@@ -305,7 +311,8 @@ public class BucketController extends BaseApiController {
 		TrafficPass pass = null;
 
 		try {
-			pass = getTrafficControlService().getPass();
+			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
+
 
 			if (getObjectStorageService().existsBucket(name)) {
 				if (getObjectStorageService().isEmptyBucket(name)) {
@@ -333,7 +340,7 @@ public class BucketController extends BaseApiController {
 		TrafficPass pass = null;
 
 		try {
-			pass = getTrafficControlService().getPass();
+			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
 
 			if (getObjectStorageService().existsBucket(name)) {
 				getObjectStorageService().deleteBucketByName(name);
@@ -358,7 +365,8 @@ public class BucketController extends BaseApiController {
 
 		try {
 
-			pass = getTrafficControlService().getPass();
+			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
+
 
 			if (!this.getVirtualFileSystemService().getServerSettings().isVersionControl())
 				throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED,

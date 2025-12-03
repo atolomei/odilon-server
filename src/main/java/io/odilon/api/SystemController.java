@@ -45,7 +45,8 @@ public class SystemController extends BaseApiController {
 
         TrafficPass pass = null;
         try {
-            pass = getTrafficControlService().getPass();
+            pass =  getTrafficControlService().getPass(this.getClass().getSimpleName());
+
             getObjectStorageService().wipeAllPreviousVersions();
 
         } catch (OdilonServerAPIException e) {

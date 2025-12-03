@@ -85,8 +85,8 @@ This is the first release of Odilon Object Storage
 
 2025.07.21 Presigned urls stay valid until their expiration date even if the server is restarted
 2025.07.31 ObjectStream can be served with a http header cache ( default value is 5m, set up in odilon.properties -> server.objectstream.cache.secs )
-2025.08.02 Spring Boot 3.5.4, Odilon client 1.14.1, Jackson 2.19.2, google.guava 33.4.8-jre, Spring Vault 3.2.0
-
+2025.08.02 Spring Boot 3.5.4, Odilon client 1.15, Jackson 2.19.2, google.guava 33.4.8-jre, Spring Vault 3.2.0
+2025.10.02 bug file cache expired still returned as valid in Raid 6 
 
 
 

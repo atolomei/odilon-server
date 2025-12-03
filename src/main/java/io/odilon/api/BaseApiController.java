@@ -43,17 +43,7 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  */
 public abstract class BaseApiController extends BaseObject implements ApplicationContextAware {
 
-	static private ObjectMapper mapper = new ObjectMapper();
-
-	static protected ObjectMapper getMapper() {
-		return mapper;
-	}
-
-	static {
-		mapper.registerModule(new JavaTimeModule());
-		mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-		mapper.registerModule(new Jdk8Module());
-	}
+	 
 
 	@JsonIgnore
 	private ApplicationContext applicationContext;

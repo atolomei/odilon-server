@@ -19,7 +19,6 @@ package io.odilon.service;
 import java.io.File;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -29,7 +28,6 @@ import java.util.stream.Collectors;
 
 import jakarta.annotation.PostConstruct;
 
-//import org.checkerframework.checker.index.qual.NonNegative;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
@@ -168,10 +166,9 @@ public class ServerSettings implements JSONObject {
     
 
     // DATA STORAGE -------------------------------------------
-    // by default RAID 0 with 1 directory
     //
     //
-    @Value("${redundancyLevel:RAID 0}")
+    @Value("${redundancyLevel:null}")
     @NonNull
     protected String redundancyLevelStr;
 
@@ -273,8 +270,10 @@ public class ServerSettings implements JSONObject {
 
     // TRAFFIC PASS --------------------------------------
 
-    @JsonProperty("traffic.tokens:32")
-    private int tokens;
+    @Value("${traffic.tokens:32}")
+    private String tokensStr;
+
+    private int t_tokens;
 
     // OBJECT CACHES --------------------------------------
 
@@ -308,6 +307,8 @@ public class ServerSettings implements JSONObject {
 
     
     private int totalDisks;
+    
+    
     
     @Autowired
     public ServerSettings() {
@@ -398,7 +399,7 @@ public class ServerSettings implements JSONObject {
 
         str.append(", \"timeZone\":\"" + getTimeZone() + "\"");
 
-        str.append(", \"trafficTokens\":" + String.valueOf(tokens) + "");
+        str.append(", \"trafficTokens\":" + String.valueOf(t_tokens) + "");
         str.append(", \"versionControl\":\"" + (this.versionControl ? "true" : "false") + "\"");
 
         str.append("\"objectMetadataCache.maxCapacity\":\"" + String.valueOf(objectCacheMaxCapacity) + "\"");
@@ -423,14 +424,7 @@ public class ServerSettings implements JSONObject {
     public Map<String, Object> toMap() {
 
         Map<String, Object> map = new TreeMap<String, Object>();
-
-        
-        
-        
-        
-        
-        
-        
+    
         map.put("server.port", getPort());
         map.put("server.https", isHTTPS() ? "true" : "false");
 
@@ -549,8 +543,20 @@ public class ServerSettings implements JSONObject {
             }
         }
 
-        if (tokens < 1)
-            tokens = ServerConstant.TRAFFIC_TOKENS_DEFAULT;
+        
+        Integer t;
+        
+        
+        try {
+            t = Integer.valueOf(tokensStr);
+            		
+        } catch (Exception e) {
+        	t=Integer.valueOf(ServerConstant.TRAFFIC_TOKENS_DEFAULT);
+        }
+        
+        t_tokens = t.intValue();
+        
+
         try {
             dataStorage = (dataStorageMode == null) ? DataStorage.READ_WRITE : DataStorage.fromString(dataStorageMode);
         } catch (Exception e) {
@@ -572,9 +578,11 @@ public class ServerSettings implements JSONObject {
                         + serverMode);
         }
 
-        if (this.redundancyLevelStr == null)
-            this.redundancyLevel = RedundancyLevel.RAID_0;
-
+        if (this.redundancyLevelStr == null || this.redundancyLevelStr.toLowerCase().trim().equals("null")) {
+        	exit("redundancyLevel can not be null | Supported values are: RAID 0, RAID 1 or RAID 6 | example -> redundancyLevel=RAID 0");
+        	// this.redundancyLevel = RedundancyLevel.RAID_0;
+        }
+        
         this.redundancyLevel = RedundancyLevel.get(redundancyLevelStr);
 
         List<String> dirs = new ArrayList<String>();
@@ -890,7 +898,7 @@ public class ServerSettings implements JSONObject {
     }
 
     public int getMaxTrafficTokens() {
-        return tokens;
+        return t_tokens;
     }
 
     public int getIntegrityCheckThreads() {

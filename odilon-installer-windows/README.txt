@@ -35,7 +35,7 @@ Files included in an Odilon binary distribution
 -----------------------------------------------
 
 app/
-  A self-contained Odilon server.
+  A self-contained Odilon server (odilon-server-vX.X.jar).
   
 bin/
    Scripts to startup, manage and interact with Odilon instances. 

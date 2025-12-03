@@ -24,6 +24,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import jakarta.annotation.PostConstruct;
@@ -482,4 +483,9 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
         return "Illegal operation for Data Storage Mode -> " + getServerSettings().getDataStorage().getName() + " | b: "
                 + bucketName + " o: " + objectName;
     }
+
+	@Override
+	public Map<String, String> getSystemLibrariesInfo() {
+		return systemInfoService.getSystemLibrariesInfo();
+	}
 }

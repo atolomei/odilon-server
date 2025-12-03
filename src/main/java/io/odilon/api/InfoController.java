@@ -58,6 +58,39 @@ public class InfoController extends BaseApiController {
 		this.settings = settings;
 	}
 
+	
+	/**
+	 * <p>
+	 * in JSON format
+	 * </p>
+	 */
+	@RequestMapping(value = "/libraries", produces = "application/json", method = RequestMethod.GET)
+	public ResponseEntity<String> getLibraries() {
+
+		TrafficPass pass = null;
+
+		try {
+
+			 pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
+
+
+			StringBuilder str = new StringBuilder();
+
+			Map<String, String> map = getObjectStorageService().getSystemLibrariesInfo();
+
+			map.forEach((k, v) -> str.append("    " + k + " -> " + v + "\n"));
+			str.append("\n");
+
+			return new ResponseEntity<String>(str.toString(), HttpStatus.OK);
+
+		} finally {
+			getTrafficControlService().release(pass);
+			mark();
+		}
+	}
+	
+	
+	
 	/**
 	 * <p>
 	 * in JSON format
@@ -70,7 +103,8 @@ public class InfoController extends BaseApiController {
 
 		try {
 
-			pass = getTrafficControlService().getPass();
+			pass =  getTrafficControlService().getPass(this.getClass().getSimpleName());
+
 
 			StringBuilder str = new StringBuilder();
 

@@ -115,7 +115,8 @@ public class ObjectController extends BaseApiController {
 		TrafficPass pass = null;
 
 		try {
-			pass = getTrafficControlService().getPass();
+			pass =  getTrafficControlService().getPass(this.getClass().getSimpleName());
+
 
 			if (!getObjectStorageService().existsBucket(bucketName))
 				return new ResponseEntity<Boolean>(Boolean.valueOf(false), HttpStatus.OK);
@@ -145,7 +146,8 @@ public class ObjectController extends BaseApiController {
 
 		try {
 
-			pass = getTrafficControlService().getPass();
+			pass =  getTrafficControlService().getPass(this.getClass().getSimpleName());
+
 
 			if (!this.getVirtualFileSystemService().getServerSettings().isVersionControl())
 				throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED,
@@ -185,7 +187,8 @@ public class ObjectController extends BaseApiController {
 
 		try {
 
-			pass = getTrafficControlService().getPass();
+			pass =  getTrafficControlService().getPass(this.getClass().getSimpleName());
+
 
 			if (!getObjectStorageService().existsObject(bucketName, objectName))
 				throw new OdilonObjectNotFoundException(String.format("object not found -> b: %s | o:%s",
@@ -264,7 +267,8 @@ public class ObjectController extends BaseApiController {
 
 		try {
 
-			pass = getTrafficControlService().getPass();
+			pass =  getTrafficControlService().getPass(this.getClass().getSimpleName());
+
 
 			if (!this.getVirtualFileSystemService().getServerSettings().isVersionControl())
 				throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED,
@@ -344,7 +348,8 @@ public class ObjectController extends BaseApiController {
 
 		try {
 
-			pass = getTrafficControlService().getPass();
+			pass =  getTrafficControlService().getPass(this.getClass().getSimpleName());
+
 
 			if (!this.getVirtualFileSystemService().getServerSettings().isVersionControl())
 				throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED,
@@ -429,7 +434,8 @@ public class ObjectController extends BaseApiController {
 
 		try {
 
-			pass = getTrafficControlService().getPass();
+			pass =  getTrafficControlService().getPass(this.getClass().getSimpleName());
+
 
 			if (!getObjectStorageService().existsObject(bucketName, objectName))
 				throw new OdilonObjectNotFoundException(String.format("object not found -> b: %s | o:%s",
@@ -488,7 +494,8 @@ public class ObjectController extends BaseApiController {
 
 		try {
 
-			pass = getTrafficControlService().getPass();
+			pass =  getTrafficControlService().getPass(this.getClass().getSimpleName());
+
 
 			ObjectMetadata meta = getObjectStorageService().getObjectMetadata(bucketName, objectName);
 
@@ -529,7 +536,8 @@ public class ObjectController extends BaseApiController {
 
 		try {
 
-			pass = getTrafficControlService().getPass();
+			pass =  getTrafficControlService().getPass(this.getClass().getSimpleName());
+
 
 			if (!this.getVirtualFileSystemService().getServerSettings().isVersionControl())
 				throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED,
@@ -573,7 +581,8 @@ public class ObjectController extends BaseApiController {
 
 		try {
 
-			pass = getTrafficControlService().getPass();
+			pass =  getTrafficControlService().getPass(this.getClass().getSimpleName());
+
 
 			if (!this.getVirtualFileSystemService().getServerSettings().isVersionControl())
 				throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED,
@@ -617,7 +626,8 @@ public class ObjectController extends BaseApiController {
 		TrafficPass pass = null;
 		try {
 
-			pass = getTrafficControlService().getPass();
+			pass =  getTrafficControlService().getPass(this.getClass().getSimpleName());
+
 
 			if (!getObjectStorageService().existsObject(bucketName, objectName))
 				throw new OdilonObjectNotFoundException(String.format("object not found -> b: %s | o:%s",
@@ -649,7 +659,8 @@ public class ObjectController extends BaseApiController {
 		TrafficPass pass = null;
 		try {
 
-			pass = getTrafficControlService().getPass();
+			pass =  getTrafficControlService().getPass(this.getClass().getSimpleName());
+
 
 			if (!this.getVirtualFileSystemService().getServerSettings().isVersionControl())
 				throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED,
@@ -682,7 +693,8 @@ public class ObjectController extends BaseApiController {
 
 		try {
 
-			pass = getTrafficControlService().getPass();
+			pass =  getTrafficControlService().getPass(this.getClass().getSimpleName());
+
 
 			if (!this.getVirtualFileSystemService().getServerSettings().isVersionControl())
 				throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED,
@@ -742,7 +754,8 @@ public class ObjectController extends BaseApiController {
 
 		try {
 
-			pass = getTrafficControlService().getPass();
+			pass =  getTrafficControlService().getPass(this.getClass().getSimpleName());
+
 
 			String fileName = Optional.ofNullable(oFileName.get()).orElseGet(() -> objectName);
 

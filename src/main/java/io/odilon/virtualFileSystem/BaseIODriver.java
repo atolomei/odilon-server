@@ -51,6 +51,7 @@ import io.odilon.encryption.EncryptionService;
 import io.odilon.error.OdilonObjectNotFoundException;
 import io.odilon.error.OdilonServerAPIException;
 import io.odilon.errors.InternalCriticalException;
+import io.odilon.json.OdilonObjectMapper;
 import io.odilon.log.Logger;
 import io.odilon.model.BucketMetadata;
 import io.odilon.model.BucketStatus;
@@ -98,13 +99,15 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
     static final public int MAX_CACHE_SIZE = 4000000;
 
     @JsonIgnore
-    static private ObjectMapper mapper = new ObjectMapper();
+    static private ObjectMapper mapper = new OdilonObjectMapper();
 
+    /**
     static {
         mapper.registerModule(new JavaTimeModule());
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         mapper.registerModule(new Jdk8Module());
     }
+    **/
 
     @JsonIgnore
     private VirtualFileSystemService virtualFileSystem;

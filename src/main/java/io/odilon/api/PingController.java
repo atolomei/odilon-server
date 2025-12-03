@@ -76,15 +76,15 @@ public class PingController extends BaseApiController {
         TrafficPass pass = null;
 
         try {
-            pass = getTrafficControlService().getPass();
+            pass =  getTrafficControlService().getPass(this.getClass().getSimpleName());
+
             StringBuilder str = new StringBuilder();
             String ping = getObjectStorageService().ping();
             str.append(ping);
             return new ResponseEntity<String>(str.toString(), HttpStatus.OK);
 
         } finally {
-            if (pass != null)
-                getTrafficControlService().release(pass);
+            getTrafficControlService().release(pass);
             mark();
         }
     }

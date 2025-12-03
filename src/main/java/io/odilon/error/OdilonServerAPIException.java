@@ -19,16 +19,27 @@ package io.odilon.error;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
+
 import io.odilon.errors.OdilonErrorProxy;
+import io.odilon.json.OdilonObjectMapper;
 import io.odilon.log.Logger;
 import io.odilon.net.ErrorCode;
 import io.odilon.net.ODHttpStatus;
+
+/**
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+**/
 
 /**
  * <p>
@@ -44,15 +55,7 @@ public class OdilonServerAPIException extends RuntimeException {
     @SuppressWarnings("unused")
     static private Logger logger = Logger.getLogger(OdilonServerAPIException.class.getName());
 
-    static private ObjectMapper mapper = new ObjectMapper();
-
-    static {
-        mapper.registerModule(new JavaTimeModule());
-        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        mapper.registerModule(new Jdk8Module());
-    }
-
-    /* odilon library internal error */
+     /* odilon library internal error */
     @JsonProperty("errorCode")
     private int errorCode;
 

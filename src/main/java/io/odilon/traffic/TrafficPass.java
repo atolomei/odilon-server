@@ -17,6 +17,7 @@
 package io.odilon.traffic;
 
 import java.io.Serializable;
+import java.util.Optional;
 
 /**
  * <p>
@@ -31,5 +32,8 @@ import java.io.Serializable;
  */
 
 public interface TrafficPass extends Serializable {
-
+	
+	  public void setCaller( String caller );
+	  public Optional<String> getCaller();
+	  
 }

@@ -36,6 +36,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
+import io.odilon.json.OdilonObjectMapper;
 import io.odilon.log.Logger;
 import io.odilon.model.SharedConstant;
 
@@ -68,14 +69,8 @@ public abstract class AbstractServiceRequest implements ServiceRequest {
     private static final long serialVersionUID = 1L;
 
     @JsonIgnore
-    static private final ObjectMapper mapper = new ObjectMapper();
-
-    static {
-        mapper.registerModule(new JavaTimeModule());
-        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        mapper.registerModule(new Jdk8Module());
-    }
-
+    static private final ObjectMapper mapper = new OdilonObjectMapper();
+    
     @JsonProperty("timezone")
     private String timezone;
 
