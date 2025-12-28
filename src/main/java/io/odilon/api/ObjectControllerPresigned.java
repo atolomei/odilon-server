@@ -25,8 +25,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -92,6 +94,13 @@ public class ObjectControllerPresigned extends BaseApiController {
         this.serverSettings = serverSettings;
     }
 
+     
+    
+    
+    
+    
+    
+    
     /**
      * @param bucketName
      * @param objectName
@@ -99,7 +108,7 @@ public class ObjectControllerPresigned extends BaseApiController {
      * 
      */
     
-    
+   /** 
     @RequestMapping(method = RequestMethod.GET)
     @ResponseBody
     public ResponseEntity<InputStreamResource> getPresignedObjectStream(@RequestParam("token") String stringToken) {
@@ -145,6 +154,9 @@ public class ObjectControllerPresigned extends BaseApiController {
                     || object.getObjectMetadata().getContentType().equals("application/octet-stream")) {
                 contentType = estimateContentType(f_name);
             }
+            
+            long length = object.getObjectMetadata().getLength();
+            
 
             in = object.getInputStream();
 
@@ -157,9 +169,19 @@ public class ObjectControllerPresigned extends BaseApiController {
             else
             	cacheDurationSecs = this.getServerSettings().getserverObjectstreamCacheSecs();
             
-           return ResponseEntity.ok().cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)).headers(responseHeaders).contentType(contentType).body(new InputStreamResource(in));
+           logger.debug("stream -> " + contentType + " | " + String.valueOf(length) +" bytes");
+          
+           responseHeaders.set(HttpHeaders.ACCEPT_RANGES, "bytes");
+           
+           return ResponseEntity.ok().
+        		   cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)).
+        		   headers(responseHeaders).
+        		   contentType(contentType).
+        	       contentLength(length).      	
+        		   body(new InputStreamResource(in));
 
-            
+ 
+           
         } catch (Exception e) {
 
         	if (in!=null) {
@@ -177,8 +199,126 @@ public class ObjectControllerPresigned extends BaseApiController {
             mark();
         }
     }
-
+*/
     
+    
+    @RequestMapping(method = RequestMethod.GET)
+    @ResponseBody
+    public ResponseEntity<InputStreamResource> getPresignedObjectStream(
+            @RequestParam("token") String stringToken,
+            @RequestHeader(value = "Range", required = false) String rangeHeader) {
+
+        TrafficPass pass = null;
+        InputStream in = null;
+
+        try {
+            pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
+
+            if (stringToken == null)
+                throw new OdilonServerAPIException("token is null");
+
+            AuthToken authToken = getTokenService().decrypt(stringToken);
+
+            if (authToken == null)
+                throw new OdilonServerAPIException(AuthToken.class.getSimpleName() + " is null");
+
+            if (!authToken.isValid()) {
+                logger.error(String.format("token expired -> t: %s", authToken.toString()));
+                throw new OdilonServerAPIException(String.format("token expired -> t: %s", authToken.toString()));
+            }
+
+            String bucketName = authToken.getBucketName();
+            String objectName = authToken.getObjectName();
+
+            VirtualFileSystemObject object = getObjectStorageService().getObject(bucketName, objectName);
+
+            if (object == null)
+                throw new OdilonObjectNotFoundException(String.format("not found -> b: %s | o:%s",
+                        Optional.ofNullable(bucketName).orElse("null"),
+                        Optional.ofNullable(objectName).orElse("null")));
+
+            HttpHeaders responseHeaders = new HttpHeaders();
+            String f_name = object.getObjectMetadata().getFileName().replace("[", "").replace("]", "");
+            responseHeaders.set(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + f_name + "\"");
+
+            
+            
+            if (object.getObjectMetadata().getFileName()!=null) {
+				if (object.getObjectMetadata().getFileName().toLowerCase().endsWith(".svg")) {
+					object.getObjectMetadata().setContentType("image/svg+xml");
+				}
+			}
+            
+            MediaType contentType = MediaType.valueOf(object.getObjectMetadata().getContentType());
+            if (object.getObjectMetadata().contentType() == null
+                    || object.getObjectMetadata().getContentType().equals("application/octet-stream")) {
+                contentType = estimateContentType(f_name);
+            }
+
+            logger.debug(object.getObjectMetadata().getFileName()+ " "+ contentType.toString());
+            
+          
+            
+            long fileLength = object.getObjectMetadata().getLength();
+            in = object.getInputStream();
+
+            getSystemMonitorService().getGetObjectMeter().mark();
+
+            int cacheDurationSecs = authToken.getObjectCacheDurationSecs() > 0
+                    ? authToken.getObjectCacheDurationSecs()
+                    : this.getServerSettings().getserverObjectstreamCacheSecs();
+
+            responseHeaders.set(HttpHeaders.ACCEPT_RANGES, "bytes");
+
+            // --- Manejo de Range ---
+            if (rangeHeader != null && rangeHeader.startsWith("bytes=")) {
+                // parsea "bytes=START-END"
+                String[] ranges = rangeHeader.substring(6).split("-");
+                long start = Long.parseLong(ranges[0]);
+                long end = ranges.length > 1 && !ranges[1].isEmpty() ? Long.parseLong(ranges[1]) : fileLength - 1;
+                long contentLength = end - start + 1;
+
+                // skip hasta el inicio del rango
+                in.skip(start);
+
+                responseHeaders.setContentLength(contentLength);
+                responseHeaders.add(HttpHeaders.CONTENT_RANGE,
+                        "bytes " + start + "-" + end + "/" + fileLength);
+
+                return ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)
+                        .headers(responseHeaders)
+                        .contentType(contentType)
+                        .contentLength(contentLength) 
+                        .cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS))
+                        .body(new InputStreamResource(new LimitedInputStream(in, contentLength)));
+            } else {
+                // Full file
+                responseHeaders.setContentLength(fileLength);
+                return ResponseEntity.ok()
+                        .headers(responseHeaders)
+                        .contentType(contentType)
+                        .contentLength(fileLength) 
+                        .cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS))
+                        .body(new InputStreamResource(in));
+            }
+
+        } catch (Exception e) {
+            if (in != null) {
+                try { 
+                	in.close(); 
+                } catch (IOException e1) { 
+                	logger.error(e1, SharedConstant.NOT_THROWN); 
+                }
+            }
+            throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR,
+                    ErrorCode.INTERNAL_ERROR, getMessage(e));
+        } finally {
+            getTrafficControlService().release(pass);
+            mark();
+        }
+    }
+    
+        
     public TokenService getTokenService() {
 		return this.tokenService;
 	}
@@ -188,89 +328,5 @@ public class ObjectControllerPresigned extends BaseApiController {
 	}
 
     
-	private MediaType estimateContentType(String f_name) {
-
-        if (f_name == null)
-            return MediaType.valueOf("application/octet-stream");
-
-        if (isPdf(f_name))
-            return MediaType.valueOf("application/pdf");
-
-        if (isAudio(f_name))
-            return MediaType.valueOf("audio/mpeg");
-
-        if (isVideo(f_name))
-            return MediaType.valueOf("video/mpeg");
-
-        if (isJpeg(f_name))
-            return MediaType.valueOf("image/jpeg");
-
-        if (isPng(f_name))
-            return MediaType.valueOf("image/png");
-
-        if (isGif(f_name))
-            return MediaType.valueOf("image/gif");
-
-        if (isWebp(f_name))
-            return MediaType.valueOf("image/svg+xml");
-
-        if (isExcel(f_name))
-            return MediaType.valueOf("application/vnd.ms-excel");
-
-        if (isWord(f_name))
-            return MediaType.valueOf("application/msword");
-
-        if (isPowerPoint(f_name))
-            return MediaType.valueOf("application/vnd.ms-powerpoint");
-
-        return MediaType.valueOf("application/octet-stream");
-    }
-
-    static public boolean isPowerPoint(String name) {
-        return name.toLowerCase().matches("^.*\\.(ppt|pptx)$");
-    }
-
-    static public boolean isWord(String name) {
-        return name.toLowerCase().matches("^.*\\.(doc|docx|rtf)$");
-    }
-
-    static public boolean isVideo(String filename) {
-        return (filename.toLowerCase().matches("^.*\\.(mp4|flv|aac|ogg|wmv|3gp|avi|swf|svi|wtv|fla|mpeg|mpg|mov|m4v)$"));
-    }
-
-    static public boolean isAudio(String filename) {
-        return filename.toLowerCase().matches("^.*\\.(mp3|wav|ogga|ogg|aac|m4a|m4a|aif|wma)$");
-    }
-
-    static public boolean isExcel(String name) {
-        return name.toLowerCase().matches("^.*\\.(xls|xlsx|xlsm)$");
-    }
-
-    static public boolean isJpeg(String string) {
-        return string.toLowerCase().matches("^.*\\.(jpg|jpeg)$");
-    }
-
-    static public boolean isPdf(String string) {
-        return string.toLowerCase().matches("^.*\\.(pdf)$");
-    }
-
-    static public boolean isGif(String string) {
-        return string.toLowerCase().matches("^.*\\.(gif)$");
-    }
-
-    static public boolean isWebp(String string) {
-        return string.toLowerCase().matches("^.*\\.(webp)$");
-    }
-
-    static public boolean isPng(String string) {
-        return string.toLowerCase().matches("^.*\\.(png)$");
-    }
-
-    static public boolean isGeneralImage(String string) {
-        return string.toLowerCase().matches("^.*\\.(png|jpg|jpeg|gif|bmp|heic)$");
-    }
-
-    static public boolean isImage(String string) {
-        return isGeneralImage(string) || string.toLowerCase().matches("^.*\\.(webp)$");
-    }
+	
 }

@@ -94,9 +94,7 @@ public class MetricsController extends BaseApiController {
 
         try {
             pass =  getTrafficControlService().getPass(this.getClass().getSimpleName());
-
             return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(objectStorageService.getSystemInfo());
-
         } finally {
             getTrafficControlService().release(pass);
             mark();
@@ -126,7 +124,6 @@ public class MetricsController extends BaseApiController {
         try {
 
             pass =  getTrafficControlService().getPass(this.getClass().getSimpleName());
-
 
             StringBuilder str = new StringBuilder();
 
@@ -168,8 +165,6 @@ public class MetricsController extends BaseApiController {
 
         try {
             pass =  getTrafficControlService().getPass(this.getClass().getSimpleName());
-
-
             return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(getSystemMonitorService().getMetricsValues());
 
         } finally {

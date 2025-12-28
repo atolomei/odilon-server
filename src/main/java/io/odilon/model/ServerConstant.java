@@ -74,4 +74,6 @@ public class ServerConstant {
 
 	public static final long DEFAULT_SLEEP_TIME = 1 * 60 * 1000; // 1 minute;
 
+	public static final int TIME_OUT_PASS_MIN = 3;
+
 }

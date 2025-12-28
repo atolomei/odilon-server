@@ -16,6 +16,7 @@
  */
 package io.odilon.traffic;
 
+import java.time.OffsetDateTime;
 import java.util.Optional;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -43,6 +44,7 @@ public class OdilonTrafficPass implements TrafficPass, JSONObject {
 
 	private final int id;
 	private String caller;
+	private OffsetDateTime started;
 
 	public OdilonTrafficPass(int id) {
 		this.id = id;
@@ -80,6 +82,14 @@ public class OdilonTrafficPass implements TrafficPass, JSONObject {
 		str.append(this.getClass().getSimpleName());
 		str.append(toJSON());
 		return str.toString();
+	}
+
+	public OffsetDateTime getStarted() {
+		return started;
+	}
+
+	public void setStarted(OffsetDateTime started) {
+		this.started = started;
 	}
 
 }

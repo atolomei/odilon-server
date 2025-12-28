@@ -28,6 +28,7 @@ import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.CacheControl;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -105,7 +106,6 @@ public class ObjectController extends BaseApiController {
 
 		this.tokenService = tokenService;
 		this.settings = settings;
-
 	}
 
 	@RequestMapping(value = "/exists/{bucketName}/{objectName}", method = RequestMethod.GET)
@@ -146,8 +146,7 @@ public class ObjectController extends BaseApiController {
 
 		try {
 
-			pass =  getTrafficControlService().getPass(this.getClass().getSimpleName());
-
+			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
 
 			if (!this.getVirtualFileSystemService().getServerSettings().isVersionControl())
 				throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED,
@@ -187,8 +186,7 @@ public class ObjectController extends BaseApiController {
 
 		try {
 
-			pass =  getTrafficControlService().getPass(this.getClass().getSimpleName());
-
+			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
 
 			if (!getObjectStorageService().existsObject(bucketName, objectName))
 				throw new OdilonObjectNotFoundException(String.format("object not found -> b: %s | o:%s",
@@ -202,16 +200,40 @@ public class ObjectController extends BaseApiController {
 						Optional.ofNullable(bucketName).orElse("null"),
 						Optional.ofNullable(objectName).orElse("null")));
 
-			MediaType contentType = MediaType.APPLICATION_OCTET_STREAM;
-
+		
+			if (meta.getFileName()!=null) {
+				if (meta.getFileName().toLowerCase().endsWith(".svg")) {
+					meta.setContentType("image/svg+xml");
+				}
+			}
+			MediaType contentType = MediaType.valueOf(meta.getContentType());
+            if (meta.contentType() == null
+                    || meta.getContentType().equals("application/octet-stream")) {
+                contentType = estimateContentType(meta.getFileName());
+            }
+			
+			
+			long length=meta.getLength();
+			
 			in = getObjectStorageService().getObjectStream(bucketName, objectName);
 
 			int cacheDurationSecs = this.settings.getserverObjectstreamCacheSecs();
 
 			getSystemMonitorService().getGetObjectMeter().mark();
 
-			return ResponseEntity.ok().cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS))
-					.contentType(contentType).body(new InputStreamResource(in));
+			HttpHeaders responseHeaders = new HttpHeaders();
+			String f_name = meta.getFileName().replace("[", "").replace("]", "");
+	        responseHeaders.set("Content-Disposition", "inline; filename=\"" + f_name + "\""); 
+			responseHeaders.set(HttpHeaders.ACCEPT_RANGES, "bytes");
+			
+			logger.debug(meta.getFileName()+ " "+ contentType.toString());
+			
+			return ResponseEntity.ok().
+					headers(responseHeaders).
+					cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)).
+					contentType(contentType).
+					contentLength(length).    
+					body(new InputStreamResource(in));
 
 		} catch (OdilonServerAPIException e1) {
 
@@ -292,7 +314,14 @@ public class ObjectController extends BaseApiController {
 			if (version.get() < 0)
 				throw new IllegalArgumentException("version must be 0 or greater");
 
-			MediaType contentType = MediaType.APPLICATION_OCTET_STREAM;
+
+            MediaType contentType = MediaType.valueOf(meta.getContentType());
+            if (meta.contentType() == null
+                    || meta.getContentType().equals("application/octet-stream")) {
+                contentType = estimateContentType(meta.getFileName());
+            }
+						
+
 			in = getObjectStorageService().getObjectPreviousVersionStream(bucketName, objectName,
 					version.get().intValue());
 
@@ -300,8 +329,19 @@ public class ObjectController extends BaseApiController {
 
 			int cacheDurationSecs = this.settings.getserverObjectstreamCacheSecs();
 
-			return ResponseEntity.ok().cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS))
-					.contentType(contentType).body(new InputStreamResource(in));
+			long length=meta.getLength();
+			
+			HttpHeaders responseHeaders = new HttpHeaders();
+			String f_name = meta.getFileName().replace("[", "").replace("]", "");
+	        responseHeaders.set("Content-Disposition", "inline; filename=\"" + f_name + "\""); 
+			responseHeaders.set(HttpHeaders.ACCEPT_RANGES, "bytes");
+	
+			return ResponseEntity.ok().
+					headers(responseHeaders).
+					cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)).
+					contentType(contentType).
+					contentLength(length).    
+					body(new InputStreamResource(in));
 
 		} catch (OdilonServerAPIException e) {
 
@@ -324,7 +364,6 @@ public class ObjectController extends BaseApiController {
 					logger.error(e1, SharedConstant.NOT_THROWN);
 				}
 			}
-
 			throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR,
 					getMessage(e));
 
@@ -349,7 +388,6 @@ public class ObjectController extends BaseApiController {
 		try {
 
 			pass =  getTrafficControlService().getPass(this.getClass().getSimpleName());
-
 
 			if (!this.getVirtualFileSystemService().getServerSettings().isVersionControl())
 				throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED,
@@ -383,9 +421,22 @@ public class ObjectController extends BaseApiController {
 					list.get(list.size() - 1).version);
 
 			int cacheDurationSecs = this.settings.getserverObjectstreamCacheSecs();
-
-			return ResponseEntity.ok().cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS))
-					.contentType(contentType).body(new InputStreamResource(in));
+			long length=meta.getLength();
+			
+			HttpHeaders responseHeaders = new HttpHeaders();
+			String f_name = meta.getFileName().replace("[", "").replace("]", "");
+	        responseHeaders.set("Content-Disposition", "inline; filename=\"" + f_name + "\""); 
+			responseHeaders.set(HttpHeaders.ACCEPT_RANGES, "bytes");
+	
+			
+			
+			return ResponseEntity.ok().
+					
+					headers(responseHeaders).
+					cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)).
+					contentType(contentType).
+					contentLength(length).  
+					body(new InputStreamResource(in));
 
 		} catch (OdilonServerAPIException e1) {
 
@@ -461,10 +512,15 @@ public class ObjectController extends BaseApiController {
 			else
 				atoken.setObjectCacheDurationSecs(0);
 
+			
+			//logger.debug(atoken.toString());
+			
 			String token = this.getTokenService().encrypt(atoken);
 
 			getSystemMonitorService().getGetObjectMeter().mark();
 
+			
+			
 			return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(token);
 
 		} catch (OdilonServerAPIException e) {

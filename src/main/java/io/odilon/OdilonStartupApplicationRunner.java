@@ -46,6 +46,7 @@ import io.odilon.log.Logger;
 import io.odilon.model.OdilonServerInfo;
 import io.odilon.model.RedundancyLevel;
 import io.odilon.model.ServerConstant;
+import io.odilon.model.SharedConstant;
 import io.odilon.replication.ReplicationService;
 import io.odilon.scheduler.CronJobDataIntegrityCheckRequest;
 import io.odilon.scheduler.CronJobWorkDirCleanUpRequest;
@@ -120,98 +121,17 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 			startupLogger.info(ServerConstant.SEPARATOR);
 
 		startupLogger.info("Startup at -> " + DateTimeFormatter.RFC_1123_DATE_TIME.format(OffsetDateTime.now()));
-	
-	}
-	
-	
-	/*
-	
-	public class KV {
-		
-		public KV (String key, String value) {
-			this.key=key;
-			this.value=value;
-		}
-		
-		public String key;
-		public String value;
-	}
-	
-	
-	
-	
-	private List<KV> versionInfo() {
-
-		List<KV> data = new ArrayList<KV>();
- 
 		
 		
-		
-		
-		
-		try {
-			
-			
-			
-			ClassLoader cl = ClassLoader.getSystemClassLoader();
-			
-			Set<URL> urls = new HashSet<>();
-		    
-			
-			for (Package packageName: cl.getDefinedPackages()) {
-				
-			    ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-		        String path = packageName.getName().replace('.', '/'); // Convert package name to path
-		        Enumeration<URL> resources = classLoader.getResources(path);
-
-		        while (resources.hasMoreElements()) {
-		            urls.add(resources.nextElement());
-		        }	
-
-			
-			}
-			
-	          for (URL url : urls) {
-	            String path = url.getPath();
-	            if (url.getProtocol().equals("jar")) {
-	            	String s[]=path.split("!");
-	                data.add( new KV(s[0], s[0]));
-	            }
-	        }
-	    	
-			
-			Collections.sort(data, new Comparator<KV>() {
-				@Override
-				public int compare(KV o1, KV o2) {
-					try {
-						return o1.key.compareToIgnoreCase(o2.key);
-					} catch (Exception e) {
-						return 0;
-					}
-				}
-				
-			});
-		
-		} catch (Exception e) {
-			logger.error(e);
-		}
-		
-		return data;
+	//	OdilonServerInfo info = getAppContext().getBean(VirtualFileSystemService.class).getOdilonServerInfo();
 		
 	}
-	 
-	*/
-	
 	
 	public SchedulerService getSchedulerService() {
 		return schedulerService;
 	}
 
-	// public void setSchedulerService(SchedulerService schedulerService) {
-	// this.schedulerService = schedulerService;
-	// }
-
-	public ApplicationContext getAppContext() {
+ 	public ApplicationContext getAppContext() {
 		return appContext;
 	}
 
@@ -265,10 +185,10 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 				startupLogger.info("serverHost -> " + o_service.getSystemInfo().getColloquial().get("serverHost"));
 				startupLogger.info("serverStorage -> " + o_service.getSystemInfo().getColloquial().get("serverStorage"));
 				startupLogger.info("TimeZone -> " +   ZoneId.systemDefault().toString());
-				//startupLogger.info("Locale -> " +   Locale.getDefault().toString());
+				 
 			}
 		} catch (Exception e) {
-			startupLogger.error(e);
+			startupLogger.error(e, SharedConstant.NOT_THROWN);
 		}
 
 		return true;

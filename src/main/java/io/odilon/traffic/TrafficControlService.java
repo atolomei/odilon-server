@@ -16,6 +16,8 @@
  */
 package io.odilon.traffic;
 
+import java.io.IOException;
+import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -56,11 +58,15 @@ public class TrafficControlService extends BaseService {
 	private Set<TrafficPass> passesInUse = null;
 
 	@JsonProperty("waittimeout")
-	private long waittimeout = 10000L;
+	private long waittimeout = 6000L;
 
 	@JsonProperty("tokens")
 	private int tokens = ServerConstant.TRAFFIC_TOKENS_DEFAULT;
 
+	@JsonProperty("timeOutPassMin")
+	private int timeOutPassMin = ServerConstant.TIME_OUT_PASS_MIN;
+	
+	
 	public TrafficControlService(ServerSettings serverSettings) {
 		this.serverSettings = serverSettings;
 	}
@@ -82,6 +88,7 @@ public class TrafficControlService extends BaseService {
 						pass = passes.iterator().next();
 						passes.remove(pass);
 						pass.setCaller(caller);
+						pass.setStarted(OffsetDateTime.now());
 						this.passesInUse.add(pass);
 					}
 				}
@@ -92,38 +99,38 @@ public class TrafficControlService extends BaseService {
 				
 					if (wait > waittimeout) {
 						
+						boolean throwEx = true;
 						logger.error("TimeoutException  | Waited " + String.valueOf(wait) + " ms | passes = " + passes.toString());
-						
 						logger.error("Passes in use -> ");
 						this.passesInUse.forEach( v -> logger.error(v.toString()));
-					
-						
 						logger.error("Passes available  -> ");
 						this.passes.forEach( v -> logger.error(v.toString()));
-						
-						throw new RuntimeException("TimeoutException | could not get a pass | passes -> " + passes.toString());
+				
+						for (TrafficPass t: passesInUse) {
+							if (t.getStarted().isBefore(OffsetDateTime.now().minusMinutes(timeOutPassMin))) {
+								logger.error("Traffic pass taking over "+ String.valueOf(timeOutPassMin) + " min, probably lost called by -> " + t.getCaller());
+								logger.debug("Adding traffic pass to the pool");
+								passes.add(new OdilonTrafficPass(passes.size()));
+								throwEx=false;
+							}
+						}
+	
+						if (throwEx)
+							throw new RuntimeException("TimeoutException | could not get a pass | passes -> " + passes.toString());
 					}
 
 					synchronized (this) {
 						try {
 							if (!inqueue) {
-								// metrics_service.getMeterAPITrafficeQueueIn().mark();
-								// metrics_service.getCounterTrafficQueueSize().inc();
 								inqueue = true;
 							}
-							wait(500);
+							wait(250);
 						} catch (InterruptedException e) {
 						}
 					}
 				}
 			}
 		} finally {
-			// if (inqueue) {
-			// wait = System.currentTimeMillis() - initialtime;
-			// metrics_service.getCounterTrafficQueueSize().dec();
-			// metrics_service.getMeterAPITrafficeQueueOut().mark();
-			// metrics_service.getTrafficInQueueEstimator().addValue(wait);
-			// }
 		}
 		return pass;
 	}

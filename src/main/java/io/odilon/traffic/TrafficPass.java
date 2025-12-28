@@ -17,6 +17,7 @@
 package io.odilon.traffic;
 
 import java.io.Serializable;
+import java.time.OffsetDateTime;
 import java.util.Optional;
 
 /**
@@ -34,6 +35,10 @@ import java.util.Optional;
 public interface TrafficPass extends Serializable {
 	
 	  public void setCaller( String caller );
+	  
+	  public void setStarted( OffsetDateTime date);
+	  public OffsetDateTime getStarted();
+	  
 	  public Optional<String> getCaller();
 	  
 }
