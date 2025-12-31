@@ -73,339 +73,306 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 @Scope("prototype")
 public class RAIDOneDriveSync implements Runnable {
 
-    static private Logger logger = Logger.getLogger(RAIDOneDriveSync.class.getName());
-    static private Logger startuplogger = Logger.getLogger("StartupLogger");
+	static private Logger logger = Logger.getLogger(RAIDOneDriveSync.class.getName());
+	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 
-    @JsonIgnore
-    private AtomicBoolean bucketsCreated = new AtomicBoolean(false);
+	@JsonIgnore
+	private AtomicBoolean bucketsCreated = new AtomicBoolean(false);
 
-    @JsonIgnore
-    private AtomicLong checkOk = new AtomicLong(0);
+	@JsonIgnore
+	private AtomicLong checkOk = new AtomicLong(0);
 
-    @JsonIgnore
-    private AtomicLong counter = new AtomicLong(0);
+	@JsonIgnore
+	private AtomicLong counter = new AtomicLong(0);
 
-    @JsonIgnore
-    private AtomicLong copied = new AtomicLong(0);
+	@JsonIgnore
+	private AtomicLong copied = new AtomicLong(0);
 
-    @JsonIgnore
-    private AtomicLong totalBytes = new AtomicLong(0);
+	@JsonIgnore
+	private AtomicLong totalBytes = new AtomicLong(0);
 
-    @JsonIgnore
-    private AtomicLong errors = new AtomicLong(0);
+	@JsonIgnore
+	private AtomicLong errors = new AtomicLong(0);
 
-    @JsonIgnore
-    private AtomicLong cleaned = new AtomicLong(0);
+	@JsonIgnore
+	private AtomicLong cleaned = new AtomicLong(0);
 
-    @JsonIgnore
-    private AtomicLong notAvailable = new AtomicLong(0);
+	@JsonIgnore
+	private AtomicLong notAvailable = new AtomicLong(0);
 
-    @JsonIgnore
-    private RAIDOneDriver driver;
+	@JsonIgnore
+	private RAIDOneDriver driver;
 
-    @JsonIgnore
-    private Thread thread;
+	@JsonIgnore
+	private Thread thread;
 
-    @JsonIgnore
-    private AtomicBoolean done;
+	@JsonIgnore
+	private AtomicBoolean done;
 
-    @JsonIgnore
-    private LockService vfsLockService;
+	@JsonIgnore
+	private LockService vfsLockService;
 
-    public RAIDOneDriveSync(RAIDOneDriver driver) {
-        this.driver = driver;
-        this.vfsLockService = this.driver.getLockService();
-    }
+	public RAIDOneDriveSync(RAIDOneDriver driver) {
+		this.driver = driver;
+		this.vfsLockService = this.driver.getLockService();
+	}
 
-    public AtomicBoolean isDone() {
-        return this.done;
-    }
+	public AtomicBoolean isDone() {
+		return this.done;
+	}
 
-    public AtomicLong getErrors() {
-        return this.errors;
-    }
+	public AtomicLong getErrors() {
+		return this.errors;
+	}
 
-    public AtomicLong getNnotAvailable() {
-        return this.notAvailable;
-    }
+	public AtomicLong getNnotAvailable() {
+		return this.notAvailable;
+	}
 
-    @PostConstruct
-    public void onInitialize() {
-        this.thread = new Thread(this);
-        this.thread.setDaemon(true);
-        this.thread.setName(this.getClass().getSimpleName());
-        this.thread.start();
-    }
+	@PostConstruct
+	public void onInitialize() {
+		this.thread = new Thread(this);
+		this.thread.setDaemon(true);
+		this.thread.setName(this.getClass().getSimpleName());
+		this.thread.start();
+	}
 
-    @Override
-    public void run() {
+	@Override
+	public void run() {
 
-        logger.info("Starting -> " + this.getClass().getSimpleName());
+		logger.info("Starting -> " + this.getClass().getSimpleName());
 
-        long start = System.currentTimeMillis();
+		long start = System.currentTimeMillis();
 
-        try {
-            Thread.sleep(1000 * 2);
-        } catch (InterruptedException e) {
-        }
+		try {
+			Thread.sleep(1000 * 2);
+		} catch (InterruptedException e) {
+		}
 
-        while (getDriver().getVirtualFileSystemService().getStatus() != ServiceStatus.RUNNING) {
-            startuplogger.info("waiting for " + VirtualFileSystemService.class.getSimpleName() + " to startup ("
-                    + String.valueOf(Double.valueOf(System.currentTimeMillis() - start) / Double.valueOf(1000.0)) + " secs)");
-            try {
-                Thread.sleep(1000 * 2);
-            } catch (InterruptedException e) {
-            }
-        }
+		while (getDriver().getVirtualFileSystemService().getStatus() != ServiceStatus.RUNNING) {
+			startuplogger.info("waiting for " + VirtualFileSystemService.class.getSimpleName() + " to startup (" + String.valueOf(Double.valueOf(System.currentTimeMillis() - start) / Double.valueOf(1000.0)) + " secs)");
+			try {
+				Thread.sleep(1000 * 2);
+			} catch (InterruptedException e) {
+			}
+		}
 
-        copy();
+		copy();
 
-        if (this.errors.get() > 0 || this.notAvailable.get() > 0) {
-            startuplogger.error("The process can not be completed due to errors");
-            return;
-        }
+		if (this.errors.get() > 0 || this.notAvailable.get() > 0) {
+			startuplogger.error("The process can not be completed due to errors");
+			return;
+		}
 
-        updateDrives();
+		updateDrives();
 
-        this.done = new AtomicBoolean(true);
-    }
+		this.done = new AtomicBoolean(true);
+	}
 
-    /**
-     * 
-     */
-    private void copy() {
+	/**
+	 * 
+	 */
+	private void copy() {
 
-        long start_ms = System.currentTimeMillis();
+		long start_ms = System.currentTimeMillis();
 
-        final int maxProcessingThread = Double.valueOf(Double.valueOf(Runtime.getRuntime().availableProcessors() - 1) / 2.0)
-                .intValue() + 1;
+		final int maxProcessingThread = Double.valueOf(Double.valueOf(Runtime.getRuntime().availableProcessors() - 1) / 2.0).intValue() + 1;
 
-        ExecutorService executor = null;
+		ExecutorService executor = null;
 
-        try {
+		try {
 
-            this.errors = new AtomicLong(0);
+			this.errors = new AtomicLong(0);
 
-            executor = Executors.newFixedThreadPool(maxProcessingThread);
+			executor = Executors.newFixedThreadPool(maxProcessingThread);
 
-            for (ServerBucket bucket : this.getDriver().getVirtualFileSystemService().listAllBuckets()) {
+			for (ServerBucket bucket : this.getDriver().getVirtualFileSystemService().listAllBuckets()) {
 
-                Integer pageSize = Integer.valueOf(ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE);
-                Long offset = Long.valueOf(0);
-                String agentId = null;
+				Integer pageSize = Integer.valueOf(ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE);
+				Long offset = Long.valueOf(0);
+				String agentId = null;
 
-                boolean done = false;
+				boolean done = false;
 
-                final Drive enabledDrive = getDriver().getDrivesEnabled().get(0);
+				final Drive enabledDrive = getDriver().getDrivesEnabled().get(0);
 
-                while (!done) {
+				while (!done) {
 
-                    DataList<Item<ObjectMetadata>> data = this.driver.getVirtualFileSystemService().listObjects(bucket.getName(),
-                            Optional.of(offset), Optional.ofNullable(pageSize), Optional.empty(), Optional.ofNullable(agentId));
+					DataList<Item<ObjectMetadata>> data = this.driver.getVirtualFileSystemService().listObjects(bucket.getName(), Optional.of(offset), Optional.ofNullable(pageSize), Optional.empty(), Optional.ofNullable(agentId));
 
-                    if (agentId == null)
-                        agentId = data.getAgentId();
+					if (agentId == null)
+						agentId = data.getAgentId();
 
-                    List<Callable<Object>> tasks = new ArrayList<>(data.getList().size());
+					List<Callable<Object>> tasks = new ArrayList<>(data.getList().size());
 
-                    for (Item<ObjectMetadata> item : data.getList()) {
-                        tasks.add(() -> {
-                            try {
+					for (Item<ObjectMetadata> item : data.getList()) {
+						tasks.add(() -> {
+							try {
 
-                                this.counter.getAndIncrement();
+								this.counter.getAndIncrement();
 
-                                if (((this.counter.get() + 1) % 50) == 0)
-                                    logger.debug("scanned (copy) so far -> " + String.valueOf(this.counter.get()));
+								if (((this.counter.get() + 1) % 50) == 0)
+									logger.debug("scanned (copy) so far -> " + String.valueOf(this.counter.get()));
 
-                                if (item.isOk()) {
-                                    for (Drive drive : getDriver().getDrivesAll()) {
+								if (item.isOk()) {
+									for (Drive drive : getDriver().getDrivesAll()) {
 
-                                        if (drive.getDriveInfo().getStatus() == DriveStatus.NOTSYNC) {
+										if (drive.getDriveInfo().getStatus() == DriveStatus.NOTSYNC) {
 
-                                            try {
+											try {
 
-                                                getLockService()
-                                                        .getObjectLock(item.getObject().bucketId, item.getObject().objectName)
-                                                        .writeLock().lock();
+												getLockService().getObjectLock(item.getObject().bucketId, item.getObject().objectName).writeLock().lock();
 
-                                                try {
+												try {
 
-                                                    getLockService().getBucketLock(bucket).readLock().lock();
+													getLockService().getBucketLock(bucket).readLock().lock();
 
-                                                    {
-                                                        /**
-                                                         * HEAD VERSION ---------------------------------------------------------
-                                                         */
-                                                        File newmeta = drive.getObjectMetadataFile(bucket,
-                                                                item.getObject().objectName);
+													{
+														/**
+														 * HEAD VERSION ---------------------------------------------------------
+														 */
+														File newmeta = drive.getObjectMetadataFile(bucket, item.getObject().objectName);
 
-                                                        // If ObjectMetadata exists -> the file was already synced, skip
+														/** If objectMetadata exists -> the file was already synced, skip */
 
-                                                        if (!newmeta.exists()) {
+														if (!newmeta.exists()) {
 
-                                                            ObjectPath path = new ObjectPath(drive, bucket,
-                                                                    item.getObject().getObjectName());
-                                                            File dataFile = path.dataFilePath().toFile();
+															ObjectPath path = new ObjectPath(drive, bucket, item.getObject().getObjectName());
+															File dataFile = path.dataFilePath().toFile();
 
-                                                            // copy data ----
-                                                            // File dataFile = ((SimpleDrive) enabledDrive)
-                                                            // .getObjectDataFile(item.getObject().bucketId,
-                                                            // item.getObject().objectName);
-                                                            //
+															try (InputStream is = new BufferedInputStream(new FileInputStream(dataFile))) {
 
-                                                            try (InputStream is = new BufferedInputStream(
-                                                                    new FileInputStream(dataFile))) {
+																String sPath = path.dataFilePath().toString();
 
-                                                                String sPath = path.dataFilePath().toString();
+																byte[] buf = new byte[ServerConstant.BUFFER_SIZE];
 
-                                                                byte[] buf = new byte[ServerConstant.BUFFER_SIZE];
+																try (BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(sPath), ServerConstant.BUFFER_SIZE)) {
+																	int bytesRead;
+																	while ((bytesRead = is.read(buf, 0, buf.length)) >= 0) {
+																		out.write(buf, 0, bytesRead);
+																	}
+																	this.totalBytes.addAndGet(dataFile.length());
+																}
+															}
+															// copy metadata ----
+															ObjectMetadata meta = item.getObject();
+															meta.drive = drive.getName();
+															drive.saveObjectMetadata(meta);
+															this.copied.getAndIncrement();
+														}
+													}
 
-                                                                // String sPath = ((SimpleDrive) drive)
-                                                                // .getObjectDataFilePath(bucket.getId(),
-                                                                // item.getObject().objectName);
+													/**
+													 * PREVIOUS VERSIONS ---------------------------------------------------------
+													 */
 
-                                                                try (BufferedOutputStream out = new BufferedOutputStream(
-                                                                        new FileOutputStream(sPath), ServerConstant.BUFFER_SIZE)) {
-                                                                    int bytesRead;
-                                                                    while ((bytesRead = is.read(buf, 0, buf.length)) >= 0) {
-                                                                        out.write(buf, 0, bytesRead);
-                                                                    }
-                                                                    this.totalBytes.addAndGet(dataFile.length());
-                                                                }
-                                                            }
-                                                            // copy metadata ----
-                                                            ObjectMetadata meta = item.getObject();
-                                                            meta.drive = drive.getName();
-                                                            drive.saveObjectMetadata(meta);
-                                                            this.copied.getAndIncrement();
-                                                        }
-                                                    }
+													if (getDriver().getVirtualFileSystemService().getServerSettings().isVersionControl()) {
 
-                                                    /**
-                                                     * PREVIOUS VERSIONS ---------------------------------------------------------
-                                                     */
+														for (int version = 0; version < item.getObject().version; version++) {
+															
+															// copy Meta Version
+															File meta_version_n = enabledDrive.getObjectMetadataVersionFile(bucket, item.getObject().objectName, version);
+															if (meta_version_n.exists()) {
+																drive.putObjectMetadataVersionFile(bucket, item.getObject().objectName, version, meta_version_n);
+															}
+															
+															// copy Data Version
+															ObjectPath path = new ObjectPath(enabledDrive, item.getObject().bucketId, item.getObject().objectName);
+															File version_n = path.dataFileVersionPath(version).toFile();
+														
+															if (version_n.exists()) {
+																((SimpleDrive) drive).putObjectDataVersionFile(item.getObject().bucketId, item.getObject().objectName, version, version_n);
+															}
+														}
+													}
 
-                                                    if (getDriver().getVirtualFileSystemService().getServerSettings()
-                                                            .isVersionControl()) {
+												} catch (Exception e) {
+													logger.error(e, SharedConstant.NOT_THROWN);
+													this.errors.getAndIncrement();
+												} finally {
+													getLockService().getBucketLock(bucket).readLock().unlock();
+												}
+											} finally {
 
-                                                        for (int version = 0; version < item.getObject().version; version++) {
-                                                            // copy Meta Version
-                                                            File meta_version_n = enabledDrive.getObjectMetadataVersionFile(bucket,
-                                                                    item.getObject().objectName, version);
-                                                            if (meta_version_n.exists()) {
-                                                                drive.putObjectMetadataVersionFile(bucket,
-                                                                        item.getObject().objectName, version, meta_version_n);
-                                                            }
-                                                            // copy Data Version
+												getLockService().getObjectLock(item.getObject().bucketId, item.getObject().objectName).writeLock().unlock();
 
-                                                            ObjectPath path = new ObjectPath(enabledDrive,
-                                                                    item.getObject().bucketId, item.getObject().objectName);
-                                                            File version_n = path.dataFileVersionPath(version).toFile();
+											}
+										}
+									}
+								} else {
+									this.notAvailable.getAndIncrement();
+								}
+							} catch (Exception e) {
+								logger.error(e, SharedConstant.NOT_THROWN);
+								this.errors.getAndIncrement();
+							}
+							return null;
+						});
+					}
 
-                                                            // File version_n = ((SimpleDrive) enabledDrive)
-                                                            // .getObjectDataVersionFile(item.getObject().bucketId,
-                                                            // item.getObject().objectName, version);
-
-                                                            if (version_n.exists()) {
-                                                                ((SimpleDrive) drive).putObjectDataVersionFile(
-                                                                        item.getObject().bucketId, item.getObject().objectName,
-                                                                        version, version_n);
-                                                            }
-                                                        }
-                                                    }
-
-                                                } catch (Exception e) {
-                                                    logger.error(e, SharedConstant.NOT_THROWN);
-                                                    this.errors.getAndIncrement();
-                                                } finally {
-                                                    getLockService().getBucketLock(bucket).readLock().unlock();
-                                                }
-                                            } finally {
-
-                                                getLockService()
-                                                        .getObjectLock(item.getObject().bucketId, item.getObject().objectName)
-                                                        .writeLock().unlock();
-
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    this.notAvailable.getAndIncrement();
-                                }
-                            } catch (Exception e) {
-                                logger.error(e, SharedConstant.NOT_THROWN);
-                                this.errors.getAndIncrement();
-                            }
-                            return null;
-                        });
-                    }
-
-                    try {
-                        executor.invokeAll(tasks, 10, TimeUnit.MINUTES);
-
-                    } catch (InterruptedException e) {
-                        logger.error(e, SharedConstant.NOT_THROWN);
-                    }
-
-                    offset += Long.valueOf(Integer.valueOf(data.getList().size()).longValue());
-                    done = (data.isEOD() || (this.errors.get() > 0) || (this.notAvailable.get() > 0));
-                }
-            }
-
-            try {
-                executor.shutdown();
-                executor.awaitTermination(15, TimeUnit.MINUTES);
-
-                logger.debug("scanned (copy) so far -> " + String.valueOf(this.counter.get()));
-
-            } catch (InterruptedException e) {
-            }
-
-        } finally {
-
-            startuplogger.info(ServerConstant.SEPARATOR);
-            startuplogger.info(this.getClass().getSimpleName() + " Process completed");
-            startuplogger.debug("Threads: " + String.valueOf(maxProcessingThread));
-            startuplogger.info("Total objects scanned: " + String.valueOf(this.counter.get()));
-            startuplogger.info("Total objects  copied: " + String.valueOf(this.copied.get()));
-            double val = Double.valueOf(totalBytes.get()).doubleValue() / SharedConstant.d_gigabyte;
-            startuplogger.info("Total size: " + String.format("%14.4f", val).trim() + " GB");
-
-            if (this.errors.get() > 0)
-                startuplogger.info("Errors: " + String.valueOf(this.errors.get()));
-
-            if (this.notAvailable.get() > 0)
-                startuplogger.info("Not available: " + String.valueOf(this.notAvailable.get()));
-
-            startuplogger.info("Duration: "
-                    + String.valueOf(Double.valueOf(System.currentTimeMillis() - start_ms) / Double.valueOf(1000)) + " secs");
-            startuplogger.info(ServerConstant.SEPARATOR);
-        }
-    }
-
-    protected RAIDOneDriver getDriver() {
-        return this.driver;
-    }
-
-    protected LockService getLockService() {
-        return this.vfsLockService;
-    }
-
-    // protected ServerBucket getBucketById(Long id) {
-    // return getDriver().getVirtualFileSystemService().getBucketById(id);
-    // }
-
-    private void updateDrives() {
-        for (Drive drive : getDriver().getDrivesAll()) {
-            if (drive.getDriveInfo().getStatus() == DriveStatus.NOTSYNC) {
-                DriveInfo info = drive.getDriveInfo();
-                info.setStatus(DriveStatus.ENABLED);
-                info.setOrder(drive.getConfigOrder());
-                drive.setDriveInfo(info);
-                getDriver().getVirtualFileSystemService().updateDriveStatus(drive);
-                startuplogger.debug("drive synced -> " + drive.getRootDirPath());
-            }
-        }
-    }
+					try {
+						executor.invokeAll(tasks, 10, TimeUnit.MINUTES);
+
+					} catch (InterruptedException e) {
+						logger.error(e, SharedConstant.NOT_THROWN);
+					}
+
+					offset += Long.valueOf(Integer.valueOf(data.getList().size()).longValue());
+					done = (data.isEOD() || (this.errors.get() > 0) || (this.notAvailable.get() > 0));
+				}
+			}
+
+			try {
+				executor.shutdown();
+				executor.awaitTermination(15, TimeUnit.MINUTES);
+
+				logger.debug("scanned (copy) so far -> " + String.valueOf(this.counter.get()));
+
+			} catch (InterruptedException e) {
+			}
+
+		} finally {
+
+			startuplogger.info(ServerConstant.SEPARATOR);
+			startuplogger.info(this.getClass().getSimpleName() + " Process completed");
+			startuplogger.debug("Threads: " + String.valueOf(maxProcessingThread));
+			startuplogger.info("Total objects scanned: " + String.valueOf(this.counter.get()));
+			startuplogger.info("Total objects  copied: " + String.valueOf(this.copied.get()));
+			double val = Double.valueOf(totalBytes.get()).doubleValue() / SharedConstant.d_gigabyte;
+			startuplogger.info("Total size: " + String.format("%14.4f", val).trim() + " GB");
+
+			if (this.errors.get() > 0)
+				startuplogger.info("Errors: " + String.valueOf(this.errors.get()));
+
+			if (this.notAvailable.get() > 0)
+				startuplogger.info("Not available: " + String.valueOf(this.notAvailable.get()));
+
+			startuplogger.info("Duration: " + String.valueOf(Double.valueOf(System.currentTimeMillis() - start_ms) / Double.valueOf(1000)) + " secs");
+			startuplogger.info(ServerConstant.SEPARATOR);
+		}
+	}
+
+	protected RAIDOneDriver getDriver() {
+		return this.driver;
+	}
+
+	protected LockService getLockService() {
+		return this.vfsLockService;
+	}
+
+	 
+
+	private void updateDrives() {
+		for (Drive drive : getDriver().getDrivesAll()) {
+			if (drive.getDriveInfo().getStatus() == DriveStatus.NOTSYNC) {
+				DriveInfo info = drive.getDriveInfo();
+				info.setStatus(DriveStatus.ENABLED);
+				info.setOrder(drive.getConfigOrder());
+				drive.setDriveInfo(info);
+				getDriver().getVirtualFileSystemService().updateDriveStatus(drive);
+				startuplogger.debug("drive synced -> " + drive.getRootDirPath());
+			}
+		}
+	}
 
 }

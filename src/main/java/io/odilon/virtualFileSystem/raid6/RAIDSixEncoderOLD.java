@@ -44,6 +44,7 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
+@Deprecated
 public class RAIDSixEncoderOLD extends RAIDSixCoder {
 
     @JsonIgnore

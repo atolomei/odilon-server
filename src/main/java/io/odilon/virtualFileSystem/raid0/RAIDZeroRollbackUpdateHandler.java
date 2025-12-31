@@ -35,108 +35,108 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
  */
 public class RAIDZeroRollbackUpdateHandler extends RAIDZeroRollbackObjectHandler {
 
-    private static Logger logger = Logger.getLogger(RAIDZeroRollbackUpdateHandler.class.getName());
+	private static Logger logger = Logger.getLogger(RAIDZeroRollbackUpdateHandler.class.getName());
 
-    public RAIDZeroRollbackUpdateHandler(RAIDZeroDriver driver, VirtualFileSystemOperation operation, boolean recoveryMode) {
-        super(driver, operation, recoveryMode);
-    }
+	public RAIDZeroRollbackUpdateHandler(RAIDZeroDriver driver, VirtualFileSystemOperation operation, boolean recoveryMode) {
+		super(driver, operation, recoveryMode);
+	}
 
-    @Override
-    protected void rollback() {
+	@Override
+	protected void rollback() {
 
-        switch (getOperation().getOperationCode()) {
-        case UPDATE_OBJECT: {
-            rollbackUpdate();
-            break;
-        }
-        case UPDATE_OBJECT_METADATA: {
-            rollbackUpdateMetadata();
-            break;
-        }
-        default: {
-            break;
-        }
-        }
-    }
+		switch (getOperation().getOperationCode()) {
+		case UPDATE_OBJECT: {
+			rollbackUpdate();
+			break;
+		}
+		case UPDATE_OBJECT_METADATA: {
+			rollbackUpdateMetadata();
+			break;
+		}
+		default: {
+			break;
+		}
+		}
+	}
 
-    /**
-     * @param op
-     * @param recoveryMode
-     */
-    private void rollbackUpdate() {
+	/**
+	 * @param op
+	 * @param recoveryMode
+	 */
+	private void rollbackUpdate() {
 
-        boolean done = false;
-        try {
-            restoreVersion();
-            done = true;
+		boolean done = false;
+		try {
+			restoreVersion();
+			done = true;
 
-        } catch (InternalCriticalException e) {
-            if (!isRecovery())
-                throw (e);
-            else
-                logger.error(info(), SharedConstant.NOT_THROWN);
+		} catch (InternalCriticalException e) {
+			if (!isRecovery())
+				throw (e);
+			else
+				logger.error(info(), SharedConstant.NOT_THROWN);
 
-        } catch (Exception e) {
-            if (!isRecovery())
-                throw new InternalCriticalException(e, info());
-            else
-                logger.error(info(), SharedConstant.NOT_THROWN);
-        } finally {
-            if (done || isRecovery()) {
-                getOperation().cancel();
-            }
-        }
-    }
+		} catch (Exception e) {
+			if (!isRecovery())
+				throw new InternalCriticalException(e, info());
+			else
+				logger.error(info(), SharedConstant.NOT_THROWN);
+		} finally {
+			if (done || isRecovery()) {
+				getOperation().cancel();
+			}
+		}
+	}
 
-    /**
-     * @param operation
-     * @param recoveryMode
-     */
-    private void rollbackUpdateMetadata() {
-        boolean done = false;
-        try {
-            FileUtils.copyDirectory(getObjectPath().metadataBackupDirPath().toFile(), getObjectPath().metadataDirPath().toFile());
-            done = true;
-        } catch (InternalCriticalException e) {
-            if (!isRecovery())
-                throw (e);
-            else
-                logger.error(e, info(), SharedConstant.NOT_THROWN);
-        } catch (Exception e) {
-            if (!isRecovery())
-                throw new InternalCriticalException(e, info());
-            else
-                logger.error(e, info(), SharedConstant.NOT_THROWN);
-        } finally {
-            if (done || isRecovery()) {
-                getOperation().cancel();
-            }
-        }
-    }
+	/**
+	 * @param operation
+	 * @param recoveryMode
+	 */
+	private void rollbackUpdateMetadata() {
+		boolean done = false;
+		try {
+			FileUtils.copyDirectory(getObjectPath().metadataBackupDirPath().toFile(), getObjectPath().metadataDirPath().toFile());
+			done = true;
+		} catch (InternalCriticalException e) {
+			if (!isRecovery())
+				throw (e);
+			else
+				logger.error(e, info(), SharedConstant.NOT_THROWN);
+		} catch (Exception e) {
+			if (!isRecovery())
+				throw new InternalCriticalException(e, info());
+			else
+				logger.error(e, info(), SharedConstant.NOT_THROWN);
+		} finally {
+			if (done || isRecovery()) {
+				getOperation().cancel();
+			}
+		}
+	}
 
-    private void restoreVersion() {
-        ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
-        try {
-            Drive drive = getWriteDrive(bucket, getOperation().getObjectName());
-            ObjectPath path = new ObjectPath(drive, bucket, getOperation().getObjectName());
-            File file = path.dataFileVersionPath(getOperation().getVersion()).toFile();
-            if (file.exists()) {
-                ((SimpleDrive) drive).putObjectDataFile(bucket.getId(), getOperation().getObjectName(), file);
-                FileUtils.deleteQuietly(file);
-            }
-        } catch (Exception e) {
-            throw new InternalCriticalException(e, info());
-        }
+	private void restoreVersion() {
+		ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
+		try {
+			Drive drive = getWriteDrive(bucket, getOperation().getObjectName());
+			ObjectPath path = new ObjectPath(drive, bucket, getOperation().getObjectName());
+			File file = path.dataFileVersionPath(getOperation().getVersion()).toFile();
+			if (file.exists()) {
+				((SimpleDrive) drive).putObjectDataFile(bucket.getId(), getOperation().getObjectName(), file);
+				FileUtils.deleteQuietly(file);
+			}
+		} catch (Exception e) {
+			throw new InternalCriticalException(e, info());
+		}
 
-        try {
-            Drive drive = getWriteDrive(bucket, getOperation().getObjectName());
-            File file = drive.getObjectMetadataVersionFile(bucket, getOperation().getObjectName(), getOperation().getVersion());
-            if (file.exists()) {
-                drive.putObjectMetadataFile(bucket, getOperation().getObjectName(), file);
-                FileUtils.deleteQuietly(file);
-            }
-        } catch (Exception e) {
-            throw new InternalCriticalException(e, info());
-        }
-    }
+		try {
+			Drive drive = getWriteDrive(bucket, getOperation().getObjectName());
+			File file = drive.getObjectMetadataVersionFile(bucket, getOperation().getObjectName(), getOperation().getVersion());
+			if (file.exists()) {
+				drive.putObjectMetadataFile(bucket, getOperation().getObjectName(), file);
+				FileUtils.deleteQuietly(file);
+			}
+		} catch (Exception e) {
+			throw new InternalCriticalException(e, info());
+		}
+	}
 }

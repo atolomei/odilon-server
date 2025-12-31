@@ -49,125 +49,124 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 @ThreadSafe
 public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionObjectHandler {
 
-    private static Logger logger = Logger.getLogger(RAIDZeroUpdateObjectHandler.class.getName());
+	private static Logger logger = Logger.getLogger(RAIDZeroUpdateObjectHandler.class.getName());
 
-    /**
-     * <p>
-     * All {@link RAIDHandler} are used internally by the corresponding RAID Driver.
-     * in this case by {@code RAIDZeroDriver}
-     * </p>
-     */
-    protected RAIDZeroUpdateObjectHandler(RAIDZeroDriver driver, ServerBucket bucket, String objectName) {
-        super(driver, bucket, objectName);
-    }
+	/**
+	 * <p>
+	 * All {@link RAIDHandler} are used internally by the corresponding RAID Driver.
+	 * in this case by {@code RAIDZeroDriver}
+	 * </p>
+	 */
+	protected RAIDZeroUpdateObjectHandler(RAIDZeroDriver driver, ServerBucket bucket, String objectName) {
+		super(driver, bucket, objectName);
+	}
 
-    protected void update(InputStream stream, String srcFileName, String contentType, Optional<List<String>> customTags) {
+	protected void update(InputStream stream, String srcFileName, String contentType, Optional<List<String>> customTags) {
 
-        boolean isMaixException = false;
-        boolean commitOK = false;
-        VirtualFileSystemOperation operation = null;
-        int beforeHeadVersion = -1;
-        
-        objectWriteLock();
-        try {
+		boolean isMaixException = false;
+		boolean commitOK = false;
+		VirtualFileSystemOperation operation = null;
+		int beforeHeadVersion = -1;
 
-            bucketReadLock();
-            try (stream) {
+		objectWriteLock();
+		try {
 
-                checkExistsBucket();
-                checkExistObject();
+			bucketReadLock();
+			try (stream) {
 
-                ObjectMetadata meta = getMetadata();
-                beforeHeadVersion = meta.getVersion();
+				checkExistsBucket();
+				checkExistObject();
 
-                /** backup (current head version) */
-                backup(meta.getVersion());
+				ObjectMetadata meta = getMetadata();
+				beforeHeadVersion = meta.getVersion();
 
-                /** start operation */
-                operation = updateObject(meta.getVersion());
+				/** backup (current head version) */
+				backup(meta.getVersion());
 
-                /** copy new version head version */
-                save(stream, srcFileName, contentType, meta.getVersion() + 1, customTags);
+				/** start operation */
+				operation = updateObject(meta.getVersion());
 
-                /** commit */
-                commitOK = operation.commit();
+				/** copy new version head version */
+				save(stream, srcFileName, contentType, meta.getVersion() + 1, customTags);
 
-            } catch (OdilonObjectNotFoundException e1) {
-                isMaixException = true;
-                throw e1;
-            } catch (InternalCriticalException e2) {
-                isMaixException = true;
-                throw e2;
-            } catch (Exception e) {
-                isMaixException = true;
-                throw new InternalCriticalException(e, info());
+				/** commit */
+				commitOK = operation.commit();
 
-            } finally {
-                try {
-                    if (!commitOK) {
-                        try {
-                            rollback(operation);
-                        } catch (Exception e) {
-                            if (!isMaixException)
-                                throw new InternalCriticalException(e, info());
-                            else
-                                logger.error(e, info(), SharedConstant.NOT_THROWN);
-                        }
-                    } else {
-                        /**
-                         * TODO AT -> This is Sync by the moment, see how to make it Async This clean up
-                         * is executed after the commit by the transaction thread, and therefore all
-                         * locks are still applied. Also it is required to be fast<br/>
-                         */
-                        try {
-                            if ((!isVersionControl()) && (beforeHeadVersion >= 0)) {
-                                FileUtils.deleteQuietly(getObjectPath().metadataFileVersionPath(beforeHeadVersion).toFile());
-                                FileUtils.deleteQuietly(getObjectPath().dataFileVersionPath(beforeHeadVersion).toFile());
-                            }
-                        } catch (Exception e) {
-                            logger.error(e, SharedConstant.NOT_THROWN);
-                        }
-                    }
-                } finally {
-                    bucketReadUnLock();
-                }
-            }
-        } finally {
-            objectWriteUnLock();
-        }
-    }
+			} catch (OdilonObjectNotFoundException e1) {
+				isMaixException = true;
+				throw e1;
+			} catch (InternalCriticalException e2) {
+				isMaixException = true;
+				throw e2;
+			} catch (Exception e) {
+				isMaixException = true;
+				throw new InternalCriticalException(e, info());
 
-    private void save(InputStream stream, String srcFileName, String contentType, int afterHeadVersion, Optional<List<String>> customTags) {
-        saveData(getBucket(), getObjectName(), stream, srcFileName);
-        saveMetadata(getBucket(), getObjectName(), srcFileName, contentType, afterHeadVersion, customTags);
-    }
+			} finally {
+				try {
+					if (!commitOK) {
+						try {
+							rollback(operation);
+						} catch (Exception e) {
+							if (!isMaixException)
+								throw new InternalCriticalException(e, info());
+							else
+								logger.error(e, info(), SharedConstant.NOT_THROWN);
+						}
+					} else {
+						/**
+						 * TODO AT -> This is Sync by the moment, see how to make it Async This clean up
+						 * is executed after the commit by the transaction thread, and therefore all
+						 * locks are still applied. Also it is required to be fast<br/>
+						 */
+						try {
+							if ((!isVersionControl()) && (beforeHeadVersion >= 0)) {
+								FileUtils.deleteQuietly(getObjectPath().metadataFileVersionPath(beforeHeadVersion).toFile());
+								FileUtils.deleteQuietly(getObjectPath().dataFileVersionPath(beforeHeadVersion).toFile());
+							}
+						} catch (Exception e) {
+							logger.error(e, SharedConstant.NOT_THROWN);
+						}
+					}
+				} finally {
+					bucketReadUnLock();
+				}
+			}
+		} finally {
+			objectWriteUnLock();
+		}
+	}
 
-    /**
-     * backup current head version
-     */
-    private void backup(int version) {
+	private void save(InputStream stream, String srcFileName, String contentType, int afterHeadVersion, Optional<List<String>> customTags) {
+		saveData(getBucket(), getObjectName(), stream, srcFileName);
+		saveMetadata(getBucket(), getObjectName(), srcFileName, contentType, afterHeadVersion, customTags);
+	}
 
-        /** version data */
-        Drive drive = getWriteDrive(getBucket(), getObjectName());
-        try {
-            ObjectPath path = getObjectPath();
-            File file = path.dataFilePath().toFile();
-            ((SimpleDrive) drive).putObjectDataVersionFile(getBucket().getId(), getObjectName(), version, file);
-        } catch (Exception e) {
-            throw new InternalCriticalException(e, info());
-        }
+	/**
+	 * backup current head version
+	 */
+	private void backup(int version) {
 
-        /** version metadata */
-        try {
-            drive.putObjectMetadataVersionFile(getBucket(), getObjectName(), version, drive.getObjectMetadataFile(getBucket(), getObjectName()));
-        } catch (Exception e) {
-            throw new InternalCriticalException(e, info());
-        }
-    }
-    
-    private VirtualFileSystemOperation updateObject(int beforeHeadVersion) {
-        return updateObject(getBucket(), getObjectName(), beforeHeadVersion);
-    }
+		/** version data */
+		Drive drive = getWriteDrive(getBucket(), getObjectName());
+		try {
+			ObjectPath path = getObjectPath();
+			File file = path.dataFilePath().toFile();
+			((SimpleDrive) drive).putObjectDataVersionFile(getBucket().getId(), getObjectName(), version, file);
+		} catch (Exception e) {
+			throw new InternalCriticalException(e, info());
+		}
 
+		/** version metadata */
+		try {
+			drive.putObjectMetadataVersionFile(getBucket(), getObjectName(), version, drive.getObjectMetadataFile(getBucket(), getObjectName()));
+		} catch (Exception e) {
+			throw new InternalCriticalException(e, info());
+		}
+	}
+
+	private VirtualFileSystemOperation updateObject(int beforeHeadVersion) {
+		return updateObject(getBucket(), getObjectName(), beforeHeadVersion);
+	}
 
 }

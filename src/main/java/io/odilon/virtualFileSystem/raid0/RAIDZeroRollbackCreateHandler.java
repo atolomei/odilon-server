@@ -33,32 +33,32 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
  */
 public class RAIDZeroRollbackCreateHandler extends RAIDZeroRollbackObjectHandler {
 
-    private static Logger logger = Logger.getLogger(RAIDZeroRollbackCreateHandler.class.getName());
+	private static Logger logger = Logger.getLogger(RAIDZeroRollbackCreateHandler.class.getName());
 
-    public RAIDZeroRollbackCreateHandler(RAIDZeroDriver driver, VirtualFileSystemOperation operation, boolean recovery) {
-        super(driver, operation, recovery);
-    }
+	public RAIDZeroRollbackCreateHandler(RAIDZeroDriver driver, VirtualFileSystemOperation operation, boolean recovery) {
+		super(driver, operation, recovery);
+	}
 
-    @Override
-    protected void rollback() {
-        boolean rollbackOK = false;
-        try {
-            FileUtils.deleteQuietly(getObjectPath().metadataDirPath().toFile());
-            FileUtils.deleteQuietly(getObjectPath().dataFilePath().toFile());
-            rollbackOK = true;
-        } catch (InternalCriticalException e) {
-            if (!isRecovery())
-                throw (e);
-            else
-                logger.error(e, info(), SharedConstant.NOT_THROWN);
-        } catch (Exception e) {
-            if (!isRecovery())
-                throw new InternalCriticalException(e, info());
-            else
-                logger.error(e, info(), SharedConstant.NOT_THROWN);
-        } finally {
-            if (rollbackOK || isRecovery())
-                getOperation().cancel();
-        }
-    }
+	@Override
+	protected void rollback() {
+		boolean rollbackOK = false;
+		try {
+			FileUtils.deleteQuietly(getObjectPath().metadataDirPath().toFile());
+			FileUtils.deleteQuietly(getObjectPath().dataFilePath().toFile());
+			rollbackOK = true;
+		} catch (InternalCriticalException e) {
+			if (!isRecovery())
+				throw (e);
+			else
+				logger.error(e, info(), SharedConstant.NOT_THROWN);
+		} catch (Exception e) {
+			if (!isRecovery())
+				throw new InternalCriticalException(e, info());
+			else
+				logger.error(e, info(), SharedConstant.NOT_THROWN);
+		} finally {
+			if (rollbackOK || isRecovery())
+				getOperation().cancel();
+		}
+	}
 }

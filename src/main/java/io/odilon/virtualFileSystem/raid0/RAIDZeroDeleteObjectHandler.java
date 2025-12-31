@@ -38,103 +38,102 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 @ThreadSafe
 public class RAIDZeroDeleteObjectHandler extends RAIDZeroTransactionObjectHandler {
 
-    private static Logger logger = Logger.getLogger(RAIDZeroDeleteObjectHandler.class.getName());
+	private static Logger logger = Logger.getLogger(RAIDZeroDeleteObjectHandler.class.getName());
 
-    protected RAIDZeroDeleteObjectHandler(RAIDZeroDriver driver, ServerBucket bucket, String objectName) {
-        super(driver, bucket, objectName);
-    }
+	protected RAIDZeroDeleteObjectHandler(RAIDZeroDriver driver, ServerBucket bucket, String objectName) {
+		super(driver, bucket, objectName);
+	}
 
-    protected void delete() {
+	protected void delete() {
 
-        VirtualFileSystemOperation operation = null;
-        boolean commitOK = false;
-        boolean isMainException = false;
-        int headVersion = -1;
+		VirtualFileSystemOperation operation = null;
+		boolean commitOK = false;
+		boolean isMainException = false;
+		int headVersion = -1;
 
-        objectWriteLock();
-        try {
+		objectWriteLock();
+		try {
 
-            bucketReadLock();
-            try {
+			bucketReadLock();
+			try {
 
-                checkExistsBucket();
-                checkExistObject();
+				checkExistsBucket();
+				checkExistObject();
 
-                headVersion = getMetadata().getVersion();
+				headVersion = getMetadata().getVersion();
 
-                /** backup */
-                FileUtils.copyDirectory(getObjectPath().metadataDirPath().toFile(),
-                        getObjectPath().metadataBackupDirPath().toFile());
+				/** backup */
+				FileUtils.copyDirectory(getObjectPath().metadataDirPath().toFile(), getObjectPath().metadataBackupDirPath().toFile());
 
-                /** start operation */
-                operation = deleteObjectOperation(getMetadata().getVersion());
+				/** start operation */
+				operation = deleteObjectOperation(getMetadata().getVersion());
 
-                /** Delete metadata directory */
-                FileUtils.deleteQuietly(getObjectPath().metadataDirPath().toFile());
+				/** Delete metadata directory */
+				FileUtils.deleteQuietly(getObjectPath().metadataDirPath().toFile());
 
-                /** commit */
-                commitOK = operation.commit();
+				/** commit */
+				commitOK = operation.commit();
 
-            } catch (OdilonObjectNotFoundException e1) {
-                isMainException = true;
-                throw e1;
-            } catch (InternalCriticalException e) {
-                isMainException = true;
-                throw e;
-            } catch (Exception e) {
-                isMainException = true;
-                throw new InternalCriticalException(e, info());
-            } finally {
-                try {
-                    if (commitOK) {
-                        remove(headVersion);
-                    } else {
-                        try {
-                            rollback(operation);
-                        } catch (Exception e) {
-                            if (!isMainException)
-                                throw e;
-                            else
-                                logger.error(e, info(), SharedConstant.NOT_THROWN);
-                        }
-                    }
-                } finally {
-                    bucketReadUnLock();
-                }
-            }
-        } finally {
-            objectWriteUnLock();
-        }
-    }
+			} catch (OdilonObjectNotFoundException e1) {
+				isMainException = true;
+				throw e1;
+			} catch (InternalCriticalException e) {
+				isMainException = true;
+				throw e;
+			} catch (Exception e) {
+				isMainException = true;
+				throw new InternalCriticalException(e, info());
+			} finally {
+				try {
+					if (commitOK) {
+						remove(headVersion);
+					} else {
+						try {
+							rollback(operation);
+						} catch (Exception e) {
+							if (!isMainException)
+								throw e;
+							else
+								logger.error(e, info(), SharedConstant.NOT_THROWN);
+						}
+					}
+				} finally {
+					bucketReadUnLock();
+				}
+			}
+		} finally {
+			objectWriteUnLock();
+		}
+	}
 
-    /**
-     * <p>
-     * This method is executed by the delete thread. It does not need to control
-     * concurrent access because the caller method does it. It must be fast since it
-     * is part of the main transaction.
-     * </p>
-     */
-    private void remove(int headVersion) {
-        try {
+	/**
+	 * <p>
+	 * This method is executed by the delete thread. It does not need to control
+	 * concurrent access because the caller method does it. It must be fast since it
+	 * is part of the main transaction.
+	 * </p>
+	 */
+	private void remove(int headVersion) {
+		try {
 
-            /** delete metadata (head) not required because it was done before commit */
+			/** delete metadata (head) not required because it was done before commit */
 
-            /** delete data versions(1..n-1) */
-            for (int version = 0; version <= headVersion; version++)
-                FileUtils.deleteQuietly(getObjectPath().dataFileVersionPath(version).toFile());
+			/** delete data versions(1..n-1) */
+			for (int version = 0; version <= headVersion; version++)
+				FileUtils.deleteQuietly(getObjectPath().dataFileVersionPath(version).toFile());
 
-            /** delete data (head) */
-            FileUtils.deleteQuietly(getObjectPath().dataFilePath().toFile());
+			/** delete data (head) */
+			FileUtils.deleteQuietly(getObjectPath().dataFilePath().toFile());
 
-            /** delete backup metadata */
-            FileUtils.deleteQuietly(getObjectPath().metadataWorkFilePath().toFile());
+			/** delete backup metadata */
+			FileUtils.deleteQuietly(getObjectPath().metadataWorkFilePath().toFile());
 
-        } catch (Exception e) {
-            logger.error(e, info(), SharedConstant.NOT_THROWN);
-        }
-    }
+		} catch (Exception e) {
+			logger.error(e, info(), SharedConstant.NOT_THROWN);
+		}
+	}
 
-    private VirtualFileSystemOperation deleteObjectOperation(int headVersion) {
-        return deleteObject(getBucket(), getObjectName(), headVersion);
-    }
+	private VirtualFileSystemOperation deleteObjectOperation(int headVersion) {
+		return deleteObject(getBucket(), getObjectName(), headVersion);
+	}
 }

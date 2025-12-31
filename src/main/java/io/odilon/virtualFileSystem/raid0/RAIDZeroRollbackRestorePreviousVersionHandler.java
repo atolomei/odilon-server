@@ -35,55 +35,54 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
  */
 public class RAIDZeroRollbackRestorePreviousVersionHandler extends RAIDZeroRollbackHandler {
 
-    private static Logger logger = Logger.getLogger(RAIDZeroRollbackRestorePreviousVersionHandler.class.getName());
+	private static Logger logger = Logger.getLogger(RAIDZeroRollbackRestorePreviousVersionHandler.class.getName());
 
-    public RAIDZeroRollbackRestorePreviousVersionHandler(RAIDZeroDriver driver, VirtualFileSystemOperation operation,
-            boolean recoveryMode) {
-        super(driver, operation, recoveryMode);
-    }
+	public RAIDZeroRollbackRestorePreviousVersionHandler(RAIDZeroDriver driver, VirtualFileSystemOperation operation, boolean recoveryMode) {
+		super(driver, operation, recoveryMode);
+	}
 
-    @Override
-    protected void rollback() {
+	@Override
+	protected void rollback() {
 
-        boolean done = false;
-        try {
-            
-            ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
-            Drive drive = getWriteDrive(bucket, getOperation().getObjectName());
-            ObjectPath path = new ObjectPath(drive, bucket, getOperation().getObjectName());
+		boolean done = false;
+		try {
 
-            /** restore data file */
-            File fileData = path.dataFileVersionPath(getOperation().getVersion()).toFile();
-            if (fileData.exists()) {
-                ((SimpleDrive) drive).putObjectDataFile(bucket.getId(), getOperation().getObjectName(), fileData);
-                FileUtils.deleteQuietly(fileData);
-            }
+			ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
+			Drive drive = getWriteDrive(bucket, getOperation().getObjectName());
+			ObjectPath path = new ObjectPath(drive, bucket, getOperation().getObjectName());
 
-            /** restore metadata */
-            File fileMetadta = drive.getObjectMetadataVersionFile(bucket, getOperation().getObjectName(), getOperation().getVersion());
-            if (fileMetadta.exists()) {
-                drive.putObjectMetadataFile(bucket, getOperation().getObjectName(), fileMetadta);
-                FileUtils.deleteQuietly(fileMetadta);
-            }
+			/** restore data file */
+			File fileData = path.dataFileVersionPath(getOperation().getVersion()).toFile();
+			if (fileData.exists()) {
+				((SimpleDrive) drive).putObjectDataFile(bucket.getId(), getOperation().getObjectName(), fileData);
+				FileUtils.deleteQuietly(fileData);
+			}
 
-            done = true;
+			/** restore metadata */
+			File fileMetadta = drive.getObjectMetadataVersionFile(bucket, getOperation().getObjectName(), getOperation().getVersion());
+			if (fileMetadta.exists()) {
+				drive.putObjectMetadataFile(bucket, getOperation().getObjectName(), fileMetadta);
+				FileUtils.deleteQuietly(fileMetadta);
+			}
 
-        } catch (InternalCriticalException e) {
-            if (!isRecovery())
-                throw (e);
-            else
-                logger.error(info(), SharedConstant.NOT_THROWN);
+			done = true;
 
-        } catch (Exception e) {
-            if (!isRecovery())
-                throw new InternalCriticalException(e, info());
-            else
-                logger.error(info(), SharedConstant.NOT_THROWN);
-        } finally {
-            if (done || isRecovery()) {
-                getOperation().cancel();
-            }
-        }
-    }
+		} catch (InternalCriticalException e) {
+			if (!isRecovery())
+				throw (e);
+			else
+				logger.error(info(), SharedConstant.NOT_THROWN);
+
+		} catch (Exception e) {
+			if (!isRecovery())
+				throw new InternalCriticalException(e, info());
+			else
+				logger.error(info(), SharedConstant.NOT_THROWN);
+		} finally {
+			if (done || isRecovery()) {
+				getOperation().cancel();
+			}
+		}
+	}
 
 }

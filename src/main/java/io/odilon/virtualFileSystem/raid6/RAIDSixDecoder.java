@@ -27,7 +27,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.ByteBuffer;
+
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.Optional;
@@ -193,31 +193,31 @@ public class RAIDSixDecoder extends RAIDSixCoder {
 			}
 		}
 
-		// 2️⃣ Validate quorum
+		// Validate quorum
 		if (shardCount < this.data_shards) {
 			throw new InternalCriticalException("We need at least " + this.data_shards + " shards to reconstruct | " + objectInfo(meta));
 		}
 
-		// 3️⃣ Allocate missing shards
+		// ️Allocate missing shards
 		for (int i = 0; i < this.total_shards; i++) {
 			if (!shardPresent[i]) {
 				shards[i] = new byte[shardSize];
 			}
 		}
 
-		// 4️⃣ Reconstruct missing shards
+		// Reconstruct missing shards
 		reedSolomon.decodeMissing(shards, shardPresent, 0, shardSize);
 
-		// 5️⃣ Reassemble directly into pooled buffer
+		// Reassemble directly into pooled buffer
 		byte[] allBytes = getBullferPoolService().acquire();
 		try {
 			for (int i = 0; i < this.data_shards; i++) {
 				System.arraycopy(shards[i], 0, allBytes, i * shardSize, shardSize);
 			}
-			// 6️⃣ Read payload size (no ByteBuffer)
+			// Read payload size (no ByteBuffer)
 			int fileSize = ((allBytes[0] & 0xFF) << 24) | ((allBytes[1] & 0xFF) << 16) | ((allBytes[2] & 0xFF) << 8) | (allBytes[3] & 0xFF);
 
-			// 7️⃣ Write payload
+			// Write payload
 			out.write(allBytes, ServerConstant.BYTES_IN_INT, fileSize);
 
 		} catch (IOException e) {
@@ -251,81 +251,6 @@ public class RAIDSixDecoder extends RAIDSixCoder {
 		}
 	}
 
-	/**
-	 * private boolean decodeChunkV2(ObjectMetadata meta, ServerBucket bucket, int
-	 * chunk, OutputStream out, boolean isHead) {
-	 * 
-	 * 
-	 * final byte[][] shards = new byte[this.total_shards][]; // BUFFER 3 final
-	 * boolean[] shardPresent = new boolean[this.total_shards];
-	 * 
-	 * for (int i = 0; i < shardPresent.length; i++) shardPresent[i] = false;
-	 * 
-	 * int shardSize = 0; int shardCount = 0;
-	 * 
-	 * Map<Integer, Drive> map = this.getMapDrivesRSDecode();
-	 * 
-	 * for (int counter = 0; counter < getTotalShards(); counter++) {
-	 * 
-	 * 
-	 * File shardFile = null;
-	 * 
-	 * Drive drive = map.get(Integer.valueOf(counter));
-	 * 
-	 * if (drive != null) { int disk = drive.getConfigOrder();
-	 * 
-	 * shardFile = (isHead) ? (new File(drive.getBucketObjectDataDirPath(bucket),
-	 * meta.getObjectName() + "." + String.valueOf(chunk) + "." +
-	 * String.valueOf(disk))) : (new File(drive.getBucketObjectDataDirPath(bucket) +
-	 * File.separator + VirtualFileSystemService.VERSION_DIR, meta.getObjectName() +
-	 * "." + String.valueOf(chunk) + "." + String.valueOf(disk) + ".v" +
-	 * String.valueOf(meta.getVersion()))); }
-	 * 
-	 * if ((shardFile != null) && (shardFile.exists())) {
-	 * 
-	 * int disk = drive.getConfigOrder(); shardSize = (int) shardFile.length();
-	 * shards[disk] = new byte[shardSize]; // BUFFER 4 shardPresent[disk] = true;
-	 * shardCount += 1;
-	 * 
-	 * try (InputStream in = new BufferedInputStream(new
-	 * FileInputStream(shardFile))) { in.read(shards[disk], 0, shardSize); } catch
-	 * (FileNotFoundException e) { logger.error(getDriver().objectInfo(meta) + " |
-	 * f:" + shardFile.getName() + (isHead ? "" : (" v:" +
-	 * String.valueOf(meta.getVersion()))), SharedConstant.NOT_THROWN);
-	 * shardPresent[disk] = false; } catch (IOException e) {
-	 * logger.error(objectInfo(meta) + " | f:" + shardFile.getName() + (isHead ? ""
-	 * : (" v:" + String.valueOf(meta.getVersion()))), SharedConstant.NOT_THROWN);
-	 * shardPresent[disk] = false; } } }
-	 * 
-	 * 
-	 * if (shardCount < this.data_shards) { throw new InternalCriticalException("We
-	 * need at least " + String.valueOf(this.data_shards) + " shards to be able to
-	 * reconstruct the data file | " + objectInfo(meta) + " | f:" + (isHead ? "" :
-	 * (" v:" + String.valueOf(meta.version))) + " | shardCount: " +
-	 * String.valueOf(shardCount)); }
-	 * 
-	 * 
-	 * for (int i = 0; i < this.total_shards; i++) { if (!shardPresent[i]) shards[i]
-	 * = new byte[shardSize]; // BUFFER 5 }
-	 * 
-	 * 
-	 * ReedSolomon reedSolomon = new ReedSolomon(this.data_shards,
-	 * this.parity_shards);
-	 * 
-	 * reedSolomon.decodeMissing(shards, shardPresent, 0, shardSize);
-	 * 
-	 * byte[] allBytes = new byte[shardSize * this.data_shards]; // BUFFER 6 for
-	 * (int i = 0; i < this.data_shards; i++) System.arraycopy(shards[i], 0,
-	 * allBytes, shardSize * i, shardSize);
-	 * 
-	 * 
-	 * int fileSize = ByteBuffer.wrap(allBytes).getInt();
-	 * 
-	 * try { out.write(allBytes, ServerConstant.BYTES_IN_INT, fileSize); } catch
-	 * (IOException e) { throw new InternalCriticalException(e, objectInfo(meta)); }
-	 * return true; }
-	 */
-
 	private final Map<Integer, Drive> getMapDrivesRSDecode() {
 		return getDriver().getVirtualFileSystemService().getMapDrivesRSDecode();
 	}
@@ -346,3 +271,78 @@ public class RAIDSixDecoder extends RAIDSixCoder {
 		return this.total_shards;
 	}
 }
+
+/**
+ * private boolean decodeChunkV2(ObjectMetadata meta, ServerBucket bucket, int
+ * chunk, OutputStream out, boolean isHead) {
+ * 
+ * 
+ * final byte[][] shards = new byte[this.total_shards][]; // BUFFER 3 final
+ * boolean[] shardPresent = new boolean[this.total_shards];
+ * 
+ * for (int i = 0; i < shardPresent.length; i++) shardPresent[i] = false;
+ * 
+ * int shardSize = 0; int shardCount = 0;
+ * 
+ * Map<Integer, Drive> map = this.getMapDrivesRSDecode();
+ * 
+ * for (int counter = 0; counter < getTotalShards(); counter++) {
+ * 
+ * 
+ * File shardFile = null;
+ * 
+ * Drive drive = map.get(Integer.valueOf(counter));
+ * 
+ * if (drive != null) { int disk = drive.getConfigOrder();
+ * 
+ * shardFile = (isHead) ? (new File(drive.getBucketObjectDataDirPath(bucket),
+ * meta.getObjectName() + "." + String.valueOf(chunk) + "." +
+ * String.valueOf(disk))) : (new File(drive.getBucketObjectDataDirPath(bucket) +
+ * File.separator + VirtualFileSystemService.VERSION_DIR, meta.getObjectName() +
+ * "." + String.valueOf(chunk) + "." + String.valueOf(disk) + ".v" +
+ * String.valueOf(meta.getVersion()))); }
+ * 
+ * if ((shardFile != null) && (shardFile.exists())) {
+ * 
+ * int disk = drive.getConfigOrder(); shardSize = (int) shardFile.length();
+ * shards[disk] = new byte[shardSize]; // BUFFER 4 shardPresent[disk] = true;
+ * shardCount += 1;
+ * 
+ * try (InputStream in = new BufferedInputStream(new
+ * FileInputStream(shardFile))) { in.read(shards[disk], 0, shardSize); } catch
+ * (FileNotFoundException e) { logger.error(getDriver().objectInfo(meta) + " |
+ * f:" + shardFile.getName() + (isHead ? "" : (" v:" +
+ * String.valueOf(meta.getVersion()))), SharedConstant.NOT_THROWN);
+ * shardPresent[disk] = false; } catch (IOException e) {
+ * logger.error(objectInfo(meta) + " | f:" + shardFile.getName() + (isHead ? ""
+ * : (" v:" + String.valueOf(meta.getVersion()))), SharedConstant.NOT_THROWN);
+ * shardPresent[disk] = false; } } }
+ * 
+ * 
+ * if (shardCount < this.data_shards) { throw new InternalCriticalException("We
+ * need at least " + String.valueOf(this.data_shards) + " shards to be able to
+ * reconstruct the data file | " + objectInfo(meta) + " | f:" + (isHead ? "" :
+ * (" v:" + String.valueOf(meta.version))) + " | shardCount: " +
+ * String.valueOf(shardCount)); }
+ * 
+ * 
+ * for (int i = 0; i < this.total_shards; i++) { if (!shardPresent[i]) shards[i]
+ * = new byte[shardSize]; // BUFFER 5 }
+ * 
+ * 
+ * ReedSolomon reedSolomon = new ReedSolomon(this.data_shards,
+ * this.parity_shards);
+ * 
+ * reedSolomon.decodeMissing(shards, shardPresent, 0, shardSize);
+ * 
+ * byte[] allBytes = new byte[shardSize * this.data_shards]; // BUFFER 6 for
+ * (int i = 0; i < this.data_shards; i++) System.arraycopy(shards[i], 0,
+ * allBytes, shardSize * i, shardSize);
+ * 
+ * 
+ * int fileSize = ByteBuffer.wrap(allBytes).getInt();
+ * 
+ * try { out.write(allBytes, ServerConstant.BYTES_IN_INT, fileSize); } catch
+ * (IOException e) { throw new InternalCriticalException(e, objectInfo(meta)); }
+ * return true; }
+ */

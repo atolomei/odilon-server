@@ -27,8 +27,10 @@ import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
- * <p>Base class to encode and decode using Reed Solomon codes </p>
- *  
+ * <p>
+ * Base class to encode and decode using Reed Solomon codes
+ * </p>
+ * 
  * @see RAIDSixDecoder
  * @see RAIDSixEncoder
  * 
@@ -36,36 +38,36 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  */
 public class RAIDSixCoder extends BaseObject {
 
-    @JsonIgnore
-    private final RAIDSixDriver driver;
+	@JsonIgnore
+	private final RAIDSixDriver driver;
 
-    protected RAIDSixCoder(RAIDSixDriver driver) {
-        Check.requireNonNull(driver);
-        this.driver = driver;
-    }
+	protected RAIDSixCoder(RAIDSixDriver driver) {
+		Check.requireNonNull(driver);
+		this.driver = driver;
+	}
 
-    public RAIDSixDriver getDriver() {
-        return this.driver;
-    }
+	public RAIDSixDriver getDriver() {
+		return this.driver;
+	}
 
-    protected VirtualFileSystemService getVirtualFileSystemService() {
-        return getDriver().getVirtualFileSystemService();
-    }
+	protected VirtualFileSystemService getVirtualFileSystemService() {
+		return getDriver().getVirtualFileSystemService();
+	}
 
-    protected String objectInfo(ObjectMetadata meta) {
-        return getDriver().objectInfo(meta);
-    }
+	protected String objectInfo(ObjectMetadata meta) {
+		return getDriver().objectInfo(meta);
+	}
 
-    protected FileCacheService getFileCacheService() {
-        return getVirtualFileSystemService().getFileCacheService();
-    }
+	protected FileCacheService getFileCacheService() {
+		return getVirtualFileSystemService().getFileCacheService();
+	}
 
-    public String objectInfo(ServerBucket bucket, String objectName, String fileName) {
-        return getDriver().objectInfo(bucket, objectName, fileName);
-    }
+	public String objectInfo(ServerBucket bucket, String objectName, String fileName) {
+		return getDriver().objectInfo(bucket, objectName, fileName);
+	}
 
-    public String objectInfo(ServerBucket bucket, String objectName) {
-        return getDriver().objectInfo(bucket, objectName);
-    }
+	public String objectInfo(ServerBucket bucket, String objectName) {
+		return getDriver().objectInfo(bucket, objectName);
+	}
 
 }

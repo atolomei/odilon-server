@@ -51,168 +51,166 @@ import io.odilon.virtualFileSystem.model.ServerBucket;
 @ThreadSafe
 public class RAIDZeroBucketIterator extends BucketIterator implements Closeable {
 
-    @JsonIgnore
-    private Map<Drive, Iterator<Path>> itMap;
+	@JsonIgnore
+	private Map<Drive, Iterator<Path>> itMap;
 
-    @JsonIgnore
-    private Map<Drive, Stream<Path>> streamMap;
+	@JsonIgnore
+	private Map<Drive, Stream<Path>> streamMap;
 
-    @JsonIgnore
-    private List<Drive> drives;
+	@JsonIgnore
+	private List<Drive> drives;
 
-    public RAIDZeroBucketIterator(RAIDZeroDriver driver, ServerBucket bucket, Optional<Long> opOffset, Optional<String> opPrefix) {
-        this(driver, bucket, opOffset, opPrefix, Optional.empty());
-    }
+	public RAIDZeroBucketIterator(RAIDZeroDriver driver, ServerBucket bucket, Optional<Long> opOffset, Optional<String> opPrefix) {
+		this(driver, bucket, opOffset, opPrefix, Optional.empty());
+	}
 
-    /**
-     * <p>after the {@link VirtualFileService} starts up all drives are in state
-     * {@link DriveStatus.ENABLED} in RAID 0
-     * </p>
-     */
-    public RAIDZeroBucketIterator(RAIDZeroDriver driver, ServerBucket bucket, Optional<Long> opOffset, Optional<String> opPrefix,
-            Optional<String> serverAgentId) {
-        super(driver, bucket);
+	/**
+	 * <p>
+	 * after the {@link VirtualFileService} starts up all drives are in state
+	 * {@link DriveStatus.ENABLED} in RAID 0
+	 * </p>
+	 */
+	public RAIDZeroBucketIterator(RAIDZeroDriver driver, ServerBucket bucket, Optional<Long> opOffset, Optional<String> opPrefix, Optional<String> serverAgentId) {
+		super(driver, bucket);
 
-        opOffset.ifPresent(x -> setOffset(x));
-        serverAgentId.ifPresent(x -> setAgentId(x));
-        opPrefix.ifPresent(x -> setPrefix(x.toLowerCase().trim()));
+		opOffset.ifPresent(x -> setOffset(x));
+		serverAgentId.ifPresent(x -> setAgentId(x));
+		opPrefix.ifPresent(x -> setPrefix(x.toLowerCase().trim()));
 
-        this.drives = new ArrayList<Drive>();
-        this.drives.addAll(getDriver().getDrivesEnabled());
+		this.drives = new ArrayList<Drive>();
+		this.drives.addAll(getDriver().getDrivesEnabled());
 
-        this.streamMap = new HashMap<Drive, Stream<Path>>();
-        this.itMap = new HashMap<Drive, Iterator<Path>>();
-    }
+		this.streamMap = new HashMap<Drive, Stream<Path>>();
+		this.itMap = new HashMap<Drive, Iterator<Path>>();
+	}
 
-    @Override
-    public synchronized void close() throws IOException {
-        if (getStreamMap() != null)
-            getStreamMap().forEach((k, v) -> v.close());
-    }
+	@Override
+	public synchronized void close() throws IOException {
+		if (getStreamMap() != null)
+			getStreamMap().forEach((k, v) -> v.close());
+	}
 
-    /**
-     * <p>
-     * No need to synchronize because it is called from the synchronized method
-     * {@link BucketIterator#hasNext}
-     * </p>
-     */
-    @Override
-    protected void init() {
-        for (Drive drive : getDrives()) {
-            Path start = new File(drive.getBucketMetadataDirPath(getBucket())).toPath();
-            Stream<Path> stream = null;
-            try {
-                stream = Files.walk(start, 1).skip(1).filter(file -> Files.isDirectory(file))
-                        .filter(file -> (getPrefix() == null)
-                                || (file.getFileName().toString().toLowerCase().trim().startsWith(getPrefix())))
-                        .filter(file -> isValidState(file));
-                this.getStreamMap().put(drive, stream);
-            } catch (IOException e) {
-                throw new InternalCriticalException(e);
-            }
-            Iterator<Path> it = stream.iterator();
-            this.getItMap().put(drive, it);
-        }
-        skipOffset();
-        setInitiated(true);
-    }
+	/**
+	 * <p>
+	 * No need to synchronize because it is called from the synchronized method
+	 * {@link BucketIterator#hasNext}
+	 * </p>
+	 */
+	@Override
+	protected void init() {
+		for (Drive drive : getDrives()) {
+			Path start = new File(drive.getBucketMetadataDirPath(getBucket())).toPath();
+			Stream<Path> stream = null;
+			try {
+				stream = Files.walk(start, 1).skip(1).filter(file -> Files.isDirectory(file)).filter(file -> (getPrefix() == null) || (file.getFileName().toString().toLowerCase().trim().startsWith(getPrefix())))
+						.filter(file -> isValidState(file));
+				this.getStreamMap().put(drive, stream);
+			} catch (IOException e) {
+				throw new InternalCriticalException(e);
+			}
+			Iterator<Path> it = stream.iterator();
+			this.getItMap().put(drive, it);
+		}
+		skipOffset();
+		setInitiated(true);
+	}
 
-    /**
-     * <p>
-     * No need to synchronize because it is called from the synchronized method
-     * {@link BucketIterator#hasNext}
-     * </p>
-     */
-    @Override
-    protected boolean fetch() {
+	/**
+	 * <p>
+	 * No need to synchronize because it is called from the synchronized method
+	 * {@link BucketIterator#hasNext}
+	 * </p>
+	 */
+	@Override
+	protected boolean fetch() {
 
-        setRelativeIndex(0);
-        setBuffer(new ArrayList<Path>());
+		setRelativeIndex(0);
+		setBuffer(new ArrayList<Path>());
 
-        boolean isItems = false;
+		boolean isItems = false;
 
-        if (this.getDrives().isEmpty())
-            return false;
-        {
-            for (Drive drive : this.getDrives()) {
-                if (this.getItMap().get(drive).hasNext()) {
-                    isItems = true;
-                    break;
-                }
-            }
-        }
-        {
-            int buffer_index = 0;
-            while (isItems && getBuffer().size() < defaultBufferSize()) {
-                int dPoll = buffer_index++ % this.getDrives().size();
-                Drive drive = this.getDrives().get(dPoll);
-                Iterator<Path> iterator = this.getItMap().get(drive);
-                if (iterator.hasNext()) {
-                    getBuffer().add(iterator.next());
-                } else {
-                    /** drive has no more items */
-                    this.getStreamMap().get(drive).close();
-                    this.getItMap().remove(drive);
-                    this.getDrives().remove(dPoll);
-                    isItems = !this.getDrives().isEmpty();
-                }
-            }
-        }
-        return (!getBuffer().isEmpty());
-    }
+		if (this.getDrives().isEmpty())
+			return false;
+		{
+			for (Drive drive : this.getDrives()) {
+				if (this.getItMap().get(drive).hasNext()) {
+					isItems = true;
+					break;
+				}
+			}
+		}
+		{
+			int buffer_index = 0;
+			while (isItems && getBuffer().size() < defaultBufferSize()) {
+				int dPoll = buffer_index++ % this.getDrives().size();
+				Drive drive = this.getDrives().get(dPoll);
+				Iterator<Path> iterator = this.getItMap().get(drive);
+				if (iterator.hasNext()) {
+					getBuffer().add(iterator.next());
+				} else {
+					/** drive has no more items */
+					this.getStreamMap().get(drive).close();
+					this.getItMap().remove(drive);
+					this.getDrives().remove(dPoll);
+					isItems = !this.getDrives().isEmpty();
+				}
+			}
+		}
+		return (!getBuffer().isEmpty());
+	}
 
-    private void skipOffset() {
+	private void skipOffset() {
 
-        if (getOffset() == 0)
-            return;
+		if (getOffset() == 0)
+			return;
 
-        boolean isItems = false;
-        {
-            for (Drive drive : this.getDrives()) {
-                if (this.getItMap().get(drive).hasNext()) {
-                    isItems = true;
-                    break;
-                }
-            }
-        }
-        long skipped = getCumulativeIndex();
+		boolean isItems = false;
+		{
+			for (Drive drive : this.getDrives()) {
+				if (this.getItMap().get(drive).hasNext()) {
+					isItems = true;
+					break;
+				}
+			}
+		}
+		long skipped = getCumulativeIndex();
 
-        while (isItems && skipped < getOffset()) {
-            int d_index = 0;
-            int d_poll = d_index++ % this.getDrives().size();
-            Drive drive = this.getDrives().get(d_poll);
-            Iterator<Path> iterator = getItMap().get(drive);
-            if (iterator.hasNext()) {
-                iterator.next();
-                skipped++;
-            } else {
-                /** drive has no more items */
-                this.getStreamMap().get(drive).close();
-                this.getItMap().remove(drive);
-                this.getDrives().remove(d_poll);
-                isItems = !this.getDrives().isEmpty();
-            }
-        }
-    }
+		while (isItems && skipped < getOffset()) {
+			int d_index = 0;
+			int d_poll = d_index++ % this.getDrives().size();
+			Drive drive = this.getDrives().get(d_poll);
+			Iterator<Path> iterator = getItMap().get(drive);
+			if (iterator.hasNext()) {
+				iterator.next();
+				skipped++;
+			} else {
+				/** drive has no more items */
+				this.getStreamMap().get(drive).close();
+				this.getItMap().remove(drive);
+				this.getDrives().remove(d_poll);
+				isItems = !this.getDrives().isEmpty();
+			}
+		}
+	}
 
-    private Map<Drive, Iterator<Path>> getItMap() {
-        return itMap;
-    }
+	private Map<Drive, Iterator<Path>> getItMap() {
+		return itMap;
+	}
 
-    private Map<Drive, Stream<Path>> getStreamMap() {
-        return streamMap;
-    }
+	private Map<Drive, Stream<Path>> getStreamMap() {
+		return streamMap;
+	}
 
-    /**
-     * <p>
-     * There are no Drives in mode {@link DriveStatus#NOTSYNC} in RAID 0. <br/>
-     * All new drives are synced before the VirtualFileSystemService completes its
-     * initialization.
-     * </p>
-     * 
-     * @return
-     */
-    private List<Drive> getDrives() {
-        return this.drives;
-    }
+	/**
+	 * <p>
+	 * There are no Drives in mode {@link DriveStatus#NOTSYNC} in RAID 0. <br/>
+	 * All new drives are synced before the VirtualFileSystemService completes its
+	 * initialization.
+	 * </p>
+	 * 
+	 * @return
+	 */
+	private List<Drive> getDrives() {
+		return this.drives;
+	}
 }

@@ -35,63 +35,63 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
  */
 public class RAIDSixRollbackCreateHandler extends RAIDSixRollbackHandler {
 
-    private static Logger logger = Logger.getLogger(RAIDSixRollbackCreateHandler.class.getName());
+	private static Logger logger = Logger.getLogger(RAIDSixRollbackCreateHandler.class.getName());
 
-    public RAIDSixRollbackCreateHandler(RAIDSixDriver driver, VirtualFileSystemOperation operation, boolean recovery) {
-        super(driver, operation, recovery);
-    }
+	public RAIDSixRollbackCreateHandler(RAIDSixDriver driver, VirtualFileSystemOperation operation, boolean recovery) {
+		super(driver, operation, recovery);
+	}
 
-    @Override
-    protected void rollback() {
+	@Override
+	protected void rollback() {
 
-        ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
+		ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
 
-        boolean done = false;
+		boolean done = false;
 
-        try {
+		try {
 
-            ObjectMetadata meta = null;
+			ObjectMetadata meta = null;
 
-            /** remove metadata dir on all drives */
-            for (Drive drive : getDriver().getDrivesAll()) {
-                File f_meta = drive.getObjectMetadataFile(bucket, getOperation().getObjectName());
-                if ((meta == null) && (f_meta != null)) {
-                    try {
-                        meta = drive.getObjectMetadata(bucket, getOperation().getObjectName());
-                    } catch (Exception e) {
-                        logger.error("can not load meta -> d: " + drive.getName() + SharedConstant.NOT_THROWN);
-                    }
-                }
-                FileUtils.deleteQuietly(new File(drive.getObjectMetadataDirPath(bucket, getOperation().getObjectName())));
-            }
+			/** remove metadata dir on all drives */
+			for (Drive drive : getDriver().getDrivesAll()) {
+				File f_meta = drive.getObjectMetadataFile(bucket, getOperation().getObjectName());
+				if ((meta == null) && (f_meta != null)) {
+					try {
+						meta = drive.getObjectMetadata(bucket, getOperation().getObjectName());
+					} catch (Exception e) {
+						logger.error("can not load meta -> d: " + drive.getName() + SharedConstant.NOT_THROWN);
+					}
+				}
+				FileUtils.deleteQuietly(new File(drive.getObjectMetadataDirPath(bucket, getOperation().getObjectName())));
+			}
 
-            /// remove data dir on all drives
-            if (meta != null)
-                getDriver().getObjectDataFiles(meta, bucket, Optional.empty()).forEach(file -> {
-                    FileUtils.deleteQuietly(file);
-                });
+			/// remove data dir on all drives
+			if (meta != null)
+				getDriver().getObjectDataFiles(meta, bucket, Optional.empty()).forEach(file -> {
+					FileUtils.deleteQuietly(file);
+				});
 
-            done = true;
+			done = true;
 
-        } catch (InternalCriticalException e) {
-            if (!isRecovery())
-                throw (e);
-            else
-                logger.error(e, info(), SharedConstant.NOT_THROWN);
+		} catch (InternalCriticalException e) {
+			if (!isRecovery())
+				throw (e);
+			else
+				logger.error(e, info(), SharedConstant.NOT_THROWN);
 
-        } catch (Exception e) {
-            if (!isRecovery())
-                throw new InternalCriticalException(e, info());
-            else
-                logger.error(e, opInfo(getOperation()), SharedConstant.NOT_THROWN);
-        } finally {
-            if (done || isRecovery()) {
-                getOperation().cancel();
-            }
-        }
-    }
+		} catch (Exception e) {
+			if (!isRecovery())
+				throw new InternalCriticalException(e, info());
+			else
+				logger.error(e, opInfo(getOperation()), SharedConstant.NOT_THROWN);
+		} finally {
+			if (done || isRecovery()) {
+				getOperation().cancel();
+			}
+		}
+	}
 
-    private String info() {
-        return opInfo(getOperation());
-    }
+	private String info() {
+		return opInfo(getOperation());
+	}
 }

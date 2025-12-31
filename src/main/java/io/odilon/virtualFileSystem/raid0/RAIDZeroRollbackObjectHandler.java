@@ -24,26 +24,28 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
  *
- * <p>RAID 0. base rollback Handler for Object's operations</p>
+ * <p>
+ * RAID 0. base rollback Handler for Object's operations
+ * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  * 
  */
 public abstract class RAIDZeroRollbackObjectHandler extends RAIDZeroRollbackHandler {
 
-    @JsonProperty("path")
-    private ObjectPath path;
+	@JsonProperty("path")
+	private ObjectPath path;
 
-    public RAIDZeroRollbackObjectHandler(RAIDZeroDriver driver, VirtualFileSystemOperation operation, boolean recovery) {
-        super(driver, operation, recovery);
-    }
+	public RAIDZeroRollbackObjectHandler(RAIDZeroDriver driver, VirtualFileSystemOperation operation, boolean recovery) {
+		super(driver, operation, recovery);
+	}
 
-    protected ObjectPath getObjectPath() {
-        if (this.path == null) {
-            ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
-            String objectName = getOperation().getObjectName();
-            this.path = new ObjectPath(getWriteDrive(bucket, objectName), bucket, objectName);
-        }
-        return this.path;
-    }
+	protected ObjectPath getObjectPath() {
+		if (this.path == null) {
+			ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
+			String objectName = getOperation().getObjectName();
+			this.path = new ObjectPath(getWriteDrive(bucket, objectName), bucket, objectName);
+		}
+		return this.path;
+	}
 }

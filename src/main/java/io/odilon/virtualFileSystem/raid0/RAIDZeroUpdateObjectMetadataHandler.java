@@ -32,76 +32,75 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
  */
 public class RAIDZeroUpdateObjectMetadataHandler extends RAIDZeroTransactionObjectHandler {
 
-    private static Logger logger = Logger.getLogger(RAIDZeroUpdateObjectMetadataHandler.class.getName());
+	private static Logger logger = Logger.getLogger(RAIDZeroUpdateObjectMetadataHandler.class.getName());
 
-    public RAIDZeroUpdateObjectMetadataHandler(RAIDZeroDriver driver, ServerBucket bucket, String objectName) {
-        super(driver, bucket, objectName);
-    }
+	public RAIDZeroUpdateObjectMetadataHandler(RAIDZeroDriver driver, ServerBucket bucket, String objectName) {
+		super(driver, bucket, objectName);
+	}
 
-    protected void updateObjectMetadata(ObjectMetadata meta) {
+	protected void updateObjectMetadata(ObjectMetadata meta) {
 
-        VirtualFileSystemOperation operation = null;
-        boolean commitOK = false;
-        boolean isMainException = false;
+		VirtualFileSystemOperation operation = null;
+		boolean commitOK = false;
+		boolean isMainException = false;
 
-        objectWriteLock();
-        try {
+		objectWriteLock();
+		try {
 
-            bucketReadLock();
-            try {
+			bucketReadLock();
+			try {
 
-                checkExistsBucket();
-                checkExistObject();
+				checkExistsBucket();
+				checkExistObject();
 
-                /** backup (existing metadata) */
-                FileUtils.copyDirectory(getObjectPath().metadataDirPath().toFile(),
-                        getObjectPath().metadataBackupDirPath().toFile());
+				/** backup (existing metadata) */
+				FileUtils.copyDirectory(getObjectPath().metadataDirPath().toFile(), getObjectPath().metadataBackupDirPath().toFile());
 
-                /** start operation */
-                operation = updateObjectMetadata(meta.getVersion());
+				/** start operation */
+				operation = updateObjectMetadata(meta.getVersion());
 
-                /** save metadata */
-                Files.writeString(getObjectPath().metadataFilePath(), getObjectMapper().writeValueAsString(meta));
+				/** save metadata */
+				Files.writeString(getObjectPath().metadataFilePath(), getObjectMapper().writeValueAsString(meta));
 
-                /** commit */
-                commitOK = operation.commit();
+				/** commit */
+				commitOK = operation.commit();
 
-            } catch (InternalCriticalException e2) {
-                isMainException = true;
-                throw e2;
-            } catch (Exception e) {
-                isMainException = true;
-                throw new InternalCriticalException(e, info());
-            } finally {
-                try {
-                    if (!commitOK) {
-                        try {
-                            rollback(operation);
-                        } catch (Exception e) {
-                            if (!isMainException)
-                                throw new InternalCriticalException(e, info());
-                            else
-                                logger.error(e, info(), SharedConstant.NOT_THROWN);
-                        }
-                    } else {
-                        /** TODO-> Delete backup Metadata. change to Async */
-                        try {
-                            FileUtils.deleteQuietly(getObjectPath().metadataWorkFilePath().toFile());
-                        } catch (Exception e) {
-                            logger.error(e, SharedConstant.NOT_THROWN);
-                        }
+			} catch (InternalCriticalException e2) {
+				isMainException = true;
+				throw e2;
+			} catch (Exception e) {
+				isMainException = true;
+				throw new InternalCriticalException(e, info());
+			} finally {
+				try {
+					if (!commitOK) {
+						try {
+							rollback(operation);
+						} catch (Exception e) {
+							if (!isMainException)
+								throw new InternalCriticalException(e, info());
+							else
+								logger.error(e, info(), SharedConstant.NOT_THROWN);
+						}
+					} else {
+						/** TODO-> Delete backup Metadata. change to Async */
+						try {
+							FileUtils.deleteQuietly(getObjectPath().metadataWorkFilePath().toFile());
+						} catch (Exception e) {
+							logger.error(e, SharedConstant.NOT_THROWN);
+						}
 
-                    }
-                } finally {
-                    bucketReadUnLock();
-                }
-            }
-        } finally {
-            objectWriteUnLock();
-        }
-    }
+					}
+				} finally {
+					bucketReadUnLock();
+				}
+			}
+		} finally {
+			objectWriteUnLock();
+		}
+	}
 
-    private VirtualFileSystemOperation updateObjectMetadata(int version) {
-        return getJournalService().updateObjectMetadata(getBucket(), getObjectName(), version);
-    }
+	private VirtualFileSystemOperation updateObjectMetadata(int version) {
+		return getJournalService().updateObjectMetadata(getBucket(), getObjectName(), version);
+	}
 }

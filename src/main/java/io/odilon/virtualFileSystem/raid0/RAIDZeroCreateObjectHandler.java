@@ -40,92 +40,92 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 @ThreadSafe
 public class RAIDZeroCreateObjectHandler extends RAIDZeroTransactionObjectHandler {
 
-    private static Logger logger = Logger.getLogger(RAIDZeroCreateObjectHandler.class.getName());
+	private static Logger logger = Logger.getLogger(RAIDZeroCreateObjectHandler.class.getName());
 
-    /**
-     * <p>
-     * Created and used only from {@link RAIDZeroDriver}
-     * </p>
-     */
-    protected RAIDZeroCreateObjectHandler(RAIDZeroDriver driver, ServerBucket bucket, String objectName) {
-        super(driver, bucket, objectName);
-    }
+	/**
+	 * <p>
+	 * Created and used only from {@link RAIDZeroDriver}
+	 * </p>
+	 */
+	protected RAIDZeroCreateObjectHandler(RAIDZeroDriver driver, ServerBucket bucket, String objectName) {
+		super(driver, bucket, objectName);
+	}
 
-    /**
-     * <p>
-     * The procedure is the same whether version control is enabled or not
-     * </p>
-     * 
-     * @param bucket
-     * @param objectName
-     * @param stream
-     * @param sourceFileName
-     * @param contentType
-     * @param customTags
-     */
-    protected void create(InputStream stream, String sourceFileName, String contentType, Optional<List<String>> customTags) {
+	/**
+	 * <p>
+	 * The procedure is the same whether version control is enabled or not
+	 * </p>
+	 * 
+	 * @param bucket
+	 * @param objectName
+	 * @param stream
+	 * @param sourceFileName
+	 * @param contentType
+	 * @param customTags
+	 */
+	protected void create(InputStream stream, String sourceFileName, String contentType, Optional<List<String>> customTags) {
 
-        VirtualFileSystemOperation operation = null;
-        boolean commitOk = false;
-        boolean isMainException = false;
+		VirtualFileSystemOperation operation = null;
+		boolean commitOk = false;
+		boolean isMainException = false;
 
-        objectWriteLock();
-        try {
+		objectWriteLock();
+		try {
 
-            bucketReadLock();
-            try (stream) {
+			bucketReadLock();
+			try (stream) {
 
-                checkExistsBucket();
-                checkNotExistObject();
+				checkExistsBucket();
+				checkNotExistObject();
 
-                /** start operation */
-                operation = createObject();
+				/** start operation */
+				operation = createObject();
 
-                /** save (metadata and data) */
-                save(stream, sourceFileName, contentType, customTags);
+				/** save (metadata and data) */
+				save(stream, sourceFileName, contentType, customTags);
 
-                /** commit */
-                commitOk = operation.commit();
+				/** commit */
+				commitOk = operation.commit();
 
-            } catch (InternalCriticalException e1) {
-                isMainException = true;
-                throw e1;
-            } catch (Exception e2) {
-                isMainException = true;
-                throw new InternalCriticalException(e2, info(sourceFileName));
-            } finally {
-                try {
-                    if (!commitOk) {
-                        try {
-                            rollback(operation);
-                        } catch (InternalCriticalException e) {
-                            if (!isMainException)
-                                throw e;
-                            else
-                                logger.error(e, info(sourceFileName), SharedConstant.NOT_THROWN);
-                        } catch (Exception e) {
-                            if (!isMainException)
-                                throw new InternalCriticalException(e, info(sourceFileName));
-                            else
-                                logger.error(e, info(sourceFileName), SharedConstant.NOT_THROWN);
-                        }
-                    }
-                } finally {
-                    bucketReadUnLock();
-                }
-            }
-        } finally {
-            objectWriteUnLock();
-        }
-    }
+			} catch (InternalCriticalException e1) {
+				isMainException = true;
+				throw e1;
+			} catch (Exception e2) {
+				isMainException = true;
+				throw new InternalCriticalException(e2, info(sourceFileName));
+			} finally {
+				try {
+					if (!commitOk) {
+						try {
+							rollback(operation);
+						} catch (InternalCriticalException e) {
+							if (!isMainException)
+								throw e;
+							else
+								logger.error(e, info(sourceFileName), SharedConstant.NOT_THROWN);
+						} catch (Exception e) {
+							if (!isMainException)
+								throw new InternalCriticalException(e, info(sourceFileName));
+							else
+								logger.error(e, info(sourceFileName), SharedConstant.NOT_THROWN);
+						}
+					}
+				} finally {
+					bucketReadUnLock();
+				}
+			}
+		} finally {
+			objectWriteUnLock();
+		}
+	}
 
-    private VirtualFileSystemOperation createObject() {
-        return createObject(getBucket(), getObjectName());
-    }
+	private VirtualFileSystemOperation createObject() {
+		return createObject(getBucket(), getObjectName());
+	}
 
-    private void save(InputStream stream, String srcFileName, String contentType, Optional<List<String>> customTags) {
-        saveData(getBucket(), getObjectName(), stream, srcFileName);
-        saveMetadata(getBucket(), getObjectName(), srcFileName, contentType, VERSION_ZERO, customTags);
-    }
+	private void save(InputStream stream, String srcFileName, String contentType, Optional<List<String>> customTags) {
+		saveData(getBucket(), getObjectName(), stream, srcFileName);
+		saveMetadata(getBucket(), getObjectName(), srcFileName, contentType, VERSION_ZERO, customTags);
+	}
 
 }
