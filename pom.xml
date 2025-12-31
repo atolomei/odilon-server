@@ -7,7 +7,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.5.6</version> <!-- /2025 3.4.4 -->
+		<version>4.0.1</version> <!-- /2025 3.5.6 -->
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	
@@ -85,16 +85,16 @@
 		<dependency>
 		  <groupId>com.github.ben-manes.caffeine</groupId>
 		  <artifactId>caffeine</artifactId>
-		  <!-- version -> we use the one provided by Spring --> 
+			<!-- version -> we use the one provided by Spring --> 
 		</dependency>
-			
+
 		<!--  Spring =====================================================================================  -->
 	  
       <dependency>
 		<groupId>org.springframework.boot</groupId>
 				  <artifactId>spring-boot-starter-web</artifactId>
 				  <exclusions>
-				    <!--exclusion>
+				<!--exclusion>
 				      <groupId>org.springframework.boot</groupId>
 				      <artifactId>spring-boot-starter-tomcat</artifactId>
 				    </exclusion -->
@@ -105,11 +105,11 @@
 				  </exclusions>
 		</dependency>
 
-	   	<!--dependency>
+		<!--dependency>
 			  <groupId>org.springframework.boot</groupId>
 			  <artifactId>spring-boot-starter-jetty</artifactId>
 		</dependency -->
-		
+
 		<!-- https://mvnrepository.com/artifact/org.eclipse.jetty.http2/http2-server 
 			not using http/2 yet
 		-->
@@ -186,7 +186,7 @@
 			    <groupId>oswego</groupId>
 			    <artifactId>concurrent</artifactId>
 			    <version>${oswego-version}</version>
-			    <!-- used by the Scheduler  -->
+			<!-- used by the Scheduler  -->
 			</dependency>
 
 			<dependency>
@@ -200,7 +200,7 @@
 			        </exclusion>
 			    </exclusions>
 			</dependency>
-			
+
 		<!--  Testing ==============================================================================================  -->
 		
 		<dependency>

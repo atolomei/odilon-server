@@ -1068,4 +1068,13 @@ public class ServerSettings implements JSONObject {
 		return this.presignedSalt;
 	}
 
+	public int getR6BufferPoolSize() {
+		return 20;
+	}
+
+	public int getR6BufferSizeMB() { 
+		return 32;
+	}
+
+	
 }

@@ -48,6 +48,7 @@ import io.odilon.scheduler.ServiceRequest;
 import io.odilon.service.ServerSettings;
 import io.odilon.service.SystemService;
 import io.odilon.virtualFileSystem.BucketCache;
+import io.odilon.virtualFileSystem.raid6.BufferPoolService;
 
 /**
  * <p>
@@ -277,5 +278,7 @@ public interface VirtualFileSystemService extends SystemService {
     public ApplicationEventPublisher getApplicationEventPublisher();
 
     public ExecutorService getExecutorService();
+
+	public BufferPoolService getBufferPoolService();
 
 }

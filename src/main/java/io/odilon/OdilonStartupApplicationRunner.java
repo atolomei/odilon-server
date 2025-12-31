@@ -17,22 +17,13 @@
 package io.odilon;
 
 import java.io.File;
-import java.io.InputStream;
-import java.net.URL;
-import java.net.URLClassLoader;
+ 
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Enumeration;
-import java.util.HashSet;
-import java.util.List;
+ 
 import java.util.Locale;
-import java.util.Properties;
-import java.util.Set;
-
+ 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -121,9 +112,6 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 			startupLogger.info(ServerConstant.SEPARATOR);
 
 		startupLogger.info("Startup at -> " + DateTimeFormatter.RFC_1123_DATE_TIME.format(OffsetDateTime.now()));
-		
-		
-	//	OdilonServerInfo info = getAppContext().getBean(VirtualFileSystemService.class).getOdilonServerInfo();
 		
 	}
 	

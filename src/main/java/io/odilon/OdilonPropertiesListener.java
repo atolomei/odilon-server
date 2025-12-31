@@ -35,8 +35,8 @@ public class OdilonPropertiesListener implements ApplicationListener<Application
         ConfigurableEnvironment environment = event.getEnvironment();
         Properties props = new Properties();
         props.put("app.name", "Odilon");
-        props.put("spring.servlet.multipart.max-file-size", "300GB");
-        props.put("spring.servlet.multipart.max-request-size", "300GB");
+        props.put("spring.servlet.multipart.max-file-size", "500GB");
+        props.put("spring.servlet.multipart.max-request-size", "500GB");
         props.put("spring.servlet.multipart.file-size-threshold", "0");
         props.put("spring.main.banner-mode", "off");
         props.put("spring.main.log-startup-info", "false");

@@ -50,15 +50,12 @@ public class InfoController extends BaseApiController {
 	private ServerSettings settings;
 
 	@Autowired
-	public InfoController(ObjectStorageService objectStorageService, VirtualFileSystemService virtualFileSystemService,
-			SystemMonitorService monitoringService, ServerSettings settings,
-			TrafficControlService trafficControlService) {
+	public InfoController(ObjectStorageService objectStorageService, VirtualFileSystemService virtualFileSystemService, SystemMonitorService monitoringService, ServerSettings settings, TrafficControlService trafficControlService) {
 
 		super(objectStorageService, virtualFileSystemService, monitoringService, trafficControlService);
 		this.settings = settings;
 	}
 
-	
 	/**
 	 * <p>
 	 * in JSON format
@@ -71,8 +68,7 @@ public class InfoController extends BaseApiController {
 
 		try {
 
-			 pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
-
+			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
 
 			StringBuilder str = new StringBuilder();
 
@@ -88,9 +84,7 @@ public class InfoController extends BaseApiController {
 			mark();
 		}
 	}
-	
-	
-	
+
 	/**
 	 * <p>
 	 * in JSON format
@@ -103,8 +97,7 @@ public class InfoController extends BaseApiController {
 
 		try {
 
-			pass =  getTrafficControlService().getPass(this.getClass().getSimpleName());
-
+			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
 
 			StringBuilder str = new StringBuilder();
 

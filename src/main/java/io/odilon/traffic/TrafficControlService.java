@@ -16,7 +16,6 @@
  */
 package io.odilon.traffic;
 
-import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.HashSet;
@@ -65,8 +64,7 @@ public class TrafficControlService extends BaseService {
 
 	@JsonProperty("timeOutPassMin")
 	private int timeOutPassMin = ServerConstant.TIME_OUT_PASS_MIN;
-	
-	
+
 	public TrafficControlService(ServerSettings serverSettings) {
 		this.serverSettings = serverSettings;
 	}
@@ -82,9 +80,9 @@ public class TrafficControlService extends BaseService {
 			while (pass == null) {
 
 				synchronized (this) {
-					
+
 					if (!passes.isEmpty()) {
-					
+
 						pass = passes.iterator().next();
 						passes.remove(pass);
 						pass.setCaller(caller);
@@ -94,27 +92,27 @@ public class TrafficControlService extends BaseService {
 				}
 
 				if (pass == null) {
-					
+
 					wait = System.currentTimeMillis() - initialtime;
-				
+
 					if (wait > waittimeout) {
-						
+
 						boolean throwEx = true;
 						logger.error("TimeoutException  | Waited " + String.valueOf(wait) + " ms | passes = " + passes.toString());
 						logger.error("Passes in use -> ");
-						this.passesInUse.forEach( v -> logger.error(v.toString()));
+						this.passesInUse.forEach(v -> logger.error(v.toString()));
 						logger.error("Passes available  -> ");
-						this.passes.forEach( v -> logger.error(v.toString()));
-				
-						for (TrafficPass t: passesInUse) {
+						this.passes.forEach(v -> logger.error(v.toString()));
+
+						for (TrafficPass t : passesInUse) {
 							if (t.getStarted().isBefore(OffsetDateTime.now().minusMinutes(timeOutPassMin))) {
-								logger.error("Traffic pass taking over "+ String.valueOf(timeOutPassMin) + " min, probably lost called by -> " + t.getCaller());
+								logger.error("Traffic pass taking over " + String.valueOf(timeOutPassMin) + " min, probably lost called by -> " + t.getCaller());
 								logger.debug("Adding traffic pass to the pool");
 								passes.add(new OdilonTrafficPass(passes.size()));
-								throwEx=false;
+								throwEx = false;
 							}
 						}
-	
+
 						if (throwEx)
 							throw new RuntimeException("TimeoutException | could not get a pass | passes -> " + passes.toString());
 					}
@@ -154,11 +152,11 @@ public class TrafficControlService extends BaseService {
 	@PostConstruct
 	protected synchronized void onInitialize() {
 		setStatus(ServiceStatus.STARTING);
-		
+
 		this.tokens = serverSettings.getMaxTrafficTokens();
-		
+
 		createPasses();
-		
+
 		setStatus(ServiceStatus.RUNNING);
 		startuplogger.debug("Started -> " + TrafficControlService.class.getSimpleName());
 	}

@@ -259,7 +259,7 @@ public class RAIDSixDriveSync implements Runnable {
 
                                 this.counter.getAndIncrement();
 
-                                if (((this.counter.get() + 1) % 50) == 0)
+                                if ((this.counter.get() % 50) == 0)
                                     logger.debug("scanned (encoded) so far -> " + String.valueOf(this.counter.get()));
 
                                 if (item.isOk()) {

@@ -22,15 +22,9 @@ import java.util.Iterator;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import io.odilon.json.OdilonObjectMapper;
 import io.odilon.log.Logger;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 
 import io.odilon.model.SharedConstant;
 
@@ -42,16 +36,6 @@ public class CronJobList implements SortedSet<CronJobRequest> {
 
 	static private Logger logger = Logger.getLogger(CronJobList.class.getName());
 
-	@JsonIgnore
-	static private ObjectMapper mapper = new OdilonObjectMapper();
-
-	static {
-		mapper.registerModule(new ParameterNamesModule());
-	}
-
-	/**
-	 * 
-	 */
 	private class CronJobComparator implements Comparator<CronJobRequest> {
 		@Override
 		public int compare(CronJobRequest a, CronJobRequest b) {
@@ -72,7 +56,6 @@ public class CronJobList implements SortedSet<CronJobRequest> {
 
 	@JsonIgnore
 	private TreeSet<CronJobRequest> jobs = new TreeSet<CronJobRequest>(new CronJobComparator());
-
 
 	public synchronized CronJobRequest pollFirst() {
 
