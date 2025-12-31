@@ -37,8 +37,4 @@ public class OdilonAPIExceptionController {
         return ex.getMessage();
     }
 }
-
-/**
- * final HttpHeaders httpHeaders= new HttpHeaders();
- * httpHeaders.setContentType(MediaType.APPLICATION_JSON);
- */
+ 

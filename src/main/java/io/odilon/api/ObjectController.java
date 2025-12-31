@@ -725,25 +725,23 @@ public class ObjectController extends BaseApiController {
 			if (version.isEmpty()) {
 
 				long start = System.currentTimeMillis();
-				
+
 				getObjectStorageService().putObject(bucketName, objectName, file.getInputStream(), fileName, contentType, o_list);
 
 				long end = System.currentTimeMillis();
-				
-				
+
 				meta = getObjectStorageService().getObjectMetadata(bucketName, objectName);
 
-				logger.debug("putObject -> " + "b: " + bucketName + " | o: " + objectName + " | "+ String.valueOf(end-start) + " ms" +" | " +  " length: " + String.valueOf(meta.getLength()/1000) + " KB" );
+				logger.debug("putObject -> " + "b: " + bucketName + " | o: " + objectName + " | " + String.valueOf(end - start) + " ms" + " | " + " length: " + String.valueOf(meta.getLength() / 1000) + " KB");
 
-				
 			} else {
-				
+
 				meta = getObjectStorageService().getObjectMetadataPreviousVersion(bucketName, objectName, version.get().intValue());
-				
+
 				if (meta != null) {
 					throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.INTERNAL_ERROR, "version update not done");
 				}
-			
+
 			}
 
 			getSystemMonitorService().getPutObjectMeter().mark();
