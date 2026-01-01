@@ -206,7 +206,7 @@ public class OdilonLockService extends BaseService implements LockService {
             this.virtualFileSystemService = virtualFileSystemService;
         } finally {
             setStatus(ServiceStatus.RUNNING);
-            startuplogger.debug("Started -> " + FileCacheService.class.getSimpleName());
+            startuplogger.debug("Started -> " + LockService.class.getSimpleName());
         }
     }
 

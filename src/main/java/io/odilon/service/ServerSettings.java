@@ -61,1029 +61,992 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 @PropertySource("classpath:odilon.properties")
 public class ServerSettings implements JSONObject {
 
-    static private Logger logger = Logger.getLogger(ServerSettings.class.getName());
-    static private Logger startuplogger = Logger.getLogger("StartupLogger");
+	static private Logger logger = Logger.getLogger(ServerSettings.class.getName());
+	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 
-    static private final RandomIDGenerator idGenerator = new RandomIDGenerator();
+	static private final RandomIDGenerator idGenerator = new RandomIDGenerator();
 
-    private static final OffsetDateTime systemStarted = OffsetDateTime.now();
+	private static final OffsetDateTime systemStarted = OffsetDateTime.now();
 
-    protected String version = "";
+	protected String version = "";
 
-    private String encryptionKey;
-    private String encryptionIV;
+	private String encryptionKey;
+	private String encryptionIV;
 
-    // PING ------------------------
+	// PING ------------------------
 
-    @Value("${ping.enabled:true}")
-    protected boolean pingEnabled;
+	@Value("${ping.enabled:true}")
+	protected boolean pingEnabled;
 
-    @Value("${ping.email.enabled:false}")
-    protected boolean pingEmailEnabled;
+	@Value("${ping.email.enabled:false}")
+	protected boolean pingEmailEnabled;
 
-    public boolean isPingEmailEnabled() {
-        return this.pingEmailEnabled;
-    }
+	public boolean isPingEmailEnabled() {
+		return this.pingEmailEnabled;
+	}
 
-    @Value("${ping.email.address:null}")
-    protected String pingEmailAddress;
+	@Value("${ping.email.address:null}")
+	protected String pingEmailAddress;
 
-    public String isPingEmailAddress() {
-        return this.pingEmailAddress;
-    }
+	public String isPingEmailAddress() {
+		return this.pingEmailAddress;
+	}
 
-    @Value("${ping.cronJobcronJobPing:45 * * * * *}")
-    protected String cronJobcronJobPing;
+	@Value("${ping.cronJobcronJobPing:45 * * * * *}")
+	protected String cronJobcronJobPing;
 
-    public String getCronJobcronJobPing() {
-        return cronJobcronJobPing;
-    }
+	public String getCronJobcronJobPing() {
+		return cronJobcronJobPing;
+	}
 
-    private RedundancyLevel redundancyLevel;
+	private RedundancyLevel redundancyLevel;
 
-    // SERVER ------------------------
+	// SERVER ------------------------
 
-    /* default -> odilon */
-    @Value("${accessKey:odilon}")
-    @NonNull
-    protected String accessKey;
+	/* default -> odilon */
+	@Value("${accessKey:odilon}")
+	@NonNull
+	protected String accessKey;
 
-    /* default -> odilon */
-    @Value("${secretKey:odilon}")
-    @NonNull
-    protected String secretKey;
+	/* default -> odilon */
+	@Value("${secretKey:odilon}")
+	@NonNull
+	protected String secretKey;
 
-    /* default port -> 9234 */
-    @Value("${server.port:9234}")
-    protected int port;
+	/* default port -> 9234 */
+	@Value("${server.port:9234}")
+	protected int port;
 
-    @Value("${timezone:null}")
-    protected String timeZone;
+	@Value("${timezone:null}")
+	protected String timeZone;
 
-    @Value("${server.mode:master}") /** server.mode = master | standby */
-    protected String serverMode;
+	@Value("${server.mode:master}") /** server.mode = master | standby */
+	protected String serverMode;
 
-    /** Version Control. by default not enabled **/
-    @Value("${server.versioncontrol:false}")
-    protected boolean versionControl;
+	/** Version Control. by default not enabled **/
+	@Value("${server.versioncontrol:false}")
+	protected boolean versionControl;
 
-    @Value("${recovery:false}")
-    protected boolean recovery = false;
+	@Value("${recovery:false}")
+	protected boolean recovery = false;
 
-    @Value("${server.ssl.enabled:false}")
-    protected String ishttps;
+	@Value("${server.ssl.enabled:false}")
+	protected String ishttps;
 
-    
-    
-    @Value("${server.objectstream.cache.secs:360}")
-    protected int serverObjectstreamCacheSecs;
+	@Value("${server.objectstream.cache.secs:360}")
+	protected int serverObjectstreamCacheSecs;
 
-     
-    
-    // ENCRYPTION -----------------------------------------------
-    //
-    // by default encryption is not enabled
-    //
-    @Value("${encryption.enabled:false}")
-    protected boolean isEncrypt;
+	// ENCRYPTION -----------------------------------------------
+	//
+	// by default encryption is not enabled
+	//
+	@Value("${encryption.enabled:false}")
+	protected boolean isEncrypt;
 
-    @Value("${encryption.key:#{null}}")
-    protected String encryptionKeyIV;
+	@Value("${encryption.key:#{null}}")
+	protected String encryptionKeyIV;
 
-    @Value("${encryption.masterkey:#{null}}")
-    protected String masterkey_lowercase;
+	@Value("${encryption.masterkey:#{null}}")
+	protected String masterkey_lowercase;
 
-    @Value("${encryption.masterKey:#{null}}")
-    protected String masterKey;
+	@Value("${encryption.masterKey:#{null}}")
+	protected String masterKey;
 
-    @Value("${encryption.keyAlgorithm:AES}")
-    protected String keyAlgorithm;
-    
-    
-    @Value("${presignedSalt:pxUrktu3oMo$dfgh9rl!}")
-    @NonNull
-    protected String presignedSalt;
-    
+	@Value("${encryption.keyAlgorithm:AES}")
+	protected String keyAlgorithm;
 
-    // DATA STORAGE -------------------------------------------
-    //
-    //
-    @Value("${redundancyLevel:null}")
-    @NonNull
-    protected String redundancyLevelStr;
+	@Value("${presignedSalt:pxUrktu3oMo$dfgh9rl!}")
+	@NonNull
+	protected String presignedSalt;
 
-    @Value("#{'${dataStorage}'.split(',')}")
-    @NonNull
-    private List<String> rootDirs;
+	// DATA STORAGE -------------------------------------------
+	//
+	//
+	@Value("${redundancyLevel:null}")
+	@NonNull
+	protected String redundancyLevelStr;
 
-    @Value("${raid6.dataDrives:-1}")
-    protected int raid6DataDrives;
+	@Value("#{'${dataStorage}'.split(',')}")
+	@NonNull
+	private List<String> rootDirs;
 
-    @Value("${raid6.parityDrives:-1}")
-    protected int raid6ParityDrives;
+	@Value("${raid6.dataDrives:-1}")
+	protected int raid6DataDrives;
 
-    @Value("${dataStorageMode:rw}")
-    @NonNull
-    protected String dataStorageMode;
-    /** readwrite, readonly, WORM */
+	@Value("${raid6.parityDrives:-1}")
+	protected int raid6ParityDrives;
 
-    private DataStorage dataStorage;
+	@Value("${dataStorageMode:rw}")
+	@NonNull
+	protected String dataStorageMode;
+	/** readwrite, readonly, WORM */
 
-    // LOCK SERVICE ------------------------------------------
-    //
-    @Value("${lockRateMillisecs:2}")
-    String s_lockRateMillisecs;
-    protected double lockRateMillisecs;
+	private DataStorage dataStorage;
 
-    // SCHEDULER -------------------------------------------
-    //
-    @Value("${scheduler.standard.threads:0}")
-    protected int schedulerThreads;
+	// LOCK SERVICE ------------------------------------------
+	//
+	@Value("${lockRateMillisecs:2}")
+	String s_lockRateMillisecs;
+	protected double lockRateMillisecs;
 
-    @Value("${scheduler.cron.threads:0}")
-    protected int cronSchedulerThreads;
+	// SCHEDULER -------------------------------------------
+	//
+	@Value("${scheduler.standard.threads:0}")
+	protected int schedulerThreads;
 
-    @Value("${scheduler.siestaSecs:20}")
-    protected long schedulerSiestaSecs;
+	@Value("${scheduler.cron.threads:0}")
+	protected int cronSchedulerThreads;
 
-    @Value("${scheduler.cronJobWorkDirCleanUp:15 5 * * * *}")
-    protected String CronJobWorkDirCleanUp;
+	@Value("${scheduler.siestaSecs:20}")
+	protected long schedulerSiestaSecs;
 
-    // INTEGRITY CHECK -----------------------------------
+	@Value("${scheduler.cronJobWorkDirCleanUp:15 5 * * * *}")
+	protected String CronJobWorkDirCleanUp;
 
-    @Value("${integrityCheck:true}")
-    protected boolean integrityCheck;
+	// INTEGRITY CHECK -----------------------------------
 
-    @Value("${integrityCheckThreads:0}")
-    protected int integrityCheckThreads;
+	@Value("${integrityCheck:true}")
+	protected boolean integrityCheck;
 
-    @Value("${integrityCheckDays:180}")
-    protected int integrityCheckDays;
+	@Value("${integrityCheckThreads:0}")
+	protected int integrityCheckThreads;
 
-    @Value("${integrityCheckCronExpression:15 15 5 * * *}")
-    protected String integrityCheckCronExpression;
+	@Value("${integrityCheckDays:180}")
+	protected int integrityCheckDays;
 
-    // VAULT -------------------------------------------
+	@Value("${integrityCheckCronExpression:15 15 5 * * *}")
+	protected String integrityCheckCronExpression;
 
-    @Value("${vault.enabled:false}")
-    protected boolean vaultEnabled;
+	// VAULT -------------------------------------------
 
-    @Value("${vault.newfiles:true}")
-    protected boolean isVaultNewFiles;
+	@Value("${vault.enabled:false}")
+	protected boolean vaultEnabled;
 
-    @Value("${vault.url:#{null}}")
-    protected String vaultUrl;
+	@Value("${vault.newfiles:true}")
+	protected boolean isVaultNewFiles;
 
-    @Value("${vault.roleId:#{null}}")
-    protected String vaultRoleId;
+	@Value("${vault.url:#{null}}")
+	protected String vaultUrl;
 
-    @Value("${vault.secretId:#{null}}")
-    protected String vaultSecretId;
+	@Value("${vault.roleId:#{null}}")
+	protected String vaultRoleId;
 
-    @Value("${vault.keyId:kbee-key}")
-    protected String vaultKeyId;
+	@Value("${vault.secretId:#{null}}")
+	protected String vaultSecretId;
 
-    private Optional<String> o_vaultUrl;
+	@Value("${vault.keyId:kbee-key}")
+	protected String vaultKeyId;
 
-    // STAND BY ------------------------------------------
+	private Optional<String> o_vaultUrl;
 
-    @Value("${standby.enabled:false}")
-    protected boolean isStandByEnabled = false;
+	// STAND BY ------------------------------------------
 
-    @Value("${standby.sync.force:false}")
-    protected boolean standbySyncForce = false;
+	@Value("${standby.enabled:false}")
+	protected boolean isStandByEnabled = false;
 
-    @Value("${standby.sync.threads:-1}")
-    protected int standbySyncThreads = -1;
+	@Value("${standby.sync.force:false}")
+	protected boolean standbySyncForce = false;
 
-    @Value("${standby.url:null}")
-    protected String standbyUrl;
+	@Value("${standby.sync.threads:-1}")
+	protected int standbySyncThreads = -1;
 
-    @Value("${standby.port:9234}")
-    int standbyPort;
+	@Value("${standby.url:null}")
+	protected String standbyUrl;
 
-    @Value("${standby.accessKey:odilon}")
-    protected String standbyAccessKey;
+	@Value("${standby.port:9234}")
+	int standbyPort;
 
-    @Value("${standby.secretKey:odilon}")
-    protected String standbySecretKey;
+	@Value("${standby.accessKey:odilon}")
+	protected String standbyAccessKey;
 
-    // TRAFFIC PASS --------------------------------------
+	@Value("${standby.secretKey:odilon}")
+	protected String standbySecretKey;
 
-    @Value("${traffic.tokens:32}")
-    private String tokensStr;
+	// TRAFFIC PASS --------------------------------------
 
-    private int t_tokens;
+	@Value("${traffic.tokens:32}")
+	private String tokensStr;
 
-    // OBJECT CACHES --------------------------------------
+	private int t_tokens;
 
-    @Value("${objectMetadataCache.initialCapacity:10000}")
-    protected int objectCacheInitialCapacity;
+	// OBJECT CACHES --------------------------------------
 
-    @Value("${objectMetadataCache.enabled:true}")
-    protected boolean useObjectCache;
+	@Value("${objectMetadataCache.initialCapacity:10000}")
+	protected int objectCacheInitialCapacity;
 
-    @Value("${objectMetadataCache.maxCapacity:2000000}")
-    protected long objectCacheMaxCapacity;
+	@Value("${objectMetadataCache.enabled:true}")
+	protected boolean useObjectCache;
 
-    @Value("${objectMetadataCache.expireDays:15}")
-    protected long objectExpireDays;
+	@Value("${objectMetadataCache.maxCapacity:2000000}")
+	protected long objectCacheMaxCapacity;
 
-    // FILE CACHE (USED BY RAID 6) -----------------------
+	@Value("${objectMetadataCache.expireDays:15}")
+	protected long objectExpireDays;
 
-    @Value("${fileCache.maxCapacity:100000}")
-    protected long fileCacheMaxCapacity;
+	// FILE CACHE (USED BY RAID 6) -----------------------
 
-    @Value("${fileCache.durationDays:15}")
-    protected int fileCacheDurationDays;
+	@Value("${fileCache.maxCapacity:100000}")
+	protected long fileCacheMaxCapacity;
 
-    @Value("${fileCache.initialCapacity:10000}")
-    protected int fileCacheIntialCapacity;
+	@Value("${fileCache.durationDays:15}")
+	protected int fileCacheDurationDays;
 
-    
-    @Value("${raid6.buffers:20}")
-    private String raidSixBuffersStr;
+	@Value("${fileCache.initialCapacity:10000}")
+	protected int fileCacheIntialCapacity;
 
-    private int raidSixBuffers;
-    
-    
-    // --------------------------------------------------
+	
+	// RAID 6 BUFFERS (USED BY RAID 6) -----------------------
+	
+	@Value("${raid6.buffers:null}")
+	private String raidSixBuffersStr;
 
-    @Value("${retryFailedSeconds:20}")
-    protected long retryFailedSeconds;
+	private int raidSixBuffers;
 
-    
-    private int totalDisks;
-    
-    
-    
-    @Autowired
-    public ServerSettings() {
-    }
+	// --------------------------------------------------
 
-    public OffsetDateTime getSystemStartTime() {
-        return systemStarted;
-    }
+	@Value("${retryFailedSeconds:20}")
+	protected long retryFailedSeconds;
 
-    public String getAccessKey() {
-        return accessKey;
-    }
+	private int totalDisks;
 
-    public String getSecretKey() {
-        return secretKey;
-    }
+	@Autowired
+	public ServerSettings() {
+	}
 
-    public List<String> getRootDirs() {
-        return rootDirs;
-    }
+	public OffsetDateTime getSystemStartTime() {
+		return systemStarted;
+	}
 
-    public boolean isEncryptionEnabled() {
-        return isEncrypt;
-    }
+	public String getAccessKey() {
+		return accessKey;
+	}
 
-    @Override
-    public String toJSON() {
+	public String getSecretKey() {
+		return secretKey;
+	}
 
-        StringBuilder str = new StringBuilder();
+	public List<String> getRootDirs() {
+		return rootDirs;
+	}
 
-        str.append("\"port\":\"" + String.valueOf(port) + "\"");
-        str.append(", \"accessKey\":\"" + accessKey + "\"");
-        str.append(", \"secretKey\":\"" + secretKey + "\"");
+	public boolean isEncryptionEnabled() {
+		return isEncrypt;
+	}
 
-        str.append(", \"https\":\"" + (isHTTPS() ? "yes" : "no") + "\"");
+	@Override
+	public String toJSON() {
 
-        str.append(", \"Vault enabled\":\"" + "\"" + (isVaultEnabled() ? "true" : "false") + "\"");
-        str.append(", \"Use Vault for new files\":\"" + "\"" + (isUseVaultNewFiles() ? "true" : "false") + "\"");
-        str.append(", \"vaultUrl\":\"" + (Optional.ofNullable(vaultUrl).isPresent() ? ("\"" + vaultUrl + "\"") : "null"));
-        str.append(", \"vaultKeyId\":\"" + (Optional.ofNullable(vaultKeyId).isPresent() ? ("\"" + vaultKeyId + "\"") : "null"));
-        str.append(", \"vaultRoleId\":\"" + (Optional.ofNullable(vaultRoleId).isPresent() ? ("\"" + vaultRoleId + "\"") : "null"));
+		StringBuilder str = new StringBuilder();
 
-        str.append(", \"redundancyLevel\":"
-                + (Optional.ofNullable(redundancyLevel).isPresent() ? ("\"" + redundancyLevel.getName() + "\"") : "null"));
+		str.append("\"port\":\"" + String.valueOf(port) + "\"");
+		str.append(", \"accessKey\":\"" + accessKey + "\"");
+		str.append(", \"secretKey\":\"" + secretKey + "\"");
 
-        if (redundancyLevel == RedundancyLevel.RAID_6) {
-            str.append(", \"dataDrives\":" + String.format("%3d", getRAID6DataDrives()).trim());
-            str.append(", \"paritytDrives\":" + String.format("%3d", getRAID6ParityDrives()).trim());
-        }
+		str.append(", \"https\":\"" + (isHTTPS() ? "yes" : "no") + "\"");
 
-        str.append(", \"dataDirs\":[");
-        if (rootDirs != null && rootDirs.size() > 0)
-            str.append(rootDirs.stream().map((s) -> "\"" + s + "\"").collect(Collectors.joining(", ")));
-        str.append("]");
-        
+		str.append(", \"Vault enabled\":\"" + "\"" + (isVaultEnabled() ? "true" : "false") + "\"");
+		str.append(", \"Use Vault for new files\":\"" + "\"" + (isUseVaultNewFiles() ? "true" : "false") + "\"");
+		str.append(", \"vaultUrl\":\"" + (Optional.ofNullable(vaultUrl).isPresent() ? ("\"" + vaultUrl + "\"") : "null"));
+		str.append(", \"vaultKeyId\":\"" + (Optional.ofNullable(vaultKeyId).isPresent() ? ("\"" + vaultKeyId + "\"") : "null"));
+		str.append(", \"vaultRoleId\":\"" + (Optional.ofNullable(vaultRoleId).isPresent() ? ("\"" + vaultRoleId + "\"") : "null"));
 
-        // STAND BY --------------
+		str.append(", \"redundancyLevel\":" + (Optional.ofNullable(redundancyLevel).isPresent() ? ("\"" + redundancyLevel.getName() + "\"") : "null"));
 
-        str.append(", \"standby.enabled\":\"" + "\"" + (isStandByEnabled() ? "true" : "false") + "\"");
+		if (redundancyLevel == RedundancyLevel.RAID_6) {
+			str.append(", \"dataDrives\":" + String.format("%3d", getRAID6DataDrives()).trim());
+			str.append(", \"paritytDrives\":" + String.format("%3d", getRAID6ParityDrives()).trim());
+			str.append(", \"R6BufferPoolSize\":" + String.format("%4d", this.getR6BufferPoolSize()).trim());
+		}
 
-        if (isStandByEnabled()) {
-            str.append(", \"standby.url\":" + (Optional.ofNullable(standbyUrl).isPresent() ? ("\"" + standbyUrl + "\"") : "null"));
-            str.append(", \"standby.accesskey\":"
-                    + (Optional.ofNullable(standbyUrl).isPresent() ? ("\"" + standbyAccessKey + "\"") : "null"));
-            str.append(", \"standby.secretkey\":"
-                    + (Optional.ofNullable(standbySecretKey).isPresent() ? ("\"" + standbySecretKey + "\"") : "null"));
-            str.append(", \"standby.port\":" + String.format("%6d", standbyPort).trim());
-        }
+		str.append(", \"dataDirs\":[");
+		if (rootDirs != null && rootDirs.size() > 0)
+			str.append(rootDirs.stream().map((s) -> "\"" + s + "\"").collect(Collectors.joining(", ")));
+		str.append("]");
 
-        str.append("\"dataStorage\":\"" + getDataStorage() + "\"");
+		// STAND BY --------------
 
-        str.append(", \"encrypt\":\"" + "\"" + (isEncryptionEnabled() ? "true" : "false") + "\"");
-        str.append(", \"keyAlgorithm\":" + (Optional.ofNullable(keyAlgorithm).isPresent() ? ("\"" + keyAlgorithm + "\"") : "null"));
+		str.append(", \"standby.enabled\":\"" + "\"" + (isStandByEnabled() ? "true" : "false") + "\"");
 
-        str.append(", \"lockRateMillisecs\":" + String.format("%6.2f", getLockRateMillisecs()).trim());
+		if (isStandByEnabled()) {
+			str.append(", \"standby.url\":" + (Optional.ofNullable(standbyUrl).isPresent() ? ("\"" + standbyUrl + "\"") : "null"));
+			str.append(", \"standby.accesskey\":" + (Optional.ofNullable(standbyUrl).isPresent() ? ("\"" + standbyAccessKey + "\"") : "null"));
+			str.append(", \"standby.secretkey\":" + (Optional.ofNullable(standbySecretKey).isPresent() ? ("\"" + standbySecretKey + "\"") : "null"));
+			str.append(", \"standby.port\":" + String.format("%6d", standbyPort).trim());
+		}
 
-        // Scheduler
-        str.append("\"schedulerThreads\":\"" + String.valueOf(schedulerThreads) + "\"");
-        str.append("\"schedulerSiestaSecs\":\"" + String.valueOf(schedulerSiestaSecs) + "\"");
+		str.append("\"dataStorage\":\"" + getDataStorage() + "\"");
 
-        // Integrity Check
-        str.append(", \"integrityCheck\":\"" + "\"" + (isIntegrityCheck() ? "true" : "false") + "\"");
-        if (isIntegrityCheck()) {
-            str.append(", \"integrityCheckThreads\":" + String.valueOf(getIntegrityCheckThreads()).trim());
-            str.append(", \"integrityCheckDays\":" + String.valueOf(getIntegrityCheckDays()).trim());
-            str.append(", \"integrityCheckCronExpression\":\"" + integrityCheckCronExpression + "\"");
-        }
+		str.append(", \"encrypt\":\"" + "\"" + (isEncryptionEnabled() ? "true" : "false") + "\"");
+		str.append(", \"keyAlgorithm\":" + (Optional.ofNullable(keyAlgorithm).isPresent() ? ("\"" + keyAlgorithm + "\"") : "null"));
 
-        str.append(", \"timeZone\":\"" + getTimeZone() + "\"");
+		str.append(", \"lockRateMillisecs\":" + String.format("%6.2f", getLockRateMillisecs()).trim());
 
-        str.append(", \"trafficTokens\":" + String.valueOf(t_tokens) + "");
-        str.append(", \"versionControl\":\"" + (this.versionControl ? "true" : "false") + "\"");
+		// Scheduler
+		str.append("\"schedulerThreads\":\"" + String.valueOf(schedulerThreads) + "\"");
+		str.append("\"schedulerSiestaSecs\":\"" + String.valueOf(schedulerSiestaSecs) + "\"");
 
-        str.append("\"objectMetadataCache.maxCapacity\":\"" + String.valueOf(objectCacheMaxCapacity) + "\"");
-        str.append("\"objectMetadataCache.durationDays\":\"" + String.valueOf(objectExpireDays) + "\"");
+		// Integrity Check
+		str.append(", \"integrityCheck\":\"" + "\"" + (isIntegrityCheck() ? "true" : "false") + "\"");
+		if (isIntegrityCheck()) {
+			str.append(", \"integrityCheckThreads\":" + String.valueOf(getIntegrityCheckThreads()).trim());
+			str.append(", \"integrityCheckDays\":" + String.valueOf(getIntegrityCheckDays()).trim());
+			str.append(", \"integrityCheckCronExpression\":\"" + integrityCheckCronExpression + "\"");
+		}
 
-        str.append("\"objectstream.cache.secs\":\"" +  String.valueOf(getserverObjectstreamCacheSecs()) + "\"");
-        
-        str.append("\"fileCache.maxCapacity\":\"" + String.valueOf(fileCacheMaxCapacity) + "\"");
-        str.append("\"fileCache.durationDays\":\"" + String.valueOf(fileCacheDurationDays) + "\"");
-          
-        return str.toString();
-    }
+		str.append(", \"timeZone\":\"" + getTimeZone() + "\"");
 
-    public int getRAID6ParityDrives() {
-        return raid6ParityDrives;
-    }
+		str.append(", \"trafficTokens\":" + String.valueOf(t_tokens) + "");
+		str.append(", \"versionControl\":\"" + (this.versionControl ? "true" : "false") + "\"");
 
-    public int getRAID6DataDrives() {
-        return raid6DataDrives;
-    }
+		str.append("\"objectMetadataCache.maxCapacity\":\"" + String.valueOf(objectCacheMaxCapacity) + "\"");
+		str.append("\"objectMetadataCache.durationDays\":\"" + String.valueOf(objectExpireDays) + "\"");
 
-    public Map<String, Object> toMap() {
+		str.append("\"objectstream.cache.secs\":\"" + String.valueOf(getserverObjectstreamCacheSecs()) + "\"");
 
-        Map<String, Object> map = new TreeMap<String, Object>();
-    
-        map.put("server.port", getPort());
-        map.put("server.https", isHTTPS() ? "true" : "false");
+		str.append("\"fileCache.maxCapacity\":\"" + String.valueOf(fileCacheMaxCapacity) + "\"");
+		str.append("\"fileCache.durationDays\":\"" + String.valueOf(fileCacheDurationDays) + "\"");
 
-        map.put("security.accessKey", accessKey);
-        map.put("security.secretKey", secretKey.substring(0, 3)+"...");
-        
-        map.put("raid.redundancyLevel", Optional.ofNullable(redundancyLevel).isPresent() ? (redundancyLevel.getName()) : "null");
-        int n = 0;
-        if (rootDirs != null && rootDirs.size() > 0) {
-            for (String s : rootDirs) {
-                map.put("raid.rootDir_" + String.valueOf(n++), s);
-            }
-        }
-
-        map.put("cache.serverObjectstreamCacheSecs",       String.valueOf(getserverObjectstreamCacheSecs()));
-        
-        map.put("dataStorage.mode", getDataStorage().getName());
-
-
-        map.put("standby.enabled", isStandByEnabled() ? "true" : "false");
-        if (isStandByEnabled()) {
-            map.put("standby.url", standbyUrl);
-            map.put("standby.accesskey", standbyAccessKey);
-            map.put("standby.secretkey", standbySecretKey.subSequence(0, 3)+"...");
-            map.put("standby.port", String.format("%6d", standbyPort).trim());
-        }
-
-        map.put("timeZone", getTimeZone());
-
-        return map;
-    }
-
-    /**
-     * 
-     * 
-     */
-    public int getPort() {
-        return port;
-    }
-
-    /**
-     * 
-     * 
-     */
-    @Override
-    public String toString() {
-        StringBuilder str = new StringBuilder();
-        str.append(ServerSettings.class.getSimpleName() + "{");
-        str.append(toJSON());
-        str.append("}");
-        return str.toString();
-    }
-
-    /**
-     * 
-     */
-    @PostConstruct
-    public void onInitialize() {
-
-        if (this.secretKey == null) {
-            exit("secretKey can not be null");
-        }
-
-        if (this.presignedSalt.length()<20)
-        	exit("presignedSalt must be at least 20 characters (it has " + String.valueOf( this.presignedSalt.length() )+ ")");
-
-        if (this.presignedSalt.length()>20)
-        	this.presignedSalt=this.presignedSalt.substring(0,20);
-               
-        if (this.rootDirs == null || this.rootDirs.size() < 1) {
-            startuplogger.error(
-                    "No rootDirs are defined. \n" + "for RAID 0. at least 1 dataDir must be defined in file -> odilon.properties \n"
-                            + "for RAID 1. at least 1 dataDir must be defined in file -> odilon.properties \n"
-                            + "for RAID 6. 3, 6, 12, 24 or 48 dataDirs must be defined in file -> odilon.properties \n"
-                            + "using default values ");
-
-            getDefaultRootDirs().forEach(o -> startuplogger.error(o));
-            this.rootDirs = getDefaultRootDirs();
-        }
-
-        if (this.encryptionKeyIV != null) {
-            this.encryptionKeyIV = encryptionKeyIV.trim();
-            if (this.encryptionKeyIV.length() != (2 * (EncryptionService.AES_KEY_SIZE_BITS + EncryptionService.AES_IV_SIZE_BITS)
-                    / VirtualFileSystemService.BITS_PER_BYTE))
-                exit("encryption key length must be -> "
-                        + String.valueOf((2 * (EncryptionService.AES_KEY_SIZE_BITS + EncryptionService.AES_IV_SIZE_BITS)
-                                / VirtualFileSystemService.BITS_PER_BYTE)));
-            try {
-                @SuppressWarnings("unused")
-                byte[] be = ByteToString.hexStringToByte(encryptionKeyIV);
-            } catch (Exception e) {
-                exit("encryption key is not a valid hex String -> " + encryptionKeyIV);
-            }
-
-            this.encryptionKey = encryptionKeyIV.substring(0,
-                    2 * EncryptionService.AES_KEY_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE);
-            this.encryptionIV = encryptionKeyIV
-                    .substring(2 * EncryptionService.AES_KEY_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE);
-
-        }
-
-        if ((this.masterKey == null) && (this.masterkey_lowercase != null)) {
-            this.masterKey = this.masterkey_lowercase.trim();
-        }
-
-        if (masterKey != null) {
-            masterKey = masterKey.trim();
-            if (masterKey.length() != (2 * EncryptionService.AES_KEY_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE))
-                exit("masterKey key length must be -> "
-                        + String.valueOf((2 * EncryptionService.AES_KEY_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE)));
-            try {
-                @SuppressWarnings("unused")
-                byte[] be = ByteToString.hexStringToByte(masterKey);
-            } catch (Exception e) {
-                exit("masterKey key is not a valid hex String -> " + masterKey);
-            }
-        }
-
-        
-        try {
-        	raidSixBuffers = Integer.valueOf(raidSixBuffersStr).intValue();
-            		
-        } catch (Exception e) {
-        	raidSixBuffers = ServerConstant.R6_BUFFERS;
-        }
-        
-        
-        
-        
-        
-        
-        
-        Integer t;
-        
-        
-        try {
-            t = Integer.valueOf(tokensStr);
-            		
-        } catch (Exception e) {
-        	t=Integer.valueOf(ServerConstant.TRAFFIC_TOKENS_DEFAULT);
-        }
-        
-        t_tokens = t.intValue();
-        
-
-        try {
-            dataStorage = (dataStorageMode == null) ? DataStorage.READ_WRITE : DataStorage.fromString(dataStorageMode);
-        } catch (Exception e) {
-            exit("dataStorage must be one of {" + DataStorage.getNames().toString() + "} -> " + dataStorageMode);
-        }
-
-        if (timeZone == null || timeZone.equals("null") || timeZone.length() == 0)
-            timeZone = TimeZone.getDefault().getID();
-
-        if (getTimeZone().equals(TimeZone.getDefault().getID()))
-            TimeZone.setDefault(TimeZone.getTimeZone(getTimeZone()));
-
-        if ((this.serverMode == null))
-            this.serverMode = ServerConstant.MASTER_MODE;
-        else {
-            this.serverMode = this.serverMode.toLowerCase().trim();
-            if (!(this.serverMode.equals(ServerConstant.MASTER_MODE) || serverMode.equals(ServerConstant.STANDBY_MODE)))
-                exit("server.mode must be '" + ServerConstant.MASTER_MODE + "' or '" + ServerConstant.STANDBY_MODE + "' -> "
-                        + serverMode);
-        }
-
-        if (this.redundancyLevelStr == null || this.redundancyLevelStr.toLowerCase().trim().equals("null")) {
-        	exit("redundancyLevel can not be null | Supported values are: RAID 0, RAID 1 or RAID 6 | example -> redundancyLevel=RAID 0");
-        	// this.redundancyLevel = RedundancyLevel.RAID_0;
-        }
-        
-        this.redundancyLevel = RedundancyLevel.get(redundancyLevelStr);
-
-        List<String> dirs = new ArrayList<String>();
-
-        if (isWindows())
-            this.rootDirs.forEach(item -> dirs
-                    .add(item.replace("/", File.separator).replace("\\", File.separator).replaceAll("[?;<>|]", "").trim()));
-        else
-            this.rootDirs.forEach(item -> dirs
-                    .add(item.replace("/", File.separator).replace("\\", File.separator).replaceAll("[?;<>|]", "").trim()));
-
-        this.rootDirs = dirs.stream().distinct().collect(Collectors.toList());
-
-        if (this.rootDirs.size() != dirs.size())
-            exit("DataStorage can not have duplicate entries -> " + dirs.toString());
-
-        this.rootDirs = dirs;
-
-        this.o_vaultUrl = Optional.ofNullable(this.vaultUrl);
-
-        if (this.redundancyLevel == null) {
-            StringBuilder str = new StringBuilder();
-            RedundancyLevel.getValues().forEach(item -> str.append((str.length() > 0 ? ", " : "") + item.getName()));
-            exit("RedundancyLevel error -> " + redundancyLevelStr + " | Supported values are: " + str.toString());
-        }
-
-        if (this.redundancyLevel == RedundancyLevel.RAID_1) {
-            if (this.rootDirs.size() <= 1)
-                exit("DataStorage must have at least 2 entries for -> " + redundancyLevel.getName() + " | dataStorage="
-                        + rootDirs.toString() + " | you must use " + RedundancyLevel.RAID_0.getName()
-                        + "for only one mount directory");
-        } else if (this.redundancyLevel == RedundancyLevel.RAID_6) {
-
-            if (!((this.rootDirs.size() == 3) || (this.rootDirs.size() == 6) || (this.rootDirs.size() == 12)
-                    || (this.rootDirs.size() == 24) || (this.rootDirs.size() == 48))) {
-                exit("DataStorage must have 3, 6, 12, 24, 48 entries for -> " + redundancyLevel.getName() + " | value provided -> "
-                        + String.valueOf(this.rootDirs.size()));
-            }
-
-            if (this.rootDirs.size() == 3) {
-                if (this.raid6DataDrives == -1)
-                    this.raid6DataDrives = 2;
-                if (this.raid6ParityDrives == -1)
-                    this.raid6ParityDrives = 1;
-            } else if (this.rootDirs.size() == 6) {
-                if (this.raid6DataDrives == -1)
-                    this.raid6DataDrives = 4;
-                if (this.raid6ParityDrives == -1)
-                    this.raid6ParityDrives = 2;
-            } else if (this.rootDirs.size() == 12) {
-                if (this.raid6DataDrives == -1)
-                    this.raid6DataDrives = 8;
-                if (this.raid6ParityDrives == -1)
-                    this.raid6ParityDrives = 4;
-            } else if (this.rootDirs.size() == 24) {
-                if (this.raid6DataDrives == -1)
-                    this.raid6DataDrives = 16;
-                if (this.raid6ParityDrives == -1)
-                    this.raid6ParityDrives = 8;
-            }
-
-            else if (this.rootDirs.size() == 48) {
-                if (this.raid6DataDrives == -1)
-                    this.raid6DataDrives = 32;
-                if (this.raid6ParityDrives == -1)
-                    this.raid6ParityDrives = 16;
-            }
-
-            if (!(((this.rootDirs.size() == 3) && (this.raid6DataDrives == 2) && (this.raid6ParityDrives == 1))
-                    || ((this.rootDirs.size() == 6) && (this.raid6DataDrives == 4) && (this.raid6ParityDrives == 2))
-                    || ((this.rootDirs.size() == 12) && (this.raid6DataDrives == 8) && (this.raid6ParityDrives == 4))
-                    || ((this.rootDirs.size() == 24) && (this.raid6DataDrives == 16) && (this.raid6ParityDrives == 8))
-                    || ((this.rootDirs.size() == 48) && (this.raid6DataDrives == 32) && (this.raid6ParityDrives == 16)))) {
-                exit(RedundancyLevel.RAID_6.getName() + " configurations supported are -> "
-                        + " 3 dirs in DataStorage and raid6.dataDrives=2 and raid6.parityDrives=1  | "
-                        + " 6 dirs in DataStorage and raid6.dataDrives=4 and raid6.parityDrives=2  | "
-                        + "12 dirs in DataStorage and raid6.dataDrives=8 and raid6.parityDrives=4  | "
-                        + "24 dirs in DataStorage and raid6.dataDrives=16 and raid6.parityDrives=8 |  "
-                        + "48 dirs in DataStorage and raid6.dataDrives=32 and raid6.parityDrives=16 ");
-            }
-        }
-        try {
-
-            this.lockRateMillisecs = Double.valueOf(this.s_lockRateMillisecs).doubleValue();
-
-            if (this.lockRateMillisecs < 0.01)
-                this.lockRateMillisecs = 0.01;
-
-            if (this.lockRateMillisecs > 10.0)
-                this.lockRateMillisecs = 10;
-
-        } catch (Exception e) {
-            logger.error(e, SharedConstant.NOT_THROWN);
-            this.lockRateMillisecs = 2;
-        }
-
-        if (this.integrityCheckDays < 1)
-            this.integrityCheckDays = 180;
-
-        if (this.integrityCheckThreads < 1)
-            this.integrityCheckThreads = Double.valueOf(Double.valueOf(Runtime.getRuntime().availableProcessors() - 1) / 2.0)
-                    .intValue() + 1;
-
-        if (this.schedulerThreads < 1)
-            this.schedulerThreads = Double.valueOf(Double.valueOf(Runtime.getRuntime().availableProcessors() - 1) / 2.0).intValue()
-                    + 1;
-
-        if (this.schedulerThreads < 2)
-            this.schedulerThreads = 2;
-
-        if (this.cronSchedulerThreads < 1)
-            this.cronSchedulerThreads = Double.valueOf(Double.valueOf(Runtime.getRuntime().availableProcessors() - 1) / 2.5)
-                    .intValue() + 1;
-
-        if (this.cronSchedulerThreads < 2)
-            this.cronSchedulerThreads = 2;
-
-        if (this.standbyUrl == null)
-            this.isStandByEnabled = false;
-
-        if (fileCacheDurationDays < 1)
-            fileCacheDurationDays = 7;
-
-        if (this.objectCacheInitialCapacity < 1)
-            this.objectCacheInitialCapacity = 10000;
-        
-        this.totalDisks=getRootDirs().size();
-
-        startuplogger.debug("Started -> " + ServerSettings.class.getSimpleName());
-
-    }
-
-    public boolean isReadOnly() {
-        return getDataStorage() == DataStorage.READONLY;
-    }
-
-    public boolean isWORM() {
-        return getDataStorage() == DataStorage.WORM;
-    }
-
-    public int getCronDispatcherPoolSize() {
-        return cronSchedulerThreads;
-    }
-
-    public String getCronJobWorkDirCleanUp() {
-        return CronJobWorkDirCleanUp;
-    }
-
-    public boolean isUseObjectCache() {
-        return useObjectCache;
-    }
-
-    public String getInternalMasterKeyEncryptor() {
-        return masterKey;
-    }
-
-    public void setInternalMasterKeyEncryptor(String masterKey) {
-        this.masterKey = masterKey;
-    }
-
-    public int getserverObjectstreamCacheSecs() {
-    	return this.serverObjectstreamCacheSecs;
-    }
-    
-
-    public String getStandBySecretKey() {
-        return standbySecretKey;
-    }
-
-    public String getStandByAccessKey() {
-        return standbyAccessKey;
-    }
-
-    public String getStandByUrl() {
-        return standbyUrl;
-    }
-
-    public boolean isStandByEnabled() {
-        return isStandByEnabled;
-    }
-
-    public boolean isVersionControl() {
-        return this.versionControl;
-    }
-
-    public boolean isHTTPS() {
-        return this.ishttps != null && this.ishttps.toLowerCase().trim().equals("true");
-    }
-
-    private List<String> getDefaultRootDirs() {
-
-    	
-        if (isWindows()) {
-
-            /** Windows */
-
-            List<String> list = new ArrayList<String>();
-
-            if (getRedundancyLevel() == RedundancyLevel.RAID_1 || getRedundancyLevel() == RedundancyLevel.RAID_0) {
-                list.add("c:" + File.separator + "odilon-data" + File.separator + "drive0");
-            	return list;
-
-            }
-
-            // for RAID 6 default is 3,1
-            list.add("c:" + File.separator + "odilon-data" + File.separator + "drive0");
-            list.add("c:" + File.separator + "odilon-data" + File.separator + "drive1");
-            list.add("c:" + File.separator + "odilon-data" + File.separator + "drive2");
-            return list;
-        }
-
-        {
-
-            /** Linux */
-
-            List<String> list = new ArrayList<String>();
-
-            if (getRedundancyLevel() == RedundancyLevel.RAID_1 || getRedundancyLevel() == RedundancyLevel.RAID_0) {
-                list.add(File.separator + "var" + File.separator + "lib" + File.separator + "odilon-data" + File.separator + "drive0");
-            	return list;
-            }
-
-            list.add(File.separator + "opt" + File.separator + "odilon-data" + File.separator + "drive0");
-            list.add(File.separator + "opt" + File.separator + "odilon-data" + File.separator + "drive1");
-            list.add(File.separator + "opt" + File.separator + "odilon-data" + File.separator + "drive2");
-            return list;
-        }
-    }
-
-    public String getKeyAlgorithm() {
-        return keyAlgorithm;
-    }
-
-    public void setKeyAlgorithm(String keyAlgorithm) {
-        this.keyAlgorithm = keyAlgorithm;
-    }
-
-    public String getVersion() {
-        return version;
-    }
-
-    public double getLockRateMillisecs() {
-        return lockRateMillisecs;
-    }
-
-    public RedundancyLevel getRedundancyLevel() {
-        return redundancyLevel;
-    }
-
-    public String getRoleId() {
-        return vaultRoleId;
-    }
-
-    public String getSecretId() {
-        return vaultSecretId;
-    }
-
-    public Optional<String> getVaultUrl() {
-        return o_vaultUrl;
-    }
-
-    public String getVaultKeyId() {
-        return vaultKeyId;
-    }
-
-    public String getEncryptionKey() {
-        return encryptionKey;
-    }
-
-    public String getEncryptionIV() {
-        return encryptionIV;
-    }
-
-    /**
-     * <p>
-     * This method is used to define whether new files will use Vault or local key
-     * encryptor:<br/>
-     * <b> false </b> existing files encrypted with Vault will use it to decrypt,
-     * new file will not<br/>
-     * <b> true </b> if vault.url points to an existing Vault it will use it,
-     * otherwise it will not<br/>
-     * </p>
-     * 
-     * @return
-     */
-
-    public void setRecovery(boolean isRecovery) {
-        this.recovery = isRecovery;
-    }
-
-    public boolean isRecovery() {
-        return recovery;
-    }
-
-    public boolean isVaultEnabled() {
-        return vaultEnabled;
-    }
-
-    public boolean isUseVaultNewFiles() {
-        return isVaultNewFiles;
-    }
-
-    public String[] getAppCharacterName() {
-        return OdilonVersion.getAppCharacterName();
-    }
-
-    public boolean isIntegrityCheck() {
-        return integrityCheck;
-    }
-
-    public int getDispatcherPoolSize() {
-        return schedulerThreads;
-    }
-
-    public int getMaxTrafficTokens() {
-        return t_tokens;
-    }
-
-    public int getIntegrityCheckThreads() {
-        return integrityCheckThreads;
-    }
-
-    public int getIntegrityCheckDays() {
-        return integrityCheckDays;
-    }
-
-    public String getIntegrityCheckCronExpression() {
-        return integrityCheckCronExpression;
-    }
-
-    public long getSchedulerSiestaSecs() {
-        return schedulerSiestaSecs;
-    }
-
-    public String getStandbyUrl() {
-        return standbyUrl;
-    }
-
-    public void setStandbyUrl(String standbyUrl) {
-        this.standbyUrl = standbyUrl;
-    }
-
-    public int getStandbyPort() {
-        return standbyPort;
-    }
-
-    public void setStandbyPort(int standbyPort) {
-        this.standbyPort = standbyPort;
-    }
-
-    public String getStandbyAccessKey() {
-        return standbyAccessKey;
-    }
-
-    public void setStandbyAccessKey(String standbyAccessKey) {
-        this.standbyAccessKey = standbyAccessKey;
-    }
-
-    public String getStandbySecretKey() {
-        return standbySecretKey;
-    }
-
-    public String getServerMode() {
-        return serverMode;
-    }
-
-    public void setStandbySecretKey(String standbySecretKey) {
-        this.standbySecretKey = standbySecretKey;
-    }
-
-    public void setStandBy(boolean isStandBy) {
-        this.isStandByEnabled = isStandBy;
-    }
-
-    public boolean isStandbySyncForce() {
-        return this.standbySyncForce;
-    }
-
-    public int getStandbySyncThreads() {
-        return this.standbySyncThreads;
-    }
-
-    public int getFileCacheInitialCapacity() {
-        return fileCacheIntialCapacity;
-    }
-
-    public long getRetryFailedSeconds() {
-        return retryFailedSeconds;
-    }
-
-    public String getTimeZone() {
-        return this.timeZone;
-    }
-
-    public int getObjectCacheInitialCapacity() {
-        return objectCacheInitialCapacity;
-    }
-
-    public int getTotalDisks() {
-        return totalDisks;
-    }
-    
-    public synchronized OdilonServerInfo getDefaultOdilonServerInfo() {
-
-        OffsetDateTime now = OffsetDateTime.now();
-
-        OdilonServerInfo si = new OdilonServerInfo();
-        si.setCreationDate(now);
-        si.setName(ServerConstant.applicationName);
-        si.setVersionControl(isVersionControl());
-
-        si.setEncryptionIntialized(false);
-
-        if (isVersionControl())
-            si.setVersionControlDate(now);
-
-        si.setServerMode(getServerMode());
-        si.setId(randomString(16));
-        si.setStandByEnabled(isStandByEnabled());
-        si.setStandbyUrl(getStandbyUrl());
-        si.setStandbyPort(getStandbyPort());
-        si.setStandBySyncedDate(null);
-        si.setRedundancyLevel( this.getRedundancyLevel().getName());
-
-        if (isStandByEnabled())
-            si.setStandByStartDate(now);
-
-        return si;
-    }
-
-    private boolean isWindows() {
-        if ((System.getenv("OS") != null) && System.getenv("OS").toLowerCase().contains("windows"))
-            return true;
-        return false;
-    }
-
-    public long getObjectCacheCapacity() {
-        return this.objectCacheMaxCapacity;
-    }
-
-    public long getObjectCacheExpireDays() {
-        return this.objectExpireDays;
-    }
-
-    public long getFileCacheMaxCapacity() {
-        return this.fileCacheMaxCapacity;
-    }
-
-    public long getFileCacheDurationDays() {
-        return this.fileCacheDurationDays;
-    }
-
-    public boolean isRAID6ConfigurationValid(int dataShards, int parityShards) {
-        return  (       dataShards == 32  && parityShards == 16) 
-                    || (dataShards == 16  && parityShards ==  8)
-                    || (dataShards ==  8  && parityShards ==  4) 
-                    || (dataShards ==  4  && parityShards ==  2)
-                    || (dataShards ==  2  && parityShards ==  1);
-    }
-
-    public DataStorage getDataStorage() {
-        return this.dataStorage;
-    }
-
-    public boolean isPingEnabled() {
-        return this.pingEnabled;
-    }
-
-    protected String randomString(final int size) {
-        return idGenerator.randomString(size);
-    }
-
-    private void exit(String msg) {
-        logger.error(ServerConstant.SEPARATOR);
-        logger.error(msg);
-        logger.error("check file ." + File.separator + "config" + File.separator + "odilon.properties");
-        logger.error(ServerConstant.SEPARATOR);
-        System.exit(1);
-    }
-
-    
+		return str.toString();
+	}
+
+	public int getRAID6ParityDrives() {
+		return raid6ParityDrives;
+	}
+
+	public int getRAID6DataDrives() {
+		return raid6DataDrives;
+	}
+
+	public Map<String, Object> toMap() {
+
+		Map<String, Object> map = new TreeMap<String, Object>();
+
+		map.put("server.port", getPort());
+		map.put("server.https", isHTTPS() ? "true" : "false");
+
+		map.put("security.accessKey", accessKey);
+		map.put("security.secretKey", secretKey.substring(0, 3) + "...");
+
+		map.put("raid.redundancyLevel", Optional.ofNullable(redundancyLevel).isPresent() ? (redundancyLevel.getName()) : "null");
+		int n = 0;
+		if (rootDirs != null && rootDirs.size() > 0) {
+			for (String s : rootDirs) {
+				map.put("raid.rootDir_" + String.valueOf(n++), s);
+			}
+		}
+
+		map.put("cache.serverObjectstreamCacheSecs", String.valueOf(getserverObjectstreamCacheSecs()));
+
+		map.put("dataStorage.mode", getDataStorage().getName());
+
+		map.put("standby.enabled", isStandByEnabled() ? "true" : "false");
+		if (isStandByEnabled()) {
+			map.put("standby.url", standbyUrl);
+			map.put("standby.accesskey", standbyAccessKey);
+			map.put("standby.secretkey", standbySecretKey.subSequence(0, 3) + "...");
+			map.put("standby.port", String.format("%6d", standbyPort).trim());
+		}
+
+		map.put("timeZone", getTimeZone());
+
+		return map;
+	}
+
+	/**
+	 * 
+	 * 
+	 */
+	public int getPort() {
+		return port;
+	}
+
+	/**
+	 * 
+	 * 
+	 */
+	@Override
+	public String toString() {
+		StringBuilder str = new StringBuilder();
+		str.append(ServerSettings.class.getSimpleName() + "{");
+		str.append(toJSON());
+		str.append("}");
+		return str.toString();
+	}
+
+	/**
+	 * 
+	 */
+	@PostConstruct
+	public void onInitialize() {
+
+		if (this.secretKey == null) {
+			exit("secretKey can not be null");
+		}
+
+		if (this.presignedSalt.length() < 20)
+			exit("presignedSalt must be at least 20 characters (it has " + String.valueOf(this.presignedSalt.length()) + ")");
+
+		if (this.presignedSalt.length() > 20)
+			this.presignedSalt = this.presignedSalt.substring(0, 20);
+
+		if (this.rootDirs == null || this.rootDirs.size() < 1) {
+			startuplogger.error("No rootDirs are defined. \n" + "for RAID 0. at least 1 dataDir must be defined in file -> odilon.properties \n" + "for RAID 1. at least 1 dataDir must be defined in file -> odilon.properties \n"
+					+ "for RAID 6. 3, 6, 12, 24 or 48 dataDirs must be defined in file -> odilon.properties \n" + "using default values ");
+
+			getDefaultRootDirs().forEach(o -> startuplogger.error(o));
+			this.rootDirs = getDefaultRootDirs();
+		}
+
+		if (this.encryptionKeyIV != null) {
+			this.encryptionKeyIV = encryptionKeyIV.trim();
+			if (this.encryptionKeyIV.length() != (2 * (EncryptionService.AES_KEY_SIZE_BITS + EncryptionService.AES_IV_SIZE_BITS) / VirtualFileSystemService.BITS_PER_BYTE))
+				exit("encryption key length must be -> " + String.valueOf((2 * (EncryptionService.AES_KEY_SIZE_BITS + EncryptionService.AES_IV_SIZE_BITS) / VirtualFileSystemService.BITS_PER_BYTE)));
+			try {
+				@SuppressWarnings("unused")
+				byte[] be = ByteToString.hexStringToByte(encryptionKeyIV);
+			} catch (Exception e) {
+				exit("encryption key is not a valid hex String -> " + encryptionKeyIV);
+			}
+
+			this.encryptionKey = encryptionKeyIV.substring(0, 2 * EncryptionService.AES_KEY_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE);
+			this.encryptionIV = encryptionKeyIV.substring(2 * EncryptionService.AES_KEY_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE);
+
+		}
+
+		if ((this.masterKey == null) && (this.masterkey_lowercase != null)) {
+			this.masterKey = this.masterkey_lowercase.trim();
+		}
+
+		if (masterKey != null) {
+			masterKey = masterKey.trim();
+			if (masterKey.length() != (2 * EncryptionService.AES_KEY_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE))
+				exit("masterKey key length must be -> " + String.valueOf((2 * EncryptionService.AES_KEY_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE)));
+			try {
+				@SuppressWarnings("unused")
+				byte[] be = ByteToString.hexStringToByte(masterKey);
+			} catch (Exception e) {
+				exit("masterKey key is not a valid hex String -> " + masterKey);
+			}
+		}
+
+		Integer t;
+
+		try {
+			t = Integer.valueOf(tokensStr);
+
+		} catch (Exception e) {
+			t = Integer.valueOf(ServerConstant.TRAFFIC_TOKENS_DEFAULT);
+		}
+
+		t_tokens = t.intValue();
+
+		try {
+			dataStorage = (dataStorageMode == null) ? DataStorage.READ_WRITE : DataStorage.fromString(dataStorageMode);
+		} catch (Exception e) {
+			exit("dataStorage must be one of {" + DataStorage.getNames().toString() + "} -> " + dataStorageMode);
+		}
+
+		if (timeZone == null || timeZone.equals("null") || timeZone.length() == 0)
+			timeZone = TimeZone.getDefault().getID();
+
+		if (getTimeZone().equals(TimeZone.getDefault().getID()))
+			TimeZone.setDefault(TimeZone.getTimeZone(getTimeZone()));
+
+		if ((this.serverMode == null))
+			this.serverMode = ServerConstant.MASTER_MODE;
+		else {
+			this.serverMode = this.serverMode.toLowerCase().trim();
+			if (!(this.serverMode.equals(ServerConstant.MASTER_MODE) || serverMode.equals(ServerConstant.STANDBY_MODE)))
+				exit("server.mode must be '" + ServerConstant.MASTER_MODE + "' or '" + ServerConstant.STANDBY_MODE + "' -> " + serverMode);
+		}
+
+		if (this.redundancyLevelStr == null || this.redundancyLevelStr.toLowerCase().trim().equals("null")) {
+			exit("redundancyLevel can not be null | Supported values are: RAID 0, RAID 1 or RAID 6 | example -> redundancyLevel=RAID 0");
+			// this.redundancyLevel = RedundancyLevel.RAID_0;
+		}
+
+		this.redundancyLevel = RedundancyLevel.get(redundancyLevelStr);
+
+		List<String> dirs = new ArrayList<String>();
+
+		if (isWindows())
+			this.rootDirs.forEach(item -> dirs.add(item.replace("/", File.separator).replace("\\", File.separator).replaceAll("[?;<>|]", "").trim()));
+		else
+			this.rootDirs.forEach(item -> dirs.add(item.replace("/", File.separator).replace("\\", File.separator).replaceAll("[?;<>|]", "").trim()));
+
+		this.rootDirs = dirs.stream().distinct().collect(Collectors.toList());
+
+		if (this.rootDirs.size() != dirs.size())
+			exit("DataStorage can not have duplicate entries -> " + dirs.toString());
+
+		this.rootDirs = dirs;
+
+		this.o_vaultUrl = Optional.ofNullable(this.vaultUrl);
+
+		if (this.redundancyLevel == null) {
+			StringBuilder str = new StringBuilder();
+			RedundancyLevel.getValues().forEach(item -> str.append((str.length() > 0 ? ", " : "") + item.getName()));
+			exit("RedundancyLevel error -> " + redundancyLevelStr + " | Supported values are: " + str.toString());
+		}
+
+		if (this.redundancyLevel == RedundancyLevel.RAID_1) {
+			if (this.rootDirs.size() <= 1)
+				exit("DataStorage must have at least 2 entries for -> " + redundancyLevel.getName() + " | dataStorage=" + rootDirs.toString() + " | you must use " + RedundancyLevel.RAID_0.getName() + "for only one mount directory");
+		} else if (this.redundancyLevel == RedundancyLevel.RAID_6) {
+
+			if (!((this.rootDirs.size() == 3) || (this.rootDirs.size() == 6) || (this.rootDirs.size() == 12) || (this.rootDirs.size() == 24) || (this.rootDirs.size() == 48))) {
+				exit("DataStorage must have 3, 6, 12, 24, 48 entries for -> " + redundancyLevel.getName() + " | value provided -> " + String.valueOf(this.rootDirs.size()));
+			}
+
+			if (this.rootDirs.size() == 3) {
+				if (this.raid6DataDrives == -1)
+					this.raid6DataDrives = 2;
+				if (this.raid6ParityDrives == -1)
+					this.raid6ParityDrives = 1;
+			} else if (this.rootDirs.size() == 6) {
+				if (this.raid6DataDrives == -1)
+					this.raid6DataDrives = 4;
+				if (this.raid6ParityDrives == -1)
+					this.raid6ParityDrives = 2;
+			} else if (this.rootDirs.size() == 12) {
+				if (this.raid6DataDrives == -1)
+					this.raid6DataDrives = 8;
+				if (this.raid6ParityDrives == -1)
+					this.raid6ParityDrives = 4;
+			} else if (this.rootDirs.size() == 24) {
+				if (this.raid6DataDrives == -1)
+					this.raid6DataDrives = 16;
+				if (this.raid6ParityDrives == -1)
+					this.raid6ParityDrives = 8;
+			}
+
+			else if (this.rootDirs.size() == 48) {
+				if (this.raid6DataDrives == -1)
+					this.raid6DataDrives = 32;
+				if (this.raid6ParityDrives == -1)
+					this.raid6ParityDrives = 16;
+			}
+
+			if (!(((this.rootDirs.size() == 3) && (this.raid6DataDrives == 2) && (this.raid6ParityDrives == 1)) || ((this.rootDirs.size() == 6) && (this.raid6DataDrives == 4) && (this.raid6ParityDrives == 2))
+					|| ((this.rootDirs.size() == 12) && (this.raid6DataDrives == 8) && (this.raid6ParityDrives == 4)) || ((this.rootDirs.size() == 24) && (this.raid6DataDrives == 16) && (this.raid6ParityDrives == 8))
+					|| ((this.rootDirs.size() == 48) && (this.raid6DataDrives == 32) && (this.raid6ParityDrives == 16)))) {
+				exit(RedundancyLevel.RAID_6.getName() + " configurations supported are -> " + " 3 dirs in DataStorage and raid6.dataDrives=2 and raid6.parityDrives=1  | "
+						+ " 6 dirs in DataStorage and raid6.dataDrives=4 and raid6.parityDrives=2  | " + "12 dirs in DataStorage and raid6.dataDrives=8 and raid6.parityDrives=4  | "
+						+ "24 dirs in DataStorage and raid6.dataDrives=16 and raid6.parityDrives=8 |  " + "48 dirs in DataStorage and raid6.dataDrives=32 and raid6.parityDrives=16 ");
+			}
+		}
+		try {
+
+			this.lockRateMillisecs = Double.valueOf(this.s_lockRateMillisecs).doubleValue();
+
+			if (this.lockRateMillisecs < 0.01)
+				this.lockRateMillisecs = 0.01;
+
+			if (this.lockRateMillisecs > 10.0)
+				this.lockRateMillisecs = 10;
+
+		} catch (Exception e) {
+			logger.error(e, SharedConstant.NOT_THROWN);
+			this.lockRateMillisecs = 2;
+		}
+
+		if (this.integrityCheckDays < 1)
+			this.integrityCheckDays = 180;
+
+		if (this.integrityCheckThreads < 1)
+			this.integrityCheckThreads = Double.valueOf(Double.valueOf(Runtime.getRuntime().availableProcessors() - 1) / 2.0).intValue() + 1;
+
+		if (this.schedulerThreads < 1)
+			this.schedulerThreads = Double.valueOf(Double.valueOf(Runtime.getRuntime().availableProcessors() - 1) / 2.0).intValue() + 1;
+
+		if (this.schedulerThreads < 2)
+			this.schedulerThreads = 2;
+
+		if (this.cronSchedulerThreads < 1)
+			this.cronSchedulerThreads = Double.valueOf(Double.valueOf(Runtime.getRuntime().availableProcessors() - 1) / 2.5).intValue() + 1;
+
+		if (this.cronSchedulerThreads < 2)
+			this.cronSchedulerThreads = 2;
+
+		if (this.standbyUrl == null)
+			this.isStandByEnabled = false;
+
+		if (fileCacheDurationDays < 1)
+			fileCacheDurationDays = 7;
+
+		if (this.objectCacheInitialCapacity < 1)
+			this.objectCacheInitialCapacity = 10000;
+
+		this.totalDisks = getRootDirs().size();
+
+		if (this.redundancyLevel == RedundancyLevel.RAID_6) {
+			try {
+				if (raidSixBuffersStr != null && raidSixBuffersStr.equals("null")) {
+					raidSixBuffers = ServerConstant.R6_BUFFERS;
+					if (raidSixBuffers < this.rootDirs.size())
+						raidSixBuffers = this.rootDirs.size();
+				} else {
+					raidSixBuffers = Integer.valueOf(raidSixBuffersStr).intValue();
+				}
+			} catch (Exception e) {
+				raidSixBuffers = ServerConstant.R6_BUFFERS;
+			}
+
+			if (this.raidSixBuffers < this.rootDirs.size()) {
+				startuplogger.info(" buffers is set to " + this.raidSixBuffers + "but they must be at least " + this.rootDirs.size() + ". We will use corrected the value to this value.");
+				this.raidSixBuffers = this.rootDirs.size();
+			}
+
+		} else {
+			raidSixBuffers = ServerConstant.R6_BUFFERS;
+		}
+
+		startuplogger.debug("Started -> " + ServerSettings.class.getSimpleName());
+
+	}
+
+	public boolean isReadOnly() {
+		return getDataStorage() == DataStorage.READONLY;
+	}
+
+	public boolean isWORM() {
+		return getDataStorage() == DataStorage.WORM;
+	}
+
+	public int getCronDispatcherPoolSize() {
+		return cronSchedulerThreads;
+	}
+
+	public String getCronJobWorkDirCleanUp() {
+		return CronJobWorkDirCleanUp;
+	}
+
+	public boolean isUseObjectCache() {
+		return useObjectCache;
+	}
+
+	public String getInternalMasterKeyEncryptor() {
+		return masterKey;
+	}
+
+	public void setInternalMasterKeyEncryptor(String masterKey) {
+		this.masterKey = masterKey;
+	}
+
+	public int getserverObjectstreamCacheSecs() {
+		return this.serverObjectstreamCacheSecs;
+	}
+
+	public String getStandBySecretKey() {
+		return standbySecretKey;
+	}
+
+	public String getStandByAccessKey() {
+		return standbyAccessKey;
+	}
+
+	public String getStandByUrl() {
+		return standbyUrl;
+	}
+
+	public boolean isStandByEnabled() {
+		return isStandByEnabled;
+	}
+
+	public boolean isVersionControl() {
+		return this.versionControl;
+	}
+
+	public boolean isHTTPS() {
+		return this.ishttps != null && this.ishttps.toLowerCase().trim().equals("true");
+	}
+
+	private List<String> getDefaultRootDirs() {
+
+		if (isWindows()) {
+
+			/** Windows */
+
+			List<String> list = new ArrayList<String>();
+
+			if (getRedundancyLevel() == RedundancyLevel.RAID_1 || getRedundancyLevel() == RedundancyLevel.RAID_0) {
+				list.add("c:" + File.separator + "odilon-data" + File.separator + "drive0");
+				return list;
+
+			}
+
+			// for RAID 6 default is 3,1
+			list.add("c:" + File.separator + "odilon-data" + File.separator + "drive0");
+			list.add("c:" + File.separator + "odilon-data" + File.separator + "drive1");
+			list.add("c:" + File.separator + "odilon-data" + File.separator + "drive2");
+			return list;
+		}
+
+		{
+
+			/** Linux or mac */
+
+			List<String> list = new ArrayList<String>();
+
+			if (getRedundancyLevel() == RedundancyLevel.RAID_1 || getRedundancyLevel() == RedundancyLevel.RAID_0) {
+				list.add(File.separator + "var" + File.separator + "lib" + File.separator + "odilon-data" + File.separator + "drive0");
+				return list;
+			}
+
+			list.add(File.separator + "opt" + File.separator + "odilon-data" + File.separator + "drive0");
+			list.add(File.separator + "opt" + File.separator + "odilon-data" + File.separator + "drive1");
+			list.add(File.separator + "opt" + File.separator + "odilon-data" + File.separator + "drive2");
+			return list;
+		}
+	}
+
+	public String getKeyAlgorithm() {
+		return keyAlgorithm;
+	}
+
+	public void setKeyAlgorithm(String keyAlgorithm) {
+		this.keyAlgorithm = keyAlgorithm;
+	}
+
+	public String getVersion() {
+		return version;
+	}
+
+	public double getLockRateMillisecs() {
+		return lockRateMillisecs;
+	}
+
+	public RedundancyLevel getRedundancyLevel() {
+		return redundancyLevel;
+	}
+
+	public String getRoleId() {
+		return vaultRoleId;
+	}
+
+	public String getSecretId() {
+		return vaultSecretId;
+	}
+
+	public Optional<String> getVaultUrl() {
+		return o_vaultUrl;
+	}
+
+	public String getVaultKeyId() {
+		return vaultKeyId;
+	}
+
+	public String getEncryptionKey() {
+		return encryptionKey;
+	}
+
+	public String getEncryptionIV() {
+		return encryptionIV;
+	}
+
+	/**
+	 * <p>
+	 * This method is used to define whether new files will use Vault or local key
+	 * encryptor:<br/>
+	 * <b> false </b> existing files encrypted with Vault will use it to decrypt,
+	 * new file will not<br/>
+	 * <b> true </b> if vault.url points to an existing Vault it will use it,
+	 * otherwise it will not<br/>
+	 * </p>
+	 * 
+	 * @return
+	 */
+
+	public void setRecovery(boolean isRecovery) {
+		this.recovery = isRecovery;
+	}
+
+	public boolean isRecovery() {
+		return recovery;
+	}
+
+	public boolean isVaultEnabled() {
+		return vaultEnabled;
+	}
+
+	public boolean isUseVaultNewFiles() {
+		return isVaultNewFiles;
+	}
+
+	public String[] getAppCharacterName() {
+		return OdilonVersion.getAppCharacterName();
+	}
+
+	public boolean isIntegrityCheck() {
+		return integrityCheck;
+	}
+
+	public int getDispatcherPoolSize() {
+		return schedulerThreads;
+	}
+
+	public int getMaxTrafficTokens() {
+		return t_tokens;
+	}
+
+	public int getIntegrityCheckThreads() {
+		return integrityCheckThreads;
+	}
+
+	public int getIntegrityCheckDays() {
+		return integrityCheckDays;
+	}
+
+	public String getIntegrityCheckCronExpression() {
+		return integrityCheckCronExpression;
+	}
+
+	public long getSchedulerSiestaSecs() {
+		return schedulerSiestaSecs;
+	}
+
+	public String getStandbyUrl() {
+		return standbyUrl;
+	}
+
+	public void setStandbyUrl(String standbyUrl) {
+		this.standbyUrl = standbyUrl;
+	}
+
+	public int getStandbyPort() {
+		return standbyPort;
+	}
+
+	public void setStandbyPort(int standbyPort) {
+		this.standbyPort = standbyPort;
+	}
+
+	public String getStandbyAccessKey() {
+		return standbyAccessKey;
+	}
+
+	public void setStandbyAccessKey(String standbyAccessKey) {
+		this.standbyAccessKey = standbyAccessKey;
+	}
+
+	public String getStandbySecretKey() {
+		return standbySecretKey;
+	}
+
+	public String getServerMode() {
+		return serverMode;
+	}
+
+	public void setStandbySecretKey(String standbySecretKey) {
+		this.standbySecretKey = standbySecretKey;
+	}
+
+	public void setStandBy(boolean isStandBy) {
+		this.isStandByEnabled = isStandBy;
+	}
+
+	public boolean isStandbySyncForce() {
+		return this.standbySyncForce;
+	}
+
+	public int getStandbySyncThreads() {
+		return this.standbySyncThreads;
+	}
+
+	public int getFileCacheInitialCapacity() {
+		return fileCacheIntialCapacity;
+	}
+
+	public long getRetryFailedSeconds() {
+		return retryFailedSeconds;
+	}
+
+	public String getTimeZone() {
+		return this.timeZone;
+	}
+
+	public int getObjectCacheInitialCapacity() {
+		return objectCacheInitialCapacity;
+	}
+
+	public int getTotalDisks() {
+		return totalDisks;
+	}
+
+	public synchronized OdilonServerInfo getDefaultOdilonServerInfo() {
+
+		OffsetDateTime now = OffsetDateTime.now();
+
+		OdilonServerInfo si = new OdilonServerInfo();
+		si.setCreationDate(now);
+		si.setName(ServerConstant.applicationName);
+		si.setVersionControl(isVersionControl());
+
+		si.setEncryptionIntialized(false);
+
+		if (isVersionControl())
+			si.setVersionControlDate(now);
+
+		si.setServerMode(getServerMode());
+		si.setId(randomString(16));
+		si.setStandByEnabled(isStandByEnabled());
+		si.setStandbyUrl(getStandbyUrl());
+		si.setStandbyPort(getStandbyPort());
+		si.setStandBySyncedDate(null);
+		si.setRedundancyLevel(this.getRedundancyLevel().getName());
+
+		if (isStandByEnabled())
+			si.setStandByStartDate(now);
+
+		return si;
+	}
+
+	private boolean isWindows() {
+		if ((System.getenv("OS") != null) && System.getenv("OS").toLowerCase().contains("windows"))
+			return true;
+		return false;
+	}
+
+	public long getObjectCacheCapacity() {
+		return this.objectCacheMaxCapacity;
+	}
+
+	public long getObjectCacheExpireDays() {
+		return this.objectExpireDays;
+	}
+
+	public long getFileCacheMaxCapacity() {
+		return this.fileCacheMaxCapacity;
+	}
+
+	public long getFileCacheDurationDays() {
+		return this.fileCacheDurationDays;
+	}
+
+	public boolean isRAID6ConfigurationValid(int dataShards, int parityShards) {
+		return (dataShards == 32 && parityShards == 16) || (dataShards == 16 && parityShards == 8) || (dataShards == 8 && parityShards == 4) || (dataShards == 4 && parityShards == 2) || (dataShards == 2 && parityShards == 1);
+	}
+
+	public DataStorage getDataStorage() {
+		return this.dataStorage;
+	}
+
+	public boolean isPingEnabled() {
+		return this.pingEnabled;
+	}
+
+	protected String randomString(final int size) {
+		return idGenerator.randomString(size);
+	}
+
+	private void exit(String msg) {
+		logger.error(ServerConstant.SEPARATOR);
+		logger.error(msg);
+		logger.error("check file ." + File.separator + "config" + File.separator + "odilon.properties");
+		logger.error(ServerConstant.SEPARATOR);
+		System.exit(1);
+	}
+
 	public String getPresignedSalt() {
 		return this.presignedSalt;
 	}
@@ -1092,9 +1055,8 @@ public class ServerSettings implements JSONObject {
 		return raidSixBuffers;
 	}
 
-	public int getR6BufferSizeMB() { 
+	public int getR6BufferSizeMB() {
 		return ServerConstant.MAX_CHUNK_SIZE;
 	}
 
-	
 }
