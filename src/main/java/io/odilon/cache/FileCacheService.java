@@ -135,7 +135,10 @@ public class FileCacheService extends BaseService implements ApplicationListener
 
 		getLockService().getFileCacheLock(bucketId, objectName, version).readLock().lock();
 		try {
-			return getCache().getIfPresent(getKey(bucketId, objectName, version));
+			
+			File file = getCache().getIfPresent(getKey(bucketId, objectName, version));
+			//logger.debug("get  -> " + 	getKey(bucketId, objectName, version) + " -> " + ((file!=null)  ?  "hit" :  "miss"));
+			return file;
 		} finally {
 			getLockService().getFileCacheLock(bucketId, objectName, version).readLock().unlock();
 		}
@@ -159,6 +162,7 @@ public class FileCacheService extends BaseService implements ApplicationListener
 		if (lockRequired)
 			getLockService().getFileCacheLock(bucketId, objectName, version).writeLock().lock();
 		try {
+			//logger.debug("put -> " + getKey(bucketId, objectName, version));
 			getCache().put(getKey(bucketId, objectName, version), file);
 			this.cacheSizeBytes.getAndAdd(file.length());
 		} finally {
@@ -181,6 +185,7 @@ public class FileCacheService extends BaseService implements ApplicationListener
 		try {
 
 			File file = getCache().getIfPresent(getKey(bucketId, objectName, version));
+			//logger.debug("remove -> " + getKey(bucketId, objectName, version));
 			getCache().invalidate(getKey(bucketId, objectName, version));
 
 			if (file != null) {
@@ -329,11 +334,8 @@ public class FileCacheService extends BaseService implements ApplicationListener
 				
 				getLockService().getFileCacheLock(bucketId, objectName, version).writeLock().lock();
 				try {
-				
 					logger.debug("delete cached file -> b:"+ bucketId.toString()+ " o:" + objectName +" v: "+String.valueOf(version));
-					
 					FileUtils.deleteQuietly((File) value);
-
 					this.cacheSizeBytes.getAndAdd(-((File) value).length());
 				} finally {
 					getLockService().getFileCacheLock(bucketId, objectName, version).writeLock().unlock();

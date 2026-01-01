@@ -207,7 +207,7 @@ public class ObjectController extends BaseApiController {
 			responseHeaders.set("Content-Disposition", "inline; filename=\"" + f_name + "\"");
 			responseHeaders.set(HttpHeaders.ACCEPT_RANGES, "bytes");
 
-			logger.debug(meta.getFileName() + " " + contentType.toString());
+			//logger.debug(meta.getFileName() + " " + contentType.toString());
 
 			return ResponseEntity.ok().headers(responseHeaders).cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)).contentType(contentType).contentLength(length).body(new InputStreamResource(in));
 
@@ -789,7 +789,7 @@ public class ObjectController extends BaseApiController {
 
 				meta = getObjectStorageService().getObjectMetadata(bucketName, objectName);
 
-				logger.debug("putObject -> " + "b: " + bucketName + " | o: " + objectName + " | " + String.valueOf(end - start) + " ms" + " | " + " length: " + String.valueOf(meta.getLength() / 1000) + " KB");
+				//logger.debug("putObject -> " + "b: " + bucketName + " | o: " + objectName + " | " + String.valueOf(end - start) + " ms" + " | " + " length: " + String.valueOf(meta.getLength() / 1000) + " KB");
 
 			} else {
 
