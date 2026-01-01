@@ -300,6 +300,13 @@ public class ServerSettings implements JSONObject {
     @Value("${fileCache.initialCapacity:10000}")
     protected int fileCacheIntialCapacity;
 
+    
+    @Value("${raid6.buffers:20}")
+    private String raidSixBuffersStr;
+
+    private int raidSixBuffers;
+    
+    
     // --------------------------------------------------
 
     @Value("${retryFailedSeconds:20}")
@@ -543,6 +550,19 @@ public class ServerSettings implements JSONObject {
             }
         }
 
+        
+        try {
+        	raidSixBuffers = Integer.valueOf(raidSixBuffersStr).intValue();
+            		
+        } catch (Exception e) {
+        	raidSixBuffers = ServerConstant.R6_BUFFERS;
+        }
+        
+        
+        
+        
+        
+        
         
         Integer t;
         
@@ -1069,11 +1089,11 @@ public class ServerSettings implements JSONObject {
 	}
 
 	public int getR6BufferPoolSize() {
-		return 20;
+		return raidSixBuffers;
 	}
 
 	public int getR6BufferSizeMB() { 
-		return 32;
+		return ServerConstant.MAX_CHUNK_SIZE;
 	}
 
 	

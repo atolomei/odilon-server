@@ -276,31 +276,66 @@ public class ObjectController extends BaseApiController {
 			if (meta == null || meta.status == ObjectStatus.DELETED || meta.status == ObjectStatus.DRAFT)
 				throw new OdilonObjectNotFoundException(String.format("object not found -> b: %s | o:%s", Optional.ofNullable(bucketName).orElse("null"), Optional.ofNullable(objectName).orElse("null")));
 
+			if (meta.version == 0)
+				throw new OdilonObjectNotFoundException(String.format("object version not found"));
+			
+			List<ObjectMetadata> list = getObjectStorageService().getObjectMetadataAllPreviousVersions(bucketName, objectName);
+
+			if (list == null || list.isEmpty())
+				throw new OdilonObjectNotFoundException(String.format("object version not found"));
+
 			if (version.isEmpty())
 				throw new IllegalArgumentException("version can not be null");
-
+			
 			if (version.get() < 0)
 				throw new IllegalArgumentException("version must be 0 or greater");
+			
+			
+			ObjectMetadata metaVersion = null;
 
-			MediaType contentType = MediaType.valueOf(meta.getContentType());
-			if (meta.contentType() == null || meta.getContentType().equals("application/octet-stream")) {
-				contentType = estimateContentType(meta.getFileName());
-			}
-
-			in = getObjectStorageService().getObjectPreviousVersionStream(bucketName, objectName, version.get().intValue());
-
+			for (ObjectMetadata m: list) {
+					if (m.getVersion()==version.get()) {
+						metaVersion=m;
+						break;
+					}
+				}
+			
+			if (metaVersion==null)
+				throw new OdilonObjectNotFoundException(String.format("object version not found" ));
+			
+			
+			
+			
 			getSystemMonitorService().getGetObjectMeter().mark();
 
-			int cacheDurationSecs = this.settings.getserverObjectstreamCacheSecs();
+		 	
+			if (metaVersion.getFileName() != null) {
+				if (metaVersion.getFileName().toLowerCase().endsWith(".svg")) {
+					metaVersion.setContentType("image/svg+xml");
+				}
+			}
+			MediaType contentType = MediaType.valueOf(metaVersion.getContentType());
+			if (metaVersion.contentType() == null || metaVersion.getContentType().equals("application/octet-stream")) {
+				contentType = estimateContentType(metaVersion.getFileName());
+			}
+			
+			in = getObjectStorageService().getObjectPreviousVersionStream(bucketName, objectName, metaVersion.version);
 
-			long length = meta.getLength();
+			
+			int cacheDurationSecs = this.settings.getserverObjectstreamCacheSecs();
+			long length = metaVersion.getLength();
 
 			HttpHeaders responseHeaders = new HttpHeaders();
-			String f_name = meta.getFileName().replace("[", "").replace("]", "");
+			String f_name = metaVersion.getFileName().replace("[", "").replace("]", "");
 			responseHeaders.set("Content-Disposition", "inline; filename=\"" + f_name + "\"");
 			responseHeaders.set(HttpHeaders.ACCEPT_RANGES, "bytes");
 
-			return ResponseEntity.ok().headers(responseHeaders).cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)).contentType(contentType).contentLength(length).body(new InputStreamResource(in));
+			return ResponseEntity.ok().
+				   headers(responseHeaders).
+				   cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)).
+				   contentType(contentType).
+				   contentLength(length).
+				   body(new InputStreamResource(in));
 
 		} catch (OdilonServerAPIException e) {
 
@@ -352,36 +387,58 @@ public class ObjectController extends BaseApiController {
 			if (!getObjectStorageService().existsObject(bucketName, objectName))
 				throw new OdilonObjectNotFoundException(String.format("object not found -> b: %s | o:%s", Optional.ofNullable(bucketName).orElse("null"), Optional.ofNullable(objectName).orElse("null")));
 
-			ObjectMetadata meta = getObjectStorageService().getObjectMetadata(bucketName, objectName);
+			ObjectMetadata currMeta = getObjectStorageService().getObjectMetadata(bucketName, objectName);
 
-			if (meta == null || meta.status == ObjectStatus.DELETED || meta.status == ObjectStatus.DRAFT)
+			if (currMeta == null || currMeta.status == ObjectStatus.DELETED || currMeta.status == ObjectStatus.DRAFT)
 				throw new OdilonObjectNotFoundException(String.format("object not found -> b: %s | o:%s", Optional.ofNullable(bucketName).orElse("null"), Optional.ofNullable(objectName).orElse("null")));
 
-			if (meta.version == 0)
+			if (currMeta.version == 0)
 				throw new OdilonObjectNotFoundException(String.format("object version not found"));
 
+			
+			
+			/**
 			List<ObjectMetadata> list = getObjectStorageService().getObjectMetadataAllPreviousVersions(bucketName, objectName);
 
 			if (list == null || list.isEmpty())
 				throw new OdilonObjectNotFoundException(String.format("object version not found"));
-
+**/
 			getSystemMonitorService().getGetObjectMeter().mark();
 
-			MediaType contentType = MediaType.APPLICATION_OCTET_STREAM;
-			in = getObjectStorageService().getObjectPreviousVersionStream(bucketName, objectName, list.get(list.size() - 1).version);
+	
+			ObjectMetadata prev =  getObjectStorageService().getObjectMetadataPreviousVersion(bucketName, objectName);
+			
+			if (prev.getFileName() != null) {
+				if (prev.getFileName().toLowerCase().endsWith(".svg")) {
+					prev.setContentType("image/svg+xml");
+				}
+			}
+			MediaType contentType = MediaType.valueOf(prev.getContentType());
+			if (prev.contentType() == null || prev.getContentType().equals("application/octet-stream")) {
+				contentType = estimateContentType(prev.getFileName());
+			}
+			
+			//in = getObjectStorageService().getObjectPreviousVersionStream(bucketName, objectName, list.get(list.size() - 1).version);
 
+			in = getObjectStorageService().getObjectPreviousVersionStream(bucketName, objectName, prev.version);
+
+			
 			int cacheDurationSecs = this.settings.getserverObjectstreamCacheSecs();
-			long length = meta.getLength();
+			long length = prev.getLength();
 
 			HttpHeaders responseHeaders = new HttpHeaders();
-			String f_name = meta.getFileName().replace("[", "").replace("]", "");
+			String f_name = prev.getFileName().replace("[", "").replace("]", "");
 			responseHeaders.set("Content-Disposition", "inline; filename=\"" + f_name + "\"");
 			responseHeaders.set(HttpHeaders.ACCEPT_RANGES, "bytes");
 
 			return ResponseEntity.ok().
+				   headers(responseHeaders).
+				   cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)).
+				   contentType(contentType).
+				   contentLength(length).
+				   body(new InputStreamResource(in));
 
-					headers(responseHeaders).cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)).contentType(contentType).contentLength(length).body(new InputStreamResource(in));
-
+			
 		} catch (OdilonServerAPIException e1) {
 
 			if (in != null) {

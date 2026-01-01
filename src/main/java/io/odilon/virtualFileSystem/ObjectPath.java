@@ -22,11 +22,13 @@ import java.nio.file.Paths;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ServerConstant;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
+import io.odilon.virtualFileSystem.raid0.RAIDZeroDriver;
 
 /**
  * 
@@ -40,6 +42,8 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  */
 public class ObjectPath extends PathBuilder {
 
+	static private Logger logger = Logger.getLogger(ObjectPath.class.getName());
+	
     @JsonProperty("drive")
     private final Drive drive;
 
@@ -122,8 +126,10 @@ public class ObjectPath extends PathBuilder {
     }
 
     public Path dataFilePath(Context context) {
-        if (context == Context.STORAGE)
-            return Paths.get(getDrive().getRootDirPath(), getBucketId().toString() + File.separator + getObjectName());
+        if (context == Context.STORAGE) {
+        	logger.debug(getDrive().getRootDirPath(), getBucketId().toString() + File.separator + getObjectName());
+        	return Paths.get(getDrive().getRootDirPath(), getBucketId().toString() + File.separator + getObjectName());
+       }
 
         throw new RuntimeException("not done");
     }
@@ -137,11 +143,15 @@ public class ObjectPath extends PathBuilder {
     }
 
     public Path dataFileVersionPath(Context context, int version) {
-        if (context == Context.STORAGE)
-            return Paths.get(
+        if (context == Context.STORAGE) {
+           
+        	logger.debug(getDrive().getRootDirPath(), getBucketId().toString() + File.separator + getObjectName());
+        	
+        	return Paths.get(
                     getDrive().getRootDirPath() + File.separator + getBucketId().toString() + File.separator
                             + VirtualFileSystemService.VERSION_DIR,
                     getObjectName() + VirtualFileSystemService.VERSION_EXTENSION + String.valueOf(version));
+        }
         else
             throw new RuntimeException("not done");
     }
@@ -158,35 +168,6 @@ public class ObjectPath extends PathBuilder {
         return this.drive;
     }
 
-
-    // private String getObjectMetadataDir() {
-    // return getBucketsDir() + File.separator +
-    // getObjectMetadata().getBucketId().toString() + File.separator +
-    // getObjectMetadata().getObjectName();
-    // }
-    // private String getBucketsDir() {
-    // return getDrive().getRootDirPath() + File.separator +
-    // VirtualFileSystemService.SYS + File.separator +
-    // VirtualFileSystemService.BUCKETS;
-    // }
-
-    /**
-     * public Path build() {
-     * 
-     * // String dir =
-     * getDrive().getObjectMetadataDirPath(getObjectMetadata().getBucketId(),
-     * getObjectMetadata().getObjectName()); //String dir ="";
-     * 
-     * //if (getContext()==Context.STORAGE) { if (isHead()) return Paths.get(dir,
-     * getObjectMetadata().getObjectName() + ServerConstant.JSON); else return
-     * Paths.get(dir, getObjectMetadata().getObjectName() +
-     * VirtualFileSystemService.VERSION_EXTENSION +
-     * String.valueOf(getObjectMetadata().getVersion()) + ServerConstant.JSON); //}
-     * 
-     * //return Paths.get(dir, getObjectMetadata().getObjectName() +
-     * ServerConstant.JSON);
-     * 
-     * }
-     **/
+  
 
 }

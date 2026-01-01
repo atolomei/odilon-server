@@ -68,6 +68,7 @@ public class ServerConstant {
     static public final int BYTES_IN_INT = 4;
     static public final int BYTES_IN_LONG = 16;
 
+    static public final int R6_BUFFERS = 20;
     static public final int MAX_CHUNK_SIZE = 32 * iMB;
 
     public static final int BUFFER_SIZE = 8192;

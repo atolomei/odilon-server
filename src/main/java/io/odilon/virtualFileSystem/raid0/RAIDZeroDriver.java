@@ -554,6 +554,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 
 		objectReadLock(bucket, objectName);
 		try {
+			
 			bucketReadLock(bucket);
 			try {
 				/** must be executed inside the critical zone */
