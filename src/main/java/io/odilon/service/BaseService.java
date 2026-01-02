@@ -18,10 +18,7 @@ package io.odilon.service;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import io.odilon.json.OdilonObjectMapper;
 import io.odilon.log.Logger;
@@ -36,54 +33,53 @@ import io.odilon.util.RandomIDGenerator;
  */
 public abstract class BaseService implements JSONObject {
 
-    static private Logger logger = Logger.getLogger(BaseService.class.getName());
+	static private Logger logger = Logger.getLogger(BaseService.class.getName());
 
-    @JsonIgnore
-    static final private RandomIDGenerator idGenerator = new RandomIDGenerator();
+	@JsonIgnore
+	static final private RandomIDGenerator idGenerator = new RandomIDGenerator();
 
-    @JsonIgnore
-    static final private ObjectMapper mapper = new OdilonObjectMapper();
- 
+	@JsonIgnore
+	static final private ObjectMapper mapper = new OdilonObjectMapper();
 
-    static protected String randomString(final int size) {
-        return idGenerator.randomString(size);
-    }
+	static protected String randomString(final int size) {
+		return idGenerator.randomString(size);
+	}
 
-    @JsonIgnore
-    private ServiceStatus status;
+	@JsonIgnore
+	private ServiceStatus status;
 
-    public BaseService() {
-        this.status = ServiceStatus.STOPPED;
-    }
+	public BaseService() {
+		this.status = ServiceStatus.STOPPED;
+	}
 
-    public void setStatus(ServiceStatus status) {
-        this.status = status;
-    }
+	public void setStatus(ServiceStatus status) {
+		this.status = status;
+	}
 
-    public ServiceStatus getStatus() {
-        return this.status;
-    }
+	public ServiceStatus getStatus() {
+		return this.status;
+	}
 
-    @Override
-    public String toString() {
-        StringBuilder str = new StringBuilder();
-        str.append(this.getClass().getSimpleName());
-        str.append(toJSON());
-        return str.toString();
-    }
+	@Override
+	public String toString() {
+		StringBuilder str = new StringBuilder();
+		str.append(this.getClass().getSimpleName());
+		str.append(toJSON());
+		return str.toString();
+	}
 
-    @Override
-    public String toJSON() {
-        try {
-            return mapper.writeValueAsString(this);
-        } catch (JsonProcessingException e) {
-            logger.error(e, SharedConstant.NOT_THROWN);
-            return "\"error\":\"" + e.getClass().getName() + " | " + e.getMessage() + "\"";
-        }
-    }
+	@Override
+	public String toJSON() {
+		try {
+			return mapper.writeValueAsString(this);
+		} catch (JsonProcessingException e) {
+			logger.error(e, SharedConstant.NOT_THROWN);
+			return "\"error\":\"" + e.getClass().getName() + " | " + e.getMessage() + "\"";
+		}
+	}
 
-    protected ObjectMapper getObjectMapper() {
-        return mapper;
-    }
+	protected ObjectMapper getObjectMapper() {
+		return mapper;
+	}
 
 }

@@ -84,8 +84,7 @@ public class VaultService extends BaseService implements SystemService {
 			keyID = keyID.substring(keyID.indexOf("/") + 1);
 
 		String[] keySplit = keyID.split("/", 2);
-		Check.checkTrue(keySplit.length == 2,
-				"Invalid Vault keyID. It must have 2 parts separated by a '/' | received keyID -> " + keyID);
+		Check.checkTrue(keySplit.length == 2, "Invalid Vault keyID. It must have 2 parts separated by a '/' | received keyID -> " + keyID);
 
 		String path = keySplit[0];
 		String keyName = keySplit[1];
@@ -174,9 +173,7 @@ public class VaultService extends BaseService implements SystemService {
 		} catch (Exception e) {
 			logger.error("Ping Vault  | Vault Key Id: " + Optional.ofNullable(getVaultKeyId).orElse("null"));
 			logger.error(e, SharedConstant.NOT_THROWN);
-			return e.getClass().getName()
-					+ (Optional.ofNullable(e.getMessage()).isPresent() ? (" | " + e.getMessage()) : "")
-					+ " | Ping Vault  | Vault Key Id: " + (Optional.ofNullable(getVaultKeyId).orElse("null"));
+			return e.getClass().getName() + (Optional.ofNullable(e.getMessage()).isPresent() ? (" | " + e.getMessage()) : "") + " | Ping Vault  | Vault Key Id: " + (Optional.ofNullable(getVaultKeyId).orElse("null"));
 		}
 	}
 
@@ -205,11 +202,9 @@ public class VaultService extends BaseService implements SystemService {
 				String secretId = getSecretId();
 
 				VaultEndpoint endpoint = VaultEndpoint.from(new URI(getUrl().get()));
-				RestOperations restOperations = VaultClients.createRestTemplate(endpoint,
-						new SimpleClientHttpRequestFactory());
-				AppRoleAuthenticationOptions appRoleAuthenticationOptions = AppRoleAuthenticationOptions.builder()
-						.path(AppRoleAuthenticationOptions.DEFAULT_APPROLE_AUTHENTICATION_PATH)
-						.roleId(RoleId.provided(roleId)).secretId(SecretId.provided(secretId)).build();
+				RestOperations restOperations = VaultClients.createRestTemplate(endpoint, new SimpleClientHttpRequestFactory());
+				AppRoleAuthenticationOptions appRoleAuthenticationOptions = AppRoleAuthenticationOptions.builder().path(AppRoleAuthenticationOptions.DEFAULT_APPROLE_AUTHENTICATION_PATH).roleId(RoleId.provided(roleId))
+						.secretId(SecretId.provided(secretId)).build();
 				AppRoleAuthentication app = new AppRoleAuthentication(appRoleAuthenticationOptions, restOperations);
 				this.vaultTemplate = new VaultTemplate(endpoint, app);
 			} catch (URISyntaxException e) {

@@ -19,7 +19,7 @@ package io.odilon.virtualFileSystem.raid6;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.ByteBuffer;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -252,92 +252,81 @@ public class RAIDSixEncoder extends RAIDSixCoder {
 		}
 	}
 
-	
 	/**
-	public boolean encodeChunk2(InputStream is, ServerBucket bucket, String objectName, int chunk, Optional<Integer> o_version) {
+	 * public boolean encodeChunk2(InputStream is, ServerBucket bucket, String
+	 * objectName, int chunk, Optional<Integer> o_version) {
+	 * 
+	 * // BUFFER 1 final byte[] allBytes = new byte[ServerConstant.MAX_CHUNK_SIZE];
+	 * int totalBytesRead = 0; boolean eof = false; try { final int maxBytesToRead =
+	 * ServerConstant.MAX_CHUNK_SIZE - ServerConstant.BYTES_IN_INT; boolean done =
+	 * false; int bytesRead = 0; while (!done) { bytesRead = is.read(allBytes,
+	 * ServerConstant.BYTES_IN_INT + totalBytesRead, maxBytesToRead -
+	 * totalBytesRead); if (bytesRead > 0) totalBytesRead += bytesRead; else eof =
+	 * true; done = eof || (totalBytesRead == maxBytesToRead); } } catch
+	 * (IOException e) { throw new InternalCriticalException(e, objectInfo(bucket,
+	 * objectName)); }
+	 * 
+	 * if (totalBytesRead == 0) return true;
+	 * 
+	 * this.fileSize += totalBytesRead;
+	 * 
+	 * ByteBuffer.wrap(allBytes).putInt(totalBytesRead);
+	 * 
+	 * final int storedSize = totalBytesRead + ServerConstant.BYTES_IN_INT; final
+	 * int shardSize = (storedSize + data_shards - 1) / data_shards;
+	 * 
+	 * // BUFFER 2 int totalShards = getTotalShards(); int dataShards =
+	 * getDataShards(); int parityShards = getPartityShards();
+	 * 
+	 * byte[][] shards = new byte[totalShards][shardSize];
+	 * 
+	 * 
+	 * for (int n = 0; n < dataShards; n++) System.arraycopy(allBytes, n *
+	 * shardSize, shards[n], 0, shardSize);
+	 * 
+	 * 
+	 * ReedSolomon reedSolomon = new ReedSolomon(dataShards, parityShards);
+	 * reedSolomon.encodeParity(shards, 0, shardSize);
+	 * 
+	 * 
+	 * 
+	 * List<File> destination = new ArrayList<File>(); int total = getTotalShards();
+	 * Boolean requiresCopy[] = new Boolean[total];
+	 * 
+	 * for (int diskOrder = 0; diskOrder < getTotalShards(); diskOrder++) {
+	 * 
+	 * if (isWrite(diskOrder)) {
+	 * 
+	 * String dirPath =
+	 * getDrives().get(diskOrder).getBucketObjectDataDirPath(bucket) +
+	 * ((o_version.isEmpty()) ? "" : (File.separator +
+	 * VirtualFileSystemService.VERSION_DIR));
+	 * 
+	 * String name = objectName + "." + String.valueOf(chunk) + "." +
+	 * String.valueOf(diskOrder) + (o_version.isEmpty() ? "" : "v." +
+	 * String.valueOf(o_version.get().intValue()));
+	 * 
+	 * destination.add(new File(dirPath, name)); requiresCopy[diskOrder] =
+	 * Boolean.valueOf(true); } else { requiresCopy[diskOrder] =
+	 * Boolean.valueOf(false); } }
+	 * 
+	 * 
+	 * ParallelFileCoypAgent agent = new ParallelFileCoypAgent(shards, destination,
+	 * requiresCopy);
+	 * agent.setExecutor(getVirtualFileSystemService().getExecutorService());
+	 * 
+	 * boolean isOk = agent.execute();
+	 * 
+	 * destination.forEach(file -> this.encodedInfo.getEncodedBlocks().add(file));
+	 * 
+	 * if (!isOk) throw new InternalCriticalException(objectInfo(bucket,
+	 * objectName));
+	 * 
+	 * return eof;
+	 * 
+	 * }
+	 */
 
-		// BUFFER 1
-		final byte[] allBytes = new byte[ServerConstant.MAX_CHUNK_SIZE];
-		int totalBytesRead = 0;
-		boolean eof = false;
-		try {
-			final int maxBytesToRead = ServerConstant.MAX_CHUNK_SIZE - ServerConstant.BYTES_IN_INT;
-			boolean done = false;
-			int bytesRead = 0;
-			while (!done) {
-				bytesRead = is.read(allBytes, ServerConstant.BYTES_IN_INT + totalBytesRead, maxBytesToRead - totalBytesRead);
-				if (bytesRead > 0)
-					totalBytesRead += bytesRead;
-				else
-					eof = true;
-				done = eof || (totalBytesRead == maxBytesToRead);
-			}
-		} catch (IOException e) {
-			throw new InternalCriticalException(e, objectInfo(bucket, objectName));
-		}
-
-		if (totalBytesRead == 0)
-			return true;
-
-		this.fileSize += totalBytesRead;
-
-		ByteBuffer.wrap(allBytes).putInt(totalBytesRead);
-
-		final int storedSize = totalBytesRead + ServerConstant.BYTES_IN_INT;
-		final int shardSize = (storedSize + data_shards - 1) / data_shards;
-
-		// BUFFER 2
-		int totalShards = getTotalShards();
-		int dataShards = getDataShards();
-		int parityShards = getPartityShards();
-
-		byte[][] shards = new byte[totalShards][shardSize];
-
-		 
-		for (int n = 0; n < dataShards; n++)
-			System.arraycopy(allBytes, n * shardSize, shards[n], 0, shardSize);
-
-		 
-		ReedSolomon reedSolomon = new ReedSolomon(dataShards, parityShards);
-		reedSolomon.encodeParity(shards, 0, shardSize);
-
-	 
-		 
-		List<File> destination = new ArrayList<File>();
-		int total = getTotalShards();
-		Boolean requiresCopy[] = new Boolean[total];
-
-		for (int diskOrder = 0; diskOrder < getTotalShards(); diskOrder++) {
-
-			if (isWrite(diskOrder)) {
-
-				String dirPath = getDrives().get(diskOrder).getBucketObjectDataDirPath(bucket) + ((o_version.isEmpty()) ? "" : (File.separator + VirtualFileSystemService.VERSION_DIR));
-
-				String name = objectName + "." + String.valueOf(chunk) + "." + String.valueOf(diskOrder) + (o_version.isEmpty() ? "" : "v." + String.valueOf(o_version.get().intValue()));
-
-				destination.add(new File(dirPath, name));
-				requiresCopy[diskOrder] = Boolean.valueOf(true);
-			} else {
-				requiresCopy[diskOrder] = Boolean.valueOf(false);
-			}
-		}
-
-		 
-		ParallelFileCoypAgent agent = new ParallelFileCoypAgent(shards, destination, requiresCopy);
-		agent.setExecutor(getVirtualFileSystemService().getExecutorService());
-
-		boolean isOk = agent.execute();
-
-		destination.forEach(file -> this.encodedInfo.getEncodedBlocks().add(file));
-
-		if (!isOk)
-			throw new InternalCriticalException(objectInfo(bucket, objectName));
-
-		return eof;
-
-	}
-*/
-	
 	/**
 	 * For normal encoding all disk must be written with RS blocks. However, this
 	 * method is overriden by {@link RAIDSixSDriveSyncEncoder} the class that syncs

@@ -114,9 +114,6 @@ public class OdilonTokenService extends BaseService implements TokenService, App
 		this.virtualFileSystemService = vfs;
 	}
 
-	/**
-	 * 
-	 */
 	public String encrypt(AuthToken token) {
 
 		try {

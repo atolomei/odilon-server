@@ -48,266 +48,265 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  */
 public abstract class BaseRAIDHandler extends BaseObject {
 
-    public abstract IODriver getDriver();
+	public abstract IODriver getDriver();
 
-    protected abstract Drive getObjectMetadataReadDrive(ServerBucket bucket, String objectName);
+	protected abstract Drive getObjectMetadataReadDrive(ServerBucket bucket, String objectName);
 
-    protected VirtualFileSystemOperation deleteObject(ServerBucket bucket, String objectName, int headVersion) {
-        return getJournalService().deleteObject(bucket, objectName, headVersion);
-    }
+	protected VirtualFileSystemOperation deleteObject(ServerBucket bucket, String objectName, int headVersion) {
+		return getJournalService().deleteObject(bucket, objectName, headVersion);
+	}
 
-    protected VirtualFileSystemOperation createObject(ServerBucket bucket, String objectName) {
-        return getJournalService().createObject(bucket, objectName);
-    }
+	protected VirtualFileSystemOperation createObject(ServerBucket bucket, String objectName) {
+		return getJournalService().createObject(bucket, objectName);
+	}
 
-    protected VirtualFileSystemOperation updateObject(ServerBucket bucket, String objectName, int beforeHeadVersion) {
-        return getJournalService().updateObject(bucket, objectName, beforeHeadVersion);
-    }
+	protected VirtualFileSystemOperation updateObject(ServerBucket bucket, String objectName, int beforeHeadVersion) {
+		return getJournalService().updateObject(bucket, objectName, beforeHeadVersion);
+	}
 
-    protected VirtualFileSystemOperation deleteObjectPreviousVersions(ServerBucket bucket, String objectName, int headVersion) {
-        return getJournalService().deleteObjectPreviousVersions(bucket, objectName, headVersion);
-    }
+	protected VirtualFileSystemOperation deleteObjectPreviousVersions(ServerBucket bucket, String objectName, int headVersion) {
+		return getJournalService().deleteObjectPreviousVersions(bucket, objectName, headVersion);
+	}
 
-    protected SchedulerService getSchedulerService() {
-        return getVirtualFileSystemService().getSchedulerService();
-    }
+	protected SchedulerService getSchedulerService() {
+		return getVirtualFileSystemService().getSchedulerService();
+	}
 
-    protected ServerSettings getServerSettings() {
-        return getVirtualFileSystemService().getServerSettings();
-    }
+	protected ServerSettings getServerSettings() {
+		return getVirtualFileSystemService().getServerSettings();
+	}
 
-    protected BucketCache getBucketCache() {
-        return getVirtualFileSystemService().getBucketCache();
-    }
+	protected BucketCache getBucketCache() {
+		return getVirtualFileSystemService().getBucketCache();
+	}
 
-    protected String getKey(ServerBucket bucket, String objectName) {
-        return bucket.getId().toString() + File.separator + objectName;
-    }
+	protected String getKey(ServerBucket bucket, String objectName) {
+		return bucket.getId().toString() + File.separator + objectName;
+	}
 
-    protected boolean isVersionControl() {
-        return getServerSettings().isVersionControl();
-    }
-    
-    /**
-     * must be executed inside the critical zone.
-     */
-    protected void checkExistsBucket(ServerBucket bucket) {
-        if (!existsCacheBucket(bucket))
-            throw new OdilonObjectNotFoundException("bucket does not exist -> " + objectInfo(bucket));
-    }
+	protected boolean isVersionControl() {
+		return getServerSettings().isVersionControl();
+	}
 
-    /**
-     * must be executed inside the critical zone.
-     */
-    protected void checkExistsBucket(Long bucketId) {
-        if (!existsCacheBucket(bucketId))
-            throw new IllegalArgumentException("bucket does not exist -> " + bucketId.toString());
-    }
+	/**
+	 * must be executed inside the critical zone.
+	 */
+	protected void checkExistsBucket(ServerBucket bucket) {
+		if (!existsCacheBucket(bucket))
+			throw new OdilonObjectNotFoundException("bucket does not exist -> " + objectInfo(bucket));
+	}
 
-    /**
-     * This check must be executed inside the critical section
-     */
-    protected ServerBucket getCacheBucket(Long bucketId) {
-        return getVirtualFileSystemService().getBucketCache().get(bucketId);
-    }
+	/**
+	 * must be executed inside the critical zone.
+	 */
+	protected void checkExistsBucket(Long bucketId) {
+		if (!existsCacheBucket(bucketId))
+			throw new IllegalArgumentException("bucket does not exist -> " + bucketId.toString());
+	}
 
-    /**
-     * This check must be executed inside the critical section
-     */
-    protected boolean existsCacheBucket(String bucketName) {
-        return getBucketCache().contains(bucketName);
-    }
+	/**
+	 * This check must be executed inside the critical section
+	 */
+	protected ServerBucket getCacheBucket(Long bucketId) {
+		return getVirtualFileSystemService().getBucketCache().get(bucketId);
+	}
 
-    /**
-     * This check must be executed inside the critical section
-     */
-    protected boolean existsCacheBucket(Long id) {
-        return getBucketCache().contains(id);
-    }
+	/**
+	 * This check must be executed inside the critical section
+	 */
+	protected boolean existsCacheBucket(String bucketName) {
+		return getBucketCache().contains(bucketName);
+	}
 
-    /**
-     * This check must be executed inside the critical section
-     */
-    protected boolean existsCacheBucket(ServerBucket bucket) {
-        return getBucketCache().contains(bucket);
-    }
+	/**
+	 * This check must be executed inside the critical section
+	 */
+	protected boolean existsCacheBucket(Long id) {
+		return getBucketCache().contains(id);
+	}
 
-    /**
-     * This check must be executed inside the critical section
-     */
-    protected boolean existsCacheObject(ServerBucket bucket, String objectName) {
-        return getVirtualFileSystemService().getObjectMetadataCacheService().containsKey(bucket, objectName);
-    }
+	/**
+	 * This check must be executed inside the critical section
+	 */
+	protected boolean existsCacheBucket(ServerBucket bucket) {
+		return getBucketCache().contains(bucket);
+	}
 
-    /**
-     * <p>
-     * Note that bucketName is not stored on disk, we must set the bucketName
-     * explicitly. Disks identify Buckets by id, the name is stored in the
-     * BucketMetadata file.
-     * </p>
-     * <p>
-     * <b>This method must be called inside the critical zone</b>
-     * </p>
-     */
-    protected ObjectMetadata getMetadata(ServerBucket bucket, String objectName) {
-        return getMetadata(bucket, objectName, true);
-    }
+	/**
+	 * This check must be executed inside the critical section
+	 */
+	protected boolean existsCacheObject(ServerBucket bucket, String objectName) {
+		return getVirtualFileSystemService().getObjectMetadataCacheService().containsKey(bucket, objectName);
+	}
 
-    /** This method must be called inside the critical zone */
-    protected ObjectMetadata getMetadata(ServerBucket bucket, String objectName, boolean addToCacheIfmiss) {
+	/**
+	 * <p>
+	 * Note that bucketName is not stored on disk, we must set the bucketName
+	 * explicitly. Disks identify Buckets by id, the name is stored in the
+	 * BucketMetadata file.
+	 * </p>
+	 * <p>
+	 * <b>This method must be called inside the critical zone</b>
+	 * </p>
+	 */
+	protected ObjectMetadata getMetadata(ServerBucket bucket, String objectName) {
+		return getMetadata(bucket, objectName, true);
+	}
 
-        if ((!getServerSettings().isUseObjectCache()))
-            return getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucket, objectName);
+	/** This method must be called inside the critical zone */
+	protected ObjectMetadata getMetadata(ServerBucket bucket, String objectName, boolean addToCacheIfmiss) {
 
-        if (getObjectMetadataCacheService().containsKey(bucket, objectName)) {
-            getVirtualFileSystemService().getSystemMonitorService().getCacheObjectHitCounter().inc();
-            ObjectMetadata meta = getObjectMetadataCacheService().get(bucket, objectName);
-            meta.setBucketName(bucket.getName());
-            return meta;
-        }
-        ObjectMetadata meta = getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucket, objectName);
+		if ((!getServerSettings().isUseObjectCache()))
+			return getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucket, objectName);
 
-        if (meta == null)
-            return meta;
+		if (getObjectMetadataCacheService().containsKey(bucket, objectName)) {
+			getVirtualFileSystemService().getSystemMonitorService().getCacheObjectHitCounter().inc();
+			ObjectMetadata meta = getObjectMetadataCacheService().get(bucket, objectName);
+			meta.setBucketName(bucket.getName());
+			return meta;
+		}
+		ObjectMetadata meta = getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucket, objectName);
 
-        meta.setBucketName(bucket.getName());
-        getVirtualFileSystemService().getSystemMonitorService().getCacheObjectMissCounter().inc();
+		if (meta == null)
+			return meta;
 
-        if (addToCacheIfmiss)
-            getObjectMetadataCacheService().put(bucket, objectName, meta);
-        return meta;
-    }
+		meta.setBucketName(bucket.getName());
+		getVirtualFileSystemService().getSystemMonitorService().getCacheObjectMissCounter().inc();
 
-    protected EncryptionService getEncryptionService() {
-        return getVirtualFileSystemService().getEncryptionService();
-    }
+		if (addToCacheIfmiss)
+			getObjectMetadataCacheService().put(bucket, objectName, meta);
+		return meta;
+	}
 
-    public JournalService getJournalService() {
-        return getDriver().getJournalService();
-    }
+	protected EncryptionService getEncryptionService() {
+		return getVirtualFileSystemService().getEncryptionService();
+	}
 
-    public LockService getLockService() {
-        return getDriver().getLockService();
-    }
+	public JournalService getJournalService() {
+		return getDriver().getJournalService();
+	}
 
-    protected boolean isEncrypt() {
-        return getDriver().isEncrypt();
-    }
+	public LockService getLockService() {
+		return getDriver().getLockService();
+	}
 
-    protected ReplicationService getReplicationService() {
-        return getVirtualFileSystemService().getReplicationService();
-    }
+	protected boolean isEncrypt() {
+		return getDriver().isEncrypt();
+	}
 
-    protected boolean isStandByEnabled() {
-        return getVirtualFileSystemService().getServerSettings().isStandByEnabled();
-    }
+	protected ReplicationService getReplicationService() {
+		return getVirtualFileSystemService().getReplicationService();
+	}
 
-    public RedundancyLevel getRedundancyLevel() {
-        return getDriver().getRedundancyLevel();
-    }
+	protected boolean isStandByEnabled() {
+		return getVirtualFileSystemService().getServerSettings().isStandByEnabled();
+	}
 
-    protected String opInfo(VirtualFileSystemOperation op) {
-        return getDriver().opInfo(op);
-    }
+	public RedundancyLevel getRedundancyLevel() {
+		return getDriver().getRedundancyLevel();
+	}
 
-    protected String objectInfo(ServerBucket bucket, String objectName, String srcFileName) {
-        return getDriver().objectInfo(bucket, objectName, srcFileName);
-    }
+	protected String opInfo(VirtualFileSystemOperation op) {
+		return getDriver().opInfo(op);
+	}
 
-    protected String objectInfo(String bucketName, String objectName, String srcFileName) {
-        return getDriver().objectInfo(bucketName, objectName, srcFileName);
-    }
+	protected String objectInfo(ServerBucket bucket, String objectName, String srcFileName) {
+		return getDriver().objectInfo(bucket, objectName, srcFileName);
+	}
 
-    protected String objectInfo(ObjectMetadata meta) {
-        return getDriver().objectInfo(meta);
-    }
+	protected String objectInfo(String bucketName, String objectName, String srcFileName) {
+		return getDriver().objectInfo(bucketName, objectName, srcFileName);
+	}
 
-    protected String objectInfo(@NonNull ServerBucket bucket, @NonNull String objectName) {
-        return getDriver().objectInfo(bucket, objectName);
-    }
+	protected String objectInfo(ObjectMetadata meta) {
+		return getDriver().objectInfo(meta);
+	}
 
-    protected String objectInfo(@NonNull String bucketName, @NonNull String objectName) {
-        return getDriver().objectInfo(bucketName, objectName);
-    }
+	protected String objectInfo(@NonNull ServerBucket bucket, @NonNull String objectName) {
+		return getDriver().objectInfo(bucket, objectName);
+	}
 
-    
-    protected void objectReadLock(ServerBucket bucket, String objectName) {
-        getLockService().getObjectLock(bucket, objectName).readLock().lock();
-    }
+	protected String objectInfo(@NonNull String bucketName, @NonNull String objectName) {
+		return getDriver().objectInfo(bucketName, objectName);
+	}
 
-    protected void objectReadUnLock(ServerBucket bucket, String objectName) {
-        getLockService().getObjectLock(bucket, objectName).readLock().unlock();
-    }
+	protected void objectReadLock(ServerBucket bucket, String objectName) {
+		getLockService().getObjectLock(bucket, objectName).readLock().lock();
+	}
 
-    protected void objectWriteLock(ServerBucket bucket, String objectName) {
-        getLockService().getObjectLock(bucket, objectName).writeLock().lock();
-    }
+	protected void objectReadUnLock(ServerBucket bucket, String objectName) {
+		getLockService().getObjectLock(bucket, objectName).readLock().unlock();
+	}
 
-    protected void objectWriteUnLock(ServerBucket bucket, String objectName) {
-        getLockService().getObjectLock(bucket, objectName).writeLock().unlock();
-    }
+	protected void objectWriteLock(ServerBucket bucket, String objectName) {
+		getLockService().getObjectLock(bucket, objectName).writeLock().lock();
+	}
 
-    protected void objectWriteLock(Long bucketId, String objectName) {
-        getLockService().getObjectLock(bucketId, objectName).writeLock().lock();
-    }
+	protected void objectWriteUnLock(ServerBucket bucket, String objectName) {
+		getLockService().getObjectLock(bucket, objectName).writeLock().unlock();
+	}
 
-    protected void objectWriteUnLock(Long bucketId, String objectName) {
-        getLockService().getObjectLock(bucketId, objectName).writeLock().unlock();
-    }
+	protected void objectWriteLock(Long bucketId, String objectName) {
+		getLockService().getObjectLock(bucketId, objectName).writeLock().lock();
+	}
 
-    protected void objectWriteLock(ObjectMetadata meta) {
-        getLockService().getObjectLock(meta.getBucketId(), meta.getObjectName()).writeLock().lock();
-    }
+	protected void objectWriteUnLock(Long bucketId, String objectName) {
+		getLockService().getObjectLock(bucketId, objectName).writeLock().unlock();
+	}
 
-    protected void objectWriteUnLock(ObjectMetadata meta) {
-        getLockService().getObjectLock(meta.getBucketId(), meta.getObjectName()).writeLock().unlock();
-    }
+	protected void objectWriteLock(ObjectMetadata meta) {
+		getLockService().getObjectLock(meta.getBucketId(), meta.getObjectName()).writeLock().lock();
+	}
 
-    protected void bucketReadLock(String bucketName) {
-        getLockService().getBucketLock(bucketName).readLock().lock();
-    }
+	protected void objectWriteUnLock(ObjectMetadata meta) {
+		getLockService().getObjectLock(meta.getBucketId(), meta.getObjectName()).writeLock().unlock();
+	}
 
-    protected void bucketReadLock(Long bucketId) {
-        getLockService().getBucketLock(bucketId).readLock().lock();
-    }
+	protected void bucketReadLock(String bucketName) {
+		getLockService().getBucketLock(bucketName).readLock().lock();
+	}
 
-    protected void bucketReadUnLock(Long bucketId) {
-        getLockService().getBucketLock(bucketId).readLock().unlock();
-    }
+	protected void bucketReadLock(Long bucketId) {
+		getLockService().getBucketLock(bucketId).readLock().lock();
+	}
 
-    protected void bucketReadUnLock(String bucketName) {
-        getLockService().getBucketLock(bucketName).readLock().lock();
-    }
+	protected void bucketReadUnLock(Long bucketId) {
+		getLockService().getBucketLock(bucketId).readLock().unlock();
+	}
 
-    protected void bucketReadLock(ServerBucket bucket) {
-        getLockService().getBucketLock(bucket).readLock().lock();
-    }
+	protected void bucketReadUnLock(String bucketName) {
+		getLockService().getBucketLock(bucketName).readLock().lock();
+	}
 
-    protected void bucketReadUnLock(ServerBucket bucket) {
-        getLockService().getBucketLock(bucket).readLock().unlock();
-    }
+	protected void bucketReadLock(ServerBucket bucket) {
+		getLockService().getBucketLock(bucket).readLock().lock();
+	}
 
-    protected void bucketWriteLock(BucketMetadata meta) {
-        getLockService().getBucketLock(meta).writeLock().lock();
-    }
+	protected void bucketReadUnLock(ServerBucket bucket) {
+		getLockService().getBucketLock(bucket).readLock().unlock();
+	}
 
-    protected void bucketWriteUnLock(BucketMetadata meta) {
-        getLockService().getBucketLock(meta).writeLock().unlock();
-    }
+	protected void bucketWriteLock(BucketMetadata meta) {
+		getLockService().getBucketLock(meta).writeLock().lock();
+	}
 
-    protected String objectInfo(ServerBucket bucket) {
-        return getDriver().objectInfo(bucket);
-    }
+	protected void bucketWriteUnLock(BucketMetadata meta) {
+		getLockService().getBucketLock(meta).writeLock().unlock();
+	}
 
-    protected boolean isUseVaultNewFiles() {
-        return getVirtualFileSystemService().isUseVaultNewFiles();
-    }
+	protected String objectInfo(ServerBucket bucket) {
+		return getDriver().objectInfo(bucket);
+	}
 
-    protected VirtualFileSystemService getVirtualFileSystemService() {
-        return getDriver().getVirtualFileSystemService();
-    }
+	protected boolean isUseVaultNewFiles() {
+		return getVirtualFileSystemService().isUseVaultNewFiles();
+	}
 
-    protected ObjectMetadataCacheService getObjectMetadataCacheService() {
-        return getVirtualFileSystemService().getObjectMetadataCacheService();
-    }
+	protected VirtualFileSystemService getVirtualFileSystemService() {
+		return getDriver().getVirtualFileSystemService();
+	}
+
+	protected ObjectMetadataCacheService getObjectMetadataCacheService() {
+		return getVirtualFileSystemService().getObjectMetadataCacheService();
+	}
 }

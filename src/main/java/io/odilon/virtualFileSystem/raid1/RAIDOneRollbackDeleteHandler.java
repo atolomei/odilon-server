@@ -30,58 +30,59 @@ import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
- * <p>Rollback is the same for both operations <br/>
+ * <p>
+ * Rollback is the same for both operations <br/>
  * <ul>
  * <li>{@link OperationCode.DELETE_OBJECT}</li>
  * <li>{@link OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS}</li>
  * </ul>
  * </p>
+ * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public class RAIDOneRollbackDeleteHandler extends RAIDOneRollbackHandler {
 
-    private static Logger logger = Logger.getLogger(RAIDOneRollbackDeleteHandler.class.getName());
+	private static Logger logger = Logger.getLogger(RAIDOneRollbackDeleteHandler.class.getName());
 
-    public RAIDOneRollbackDeleteHandler(RAIDOneDriver driver, VirtualFileSystemOperation operation, boolean recovery) {
-        super(driver, operation, recovery);
-    }
+	public RAIDOneRollbackDeleteHandler(RAIDOneDriver driver, VirtualFileSystemOperation operation, boolean recovery) {
+		super(driver, operation, recovery);
+	}
 
-    @Override
-    protected void rollback() {
+	@Override
+	protected void rollback() {
 
-        boolean rollbackOK = false;
-        
-        try {
-            rollbackOK = restore();
-        } catch (InternalCriticalException e) {
-            if (!isRecovery())
-                throw (e);
-            else
-                logger.error(opInfo(getOperation()), SharedConstant.NOT_THROWN);
-        } catch (Exception e) {
-            if (!isRecovery())
-                throw new InternalCriticalException(e, opInfo(getOperation()));
-            else
-                logger.error(opInfo(getOperation()), SharedConstant.NOT_THROWN);
-        } finally {
-            if (rollbackOK || isRecovery())
-                getOperation().cancel();
-        }
-    }
+		boolean rollbackOK = false;
 
-    private boolean restore() {
-        ServerBucket bucket = getCacheBucket(getOperation().getBucketId());
-        /** restore metadata directory */
-        for (Drive drive : getDriver().getDrivesAll()) {
-            String objectMetadataBackupDirPath = drive.getBucketWorkDirPath(bucket) + File.separator
-                    + getOperation().getObjectName();
-            String objectMetadataDirPath = drive.getObjectMetadataDirPath(bucket, getOperation().getObjectName());
-            try {
-                FileUtils.copyDirectory(new File(objectMetadataBackupDirPath), new File(objectMetadataDirPath));
-            } catch (IOException e) {
-                throw new InternalCriticalException(e, objectInfo(bucket, getOperation().getObjectName()));
-            }
-        }
-        return true;
-    }
+		try {
+			rollbackOK = restore();
+		} catch (InternalCriticalException e) {
+			if (!isRecovery())
+				throw (e);
+			else
+				logger.error(opInfo(getOperation()), SharedConstant.NOT_THROWN);
+		} catch (Exception e) {
+			if (!isRecovery())
+				throw new InternalCriticalException(e, opInfo(getOperation()));
+			else
+				logger.error(opInfo(getOperation()), SharedConstant.NOT_THROWN);
+		} finally {
+			if (rollbackOK || isRecovery())
+				getOperation().cancel();
+		}
+	}
+
+	private boolean restore() {
+		ServerBucket bucket = getCacheBucket(getOperation().getBucketId());
+		/** restore metadata directory */
+		for (Drive drive : getDriver().getDrivesAll()) {
+			String objectMetadataBackupDirPath = drive.getBucketWorkDirPath(bucket) + File.separator + getOperation().getObjectName();
+			String objectMetadataDirPath = drive.getObjectMetadataDirPath(bucket, getOperation().getObjectName());
+			try {
+				FileUtils.copyDirectory(new File(objectMetadataBackupDirPath), new File(objectMetadataDirPath));
+			} catch (IOException e) {
+				throw new InternalCriticalException(e, objectInfo(bucket, getOperation().getObjectName()));
+			}
+		}
+		return true;
+	}
 }

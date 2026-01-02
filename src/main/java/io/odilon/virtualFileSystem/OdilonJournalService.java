@@ -74,290 +74,271 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 @Service
 public class OdilonJournalService extends BaseService implements JournalService {
 
-    static private Logger logger = Logger.getLogger(OdilonJournalService.class.getName());
-    static private Logger startuplogger = Logger.getLogger("StartupLogger");
+	static private Logger logger = Logger.getLogger(OdilonJournalService.class.getName());
+	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 
-    /** lazy injection */
-    @JsonIgnore
-    private VirtualFileSystemService virtualFileSystemService;
+	/** lazy injection */
+	@JsonIgnore
+	private VirtualFileSystemService virtualFileSystemService;
 
-    @JsonIgnore
-    private Map<String, VirtualFileSystemOperation> operations = new ConcurrentHashMap<String, VirtualFileSystemOperation>();
+	@JsonIgnore
+	private Map<String, VirtualFileSystemOperation> operations = new ConcurrentHashMap<String, VirtualFileSystemOperation>();
 
-    @JsonIgnore
-    private Map<String, String> ops_aborted = new ConcurrentHashMap<String, String>();
+	@JsonIgnore
+	private Map<String, String> ops_aborted = new ConcurrentHashMap<String, String>();
 
-    @JsonIgnore
-    private boolean isStandBy;
+	@JsonIgnore
+	private boolean isStandBy;
 
-    @JsonIgnore
-    @Autowired
-    private ReplicationService replicationService;
+	@JsonIgnore
+	@Autowired
+	private ReplicationService replicationService;
 
-    @JsonIgnore
-    @Autowired
-    private SchedulerService schedulerService;
+	@JsonIgnore
+	@Autowired
+	private SchedulerService schedulerService;
 
-    @Autowired
-    @JsonIgnore
-    private ServerSettings serverSettings;
+	@Autowired
+	@JsonIgnore
+	private ServerSettings serverSettings;
 
-    @Autowired
-    @JsonIgnore
-    private ApplicationEventPublisher applicationEventPublisher;
+	@Autowired
+	@JsonIgnore
+	private ApplicationEventPublisher applicationEventPublisher;
 
-    public OdilonJournalService() {
-    }
+	public OdilonJournalService() {
+	}
 
-    @Override
-    public VirtualFileSystemOperation saveServerKey() {
-        return createNew(OperationCode.CREATE_SERVER_MASTERKEY, Optional.empty(), Optional.empty(),
-                Optional.of(VirtualFileSystemService.ENCRYPTION_KEY_FILE), Optional.empty());
-    }
+	@Override
+	public VirtualFileSystemOperation saveServerKey() {
+		return createNew(OperationCode.CREATE_SERVER_MASTERKEY, Optional.empty(), Optional.empty(), Optional.of(VirtualFileSystemService.ENCRYPTION_KEY_FILE), Optional.empty());
+	}
 
-    @Override
-    public VirtualFileSystemOperation createServerMetadata() {
-        return createNew(OperationCode.CREATE_SERVER_METADATA, Optional.empty(), Optional.empty(),
-                Optional.of(VirtualFileSystemService.SERVER_METADATA_FILE), Optional.empty());
-    }
+	@Override
+	public VirtualFileSystemOperation createServerMetadata() {
+		return createNew(OperationCode.CREATE_SERVER_METADATA, Optional.empty(), Optional.empty(), Optional.of(VirtualFileSystemService.SERVER_METADATA_FILE), Optional.empty());
+	}
 
-    @Override
-    public VirtualFileSystemOperation updateServerMetadata() {
-        return createNew(OperationCode.UPDATE_SERVER_METADATA, Optional.empty(), Optional.empty(),
-                Optional.of(VirtualFileSystemService.SERVER_METADATA_FILE), Optional.empty());
-    }
+	@Override
+	public VirtualFileSystemOperation updateServerMetadata() {
+		return createNew(OperationCode.UPDATE_SERVER_METADATA, Optional.empty(), Optional.empty(), Optional.of(VirtualFileSystemService.SERVER_METADATA_FILE), Optional.empty());
+	}
 
-    @Override
-    public VirtualFileSystemOperation createBucket(BucketMetadata meta) {
-        Check.requireNonNullArgument(meta, "meta is null");
-        return createNew(OperationCode.CREATE_BUCKET, Optional.of(meta.getId()), Optional.of(meta.getBucketName()),
-                Optional.empty(), Optional.empty());
-    }
+	@Override
+	public VirtualFileSystemOperation createBucket(BucketMetadata meta) {
+		Check.requireNonNullArgument(meta, "meta is null");
+		return createNew(OperationCode.CREATE_BUCKET, Optional.of(meta.getId()), Optional.of(meta.getBucketName()), Optional.empty(), Optional.empty());
+	}
 
-    @Override
-    public VirtualFileSystemOperation updateBucket(ServerBucket bucket, String newBucketName) {
-        Check.requireNonNullArgument(bucket, "bucket is null");
-        return createNew(OperationCode.UPDATE_BUCKET, Optional.of(bucket.getId()), Optional.of(bucket.getName()),
-                Optional.of(newBucketName), Optional.empty());
-    }
+	@Override
+	public VirtualFileSystemOperation updateBucket(ServerBucket bucket, String newBucketName) {
+		Check.requireNonNullArgument(bucket, "bucket is null");
+		return createNew(OperationCode.UPDATE_BUCKET, Optional.of(bucket.getId()), Optional.of(bucket.getName()), Optional.of(newBucketName), Optional.empty());
+	}
 
-    @Override
-    public VirtualFileSystemOperation deleteBucket(ServerBucket bucket) {
-        Check.requireNonNullArgument(bucket, "bucket is null");
+	@Override
+	public VirtualFileSystemOperation deleteBucket(ServerBucket bucket) {
+		Check.requireNonNullArgument(bucket, "bucket is null");
 
-        return createNew(OperationCode.DELETE_BUCKET, Optional.of(bucket.getId()), Optional.of(bucket.getName()), Optional.empty(),
-                Optional.empty());
-    }
+		return createNew(OperationCode.DELETE_BUCKET, Optional.of(bucket.getId()), Optional.of(bucket.getName()), Optional.empty(), Optional.empty());
+	}
 
-    @Override
-    public VirtualFileSystemOperation deleteObjectPreviousVersions(ServerBucket bucket, String objectName, int currentHeadVersion) {
-        Check.requireNonNullArgument(bucket, "bucket is null");
-        return createNew(OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS, Optional.of(bucket.getId()), Optional.of(bucket.getName()),
-                Optional.ofNullable(objectName), Optional.of(Integer.valueOf(currentHeadVersion)));
-    }
+	@Override
+	public VirtualFileSystemOperation deleteObjectPreviousVersions(ServerBucket bucket, String objectName, int currentHeadVersion) {
+		Check.requireNonNullArgument(bucket, "bucket is null");
+		return createNew(OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS, Optional.of(bucket.getId()), Optional.of(bucket.getName()), Optional.ofNullable(objectName), Optional.of(Integer.valueOf(currentHeadVersion)));
+	}
 
-    @Override
-    public VirtualFileSystemOperation syncObject(ServerBucket bucket, String objectName) {
-        Check.requireNonNullArgument(bucket, "bucket is null");
-        return createNew(OperationCode.SYNC_OBJECT_NEW_DRIVE, Optional.of(bucket.getId()), Optional.of(bucket.getName()),
-                Optional.ofNullable(objectName), Optional.empty());
-    }
+	@Override
+	public VirtualFileSystemOperation syncObject(ServerBucket bucket, String objectName) {
+		Check.requireNonNullArgument(bucket, "bucket is null");
+		return createNew(OperationCode.SYNC_OBJECT_NEW_DRIVE, Optional.of(bucket.getId()), Optional.of(bucket.getName()), Optional.ofNullable(objectName), Optional.empty());
+	}
 
-    @Override
-    public VirtualFileSystemOperation deleteObject(ServerBucket bucket, String objectName, int currentHeadVersion) {
-        Check.requireNonNullArgument(bucket, "bucket is null");
-        return createNew(OperationCode.DELETE_OBJECT, Optional.of(bucket.getId()), Optional.of(bucket.getName()),
-                Optional.ofNullable(objectName), Optional.of(Integer.valueOf(currentHeadVersion)));
-    }
+	@Override
+	public VirtualFileSystemOperation deleteObject(ServerBucket bucket, String objectName, int currentHeadVersion) {
+		Check.requireNonNullArgument(bucket, "bucket is null");
+		return createNew(OperationCode.DELETE_OBJECT, Optional.of(bucket.getId()), Optional.of(bucket.getName()), Optional.ofNullable(objectName), Optional.of(Integer.valueOf(currentHeadVersion)));
+	}
 
-    @Override
-    public VirtualFileSystemOperation restoreObjectPreviousVersion(ServerBucket bucket, String objectName, int currentHeadVersion) {
-        Check.requireNonNullArgument(bucket, "bucket is null");
-        return createNew(OperationCode.RESTORE_OBJECT_PREVIOUS_VERSION, Optional.of(bucket.getId()), Optional.of(bucket.getName()),
-                Optional.ofNullable(objectName), Optional.of(Integer.valueOf(currentHeadVersion)));
-    }
+	@Override
+	public VirtualFileSystemOperation restoreObjectPreviousVersion(ServerBucket bucket, String objectName, int currentHeadVersion) {
+		Check.requireNonNullArgument(bucket, "bucket is null");
+		return createNew(OperationCode.RESTORE_OBJECT_PREVIOUS_VERSION, Optional.of(bucket.getId()), Optional.of(bucket.getName()), Optional.ofNullable(objectName), Optional.of(Integer.valueOf(currentHeadVersion)));
+	}
 
-    @Override
-    public VirtualFileSystemOperation createObject(ServerBucket bucket, String objectName) {
-        return createNew(OperationCode.CREATE_OBJECT, Optional.of(bucket.getId()), Optional.of(bucket.getName()),
-                Optional.ofNullable(objectName), Optional.of(Integer.valueOf(0)));
-    }
+	@Override
+	public VirtualFileSystemOperation createObject(ServerBucket bucket, String objectName) {
+		return createNew(OperationCode.CREATE_OBJECT, Optional.of(bucket.getId()), Optional.of(bucket.getName()), Optional.ofNullable(objectName), Optional.of(Integer.valueOf(0)));
+	}
 
-    @Override
-    public VirtualFileSystemOperation updateObject(ServerBucket bucket, String objectName, int version) {
-        return createNew(OperationCode.UPDATE_OBJECT, Optional.of(bucket.getId()), Optional.of(bucket.getName()),
-                Optional.ofNullable(objectName), Optional.of(Integer.valueOf(version)));
-    }
+	@Override
+	public VirtualFileSystemOperation updateObject(ServerBucket bucket, String objectName, int version) {
+		return createNew(OperationCode.UPDATE_OBJECT, Optional.of(bucket.getId()), Optional.of(bucket.getName()), Optional.ofNullable(objectName), Optional.of(Integer.valueOf(version)));
+	}
 
-    @Override
-    public VirtualFileSystemOperation updateObjectMetadata(ServerBucket bucket, String objectName, int version) {
-        return createNew(OperationCode.UPDATE_OBJECT_METADATA, Optional.of(bucket.getId()), Optional.of(bucket.getName()),
-                Optional.ofNullable(objectName), Optional.of(Integer.valueOf(version)));
-    }
+	@Override
+	public VirtualFileSystemOperation updateObjectMetadata(ServerBucket bucket, String objectName, int version) {
+		return createNew(OperationCode.UPDATE_OBJECT_METADATA, Optional.of(bucket.getId()), Optional.of(bucket.getName()), Optional.ofNullable(objectName), Optional.of(Integer.valueOf(version)));
+	}
 
-    @Override
-    public boolean commit(VirtualFileSystemOperation operation) {
-        return commit(operation, null);
-    }
+	@Override
+	public boolean commit(VirtualFileSystemOperation operation) {
+		return commit(operation, null);
+	}
 
-    /**
-     * <p>
-     * If there is a replica enabled, 1. save the op into the replica queue 2.
-     * remove op from journal error -> remove from replication on recovery rollback
-     * op -> 1. remove op from replica, remove op from local ops
-     * </p>
-     */
-    @Override
-    public boolean commit(VirtualFileSystemOperation operation, Object payload) {
+	/**
+	 * <p>
+	 * If there is a replica enabled, 1. save the op into the replica queue 2.
+	 * remove op from journal error -> remove from replication on recovery rollback
+	 * op -> 1. remove op from replica, remove op from local ops
+	 * </p>
+	 */
+	@Override
+	public boolean commit(VirtualFileSystemOperation operation, Object payload) {
 
-        if (operation == null)
-            return true;
+		if (operation == null)
+			return true;
 
-        synchronized (this) {
+		synchronized (this) {
 
-            boolean isOK = false;
+			boolean isOK = false;
 
-            try {
+			try {
 
-                if (isStandBy())
-                    getReplicationService().enqueue(operation);
+				if (isStandBy())
+					getReplicationService().enqueue(operation);
 
-                getApplicationEventPublisher().publishEvent(new CacheEvent(operation, Action.COMMIT));
+				getApplicationEventPublisher().publishEvent(new CacheEvent(operation, Action.COMMIT));
 
-                if ((payload != null) && (payload instanceof ServerBucket)) {
-                    getApplicationEventPublisher().publishEvent(new BucketEvent(operation, Action.COMMIT, (ServerBucket) payload));
-                }
+				if ((payload != null) && (payload instanceof ServerBucket)) {
+					getApplicationEventPublisher().publishEvent(new BucketEvent(operation, Action.COMMIT, (ServerBucket) payload));
+				}
 
-                getVirtualFileSystemService().removeJournal(operation.getId());
-                getOperations().remove(operation.getId());
+				getVirtualFileSystemService().removeJournal(operation.getId());
+				getOperations().remove(operation.getId());
 
-                isOK = true;
-                return isOK;
+				isOK = true;
+				return isOK;
 
-            } catch (Exception e) {
+			} catch (Exception e) {
 
-                if (isStandBy()) {
-                    getOpsAborted().put(operation.getId(), operation.getId());
-                    getReplicationService().cancel(operation);
-                }
-                throw e;
-            }
-        }
-    }
+				if (isStandBy()) {
+					getOpsAborted().put(operation.getId(), operation.getId());
+					getReplicationService().cancel(operation);
+				}
+				throw e;
+			}
+		}
+	}
 
-    @Override
-    public boolean cancel(VirtualFileSystemOperation virtualFileSystemOperation) {
-        return cancel(virtualFileSystemOperation, null);
-    }
+	@Override
+	public boolean cancel(VirtualFileSystemOperation virtualFileSystemOperation) {
+		return cancel(virtualFileSystemOperation, null);
+	}
 
-    @Override
-    public boolean cancel(VirtualFileSystemOperation operation, Object payload) {
+	@Override
+	public boolean cancel(VirtualFileSystemOperation operation, Object payload) {
 
-        if (operation == null)
-            return true;
+		if (operation == null)
+			return true;
 
-        synchronized (this) {
-            try {
+		synchronized (this) {
+			try {
 
-                CacheEvent event = new CacheEvent(operation, Action.ROLLBACK);
-                getApplicationEventPublisher().publishEvent(event);
+				CacheEvent event = new CacheEvent(operation, Action.ROLLBACK);
+				getApplicationEventPublisher().publishEvent(event);
 
-                if (payload instanceof ServerBucket)
-                    getApplicationEventPublisher()
-                            .publishEvent(new BucketEvent(operation, Action.ROLLBACK, (ServerBucket) payload));
+				if (payload instanceof ServerBucket)
+					getApplicationEventPublisher().publishEvent(new BucketEvent(operation, Action.ROLLBACK, (ServerBucket) payload));
 
-                getVirtualFileSystemService().removeJournal(operation.getId());
+				getVirtualFileSystemService().removeJournal(operation.getId());
 
-            } catch (InternalCriticalException e) {
-                logger.error(e, "the operation was saved in just some of the drives due to a crash", SharedConstant.NOT_THROWN);
-            }
-            logger.debug("Cancel ->" + operation.toString());
-            getOperations().remove(operation.getId());
-        }
-        return true;
-    }
+			} catch (InternalCriticalException e) {
+				logger.error(e, "the operation was saved in just some of the drives due to a crash", SharedConstant.NOT_THROWN);
+			}
+			logger.debug("Cancel ->" + operation.toString());
+			getOperations().remove(operation.getId());
+		}
+		return true;
+	}
 
-    @Override
-    public synchronized String newOperationId() {
-        return String.valueOf(System.nanoTime());
-    }
+	@Override
+	public synchronized String newOperationId() {
+		return String.valueOf(System.nanoTime());
+	}
 
-    public boolean isExecuting(String opid) {
-        return getOperations().containsKey(opid);
-    }
+	public boolean isExecuting(String opid) {
+		return getOperations().containsKey(opid);
+	}
 
-    public boolean isAborted(String opid) {
-        return getOpsAborted().containsKey(opid);
-    }
+	public boolean isAborted(String opid) {
+		return getOpsAborted().containsKey(opid);
+	}
 
-    public void removeAborted(String opid) {
-        getOpsAborted().remove(opid);
-    }
+	public void removeAborted(String opid) {
+		getOpsAborted().remove(opid);
+	}
 
-    public VirtualFileSystemService getVirtualFileSystemService() {
-        if (this.virtualFileSystemService == null) {
-            logger.error(VirtualFileSystemService.class.getSimpleName() + " must be set during the @PostConstruct method of the "
-                    + JournalService.class.getSimpleName()
-                    + " instance. It can not be injected via AutoWired beacause of circular dependencies.");
-            throw new IllegalStateException(VirtualFileSystemService.class.getSimpleName()
-                    + " is null. it must be setted during the @PostConstruct method of the " + JournalService.class.getSimpleName()
-                    + " instance");
-        }
-        return this.virtualFileSystemService;
-    }
+	public VirtualFileSystemService getVirtualFileSystemService() {
+		if (this.virtualFileSystemService == null) {
+			logger.error(VirtualFileSystemService.class.getSimpleName() + " must be set during the @PostConstruct method of the " + JournalService.class.getSimpleName()
+					+ " instance. It can not be injected via AutoWired beacause of circular dependencies.");
+			throw new IllegalStateException(VirtualFileSystemService.class.getSimpleName() + " is null. it must be setted during the @PostConstruct method of the " + JournalService.class.getSimpleName() + " instance");
+		}
+		return this.virtualFileSystemService;
+	}
 
-    public synchronized void setVirtualFileSystemService(VirtualFileSystemService virtualFileSystemService) {
-        this.virtualFileSystemService = virtualFileSystemService;
-    }
+	public synchronized void setVirtualFileSystemService(VirtualFileSystemService virtualFileSystemService) {
+		this.virtualFileSystemService = virtualFileSystemService;
+	}
 
-    public ServerSettings getServerSettings() {
-        return this.serverSettings;
-    }
+	public ServerSettings getServerSettings() {
+		return this.serverSettings;
+	}
 
-    public ReplicationService getReplicationService() {
-        return this.replicationService;
-    }
+	public ReplicationService getReplicationService() {
+		return this.replicationService;
+	}
 
-    @PostConstruct
-    protected void onInitialize() {
-        synchronized (this) {
-            setStatus(ServiceStatus.STARTING);
-            this.isStandBy = getServerSettings().isStandByEnabled();
-            startuplogger.debug("Started -> " + JournalService.class.getSimpleName());
-            setStatus(ServiceStatus.RUNNING);
-        }
-    }
+	@PostConstruct
+	protected void onInitialize() {
+		synchronized (this) {
+			setStatus(ServiceStatus.STARTING);
+			this.isStandBy = getServerSettings().isStandByEnabled();
+			startuplogger.debug("Started -> " + JournalService.class.getSimpleName());
+			setStatus(ServiceStatus.RUNNING);
+		}
+	}
 
-    private synchronized VirtualFileSystemOperation createNew(OperationCode code, Optional<Long> bucketId,
-            Optional<String> bucketName, Optional<String> objectName, Optional<Integer> iVersion) {
+	private synchronized VirtualFileSystemOperation createNew(OperationCode code, Optional<Long> bucketId, Optional<String> bucketName, Optional<String> objectName, Optional<Integer> iVersion) {
 
-        final VirtualFileSystemOperation operation = new OdilonVirtualFileSystemOperation(newOperationId(), code, bucketId,
-                bucketName, objectName, iVersion, getRedundancyLevel(), this);
+		final VirtualFileSystemOperation operation = new OdilonVirtualFileSystemOperation(newOperationId(), code, bucketId, bucketName, objectName, iVersion, getRedundancyLevel(), this);
 
-        getVirtualFileSystemService().saveJournal(operation);
-        getOperations().put(operation.getId(), operation);
-        return operation;
+		getVirtualFileSystemService().saveJournal(operation);
+		getOperations().put(operation.getId(), operation);
+		return operation;
 
-    }
+	}
 
-    private RedundancyLevel getRedundancyLevel() {
-        return getVirtualFileSystemService().getRedundancyLevel();
-    }
+	private RedundancyLevel getRedundancyLevel() {
+		return getVirtualFileSystemService().getRedundancyLevel();
+	}
 
-    private Map<String, VirtualFileSystemOperation> getOperations() {
-        return this.operations;
-    }
+	private Map<String, VirtualFileSystemOperation> getOperations() {
+		return this.operations;
+	}
 
-    private Map<String, String> getOpsAborted() {
-        return this.ops_aborted;
-    }
+	private Map<String, String> getOpsAborted() {
+		return this.ops_aborted;
+	}
 
-    private ApplicationEventPublisher getApplicationEventPublisher() {
-        return this.applicationEventPublisher;
-    }
+	private ApplicationEventPublisher getApplicationEventPublisher() {
+		return this.applicationEventPublisher;
+	}
 
-    private boolean isStandBy() {
-        return this.isStandBy;
-    }
+	private boolean isStandBy() {
+		return this.isStandBy;
+	}
 
 }

@@ -17,8 +17,7 @@
 package io.odilon.virtualFileSystem.model;
 
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+
 import java.time.OffsetDateTime;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -56,11 +55,6 @@ public class DriveBucket {
 		this.drive = drive;
 		this.meta = vfs_meta.clone();
 	}
-
-	//@JsonIgnore
-	//public Path getBucketControlDir() {
-	//	return Paths.get(getDrive().getBucketMetadataDirPath(meta.id));
-	//}
 
 	@JsonIgnore
 	public Drive getDrive() {

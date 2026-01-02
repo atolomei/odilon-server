@@ -39,146 +39,139 @@ import io.odilon.virtualFileSystem.DriveInfo;
  */
 public interface Drive {
 
-    /**
-     * ----------------- Drive Info ------------------
-     */
-    public DriveInfo getDriveInfo();
+	/**
+	 * ----------------- Drive Info ------------------
+	 */
+	public DriveInfo getDriveInfo();
 
-    public void setDriveInfo(DriveInfo info);
+	public void setDriveInfo(DriveInfo info);
 
+	/**
+	 * ----------------- Journal ------------------
+	 */
+	public void saveJournal(VirtualFileSystemOperation op);
 
-    /**
-     * ----------------- Journal ------------------
-     */
-    public void saveJournal(VirtualFileSystemOperation op);
+	public void removeJournal(String id);
 
-    public void removeJournal(String id);
+	/**
+	 * ----------------- Sys ------------------
+	 */
+	public void putSysFile(String fileName, String content);
 
-    /**
-     * ----------------- Sys ------------------
-     */
-    public void putSysFile(String fileName, String content);
+	public File getSysFile(String fileName);
 
-    public File getSysFile(String fileName);
+	public void removeSysFile(String fileName);
 
-    public void removeSysFile(String fileName);
+	/**
+	 * ----------------- Info ------------------
+	 */
 
-    /**
-     * ----------------- Info ------------------
-     */
-    
-    /** order in the rootDirs variable in odilon.properties */
-    public int getConfigOrder();
-    
-    public String getRootDirPath();
+	/** order in the rootDirs variable in odilon.properties */
+	public int getConfigOrder();
 
-    public String getSysDirPath();
+	public String getRootDirPath();
 
-    public String getBucketsDirPath();
+	public String getSysDirPath();
 
-    public String getCacheDirPath();
+	public String getBucketsDirPath();
 
-    public String getWorkDirPath();
+	public String getCacheDirPath();
 
-    public String getJournalDirPath();
+	public String getWorkDirPath();
 
-    public String getTempDirPath();
+	public String getJournalDirPath();
 
-    public String getSchedulerDirPath();
+	public String getTempDirPath();
 
-    public String ping();
+	public String getSchedulerDirPath();
 
-    public long getTotalSpace();
+	public String ping();
 
-    public long getAvailableSpace();
+	public long getTotalSpace();
 
-    public String getName();
+	public long getAvailableSpace();
 
-    
+	public String getName();
 
-    /**
-     * ----------------- Scheduler ------------------
-     */
-    public void saveScheduler(ServiceRequest serviceRequest, String queueId);
+	/**
+	 * ----------------- Scheduler ------------------
+	 */
+	public void saveScheduler(ServiceRequest serviceRequest, String queueId);
 
-    public void removeScheduler(ServiceRequest serviceRequest, String queueId);
+	public void removeScheduler(ServiceRequest serviceRequest, String queueId);
 
-    public List<File> getSchedulerRequests(String queueId);
+	public List<File> getSchedulerRequests(String queueId);
 
-    /**
-     * ----------------- Bucket ------------------
-     */
-    
-    /** by id */
-    
-    
-    public BucketMetadata getBucketMetadataById(Long bucketId) throws IOException;
-    
-    public boolean existsBucketById(Long bucketId);
+	/**
+	 * ----------------- Bucket ------------------
+	 */
 
-    /** interface **/
-    
-    public BucketMetadata getBucketMetadata(ServerBucket bucket) throws IOException;
-    
-    public File createBucket(BucketMetadata meta) throws IOException;
+	/** by id */
 
-    public void updateBucket(BucketMetadata meta) throws IOException;
-    
-    public void deleteBucket(ServerBucket bucket);
+	public BucketMetadata getBucketMetadataById(Long bucketId) throws IOException;
 
-    public List<DriveBucket> getBuckets();
+	public boolean existsBucketById(Long bucketId);
 
-    public void markAsDeletedBucket(ServerBucket bucket);
+	/** interface **/
 
-    public void markAsEnabledBucket(ServerBucket bucket);
+	public BucketMetadata getBucketMetadata(ServerBucket bucket) throws IOException;
 
-    public boolean isEmpty(ServerBucket bucket);
+	public File createBucket(BucketMetadata meta) throws IOException;
 
-    public String getBucketMetadataDirPath(ServerBucket bucket);
-    
-    public String getBucketObjectDataDirPath(ServerBucket bucket);
+	public void updateBucket(BucketMetadata meta) throws IOException;
 
-    public String getBucketWorkDirPath(ServerBucket bucket); 
+	public void deleteBucket(ServerBucket bucket);
 
-    public String getBucketCacheDirPath(ServerBucket bucket);
-    
-    public void cleanUpWorkDir(ServerBucket bucket);
+	public List<DriveBucket> getBuckets();
 
-    public void cleanUpCacheDir(ServerBucket bucket);
+	public void markAsDeletedBucket(ServerBucket bucket);
 
-    
-    
-    /**
-     * ---------------------- ObjectMetadata (head) ----------------------
-     */
+	public void markAsEnabledBucket(ServerBucket bucket);
 
-    public boolean existsObjectMetadata(ServerBucket bucket, String objectName);
+	public boolean isEmpty(ServerBucket bucket);
 
-    public boolean existsObjectMetadata(ObjectMetadata meta);
+	public String getBucketMetadataDirPath(ServerBucket bucket);
 
-    public void markAsDeletedObject(ServerBucket bucket, String objectName);
+	public String getBucketObjectDataDirPath(ServerBucket bucket);
 
-    public String getObjectMetadataDirPath(ServerBucket bucket, String objectName);
+	public String getBucketWorkDirPath(ServerBucket bucket);
 
-    public ObjectMetadata getObjectMetadata(ServerBucket bucket, String objectName);
+	public String getBucketCacheDirPath(ServerBucket bucket);
 
-    public void deleteObjectMetadata(ServerBucket bucket, String objectName);
+	public void cleanUpWorkDir(ServerBucket bucket);
 
-    public void saveObjectMetadata(ObjectMetadata meta);
+	public void cleanUpCacheDir(ServerBucket bucket);
 
-    public File getObjectMetadataFile(ServerBucket bucket, String objectName);
+	/**
+	 * ---------------------- ObjectMetadata (head) ----------------------
+	 */
 
-    public void putObjectMetadataFile(ServerBucket bucket, String objectName, File metaFile) throws IOException;;
+	public boolean existsObjectMetadata(ServerBucket bucket, String objectName);
 
+	public boolean existsObjectMetadata(ObjectMetadata meta);
 
-    /** ObjectMetadata. Version --- */
-    
-    public void saveObjectMetadataVersion(ObjectMetadata meta);
+	public void markAsDeletedObject(ServerBucket bucket, String objectName);
 
-    public ObjectMetadata getObjectMetadataVersion(ServerBucket bucket, String objectName, int version);
+	public String getObjectMetadataDirPath(ServerBucket bucket, String objectName);
 
-    public File getObjectMetadataVersionFile(ServerBucket bucket, String objectName, int version);
+	public ObjectMetadata getObjectMetadata(ServerBucket bucket, String objectName);
 
-    public void putObjectMetadataVersionFile(ServerBucket bucket, String objectName, int version, File metaFile) throws IOException;
+	public void deleteObjectMetadata(ServerBucket bucket, String objectName);
+
+	public void saveObjectMetadata(ObjectMetadata meta);
+
+	public File getObjectMetadataFile(ServerBucket bucket, String objectName);
+
+	public void putObjectMetadataFile(ServerBucket bucket, String objectName, File metaFile) throws IOException;;
+
+	/** ObjectMetadata. Version --- */
+
+	public void saveObjectMetadataVersion(ObjectMetadata meta);
+
+	public ObjectMetadata getObjectMetadataVersion(ServerBucket bucket, String objectName, int version);
+
+	public File getObjectMetadataVersionFile(ServerBucket bucket, String objectName, int version);
+
+	public void putObjectMetadataVersionFile(ServerBucket bucket, String objectName, int version, File metaFile) throws IOException;
 
 }

@@ -32,9 +32,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
-import org.springframework.lang.NonNull;
-
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.odilon.OdilonVersion;
 import io.odilon.encryption.EncryptionService;
@@ -105,12 +102,10 @@ public class ServerSettings implements JSONObject {
 
 	/* default -> odilon */
 	@Value("${accessKey:odilon}")
-	@NonNull
 	protected String accessKey;
 
 	/* default -> odilon */
 	@Value("${secretKey:odilon}")
-	@NonNull
 	protected String secretKey;
 
 	/* default port -> 9234 */
@@ -156,18 +151,15 @@ public class ServerSettings implements JSONObject {
 	protected String keyAlgorithm;
 
 	@Value("${presignedSalt:pxUrktu3oMo$dfgh9rl!}")
-	@NonNull
 	protected String presignedSalt;
 
 	// DATA STORAGE -------------------------------------------
 	//
 	//
 	@Value("${redundancyLevel:null}")
-	@NonNull
 	protected String redundancyLevelStr;
 
 	@Value("#{'${dataStorage}'.split(',')}")
-	@NonNull
 	private List<String> rootDirs;
 
 	@Value("${raid6.dataDrives:-1}")
@@ -177,13 +169,13 @@ public class ServerSettings implements JSONObject {
 	protected int raid6ParityDrives;
 
 	@Value("${dataStorageMode:rw}")
-	@NonNull
 	protected String dataStorageMode;
 	/** readwrite, readonly, WORM */
 
 	private DataStorage dataStorage;
 
 	// LOCK SERVICE ------------------------------------------
+	//
 	//
 	@Value("${lockRateMillisecs:2}")
 	String s_lockRateMillisecs;
@@ -294,9 +286,8 @@ public class ServerSettings implements JSONObject {
 	@Value("${fileCache.initialCapacity:10000}")
 	protected int fileCacheIntialCapacity;
 
-	
 	// RAID 6 BUFFERS (USED BY RAID 6) -----------------------
-	
+
 	@Value("${raid6.buffers:null}")
 	private String raidSixBuffersStr;
 
@@ -452,18 +443,10 @@ public class ServerSettings implements JSONObject {
 		return map;
 	}
 
-	/**
-	 * 
-	 * 
-	 */
 	public int getPort() {
 		return port;
 	}
 
-	/**
-	 * 
-	 * 
-	 */
 	@Override
 	public String toString() {
 		StringBuilder str = new StringBuilder();

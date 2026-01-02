@@ -38,46 +38,46 @@ import io.odilon.model.ObjectMetadata;
 @JsonInclude(Include.NON_NULL)
 public class OdilonObject extends BaseObject implements VirtualFileSystemObject {
 
-    private ObjectMetadata objectMetadata;
+	private ObjectMetadata objectMetadata;
 
-    @JsonIgnore
-    private ServerBucket bucket;
+	@JsonIgnore
+	private ServerBucket bucket;
 
-    @JsonIgnore
-    private String objectName;
+	@JsonIgnore
+	private String objectName;
 
-    @JsonIgnore
-    private VirtualFileSystemService vfs;
+	@JsonIgnore
+	private VirtualFileSystemService vfs;
 
-    public OdilonObject(ServerBucket bucket, String objectName, VirtualFileSystemService vfs) {
-        this.bucket = bucket;
-        this.objectName = objectName;
-        this.vfs = vfs;
-    }
+	public OdilonObject(ServerBucket bucket, String objectName, VirtualFileSystemService vfs) {
+		this.bucket = bucket;
+		this.objectName = objectName;
+		this.vfs = vfs;
+	}
 
-    @Override
-    public ServerBucket getBucket() {
-        return bucket;
-    }
+	@Override
+	public ServerBucket getBucket() {
+		return bucket;
+	}
 
-    @Override
-    public ObjectMetadata getObjectMetadata() {
-        if (this.objectMetadata == null)
-            this.objectMetadata = this.vfs.getObjectMetadata(bucket, objectName);
-        return this.objectMetadata;
-    }
+	@Override
+	public ObjectMetadata getObjectMetadata() {
+		if (this.objectMetadata == null)
+			this.objectMetadata = this.vfs.getObjectMetadata(bucket, objectName);
+		return this.objectMetadata;
+	}
 
-    public int hashCode() {
-        return ((bucket != null ? bucket.getName() : "null") + ServerConstant.BO_SEPARATOR + objectName).hashCode();
-    }
+	public int hashCode() {
+		return ((bucket != null ? bucket.getName() : "null") + ServerConstant.BO_SEPARATOR + objectName).hashCode();
+	}
 
-    @Override
-    public String getObjectName() {
-        return this.objectName;
-    }
+	@Override
+	public String getObjectName() {
+		return this.objectName;
+	}
 
-    @Override
-    public InputStream getInputStream() throws IOException {
-        return this.vfs.getObjectStream(bucket, objectName);
-    }
+	@Override
+	public InputStream getInputStream() throws IOException {
+		return this.vfs.getObjectStream(bucket, objectName);
+	}
 }

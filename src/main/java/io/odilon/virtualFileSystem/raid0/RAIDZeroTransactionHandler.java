@@ -25,19 +25,19 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
  */
 public abstract class RAIDZeroTransactionHandler extends RAIDZeroHandler {
 
-    public RAIDZeroTransactionHandler(RAIDZeroDriver driver) {
-        super(driver);
-    }
+	public RAIDZeroTransactionHandler(RAIDZeroDriver driver) {
+		super(driver);
+	}
 
-    protected void rollback(VirtualFileSystemOperation operation) {
-        getDriver().rollback(operation, false);
-    }
+	protected void rollback(VirtualFileSystemOperation operation) {
+		getDriver().rollback(operation, false);
+	}
 
-    protected void rollback(VirtualFileSystemOperation operation, boolean recovery) {
-        getDriver().rollback(operation, recovery);
-    }
+	protected void rollback(VirtualFileSystemOperation operation, boolean recovery) {
+		getDriver().rollback(operation, recovery);
+	}
 
-    protected void rollback(VirtualFileSystemOperation operation, Object payload, boolean recovery) {
-        getDriver().rollback(operation, payload, recovery);
-    }
+	protected void rollback(VirtualFileSystemOperation operation, Object payload, boolean recovery) {
+		getDriver().rollback(operation, payload, recovery);
+	}
 }
