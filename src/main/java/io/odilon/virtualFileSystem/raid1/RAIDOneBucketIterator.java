@@ -65,15 +65,13 @@ public class RAIDOneBucketIterator extends BucketIterator implements Closeable {
 	@JsonIgnore
 	private Stream<Path> stream;
 
-	public RAIDOneBucketIterator(RAIDOneDriver driver, ServerBucket bucket, Optional<Long> opOffset,
-			Optional<String> opPrefix) {
+	public RAIDOneBucketIterator(RAIDOneDriver driver, ServerBucket bucket, Optional<Long> opOffset, Optional<String> opPrefix) {
 		super(driver, bucket);
 
 		opPrefix.ifPresent(x -> setPrefix(x.toLowerCase().trim()));
 		opOffset.ifPresent(x -> setOffset(x));
 
-		this.drive = getDriver().getDrivesEnabled().get(
-				Double.valueOf(Math.abs(Math.random() * 10000)).intValue() % getDriver().getDrivesEnabled().size());
+		this.drive = getDriver().getDrivesEnabled().get(Double.valueOf(Math.abs(Math.random() * 10000)).intValue() % getDriver().getDrivesEnabled().size());
 	}
 
 	@Override
@@ -93,10 +91,7 @@ public class RAIDOneBucketIterator extends BucketIterator implements Closeable {
 	protected void init() {
 		Path start = new File(getDrive().getBucketMetadataDirPath(getBucket())).toPath();
 		try {
-			this.stream = Files.walk(start, 1).skip(1).filter(file -> Files.isDirectory(file))
-					.filter(file -> (getPrefix() == null)
-							|| file.getFileName().toString().toLowerCase().startsWith(getPrefix()))
-					.filter(file -> isValidState(file));
+			this.stream = Files.walk(start, 1).skip(1).filter(file -> Files.isDirectory(file)).filter(file -> (getPrefix() == null) || file.getFileName().toString().toLowerCase().startsWith(getPrefix())).filter(file -> isValidState(file));
 
 		} catch (IOException e) {
 			throw new InternalCriticalException(e);

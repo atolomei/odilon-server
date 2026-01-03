@@ -35,6 +35,7 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.concurrent.ThreadSafe;
 
 import io.odilon.OdilonVersion;
+import io.odilon.encryption.EncryptedResult;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
@@ -98,8 +99,8 @@ public class RAIDOneCreateObjectHandler extends RAIDOneTransactionObjectHandler 
 				/** start operation */
 				operation = createObject();
 
-				saveData(stream, srcFileName);
-				saveMetadata(srcFileName, contentType, customTags);
+				long bytesRead = saveData(stream, srcFileName);
+				saveMetadata(srcFileName, bytesRead, contentType, customTags);
 
 				/** commit */
 				commitOK = operation.commit();
@@ -141,90 +142,193 @@ public class RAIDOneCreateObjectHandler extends RAIDOneTransactionObjectHandler 
 	 * @param stream
 	 * @param srcFileName
 	 */
-	private void saveData(InputStream stream, String srcFileName) {
+	private long saveData(InputStream stream, String srcFileName) {
 
 		int total_drives = getDriver().getDrivesAll().size();
 
+		long totalBytesRead = 0;
+		
 		byte[] buf = new byte[ServerConstant.BUFFER_SIZE];
 
 		BufferedOutputStream out[] = new BufferedOutputStream[total_drives];
 		boolean isMainException = false;
-		try (InputStream sourceStream = isEncrypt() ? (getVirtualFileSystemService().getEncryptionService().encryptStream(stream)) : stream) {
-			int n_d = 0;
-			for (Drive drive : getDriver().getDrivesAll()) {
 
-				ObjectPath path = new ObjectPath(drive, getBucket().getId(), getObjectName());
-				String sPath = path.dataFilePath().toString();
-				out[n_d++] = new BufferedOutputStream(new FileOutputStream(sPath), ServerConstant.BUFFER_SIZE);
-			}
+		if (isEncrypt()) {
+			
+			EncryptedResult encryptedResult = getEncryptionService().encryptStream(stream);
+			
+			try (InputStream sourceStream = encryptedResult.getInputStream() ) {
+				int n_d = 0;
+				for (Drive drive : getDriver().getDrivesAll()) {
 
-			int bytes_read = 0;
-
-			/** if there is just 1 disk copy directly */
-			if (getDriver().getDrivesAll().size() < 2) {
-				while ((bytes_read = sourceStream.read(buf, 0, buf.length)) >= 0) {
-					for (int bytes = 0; bytes < total_drives; bytes++) {
-						out[bytes].write(buf, 0, bytes_read);
-					}
+					ObjectPath path = new ObjectPath(drive, getBucket().getId(), getObjectName());
+					String sPath = path.dataFilePath().toString();
+					out[n_d++] = new BufferedOutputStream(new FileOutputStream(sPath), ServerConstant.BUFFER_SIZE);
 				}
-			} else {
-				/** for 2 or more disks copy in parallel */
-				final int size = getDriver().getDrivesAll().size();
 
-				ExecutorService executor = getVirtualFileSystemService().getExecutorService();
+				int bytes_read = 0;
 
-				while ((bytes_read = sourceStream.read(buf, 0, buf.length)) >= 0) {
-					List<Callable<Boolean>> tasks = new ArrayList<Callable<Boolean>>(size);
-					for (int index = 0; index < total_drives; index++) {
-						final int t_index = index;
-						final int t_bytes_read = bytes_read;
-						tasks.add(() -> {
-							try {
-								out[t_index].write(buf, 0, t_bytes_read);
-								return Boolean.valueOf(true);
-							} catch (Exception e) {
-								logger.error(e, SharedConstant.NOT_THROWN);
-								return Boolean.valueOf(false);
-							}
-						});
-					}
-					try {
-						List<Future<Boolean>> future = executor.invokeAll(tasks, 15, TimeUnit.MINUTES);
-						Iterator<Future<Boolean>> it = future.iterator();
-						while (it.hasNext()) {
-							if (!it.next().get())
-								throw new InternalCriticalException(info(srcFileName));
+				/** if there is just 1 disk copy directly */
+				if (getDriver().getDrivesAll().size() < 2) {
+					while ((bytes_read = sourceStream.read(buf, 0, buf.length)) >= 0) {
+						for (int bytes = 0; bytes < total_drives; bytes++) {
+							out[bytes].write(buf, 0, bytes_read);
+							  
 						}
-					} catch (InterruptedException | ExecutionException e) {
-						throw new InternalCriticalException(e, info(srcFileName));
 					}
+				} else {
+					/** for 2 or more disks copy in parallel */
+					final int size = getDriver().getDrivesAll().size();
 
-				}
-			} // else
+					ExecutorService executor = getVirtualFileSystemService().getExecutorService();
 
-		} catch (InternalCriticalException e) {
-			isMainException = true;
-			throw e;
-		} catch (Exception e) {
-			isMainException = true;
-			throw new InternalCriticalException(e, info(srcFileName));
+					while ((bytes_read = sourceStream.read(buf, 0, buf.length)) >= 0) {
+						
+						List<Callable<Boolean>> tasks = new ArrayList<Callable<Boolean>>(size);
+			
+						for (int index = 0; index < total_drives; index++) {
+							final int t_index = index;
+							final int t_bytes_read = bytes_read;
+							tasks.add(() -> {
+								try {
+									out[t_index].write(buf, 0, t_bytes_read);
+									return Boolean.valueOf(true);
+								} catch (Exception e) {
+									logger.error(e, SharedConstant.NOT_THROWN);
+									return Boolean.valueOf(false);
+								}
+							});
+						}
+						try {
+							List<Future<Boolean>> future = executor.invokeAll(tasks, 15, TimeUnit.MINUTES);
+							Iterator<Future<Boolean>> it = future.iterator();
+							while (it.hasNext()) {
+								if (!it.next().get())
+									throw new InternalCriticalException(info(srcFileName));
+							}
+						} catch (InterruptedException | ExecutionException e) {
+							throw new InternalCriticalException(e, info(srcFileName));
+						}
 
-		} finally {
-			IOException secEx = null;
-			if (out != null) {
-				try {
-					for (int n = 0; n < total_drives; n++) {
-						if (out[n] != null)
-							out[n].close();
 					}
-				} catch (IOException e) {
-					logger.error(e, info(srcFileName) + (isMainException ? SharedConstant.NOT_THROWN : ""));
-					secEx = e;
+				} // else
+				
+				totalBytesRead=encryptedResult.getCountingStream().getCount();
+				return totalBytesRead;
+				
+			} catch (InternalCriticalException e) {
+				isMainException = true;
+				throw e;
+			} catch (Exception e) {
+				isMainException = true;
+				throw new InternalCriticalException(e, info(srcFileName));
+
+			} finally {
+				IOException secEx = null;
+				if (out != null) {
+					try {
+						for (int n = 0; n < total_drives; n++) {
+							if (out[n] != null)
+								out[n].close();
+						}
+					} catch (IOException e) {
+						logger.error(e, info(srcFileName) + (isMainException ? SharedConstant.NOT_THROWN : ""));
+						secEx = e;
+					}
 				}
+				if (!isMainException && (secEx != null))
+					throw new InternalCriticalException(secEx);
 			}
-			if (!isMainException && (secEx != null))
-				throw new InternalCriticalException(secEx);
+			
 		}
+		else { //[A] -------------------
+			
+			try (InputStream sourceStream = stream) {
+				int n_d = 0;
+				for (Drive drive : getDriver().getDrivesAll()) {
+
+					ObjectPath path = new ObjectPath(drive, getBucket().getId(), getObjectName());
+					String sPath = path.dataFilePath().toString();
+					out[n_d++] = new BufferedOutputStream(new FileOutputStream(sPath), ServerConstant.BUFFER_SIZE);
+				}
+
+				int bytes_read = 0;
+
+				/** if there is just 1 disk copy directly */
+				if (getDriver().getDrivesAll().size() < 2) {
+					while ((bytes_read = sourceStream.read(buf, 0, buf.length)) >= 0) {
+						for (int bytes = 0; bytes < total_drives; bytes++) {
+							out[bytes].write(buf, 0, bytes_read);
+							 totalBytesRead+=bytes_read;
+						}
+					}
+				} else {
+					/** for 2 or more disks copy in parallel */
+					final int size = getDriver().getDrivesAll().size();
+
+					ExecutorService executor = getVirtualFileSystemService().getExecutorService();
+
+					while ((bytes_read = sourceStream.read(buf, 0, buf.length)) >= 0) {
+						
+						totalBytesRead+=bytes_read;
+						
+						List<Callable<Boolean>> tasks = new ArrayList<Callable<Boolean>>(size);
+						for (int index = 0; index < total_drives; index++) {
+							final int t_index = index;
+							final int t_bytes_read = bytes_read;
+							tasks.add(() -> {
+								try {
+									out[t_index].write(buf, 0, t_bytes_read);
+									return Boolean.valueOf(true);
+								} catch (Exception e) {
+									logger.error(e, SharedConstant.NOT_THROWN);
+									return Boolean.valueOf(false);
+								}
+							});
+						}
+						try {
+							List<Future<Boolean>> future = executor.invokeAll(tasks, 15, TimeUnit.MINUTES);
+							Iterator<Future<Boolean>> it = future.iterator();
+							while (it.hasNext()) {
+								if (!it.next().get())
+									throw new InternalCriticalException(info(srcFileName));
+							}
+						} catch (InterruptedException | ExecutionException e) {
+							throw new InternalCriticalException(e, info(srcFileName));
+						}
+
+					}
+				} /** for 2 or more disks copy in parallel */
+		
+				return totalBytesRead;
+
+			
+			} catch (InternalCriticalException e) {
+				isMainException = true;
+				throw e;
+			} catch (Exception e) {
+				isMainException = true;
+				throw new InternalCriticalException(e, info(srcFileName));
+
+			} finally {
+				IOException secEx = null;
+				if (out != null) {
+					try {
+						for (int n = 0; n < total_drives; n++) {
+							if (out[n] != null)
+								out[n].close();
+						}
+					} catch (IOException e) {
+						logger.error(e, info(srcFileName) + (isMainException ? SharedConstant.NOT_THROWN : ""));
+						secEx = e;
+					}
+				}
+				if (!isMainException && (secEx != null))
+					throw new InternalCriticalException(secEx);
+			}
+			
+		} // end[A]
+		
 	}
 
 	/**
@@ -240,7 +344,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneTransactionObjectHandler 
 	 * @param stream
 	 * @param srcFileName
 	 */
-	private void saveMetadata(String srcFileName, String contentType, Optional<List<String>> customTags) {
+	private void saveMetadata(String srcFileName, long bytesRead, String contentType, Optional<List<String>> customTags) {
 
 		String sha = null;
 		String baseDrive = null;
@@ -268,6 +372,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneTransactionObjectHandler 
 				meta.setCreationDate(now);
 				meta.setVersion(VERSION_ZERO);
 				meta.setVersioncreationDate(now);
+				meta.setSourceLength(bytesRead);
 				meta.setLength(file.length());
 				meta.setEtag(sha256);
 				meta.setEncrypt(getVirtualFileSystemService().isEncrypt());

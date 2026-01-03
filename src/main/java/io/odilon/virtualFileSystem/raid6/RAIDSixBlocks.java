@@ -41,6 +41,10 @@ public class RAIDSixBlocks extends BaseObject {
     @JsonProperty("fileSize")
     private long fileSize;
 
+    @JsonProperty("srcFileSize")
+    private long srcFileSize;
+    
+    
     public RAIDSixBlocks() {
     }
 
@@ -79,4 +83,12 @@ public class RAIDSixBlocks extends BaseObject {
         str.append(toJSON());
         return str.toString();
     }
+
+	public long getSrcFileSize() {
+		return srcFileSize;
+	}
+
+	public void setSrcFileSize(long srcFileSize) {
+		this.srcFileSize = srcFileSize;
+	}
 }

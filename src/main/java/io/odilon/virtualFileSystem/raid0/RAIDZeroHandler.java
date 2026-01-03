@@ -32,8 +32,10 @@ import org.apache.commons.io.FileUtils;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import io.odilon.OdilonVersion;
+import io.odilon.encryption.EncryptedResult;
 import io.odilon.error.OdilonObjectNotFoundException;
 import io.odilon.errors.InternalCriticalException;
+import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ObjectStatus;
 import io.odilon.model.ServerConstant;
@@ -54,6 +56,8 @@ import io.odilon.virtualFileSystem.model.ServerBucket;
 @ThreadSafe
 public abstract class RAIDZeroHandler extends BaseRAIDHandler implements RAIDHandler {
 
+	static private Logger logger = Logger.getLogger(RAIDZeroHandler.class.getName());
+	
 	@JsonIgnore
 	private final RAIDZeroDriver driver;
 
@@ -86,18 +90,53 @@ public abstract class RAIDZeroHandler extends BaseRAIDHandler implements RAIDHan
 	 * @param stream      can not be null
 	 * @param srcFileName can not be null
 	 */
-	protected void saveData(ServerBucket bucket, String objectName, InputStream stream, String srcFileName) {
+	protected long saveData(ServerBucket bucket, String objectName, InputStream stream, String srcFileName) {
+		
 		byte[] buf = new byte[ServerConstant.BUFFER_SIZE];
-		try (InputStream sourceStream = isEncrypt() ? getEncryptionService().encryptStream(stream) : stream) {
-			ObjectPath path = new ObjectPath(getWriteDrive(bucket, objectName), bucket, objectName);
-			try (BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(path.dataFilePath().toFile()), ServerConstant.BUFFER_SIZE)) {
-				int bytesRead;
-				while ((bytesRead = sourceStream.read(buf, 0, buf.length)) >= 0)
-					out.write(buf, 0, bytesRead);
+		
+		long totalBytesRead = 0;
+		
+		if (isEncrypt()) {
+			
+			EncryptedResult encryptedResult = getEncryptionService().encryptStream(stream);
+			
+			try (InputStream sourceStream = encryptedResult.getInputStream() ) {
+				
+				ObjectPath path = new ObjectPath(getWriteDrive(bucket, objectName), bucket, objectName);
+				try (BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(path.dataFilePath().toFile()), ServerConstant.BUFFER_SIZE)) {
+					int bytesRead;
+					while ((bytesRead = sourceStream.read(buf, 0, buf.length)) >= 0) {
+						out.write(buf, 0, bytesRead);
+					}
+				}
+				
+				totalBytesRead=encryptedResult.getCountingStream().getCount();
+				logger.debug("b: "+ bucket.getName() + " o: " + objectName + " f: " + srcFileName + " | bytes read: " + totalBytesRead +  " | encrypted file -> " + path.dataFilePath().toFile().length() + " bytes ");
+
+				return totalBytesRead;
+
+			} catch (Exception e) {
+				throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
 			}
-		} catch (Exception e) {
-			throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
+		
 		}
+		
+		else {
+			try (stream) {
+				ObjectPath path = new ObjectPath(getWriteDrive(bucket, objectName), bucket, objectName);
+				try (BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(path.dataFilePath().toFile()), ServerConstant.BUFFER_SIZE)) {
+					int bytesRead;
+					while ((bytesRead = stream.read(buf, 0, buf.length)) >= 0) {
+						out.write(buf, 0, bytesRead);
+						totalBytesRead+=bytesRead;
+					}
+				}
+				return totalBytesRead;
+			} catch (Exception e) {
+				throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
+			}
+		}
+		
 	}
 
 	/**
@@ -115,7 +154,7 @@ public abstract class RAIDZeroHandler extends BaseRAIDHandler implements RAIDHan
 	 * @param srcFileName can not be null
 	 * @param customTags
 	 */
-	protected void saveMetadata(ServerBucket bucket, String objectName, String srcFileName, String contentType, int version, Optional<List<String>> customTags) {
+	protected void saveMetadata(ServerBucket bucket, String objectName, String srcFileName, long totalBytesRead, String contentType, int version, Optional<List<String>> customTags) {
 
 		OffsetDateTime now = OffsetDateTime.now();
 		Drive drive = getWriteDrive(bucket, objectName);
@@ -133,6 +172,7 @@ public abstract class RAIDZeroHandler extends BaseRAIDHandler implements RAIDHan
 			meta.setLastModified(now);
 			meta.setVersioncreationDate(now);
 			meta.setVersion(version);
+			meta.setSourceLength(totalBytesRead);
 			meta.setLength(path.dataFilePath().toFile().length());
 			meta.setEtag(sha256);
 			meta.setIntegrityCheck(now);

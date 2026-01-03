@@ -28,7 +28,7 @@ import io.odilon.model.ServerConstant;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
- 
+
 /**
  * 
  * Context:
@@ -42,131 +42,117 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 public class ObjectPath extends PathBuilder {
 
 	static private Logger logger = Logger.getLogger(ObjectPath.class.getName());
-	
-    @JsonProperty("drive")
-    private final Drive drive;
 
-    @JsonProperty("objectName")
-    private final String objectName;
+	@JsonProperty("drive")
+	private final Drive drive;
 
-    @JsonProperty("bucketId")
-    private final Long bucketId;
+	@JsonProperty("objectName")
+	private final String objectName;
 
-    public ObjectPath(Drive drive, ServerBucket bucket, String objectName) {
-        this.drive = drive;
-        this.objectName = objectName;
-        this.bucketId = bucket.getId();
-    }
+	@JsonProperty("bucketId")
+	private final Long bucketId;
 
-    public ObjectPath(Drive drive, Long bucketId, String objectName) {
-        this.drive = drive;
-        this.objectName = objectName;
-        this.bucketId = bucketId;
-    }
+	public ObjectPath(Drive drive, ServerBucket bucket, String objectName) {
+		this.drive = drive;
+		this.objectName = objectName;
+		this.bucketId = bucket.getId();
+	}
 
-    public ObjectPath(Drive drive, ObjectMetadata meta) {
-        this.drive = drive;
-        this.objectName = meta.getObjectName();
-        this.bucketId = meta.getBucketId();
-    }
+	public ObjectPath(Drive drive, Long bucketId, String objectName) {
+		this.drive = drive;
+		this.objectName = objectName;
+		this.bucketId = bucketId;
+	}
 
-    public Path metadataDirPath() {
-        return metadataDirPath(Context.STORAGE);
-    }
+	public ObjectPath(Drive drive, ObjectMetadata meta) {
+		this.drive = drive;
+		this.objectName = meta.getObjectName();
+		this.bucketId = meta.getBucketId();
+	}
 
-    public Path metadataDirPath(Context context) {
-        if (context == Context.STORAGE)
-            return Paths.get(getBucketsDirPath()).resolve(getBucketId().toString() + File.separator + getObjectName());
-        throw new RuntimeException("not done");
-    }
+	public Path metadataDirPath() {
+		return metadataDirPath(Context.STORAGE);
+	}
 
-    public Path metadataFilePath() {
-        return metadataFilePath(Context.STORAGE);
-    }
+	public Path metadataDirPath(Context context) {
+		if (context == Context.STORAGE)
+			return Paths.get(getBucketsDirPath()).resolve(getBucketId().toString() + File.separator + getObjectName());
+		throw new RuntimeException("not done");
+	}
 
-    public Path metadataFilePath(Context context) {
-        return metadataDirPath(context).resolve(getObjectName() + ServerConstant.JSON);
-    }
+	public Path metadataFilePath() {
+		return metadataFilePath(Context.STORAGE);
+	}
 
-    public Path metadataFileVersionPath(int version) {
-        return metadataDirPath(Context.STORAGE).resolve(
-                getObjectName() + VirtualFileSystemService.VERSION_EXTENSION + String.valueOf(version) + ServerConstant.JSON);
-    }
+	public Path metadataFilePath(Context context) {
+		return metadataDirPath(context).resolve(getObjectName() + ServerConstant.JSON);
+	}
 
-    public Path metadataFileVersionPath(Context context) {
-        return metadataDirPath(context).resolve(getObjectName() + ServerConstant.JSON);
-    }
+	public Path metadataFileVersionPath(int version) {
+		return metadataDirPath(Context.STORAGE).resolve(getObjectName() + VirtualFileSystemService.VERSION_EXTENSION + String.valueOf(version) + ServerConstant.JSON);
+	}
 
-    public Path metadataBackupDirPath() {
-        return Paths.get(getBucketWorkDirPath(), getObjectName());
-    }
+	public Path metadataFileVersionPath(Context context) {
+		return metadataDirPath(context).resolve(getObjectName() + ServerConstant.JSON);
+	}
 
-    
-    
-    
-    public String getBucketsDirPath() {
-        return getDrive().getBucketsDirPath();
-    }
+	public Path metadataBackupDirPath() {
+		return Paths.get(getBucketWorkDirPath(), getObjectName());
+	}
 
-    private String getBucketWorkDirPath() {
-        return getDrive().getWorkDirPath() + File.separator + getBucketId().toString();
-    }
+	public String getBucketsDirPath() {
+		return getDrive().getBucketsDirPath();
+	}
 
-    /**
-     * this works for RAID 1 and RAID 0
-     * 
-     * @param context
-     * @param isHead
-     * @return
-     */
+	private String getBucketWorkDirPath() {
+		return getDrive().getWorkDirPath() + File.separator + getBucketId().toString();
+	}
 
-    public Path dataFilePath() {
-        return dataFilePath(Context.STORAGE);
-    }
+	/**
+	 * this works for RAID 1 and RAID 0
+	 * 
+	 * @param context
+	 * @param isHead
+	 * @return
+	 */
 
-    public Path dataFilePath(Context context) {
-        if (context == Context.STORAGE) {
-        	logger.debug(getDrive().getRootDirPath(), getBucketId().toString() + File.separator + getObjectName());
-        	return Paths.get(getDrive().getRootDirPath(), getBucketId().toString() + File.separator + getObjectName());
-       }
+	public Path dataFilePath() {
+		return dataFilePath(Context.STORAGE);
+	}
 
-        throw new RuntimeException("not done");
-    }
+	public Path dataFilePath(Context context) {
+		if (context == Context.STORAGE) {
+			return Paths.get(getDrive().getRootDirPath(), getBucketId().toString() + File.separator + getObjectName());
+		}
+		throw new RuntimeException("not done");
+	}
 
-    public Path metadataWorkFilePath() {
-        return Paths.get(getBucketWorkDirPath(), getObjectName());
-    }
+	public Path metadataWorkFilePath() {
+		return Paths.get(getBucketWorkDirPath(), getObjectName());
+	}
 
-    public Path dataFileVersionPath(int version) {
-        return dataFileVersionPath(Context.STORAGE, version);
-    }
+	public Path dataFileVersionPath(int version) {
+		return dataFileVersionPath(Context.STORAGE, version);
+	}
 
-    public Path dataFileVersionPath(Context context, int version) {
-        if (context == Context.STORAGE) {
-           
-        	logger.debug(getDrive().getRootDirPath(), getBucketId().toString() + File.separator + getObjectName());
-        	
-        	return Paths.get(
-                    getDrive().getRootDirPath() + File.separator + getBucketId().toString() + File.separator
-                            + VirtualFileSystemService.VERSION_DIR,
-                    getObjectName() + VirtualFileSystemService.VERSION_EXTENSION + String.valueOf(version));
-        }
-        else
-            throw new RuntimeException("not done");
-    }
+	public Path dataFileVersionPath(Context context, int version) {
+		if (context == Context.STORAGE) {
+			return Paths.get(getDrive().getRootDirPath() + File.separator + getBucketId().toString() + File.separator + VirtualFileSystemService.VERSION_DIR,
+					getObjectName() + VirtualFileSystemService.VERSION_EXTENSION + String.valueOf(version));
+		} else
+			throw new RuntimeException("not done");
+	}
 
-    private Long getBucketId() {
-        return this.bucketId;
-    }
+	private Long getBucketId() {
+		return this.bucketId;
+	}
 
-    private String getObjectName() {
-        return this.objectName;
-    }
+	private String getObjectName() {
+		return this.objectName;
+	}
 
-    private Drive getDrive() {
-        return this.drive;
-    }
-
-  
+	private Drive getDrive() {
+		return this.drive;
+	}
 
 }

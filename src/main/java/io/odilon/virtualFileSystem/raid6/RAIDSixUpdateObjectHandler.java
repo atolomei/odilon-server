@@ -33,6 +33,7 @@ import javax.annotation.concurrent.ThreadSafe;
 import org.apache.commons.io.FileUtils;
 
 import io.odilon.OdilonVersion;
+import io.odilon.encryption.EncryptedResult;
 import io.odilon.error.OdilonObjectNotFoundException;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
@@ -57,7 +58,7 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @ThreadSafe
-public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionHandler {
+public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionObjectHandler {
 
 	private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class.getName());
 
@@ -68,8 +69,8 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionHandler {
 	 * 
 	 * @param driver can not be null
 	 */
-	protected RAIDSixUpdateObjectHandler(RAIDSixDriver driver) {
-		super(driver);
+	protected RAIDSixUpdateObjectHandler(RAIDSixDriver driver, ServerBucket bucket, String objectName) {
+		super(driver, bucket, objectName);
 	}
 
 	/**
@@ -464,7 +465,10 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionHandler {
 				meta.setCreationDate(headCreationDate);
 				meta.setVersion(version);
 				meta.setVersioncreationDate(versionCreationDate);
+
 				meta.setLength(ei.getFileSize());
+				meta.setSourceLength(ei.getSrcFileSize());
+
 				meta.setTotalBlocks(ei.getEncodedBlocks().size());
 				meta.setSha256Blocks(shaBlocks);
 				meta.setEtag(etag);
@@ -498,28 +502,62 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionHandler {
 
 		InputStream sourceStream = null;
 		boolean isMainException = false;
-		try {
-			sourceStream = isEncrypt() ? (getVirtualFileSystemService().getEncryptionService().encryptStream(stream)) : stream;
-			RAIDSixEncoder encoder = new RAIDSixEncoder(getDriver());
-			return encoder.encodeHead(sourceStream, bucket, objectName);
 
-		} catch (Exception e) {
-			isMainException = true;
-			throw new InternalCriticalException(e, objectInfo(bucket, objectName));
+		if (isEncrypt()) {
 
-		} finally {
-			IOException secEx = null;
 			try {
-				if (sourceStream != null)
-					sourceStream.close();
+				EncryptedResult encryptedResult = getEncryptionService().encryptStream(stream);
+				sourceStream = encryptedResult.getInputStream();
+				RAIDSixEncoder encoder = new RAIDSixEncoder(getDriver());
+				RAIDSixBlocks blocks = encoder.encodeHead(sourceStream, bucket, objectName);
+				long totalBytesRead = encryptedResult.getCountingStream().getCount();
+				blocks.setSrcFileSize(totalBytesRead);
+				return blocks;
 
-			} catch (IOException e) {
-				logger.error(e, (objectInfo(bucket, objectName)) + (isMainException ? SharedConstant.NOT_THROWN : ""));
-				secEx = e;
+			} catch (Exception e) {
+				isMainException = true;
+				throw new InternalCriticalException(e, objectInfo(bucket, objectName));
+
+			} finally {
+				IOException secEx = null;
+				try {
+					if (sourceStream != null)
+						sourceStream.close();
+
+				} catch (IOException e) {
+					logger.error(e, (objectInfo(bucket, objectName)) + (isMainException ? SharedConstant.NOT_THROWN : ""));
+					secEx = e;
+				}
+				if (!isMainException && (secEx != null))
+					throw new InternalCriticalException(secEx);
 			}
-			if (!isMainException && (secEx != null))
-				throw new InternalCriticalException(secEx);
+
+		} else {
+
+			try {
+				sourceStream = stream;
+				RAIDSixEncoder encoder = new RAIDSixEncoder(getDriver());
+				return encoder.encodeHead(sourceStream, bucket, objectName);
+
+			} catch (Exception e) {
+				isMainException = true;
+				throw new InternalCriticalException(e, objectInfo(bucket, objectName));
+
+			} finally {
+				IOException secEx = null;
+				try {
+					if (sourceStream != null)
+						sourceStream.close();
+
+				} catch (IOException e) {
+					logger.error(e, (objectInfo(bucket, objectName)) + (isMainException ? SharedConstant.NOT_THROWN : ""));
+					secEx = e;
+				}
+				if (!isMainException && (secEx != null))
+					throw new InternalCriticalException(secEx);
+			}
 		}
+
 	}
 
 	/**

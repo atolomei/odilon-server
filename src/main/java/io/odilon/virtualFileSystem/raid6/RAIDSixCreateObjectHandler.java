@@ -27,11 +27,13 @@ import java.util.Optional;
 import javax.annotation.concurrent.ThreadSafe;
 
 import io.odilon.OdilonVersion;
+import io.odilon.encryption.EncryptedResult;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ObjectStatus;
 import io.odilon.model.SharedConstant;
+import io.odilon.util.Check;
 import io.odilon.util.OdilonFileUtils;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
@@ -125,11 +127,89 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionObjectHandler 
 	 * @param srcFileName
 	 */
 	private RAIDSixBlocks saveData(InputStream stream) {
+		
+		
+		Check.requireNonNullArgument(stream, "stream is null");
+		
+		
+
+		if (isEncrypt()) {
+			boolean isMainException = false; 
+			InputStream sourceStream = null;
+			try {
+				EncryptedResult encryptedResult = getEncryptionService().encryptStream(stream);
+				sourceStream = encryptedResult.getInputStream();
+				RAIDSixEncoder encoder = new RAIDSixEncoder(getDriver());
+				RAIDSixBlocks blocks = encoder.encodeHead(sourceStream, getBucket(), getObjectName());
+				long totalBytesRead=encryptedResult.getCountingStream().getCount();
+				blocks.setSrcFileSize(totalBytesRead);
+				return blocks;
+
+			} catch (InternalCriticalException e) {
+				isMainException=true;
+				throw e;
+				
+			} catch (Exception e) {
+				isMainException=true;
+				throw new InternalCriticalException(e, objectInfo( getBucket(), getObjectName()));
+
+			} finally {
+				IOException secEx = null;
+				try {
+					if (sourceStream != null)
+						sourceStream.close();
+
+				} catch (IOException e) {
+					logger.error(e, (objectInfo( getBucket(), getObjectName())) + (isMainException ? SharedConstant.NOT_THROWN : ""));
+					secEx = e;
+				}
+				if (!isMainException && (secEx != null))
+					throw new InternalCriticalException(secEx);
+			}
+			
+		}
+		else {
+
+			boolean isMainException = false; 
+			InputStream sourceStream = null;
+			try {
+				sourceStream = stream;
+				RAIDSixEncoder encoder = new RAIDSixEncoder(getDriver());
+				RAIDSixBlocks blocks = encoder.encodeHead(sourceStream, getBucket(), getObjectName());
+				long totalBytesRead= blocks.getFileSize();
+				blocks.setSrcFileSize(totalBytesRead);
+				return blocks;
+
+			} catch (InternalCriticalException e) {
+				isMainException=true;
+				throw e;
+				
+			} catch (Exception e) {
+				isMainException=true;
+				throw new InternalCriticalException(e, objectInfo( getBucket(), getObjectName()));
+
+			} finally {
+				IOException secEx = null;
+				try {
+					if (sourceStream != null)
+						sourceStream.close();
+
+				} catch (IOException e) {
+					logger.error(e, (objectInfo( getBucket(), getObjectName())) + (isMainException ? SharedConstant.NOT_THROWN : ""));
+					secEx = e;
+				}
+				if (!isMainException && (secEx != null))
+					throw new InternalCriticalException(secEx);
+			}
+		}
+		
+		/**
 		try (InputStream sourceStream = isEncrypt() ? (getVirtualFileSystemService().getEncryptionService().encryptStream(stream)) : stream) {
 			return (new RAIDSixEncoder(getDriver())).encodeHead(sourceStream, getBucket(), getObjectName());
 		} catch (Exception e) {
 			throw new InternalCriticalException(e, info());
 		}
+		**/
 	}
 
 	/**
@@ -175,6 +255,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionObjectHandler 
 				meta.setCreationDate(creationDate);
 				meta.setVersion(VERSION_ZERO);
 				meta.setVersioncreationDate(meta.getCreationDate());
+				meta.setSourceLength(ei.getSrcFileSize());
 				meta.setLength(ei.getFileSize());
 				meta.setSha256Blocks(shaBlocks);
 				meta.setTotalBlocks(ei.getEncodedBlocks().size());

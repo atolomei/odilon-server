@@ -37,8 +37,14 @@ public interface EncryptionService extends SystemService {
     static final public int AES_KEY_SALT_SIZE_BITS = 512;
     static final public int HMAC_SIZE = 32;
 
-    public InputStream encryptStream(InputStream inputStream);
+    //public InputStream encryptStream(InputStream inputStream);
+    public EncryptedResult encryptStream(InputStream inputStream);
 
     public InputStream decryptStream(InputStream inputStream);
+
+	/**
+	 * Deterministic variant when you know plaintext length in advance.
+	 */
+	EncryptedResult encryptStream(InputStream inputStream, long plainSize);
 
 }

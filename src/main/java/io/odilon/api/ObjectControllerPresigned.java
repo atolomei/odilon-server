@@ -40,6 +40,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.odilon.error.OdilonServerAPIException;
 import io.odilon.error.OdilonObjectNotFoundException;
 import io.odilon.log.Logger;
+import io.odilon.model.ObjectMetadata;
 import io.odilon.model.SharedConstant;
 import io.odilon.monitor.SystemMonitorService;
 import io.odilon.net.ErrorCode;
@@ -149,10 +150,9 @@ public class ObjectControllerPresigned extends BaseApiController {
             }
 
             logger.debug(object.getObjectMetadata().getFileName()+ " "+ contentType.toString());
+
+            long fileLength = getSrcFileLength(object.getObjectMetadata());
             
-          
-            
-            long fileLength = object.getObjectMetadata().getLength();
             in = object.getInputStream();
 
             getSystemMonitorService().getGetObjectMeter().mark();
@@ -177,7 +177,7 @@ public class ObjectControllerPresigned extends BaseApiController {
                 responseHeaders.setContentLength(contentLength);
                 responseHeaders.add(HttpHeaders.CONTENT_RANGE,
                         "bytes " + start + "-" + end + "/" + fileLength);
-
+                
                 return ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)
                         .headers(responseHeaders)
                         .contentType(contentType)
@@ -187,13 +187,22 @@ public class ObjectControllerPresigned extends BaseApiController {
             } else {
                 // Full file
                 responseHeaders.setContentLength(fileLength);
-                return ResponseEntity.ok()
-                        .headers(responseHeaders)
-                        .contentType(contentType)
-                        .contentLength(fileLength) 
-                        .cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS))
-                        .body(new InputStreamResource(in));
-            }
+                if (fileLength==-1) {
+                    return ResponseEntity.ok()
+	                        .headers(responseHeaders)
+	                        .contentType(contentType)
+	                        .cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS))
+	                        .body(new InputStreamResource(in));
+	            }
+                else {
+	                return ResponseEntity.ok()
+	                        .headers(responseHeaders)
+	                        .contentType(contentType)
+	                        .contentLength(fileLength) 
+	                        .cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS))
+	                        .body(new InputStreamResource(in));
+	                }
+                }
 
         } catch (Exception e) {
             if (in != null) {
@@ -212,7 +221,9 @@ public class ObjectControllerPresigned extends BaseApiController {
     }
     
         
-    public TokenService getTokenService() {
+  
+
+	public TokenService getTokenService() {
 		return this.tokenService;
 	}
 

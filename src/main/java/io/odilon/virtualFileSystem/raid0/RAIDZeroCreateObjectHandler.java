@@ -124,8 +124,8 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroTransactionObjectHandle
 	}
 
 	private void save(InputStream stream, String srcFileName, String contentType, Optional<List<String>> customTags) {
-		saveData(getBucket(), getObjectName(), stream, srcFileName);
-		saveMetadata(getBucket(), getObjectName(), srcFileName, contentType, VERSION_ZERO, customTags);
+		long bytesSaved = saveData(getBucket(), getObjectName(), stream, srcFileName);
+		saveMetadata(getBucket(), getObjectName(), srcFileName, bytesSaved, contentType, VERSION_ZERO, customTags);
 	}
 
 }

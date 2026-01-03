@@ -194,7 +194,7 @@ public class ObjectController extends BaseApiController {
 				contentType = estimateContentType(meta.getFileName());
 			}
 
-			long length = meta.getLength();
+            long fileLength = getSrcFileLength(meta);
 
 			in = getObjectStorageService().getObjectStream(bucketName, objectName);
 
@@ -209,8 +209,27 @@ public class ObjectController extends BaseApiController {
 
 			//logger.debug(meta.getFileName() + " " + contentType.toString());
 
-			return ResponseEntity.ok().headers(responseHeaders).cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)).contentType(contentType).contentLength(length).body(new InputStreamResource(in));
+			
+			if (fileLength==-1) {
 
+				return ResponseEntity.
+						ok().
+						headers(responseHeaders).
+						cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)).
+						contentType(contentType).
+						body(new InputStreamResource(in));
+
+			}
+			else {
+				return ResponseEntity.
+						ok().
+						headers(responseHeaders).
+						cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)).
+						contentType(contentType).
+						contentLength(fileLength).
+						body(new InputStreamResource(in));
+			}
+			
 		} catch (OdilonServerAPIException e1) {
 
 			if (in != null) {
@@ -323,19 +342,35 @@ public class ObjectController extends BaseApiController {
 
 			
 			int cacheDurationSecs = this.settings.getserverObjectstreamCacheSecs();
-			long length = metaVersion.getLength();
+			
+			long fileLength = super.getSrcFileLength(metaVersion);
 
 			HttpHeaders responseHeaders = new HttpHeaders();
 			String f_name = metaVersion.getFileName().replace("[", "").replace("]", "");
 			responseHeaders.set("Content-Disposition", "inline; filename=\"" + f_name + "\"");
 			responseHeaders.set(HttpHeaders.ACCEPT_RANGES, "bytes");
 
-			return ResponseEntity.ok().
-				   headers(responseHeaders).
-				   cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)).
-				   contentType(contentType).
-				   contentLength(length).
-				   body(new InputStreamResource(in));
+			
+			if (fileLength==-1) {
+
+				return ResponseEntity.
+						ok().
+						headers(responseHeaders).
+						cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)).
+						contentType(contentType).
+						body(new InputStreamResource(in));
+
+			}
+			else {
+				return ResponseEntity.
+						ok().
+						headers(responseHeaders).
+						cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)).
+						contentType(contentType).
+						contentLength(fileLength).
+						body(new InputStreamResource(in));
+			}
+
 
 		} catch (OdilonServerAPIException e) {
 
@@ -418,26 +453,38 @@ public class ObjectController extends BaseApiController {
 				contentType = estimateContentType(prev.getFileName());
 			}
 			
-			//in = getObjectStorageService().getObjectPreviousVersionStream(bucketName, objectName, list.get(list.size() - 1).version);
-
+	 
 			in = getObjectStorageService().getObjectPreviousVersionStream(bucketName, objectName, prev.version);
 
 			
 			int cacheDurationSecs = this.settings.getserverObjectstreamCacheSecs();
-			long length = prev.getLength();
+			long fileLength = super.getSrcFileLength(prev);
 
 			HttpHeaders responseHeaders = new HttpHeaders();
 			String f_name = prev.getFileName().replace("[", "").replace("]", "");
 			responseHeaders.set("Content-Disposition", "inline; filename=\"" + f_name + "\"");
 			responseHeaders.set(HttpHeaders.ACCEPT_RANGES, "bytes");
+			
+			if (fileLength==-1) {
 
-			return ResponseEntity.ok().
-				   headers(responseHeaders).
-				   cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)).
-				   contentType(contentType).
-				   contentLength(length).
-				   body(new InputStreamResource(in));
+				return ResponseEntity.
+						ok().
+						headers(responseHeaders).
+						cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)).
+						contentType(contentType).
+						body(new InputStreamResource(in));
 
+			}
+			else {
+				return ResponseEntity.
+						ok().
+						headers(responseHeaders).
+						cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)).
+						contentType(contentType).
+						contentLength(fileLength).
+						body(new InputStreamResource(in));
+			}
+			
 			
 		} catch (OdilonServerAPIException e1) {
 
@@ -782,14 +829,13 @@ public class ObjectController extends BaseApiController {
 			if (version.isEmpty()) {
 
 				long start = System.currentTimeMillis();
-
 				getObjectStorageService().putObject(bucketName, objectName, file.getInputStream(), fileName, contentType, o_list);
-
+				
 				long end = System.currentTimeMillis();
 
 				meta = getObjectStorageService().getObjectMetadata(bucketName, objectName);
 
-				//logger.debug("putObject -> " + "b: " + bucketName + " | o: " + objectName + " | " + String.valueOf(end - start) + " ms" + " | " + " length: " + String.valueOf(meta.getLength() / 1000) + " KB");
+				logger.debug("putObject -> " + "b: " + bucketName + " | o: " + objectName + " | " + String.valueOf(end - start) + " ms" + " | " + " length: " + String.valueOf(meta.getSourceLength() / 1000) + " KB");
 
 			} else {
 

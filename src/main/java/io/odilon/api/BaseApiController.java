@@ -25,6 +25,7 @@ import org.springframework.http.MediaType;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.odilon.model.BaseObject;
+import io.odilon.model.ObjectMetadata;
 import io.odilon.monitor.SystemMonitorService;
 import io.odilon.service.ObjectStorageService;
 import io.odilon.traffic.TrafficControlService;
@@ -110,6 +111,23 @@ public abstract class BaseApiController extends BaseObject implements Applicatio
 		StringBuilder str = new StringBuilder();
 		str.append(toJSON());
 		return str.toString();
+	}
+
+	protected long getSrcFileLength(ObjectMetadata objectMetadata) {
+
+		long fileLength = 0;
+
+		if (objectMetadata.getSourceLength() > 0) {
+			fileLength = objectMetadata.getSourceLength();
+			return fileLength;
+		}
+
+		if (!objectMetadata.isEncrypt()) {
+			fileLength = objectMetadata.getLength();
+			return fileLength;
+		}
+		fileLength = -1;
+		return fileLength;
 	}
 
 	protected MediaType estimateContentType(String f_name) {

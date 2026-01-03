@@ -37,6 +37,7 @@ import javax.annotation.concurrent.ThreadSafe;
 import org.apache.commons.io.FileUtils;
 
 import io.odilon.OdilonVersion;
+import io.odilon.encryption.EncryptedResult;
 import io.odilon.error.OdilonObjectNotFoundException;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
@@ -384,6 +385,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
         }
     }
 
+    /**
     private void saveObjectDataFile(ServerBucket bucket, String objectName, InputStream stream, String srcFileName,
             int newVersion) {
 
@@ -486,7 +488,227 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
                 throw new InternalCriticalException(secEx);
         }
     }
+*/
+    
+    
+    private long saveObjectDataFile(ServerBucket bucket, String objectName, InputStream stream, String srcFileName,
+            int newVersion) {
 
+        int total_drives = getDriver().getDrivesAll().size();
+        //byte[] buf = new byte[ServerConstant.BUFFER_SIZE];
+
+        BufferedOutputStream out[] = new BufferedOutputStream[total_drives];
+       
+        boolean isMainException = false;
+
+        if (isEncrypt()) {
+        	
+        	EncryptedResult encryptedResult = getEncryptionService().encryptStream(stream);
+        	
+        	  try (InputStream sourceStream = encryptedResult.getInputStream() ) {
+
+                int n_d = 0;
+              
+                for (Drive drive : getDriver().getDrivesAll()) {
+
+                    ObjectPath path = new ObjectPath(drive, bucket.getId(), objectName);
+                    String sPath = path.dataFilePath().toString();
+                    out[n_d++] = new BufferedOutputStream(new FileOutputStream(sPath), ServerConstant.BUFFER_SIZE);
+                }
+                int bytes_read = 0;
+
+                
+                byte[] buf = new byte[ServerConstant.BUFFER_SIZE];
+                
+                if (getDriver().getDrivesAll().size() < 2) {
+
+                    while ((bytes_read = sourceStream.read(buf, 0, buf.length)) >= 0)
+                        for (int bytes = 0; bytes < total_drives; bytes++) {
+                            out[bytes].write(buf, 0, bytes_read);
+                        }
+                } else {
+
+                    final int size = getDriver().getDrivesAll().size();
+                    ExecutorService executor = getVirtualFileSystemService().getExecutorService();
+
+                    while ((bytes_read = sourceStream.read(buf, 0, buf.length)) >= 0) {
+
+                        List<Callable<Boolean>> tasks = new ArrayList<Callable<Boolean>>(size);
+
+                        for (int index = 0; index < total_drives; index++) {
+
+                            final int t_index = index;
+                            final int t_bytes_read = bytes_read;
+
+                            tasks.add(() -> {
+                                try {
+                                    out[t_index].write(buf, 0, t_bytes_read);
+                                    return Boolean.valueOf(true);
+                                } catch (Exception e) {
+                                    logger.error(e, SharedConstant.NOT_THROWN);
+                                    return Boolean.valueOf(false);
+                                }
+                            });
+                        }
+
+                        try {
+                            List<Future<Boolean>> future = executor.invokeAll(tasks, 5, TimeUnit.MINUTES);
+                            Iterator<Future<Boolean>> it = future.iterator();
+                            while (it.hasNext()) {
+                                if (!it.next().get())
+                                    throw new InternalCriticalException(getDriver().objectInfo(bucket, objectName, srcFileName));
+                            }
+                        } catch (InterruptedException | ExecutionException e) {
+                            throw new InternalCriticalException(e);
+                        }
+
+                    }
+
+                } // else < 2
+
+            
+                long totalBytesRead=encryptedResult.getCountingStream().getCount();
+				return totalBytesRead;
+
+				
+        	  } catch (Exception e) {
+                isMainException = true;
+                throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName, srcFileName));
+
+            } finally {
+                IOException secEx = null;
+
+                if (out != null) {
+                    try {
+                        for (int n = 0; n < total_drives; n++) {
+                            if (out[n] != null)
+                                out[n].close();
+                        }
+                    } catch (IOException e) {
+                        logger.error(e, getDriver().objectInfo(bucket, objectName, srcFileName)
+                                + (isMainException ? SharedConstant.NOT_THROWN : ""));
+                        secEx = e;
+                    }
+                }
+
+                if (!isMainException && (secEx != null))
+                    throw new InternalCriticalException(secEx);
+            }
+        	
+        }
+      
+        // not encrypted --
+        
+        else {
+        	
+        	  InputStream sourceStream =null;
+        	  
+        	  try {
+
+        		  sourceStream = stream;
+        		  
+        		  long totalBytesRead = 0;
+        		  
+                  int n_d = 0;
+                  for (Drive drive : getDriver().getDrivesAll()) {
+
+                      ObjectPath path = new ObjectPath(drive, bucket.getId(), objectName);
+                      String sPath = path.dataFilePath().toString();
+                      out[n_d++] = new BufferedOutputStream(new FileOutputStream(sPath), ServerConstant.BUFFER_SIZE);
+                  }
+                  int bytes_read = 0;
+                  
+                  byte[] buf = new byte[ServerConstant.BUFFER_SIZE];
+
+                  if (getDriver().getDrivesAll().size() < 2) {
+
+                      while ((bytes_read = sourceStream.read(buf, 0, buf.length)) >= 0)
+                          for (int bytes = 0; bytes < total_drives; bytes++) {
+                              out[bytes].write(buf, 0, bytes_read);
+                              totalBytesRead += bytes_read;
+                              
+                          }
+                  } else {
+
+                      final int size = getDriver().getDrivesAll().size();
+                      ExecutorService executor = getVirtualFileSystemService().getExecutorService();
+
+                      while ((bytes_read = sourceStream.read(buf, 0, buf.length)) >= 0) {
+                    	  
+                    	  totalBytesRead += bytes_read;
+                          List<Callable<Boolean>> tasks = new ArrayList<Callable<Boolean>>(size);
+
+                          for (int index = 0; index < total_drives; index++) {
+                              final int t_index = index;
+                              final int t_bytes_read = bytes_read;
+
+                              tasks.add(() -> {
+                                  try {
+                                      out[t_index].write(buf, 0, t_bytes_read);
+                                      return Boolean.valueOf(true);
+                                  } catch (Exception e) {
+                                      logger.error(e, SharedConstant.NOT_THROWN);
+                                      return Boolean.valueOf(false);
+                                  }
+                              });
+                          }
+
+                          try {
+                              List<Future<Boolean>> future = executor.invokeAll(tasks, 5, TimeUnit.MINUTES);
+                              Iterator<Future<Boolean>> it = future.iterator();
+                              while (it.hasNext()) {
+                                  if (!it.next().get())
+                                      throw new InternalCriticalException(getDriver().objectInfo(bucket, objectName, srcFileName));
+                              }
+                          } catch (InterruptedException | ExecutionException e) {
+                              throw new InternalCriticalException(e);
+                          }
+
+                      }
+         
+                      
+                  } // else
+                  
+                  return totalBytesRead;
+
+              } catch (Exception e) {
+                  isMainException = true;
+                  throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName, srcFileName));
+
+              } finally {
+            	  
+                  IOException secEx = null;
+
+                  if (out != null) {
+                      try {
+                          for (int n = 0; n < total_drives; n++) {
+                              if (out[n] != null)
+                                  out[n].close();
+                          }
+                      } catch (IOException e) {
+                          logger.error(e, getDriver().objectInfo(bucket, objectName, srcFileName)
+                                  + (isMainException ? SharedConstant.NOT_THROWN : ""));
+                          secEx = e;
+                      }
+                  }
+
+                  try {
+                      if (sourceStream != null)
+                          sourceStream.close();
+                  } catch (IOException e) {
+                      logger.error(e, getDriver().objectInfo(bucket, objectName, srcFileName)
+                              + (isMainException ? SharedConstant.NOT_THROWN : ""));
+                      secEx = e;
+                  }
+                  if (!isMainException && (secEx != null))
+                      throw new InternalCriticalException(secEx);
+              }
+        }
+       
+    }
+    
+     
+    
     private void saveObjectMetadata(ObjectMetadata meta) {
         Check.requireNonNullArgument(meta, "meta is null");
         for (Drive drive : getDriver().getDrivesAll()) {
