@@ -160,8 +160,7 @@ public class StandByInitialSync implements Runnable {
 
 	private void setMaxProcessingThread() {
 
-		this.maxProcessingThread = Double.valueOf(Double.valueOf(Runtime.getRuntime().availableProcessors() - 1) / 2.0)
-				.intValue() + 1 - 2;
+		this.maxProcessingThread = Double.valueOf(Double.valueOf(Runtime.getRuntime().availableProcessors() - 1) / 2.0).intValue() + 1 - 2;
 
 		if (this.maxProcessingThread < 1)
 			this.maxProcessingThread = 1;
@@ -212,9 +211,7 @@ public class StandByInitialSync implements Runnable {
 
 				while ((!done) && (this.errors.get() <= 10)) {
 
-					DataList<Item<ObjectMetadata>> data = getVirtualFileSystemService().listObjects(bucket.getName(),
-							Optional.of(offset), Optional.ofNullable(pageSize), Optional.empty(),
-							Optional.ofNullable(agentId));
+					DataList<Item<ObjectMetadata>> data = getVirtualFileSystemService().listObjects(bucket.getName(), Optional.of(offset), Optional.ofNullable(pageSize), Optional.empty(), Optional.ofNullable(agentId));
 
 					if (agentId == null)
 						agentId = data.getAgentId();
@@ -237,8 +234,7 @@ public class StandByInitialSync implements Runnable {
 
 									boolean objectSynced = false;
 
-									getLockService().getObjectLock(item.getObject().getBucketId(),
-											item.getObject().getObjectName()).readLock().lock();
+									getLockService().getObjectLock(item.getObject().getBucketId(), item.getObject().getObjectName()).readLock().lock();
 
 									try {
 
@@ -246,21 +242,13 @@ public class StandByInitialSync implements Runnable {
 
 										try {
 
-											if ((item.getObject().dateSynced == null) || (item.getObject().dateSynced
-													.isBefore(info.getStandByStartDate()))) {
+											if ((item.getObject().dateSynced == null) || (item.getObject().dateSynced.isBefore(info.getStandByStartDate()))) {
 
-												logger.debug(item.getObject().getBucketId().toString() + "-"
-														+ item.getObject().getObjectName());
+												logger.debug(item.getObject().getBucketId().toString() + "-" + item.getObject().getObjectName());
 
-												VirtualFileSystemOperation op = new OdilonVirtualFileSystemOperation(
-														getDriver().getVirtualFileSystemService().getJournalService()
-																.newOperationId(),
-														OperationCode.CREATE_OBJECT,
-														Optional.of(item.getObject().getBucketId()),
-														Optional.of(item.getObject().getBucketName()), // TODO AT VER
-														Optional.of(item.getObject().getObjectName()),
-														Optional.of(Integer.valueOf(item.getObject().getVersion())),
-														getDriver().getVirtualFileSystemService().getRedundancyLevel(),
+												VirtualFileSystemOperation op = new OdilonVirtualFileSystemOperation(getDriver().getVirtualFileSystemService().getJournalService().newOperationId(), OperationCode.CREATE_OBJECT,
+														Optional.of(item.getObject().getBucketId()), Optional.of(item.getObject().getBucketName()), // TODO AT VER
+														Optional.of(item.getObject().getObjectName()), Optional.of(Integer.valueOf(item.getObject().getVersion())), getDriver().getVirtualFileSystemService().getRedundancyLevel(),
 														getDriver().getVirtualFileSystemService().getJournalService());
 
 												getReplicationService().replicate(op);
@@ -270,20 +258,15 @@ public class StandByInitialSync implements Runnable {
 											}
 
 										} catch (Exception e) {
-											logger.error(e, "can not sync -> " + item.getObject().bucketId.toString()
-													+ "-" + item.getObject().objectName, SharedConstant.NOT_THROWN);
-											intialSynclogger.error(e,
-													"can not sync -> " + item.getObject().bucketId.toString() + "-"
-															+ item.getObject().objectName);
+											logger.error(e, "can not sync -> " + item.getObject().bucketId.toString() + "-" + item.getObject().objectName, SharedConstant.NOT_THROWN);
+											intialSynclogger.error(e, "can not sync -> " + item.getObject().bucketId.toString() + "-" + item.getObject().objectName);
 											this.errors.getAndIncrement();
 										} finally {
-											getLockService().getBucketLock(item.getObject().getBucketId()).readLock()
-													.unlock();
+											getLockService().getBucketLock(item.getObject().getBucketId()).readLock().unlock();
 
 										}
 									} finally {
-										getLockService().getObjectLock(item.getObject().getBucketId(),
-												item.getObject().getObjectName()).readLock().unlock();
+										getLockService().getObjectLock(item.getObject().getBucketId(), item.getObject().getObjectName()).readLock().unlock();
 									}
 
 									if (objectSynced) {
@@ -294,12 +277,8 @@ public class StandByInitialSync implements Runnable {
 											getDriver().putObjectMetadata(meta);
 
 										} catch (Exception e) {
-											logger.error("can not sync ObjectMetadata -> "
-													+ item.getObject().bucketId.toString() + "-"
-													+ item.getObject().objectName, SharedConstant.NOT_THROWN);
-											intialSynclogger.error("can not sync ObjectMetadata -> "
-													+ item.getObject().bucketId.toString() + "-"
-													+ item.getObject().objectName);
+											logger.error("can not sync ObjectMetadata -> " + item.getObject().bucketId.toString() + "-" + item.getObject().objectName, SharedConstant.NOT_THROWN);
+											intialSynclogger.error("can not sync ObjectMetadata -> " + item.getObject().bucketId.toString() + "-" + item.getObject().objectName);
 											intialSynclogger.error(e, SharedConstant.NOT_THROWN);
 											this.errors.getAndIncrement();
 										}
@@ -345,8 +324,7 @@ public class StandByInitialSync implements Runnable {
 				} else {
 
 					logger.info(ServerConstant.SEPARATOR);
-					logger.error(
-							"The intial Sync process can not be completed. Please correct the issues and restart the Odilon Server in order for the Sync process to execute again");
+					logger.error("The intial Sync process can not be completed. Please correct the issues and restart the Odilon Server in order for the Sync process to execute again");
 					intialSynclogger.error("Intial Sync can not be completed");
 					startuplogger.error("Intial Sync can not be completed");
 				}
@@ -369,18 +347,12 @@ public class StandByInitialSync implements Runnable {
 		logger.debug("Threads: " + String.valueOf(maxProcessingThread));
 		logger.info("Total files scanned: " + String.valueOf(this.counter.get()));
 		logger.info("Total files synced: " + String.valueOf(this.copied.get()));
-		logger.info(
-				"Total size synced: "
-						+ String.format("%14.4f",
-								Double.valueOf(totalBytes.get()).doubleValue() / SharedConstant.d_gigabyte).trim()
-						+ " GB");
+		logger.info("Total size synced: " + String.format("%14.4f", Double.valueOf(totalBytes.get()).doubleValue() / SharedConstant.d_gigabyte).trim() + " GB");
 		if (this.errors.get() > 0)
 			logger.info("Error files: " + String.valueOf(this.errors.get()));
 		if (this.notAvailable.get() > 0)
 			logger.info("Not Available files: " + String.valueOf(this.notAvailable.get()));
-		logger.info("Duration: "
-				+ String.valueOf(Double.valueOf(System.currentTimeMillis() - start_ms) / Double.valueOf(1000))
-				+ " secs");
+		logger.info("Duration: " + String.valueOf(Double.valueOf(System.currentTimeMillis() - start_ms) / Double.valueOf(1000)) + " secs");
 		logger.info(ServerConstant.SEPARATOR);
 
 	}

@@ -120,9 +120,7 @@ public class OdilonBucketIteratorService extends BaseService implements BucketIt
 
 	public VirtualFileSystemService getVirtualFileSystemService() {
 		if (this.virtualFileSystemService == null) {
-			throw new IllegalStateException("The member of " + VirtualFileSystemService.class.getName()
-					+ " must be asigned during the @PostConstruct method of the "
-					+ VirtualFileSystemService.class.getName()
+			throw new IllegalStateException("The member of " + VirtualFileSystemService.class.getName() + " must be asigned during the @PostConstruct method of the " + VirtualFileSystemService.class.getName()
 					+ " instance. It can not be injected via AutoWired beacause of circular dependencies.");
 		}
 		return this.virtualFileSystemService;
@@ -160,9 +158,7 @@ public class OdilonBucketIteratorService extends BaseService implements BucketIt
 						try {
 							for (Entry<String, BucketIterator> entry : getWalkers().entrySet()) {
 								if (lastAccess.containsKey(entry.getValue().getAgentId())) {
-									if (lastAccess.get(entry.getValue().getAgentId())
-											.plusSeconds(ServerConstant.MAX_CONNECTION_IDLE_TIME_SECS)
-											.isBefore(OffsetDateTime.now())) {
+									if (lastAccess.get(entry.getValue().getAgentId()).plusSeconds(ServerConstant.MAX_CONNECTION_IDLE_TIME_SECS).isBefore(OffsetDateTime.now())) {
 										list.add(entry.getKey());
 									}
 								}
@@ -175,8 +171,7 @@ public class OdilonBucketIteratorService extends BaseService implements BucketIt
 								} catch (IOException e) {
 									logger.error(e, SharedConstant.NOT_THROWN);
 								}
-								logger.debug("closing -> " + getWalkers().get(item).toString() + " |  lastAccessed -> "
-										+ lastAccess.get(item).toString());
+								logger.debug("closing -> " + getWalkers().get(item).toString() + " |  lastAccessed -> " + lastAccess.get(item).toString());
 
 								getWalkers().remove(item);
 								lastAccess.remove(item);
@@ -184,12 +179,8 @@ public class OdilonBucketIteratorService extends BaseService implements BucketIt
 
 						} finally {
 							if (logger.isDebugEnabled() && (startingSize - getWalkers().size() > 0)) {
-								logger.debug("Clean up " + " | initial size -> "
-										+ String.format("%,6d", startingSize).trim() + " | new size ->  "
-										+ String.format("%,6d", getWalkers().size()).trim() + " | removed  -> "
-										+ String.format("%,6d", startingSize - getWalkers().size()).trim()
-										+ " | duration -> "
-										+ String.format("%,12d", (System.currentTimeMillis() - start)).trim() + " ms");
+								logger.debug("Clean up " + " | initial size -> " + String.format("%,6d", startingSize).trim() + " | new size ->  " + String.format("%,6d", getWalkers().size()).trim() + " | removed  -> "
+										+ String.format("%,6d", startingSize - getWalkers().size()).trim() + " | duration -> " + String.format("%,12d", (System.currentTimeMillis() - start)).trim() + " ms");
 							}
 						}
 					}
@@ -197,8 +188,7 @@ public class OdilonBucketIteratorService extends BaseService implements BucketIt
 
 				Thread thread = new Thread(cleaner);
 				thread.setDaemon(true);
-				thread.setName(BucketIteratorService.class.getSimpleName() + "Cleaner-"
-						+ Double.valueOf(Math.abs(Math.random() * 1000000)).intValue());
+				thread.setName(BucketIteratorService.class.getSimpleName() + "Cleaner-" + Double.valueOf(Math.abs(Math.random() * 1000000)).intValue());
 				thread.start();
 				startuplogger.debug("Started -> " + BucketIteratorService.class.getSimpleName());
 				setStatus(ServiceStatus.RUNNING);
@@ -216,7 +206,6 @@ public class OdilonBucketIteratorService extends BaseService implements BucketIt
 	}
 
 	private String newAgentId() {
-		return System.currentTimeMillis() + "-"
-				+ String.valueOf(Double.valueOf(Math.abs(Math.random() * 1000000)).intValue());
+		return System.currentTimeMillis() + "-" + String.valueOf(Double.valueOf(Math.abs(Math.random() * 1000000)).intValue());
 	}
 }

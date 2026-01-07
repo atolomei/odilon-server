@@ -222,11 +222,11 @@ public abstract class BaseRAIDHandler extends BaseObject {
 		return getDriver().objectInfo(meta);
 	}
 
-	protected String objectInfo(@NonNull ServerBucket bucket, @NonNull String objectName) {
+	protected String objectInfo(ServerBucket bucket, String objectName) {
 		return getDriver().objectInfo(bucket, objectName);
 	}
 
-	protected String objectInfo(@NonNull String bucketName, @NonNull String objectName) {
+	protected String objectInfo(String bucketName, String objectName) {
 		return getDriver().objectInfo(bucketName, objectName);
 	}
 

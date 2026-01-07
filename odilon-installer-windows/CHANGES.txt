@@ -88,6 +88,11 @@ This is the first release of Odilon Object Storage
 2025.08.02 Spring Boot 3.5.4, Odilon client 1.15, Jackson 2.19.2, google.guava 33.4.8-jre, Spring Vault 3.2.0
 2025.10.02 bug file cache expired still returned as valid in Raid 6 
 
+==================  1.15 ==================
+
+Raid 6. 32MB x N buffers pool for faster encoding/decoding
+Spring Boot 4.0.1
+Content Length in all responses
 
 
 

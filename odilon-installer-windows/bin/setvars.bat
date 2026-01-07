@@ -6,8 +6,7 @@ set ODILON_XMX=12G
 set ODILON_USER_LANGUAGE=en
 set ODILON_APP_STOP_ID=odilon4970
 SET ODILON_G1HEAPREGIONSIZE=16m
-
-rem set ODILON_APP=odilon-server-1.13.jar 
+SET OID=od1
 
 rem Initialize variable
 set "ODILON_APP="

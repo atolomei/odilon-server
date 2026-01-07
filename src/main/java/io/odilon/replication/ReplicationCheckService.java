@@ -43,132 +43,129 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 @Service
 public class ReplicationCheckService extends BaseService {
 
-    static private Logger logger = Logger.getLogger(ReplicationCheckService.class.getName());
+	static private Logger logger = Logger.getLogger(ReplicationCheckService.class.getName());
 
-    @Autowired
-    private final ReplicationService replicationService;
+	@Autowired
+	private final ReplicationService replicationService;
 
-    @Autowired
-    private final VirtualFileSystemService virtualFileSystemService;
+	@Autowired
+	private final VirtualFileSystemService virtualFileSystemService;
 
-    public ReplicationCheckService(ReplicationService replicationService, VirtualFileSystemService virtualFileSystemService) {
-        this.replicationService = replicationService;
-        this.virtualFileSystemService = virtualFileSystemService;
-    }
+	public ReplicationCheckService(ReplicationService replicationService, VirtualFileSystemService virtualFileSystemService) {
+		this.replicationService = replicationService;
+		this.virtualFileSystemService = virtualFileSystemService;
+	}
 
-    public void check() {
-        checkBuckets();
-        for (ServerBucket bucket : getVirtualFileSystemService().listAllBuckets()) {
-            checkBucket(bucket);
-        }
-    }
+	public void check() {
+		checkBuckets();
+		for (ServerBucket bucket : getVirtualFileSystemService().listAllBuckets()) {
+			checkBucket(bucket);
+		}
+	}
 
-    public ReplicationService getReplicationService() {
-        return this.replicationService;
-    }
+	public ReplicationService getReplicationService() {
+		return this.replicationService;
+	}
 
-    protected void checkBuckets() {
+	protected void checkBuckets() {
 
-        List<String> bucketsLocalNotRemote = new ArrayList<String>();
-        List<String> bucketsRemoteNotLocal = new ArrayList<String>();
+		List<String> bucketsLocalNotRemote = new ArrayList<String>();
+		List<String> bucketsRemoteNotLocal = new ArrayList<String>();
 
-        for (ServerBucket bucket : getVirtualFileSystemService().listAllBuckets()) {
-            try {
-                if (!getReplicationService().getClient().existsBucket(bucket.getName())) {
-                    bucketsLocalNotRemote.add(bucket.getName());
-                }
-            } catch (ODClientException e) {
-                logger.error(e, SharedConstant.NOT_THROWN);
-            }
-        }
+		for (ServerBucket bucket : getVirtualFileSystemService().listAllBuckets()) {
+			try {
+				if (!getReplicationService().getClient().existsBucket(bucket.getName())) {
+					bucketsLocalNotRemote.add(bucket.getName());
+				}
+			} catch (ODClientException e) {
+				logger.error(e, SharedConstant.NOT_THROWN);
+			}
+		}
 
-        try {
-            for (Bucket bucket : getReplicationService().getClient().listBuckets()) {
-                if (!getVirtualFileSystemService().existsBucket(bucket.getName())) {
-                    bucketsRemoteNotLocal.add(bucket.getName());
-                }
-            }
+		try {
+			for (Bucket bucket : getReplicationService().getClient().listBuckets()) {
+				if (!getVirtualFileSystemService().existsBucket(bucket.getName())) {
+					bucketsRemoteNotLocal.add(bucket.getName());
+				}
+			}
 
-        } catch (ODClientException e) {
-            logger.error(e, SharedConstant.NOT_THROWN);
-        }
+		} catch (ODClientException e) {
+			logger.error(e, SharedConstant.NOT_THROWN);
+		}
 
-        bucketsLocalNotRemote.forEach(n -> logger.error(n));
-        bucketsRemoteNotLocal.forEach(n -> logger.error(n));
-    }
+		bucketsLocalNotRemote.forEach(n -> logger.error(n));
+		bucketsRemoteNotLocal.forEach(n -> logger.error(n));
+	}
 
-    protected void checkBucket(ServerBucket bucket) {
+	protected void checkBucket(ServerBucket bucket) {
 
-        List<String> localNotRemote = new ArrayList<String>();
-        List<String> remoteNotLocal = new ArrayList<String>();
+		List<String> localNotRemote = new ArrayList<String>();
+		List<String> remoteNotLocal = new ArrayList<String>();
 
-        List<String> errors = new ArrayList<String>();
+		List<String> errors = new ArrayList<String>();
 
-        {
-            Integer pageSize = Integer.valueOf(ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE);
-            Long offset = Long.valueOf(0);
-            String agentId = null;
+		{
+			Integer pageSize = Integer.valueOf(ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE);
+			Long offset = Long.valueOf(0);
+			String agentId = null;
 
-            boolean done = false;
-            while (!done) {
+			boolean done = false;
+			while (!done) {
 
-                DataList<Item<ObjectMetadata>> data = getVirtualFileSystemService().listObjects(bucket.getName(),
-                        Optional.of(offset), Optional.ofNullable(pageSize), Optional.empty(), Optional.ofNullable(agentId));
-                if (agentId == null)
-                    agentId = data.getAgentId();
+				DataList<Item<ObjectMetadata>> data = getVirtualFileSystemService().listObjects(bucket.getName(), Optional.of(offset), Optional.ofNullable(pageSize), Optional.empty(), Optional.ofNullable(agentId));
+				if (agentId == null)
+					agentId = data.getAgentId();
 
-                for (Item<ObjectMetadata> item : data.getList()) {
-                    if (item.isOk()) {
-                        try {
-                            if (!getReplicationService().getClient().existsObject(item.getObject().bucketName,
-                                    item.getObject().objectName)) {
-                                localNotRemote.add(item.getObject().bucketId.toString() + " /" + item.getObject().objectName);
-                            }
-                        } catch (ODClientException | IOException e) {
-                            errors.add(e.getClass().getName());
-                        }
-                    }
-                }
+				for (Item<ObjectMetadata> item : data.getList()) {
+					if (item.isOk()) {
+						try {
+							if (!getReplicationService().getClient().existsObject(item.getObject().bucketName, item.getObject().objectName)) {
+								localNotRemote.add(item.getObject().bucketId.toString() + " /" + item.getObject().objectName);
+							}
+						} catch (ODClientException | IOException e) {
+							errors.add(e.getClass().getName());
+						}
+					}
+				}
 
-                offset += Long.valueOf(Integer.valueOf(data.getList().size()).longValue());
-                done = data.isEOD();
-            }
-        }
+				offset += Long.valueOf(Integer.valueOf(data.getList().size()).longValue());
+				done = data.isEOD();
+			}
+		}
 
-        {
-            boolean done = false;
+		{
+			boolean done = false;
 
-            while (!done) {
+			while (!done) {
 
-                ResultSet<Item<ObjectMetadata>> data;
-                try {
+				ResultSet<Item<ObjectMetadata>> data;
+				try {
 
-                    data = getReplicationService().getClient().listObjects(bucket.getName());
+					data = getReplicationService().getClient().listObjects(bucket.getName());
 
-                    while (data.hasNext()) {
-                        Item<ObjectMetadata> item = data.next();
-                        if (data.next().isOk()) {
-                            try {
-                                if (!getVirtualFileSystemService().existsObject(item.getObject().bucketName,
-                                        item.getObject().objectName)) {
-                                    remoteNotLocal.add(item.getObject().bucketName + " /" + item.getObject().objectName);
-                                }
-                            } catch (Exception e) {
-                                errors.add(e.getClass().getName());
-                            }
-                        }
-                    }
+					while (data.hasNext()) {
+						Item<ObjectMetadata> item = data.next();
+						if (data.next().isOk()) {
+							try {
+								if (!getVirtualFileSystemService().existsObject(item.getObject().bucketName, item.getObject().objectName)) {
+									remoteNotLocal.add(item.getObject().bucketName + " /" + item.getObject().objectName);
+								}
+							} catch (Exception e) {
+								errors.add(e.getClass().getName());
+							}
+						}
+					}
 
-                } catch (ODClientException e) {
-                    logger.error(e, SharedConstant.NOT_THROWN);
-                }
-            }
-        }
-        localNotRemote.forEach(n -> logger.error(n));
-        remoteNotLocal.forEach(n -> logger.error(n));
-    }
+				} catch (ODClientException e) {
+					logger.error(e, SharedConstant.NOT_THROWN);
+				}
+			}
+		}
+		localNotRemote.forEach(n -> logger.error(n));
+		remoteNotLocal.forEach(n -> logger.error(n));
+	}
 
-    private VirtualFileSystemService getVirtualFileSystemService() {
-        return virtualFileSystemService;
-    }
+	private VirtualFileSystemService getVirtualFileSystemService() {
+		return virtualFileSystemService;
+	}
 }

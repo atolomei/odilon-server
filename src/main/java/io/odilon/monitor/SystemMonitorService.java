@@ -63,14 +63,14 @@ public class SystemMonitorService extends BaseService implements SystemService {
 	private final MetricRegistry metrics = new MetricRegistry();
 
 	/**
-	 * API CALLS
+	 * ---------------------------- API CALLS ----------------------------
 	 **/
 
 	@JsonIgnore
 	private Meter allAPICallMeter;
 
 	/**
-	 * OBJECT CRUD
+	 * ---------------------------- OBJECT CRUD ----------------------------
 	 */
 
 	@JsonIgnore
@@ -86,8 +86,7 @@ public class SystemMonitorService extends BaseService implements SystemService {
 	private Counter deleteObjectVersionCounter;
 
 	/**
-	 * ---------------------------- OBJECT VERSION CONTROL
-	 * ----------------------------
+	 * ---------------------------- OBJECT VERSION CONTROL ----------------------------
 	 */
 
 	@JsonIgnore
