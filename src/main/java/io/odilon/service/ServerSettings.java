@@ -545,7 +545,6 @@ public class ServerSettings implements JSONObject {
 
 		if (this.redundancyLevelStr == null || this.redundancyLevelStr.toLowerCase().trim().equals("null")) {
 			exit("redundancyLevel can not be null | Supported values are: RAID 0, RAID 1 or RAID 6 | example -> redundancyLevel=RAID 0");
-			// this.redundancyLevel = RedundancyLevel.RAID_0;
 		}
 
 		this.redundancyLevel = RedundancyLevel.get(redundancyLevelStr);
@@ -755,10 +754,9 @@ public class ServerSettings implements JSONObject {
 			if (getRedundancyLevel() == RedundancyLevel.RAID_1 || getRedundancyLevel() == RedundancyLevel.RAID_0) {
 				list.add("c:" + File.separator + "odilon-data" + File.separator + "drive0");
 				return list;
-
 			}
 
-			// for RAID 6 default is 3,1
+			/** for RAID 6 default is 3,1 */
 			list.add("c:" + File.separator + "odilon-data" + File.separator + "drive0");
 			list.add("c:" + File.separator + "odilon-data" + File.separator + "drive1");
 			list.add("c:" + File.separator + "odilon-data" + File.separator + "drive2");
@@ -766,7 +764,6 @@ public class ServerSettings implements JSONObject {
 		}
 
 		{
-
 			/** Linux or mac */
 
 			List<String> list = new ArrayList<String>();
@@ -775,10 +772,11 @@ public class ServerSettings implements JSONObject {
 				list.add(File.separator + "var" + File.separator + "lib" + File.separator + "odilon-data" + File.separator + "drive0");
 				return list;
 			}
-
+			
 			list.add(File.separator + "opt" + File.separator + "odilon-data" + File.separator + "drive0");
 			list.add(File.separator + "opt" + File.separator + "odilon-data" + File.separator + "drive1");
 			list.add(File.separator + "opt" + File.separator + "odilon-data" + File.separator + "drive2");
+			
 			return list;
 		}
 	}
@@ -984,12 +982,6 @@ public class ServerSettings implements JSONObject {
 		return si;
 	}
 
-	private boolean isWindows() {
-		if ((System.getenv("OS") != null) && System.getenv("OS").toLowerCase().contains("windows"))
-			return true;
-		return false;
-	}
-
 	public long getObjectCacheCapacity() {
 		return this.objectCacheMaxCapacity;
 	}
@@ -1041,5 +1033,10 @@ public class ServerSettings implements JSONObject {
 	public int getR6BufferSizeMB() {
 		return ServerConstant.MAX_CHUNK_SIZE;
 	}
-
+	
+	private boolean isWindows() {
+		if ((System.getenv("OS") != null) && System.getenv("OS").toLowerCase().contains("windows"))
+			return true;
+		return false;
+	}
 }

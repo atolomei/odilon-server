@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import jakarta.annotation.PostConstruct;
@@ -474,7 +475,17 @@ public class ReplicationService extends BaseService implements ApplicationContex
 					if (is == null)
 						logger.error("is is null");
 
-					getClient().putObjectStream(bucket.getName(), opx.getObjectName(), is, meta.getFileName());
+					// getClient().putObjectStream(bucket.getName(), opx.getObjectName(), is, meta.getFileName());
+
+					((ODClient) getClient()).putReplicateObjectStream(
+							bucket.getName(), 
+							opx.getObjectName(), 
+							is, 
+							Optional.ofNullable(meta.getFileName()),
+							Optional.empty(),
+							Optional.empty(),
+							Optional.ofNullable(meta.getCustomTags()));
+
 					getMonitoringService().getReplicationObjectCreateCounter().inc();
 
 				} catch (IOException e) {
@@ -519,9 +530,24 @@ public class ReplicationService extends BaseService implements ApplicationContex
 				if (getVirtualFileSystemService().existsObject(bucket, opx.getObjectName())) {
 					ObjectMetadata meta = getVirtualFileSystemService().getObjectMetadata(bucket, opx.getObjectName());
 					try {
-						getClient().putObjectStream(bucket.getName(), opx.getObjectName(),
+						
+						/**
+						getClient().putObjectStream(
+								bucket.getName(), 
+								opx.getObjectName(),
 								getVirtualFileSystemService().getObjectStream(bucket.getName(), opx.getObjectName()),
 								meta.getFileName());
+						**/
+						
+						((ODClient) getClient()).putReplicateObjectStream(
+								bucket.getName(), 
+								opx.getObjectName(),
+								getVirtualFileSystemService().getObjectStream(bucket.getName(), opx.getObjectName()),
+								Optional.ofNullable(meta.getFileName()),
+								Optional.empty(),
+								Optional.empty(),
+								Optional.ofNullable(meta.getCustomTags()));
+										
 						getMonitoringService().getReplicationObjectUpdateCounter().inc();
 
 					} catch (IOException e) {
