@@ -60,7 +60,10 @@ It is not a configuration with data replication, its function is to provide grea
 </li>
 <li>
 <b>RAID 6 / Erasure Coding.</b>
-It is a method of encoding data into blocks that can be distributed across multiple disks or nodes and then reconstructed from a subset of those blocks. It has great flexibility since you can adjust the number and size of the blocks and the minimum required for recovery. It uses less disk space than RAID 1 and can withstand multiple full disk failures. Odilon implements this architecture using Reed Solomon error-correction codes. The configurations are: <br/> <br/> 
+It is a method of encoding data into blocks that can be distributed across multiple disks or nodes and then reconstructed from a subset of those blocks. It has great flexibility since you can adjust the number and size of the blocks and the minimum required for recovery. It uses less disk space than RAID 1 and can withstand multiple full disk failures. Odilon implements this architecture using 
+	<a href="https://en.wikipedia.org/wiki/Reed%E2%80%93Solomon_error_correction" target="_blank"> Reed Solomon</a> error-correction codes.<br/><br/> 
+	Reed Solomon codes are widely used, from the Voyager probes exploring the solar system, to the James Webb telescope, to the QR codes on mobile phones.<br/><br/>
+	The configurations are: <br/> <br/> 
 	<b>3 disks</b> (2 data 1 parity, supports 1 full disk failure), <br/>  
 	<b>6 disks</b> (4 data 2 parity, supports up to 2 full disks failures) <br/>
 	<b>12 disks</b> (8 data 4 parity, supports up to 4 full disks failures) <br/>
