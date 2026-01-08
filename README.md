@@ -215,7 +215,7 @@ Current version of Odilon Server is <b>1.15</b>.
 <p>
 <ul>
 <li><a href="https://youtu.be/irR_Eeq3I-I?si=74nZnUh4mxNW3F7R" target="_blank">Odilon Installer for Windows - YouTube video (2 min)<a></li>	
-<li><a href="https://youtu.be/s2ZZibpOAg0" target="_blank">Odilon how to enable encryption - YouTube video (1 min)<a></li>	
+<li><a href="https://youtu.be/eOdZ-6kn2CU?si=SMFz5BrrW18xfBcF" target="_blank">Odilon how to enable encryption - YouTube video (1 min)<a></li>	
 <li><a href="https://youtu.be/kI6jG9vZAjI?si=3KSOpbvN-6ThJf1m" target="_blank">Odilon demo - YouTube video (4 min)<a></li>	
 </ul>
 </p>
