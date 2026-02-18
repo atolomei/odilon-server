@@ -128,7 +128,7 @@ public class ServerSettings implements JSONObject {
 	@Value("${server.ssl.enabled:false}")
 	protected String ishttps;
 
-	@Value("${server.objectstream.cache.secs:360}")
+	@Value("${server.objectstream.cache.secs:3600}")
 	protected int serverObjectstreamCacheSecs;
 
 	// ENCRYPTION -----------------------------------------------

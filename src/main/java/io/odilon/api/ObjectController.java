@@ -18,6 +18,7 @@ package io.odilon.api;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -189,6 +190,7 @@ public class ObjectController extends BaseApiController {
 					meta.setContentType("image/svg+xml");
 				}
 			}
+		
 			MediaType contentType = MediaType.valueOf(meta.getContentType());
 			if (meta.contentType() == null || meta.getContentType().equals("application/octet-stream")) {
 				contentType = estimateContentType(meta.getFileName());
@@ -207,24 +209,67 @@ public class ObjectController extends BaseApiController {
 			responseHeaders.set("Content-Disposition", "inline; filename=\"" + f_name + "\"");
 			responseHeaders.set(HttpHeaders.ACCEPT_RANGES, "bytes");
 
-			//logger.debug(meta.getFileName() + " " + contentType.toString());
-
+           
 			
+			// CACHE  ---
+			//
+            String cacheHeader =
+                cacheDurationSecs > 0
+                    ? "public, max-age=" + cacheDurationSecs + ", immutable, no-transform"
+                    : "no-cache, no-store, must-revalidate";
+                
+            responseHeaders.set(HttpHeaders.CACHE_CONTROL, cacheHeader);
+
+            // ETAG
+            if (fileLength>-1)
+            	responseHeaders.setETag("\"" + fileLength + "\"");
+            
+            // SECURITY
+            responseHeaders.set("X-Content-Type-Options", "nosniff");
+
+            // CORS (si aplica)
+            responseHeaders.set("Access-Control-Allow-Origin", "*");
+            responseHeaders.set("Access-Control-Expose-Headers",
+                "Content-Length, Content-Range, Accept-Ranges");
+                
+            
+
+            // LAST MODIFIED (si tenés timestamp)
+            OffsetDateTime lastModified = meta.getLastModified();
+            if (lastModified != null) {
+                responseHeaders.setLastModified(lastModified.toInstant().toEpochMilli());
+            }
+            
+			
+            
+            
 			if (fileLength==-1) {
 
 				return ResponseEntity.
 						ok().
 						headers(responseHeaders).
-						cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)).
+						 cacheControl(
+	                        	    CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)
+	                        	        .cachePublic()
+	                        	        .immutable()
+	                        	).
 						contentType(contentType).
 						body(new InputStreamResource(in));
 
 			}
 			else {
+				
+				  // Full file
+                responseHeaders.setContentLength(fileLength);
+				
 				return ResponseEntity.
 						ok().
 						headers(responseHeaders).
-						cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)).
+						 cacheControl(
+	                        	    CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)
+	                        	        .cachePublic()
+	                        	        .immutable()
+	                        	).
 						contentType(contentType).
 						contentLength(fileLength).
 						body(new InputStreamResource(in));
@@ -323,8 +368,6 @@ public class ObjectController extends BaseApiController {
 				throw new OdilonObjectNotFoundException(String.format("object version not found" ));
 			
 			
-			
-			
 			getSystemMonitorService().getGetObjectMeter().mark();
 
 		 	
@@ -345,10 +388,47 @@ public class ObjectController extends BaseApiController {
 			
 			long fileLength = super.getSrcFileLength(metaVersion);
 
+			
+			
+			
+			
+			
+			
+			
+			
 			HttpHeaders responseHeaders = new HttpHeaders();
-			String f_name = metaVersion.getFileName().replace("[", "").replace("]", "");
+			String f_name = meta.getFileName().replace("[", "").replace("]", "");
 			responseHeaders.set("Content-Disposition", "inline; filename=\"" + f_name + "\"");
 			responseHeaders.set(HttpHeaders.ACCEPT_RANGES, "bytes");
+			
+			// CACHE  ---
+			//
+            String cacheHeader =
+                cacheDurationSecs > 0
+                    ? "public, max-age=" + cacheDurationSecs + ", immutable, no-transform"
+                    : "no-cache, no-store, must-revalidate";
+                
+            responseHeaders.set(HttpHeaders.CACHE_CONTROL, cacheHeader);
+
+            // ETAG
+            if (fileLength>-1)
+            	responseHeaders.setETag("\"" + fileLength + "\"");
+            
+            // SECURITY
+            responseHeaders.set("X-Content-Type-Options", "nosniff");
+
+            // CORS (si aplica)
+            responseHeaders.set("Access-Control-Allow-Origin", "*");
+            responseHeaders.set("Access-Control-Expose-Headers",
+                "Content-Length, Content-Range, Accept-Ranges");
+                
+            
+
+            // LAST MODIFIED (si tenés timestamp)
+            OffsetDateTime lastModified = meta.getLastModified();
+            if (lastModified != null) {
+                responseHeaders.setLastModified(lastModified.toInstant().toEpochMilli());
+            }
 
 			
 			if (fileLength==-1) {
@@ -356,7 +436,11 @@ public class ObjectController extends BaseApiController {
 				return ResponseEntity.
 						ok().
 						headers(responseHeaders).
-						cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)).
+						 cacheControl(
+	                        	    CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)
+	                        	        .cachePublic()
+	                        	        .immutable()
+	                        	).
 						contentType(contentType).
 						body(new InputStreamResource(in));
 
@@ -365,7 +449,11 @@ public class ObjectController extends BaseApiController {
 				return ResponseEntity.
 						ok().
 						headers(responseHeaders).
-						cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)).
+						 cacheControl(
+	                        	    CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)
+	                        	        .cachePublic()
+	                        	        .immutable()
+	                        	).
 						contentType(contentType).
 						contentLength(fileLength).
 						body(new InputStreamResource(in));
@@ -432,12 +520,7 @@ public class ObjectController extends BaseApiController {
 
 			
 			
-			/**
-			List<ObjectMetadata> list = getObjectStorageService().getObjectMetadataAllPreviousVersions(bucketName, objectName);
-
-			if (list == null || list.isEmpty())
-				throw new OdilonObjectNotFoundException(String.format("object version not found"));
-**/
+	 
 			getSystemMonitorService().getGetObjectMeter().mark();
 
 	
@@ -465,12 +548,53 @@ public class ObjectController extends BaseApiController {
 			responseHeaders.set("Content-Disposition", "inline; filename=\"" + f_name + "\"");
 			responseHeaders.set(HttpHeaders.ACCEPT_RANGES, "bytes");
 			
+			
+			// CACHE  ---
+			//
+            String cacheHeader =
+                cacheDurationSecs > 0
+                    ? "public, max-age=" + cacheDurationSecs + ", immutable, no-transform"
+                    : "no-cache, no-store, must-revalidate";
+                
+            responseHeaders.set(HttpHeaders.CACHE_CONTROL, cacheHeader);
+
+            // ETAG
+            if (fileLength>-1)
+            	responseHeaders.setETag("\"" + fileLength + "\"");
+            
+            // SECURITY
+            responseHeaders.set("X-Content-Type-Options", "nosniff");
+
+            // CORS (si aplica)
+            responseHeaders.set("Access-Control-Allow-Origin", "*");
+            responseHeaders.set("Access-Control-Expose-Headers",
+                "Content-Length, Content-Range, Accept-Ranges");
+                
+            
+
+            // LAST MODIFIED (si tenés timestamp)
+            OffsetDateTime lastModified = prev.getLastModified();
+            if (lastModified != null) {
+                responseHeaders.setLastModified(lastModified.toInstant().toEpochMilli());
+            }
+			
+			
+			
+			
+			
+			
+			
+			
 			if (fileLength==-1) {
 
 				return ResponseEntity.
 						ok().
 						headers(responseHeaders).
-						cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)).
+						cacheControl(
+                        	    CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)
+                        	        .cachePublic()
+                        	        .immutable()
+                        	).
 						contentType(contentType).
 						body(new InputStreamResource(in));
 
@@ -479,7 +603,11 @@ public class ObjectController extends BaseApiController {
 				return ResponseEntity.
 						ok().
 						headers(responseHeaders).
-						cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)).
+						cacheControl(
+                        	    CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)
+                        	        .cachePublic()
+                        	        .immutable()
+                        	).
 						contentType(contentType).
 						contentLength(fileLength).
 						body(new InputStreamResource(in));
@@ -521,10 +649,9 @@ public class ObjectController extends BaseApiController {
 	 * @param objectName
 	 * @return
 	 */
-	@RequestMapping(path = "/get/presignedurl/{bucketName}/{objectName}", method = RequestMethod.GET)
+	@RequestMapping(path = "/get/static/{bucketName}/{objectName}", method = RequestMethod.GET)
 	@ResponseBody
-	public ResponseEntity<String> getPresignedUrl(@PathVariable("bucketName") String bucketName, @PathVariable("objectName") String objectName, @RequestParam("durationSeconds") Optional<Integer> durationSeconds,
-			@RequestParam("objectCacheExpiresSeconds") Optional<Integer> objectCacheExpiresSeconds) {
+	public ResponseEntity<String> getStaticUrl(@PathVariable("bucketName") String bucketName, @PathVariable("objectName") String objectName) {
 
 		TrafficPass pass = null;
 
@@ -537,27 +664,21 @@ public class ObjectController extends BaseApiController {
 
 			ObjectMetadata meta = getObjectStorageService().getObjectMetadata(bucketName, objectName);
 
-			if (meta == null || meta.status == ObjectStatus.DELETED || meta.status == ObjectStatus.DRAFT)
+			if (meta == null || meta.getStatus() == ObjectStatus.DELETED || meta.getStatus() == ObjectStatus.DRAFT)
 				throw new OdilonObjectNotFoundException(String.format("object not found -> b: %s | o:%s", Optional.ofNullable(bucketName).orElse("null"), Optional.ofNullable(objectName).orElse("null")));
 
 			AuthToken atoken = null;
 
-			if (durationSeconds.isPresent())
-				atoken = new AuthToken(bucketName, objectName, durationSeconds.get());
-			else
-				atoken = new AuthToken(bucketName, objectName);
-
-			if (objectCacheExpiresSeconds.isPresent())
-				atoken.setObjectCacheDurationSecs(objectCacheExpiresSeconds.get());
-			else
-				atoken.setObjectCacheDurationSecs(0);
-
-			// logger.debug(atoken.toString());
+			atoken = new AuthToken(bucketName, objectName);
+			atoken.setObjectCacheDurationSecs(-1);
+			atoken.setExpirationDate(null);
+		
+			logger.debug(atoken.toString());
 
 			String token = this.getTokenService().encrypt(atoken);
 
 			getSystemMonitorService().getGetObjectMeter().mark();
-
+		 	
 			return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(token);
 
 		} catch (OdilonServerAPIException e) {
@@ -864,6 +985,64 @@ public class ObjectController extends BaseApiController {
 			mark();
 		}
 	}
+
+
+
+/**
+	 * @param bucketName
+	 * @param objectName
+	 * @return
+	 */
+	@RequestMapping(path = "/get/presignedurl/{bucketName}/{objectName}", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> getPresignedUrl(@PathVariable("bucketName") String bucketName, @PathVariable("objectName") String objectName, @RequestParam("durationSeconds") Optional<Integer> durationSeconds,
+			@RequestParam("objectCacheExpiresSeconds") Optional<Integer> objectCacheExpiresSeconds) {
+
+		TrafficPass pass = null;
+
+		try {
+
+			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
+
+			if (!getObjectStorageService().existsObject(bucketName, objectName))
+				throw new OdilonObjectNotFoundException(String.format("object not found -> b: %s | o:%s", Optional.ofNullable(bucketName).orElse("null"), Optional.ofNullable(objectName).orElse("null")));
+
+			ObjectMetadata meta = getObjectStorageService().getObjectMetadata(bucketName, objectName);
+
+			if (meta == null || meta.status == ObjectStatus.DELETED || meta.status == ObjectStatus.DRAFT)
+				throw new OdilonObjectNotFoundException(String.format("object not found -> b: %s | o:%s", Optional.ofNullable(bucketName).orElse("null"), Optional.ofNullable(objectName).orElse("null")));
+
+			AuthToken atoken = null;
+
+			if (durationSeconds.isPresent())
+				atoken = new AuthToken(bucketName, objectName, durationSeconds.get());
+			else
+				atoken = new AuthToken(bucketName, objectName);
+
+			if (objectCacheExpiresSeconds.isPresent())
+				atoken.setObjectCacheDurationSecs(objectCacheExpiresSeconds.get());
+			else
+				atoken.setObjectCacheDurationSecs(0);
+
+			// logger.debug(atoken.toString());
+
+			String token = this.getTokenService().encrypt(atoken);
+
+			getSystemMonitorService().getGetObjectMeter().mark();
+
+			return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(token);
+
+		} catch (OdilonServerAPIException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));
+
+		} finally {
+			getTrafficControlService().release(pass);
+			mark();
+		}
+	}
+
 
 	@PostConstruct
 	public void init() {

@@ -41,7 +41,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.odilon.error.OdilonServerAPIException;
 import io.odilon.error.OdilonObjectNotFoundException;
 import io.odilon.log.Logger;
-import io.odilon.model.ObjectMetadata;
+ 
 import io.odilon.model.SharedConstant;
 import io.odilon.monitor.SystemMonitorService;
 import io.odilon.net.ErrorCode;
@@ -74,11 +74,15 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  * 
  */
 @RestController
-@RequestMapping(value = "/presigned/object")
-public class ObjectControllerPresigned extends BaseApiController {
+@RequestMapping(value = "/static/object")
+public class ObjectControllerStatic extends BaseApiController {
 
-    static private Logger logger = Logger.getLogger(ObjectControllerPresigned.class.getName());
+    static private Logger logger = Logger.getLogger(ObjectControllerStatic.class.getName());
 
+    static final public int ONE_YEAR_SECS = 31536000;
+
+    
+    
     @JsonIgnore
     @Autowired
     private final TokenService tokenService;
@@ -87,7 +91,7 @@ public class ObjectControllerPresigned extends BaseApiController {
     @Autowired
     private final ServerSettings serverSettings;
 
-    public ObjectControllerPresigned(ObjectStorageService objectStorageService, VirtualFileSystemService virtualFileSystemService,
+    public ObjectControllerStatic(ObjectStorageService objectStorageService, VirtualFileSystemService virtualFileSystemService,
             SystemMonitorService monitoringService, TrafficControlService trafficControlService, TokenService tokenService,
             ServerSettings serverSettings) {
 
@@ -96,6 +100,7 @@ public class ObjectControllerPresigned extends BaseApiController {
         this.serverSettings = serverSettings;
     }
 
+    
     /**
      * 
      * 
@@ -106,7 +111,7 @@ public class ObjectControllerPresigned extends BaseApiController {
      */
     @RequestMapping(method = RequestMethod.GET)
     @ResponseBody
-    public ResponseEntity<InputStreamResource> getPresignedObjectStream(
+    public ResponseEntity<InputStreamResource> getStaticObjectStream(
             @RequestParam("token") String stringToken,
             @RequestHeader(value = "Range", required = false) String rangeHeader) {
 
@@ -157,16 +162,15 @@ public class ObjectControllerPresigned extends BaseApiController {
                 contentType = estimateContentType(f_name);
             }
 
-           
+            //logger.debug(object.getObjectMetadata().getFileName()+ " "+ contentType.toString());
+
             long fileLength = getSrcFileLength(object.getObjectMetadata());
             
             in = object.getInputStream();
 
             getSystemMonitorService().getGetObjectMeter().mark();
 
-            int cacheDurationSecs = authToken.getObjectCacheDurationSecs() > 0
-                    ? authToken.getObjectCacheDurationSecs()
-                    : this.getServerSettings().getserverObjectstreamCacheSecs();
+            int cacheDurationSecs = authToken.getObjectCacheDurationSecs() > 0 ? authToken.getObjectCacheDurationSecs() : ONE_YEAR_SECS;
 
             responseHeaders.set(HttpHeaders.ACCEPT_RANGES, "bytes");
 
@@ -184,8 +188,6 @@ public class ObjectControllerPresigned extends BaseApiController {
                 responseHeaders.setContentLength(contentLength);
                 responseHeaders.add(HttpHeaders.CONTENT_RANGE,
                         "bytes " + start + "-" + end + "/" + fileLength);
-                
-                
                 
              // CACHE
                 String cacheHeader =

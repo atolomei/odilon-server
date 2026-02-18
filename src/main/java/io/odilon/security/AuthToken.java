@@ -38,7 +38,7 @@ public class AuthToken extends BaseObject implements Serializable {
 	@SuppressWarnings("unused")
 	static private Logger logger = Logger.getLogger(AuthToken.class.getName());
 
-	static final int VERSION = 1;
+	static final int VERSION = 2;
 
 	private static final long serialVersionUID = 1L;
 
@@ -48,6 +48,9 @@ public class AuthToken extends BaseObject implements Serializable {
 	@JsonProperty("objectName")
 	public String objectName;
 
+	/**
+	 * if expiration date is null -> the token is valid for ever
+	 */
 	@JsonProperty("expirationDate")
 	public OffsetDateTime expirationDate;
 
@@ -98,13 +101,12 @@ public class AuthToken extends BaseObject implements Serializable {
 	public String name() {
 		return objectName;
 	}
-
-	public OffsetDateTime expirationDate() {
-		return expirationDate;
-	}
+ 
 
 	public boolean isValid() {
-		return expirationDate.isAfter(OffsetDateTime.now());
+		if (getExpirationDate()==null)
+			return true;
+		return getExpirationDate().isAfter(OffsetDateTime.now());
 	}
 
 	public String getBucketName() {
@@ -141,11 +143,19 @@ public class AuthToken extends BaseObject implements Serializable {
 	
 	@JsonProperty("expirationDateString")
 	public String expirationDateString() {
-		if (this.expirationDate==null)
+		if (this.getExpirationDate()==null)
 			return null;
-		return HTTP_DATE.format(expirationDate);
+		return HTTP_DATE.format(getExpirationDate());
 	}
 	
+	public int getObjectCacheDurationSecs() {
+		 return objectCacheDurationSecs;
+	}
+
+	public void setObjectCacheDurationSecs(int objectCacheDurationSecs) {
+		this.objectCacheDurationSecs = objectCacheDurationSecs;
+	}
+
 	@Override
 	public String toString() {
 	        StringBuilder str = new StringBuilder();
@@ -154,11 +164,5 @@ public class AuthToken extends BaseObject implements Serializable {
 	        return str.toString();
 	}
 
-	public int getObjectCacheDurationSecs() {
-		 return objectCacheDurationSecs;
-	}
 
-	public void setObjectCacheDurationSecs(int objectCacheDurationSecs) {
-		this.objectCacheDurationSecs = objectCacheDurationSecs;
-	}
 }
