@@ -206,7 +206,7 @@ public abstract class BaseApiController extends BaseObject implements Applicatio
 	}
 
 	static public boolean isAudio(String filename) {
-		return filename.toLowerCase().matches("^.*\\.(mp3|wav|ogga|ogg|aac|m4a|m4a|aif|wma)$");
+		return filename.toLowerCase().matches("^.*\\.(mp3|wav|ogga|ogg|aac|m4a|m4a|aif|wma|flac)$");
 	}
 
 	static public boolean isExcel(String name) {

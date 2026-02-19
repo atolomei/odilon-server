@@ -198,7 +198,6 @@ public class ObjectController extends BaseApiController {
 
             long fileLength = getSrcFileLength(meta);
 
-			in = getObjectStorageService().getObjectStream(bucketName, objectName);
 
 			int cacheDurationSecs = this.settings.getserverObjectstreamCacheSecs();
 
@@ -240,7 +239,10 @@ public class ObjectController extends BaseApiController {
                 responseHeaders.setLastModified(lastModified.toInstant().toEpochMilli());
             }
             
-			
+            
+            
+			in = getObjectStorageService().getObjectStream(bucketName, objectName);
+
             
             
 			if (fileLength==-1) {
@@ -381,8 +383,6 @@ public class ObjectController extends BaseApiController {
 				contentType = estimateContentType(metaVersion.getFileName());
 			}
 			
-			in = getObjectStorageService().getObjectPreviousVersionStream(bucketName, objectName, metaVersion.version);
-
 			
 			int cacheDurationSecs = this.settings.getserverObjectstreamCacheSecs();
 			
@@ -430,6 +430,10 @@ public class ObjectController extends BaseApiController {
                 responseHeaders.setLastModified(lastModified.toInstant().toEpochMilli());
             }
 
+        	in = getObjectStorageService().getObjectPreviousVersionStream(bucketName, objectName, metaVersion.version);
+
+    		
+        	
 			
 			if (fileLength==-1) {
 
@@ -537,8 +541,6 @@ public class ObjectController extends BaseApiController {
 			}
 			
 	 
-			in = getObjectStorageService().getObjectPreviousVersionStream(bucketName, objectName, prev.version);
-
 			
 			int cacheDurationSecs = this.settings.getserverObjectstreamCacheSecs();
 			long fileLength = super.getSrcFileLength(prev);
@@ -577,13 +579,8 @@ public class ObjectController extends BaseApiController {
             if (lastModified != null) {
                 responseHeaders.setLastModified(lastModified.toInstant().toEpochMilli());
             }
-			
-			
-			
-			
-			
-			
-			
+	
+			in = getObjectStorageService().getObjectPreviousVersionStream(bucketName, objectName, prev.version);
 			
 			if (fileLength==-1) {
 
@@ -929,6 +926,8 @@ public class ObjectController extends BaseApiController {
 
 		try {
 
+			logger.debug("start putObject ->  b. " + bucketName +  " o." + objectName + " | f. " + oFileName.orElse("null") + " | contentType. " + (contentType!=null?contentType:" null"));
+			
 			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
 
 			String fileName = Optional.ofNullable(oFileName.get()).orElseGet(() -> objectName);
@@ -951,33 +950,31 @@ public class ObjectController extends BaseApiController {
 
 				long start = System.currentTimeMillis();
 				getObjectStorageService().putObject(bucketName, objectName, file.getInputStream(), fileName, contentType, o_list);
-				
 				long end = System.currentTimeMillis();
 
 				meta = getObjectStorageService().getObjectMetadata(bucketName, objectName);
-
-				logger.debug("putObject -> " + "b: " + bucketName + " | o: " + objectName + " | " + String.valueOf(end - start) + " ms" + " | " + " length: " + String.valueOf(meta.getSourceLength() / 1000) + " KB");
+				logger.debug("putObject done -> " + "b: " + bucketName + " | o: " + objectName + " | " + String.valueOf(end - start) + " ms" + " | " + " length: " + String.valueOf(meta.getSourceLength() / 1000) + " KB");
 
 			} else {
-
 				meta = getObjectStorageService().getObjectMetadataPreviousVersion(bucketName, objectName, version.get().intValue());
-
 				if (meta != null) {
+					logger.error("previous version is null");
 					throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.INTERNAL_ERROR, "version update not done");
 				}
 
 			}
-
 			getSystemMonitorService().getPutObjectMeter().mark();
-
 			return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(meta);
 
 		} catch (IllegalStateException e) {
+			logger.error(e);
 			throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.DATA_STORAGE_MODE_OPERATION_NOT_ALLOWED, getMessage(e));
 
 		} catch (OdilonServerAPIException e) {
+			logger.error(e);
 			throw e;
 		} catch (Exception e) {
+			logger.error(e);
 			throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));
 
 		} finally {
@@ -988,7 +985,7 @@ public class ObjectController extends BaseApiController {
 
 
 
-/**
+	/**
 	 * @param bucketName
 	 * @param objectName
 	 * @return
