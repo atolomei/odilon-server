@@ -91,7 +91,7 @@
 			<appender-ref ref="dataIntegrityCheck"/>
 		</Logger>	
 			
-		<Asynclogger name="io.odilon.OdilonApplication"  level="error" additivity="false">
+		<Asynclogger name="io.odilon.OdilonApplication" level="error" additivity="false">
 			<appender-ref ref="odilon"/>
 			<AppenderRef ref="Console"/>
 		</Asynclogger>´

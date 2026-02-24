@@ -66,9 +66,12 @@ public interface ObjectStorageService extends SystemService {
 
     public void putObject(String bucketName, String objectName, InputStream stream, String fileName, String contentType);
 
-    public void putObject(String bucketName, String objectName, InputStream stream, String fileName, String contentType,
-            Optional<List<String>> customTags);
+    public void putObject(String bucketName, String objectName, InputStream stream, String fileName, String contentType, Optional<List<String>> customTags);
 
+    public void putObject(String bucketName, String objectName, InputStream stream, String fileName, String contentType, Optional<List<String>> customTags, Optional<Boolean> o_public);
+
+    public ObjectMetadata updateObjectMetadata(ObjectMetadata meta);
+    
     public VirtualFileSystemObject getObject(String bucketName, String objectName);
 
     public ObjectMetadata getObjectMetadata(String bucketName, String objectName);
@@ -123,6 +126,7 @@ public interface ObjectStorageService extends SystemService {
 
 	public Map<String, String> getSystemLibrariesInfo();
 
+	
     
 
 }

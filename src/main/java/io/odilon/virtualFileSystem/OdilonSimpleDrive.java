@@ -164,20 +164,6 @@ public class OdilonSimpleDrive extends OdilonDrive implements SimpleDrive {
 		}
 	}
 
-	// @Override
-	// public File getObjectDataFile(Long bucketId, String objectName) {
-	// Check.requireNonNullArgument(bucketId, "bucketId is null");
-	// return new File(this.getRootDirPath(), bucketId.toString() + File.separator +
-	// objectName);
-	// }
-
-	// @Override
-	// public File getObjectDataVersionFile(Long bucketId, String objectName, int
-	// version) {
-	// Check.requireNonNullArgument(bucketId, "bucketId is null");
-	// return new File(getObjectDataVersionFilePath(bucketId, objectName, version));
-	// }
-
 	protected File putObjectDataVersionStream(Long bucketId, String objectName, int version, InputStream stream) throws IOException {
 		Check.requireNonNullArgument(bucketId, "bucketId is null");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null -> b:" + bucketId.toString());

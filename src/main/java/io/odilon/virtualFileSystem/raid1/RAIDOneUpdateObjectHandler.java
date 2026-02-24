@@ -89,7 +89,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
      */
 
     protected void update(ServerBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType,
-            Optional<List<String>> customTags) {
+            Optional<List<String>> customTags, Optional<Boolean> o_public) {
 
         VirtualFileSystemOperation operation = null;
         boolean commitOK = false;
@@ -122,7 +122,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
 
                 /** copy new version as head version */
                 saveObjectDataFile(bucket, objectName, stream, srcFileName, afterHeadVersion);
-                saveObjectMetadata(bucket, objectName, srcFileName, contentType, afterHeadVersion, customTags);
+                saveObjectMetadata(bucket, objectName, srcFileName, contentType, afterHeadVersion, customTags, o_public);
 
                 /** commit */
                 commitOK = operation.commit();
@@ -723,7 +723,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
      * @param srcFileName
      */
     private void saveObjectMetadata(ServerBucket bucket, String objectName, String srcFileName, String contentType, int version,
-            Optional<List<String>> customTags) {
+            Optional<List<String>> customTags, Optional<Boolean> o_public) {
 
         Check.requireNonNullArgument(bucket, "bucket is null");
 
@@ -766,6 +766,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
                 meta.sha256 = sha256;
                 meta.status = ObjectStatus.ENABLED;
                 meta.drive = drive.getName();
+                meta.setPublicAccess(o_public.orElse(Boolean.FALSE));
                 meta.raid = String.valueOf(getRedundancyLevel().getCode()).trim();
                 if (customTags.isPresent())
                     meta.customTags = customTags.get();

@@ -64,7 +64,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionObjectHandler 
 		super(driver, bucket, objectName);
 	}
 
-	protected void create(InputStream stream, String srcFileName, String contentType, Optional<List<String>> customTags) {
+	protected void create(InputStream stream, String srcFileName, String contentType, Optional<List<String>> customTags, Optional<Boolean> o_public) {
 
 		VirtualFileSystemOperation operation = null;
 		boolean commitOK = false;
@@ -84,7 +84,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionObjectHandler 
 
 				/** save data and metadata */
 				RAIDSixBlocks blocks = saveData(stream);
-				saveMetadata(blocks, srcFileName, contentType, customTags);
+				saveMetadata(blocks, srcFileName, contentType, customTags, o_public);
 
 				/** commit */
 				commitOK = operation.commit();
@@ -218,7 +218,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionObjectHandler 
 	 * @param stream
 	 * @param srcFileName
 	 */
-	private void saveMetadata(RAIDSixBlocks ei, String srcFileName, String contentType, Optional<List<String>> customTags) {
+	private void saveMetadata(RAIDSixBlocks ei, String srcFileName, String contentType, Optional<List<String>> customTags, Optional<Boolean> o_public) {
 
 		List<String> shaBlocks = new ArrayList<String>();
 		StringBuilder etag_b = new StringBuilder();
@@ -264,6 +264,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionObjectHandler 
 				meta.setIntegrityCheck(meta.getCreationDate());
 				meta.setStatus(ObjectStatus.ENABLED);
 				meta.setDrive(drive.getName());
+				meta.setPublicAccess(o_public.orElse(Boolean.FALSE));
 				meta.setRaid(String.valueOf(getRedundancyLevel().getCode()).trim());
 				meta.setRaidDrives(getDriver().getTotalDisks());
 

@@ -61,7 +61,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionObjectHandle
 		super(driver, bucket, objectName);
 	}
 
-	protected void update(InputStream stream, String srcFileName, String contentType, Optional<List<String>> customTags) {
+	protected void update(InputStream stream, String srcFileName, String contentType, Optional<List<String>> customTags, Optional<Boolean> o_public) {
 
 		boolean isMaixException = false;
 		boolean commitOK = false;
@@ -87,7 +87,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionObjectHandle
 				operation = updateObject(meta.getVersion());
 
 				/** copy new version head version */
-				save(stream, srcFileName, contentType, meta.getVersion() + 1, customTags);
+				save(stream, srcFileName, contentType, meta.getVersion() + 1, customTags, o_public);
 
 				/** commit */
 				commitOK = operation.commit();
@@ -137,9 +137,9 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionObjectHandle
 		}
 	}
 
-	private void save(InputStream stream, String srcFileName, String contentType, int afterHeadVersion, Optional<List<String>> customTags) {
+	private void save(InputStream stream, String srcFileName, String contentType, int afterHeadVersion, Optional<List<String>> customTags, Optional<Boolean> o_public) {
 		long bytesRead = saveData(getBucket(), getObjectName(), stream, srcFileName);
-		saveMetadata(getBucket(), getObjectName(), srcFileName, bytesRead, contentType, afterHeadVersion, customTags);
+		saveMetadata(getBucket(), getObjectName(), srcFileName, bytesRead, contentType, afterHeadVersion, customTags, o_public);
 	}
 
 	/**

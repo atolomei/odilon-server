@@ -81,7 +81,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneTransactionObjectHandler 
 	 * @param contentType
 	 * @param customTags
 	 */
-	protected void create(InputStream stream, String srcFileName, String contentType, Optional<List<String>> customTags) {
+	protected void create(InputStream stream, String srcFileName, String contentType, Optional<List<String>> customTags, Optional<Boolean> o_public) {
 
 		VirtualFileSystemOperation operation = null;
 		boolean commitOK = false;
@@ -100,7 +100,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneTransactionObjectHandler 
 				operation = createObject();
 
 				long bytesRead = saveData(stream, srcFileName);
-				saveMetadata(srcFileName, bytesRead, contentType, customTags);
+				saveMetadata(srcFileName, bytesRead, contentType, customTags, o_public);
 
 				/** commit */
 				commitOK = operation.commit();
@@ -344,7 +344,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneTransactionObjectHandler 
 	 * @param stream
 	 * @param srcFileName
 	 */
-	private void saveMetadata(String srcFileName, long bytesRead, String contentType, Optional<List<String>> customTags) {
+	private void saveMetadata(String srcFileName, long bytesRead, String contentType, Optional<List<String>> customTags, Optional<Boolean> o_public) {
 
 		String sha = null;
 		String baseDrive = null;
@@ -380,6 +380,8 @@ public class RAIDOneCreateObjectHandler extends RAIDOneTransactionObjectHandler 
 				meta.setIntegrityCheck(now);
 				meta.setStatus(ObjectStatus.ENABLED);
 				meta.setDrive(drive.getName());
+				meta.setPublicAccess( o_public.orElse(Boolean.FALSE));
+				
 				meta.setRaid(String.valueOf(getRedundancyLevel().getCode()).trim());
 				meta.setRaidDrives(getDriver().getTotalDisks());
 

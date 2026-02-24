@@ -588,15 +588,9 @@ public class OdilonDrive extends BaseObject implements Drive {
 
 			if (isHead) {
 				Files.writeString(path.metadataFilePath(), jsonString);
-				// Files.writeString(
-				// Paths.get(getObjectMetadataDirPathById(meta.getBucketId(),
-				// meta.getObjectName()) + File.separator + meta.getObjectName() +
-				// ServerConstant.JSON), jsonString);
 			} else {
-
 				Files.writeString(Paths.get(getObjectMetadataVersionFilePathById(meta.getBucketId(), meta.getObjectName(), version.get().intValue())), jsonString);
 			}
-
 		} catch (Exception e) {
 			throw new InternalCriticalException(e, "b:" + meta.getBucketId().toString() + "o: + " + meta.getObjectName() + " v: " + (version.isPresent() ? String.valueOf(version.get()) : "head"));
 		}

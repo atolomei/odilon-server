@@ -25,6 +25,9 @@ package io.odilon.model;
  */
 public class ServerConstant {
 
+	 static final public int ONE_YEAR_SECS = 31536000;
+
+	 
     static public final String applicationName = "Odilon";
     
     static public final String SEPARATOR = "---------------------------------";

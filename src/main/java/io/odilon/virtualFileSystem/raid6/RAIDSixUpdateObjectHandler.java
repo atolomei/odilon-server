@@ -94,7 +94,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionObjectHandler 
 	 * @param contentType
 	 * @param customTags
 	 */
-	protected void update(ServerBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType, Optional<List<String>> customTags) {
+	protected void update(ServerBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType, Optional<List<String>> customTags, Optional<Boolean> o_public) {
 
 		String bucketName = bucket.getName();
 
@@ -129,7 +129,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionObjectHandler 
 				/** copy new version as head version */
 				afterHeadVersion = meta.getVersion() + 1;
 				RAIDSixBlocks ei = saveObjectDataFile(bucket, objectName, stream);
-				saveObjectMetadata(bucket, objectName, ei, srcFileName, contentType, afterHeadVersion, meta.getCreationDate(), customTags);
+				saveObjectMetadata(bucket, objectName, ei, srcFileName, contentType, afterHeadVersion, meta.getCreationDate(), customTags, o_public);
 
 				/** commit */
 				commitOK = operation.commit();
@@ -427,7 +427,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionObjectHandler 
 		}
 	}
 
-	private void saveObjectMetadata(ServerBucket bucket, String objectName, RAIDSixBlocks ei, String srcFileName, String contentType, int version, OffsetDateTime headCreationDate, Optional<List<String>> customTags) {
+	private void saveObjectMetadata(ServerBucket bucket, String objectName, RAIDSixBlocks ei, String srcFileName, String contentType, int version, OffsetDateTime headCreationDate, Optional<List<String>> customTags, Optional<Boolean> o_public) {
 
 		Check.requireNonNullArgument(bucket, "bucket is null");
 
@@ -476,6 +476,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionObjectHandler 
 				meta.setIntegrityCheck(meta.getCreationDate());
 				meta.setStatus(ObjectStatus.ENABLED);
 				meta.setDrive(drive.getName());
+				meta.setPublicAccess(o_public.orElse(Boolean.FALSE));
 				meta.setRaid(String.valueOf(getRedundancyLevel().getCode()).trim());
 				meta.setRaidDrives(getDriver().getTotalDisks());
 				if (customTags.isPresent())

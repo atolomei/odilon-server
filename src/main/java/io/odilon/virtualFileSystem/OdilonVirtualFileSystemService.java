@@ -422,6 +422,12 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 	}
 
 	@Override
+	public ObjectMetadata updateObjectMetadata(ObjectMetadata meta) {
+		Check.requireNonNullArgument(meta, "meta can not be null");
+		return createVFSIODriver().updateObjectMetadata(meta);
+	}
+
+	@Override
 	public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName, String contentType) {
 		putObject(bucket, objectName, stream, fileName, contentType, Optional.empty());
 	}
@@ -437,9 +443,23 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 
 	@Override
 	public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName, String contentType, Optional<List<String>> customTags) {
+	}
+	
+	@Override
+	public void putObject(String bucketName, String objectName, InputStream stream, String fileName, String contentType, Optional<List<String>> customTags, Optional<Boolean> o_public) {
+		Check.requireNonNullArgument(bucketName, "bucketName can not be null ");
+		IODriver driver = createVFSIODriver();
+		Check.requireTrue(driver.existsBucket(bucketName), "bucket does not exist -> " + bucketName);
+		putObject(driver.getBucket(bucketName), objectName, stream, fileName, contentType, customTags, o_public);
+	}
+
+	
+	
+	@Override
+	public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName, String contentType, Optional<List<String>> customTags, Optional<Boolean> o_public) {
 		Check.requireNonNullArgument(bucket, "bucket can not be null ");
 		Check.requireNonNullArgument(objectName, "objectName can not be null -> b:" + bucket.getName());
-		createVFSIODriver().putObject(bucket, objectName, stream, fileName, contentType, customTags);
+		createVFSIODriver().putObject(bucket, objectName, stream, fileName, contentType, customTags, o_public);
 	}
 
 	@Override

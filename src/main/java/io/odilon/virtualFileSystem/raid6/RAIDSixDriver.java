@@ -499,24 +499,40 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		}
 	}
 
+	
+	@Override
+	public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName, String contentType, Optional<List<String>> customTags) {
+			putObject(bucket,objectName, stream, fileName, contentType, customTags, Optional.of(Boolean.FALSE));
+	}
+
+	
 	/**
+	 * 
 	 * 
 	 */
 	@Override
-	public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName, String contentType, Optional<List<String>> customTags) {
+	public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName, String contentType, Optional<List<String>> customTags, Optional<Boolean> o_public) {
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucket.getName());
 		Check.requireNonNullStringArgument(fileName, "fileName is null | b: " + bucket.getName() + " o:" + objectName);
 		Check.requireNonNullArgument(stream, "InpuStream can not null -> b:" + bucket.getName() + " | o:" + objectName);
 		if (exists(bucket, objectName)) {
 			RAIDSixUpdateObjectHandler updateAgent = new RAIDSixUpdateObjectHandler(this, bucket, objectName);
-			updateAgent.update(bucket, objectName, stream, fileName, contentType, customTags);
+			updateAgent.update(bucket, objectName, stream, fileName, contentType, customTags, o_public);
 			getVirtualFileSystemService().getSystemMonitorService().getUpdateObjectCounter().inc();
 		} else {
 			RAIDSixCreateObjectHandler createAgent = new RAIDSixCreateObjectHandler(this, bucket, objectName);
-			createAgent.create(stream, fileName, contentType, customTags);
+			createAgent.create(stream, fileName, contentType, customTags, o_public);
 			getVirtualFileSystemService().getSystemMonitorService().getCreateObjectCounter().inc();
 		}
+	}
+
+	@Override
+	public ObjectMetadata updateObjectMetadata(ObjectMetadata meta) {
+		Check.requireNonNullArgument(meta, "meta is null");
+		meta.setLastModified(OffsetDateTime.now());
+		putObjectMetadata( meta );
+		return meta;
 	}
 
 	@Override

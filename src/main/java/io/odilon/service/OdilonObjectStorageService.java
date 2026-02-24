@@ -200,6 +200,23 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
         return getVirtualFileSystemService().listObjects(bucketName, offset, pageSize, prefix, serverAgentId);
     }
 
+    
+    @Override
+    public ObjectMetadata updateObjectMetadata(ObjectMetadata meta) {
+        Check.requireTrue(isVirtualFileSystemServiceEnabled(), invalidStateMsg());
+        Check.requireNonNullArgument(meta, "meta can not be null or empty");
+
+        if (getServerSettings().isReadOnly())
+            throw new IllegalStateException(dataStorageModeMsg(meta.bucketName, meta.objectName));
+      
+        if (getServerSettings().isWORM()) {
+            if (existsObject(meta.bucketName, meta.objectName))
+                throw new IllegalStateException(dataStorageModeMsg(meta.bucketName, meta.objectName));
+        }
+        return getVirtualFileSystemService().updateObjectMetadata(meta);	
+    }
+    
+    
     @Override
     public void putObject(String bucketName, String objectName, File file) {
         Check.requireTrue(isVirtualFileSystemServiceEnabled(), invalidStateMsg());
@@ -239,6 +256,12 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
     @Override
     public void putObject(String bucketName, String objectName, InputStream is, String fileName, String contentType,
             Optional<List<String>> customTags) {
+    			putObject(bucketName,objectName,is,fileName,contentType, customTags, Optional.of(Boolean.FALSE));
+    }
+    
+    @Override
+    public void putObject(String bucketName, String objectName, InputStream is, String fileName, String contentType,
+            Optional<List<String>> customTags, Optional<Boolean> o_public) {
         Check.requireTrue(isVirtualFileSystemServiceEnabled(), invalidStateMsg());
         Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
         Check.requireNonNullStringArgument(objectName, "objectName can not be null or empty | b:" + bucketName);
@@ -261,7 +284,7 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
             throw new IllegalArgumentException("objectName must be >0 and <" + String.valueOf(SharedConstant.MAX_OBJECT_CHARS)
                     + ", and Name must match the java regex ->  " + SharedConstant.object_valid_regex + " | o:" + objectName);
         try {
-            getVirtualFileSystemService().putObject(bucketName, objectName, is, fileName, contentType, customTags);
+            getVirtualFileSystemService().putObject(bucketName, objectName, is, fileName, contentType, customTags, o_public);
         } catch (Exception e) {
             throw new OdilonInternalErrorException(e);
         }

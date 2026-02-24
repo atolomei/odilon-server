@@ -69,7 +69,14 @@ public interface IODriver {
     public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName, String contentType,
             Optional<List<String>> customTags);
 
+
+    public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName, String contentType,
+            Optional<List<String>> customTags, Optional<Boolean> o_public);
+
+    
     public void putObject(ServerBucket bucket, String objectName, File file);
+
+	public ObjectMetadata updateObjectMetadata(ObjectMetadata meta);
 
     public VirtualFileSystemObject getObject(ServerBucket bucket, String objectName);
 
@@ -194,5 +201,6 @@ public interface IODriver {
     public List<Drive> getDrivesEnabled();
 
     public List<Drive> getDrivesAll();
+
 
 }

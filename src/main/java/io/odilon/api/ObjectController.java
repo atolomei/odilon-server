@@ -80,6 +80,7 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  * <li>/object/getpreviousversion/{bucketName}/{objectName}</li>
  * <li>/object/hasversions/{bucketName}/{objectName}</li>
  * <li>/object/upload/{bucketName}/{objectName}</li>
+ * <li>/object/set/publicAccess/{publicAccess}</li>
  * </ul>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
@@ -161,6 +162,51 @@ public class ObjectController extends BaseApiController {
 		}
 	}
 
+	
+	/**
+	 * 
+	 */
+	@RequestMapping(value = "/set/publicaccess/{bucketName}/{objectName}", method = RequestMethod.GET)
+	public ResponseEntity<ObjectMetadata> setPublicAccess(
+			@PathVariable("bucketName") String bucketName, 
+			@PathVariable("objectName") String objectName, 
+			@RequestParam("publicAccess")  Boolean publicAccess) {
+
+		TrafficPass pass = null;
+
+		try {
+
+			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
+
+			if (publicAccess==null)
+				throw new IllegalArgumentException(String.format("boolean value not found for -> b: %s | o:%s", Optional.ofNullable(bucketName).orElse("null"), Optional.ofNullable(objectName).orElse("null")));
+					
+			ObjectMetadata meta = getObjectStorageService().getObjectMetadata(bucketName, objectName);
+
+			if (meta == null || meta.getStatus() == ObjectStatus.DELETED || meta.getStatus() == ObjectStatus.DRAFT)
+				throw new OdilonObjectNotFoundException(String.format("object not found -> b: %s | o:%s", Optional.ofNullable(bucketName).orElse("null"), Optional.ofNullable(objectName).orElse("null")));
+			
+			if (meta.isPublicAccess()!=publicAccess.booleanValue()) {
+				meta.setPublicAccess(publicAccess.booleanValue());
+				meta = getObjectStorageService().updateObjectMetadata( meta );
+				getSystemMonitorService().getGetObjectMeter().mark();
+			}
+			return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(meta);
+
+		} catch (OdilonServerAPIException e) {
+			throw e;
+		} catch (Exception e) {
+			logger.error(e);
+			throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));
+
+		} finally {
+			getTrafficControlService().release(pass);
+			mark();
+		}
+	}
+
+	
+	
 	/**
 	 * @param bucketName
 	 * @param objectName
@@ -289,6 +335,8 @@ public class ObjectController extends BaseApiController {
 			throw e1;
 		} catch (Exception e) {
 
+			logger.error(e);
+
 			if (in != null) {
 				try {
 					in.close();
@@ -388,13 +436,7 @@ public class ObjectController extends BaseApiController {
 			
 			long fileLength = super.getSrcFileLength(metaVersion);
 
-			
-			
-			
-			
-			
-			
-			
+	 	
 			
 			HttpHeaders responseHeaders = new HttpHeaders();
 			String f_name = meta.getFileName().replace("[", "").replace("]", "");
@@ -477,6 +519,8 @@ public class ObjectController extends BaseApiController {
 			throw e;
 
 		} catch (Exception e) {
+			
+			logger.error(e);
 
 			if (in != null) {
 				try {
@@ -625,6 +669,8 @@ public class ObjectController extends BaseApiController {
 
 		} catch (Exception e) {
 
+			logger.error(e);
+
 			if (in != null) {
 				try {
 					in.close();
@@ -675,8 +721,63 @@ public class ObjectController extends BaseApiController {
 			String token = this.getTokenService().encrypt(atoken);
 
 			getSystemMonitorService().getGetObjectMeter().mark();
-		 	
 			return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(token);
+
+		} catch (OdilonServerAPIException e) {
+			throw e;
+		} catch (Exception e) {
+
+			logger.error(e);
+
+			throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));
+
+		} finally {
+			getTrafficControlService().release(pass);
+			mark();
+		}
+	}
+
+	
+	/**
+	 * 
+	 * <p>The Object must hace publicAccess=true for this method to return a url. Otherwise it throws exception UNATHORIZED</p>
+	 * 
+	 * @param bucketName
+	 * @param objectName
+	 * @return
+	 */
+	@RequestMapping(path = "/get/public/{bucketName}/{objectName}", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> getPublicUrl(
+			@PathVariable("bucketName") String bucketName, 
+			@PathVariable("objectName") String objectName) {
+
+		TrafficPass pass = null;
+
+		try {
+
+			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
+
+			if (!getObjectStorageService().existsObject(bucketName, objectName))
+				throw new OdilonObjectNotFoundException(String.format("object not found -> b: %s | o:%s", Optional.ofNullable(bucketName).orElse("null"), Optional.ofNullable(objectName).orElse("null")));
+
+			ObjectMetadata meta = getObjectStorageService().getObjectMetadata(bucketName, objectName);
+
+			if (meta == null || meta.getStatus() == ObjectStatus.DELETED || meta.getStatus() == ObjectStatus.DRAFT)
+				throw new OdilonObjectNotFoundException(String.format("object not found -> b: %s | o:%s", Optional.ofNullable(bucketName).orElse("null"), Optional.ofNullable(objectName).orElse("null")));
+
+			
+			if (!meta.isPublicAccess()) {
+				logger.error("Object is not public access -> " + meta.toString());
+				throw new OdilonServerAPIException(ODHttpStatus.UNAUTHORIZED, ErrorCode.AUTHENTICATION_ERROR, meta.toString());
+				
+			}
+
+			String uri = "public/" + bucketName + "/" + objectName + "/" + meta.getFileName();
+			
+			getSystemMonitorService().getGetObjectMeter().mark();
+		
+			return ResponseEntity.ok().contentType(MediaType.TEXT_PLAIN).body(uri);
 
 		} catch (OdilonServerAPIException e) {
 			throw e;
@@ -689,6 +790,9 @@ public class ObjectController extends BaseApiController {
 		}
 	}
 
+	
+	
+	
 	/**
 	 * 
 	 * @param bucketName
@@ -918,26 +1022,24 @@ public class ObjectController extends BaseApiController {
 	@PostMapping(path = "/upload/{bucketName}/{objectName}")
 	@ResponseBody
 	public ResponseEntity<ObjectMetadata> putObject(@PathVariable("bucketName") String bucketName, @PathVariable("objectName") String objectName, @RequestParam("file") MultipartFile file,
-			@RequestParam("fileName") Optional<String> oFileName, @RequestParam("Content-Type") String contentType, @RequestParam("version") Optional<Integer> version, @RequestParam("customTags") Optional<String> customTags
-
-	) {
+			@RequestParam("fileName") Optional<String> oFileName, @RequestParam("Content-Type") String contentType, @RequestParam("version") Optional<Integer> version, @RequestParam("customTags") Optional<String> customTags,
+			@RequestParam("publicAccess") Optional<Boolean> o_isPublic) {
 
 		TrafficPass pass = null;
 
 		try {
 
-			logger.debug("start putObject ->  b. " + bucketName +  " o." + objectName + " | f. " + oFileName.orElse("null") + " | contentType. " + (contentType!=null?contentType:" null"));
+			logger.debug("start putObject ->  b. " + bucketName +  " o." + objectName + " | f. " + oFileName.orElse("null") + " | contentType. " + (contentType!=null?contentType:" null") + " | public. " + o_isPublic.orElse(Boolean.FALSE));
 			
 			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
 
 			String fileName = Optional.ofNullable(oFileName.get()).orElseGet(() -> objectName);
 
-			ObjectMetadata meta;
+			ObjectMetadata meta = null;
 
 			Optional<List<String>> o_list;
 
 			if (customTags.isPresent()) {
-
 				List<String> tags = new ArrayList<String>();
 				String arr[] = customTags.get().split("||");
 				for (String s : arr)
@@ -947,21 +1049,18 @@ public class ObjectController extends BaseApiController {
 				o_list = Optional.empty();
 
 			if (version.isEmpty()) {
-
 				long start = System.currentTimeMillis();
-				getObjectStorageService().putObject(bucketName, objectName, file.getInputStream(), fileName, contentType, o_list);
+				getObjectStorageService().putObject(bucketName, objectName, file.getInputStream(), fileName, contentType, o_list, o_isPublic);
 				long end = System.currentTimeMillis();
-
 				meta = getObjectStorageService().getObjectMetadata(bucketName, objectName);
 				logger.debug("putObject done -> " + "b: " + bucketName + " | o: " + objectName + " | " + String.valueOf(end - start) + " ms" + " | " + " length: " + String.valueOf(meta.getSourceLength() / 1000) + " KB");
 
 			} else {
 				meta = getObjectStorageService().getObjectMetadataPreviousVersion(bucketName, objectName, version.get().intValue());
 				if (meta != null) {
-					logger.error("previous version is null");
-					throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.INTERNAL_ERROR, "version update not done");
+					logger.error("previous version is not null");
+					throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.INTERNAL_ERROR, "update of versions that are not head is not allowed.");
 				}
-
 			}
 			getSystemMonitorService().getPutObjectMeter().mark();
 			return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(meta);
@@ -1021,7 +1120,7 @@ public class ObjectController extends BaseApiController {
 			else
 				atoken.setObjectCacheDurationSecs(0);
 
-			// logger.debug(atoken.toString());
+			logger.debug(atoken.toString());
 
 			String token = this.getTokenService().encrypt(atoken);
 

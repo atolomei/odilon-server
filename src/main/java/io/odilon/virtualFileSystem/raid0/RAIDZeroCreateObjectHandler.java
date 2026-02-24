@@ -42,13 +42,16 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroTransactionObjectHandle
 
 	private static Logger logger = Logger.getLogger(RAIDZeroCreateObjectHandler.class.getName());
 
+	 
 	/**
 	 * <p>
 	 * Created and used only from {@link RAIDZeroDriver}
 	 * </p>
 	 */
-	protected RAIDZeroCreateObjectHandler(RAIDZeroDriver driver, ServerBucket bucket, String objectName) {
+	protected RAIDZeroCreateObjectHandler(RAIDZeroDriver driver, ServerBucket bucket, String objectName ) {
 		super(driver, bucket, objectName);
+		 
+		
 	}
 
 	/**
@@ -63,7 +66,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroTransactionObjectHandle
 	 * @param contentType
 	 * @param customTags
 	 */
-	protected void create(InputStream stream, String sourceFileName, String contentType, Optional<List<String>> customTags) {
+	protected void create(InputStream stream, String sourceFileName, String contentType, Optional<List<String>> customTags, Optional<Boolean> o_public) {
 
 		VirtualFileSystemOperation operation = null;
 		boolean commitOk = false;
@@ -82,7 +85,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroTransactionObjectHandle
 				operation = createObject();
 
 				/** save (metadata and data) */
-				save(stream, sourceFileName, contentType, customTags);
+				save(stream, sourceFileName, contentType, customTags , o_public);
 
 				/** commit */
 				commitOk = operation.commit();
@@ -123,9 +126,9 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroTransactionObjectHandle
 		return createObject(getBucket(), getObjectName());
 	}
 
-	private void save(InputStream stream, String srcFileName, String contentType, Optional<List<String>> customTags) {
+	private void save(InputStream stream, String srcFileName, String contentType, Optional<List<String>> customTags, Optional<Boolean> o_public) {
 		long bytesSaved = saveData(getBucket(), getObjectName(), stream, srcFileName);
-		saveMetadata(getBucket(), getObjectName(), srcFileName, bytesSaved, contentType, VERSION_ZERO, customTags);
+		saveMetadata(getBucket(), getObjectName(), srcFileName, bytesSaved, contentType, VERSION_ZERO, customTags, o_public);
 	}
 
 }

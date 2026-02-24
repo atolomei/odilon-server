@@ -154,7 +154,7 @@ public abstract class RAIDZeroHandler extends BaseRAIDHandler implements RAIDHan
 	 * @param srcFileName can not be null
 	 * @param customTags
 	 */
-	protected void saveMetadata(ServerBucket bucket, String objectName, String srcFileName, long totalBytesRead, String contentType, int version, Optional<List<String>> customTags) {
+	protected void saveMetadata(ServerBucket bucket, String objectName, String srcFileName, long totalBytesRead, String contentType, int version, Optional<List<String>> customTags, Optional<Boolean> o_public) {
 
 		OffsetDateTime now = OffsetDateTime.now();
 		Drive drive = getWriteDrive(bucket, objectName);
@@ -177,6 +177,7 @@ public abstract class RAIDZeroHandler extends BaseRAIDHandler implements RAIDHan
 			meta.setEtag(sha256);
 			meta.setIntegrityCheck(now);
 			meta.setSha256(sha256);
+			meta.setPublicAccess(o_public.orElse(Boolean.FALSE));
 			meta.setStatus(ObjectStatus.ENABLED);
 			meta.setDrive(drive.getName());
 			if (customTags.isPresent())

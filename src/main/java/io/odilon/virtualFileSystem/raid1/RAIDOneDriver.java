@@ -201,6 +201,11 @@ public class RAIDOneDriver extends BaseIODriver {
 
 	@Override
 	public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName, String contentType, Optional<List<String>> customTags) {
+			putObject(bucket,objectName, stream, fileName, contentType, customTags, Optional.of(Boolean.FALSE));
+	}
+	
+	@Override
+	public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName, String contentType, Optional<List<String>> customTags, Optional<Boolean> o_public) {
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucket.getId());
 		Check.requireNonNullStringArgument(fileName, "fileName is null | b: " + bucket.getId() + " o:" + objectName);
@@ -209,11 +214,11 @@ public class RAIDOneDriver extends BaseIODriver {
 
 		if (exists(bucket, objectName)) {
 			RAIDOneUpdateObjectHandler updateAgent = new RAIDOneUpdateObjectHandler(this);
-			updateAgent.update(bucket, objectName, stream, fileName, contentType, customTags);
+			updateAgent.update(bucket, objectName, stream, fileName, contentType, customTags, o_public);
 			getVirtualFileSystemService().getSystemMonitorService().getUpdateObjectCounter().inc();
 		} else {
 			RAIDOneCreateObjectHandler createAgent = new RAIDOneCreateObjectHandler(this, bucket, objectName);
-			createAgent.create(stream, fileName, contentType, customTags);
+			createAgent.create(stream, fileName, contentType, customTags, o_public);
 			getVirtualFileSystemService().getSystemMonitorService().getCreateObjectCounter().inc();
 		}
 	}
@@ -244,6 +249,14 @@ public class RAIDOneDriver extends BaseIODriver {
 
 	@Override
 	public void postObjectPreviousVersionDeleteAllTransaction(ObjectMetadata meta, int headVersion) {
+	}
+
+	@Override
+	public ObjectMetadata updateObjectMetadata(ObjectMetadata meta) {
+		Check.requireNonNullArgument(meta, "meta is null");
+		meta.setLastModified(OffsetDateTime.now());
+		putObjectMetadata( meta );
+		return meta;
 	}
 
 	@Override

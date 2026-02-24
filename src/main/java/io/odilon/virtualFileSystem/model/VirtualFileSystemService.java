@@ -162,6 +162,11 @@ public interface VirtualFileSystemService extends SystemService {
     public void putObject(String bucketName, String objectName, InputStream is, String fileName, String contentType,
             Optional<List<String>> customTags);
 
+    public void putObject(String bucketName, String objectName, InputStream is, String fileName, String contentType,  Optional<List<String>> customTags, Optional<Boolean> o_public);
+
+    public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName, String contentType, Optional<List<String>> customTags, Optional<Boolean> o_public);
+    
+    
     public VirtualFileSystemObject getObject(ServerBucket bucket, String objectName);
 
     public VirtualFileSystemObject getObject(String bucketName, String objectName);
@@ -173,6 +178,8 @@ public interface VirtualFileSystemService extends SystemService {
     public boolean existsObject(String bucketName, String objectName);
 
     public void deleteObject(ServerBucket bucket, String objectName);
+    
+	public ObjectMetadata updateObjectMetadata(ObjectMetadata meta);
 
     public InputStream getObjectStream(ServerBucket bucket, String objectName) throws IOException;
 
@@ -280,5 +287,6 @@ public interface VirtualFileSystemService extends SystemService {
     public ExecutorService getExecutorService();
 
 	public BufferPoolService getBufferPoolService();
+
 
 }
