@@ -41,7 +41,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.odilon.error.OdilonServerAPIException;
 import io.odilon.error.OdilonObjectNotFoundException;
 import io.odilon.log.Logger;
-import io.odilon.model.ObjectMetadata;
 import io.odilon.model.SharedConstant;
 import io.odilon.monitor.SystemMonitorService;
 import io.odilon.net.ErrorCode;
@@ -77,227 +76,172 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 @RequestMapping(value = "/presigned/object")
 public class ObjectControllerPresigned extends BaseApiController {
 
-    static private Logger logger = Logger.getLogger(ObjectControllerPresigned.class.getName());
+	static private Logger logger = Logger.getLogger(ObjectControllerPresigned.class.getName());
 
-    @JsonIgnore
-    @Autowired
-    private final TokenService tokenService;
+	@JsonIgnore
+	@Autowired
+	private final TokenService tokenService;
 
-    @JsonIgnore
-    @Autowired
-    private final ServerSettings serverSettings;
+	@JsonIgnore
+	@Autowired
+	private final ServerSettings serverSettings;
 
-    public ObjectControllerPresigned(ObjectStorageService objectStorageService, VirtualFileSystemService virtualFileSystemService,
-            SystemMonitorService monitoringService, TrafficControlService trafficControlService, TokenService tokenService,
-            ServerSettings serverSettings) {
+	public ObjectControllerPresigned(ObjectStorageService objectStorageService, VirtualFileSystemService virtualFileSystemService, SystemMonitorService monitoringService, TrafficControlService trafficControlService,
+			TokenService tokenService, ServerSettings serverSettings) {
 
-        super(objectStorageService, virtualFileSystemService, monitoringService, trafficControlService);
-        this.tokenService = tokenService;
-        this.serverSettings = serverSettings;
-    }
+		super(objectStorageService, virtualFileSystemService, monitoringService, trafficControlService);
+		this.tokenService = tokenService;
+		this.serverSettings = serverSettings;
+	}
 
-    /**
-     * 
-     * 
-     * 
-     * @param stringToken
-     * @param rangeHeader
-     * @return
-     */
-    @RequestMapping(method = RequestMethod.GET)
-    @ResponseBody
-    public ResponseEntity<InputStreamResource> getPresignedObjectStream(
-            @RequestParam("token") String stringToken,
-            @RequestHeader(value = "Range", required = false) String rangeHeader) {
+	/**
+	 * 
+	 * 
+	 * 
+	 * @param stringToken
+	 * @param rangeHeader
+	 * @return
+	 */
+	@RequestMapping(method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<InputStreamResource> getPresignedObjectStream(@RequestParam("token") String stringToken, @RequestHeader(value = "Range", required = false) String rangeHeader) {
 
-        TrafficPass pass = null;
-        InputStream in = null;
+		TrafficPass pass = null;
+		InputStream in = null;
 
+		if (stringToken == null)
+			throw new OdilonServerAPIException("token is null");
 
-        if (stringToken == null)
-            throw new OdilonServerAPIException("token is null");
+		try {
+			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
 
-        
-        try {
-            pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
+			AuthToken authToken = getTokenService().decrypt(stringToken);
 
-            AuthToken authToken = getTokenService().decrypt(stringToken);
+			if (authToken == null)
+				throw new OdilonServerAPIException(AuthToken.class.getSimpleName() + " is null");
 
-            if (authToken == null)
-                throw new OdilonServerAPIException(AuthToken.class.getSimpleName() + " is null");
+			if (!authToken.isValid()) {
+				logger.error(String.format("token expired -> t: %s", authToken.toString()));
+				throw new OdilonServerAPIException(String.format("token expired -> t: %s", authToken.toString()));
+			}
 
-            if (!authToken.isValid()) {
-                logger.error(String.format("token expired -> t: %s", authToken.toString()));
-                throw new OdilonServerAPIException(String.format("token expired -> t: %s", authToken.toString()));
-            }
+			String bucketName = authToken.getBucketName();
+			String objectName = authToken.getObjectName();
 
-            String bucketName = authToken.getBucketName();
-            String objectName = authToken.getObjectName();
+			VirtualFileSystemObject object = getObjectStorageService().getObject(bucketName, objectName);
 
-            VirtualFileSystemObject object = getObjectStorageService().getObject(bucketName, objectName);
+			if (object == null)
+				throw new OdilonObjectNotFoundException(String.format("not found -> b: %s | o:%s", Optional.ofNullable(bucketName).orElse("null"), Optional.ofNullable(objectName).orElse("null")));
 
-            if (object == null)
-                throw new OdilonObjectNotFoundException(String.format("not found -> b: %s | o:%s",
-                        Optional.ofNullable(bucketName).orElse("null"),
-                        Optional.ofNullable(objectName).orElse("null")));
+			HttpHeaders responseHeaders = new HttpHeaders();
+			String f_name = object.getObjectMetadata().getFileName().replace("[", "").replace("]", "");
+			responseHeaders.set(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + f_name + "\"");
 
-            HttpHeaders responseHeaders = new HttpHeaders();
-            String f_name = object.getObjectMetadata().getFileName().replace("[", "").replace("]", "");
-            responseHeaders.set(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + f_name + "\"");
-
-            if (object.getObjectMetadata().getFileName()!=null) {
+			if (object.getObjectMetadata().getFileName() != null) {
 				if (object.getObjectMetadata().getFileName().toLowerCase().endsWith(".svg")) {
 					object.getObjectMetadata().setContentType("image/svg+xml");
 				}
 			}
-            
-            MediaType contentType = MediaType.valueOf(object.getObjectMetadata().getContentType());
-            if (object.getObjectMetadata().contentType() == null
-                    || object.getObjectMetadata().getContentType().equals("application/octet-stream")) {
-                contentType = estimateContentType(f_name);
-            }
 
-           
-            long fileLength = getSrcFileLength(object.getObjectMetadata());
-            
-            in = object.getInputStream();
+			MediaType contentType = MediaType.valueOf(object.getObjectMetadata().getContentType());
+			if (object.getObjectMetadata().contentType() == null || object.getObjectMetadata().getContentType().equals("application/octet-stream")) {
+				contentType = estimateContentType(f_name);
+			}
 
-            getSystemMonitorService().getGetObjectMeter().mark();
+			long fileLength = getSrcFileLength(object.getObjectMetadata());
 
-            int cacheDurationSecs = authToken.getObjectCacheDurationSecs() > 0
-                    ? authToken.getObjectCacheDurationSecs()
-                    : this.getServerSettings().getserverObjectstreamCacheSecs();
+			in = object.getInputStream();
 
-            responseHeaders.set(HttpHeaders.ACCEPT_RANGES, "bytes");
+			getSystemMonitorService().getGetObjectMeter().mark();
 
-            // --- Manejo de Range ---
-            if (rangeHeader != null && rangeHeader.startsWith("bytes=")) {
-                // parsea "bytes=START-END"
-                String[] ranges = rangeHeader.substring(6).split("-");
-                long start = Long.parseLong(ranges[0]);
-                long end = ranges.length > 1 && !ranges[1].isEmpty() ? Long.parseLong(ranges[1]) : fileLength - 1;
-                long contentLength = end - start + 1;
+			int cacheDurationSecs = authToken.getObjectCacheDurationSecs() > 0 ? authToken.getObjectCacheDurationSecs() : this.getServerSettings().getserverObjectstreamCacheSecs();
 
-                // skip hasta el inicio del rango
-                in.skip(start);
+			responseHeaders.set(HttpHeaders.ACCEPT_RANGES, "bytes");
 
-                responseHeaders.setContentLength(contentLength);
-                responseHeaders.add(HttpHeaders.CONTENT_RANGE,
-                        "bytes " + start + "-" + end + "/" + fileLength);
-                
-                
-                
-             // CACHE
-                String cacheHeader =
-                    cacheDurationSecs > 0
-                        ? "public, max-age=" + cacheDurationSecs + ", immutable, no-transform"
-                        : "no-cache, no-store, must-revalidate";
+			// --- Manejo de Range ---
+			if (rangeHeader != null && rangeHeader.startsWith("bytes=")) {
+				// parsea "bytes=START-END"
+				String[] ranges = rangeHeader.substring(6).split("-");
+				long start = Long.parseLong(ranges[0]);
+				long end = ranges.length > 1 && !ranges[1].isEmpty() ? Long.parseLong(ranges[1]) : fileLength - 1;
+				long contentLength = end - start + 1;
 
-                responseHeaders.set(HttpHeaders.CACHE_CONTROL, cacheHeader);
+				// skip hasta el inicio del rango
+				in.skip(start);
 
-                // ETAG
-                responseHeaders.setETag("\"" + fileLength + "\"");
+				responseHeaders.setContentLength(contentLength);
+				responseHeaders.add(HttpHeaders.CONTENT_RANGE, "bytes " + start + "-" + end + "/" + fileLength);
 
-                // LAST MODIFIED (si tenés timestamp)
-                OffsetDateTime lastModified = object.getObjectMetadata().getLastModified();
-                if (lastModified != null) {
-                    responseHeaders.setLastModified(lastModified.toInstant().toEpochMilli());
-                }
-                
-                // SECURITY
-                responseHeaders.set("X-Content-Type-Options", "nosniff");
+				// CACHE
+				String cacheHeader = cacheDurationSecs > 0 ? "public, max-age=" + cacheDurationSecs + ", immutable, no-transform" : "no-cache, no-store, must-revalidate";
 
-                // CORS (si aplica)
-                responseHeaders.set("Access-Control-Allow-Origin", "*");
-                responseHeaders.set("Access-Control-Expose-Headers",
-                    "Content-Length, Content-Range, Accept-Ranges");
-                
-                return ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)
-                        .headers(responseHeaders)
-                        .contentType(contentType)
-                        .contentLength(contentLength) 
-                        .cacheControl(
-                        	    CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)
-                        	        .cachePublic()
-                        	        .immutable()
-                        	)
-                        .body(new InputStreamResource(new LimitedInputStream(in, contentLength)));
-            } else {
-                // Full file
-                responseHeaders.setContentLength(fileLength);
-                
-                
-             // CACHE
-                String cacheHeader =
-                    cacheDurationSecs > 0
-                        ? "public, max-age=" + cacheDurationSecs + ", immutable, no-transform"
-                        : "no-cache, no-store, must-revalidate";
+				responseHeaders.set(HttpHeaders.CACHE_CONTROL, cacheHeader);
 
-                responseHeaders.set(HttpHeaders.CACHE_CONTROL, cacheHeader);
+				// ETAG
+				responseHeaders.setETag("\"" + fileLength + "\"");
 
-                // ETAG
-                responseHeaders.setETag("\"" + fileLength + "\"");
+				// LAST MODIFIED (si tenés timestamp)
+				OffsetDateTime lastModified = object.getObjectMetadata().getLastModified();
+				if (lastModified != null) {
+					responseHeaders.setLastModified(lastModified.toInstant().toEpochMilli());
+				}
 
-              
-                // LAST MODIFIED (si tenés timestamp)
-                OffsetDateTime lastModified = object.getObjectMetadata().getLastModified();
-                if (lastModified != null) {
-                    responseHeaders.setLastModified(lastModified.toInstant().toEpochMilli());
-                }
-             
+				// SECURITY
+				responseHeaders.set("X-Content-Type-Options", "nosniff");
 
-                // SECURITY
-                responseHeaders.set("X-Content-Type-Options", "nosniff");
+				// CORS (si aplica)
+				responseHeaders.set("Access-Control-Allow-Origin", "*");
+				responseHeaders.set("Access-Control-Expose-Headers", "Content-Length, Content-Range, Accept-Ranges");
 
-                // CORS (si aplica)
-                responseHeaders.set("Access-Control-Allow-Origin", "*");
-                responseHeaders.set("Access-Control-Expose-Headers",
-                    "Content-Length, Content-Range, Accept-Ranges");
-                
-                
-                if (fileLength==-1) {
-                    return ResponseEntity.ok()
-	                        .headers(responseHeaders)
-	                        .contentType(contentType)
-	                        .cacheControl(
-	                        	    CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)
-	                        	        .cachePublic()
-	                        	        .immutable()
-	                        	)
-	                        .body(new InputStreamResource(in));
-	            }
-                else {
-	                return ResponseEntity.ok()
-	                        .headers(responseHeaders)
-	                        .contentType(contentType)
-	                        .contentLength(fileLength) 
-	                        .cacheControl(
-	                        	    CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)
-	                        	        .cachePublic()
-	                        	        .immutable()
-	                        	)
-	                        .body(new InputStreamResource(in));
-	                }
-                }
+				return ResponseEntity.status(HttpStatus.PARTIAL_CONTENT).headers(responseHeaders).contentType(contentType).contentLength(contentLength)
+						.cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS).cachePublic().immutable()).body(new InputStreamResource(new LimitedInputStream(in, contentLength)));
+			} else {
+				// Full file
+				responseHeaders.setContentLength(fileLength);
 
-        } catch (Exception e) {
-            if (in != null) {
-                try { 
-                	in.close(); 
-                } catch (IOException e1) { 
-                	logger.error(e1, SharedConstant.NOT_THROWN); 
-                }
-            }
-            throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR,
-                    ErrorCode.INTERNAL_ERROR, getMessage(e));
-        } finally {
-            getTrafficControlService().release(pass);
-            mark();
-        }
-    }
-    
-        
-  
+				// CACHE
+				String cacheHeader = cacheDurationSecs > 0 ? "public, max-age=" + cacheDurationSecs + ", immutable, no-transform" : "no-cache, no-store, must-revalidate";
+
+				responseHeaders.set(HttpHeaders.CACHE_CONTROL, cacheHeader);
+
+				// ETAG
+				responseHeaders.setETag("\"" + fileLength + "\"");
+
+				// LAST MODIFIED (si tenés timestamp)
+				OffsetDateTime lastModified = object.getObjectMetadata().getLastModified();
+				if (lastModified != null) {
+					responseHeaders.setLastModified(lastModified.toInstant().toEpochMilli());
+				}
+
+				// SECURITY
+				responseHeaders.set("X-Content-Type-Options", "nosniff");
+
+				// CORS (si aplica)
+				responseHeaders.set("Access-Control-Allow-Origin", "*");
+				responseHeaders.set("Access-Control-Expose-Headers", "Content-Length, Content-Range, Accept-Ranges");
+
+				if (fileLength == -1) {
+					return ResponseEntity.ok().headers(responseHeaders).contentType(contentType).cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS).cachePublic().immutable()).body(new InputStreamResource(in));
+				} else {
+					return ResponseEntity.ok().headers(responseHeaders).contentType(contentType).contentLength(fileLength).cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS).cachePublic().immutable())
+							.body(new InputStreamResource(in));
+				}
+			}
+
+		} catch (Exception e) {
+			if (in != null) {
+				try {
+					in.close();
+				} catch (IOException e1) {
+					logger.error(e1, SharedConstant.NOT_THROWN);
+				}
+			}
+			throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));
+		} finally {
+			getTrafficControlService().release(pass);
+			mark();
+		}
+	}
 
 	public TokenService getTokenService() {
 		return this.tokenService;
@@ -307,6 +251,4 @@ public class ObjectControllerPresigned extends BaseApiController {
 		return this.serverSettings;
 	}
 
-    
-	
 }

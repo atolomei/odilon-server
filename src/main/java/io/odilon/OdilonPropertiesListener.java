@@ -50,11 +50,3 @@ public class OdilonPropertiesListener implements ApplicationListener<Application
     }
 }
 
-//props.put("spring.servlet.multipart.file-size-threshold", "12KB");
-//props.put("spring.resources.cache.cachecontrol.max-age", "120");
-//props.put("spring.resources.cache.cachecontrol.must-revalidate", "true");
-
-// environment.getPropertySources().forEach( item ->
-// logger.debug(item.toString()));
-// logger.debug( environment.getProperty("server.ssl.enabled"));
-// .forEach( item -> logger.debug(item.toString()));
