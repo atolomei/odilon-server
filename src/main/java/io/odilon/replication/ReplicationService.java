@@ -440,6 +440,41 @@ public class ReplicationService extends BaseService implements ApplicationContex
 
 	/**
 	 * 
+	 */
+	@PostConstruct
+	protected void onInitialize() {
+
+		synchronized (this) {
+			try {
+				setStatus(ServiceStatus.STARTING);
+				startuplogger.debug("Started -> " + this.getClass().getSimpleName());
+
+				this.accessKey = this.serverSettings.getStandbyAccessKey();
+				this.secretKey = this.serverSettings.getStandbySecretKey();
+				this.url = this.serverSettings.getStandbyUrl();
+				this.port = this.serverSettings.getStandbyPort();
+
+				if (this.serverSettings.isStandByEnabled()) {
+					this.client = new ODClient(url, port, accessKey, secretKey);
+					String ping = client.ping();
+					if (!ping.equals("ok")) {
+						logger.error(ServerConstant.SEPARATOR);
+						logger.error("Standby connection not available -> " + ping);
+						logger.error(ServerConstant.SEPARATOR);
+						startuplogger.error(ping);
+					}
+				}
+				setStatus(ServiceStatus.RUNNING);
+
+			} catch (Exception e) {
+				setStatus(ServiceStatus.STOPPED);
+				throw e;
+			}
+		}
+	}
+	
+	/**
+	 * 
 	 * @param opx
 	 */
 	private void replicateCreateObject(VirtualFileSystemOperation opx) {
@@ -689,40 +724,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 		}
 	}
 
-	/**
-	 * 
-	 */
-	@PostConstruct
-	protected void onInitialize() {
-
-		synchronized (this) {
-			try {
-				setStatus(ServiceStatus.STARTING);
-				startuplogger.debug("Started -> " + this.getClass().getSimpleName());
-
-				this.accessKey = this.serverSettings.getStandbyAccessKey();
-				this.secretKey = this.serverSettings.getStandbySecretKey();
-				this.url = this.serverSettings.getStandbyUrl();
-				this.port = this.serverSettings.getStandbyPort();
-
-				if (this.serverSettings.isStandByEnabled()) {
-					this.client = new ODClient(url, port, accessKey, secretKey);
-					String ping = client.ping();
-					if (!ping.equals("ok")) {
-						logger.error(ServerConstant.SEPARATOR);
-						logger.error("Standby connection not available -> " + ping);
-						logger.error(ServerConstant.SEPARATOR);
-						startuplogger.error(ping);
-					}
-				}
-				setStatus(ServiceStatus.RUNNING);
-
-			} catch (Exception e) {
-				setStatus(ServiceStatus.STOPPED);
-				throw e;
-			}
-		}
-	}
+	
 
 	/**
 	 * 

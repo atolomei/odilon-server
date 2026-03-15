@@ -291,56 +291,79 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 				return true;
 			}
 
-			/**
-			 * For RAID 0 the check is in the head version there is no way to fix a damaged
-			 * file the goal of this process is to warn that a Object is damaged
-			 */
+			
 			readDrive = getObjectMetadataReadDrive(bucket, objectName);
 			metadata = readDrive.getObjectMetadata(bucket, objectName);
 
-			if ((forceCheck) || (metadata.integrityCheck != null) && (metadata.integrityCheck.isAfter(thresholdDate)))
-				return true;
+			// --- start of inserted detection-only logic ---
 
-			return true;
+			// If a recent integrityCheck exists (and forceCheck is false) skip
+			if (!forceCheck && metadata.integrityCheck != null && metadata.integrityCheck.isAfter(thresholdDate)) {
+			    logger.debug("Integrity check skipped (recent) -> b:" + bucket.getName() + " o:" + objectName);
+			    return true;
+			}
 
-			// OffsetDateTime now = OffsetDateTime.now();
+			// Reconstruct current head into file cache using RAIDSixDecoder
+			RAIDSixDecoder decoder = new RAIDSixDecoder(this);
+			File decodedFile;
+			try {
+			    decodedFile = decoder.decodeHead(metadata, bucket);
+			} catch (Exception e) {
+			    // Not enough shards or other decode error: log and return false (detection-only)
+			    logger.error("Integrity check: unable to decode object for integrity verification -> b:" + bucket.getName() + " o:" + objectName + " d:" + (readDrive != null ? readDrive.getName() : "null") + " | " + e.getMessage(), SharedConstant.NOT_THROWN);
+			    return false;
+			}
 
-			// String originalSha256 = metadata.sha256;
+			// Compute SHA-256 of the payload. If the object is encrypted, decodeHead returns the encrypted cache file,
+			// so we must decrypt the stream before hashing to compare with a SHA computed from the original payload.
+			String computedSha = null;
+			try (InputStream rawIn = Files.newInputStream(decodedFile.toPath());
+			     InputStream in = (metadata.isEncrypt()
+			                       ? getVirtualFileSystemService().getEncryptionService().decryptStream(rawIn)
+			                       : rawIn)) {
 
-			// if (originalSha256 == null) {
-			// metadata.integrityCheck = now;
-			// getVirtualFileSystemService().getObjec tCacheService().rem
-			// ove(metadata.bucketName,
-			// metadata.objectName);
-			// readDrive.saveObjectMetadata(metadata);
-			// return true;
-			// }
+			    java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+			    byte[] buffer = new byte[8192];
+			    int read;
+			    while ((read = in.read(buffer)) != -1) {
+			        md.update(buffer, 0, read);
+			    }
+			    byte[] digest = md.digest();
+			    // Convert to hex using project's helper
+			    computedSha = io.odilon.service.util.ByteToString.byteToHexString(digest);
 
-			// File file = ((SimpleDrive) readDrive).getObjectDataFile(bucketName,
-			// objectName);
-			// String sha256 = null;
-			//
-			// try {
-			// sha256 = ODFileUtils.calculateSHA256String(file);
-			//
-			// } catch (NoSuchAlgorithmException | IOException e) {
-			// logger.error(e);
-			// return false;
-			// }
-			//
-			// if (originalSha256.equals(sha256)) {
-			// metadata.integrityCheck = now;
-			// readDrive.saveObjectMetadata(metadata);
-			// return true;
-			// } else {
-			// logger.error("Integrity Check failed for -> d: " + readDrive.getName() + " |
-			// b:" + bucketName + " | o:" + objectName + " | " + SharedConstant.NOT_THROWN);
-			// }
-			/**
-			 * it is not possible to fix the file if the integrity fails because there is no
-			 * redundancy in RAID 0
-			 **/
-			// return false;
+			} catch (Exception e) {
+			    logger.error(e, "Integrity check: error computing SHA-256 for -> b:" + bucket.getName() + " o:" + objectName);
+			    return false;
+			}
+
+			// Get metadata SHA (may be null)
+			String metaSha = null;
+			try {
+			    // metadata.sha256 is used in other code comments; if accessor exists, this will still work.
+			    // Use field access if available; otherwise try getter as fallback.
+			    metaSha = (metadata.sha256 != null) ? metadata.sha256 : (metadata.getSha256() != null ? metadata.getSha256() : null);
+			} catch (NoSuchMethodError ignored) {
+			    // Fallback to field only; if metadata.getSha256() doesn't exist, above will use metadata.sha256
+			    metaSha = metadata.sha256;
+			}
+
+			// If metadata has no SHA, log info (no write performed — detection-only)
+			if (metaSha == null || metaSha.trim().isEmpty()) {
+			    logger.info("Integrity check (detection-only): no metadata SHA stored -> b:" + bucket.getName() + " o:" + objectName + " computedSha:" + computedSha);
+			    return true;
+			}
+
+			// Compare (case-insensitive hex)
+			if (metaSha.equalsIgnoreCase(computedSha)) {
+			    logger.debug("Integrity OK -> b:" + bucket.getName() + " o:" + objectName + " d:" + readDrive.getName() + " sha:" + computedSha);
+			    return true;
+			} else {
+			    // Structured, grep-friendly warning
+			    logger.warn("RE-ENCODE REQUIRED | bucket=" + bucket.getName() + " | object=" + objectName + " | readDrive=" + (readDrive != null ? readDrive.getName() : "null")
+			            + " | metaSha=" + metaSha + " | computedSha=" + computedSha + " | time=" + OffsetDateTime.now().toString());
+			    return false;
+			}	
 
 		} finally {
 

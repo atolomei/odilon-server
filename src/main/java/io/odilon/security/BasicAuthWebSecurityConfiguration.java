@@ -66,11 +66,9 @@ public class BasicAuthWebSecurityConfiguration {
 
 		http.authorizeHttpRequests(
 				(authorize) -> 
-				authorize.requestMatchers("/favicon.ico", "/presigned/**", "/presigned/object",  "/public/**",  "/static/**", "/static/object", "/webjars/**").permitAll())
+				authorize.requestMatchers("/presigned/", "/presigned/object",  "/public/*/*/*",  "/static/", "/static/object").permitAll())
 				.authorizeHttpRequests(authorizeRequests -> authorizeRequests.anyRequest().authenticated())
-				.httpBasic(Customizer.withDefaults())
-				// after successful form login, always redirect to /info
-				.formLogin(form -> form.defaultSuccessUrl("/info", true).permitAll())
+				.httpBasic(Customizer.withDefaults()).formLogin(Customizer.withDefaults())
 				.csrf(AbstractHttpConfigurer::disable);
 
 		return http.build();
