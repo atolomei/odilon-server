@@ -68,848 +68,800 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 @ThreadSafe
 public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
 
-    private static Logger logger = Logger.getLogger(RAIDOneUpdateObjectHandler.class.getName());
-
-    /**
-     * Instances of this class are used internally by {@link RAIDOneDriver}
-     * 
-     * @param driver
-     */
-    protected RAIDOneUpdateObjectHandler(RAIDOneDriver driver) {
-        super(driver);
-    }
-
-    /**
-     * @param bucket
-     * @param objectName
-     * @param stream
-     * @param srcFileName
-     * @param contentType
-     * @param customTags
-     */
-
-    protected void update(ServerBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType,
-            Optional<List<String>> customTags, Optional<Boolean> o_public) {
-
-        VirtualFileSystemOperation operation = null;
-        boolean commitOK = false;
-
-        int beforeHeadVersion = -1;
-        int afterHeadVersion = -1;
-        boolean isMainException = false;
-
-        objectWriteLock(bucket, objectName);
-
-        try {
-            bucketReadLock(bucket);
-
-            try (stream) {
-
-                checkExistsBucket(bucket);
-                checkExistObject(bucket, objectName);
-
-                ObjectMetadata meta = getMetadata(bucket, objectName, true);
-
-                beforeHeadVersion = meta.getVersion();
-                afterHeadVersion = meta.getVersion() + 1;
-
-                /** backup (current head version) */
-                saveVersionObjectDataFile(bucket, objectName, meta.getVersion());
-                saveVersionObjectMetadata(bucket, objectName, meta.getVersion());
-
-                /** start operation */
-                operation = updateObject(bucket, objectName, beforeHeadVersion);
-
-                /** copy new version as head version */
-                saveObjectDataFile(bucket, objectName, stream, srcFileName, afterHeadVersion);
-                saveObjectMetadata(bucket, objectName, srcFileName, contentType, afterHeadVersion, customTags, o_public);
-
-                /** commit */
-                commitOK = operation.commit();
-
-            } catch (InternalCriticalException e) {
-                isMainException = true;
-                throw e;
-
-            } catch (Exception e) {
-                isMainException = true;
-                throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
-
-            } finally {
-
-                try {
-                    if (!commitOK) {
-                        try {
-                            rollback(operation);
-                        } catch (Exception e) {
-                            if (!isMainException)
-                                throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
-                            else
-                                logger.error(e, objectInfo(bucket, objectName, srcFileName), SharedConstant.NOT_THROWN);
-                        }
-                    } else {
-                        /**
-                         * TODO AT -> this is after commit, Sync by the moment. see how to make it Async
-                         */
-                        cleanUpUpdate(operation, bucket, objectName, beforeHeadVersion, afterHeadVersion);
-                    }
-                } finally {
-                    bucketReadUnLock(bucket);
-                }
-            }
-        } finally {
-            objectWriteUnLock(bucket, objectName);
-        }
-    }
-
-    protected ObjectMetadata restorePreviousVersion(ServerBucket bucket, String objectName) {
-
-        VirtualFileSystemOperation op = null;
-        boolean done = false;
-        boolean isMainException = false;
-        int beforeHeadVersion = -1;
-
-        getLockService().getObjectLock(bucket, objectName).writeLock().lock();
-
-        try {
-            getLockService().getBucketLock(bucket).readLock().lock();
-
-            try {
-
-                checkExistsBucket(bucket);
-                checkExistObject(bucket, objectName);
-
-                ObjectMetadata meta = getMetadata(bucket, objectName, false);
-
-                if (meta.getVersion() == VERSION_ZERO)
-                    throw new IllegalArgumentException("Object does not have versions | " + objectInfo(bucket, objectName));
-
-                beforeHeadVersion = meta.getVersion();
-                List<ObjectMetadata> metaVersions = new ArrayList<ObjectMetadata>();
-
-                for (int version = 0; version < beforeHeadVersion; version++) {
-                    ObjectMetadata mv = getDriver().getReadDrive(bucket, objectName).getObjectMetadataVersion(bucket, objectName,
-                            version);
-                    if (mv != null)
-                        metaVersions.add(mv);
-                }
-
-                if (metaVersions.isEmpty())
-                    throw new OdilonObjectNotFoundException(Optional.of(meta.getSystemTags()).orElse("previous versions deleted"));
-
-                /**
-                 * save current head version MetadataFile .vN and data File vN - no need to
-                 * additional backup
-                 */
-                saveVersionObjectDataFile(bucket, objectName, meta.getVersion());
-                saveVersionObjectMetadata(bucket, objectName, meta.getVersion());
+	private static Logger logger = Logger.getLogger(RAIDOneUpdateObjectHandler.class.getName());
+
+	/**
+	 * Instances of this class are used internally by {@link RAIDOneDriver}
+	 * 
+	 * @param driver
+	 */
+	protected RAIDOneUpdateObjectHandler(RAIDOneDriver driver) {
+		super(driver);
+	}
+
+	/**
+	 * @param bucket
+	 * @param objectName
+	 * @param stream
+	 * @param srcFileName
+	 * @param contentType
+	 * @param customTags
+	 */
+
+	protected void update(ServerBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType, Optional<List<String>> customTags, Optional<Boolean> o_public) {
+
+		VirtualFileSystemOperation operation = null;
+		boolean commitOK = false;
+
+		int beforeHeadVersion = -1;
+		int afterHeadVersion = -1;
+		boolean isMainException = false;
+
+		objectWriteLock(bucket, objectName);
+
+		try {
+			bucketReadLock(bucket);
+
+			try (stream) {
+
+				checkExistsBucket(bucket);
+				checkExistObject(bucket, objectName);
+
+				ObjectMetadata meta = getMetadata(bucket, objectName, true);
+
+				beforeHeadVersion = meta.getVersion();
+				afterHeadVersion = meta.getVersion() + 1;
+
+				/** backup (current head version) */
+				saveVersionObjectDataFile(bucket, objectName, meta.getVersion());
+				saveVersionObjectMetadata(bucket, objectName, meta.getVersion());
+
+				/** start operation */
+				operation = updateObject(bucket, objectName, beforeHeadVersion);
+
+				/** copy new version as head version */
+				saveObjectDataFile(bucket, objectName, stream, srcFileName, afterHeadVersion);
+				saveObjectMetadata(bucket, objectName, srcFileName, contentType, afterHeadVersion, customTags, o_public);
+
+				/** commit */
+				commitOK = operation.commit();
+
+			} catch (InternalCriticalException e) {
+				isMainException = true;
+				throw e;
+
+			} catch (Exception e) {
+				isMainException = true;
+				throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
+
+			} finally {
+
+				try {
+					if (!commitOK) {
+						try {
+							rollback(operation);
+						} catch (Exception e) {
+							if (!isMainException)
+								throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
+							else
+								logger.error(e, objectInfo(bucket, objectName, srcFileName), SharedConstant.NOT_THROWN);
+						}
+					} else {
+						/**
+						 * TODO AT -> this is after commit, Sync by the moment. see how to make it Async
+						 */
+						cleanUpUpdate(operation, bucket, objectName, beforeHeadVersion, afterHeadVersion);
+					}
+				} finally {
+					bucketReadUnLock(bucket);
+				}
+			}
+		} finally {
+			objectWriteUnLock(bucket, objectName);
+		}
+	}
+
+	protected ObjectMetadata restorePreviousVersion(ServerBucket bucket, String objectName) {
+
+		VirtualFileSystemOperation op = null;
+		boolean done = false;
+		boolean isMainException = false;
+		int beforeHeadVersion = -1;
+
+		getLockService().getObjectLock(bucket, objectName).writeLock().lock();
+
+		try {
+			getLockService().getBucketLock(bucket).readLock().lock();
+
+			try {
+
+				checkExistsBucket(bucket);
+				checkExistObject(bucket, objectName);
+
+				ObjectMetadata meta = getMetadata(bucket, objectName, false);
+
+				if (meta.getVersion() == VERSION_ZERO)
+					throw new IllegalArgumentException("Object does not have versions | " + objectInfo(bucket, objectName));
+
+				beforeHeadVersion = meta.getVersion();
+				List<ObjectMetadata> metaVersions = new ArrayList<ObjectMetadata>();
+
+				for (int version = 0; version < beforeHeadVersion; version++) {
+					ObjectMetadata mv = getDriver().getReadDrive(bucket, objectName).getObjectMetadataVersion(bucket, objectName, version);
+					if (mv != null)
+						metaVersions.add(mv);
+				}
+
+				if (metaVersions.isEmpty())
+					throw new OdilonObjectNotFoundException(Optional.of(meta.getSystemTags()).orElse("previous versions deleted"));
+
+				/**
+				 * save current head version MetadataFile .vN and data File vN - no need to
+				 * additional backup
+				 */
+				saveVersionObjectDataFile(bucket, objectName, meta.getVersion());
+				saveVersionObjectMetadata(bucket, objectName, meta.getVersion());
+
+				/** start operation */
+				op = getJournalService().restoreObjectPreviousVersion(bucket, objectName, beforeHeadVersion);
 
-                /** start operation */
-                op = getJournalService().restoreObjectPreviousVersion(bucket, objectName, beforeHeadVersion);
+				/** save previous version as head */
+				ObjectMetadata metaToRestore = metaVersions.get(metaVersions.size() - 1);
 
-                /** save previous version as head */
-                ObjectMetadata metaToRestore = metaVersions.get(metaVersions.size() - 1);
-
-                if (!restoreVersionObjectDataFile(bucket, metaToRestore.getObjectName(), metaToRestore.getVersion()))
-                    throw new OdilonObjectNotFoundException(Optional.of(meta.systemTags).orElse("previous versions deleted"));
+				if (!restoreVersionObjectDataFile(bucket, metaToRestore.getObjectName(), metaToRestore.getVersion()))
+					throw new OdilonObjectNotFoundException(Optional.of(meta.systemTags).orElse("previous versions deleted"));
 
-                if (!restoreVersionObjectMetadata(bucket, metaToRestore.getObjectName(), metaToRestore.getVersion()))
-                    throw new OdilonObjectNotFoundException(Optional.of(meta.systemTags).orElse("previous versions deleted"));
-
-                /** commit */
-                done = op.commit();
-
-                return metaToRestore;
-
-            } catch (OdilonObjectNotFoundException e1) {
-                done = false;
-                isMainException = true;
-                e1.setErrorMessage(e1.getErrorMessage() + " | " + objectInfo(bucket, objectName));
-                throw e1;
-
-            } catch (InternalCriticalException e1) {
-                isMainException = true;
-                throw e1;
-
-            } catch (Exception e) {
-                done = false;
-                isMainException = true;
-                throw new InternalCriticalException(e, objectInfo(bucket, objectName));
-
-            } finally {
-
-                try {
-                    if (!done) {
-                        try {
-                            rollback(op);
-                        } catch (Exception e) {
-                            if (!isMainException)
-                                throw new InternalCriticalException(e, objectInfo(bucket, objectName));
-                            else
-                                logger.error(e, objectInfo(bucket, objectName), SharedConstant.NOT_THROWN);
-                        }
-                    } else {
-                        /** this is after commit, Sync by the moment see how to make it Async */
-                        cleanUpRestoreVersion(op, bucket, objectName, beforeHeadVersion);
-                    }
-                } finally {
-                    getLockService().getBucketLock(bucket).readLock().unlock();
-                }
-            }
-        } finally {
-            objectWriteUnLock(bucket, objectName);
-        }
-    }
-
-    /**
-     * <p>
-     * This update does not generate a new Version of the ObjectMetadata. It
-     * maintains the same ObjectMetadata version.<br/>
-     * The only way to version Object is when the Object Data is updated
-     * </p>
-     * 
-     * @param meta
-     */
-    protected void updateObjectMetadata(ObjectMetadata meta) {
-
-        VirtualFileSystemOperation op = null;
-        boolean done = false;
-        boolean isMainException = false;
-        ServerBucket bucket = null;
-
-        getLockService().getObjectLock(meta.getBucketId(), meta.getObjectName()).writeLock().lock();
-
-        try {
-
-            getLockService().getBucketLock(meta.getBucketId()).readLock().lock();
-
-            try {
-
-                checkExistsBucket(meta.getBucketId());
-                bucket = getBucketCache().get(meta.getBucketId());
-
-                checkExistObject(bucket, meta.getObjectName());
-
-                /** backup */
-                backupMetadata(meta, bucket);
-
-                /** start operation */
-                op = getJournalService().updateObjectMetadata(getBucketCache().get(meta.getBucketId()), meta.getObjectName(),
-                        meta.getVersion());
-
-                saveObjectMetadata(meta);
-
-                /** commit */
-                done = op.commit();
-
-            } catch (InternalCriticalException e1) {
-                isMainException = true;
-                throw e1;
-
-            } catch (Exception e) {
-                isMainException = true;
-                throw new InternalCriticalException(e);
-
-            } finally {
-
-                try {
-                    if (!done) {
-                        try {
-                            rollback(op);
-                        } catch (Exception e) {
-                            if (!isMainException)
-                                throw new InternalCriticalException(e, getDriver().objectInfo(meta.bucketId, meta.objectName));
-                            else
-                                logger.error(e, objectInfo(meta), SharedConstant.NOT_THROWN);
-                        }
-                    } else {
-                        /**
-                         * TODO AT -> Sync by the moment see how to make it Async
-                         */
-                        cleanUpBackupMetadataDir(bucket, meta.getObjectName());
-                    }
-
-                } finally {
-                    getLockService().getBucketLock(bucket).readLock().unlock();
-                }
-            }
-        } finally {
-            objectWriteUnLock(meta.getBucketId(), meta.getObjectName());
-        }
-    }
-
-    protected void onAfterCommit(ServerBucket bucket, String objectName, int previousVersion, int currentVersion) {
-    }
-
-    @Override
-    protected Drive getObjectMetadataReadDrive(ServerBucket bucket, String objectName) {
-        return getDriver().getReadDrive(bucket, objectName);
-    }
-
-    /**
-     * This check must be executed inside the critical section
-     * 
-     * @param bucket
-     * @param objectName
-     * @return
-     */
-    protected boolean existsObjectMetadata(ServerBucket bucket, String objectName) {
-        if (existsCacheObject(bucket, objectName))
-            return true;
-        return getDriver().getReadDrive(bucket, objectName).existsObjectMetadata(bucket, objectName);
-    }
-
-    private void saveVersionObjectMetadata(ServerBucket bucket, String objectName, int version) {
-        // TODO AT: parallel
-        try {
-            for (Drive drive : getDriver().getDrivesAll())
-                drive.putObjectMetadataVersionFile(bucket, objectName, version, drive.getObjectMetadataFile(bucket, objectName));
-
-        } catch (Exception e) {
-            throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName));
-        }
-
-    }
-
-    private void saveVersionObjectDataFile(ServerBucket bucket, String objectName, int version) {
-        // TODO AT: parallel
-        try {
-            for (Drive drive : getDriver().getDrivesAll()) {
-
-                ObjectPath path = new ObjectPath(drive, bucket, objectName);
-                File file = path.dataFilePath().toFile();
-                ((SimpleDrive) drive).putObjectDataVersionFile(bucket.getId(), objectName, version, file);
-            }
-        } catch (Exception e) {
-            throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName));
-        }
-    }
-
-    /**
-    private void saveObjectDataFile(ServerBucket bucket, String objectName, InputStream stream, String srcFileName,
-            int newVersion) {
-
-        int total_drives = getDriver().getDrivesAll().size();
-        byte[] buf = new byte[ServerConstant.BUFFER_SIZE];
-
-        BufferedOutputStream out[] = new BufferedOutputStream[total_drives];
-        InputStream sourceStream = null;
-
-        boolean isMainException = false;
-
-        try {
-
-            sourceStream = isEncrypt() ? getVirtualFileSystemService().getEncryptionService().encryptStream(stream) : stream;
-
-            int n_d = 0;
-            for (Drive drive : getDriver().getDrivesAll()) {
-
-                ObjectPath path = new ObjectPath(drive, bucket.getId(), objectName);
-                String sPath = path.dataFilePath().toString();
-                out[n_d++] = new BufferedOutputStream(new FileOutputStream(sPath), ServerConstant.BUFFER_SIZE);
-            }
-            int bytes_read = 0;
-
-            if (getDriver().getDrivesAll().size() < 2) {
-
-                while ((bytes_read = sourceStream.read(buf, 0, buf.length)) >= 0)
-                    for (int bytes = 0; bytes < total_drives; bytes++) {
-                        out[bytes].write(buf, 0, bytes_read);
-                    }
-            } else {
-
-                final int size = getDriver().getDrivesAll().size();
-                ExecutorService executor = getVirtualFileSystemService().getExecutorService();
-
-                while ((bytes_read = sourceStream.read(buf, 0, buf.length)) >= 0) {
-
-                    List<Callable<Boolean>> tasks = new ArrayList<Callable<Boolean>>(size);
-
-                    for (int index = 0; index < total_drives; index++) {
-
-                        final int t_index = index;
-                        final int t_bytes_read = bytes_read;
-
-                        tasks.add(() -> {
-                            try {
-                                out[t_index].write(buf, 0, t_bytes_read);
-                                return Boolean.valueOf(true);
-                            } catch (Exception e) {
-                                logger.error(e, SharedConstant.NOT_THROWN);
-                                return Boolean.valueOf(false);
-                            }
-                        });
-                    }
-
-                    try {
-                        List<Future<Boolean>> future = executor.invokeAll(tasks, 5, TimeUnit.MINUTES);
-                        Iterator<Future<Boolean>> it = future.iterator();
-                        while (it.hasNext()) {
-                            if (!it.next().get())
-                                throw new InternalCriticalException(getDriver().objectInfo(bucket, objectName, srcFileName));
-                        }
-                    } catch (InterruptedException | ExecutionException e) {
-                        throw new InternalCriticalException(e);
-                    }
-
-                }
-
-            } // else
-
-        } catch (Exception e) {
-            isMainException = true;
-            throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName, srcFileName));
-
-        } finally {
-            IOException secEx = null;
-
-            if (out != null) {
-                try {
-                    for (int n = 0; n < total_drives; n++) {
-                        if (out[n] != null)
-                            out[n].close();
-                    }
-                } catch (IOException e) {
-                    logger.error(e, getDriver().objectInfo(bucket, objectName, srcFileName)
-                            + (isMainException ? SharedConstant.NOT_THROWN : ""));
-                    secEx = e;
-                }
-            }
-
-            try {
-                if (sourceStream != null)
-                    sourceStream.close();
-            } catch (IOException e) {
-                logger.error(e, getDriver().objectInfo(bucket, objectName, srcFileName)
-                        + (isMainException ? SharedConstant.NOT_THROWN : ""));
-                secEx = e;
-            }
-            if (!isMainException && (secEx != null))
-                throw new InternalCriticalException(secEx);
-        }
-    }
-*/
-    
-    
-    private long saveObjectDataFile(ServerBucket bucket, String objectName, InputStream stream, String srcFileName,
-            int newVersion) {
-
-        int total_drives = getDriver().getDrivesAll().size();
-        //byte[] buf = new byte[ServerConstant.BUFFER_SIZE];
-
-        BufferedOutputStream out[] = new BufferedOutputStream[total_drives];
-       
-        boolean isMainException = false;
-
-        if (isEncrypt()) {
-        	
-        	EncryptedResult encryptedResult = getEncryptionService().encryptStream(stream);
-        	
-        	  try (InputStream sourceStream = encryptedResult.getInputStream() ) {
-
-                int n_d = 0;
-              
-                for (Drive drive : getDriver().getDrivesAll()) {
-
-                    ObjectPath path = new ObjectPath(drive, bucket.getId(), objectName);
-                    String sPath = path.dataFilePath().toString();
-                    out[n_d++] = new BufferedOutputStream(new FileOutputStream(sPath), ServerConstant.BUFFER_SIZE);
-                }
-                int bytes_read = 0;
-
-                
-                byte[] buf = new byte[ServerConstant.BUFFER_SIZE];
-                
-                if (getDriver().getDrivesAll().size() < 2) {
-
-                    while ((bytes_read = sourceStream.read(buf, 0, buf.length)) >= 0)
-                        for (int bytes = 0; bytes < total_drives; bytes++) {
-                            out[bytes].write(buf, 0, bytes_read);
-                        }
-                } else {
-
-                    final int size = getDriver().getDrivesAll().size();
-                    ExecutorService executor = getVirtualFileSystemService().getExecutorService();
-
-                    while ((bytes_read = sourceStream.read(buf, 0, buf.length)) >= 0) {
-
-                        List<Callable<Boolean>> tasks = new ArrayList<Callable<Boolean>>(size);
-
-                        for (int index = 0; index < total_drives; index++) {
-
-                            final int t_index = index;
-                            final int t_bytes_read = bytes_read;
-
-                            tasks.add(() -> {
-                                try {
-                                    out[t_index].write(buf, 0, t_bytes_read);
-                                    return Boolean.valueOf(true);
-                                } catch (Exception e) {
-                                    logger.error(e, SharedConstant.NOT_THROWN);
-                                    return Boolean.valueOf(false);
-                                }
-                            });
-                        }
-
-                        try {
-                            List<Future<Boolean>> future = executor.invokeAll(tasks, 5, TimeUnit.MINUTES);
-                            Iterator<Future<Boolean>> it = future.iterator();
-                            while (it.hasNext()) {
-                                if (!it.next().get())
-                                    throw new InternalCriticalException(getDriver().objectInfo(bucket, objectName, srcFileName));
-                            }
-                        } catch (InterruptedException | ExecutionException e) {
-                            throw new InternalCriticalException(e);
-                        }
-
-                    }
-
-                } // else < 2
-
-            
-                long totalBytesRead=encryptedResult.getCountingStream().getCount();
+				if (!restoreVersionObjectMetadata(bucket, metaToRestore.getObjectName(), metaToRestore.getVersion()))
+					throw new OdilonObjectNotFoundException(Optional.of(meta.systemTags).orElse("previous versions deleted"));
+
+				/** commit */
+				done = op.commit();
+
+				return metaToRestore;
+
+			} catch (OdilonObjectNotFoundException e1) {
+				done = false;
+				isMainException = true;
+				e1.setErrorMessage(e1.getErrorMessage() + " | " + objectInfo(bucket, objectName));
+				throw e1;
+
+			} catch (InternalCriticalException e1) {
+				isMainException = true;
+				throw e1;
+
+			} catch (Exception e) {
+				done = false;
+				isMainException = true;
+				throw new InternalCriticalException(e, objectInfo(bucket, objectName));
+
+			} finally {
+
+				try {
+					if (!done) {
+						try {
+							rollback(op);
+						} catch (Exception e) {
+							if (!isMainException)
+								throw new InternalCriticalException(e, objectInfo(bucket, objectName));
+							else
+								logger.error(e, objectInfo(bucket, objectName), SharedConstant.NOT_THROWN);
+						}
+					} else {
+						/** this is after commit, Sync by the moment see how to make it Async */
+						cleanUpRestoreVersion(op, bucket, objectName, beforeHeadVersion);
+					}
+				} finally {
+					getLockService().getBucketLock(bucket).readLock().unlock();
+				}
+			}
+		} finally {
+			objectWriteUnLock(bucket, objectName);
+		}
+	}
+
+	/**
+	 * <p>
+	 * This update does not generate a new Version of the ObjectMetadata. It
+	 * maintains the same ObjectMetadata version.<br/>
+	 * The only way to version Object is when the Object Data is updated
+	 * </p>
+	 * 
+	 * @param meta
+	 */
+	protected void updateObjectMetadata(ObjectMetadata meta) {
+
+		VirtualFileSystemOperation op = null;
+		boolean done = false;
+		boolean isMainException = false;
+		ServerBucket bucket = null;
+
+		getLockService().getObjectLock(meta.getBucketId(), meta.getObjectName()).writeLock().lock();
+
+		try {
+
+			getLockService().getBucketLock(meta.getBucketId()).readLock().lock();
+
+			try {
+
+				checkExistsBucket(meta.getBucketId());
+				bucket = getBucketCache().get(meta.getBucketId());
+
+				checkExistObject(bucket, meta.getObjectName());
+
+				/** backup */
+				backupMetadata(meta, bucket);
+
+				/** start operation */
+				op = getJournalService().updateObjectMetadata(getBucketCache().get(meta.getBucketId()), meta.getObjectName(), meta.getVersion());
+
+				saveObjectMetadata(meta);
+
+				/** commit */
+				done = op.commit();
+
+			} catch (InternalCriticalException e1) {
+				isMainException = true;
+				throw e1;
+
+			} catch (Exception e) {
+				isMainException = true;
+				throw new InternalCriticalException(e);
+
+			} finally {
+
+				try {
+					if (!done) {
+						try {
+							rollback(op);
+						} catch (Exception e) {
+							if (!isMainException)
+								throw new InternalCriticalException(e, getDriver().objectInfo(meta.bucketId, meta.objectName));
+							else
+								logger.error(e, objectInfo(meta), SharedConstant.NOT_THROWN);
+						}
+					} else {
+						/**
+						 * TODO AT -> Sync by the moment see how to make it Async
+						 */
+						cleanUpBackupMetadataDir(bucket, meta.getObjectName());
+					}
+
+				} finally {
+					getLockService().getBucketLock(bucket).readLock().unlock();
+				}
+			}
+		} finally {
+			objectWriteUnLock(meta.getBucketId(), meta.getObjectName());
+		}
+	}
+
+	protected void onAfterCommit(ServerBucket bucket, String objectName, int previousVersion, int currentVersion) {
+	}
+
+	@Override
+	protected Drive getObjectMetadataReadDrive(ServerBucket bucket, String objectName) {
+		return getDriver().getReadDrive(bucket, objectName);
+	}
+
+	/**
+	 * This check must be executed inside the critical section
+	 * 
+	 * @param bucket
+	 * @param objectName
+	 * @return
+	 */
+	protected boolean existsObjectMetadata(ServerBucket bucket, String objectName) {
+		if (existsCacheObject(bucket, objectName))
+			return true;
+		return getDriver().getReadDrive(bucket, objectName).existsObjectMetadata(bucket, objectName);
+	}
+
+	private void saveVersionObjectMetadata(ServerBucket bucket, String objectName, int version) {
+		// TODO AT: parallel
+		try {
+			for (Drive drive : getDriver().getDrivesAll())
+				drive.putObjectMetadataVersionFile(bucket, objectName, version, drive.getObjectMetadataFile(bucket, objectName));
+
+		} catch (Exception e) {
+			throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName));
+		}
+
+	}
+
+	private void saveVersionObjectDataFile(ServerBucket bucket, String objectName, int version) {
+		// TODO AT: parallel
+		try {
+			for (Drive drive : getDriver().getDrivesAll()) {
+
+				ObjectPath path = new ObjectPath(drive, bucket, objectName);
+				File file = path.dataFilePath().toFile();
+				((SimpleDrive) drive).putObjectDataVersionFile(bucket.getId(), objectName, version, file);
+			}
+		} catch (Exception e) {
+			throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName));
+		}
+	}
+
+	/**
+	 * private void saveObjectDataFile(ServerBucket bucket, String objectName,
+	 * InputStream stream, String srcFileName, int newVersion) {
+	 * 
+	 * int total_drives = getDriver().getDrivesAll().size(); byte[] buf = new
+	 * byte[ServerConstant.BUFFER_SIZE];
+	 * 
+	 * BufferedOutputStream out[] = new BufferedOutputStream[total_drives];
+	 * InputStream sourceStream = null;
+	 * 
+	 * boolean isMainException = false;
+	 * 
+	 * try {
+	 * 
+	 * sourceStream = isEncrypt() ?
+	 * getVirtualFileSystemService().getEncryptionService().encryptStream(stream) :
+	 * stream;
+	 * 
+	 * int n_d = 0; for (Drive drive : getDriver().getDrivesAll()) {
+	 * 
+	 * ObjectPath path = new ObjectPath(drive, bucket.getId(), objectName); String
+	 * sPath = path.dataFilePath().toString(); out[n_d++] = new
+	 * BufferedOutputStream(new FileOutputStream(sPath),
+	 * ServerConstant.BUFFER_SIZE); } int bytes_read = 0;
+	 * 
+	 * if (getDriver().getDrivesAll().size() < 2) {
+	 * 
+	 * while ((bytes_read = sourceStream.read(buf, 0, buf.length)) >= 0) for (int
+	 * bytes = 0; bytes < total_drives; bytes++) { out[bytes].write(buf, 0,
+	 * bytes_read); } } else {
+	 * 
+	 * final int size = getDriver().getDrivesAll().size(); ExecutorService executor
+	 * = getVirtualFileSystemService().getExecutorService();
+	 * 
+	 * while ((bytes_read = sourceStream.read(buf, 0, buf.length)) >= 0) {
+	 * 
+	 * List<Callable<Boolean>> tasks = new ArrayList<Callable<Boolean>>(size);
+	 * 
+	 * for (int index = 0; index < total_drives; index++) {
+	 * 
+	 * final int t_index = index; final int t_bytes_read = bytes_read;
+	 * 
+	 * tasks.add(() -> { try { out[t_index].write(buf, 0, t_bytes_read); return
+	 * Boolean.valueOf(true); } catch (Exception e) { logger.error(e,
+	 * SharedConstant.NOT_THROWN); return Boolean.valueOf(false); } }); }
+	 * 
+	 * try { List<Future<Boolean>> future = executor.invokeAll(tasks, 5,
+	 * TimeUnit.MINUTES); Iterator<Future<Boolean>> it = future.iterator(); while
+	 * (it.hasNext()) { if (!it.next().get()) throw new
+	 * InternalCriticalException(getDriver().objectInfo(bucket, objectName,
+	 * srcFileName)); } } catch (InterruptedException | ExecutionException e) {
+	 * throw new InternalCriticalException(e); }
+	 * 
+	 * }
+	 * 
+	 * } // else
+	 * 
+	 * } catch (Exception e) { isMainException = true; throw new
+	 * InternalCriticalException(e, getDriver().objectInfo(bucket, objectName,
+	 * srcFileName));
+	 * 
+	 * } finally { IOException secEx = null;
+	 * 
+	 * if (out != null) { try { for (int n = 0; n < total_drives; n++) { if (out[n]
+	 * != null) out[n].close(); } } catch (IOException e) { logger.error(e,
+	 * getDriver().objectInfo(bucket, objectName, srcFileName) + (isMainException ?
+	 * SharedConstant.NOT_THROWN : "")); secEx = e; } }
+	 * 
+	 * try { if (sourceStream != null) sourceStream.close(); } catch (IOException e)
+	 * { logger.error(e, getDriver().objectInfo(bucket, objectName, srcFileName) +
+	 * (isMainException ? SharedConstant.NOT_THROWN : "")); secEx = e; } if
+	 * (!isMainException && (secEx != null)) throw new
+	 * InternalCriticalException(secEx); } }
+	 */
+
+	private long saveObjectDataFile(ServerBucket bucket, String objectName, InputStream stream, String srcFileName, int newVersion) {
+
+		int total_drives = getDriver().getDrivesAll().size();
+		// byte[] buf = new byte[ServerConstant.BUFFER_SIZE];
+
+		BufferedOutputStream out[] = new BufferedOutputStream[total_drives];
+
+		boolean isMainException = false;
+
+		if (isEncrypt()) {
+
+			EncryptedResult encryptedResult = getEncryptionService().encryptStream(stream);
+
+			try (InputStream sourceStream = encryptedResult.getInputStream()) {
+
+				int n_d = 0;
+
+				for (Drive drive : getDriver().getDrivesAll()) {
+
+					ObjectPath path = new ObjectPath(drive, bucket.getId(), objectName);
+					String sPath = path.dataFilePath().toString();
+					out[n_d++] = new BufferedOutputStream(new FileOutputStream(sPath), ServerConstant.BUFFER_SIZE);
+				}
+				int bytes_read = 0;
+
+				byte[] buf = new byte[ServerConstant.BUFFER_SIZE];
+
+				if (getDriver().getDrivesAll().size() < 2) {
+
+					while ((bytes_read = sourceStream.read(buf, 0, buf.length)) >= 0)
+						for (int bytes = 0; bytes < total_drives; bytes++) {
+							out[bytes].write(buf, 0, bytes_read);
+						}
+				} else {
+
+					final int size = getDriver().getDrivesAll().size();
+					ExecutorService executor = getVirtualFileSystemService().getExecutorService();
+
+					while ((bytes_read = sourceStream.read(buf, 0, buf.length)) >= 0) {
+
+						List<Callable<Boolean>> tasks = new ArrayList<Callable<Boolean>>(size);
+
+						for (int index = 0; index < total_drives; index++) {
+
+							final int t_index = index;
+							final int t_bytes_read = bytes_read;
+
+							tasks.add(() -> {
+								try {
+									out[t_index].write(buf, 0, t_bytes_read);
+									return Boolean.valueOf(true);
+								} catch (Exception e) {
+									logger.error(e, SharedConstant.NOT_THROWN);
+									return Boolean.valueOf(false);
+								}
+							});
+						}
+
+						try {
+							List<Future<Boolean>> future = executor.invokeAll(tasks, 5, TimeUnit.MINUTES);
+							Iterator<Future<Boolean>> it = future.iterator();
+							while (it.hasNext()) {
+								if (!it.next().get())
+									throw new InternalCriticalException(getDriver().objectInfo(bucket, objectName, srcFileName));
+							}
+						} catch (InterruptedException | ExecutionException e) {
+							throw new InternalCriticalException(e);
+						}
+
+					}
+
+				} // else < 2
+
+				long totalBytesRead = encryptedResult.getCountingStream().getCount();
 				return totalBytesRead;
 
-				
-        	  } catch (Exception e) {
-                isMainException = true;
-                throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName, srcFileName));
+			} catch (Exception e) {
+				isMainException = true;
+				throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName, srcFileName));
 
-            } finally {
-                IOException secEx = null;
+			} finally {
+				IOException secEx = null;
 
-                if (out != null) {
-                    try {
-                        for (int n = 0; n < total_drives; n++) {
-                            if (out[n] != null)
-                                out[n].close();
-                        }
-                    } catch (IOException e) {
-                        logger.error(e, getDriver().objectInfo(bucket, objectName, srcFileName)
-                                + (isMainException ? SharedConstant.NOT_THROWN : ""));
-                        secEx = e;
-                    }
-                }
+				if (out != null) {
+					try {
+						for (int n = 0; n < total_drives; n++) {
+							if (out[n] != null)
+								out[n].close();
+						}
+					} catch (IOException e) {
+						logger.error(e, getDriver().objectInfo(bucket, objectName, srcFileName) + (isMainException ? SharedConstant.NOT_THROWN : ""));
+						secEx = e;
+					}
+				}
 
-                if (!isMainException && (secEx != null))
-                    throw new InternalCriticalException(secEx);
-            }
-        	
-        }
-      
-        // not encrypted --
-        
-        else {
-        	
-        	  InputStream sourceStream =null;
-        	  
-        	  try {
+				if (!isMainException && (secEx != null))
+					throw new InternalCriticalException(secEx);
+			}
 
-        		  sourceStream = stream;
-        		  
-        		  long totalBytesRead = 0;
-        		  
-                  int n_d = 0;
-                  for (Drive drive : getDriver().getDrivesAll()) {
+		}
 
-                      ObjectPath path = new ObjectPath(drive, bucket.getId(), objectName);
-                      String sPath = path.dataFilePath().toString();
-                      out[n_d++] = new BufferedOutputStream(new FileOutputStream(sPath), ServerConstant.BUFFER_SIZE);
-                  }
-                  int bytes_read = 0;
-                  
-                  byte[] buf = new byte[ServerConstant.BUFFER_SIZE];
+		// not encrypted --
 
-                  if (getDriver().getDrivesAll().size() < 2) {
+		else {
 
-                      while ((bytes_read = sourceStream.read(buf, 0, buf.length)) >= 0)
-                          for (int bytes = 0; bytes < total_drives; bytes++) {
-                              out[bytes].write(buf, 0, bytes_read);
-                              totalBytesRead += bytes_read;
-                              
-                          }
-                  } else {
+			InputStream sourceStream = null;
 
-                      final int size = getDriver().getDrivesAll().size();
-                      ExecutorService executor = getVirtualFileSystemService().getExecutorService();
+			try {
 
-                      while ((bytes_read = sourceStream.read(buf, 0, buf.length)) >= 0) {
-                    	  
-                    	  totalBytesRead += bytes_read;
-                          List<Callable<Boolean>> tasks = new ArrayList<Callable<Boolean>>(size);
+				sourceStream = stream;
 
-                          for (int index = 0; index < total_drives; index++) {
-                              final int t_index = index;
-                              final int t_bytes_read = bytes_read;
+				long totalBytesRead = 0;
 
-                              tasks.add(() -> {
-                                  try {
-                                      out[t_index].write(buf, 0, t_bytes_read);
-                                      return Boolean.valueOf(true);
-                                  } catch (Exception e) {
-                                      logger.error(e, SharedConstant.NOT_THROWN);
-                                      return Boolean.valueOf(false);
-                                  }
-                              });
-                          }
+				int n_d = 0;
+				for (Drive drive : getDriver().getDrivesAll()) {
 
-                          try {
-                              List<Future<Boolean>> future = executor.invokeAll(tasks, 5, TimeUnit.MINUTES);
-                              Iterator<Future<Boolean>> it = future.iterator();
-                              while (it.hasNext()) {
-                                  if (!it.next().get())
-                                      throw new InternalCriticalException(getDriver().objectInfo(bucket, objectName, srcFileName));
-                              }
-                          } catch (InterruptedException | ExecutionException e) {
-                              throw new InternalCriticalException(e);
-                          }
+					ObjectPath path = new ObjectPath(drive, bucket.getId(), objectName);
+					String sPath = path.dataFilePath().toString();
+					out[n_d++] = new BufferedOutputStream(new FileOutputStream(sPath), ServerConstant.BUFFER_SIZE);
+				}
+				int bytes_read = 0;
 
-                      }
-         
-                      
-                  } // else
-                  
-                  return totalBytesRead;
+				byte[] buf = new byte[ServerConstant.BUFFER_SIZE];
 
-              } catch (Exception e) {
-                  isMainException = true;
-                  throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName, srcFileName));
+				if (getDriver().getDrivesAll().size() < 2) {
 
-              } finally {
-            	  
-                  IOException secEx = null;
+					while ((bytes_read = sourceStream.read(buf, 0, buf.length)) >= 0)
+						for (int bytes = 0; bytes < total_drives; bytes++) {
+							out[bytes].write(buf, 0, bytes_read);
+							totalBytesRead += bytes_read;
 
-                  if (out != null) {
-                      try {
-                          for (int n = 0; n < total_drives; n++) {
-                              if (out[n] != null)
-                                  out[n].close();
-                          }
-                      } catch (IOException e) {
-                          logger.error(e, getDriver().objectInfo(bucket, objectName, srcFileName)
-                                  + (isMainException ? SharedConstant.NOT_THROWN : ""));
-                          secEx = e;
-                      }
-                  }
+						}
+				} else {
 
-                  try {
-                      if (sourceStream != null)
-                          sourceStream.close();
-                  } catch (IOException e) {
-                      logger.error(e, getDriver().objectInfo(bucket, objectName, srcFileName)
-                              + (isMainException ? SharedConstant.NOT_THROWN : ""));
-                      secEx = e;
-                  }
-                  if (!isMainException && (secEx != null))
-                      throw new InternalCriticalException(secEx);
-              }
-        }
-       
-    }
-    
-     
-    
-    private void saveObjectMetadata(ObjectMetadata meta) {
-        Check.requireNonNullArgument(meta, "meta is null");
-        for (Drive drive : getDriver().getDrivesAll()) {
-            drive.saveObjectMetadata(meta);
-        }
-    }
+					final int size = getDriver().getDrivesAll().size();
+					ExecutorService executor = getVirtualFileSystemService().getExecutorService();
 
-    /**
-     * @param bucket
-     * @param objectName
-     * @param stream
-     * @param srcFileName
-     */
-    private void saveObjectMetadata(ServerBucket bucket, String objectName, String srcFileName, String contentType, int version,
-            Optional<List<String>> customTags, Optional<Boolean> o_public) {
+					while ((bytes_read = sourceStream.read(buf, 0, buf.length)) >= 0) {
 
-        Check.requireNonNullArgument(bucket, "bucket is null");
+						totalBytesRead += bytes_read;
+						List<Callable<Boolean>> tasks = new ArrayList<Callable<Boolean>>(size);
 
-        OffsetDateTime now = OffsetDateTime.now();
-        String sha = null;
-        String basedrive = null;
+						for (int index = 0; index < total_drives; index++) {
+							final int t_index = index;
+							final int t_bytes_read = bytes_read;
 
-        final List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
+							tasks.add(() -> {
+								try {
+									out[t_index].write(buf, 0, t_bytes_read);
+									return Boolean.valueOf(true);
+								} catch (Exception e) {
+									logger.error(e, SharedConstant.NOT_THROWN);
+									return Boolean.valueOf(false);
+								}
+							});
+						}
 
-        // try {
+						try {
+							List<Future<Boolean>> future = executor.invokeAll(tasks, 5, TimeUnit.MINUTES);
+							Iterator<Future<Boolean>> it = future.iterator();
+							while (it.hasNext()) {
+								if (!it.next().get())
+									throw new InternalCriticalException(getDriver().objectInfo(bucket, objectName, srcFileName));
+							}
+						} catch (InterruptedException | ExecutionException e) {
+							throw new InternalCriticalException(e);
+						}
 
-        for (Drive drive : getDriver().getDrivesAll()) {
-            ObjectPath path = new ObjectPath(drive, bucket, objectName);
-            File file = path.dataFilePath().toFile();
+					}
 
-            try {
-                String sha256 = OdilonFileUtils.calculateSHA256String(file);
+				} // else
 
-                if (sha == null) {
-                    sha = sha256;
-                    basedrive = drive.getName();
-                } else {
-                    if (!sha256.equals(sha))
-                        throw new InternalCriticalException("SHA 256 are not equal for drives -> " + basedrive + ":" + sha + " vs "
-                                + drive.getName() + ":" + sha256);
-                }
+				return totalBytesRead;
 
-                ObjectMetadata meta = new ObjectMetadata(bucket.getId(), objectName);
-                meta.fileName = srcFileName;
-                meta.appVersion = OdilonVersion.VERSION;
-                meta.contentType = contentType;
-                meta.encrypt = getVirtualFileSystemService().isEncrypt();
-                meta.vault = getVirtualFileSystemService().isUseVaultNewFiles();
-                meta.creationDate = now;
-                meta.version = version;
-                meta.versioncreationDate = meta.creationDate;
-                meta.length = file.length();
-                meta.etag = sha256; /** sha256 is calculated on the encrypted file */
-                meta.integrityCheck = now;
-                meta.sha256 = sha256;
-                meta.status = ObjectStatus.ENABLED;
-                meta.drive = drive.getName();
-                meta.setPublicAccess(o_public.orElse(Boolean.FALSE));
-                meta.raid = String.valueOf(getRedundancyLevel().getCode()).trim();
-                if (customTags.isPresent())
-                    meta.customTags = customTags.get();
+			} catch (Exception e) {
+				isMainException = true;
+				throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName, srcFileName));
 
-                list.add(meta);
+			} finally {
 
-            } catch (Exception e) {
-                String msg = getDriver().objectInfo(bucket, objectName, srcFileName);
-                logger.error(e, msg);
-                throw new InternalCriticalException(e, msg);
-            }
-        }
+				IOException secEx = null;
 
-        /** save in parallel */
-        saveRAIDOneObjectMetadataToDisk(getDriver().getDrivesAll(), list, true);
-    }
+				if (out != null) {
+					try {
+						for (int n = 0; n < total_drives; n++) {
+							if (out[n] != null)
+								out[n].close();
+						}
+					} catch (IOException e) {
+						logger.error(e, getDriver().objectInfo(bucket, objectName, srcFileName) + (isMainException ? SharedConstant.NOT_THROWN : ""));
+						secEx = e;
+					}
+				}
 
-    private boolean restoreVersionObjectMetadata(ServerBucket bucket, String objectName, int version) {
-        try {
+				try {
+					if (sourceStream != null)
+						sourceStream.close();
+				} catch (IOException e) {
+					logger.error(e, getDriver().objectInfo(bucket, objectName, srcFileName) + (isMainException ? SharedConstant.NOT_THROWN : ""));
+					secEx = e;
+				}
+				if (!isMainException && (secEx != null))
+					throw new InternalCriticalException(secEx);
+			}
+		}
 
-            boolean success = true;
-            for (Drive drive : getDriver().getDrivesAll()) {
-                File file = drive.getObjectMetadataVersionFile(bucket, objectName, version);
-                if (file.exists()) {
-                    drive.putObjectMetadataFile(bucket, objectName, file);
-                    FileUtils.deleteQuietly(file);
-                } else
-                    success = false;
-            }
-            return success;
-        } catch (Exception e) {
-            throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName));
-        }
-    }
+	}
 
-    private boolean restoreVersionObjectDataFile(ServerBucket bucket, String objectName, int version) {
-        try {
-            boolean success = true;
+	private void saveObjectMetadata(ObjectMetadata meta) {
+		Check.requireNonNullArgument(meta, "meta is null");
+		for (Drive drive : getDriver().getDrivesAll()) {
+			drive.saveObjectMetadata(meta);
+		}
+	}
 
-            for (Drive drive : getDriver().getDrivesAll()) {
-                ObjectPath path = new ObjectPath(drive, bucket, objectName);
-                File file = path.dataFileVersionPath(version).toFile();
-                if (file.exists()) {
-                    ((SimpleDrive) drive).putObjectDataFile(bucket.getId(), objectName, file);
-                    FileUtils.deleteQuietly(file);
-                } else
-                    success = false;
-            }
-            return success;
-        } catch (Exception e) {
-            throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName));
-        }
-    }
+	/**
+	 * @param bucket
+	 * @param objectName
+	 * @param stream
+	 * @param srcFileName
+	 */
+	private void saveObjectMetadata(ServerBucket bucket, String objectName, String srcFileName, String contentType, int version, Optional<List<String>> customTags, Optional<Boolean> o_public) {
 
-    /**
-     * 
-     * 
-     * @param op               can be null
-     * @param bucket           not null
-     * @param objectName       not null
-     * @param versionDiscarded if<0 do nothing
-     */
-    private void cleanUpRestoreVersion(VirtualFileSystemOperation op, ServerBucket bucket, String objectName,
-            int versionDiscarded) {
+		Check.requireNonNullArgument(bucket, "bucket is null");
 
-        if ((op == null) || (versionDiscarded < 0))
-            return;
+		OffsetDateTime now = OffsetDateTime.now();
+		String sha = null;
+		String basedrive = null;
 
-        try {
-            for (Drive drive : getDriver().getDrivesAll()) {
-                FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(bucket, objectName, versionDiscarded));
+		final List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
 
-                ObjectPath path = new ObjectPath(drive, bucket, objectName);
-                FileUtils.deleteQuietly(path.dataFileVersionPath(versionDiscarded).toFile());
-            }
-        } catch (Exception e) {
-            logger.error(e, SharedConstant.NOT_THROWN);
-        }
-    }
+		// try {
 
-    /**
-     * copy metadata directory
-     * 
-     * @param bucket
-     * @param objectName
-     */
-    private void backupMetadata(ObjectMetadata meta, ServerBucket bucket) {
-        Check.requireNonNullArgument(meta, "meta is null");
-        try {
-            for (Drive drive : getDriver().getDrivesAll()) {
-                String objectMetadataDirPath = drive.getObjectMetadataDirPath(bucket, meta.objectName);
-                String objectMetadataBackupDirPath = drive.getBucketWorkDirPath(bucket) + File.separator + meta.objectName;
-                File src = new File(objectMetadataDirPath);
-                if (src.exists())
-                    FileUtils.copyDirectory(src, new File(objectMetadataBackupDirPath));
-            }
+		for (Drive drive : getDriver().getDrivesAll()) {
+			ObjectPath path = new ObjectPath(drive, bucket, objectName);
+			File file = path.dataFilePath().toFile();
 
-        } catch (IOException e) {
-            throw new InternalCriticalException(e, meta.toString());
-        }
-    }
+			try {
+				String sha256 = OdilonFileUtils.calculateSHA256String(file);
 
-    /**
-     * 
-     * @param op              can be null (do nothing)
-     * @param bucket          not null
-     * @param objectName      not null
-     * @param previousVersion >=0
-     * @param currentVersion  > 0
-     */
-    private void cleanUpUpdate(VirtualFileSystemOperation op, ServerBucket bucket, String objectName, int previousVersion,
-            int currentVersion) {
+				if (sha == null) {
+					sha = sha256;
+					basedrive = drive.getName();
+				} else {
+					if (!sha256.equals(sha))
+						throw new InternalCriticalException("SHA 256 are not equal for drives -> " + basedrive + ":" + sha + " vs " + drive.getName() + ":" + sha256);
+				}
 
-        if (op == null)
-            return;
+				ObjectMetadata meta = new ObjectMetadata(bucket.getId(), objectName);
+				meta.fileName = srcFileName;
+				meta.appVersion = OdilonVersion.VERSION;
+				meta.contentType = contentType;
+				meta.encrypt = getVirtualFileSystemService().isEncrypt();
+				meta.vault = getVirtualFileSystemService().isUseVaultNewFiles();
+				meta.creationDate = now;
+				meta.version = version;
+				meta.versioncreationDate = meta.creationDate;
+				meta.length = file.length();
+				meta.etag = sha256; /** sha256 is calculated on the encrypted file */
+				meta.integrityCheck = now;
+				meta.sha256 = sha256;
+				meta.status = ObjectStatus.ENABLED;
+				meta.drive = drive.getName();
+				meta.setPublicAccess(o_public.orElse(Boolean.FALSE));
+				meta.raid = String.valueOf(getRedundancyLevel().getCode()).trim();
+				if (customTags.isPresent())
+					meta.customTags = customTags.get();
 
-        try {
-            Check.requireNonNullArgument(bucket, "meta is null");
-            if (!getVirtualFileSystemService().getServerSettings().isVersionControl()) {
-                for (Drive drive : getDriver().getDrivesAll()) {
-                    FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(bucket, objectName, previousVersion));
-                    ObjectPath path = new ObjectPath(drive, bucket, objectName);
-                    File file = path.dataFileVersionPath(previousVersion).toFile();
-                    FileUtils.deleteQuietly(file);
-                }
-            }
-        } catch (Exception e) {
-            logger.error(e, SharedConstant.NOT_THROWN);
-        }
-    }
+				list.add(meta);
 
-    private void cleanUpBackupMetadataDir(ServerBucket bucket, String objectName) {
-        try {
+			} catch (Exception e) {
+				String msg = getDriver().objectInfo(bucket, objectName, srcFileName);
+				logger.error(e, msg);
+				throw new InternalCriticalException(e, msg);
+			}
+		}
 
-            if (bucket == null)
-                return;
-            /** delete backup Metadata */
-            for (Drive drive : getDriver().getDrivesAll()) {
-                FileUtils.deleteQuietly(new File(drive.getBucketWorkDirPath(bucket) + File.separator + objectName));
-            }
-        } catch (Exception e) {
-            logger.error(e, objectInfo(bucket, objectName), SharedConstant.NOT_THROWN);
-        }
-    }
+		/** save in parallel */
+		saveRAIDOneObjectMetadataToDisk(getDriver().getDrivesAll(), list, true);
+	}
+
+	private boolean restoreVersionObjectMetadata(ServerBucket bucket, String objectName, int version) {
+		try {
+
+			boolean success = true;
+			for (Drive drive : getDriver().getDrivesAll()) {
+				File file = drive.getObjectMetadataVersionFile(bucket, objectName, version);
+				if (file.exists()) {
+					drive.putObjectMetadataFile(bucket, objectName, file);
+					FileUtils.deleteQuietly(file);
+				} else
+					success = false;
+			}
+			return success;
+		} catch (Exception e) {
+			throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName));
+		}
+	}
+
+	private boolean restoreVersionObjectDataFile(ServerBucket bucket, String objectName, int version) {
+		try {
+			boolean success = true;
+
+			for (Drive drive : getDriver().getDrivesAll()) {
+				ObjectPath path = new ObjectPath(drive, bucket, objectName);
+				File file = path.dataFileVersionPath(version).toFile();
+				if (file.exists()) {
+					((SimpleDrive) drive).putObjectDataFile(bucket.getId(), objectName, file);
+					FileUtils.deleteQuietly(file);
+				} else
+					success = false;
+			}
+			return success;
+		} catch (Exception e) {
+			throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName));
+		}
+	}
+
+	/**
+	 * 
+	 * 
+	 * @param op               can be null
+	 * @param bucket           not null
+	 * @param objectName       not null
+	 * @param versionDiscarded if<0 do nothing
+	 */
+	private void cleanUpRestoreVersion(VirtualFileSystemOperation op, ServerBucket bucket, String objectName, int versionDiscarded) {
+
+		if ((op == null) || (versionDiscarded < 0))
+			return;
+
+		try {
+			for (Drive drive : getDriver().getDrivesAll()) {
+				FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(bucket, objectName, versionDiscarded));
+
+				ObjectPath path = new ObjectPath(drive, bucket, objectName);
+				FileUtils.deleteQuietly(path.dataFileVersionPath(versionDiscarded).toFile());
+			}
+		} catch (Exception e) {
+			logger.error(e, SharedConstant.NOT_THROWN);
+		}
+	}
+
+	/**
+	 * copy metadata directory
+	 * 
+	 * @param bucket
+	 * @param objectName
+	 */
+	private void backupMetadata(ObjectMetadata meta, ServerBucket bucket) {
+		Check.requireNonNullArgument(meta, "meta is null");
+		try {
+			for (Drive drive : getDriver().getDrivesAll()) {
+				String objectMetadataDirPath = drive.getObjectMetadataDirPath(bucket, meta.objectName);
+				String objectMetadataBackupDirPath = drive.getBucketWorkDirPath(bucket) + File.separator + meta.objectName;
+				File src = new File(objectMetadataDirPath);
+				if (src.exists())
+					FileUtils.copyDirectory(src, new File(objectMetadataBackupDirPath));
+			}
+
+		} catch (IOException e) {
+			throw new InternalCriticalException(e, meta.toString());
+		}
+	}
+
+	/**
+	 * 
+	 * @param op              can be null (do nothing)
+	 * @param bucket          not null
+	 * @param objectName      not null
+	 * @param previousVersion >=0
+	 * @param currentVersion  > 0
+	 */
+	private void cleanUpUpdate(VirtualFileSystemOperation op, ServerBucket bucket, String objectName, int previousVersion, int currentVersion) {
+
+		if (op == null)
+			return;
+
+		try {
+			Check.requireNonNullArgument(bucket, "meta is null");
+			if (!getVirtualFileSystemService().getServerSettings().isVersionControl()) {
+				for (Drive drive : getDriver().getDrivesAll()) {
+					FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(bucket, objectName, previousVersion));
+					ObjectPath path = new ObjectPath(drive, bucket, objectName);
+					File file = path.dataFileVersionPath(previousVersion).toFile();
+					FileUtils.deleteQuietly(file);
+				}
+			}
+		} catch (Exception e) {
+			logger.error(e, SharedConstant.NOT_THROWN);
+		}
+	}
+
+	private void cleanUpBackupMetadataDir(ServerBucket bucket, String objectName) {
+		try {
+
+			if (bucket == null)
+				return;
+			/** delete backup Metadata */
+			for (Drive drive : getDriver().getDrivesAll()) {
+				FileUtils.deleteQuietly(new File(drive.getBucketWorkDirPath(bucket) + File.separator + objectName));
+			}
+		} catch (Exception e) {
+			logger.error(e, objectInfo(bucket, objectName), SharedConstant.NOT_THROWN);
+		}
+	}
 
 }

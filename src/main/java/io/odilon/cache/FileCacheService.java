@@ -54,13 +54,19 @@ import io.odilon.virtualFileSystem.model.OperationCode;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
+ * * <p>
+ * Odilon contains two cache services: {@link ObjectMetadataCacheService} 
+ * for {@link ObjectMetadata} and {@link FileCacheService} used by RAID 6
+ * ({@link RAIDSixDriver}) to store decoded (but encrypted) files.
+ * </p>
+ * 
  * <p>
  * {@link File} cache used by {@link RAIDSixDriver} (the other RAID
  * configurations do not need it).
  * </p>
  * <p>
- * It Uses {@link Caffeine} to keep references to entries in memory. On eviction
- * it has to remove the {@link File} from the File System
+ * It Uses {@link Caffeine} to keep references to entries in memory. 
+ * On eviction it has to remove the {@link File} from the File System
  * ({@link FileCacheService#onRemoval}).
  * </p>
  * <p>

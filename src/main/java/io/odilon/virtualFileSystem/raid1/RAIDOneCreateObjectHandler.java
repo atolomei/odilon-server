@@ -147,17 +147,17 @@ public class RAIDOneCreateObjectHandler extends RAIDOneTransactionObjectHandler 
 		int total_drives = getDriver().getDrivesAll().size();
 
 		long totalBytesRead = 0;
-		
+
 		byte[] buf = new byte[ServerConstant.BUFFER_SIZE];
 
 		BufferedOutputStream out[] = new BufferedOutputStream[total_drives];
 		boolean isMainException = false;
 
 		if (isEncrypt()) {
-			
+
 			EncryptedResult encryptedResult = getEncryptionService().encryptStream(stream);
-			
-			try (InputStream sourceStream = encryptedResult.getInputStream() ) {
+
+			try (InputStream sourceStream = encryptedResult.getInputStream()) {
 				int n_d = 0;
 				for (Drive drive : getDriver().getDrivesAll()) {
 
@@ -173,7 +173,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneTransactionObjectHandler 
 					while ((bytes_read = sourceStream.read(buf, 0, buf.length)) >= 0) {
 						for (int bytes = 0; bytes < total_drives; bytes++) {
 							out[bytes].write(buf, 0, bytes_read);
-							  
+
 						}
 					}
 				} else {
@@ -183,9 +183,9 @@ public class RAIDOneCreateObjectHandler extends RAIDOneTransactionObjectHandler 
 					ExecutorService executor = getVirtualFileSystemService().getExecutorService();
 
 					while ((bytes_read = sourceStream.read(buf, 0, buf.length)) >= 0) {
-						
+
 						List<Callable<Boolean>> tasks = new ArrayList<Callable<Boolean>>(size);
-			
+
 						for (int index = 0; index < total_drives; index++) {
 							final int t_index = index;
 							final int t_bytes_read = bytes_read;
@@ -212,10 +212,10 @@ public class RAIDOneCreateObjectHandler extends RAIDOneTransactionObjectHandler 
 
 					}
 				} // else
-				
-				totalBytesRead=encryptedResult.getCountingStream().getCount();
+
+				totalBytesRead = encryptedResult.getCountingStream().getCount();
 				return totalBytesRead;
-				
+
 			} catch (InternalCriticalException e) {
 				isMainException = true;
 				throw e;
@@ -239,10 +239,9 @@ public class RAIDOneCreateObjectHandler extends RAIDOneTransactionObjectHandler 
 				if (!isMainException && (secEx != null))
 					throw new InternalCriticalException(secEx);
 			}
-			
-		}
-		else { //[A] -------------------
-			
+
+		} else { // [A] -------------------
+
 			try (InputStream sourceStream = stream) {
 				int n_d = 0;
 				for (Drive drive : getDriver().getDrivesAll()) {
@@ -259,7 +258,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneTransactionObjectHandler 
 					while ((bytes_read = sourceStream.read(buf, 0, buf.length)) >= 0) {
 						for (int bytes = 0; bytes < total_drives; bytes++) {
 							out[bytes].write(buf, 0, bytes_read);
-							 totalBytesRead+=bytes_read;
+							totalBytesRead += bytes_read;
 						}
 					}
 				} else {
@@ -269,9 +268,9 @@ public class RAIDOneCreateObjectHandler extends RAIDOneTransactionObjectHandler 
 					ExecutorService executor = getVirtualFileSystemService().getExecutorService();
 
 					while ((bytes_read = sourceStream.read(buf, 0, buf.length)) >= 0) {
-						
-						totalBytesRead+=bytes_read;
-						
+
+						totalBytesRead += bytes_read;
+
 						List<Callable<Boolean>> tasks = new ArrayList<Callable<Boolean>>(size);
 						for (int index = 0; index < total_drives; index++) {
 							final int t_index = index;
@@ -299,10 +298,9 @@ public class RAIDOneCreateObjectHandler extends RAIDOneTransactionObjectHandler 
 
 					}
 				} /** for 2 or more disks copy in parallel */
-		
+
 				return totalBytesRead;
 
-			
 			} catch (InternalCriticalException e) {
 				isMainException = true;
 				throw e;
@@ -326,9 +324,9 @@ public class RAIDOneCreateObjectHandler extends RAIDOneTransactionObjectHandler 
 				if (!isMainException && (secEx != null))
 					throw new InternalCriticalException(secEx);
 			}
-			
+
 		} // end[A]
-		
+
 	}
 
 	/**
@@ -380,8 +378,8 @@ public class RAIDOneCreateObjectHandler extends RAIDOneTransactionObjectHandler 
 				meta.setIntegrityCheck(now);
 				meta.setStatus(ObjectStatus.ENABLED);
 				meta.setDrive(drive.getName());
-				meta.setPublicAccess( o_public.orElse(Boolean.FALSE));
-				
+				meta.setPublicAccess(o_public.orElse(Boolean.FALSE));
+
 				meta.setRaid(String.valueOf(getRedundancyLevel().getCode()).trim());
 				meta.setRaidDrives(getDriver().getTotalDisks());
 

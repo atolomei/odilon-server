@@ -41,72 +41,70 @@ import io.odilon.model.SharedConstant;
 @JsonTypeName("afterUpdateObject")
 public class AfterUpdateObjectServiceRequest extends AbstractServiceRequest implements StandardServiceRequest {
 
-    static private Logger logger = Logger.getLogger(AfterUpdateObjectServiceRequest.class.getName());
+	static private Logger logger = Logger.getLogger(AfterUpdateObjectServiceRequest.class.getName());
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    @JsonProperty("bucketName")
-    String bucketName;
+	@JsonProperty("bucketName")
+	String bucketName;
 
-    @JsonProperty("objectName")
-    String objectName;
+	@JsonProperty("objectName")
+	String objectName;
 
-    @JsonIgnore
-    private boolean isSuccess = false;
+	@JsonIgnore
+	private boolean isSuccess = false;
 
-    protected AfterUpdateObjectServiceRequest() {
-    }
+	protected AfterUpdateObjectServiceRequest() {
+	}
 
-    public AfterUpdateObjectServiceRequest(String bucketName, String objectName) {
-        this.bucketName = bucketName;
-        this.objectName = objectName;
-    }
+	public AfterUpdateObjectServiceRequest(String bucketName, String objectName) {
+		this.bucketName = bucketName;
+		this.objectName = objectName;
+	}
 
-    @Override
-    public String getUUID() {
-        return ((this.bucketName != null) ? this.bucketName : "null") + ":"
-                + ((this.objectName != null) ? this.objectName : "null");
-    }
+	@Override
+	public String getUUID() {
+		return ((this.bucketName != null) ? this.bucketName : "null") + ":" + ((this.objectName != null) ? this.objectName : "null");
+	}
 
-    @Override
-    public boolean isObjectOperation() {
-        return true;
-    }
+	@Override
+	public boolean isObjectOperation() {
+		return true;
+	}
 
-    @Override
-    public boolean isSuccess() {
-        return this.isSuccess;
-    }
+	@Override
+	public boolean isSuccess() {
+		return this.isSuccess;
+	}
 
-    /**
-     * <p>
-     * {@link ServiceRequestExecutor} closes the Request
-     * </p>
-     */
-    @Override
-    public void execute() {
-        try {
+	/**
+	 * <p>
+	 * {@link ServiceRequestExecutor} closes the Request
+	 * </p>
+	 */
+	@Override
+	public void execute() {
+		try {
 
-            setStatus(ServiceRequestStatus.RUNNING);
-            clean();
-            this.isSuccess = true;
-            setStatus(ServiceRequestStatus.COMPLETED);
+			setStatus(ServiceRequestStatus.RUNNING);
+			clean();
+			this.isSuccess = true;
+			setStatus(ServiceRequestStatus.COMPLETED);
 
-        } catch (Exception e) {
-            setStatus(ServiceRequestStatus.ERROR);
-            this.isSuccess = false;
-            logger.error(e, SharedConstant.NOT_THROWN);
-        }
-    }
+		} catch (Exception e) {
+			setStatus(ServiceRequestStatus.ERROR);
+			this.isSuccess = false;
+			logger.error(e, SharedConstant.NOT_THROWN);
+		}
+	}
 
-    @Override
-    public void stop() {
-        this.isSuccess = true;
-    }
+	@Override
+	public void stop() {
+		this.isSuccess = true;
+	}
 
-    private void clean() {
-        logger.debug(
-                this.getClass().getName() + " -> not used yet. Clean up process for Updates is still Sync with the transaction");
-    }
+	private void clean() {
+		logger.debug(this.getClass().getName() + " -> not used yet. Clean up process for Updates is still Sync with the transaction");
+	}
 
 }

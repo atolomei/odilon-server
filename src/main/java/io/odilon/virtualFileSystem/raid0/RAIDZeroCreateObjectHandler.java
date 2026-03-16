@@ -42,16 +42,14 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroTransactionObjectHandle
 
 	private static Logger logger = Logger.getLogger(RAIDZeroCreateObjectHandler.class.getName());
 
-	 
 	/**
 	 * <p>
 	 * Created and used only from {@link RAIDZeroDriver}
 	 * </p>
 	 */
-	protected RAIDZeroCreateObjectHandler(RAIDZeroDriver driver, ServerBucket bucket, String objectName ) {
+	protected RAIDZeroCreateObjectHandler(RAIDZeroDriver driver, ServerBucket bucket, String objectName) {
 		super(driver, bucket, objectName);
-		 
-		
+
 	}
 
 	/**
@@ -85,7 +83,7 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroTransactionObjectHandle
 				operation = createObject();
 
 				/** save (metadata and data) */
-				save(stream, sourceFileName, contentType, customTags , o_public);
+				save(stream, sourceFileName, contentType, customTags, o_public);
 
 				/** commit */
 				commitOk = operation.commit();

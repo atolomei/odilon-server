@@ -191,13 +191,11 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext().getBean(DeleteBucketObjectPreviousVersionServiceRequest.class, bucket.getName(), bucket.getId()));
 	}
 
-	
 	@Override
-	public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName, String contentType, Optional<List<String>> customTags ) {
-		putObject(  bucket,   objectName,   stream,  fileName,  contentType,   customTags, Optional.of(Boolean.FALSE) );
+	public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName, String contentType, Optional<List<String>> customTags) {
+		putObject(bucket, objectName, stream, fileName, contentType, customTags, Optional.of(Boolean.FALSE));
 	}
 
-		
 	@Override
 	public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName, String contentType, Optional<List<String>> customTags, Optional<Boolean> o_public) {
 		Check.requireNonNullArgument(bucket, "bucket is null");
@@ -205,8 +203,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null " + objectInfo(bucket));
 		Check.requireNonNullStringArgument(fileName, "fileName is null " + objectInfo(bucket, objectName));
 		Check.requireNonNullArgument(stream, "InpuStream can not null " + objectInfo(bucket, objectName));
-	
-		
+
 		if (exists(bucket, objectName)) {
 			RAIDZeroUpdateObjectHandler updateAgent = new RAIDZeroUpdateObjectHandler(this, bucket, objectName);
 			updateAgent.update(stream, fileName, contentType, customTags, o_public);
@@ -225,6 +222,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		putObjectMetadata(meta);
 		return meta;
 	}
+
 	/**
 	 * <p>
 	 * This method is called only for Objects that already exist
@@ -570,7 +568,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 
 		objectReadLock(bucket, objectName);
 		try {
-			
+
 			bucketReadLock(bucket);
 			try {
 				/** must be executed inside the critical zone */
