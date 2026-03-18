@@ -54,9 +54,10 @@ import io.odilon.virtualFileSystem.model.OperationCode;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
- * * <p>
- * Odilon contains two cache services: {@link ObjectMetadataCacheService} 
- * for {@link ObjectMetadata} and {@link FileCacheService} used by RAID 6
+ * *
+ * <p>
+ * Odilon contains two cache services: {@link ObjectMetadataCacheService} for
+ * {@link ObjectMetadata} and {@link FileCacheService} used by RAID 6
  * ({@link RAIDSixDriver}) to store decoded (but encrypted) files.
  * </p>
  * 
@@ -65,8 +66,8 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  * configurations do not need it).
  * </p>
  * <p>
- * It Uses {@link Caffeine} to keep references to entries in memory. 
- * On eviction it has to remove the {@link File} from the File System
+ * It Uses {@link Caffeine} to keep references to entries in memory. On eviction
+ * it has to remove the {@link File} from the File System
  * ({@link FileCacheService#onRemoval}).
  * </p>
  * <p>
@@ -206,8 +207,7 @@ public class FileCacheService extends BaseService implements ApplicationListener
 	 */
 	public String getFileCachePath(Long bucketId, String objectName, Optional<Integer> version) {
 		String path = getKey(bucketId, objectName, version);
-		return getDrivesAll().get(Math.abs(path.hashCode()) % getDrivesAll().size()).getCacheDirPath() + File.separator
-				+ path;
+		return getDrivesAll().get(Math.abs(path.hashCode()) % getDrivesAll().size()).getCacheDirPath() + File.separator + path;
 	}
 
 	/**
@@ -235,12 +235,9 @@ public class FileCacheService extends BaseService implements ApplicationListener
 
 	public VirtualFileSystemService getVirtualFileSystemService() {
 		if (this.vfs == null) {
-			logger.error("The instance of " + VirtualFileSystemService.class.getSimpleName()
-					+ " must be setted during the @PostConstruct method of the " + this.getClass().getName()
+			logger.error("The instance of " + VirtualFileSystemService.class.getSimpleName() + " must be setted during the @PostConstruct method of the " + this.getClass().getName()
 					+ " instance. It can not be injected via AutoWired beacause of circular dependencies.");
-			throw new IllegalStateException(VirtualFileSystemService.class.getSimpleName()
-					+ " instance is null. it must be setted during the @PostConstruct method of the "
-					+ this.getClass().getName() + " instance");
+			throw new IllegalStateException(VirtualFileSystemService.class.getSimpleName() + " instance is null. it must be setted during the @PostConstruct method of the " + this.getClass().getName() + " instance");
 		}
 		return this.vfs;
 	}
@@ -257,20 +254,17 @@ public class FileCacheService extends BaseService implements ApplicationListener
 
 		if (event.getOperation().getOperationCode() == OperationCode.CREATE_OBJECT) {
 			remove(event.getOperation().getBucketId(), event.getOperation().getObjectName(), Optional.empty());
-			remove(event.getOperation().getBucketId(), event.getOperation().getObjectName(),
-					Optional.of(event.getOperation().getVersion()));
+			remove(event.getOperation().getBucketId(), event.getOperation().getObjectName(), Optional.of(event.getOperation().getVersion()));
 			return;
 		}
 		if (event.getOperation().getOperationCode() == OperationCode.UPDATE_OBJECT) {
 			remove(event.getOperation().getBucketId(), event.getOperation().getObjectName(), Optional.empty());
-			remove(event.getOperation().getBucketId(), event.getOperation().getObjectName(),
-					Optional.of(event.getOperation().getVersion()));
+			remove(event.getOperation().getBucketId(), event.getOperation().getObjectName(), Optional.of(event.getOperation().getVersion()));
 			return;
 		}
 		if (event.getOperation().getOperationCode() == OperationCode.RESTORE_OBJECT_PREVIOUS_VERSION) {
 			remove(event.getOperation().getBucketId(), event.getOperation().getObjectName(), Optional.empty());
-			remove(event.getOperation().getBucketId(), event.getOperation().getObjectName(),
-					Optional.of(event.getOperation().getVersion()));
+			remove(event.getOperation().getBucketId(), event.getOperation().getObjectName(), Optional.of(event.getOperation().getVersion()));
 			return;
 		}
 		if (event.getOperation().getOperationCode() == OperationCode.DELETE_OBJECT) {
@@ -281,8 +275,7 @@ public class FileCacheService extends BaseService implements ApplicationListener
 			remove(event.getOperation().getBucketId(), event.getOperation().getObjectName(), Optional.empty());
 			if (getVirtualFileSystemService().getServerSettings().isVersionControl()) {
 				for (int version = 0; version < event.getOperation().getVersion(); version++)
-					remove(event.getOperation().getBucketId(), event.getOperation().getObjectName(),
-							Optional.of(version));
+					remove(event.getOperation().getBucketId(), event.getOperation().getObjectName(), Optional.of(version));
 			}
 			return;
 		}
@@ -301,10 +294,8 @@ public class FileCacheService extends BaseService implements ApplicationListener
 
 		setStatus(ServiceStatus.STARTING);
 
-		this.cache = Caffeine.newBuilder().initialCapacity(getServerSettings().getFileCacheInitialCapacity())
-				.maximumSize(getServerSettings().getFileCacheMaxCapacity())
-				.expireAfterWrite(getServerSettings().getFileCacheDurationDays(), TimeUnit.DAYS)
-				.evictionListener((key, value, cause) -> {
+		this.cache = Caffeine.newBuilder().initialCapacity(getServerSettings().getFileCacheInitialCapacity()).maximumSize(getServerSettings().getFileCacheMaxCapacity())
+				.expireAfterWrite(getServerSettings().getFileCacheDurationDays(), TimeUnit.DAYS).evictionListener((key, value, cause) -> {
 					onRemoval(key, value, cause);
 				}).removalListener((key, value, cause) -> {
 					onRemoval(key, value, cause);
@@ -330,13 +321,11 @@ public class FileCacheService extends BaseService implements ApplicationListener
 
 				Long bucketId = Long.valueOf(arr[0]);
 				String objectName = ((verr.length == 1) ? arr[1] : verr[0]);
-				Optional<Integer> version = ((verr.length == 1) ? Optional.empty()
-						: Optional.of(Integer.valueOf(verr[1]).intValue()));
+				Optional<Integer> version = ((verr.length == 1) ? Optional.empty() : Optional.of(Integer.valueOf(verr[1]).intValue()));
 
-				
 				getLockService().getFileCacheLock(bucketId, objectName, version).writeLock().lock();
 				try {
-					logger.debug("delete cached file -> b:"+ bucketId.toString()+ " o:" + objectName +" v: "+String.valueOf(version));
+					logger.debug("delete cached file -> b:" + bucketId.toString() + " o:" + objectName + " v: " + String.valueOf(version));
 					FileUtils.deleteQuietly((File) value);
 					this.cacheSizeBytes.getAndAdd(-((File) value).length());
 				} finally {
@@ -347,8 +336,7 @@ public class FileCacheService extends BaseService implements ApplicationListener
 	}
 
 	private String getKey(Long bucketId, String objectName, Optional<Integer> version) {
-		return bucketId.toString() + File.separator + objectName
-				+ (version.isEmpty() ? "" : (ServerConstant.BO_SEPARATOR + String.valueOf(version.get().intValue())));
+		return bucketId.toString() + File.separator + objectName + (version.isEmpty() ? "" : (ServerConstant.BO_SEPARATOR + String.valueOf(version.get().intValue())));
 	}
 
 	private synchronized List<Drive> getDrivesAll() {

@@ -68,113 +68,111 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 @JsonTypeName("afterDeleteObject")
 public class AfterDeleteObjectServiceRequest extends AbstractServiceRequest implements StandardServiceRequest {
 
-    static private Logger logger = Logger.getLogger(AfterDeleteObjectServiceRequest.class.getName());
+	static private Logger logger = Logger.getLogger(AfterDeleteObjectServiceRequest.class.getName());
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    @JsonProperty("meta")
-    ObjectMetadata meta;
+	@JsonProperty("meta")
+	ObjectMetadata meta;
 
-    @JsonProperty("headVersion")
-    int headVersion = 0;
+	@JsonProperty("headVersion")
+	int headVersion = 0;
 
-    @JsonProperty("operationCode")
-    OperationCode operationCode;
+	@JsonProperty("operationCode")
+	OperationCode operationCode;
 
-    @JsonIgnore
-    private boolean isSuccess = false;
+	@JsonIgnore
+	private boolean isSuccess = false;
 
-    /**
-     * <p>
-     * created by the RAIDZeroDriver
-     * </p>
-     */
-    protected AfterDeleteObjectServiceRequest() {
-    }
+	/**
+	 * <p>
+	 * created by the RAIDZeroDriver
+	 * </p>
+	 */
+	protected AfterDeleteObjectServiceRequest() {
+	}
 
-    public AfterDeleteObjectServiceRequest(OperationCode vfsop, ObjectMetadata meta, int headVersion) {
+	public AfterDeleteObjectServiceRequest(OperationCode vfsop, ObjectMetadata meta, int headVersion) {
 
-        this.operationCode = vfsop;
-        this.meta = meta;
-        this.headVersion = headVersion;
-    }
+		this.operationCode = vfsop;
+		this.meta = meta;
+		this.headVersion = headVersion;
+	}
 
-    @Override
-    public boolean isSuccess() {
-        return this.isSuccess;
-    }
+	@Override
+	public boolean isSuccess() {
+		return this.isSuccess;
+	}
 
-    /**
-     * <p>
-     * {@link ServiceRequestExecutor} closes the Request
-     * </p>
-     */
-    @Override
-    public void execute() {
-        try {
-            setStatus(ServiceRequestStatus.RUNNING);
-            clean();
-            this.isSuccess = true;
-            setStatus(ServiceRequestStatus.COMPLETED);
+	/**
+	 * <p>
+	 * {@link ServiceRequestExecutor} closes the Request
+	 * </p>
+	 */
+	@Override
+	public void execute() {
+		try {
+			setStatus(ServiceRequestStatus.RUNNING);
+			clean();
+			this.isSuccess = true;
+			setStatus(ServiceRequestStatus.COMPLETED);
 
-        } catch (Exception e) {
-            logger.error(e, SharedConstant.NOT_THROWN);
-            this.isSuccess = false;
-            setStatus(ServiceRequestStatus.ERROR);
-        }
-    }
+		} catch (Exception e) {
+			logger.error(e, SharedConstant.NOT_THROWN);
+			this.isSuccess = false;
+			setStatus(ServiceRequestStatus.ERROR);
+		}
+	}
 
-    @Override
-    public String getUUID() {
-        if (meta == null)
-            return "null";
-        return ((meta.bucketId != null) ? meta.bucketId.toString() : "null") + ":"
-                + ((meta.objectName != null) ? meta.objectName : "null");
-    }
+	@Override
+	public String getUUID() {
+		if (meta == null)
+			return "null";
+		return ((meta.bucketId != null) ? meta.bucketId.toString() : "null") + ":" + ((meta.objectName != null) ? meta.objectName : "null");
+	}
 
-    @Override
-    public boolean isObjectOperation() {
-        return true;
-    }
+	@Override
+	public boolean isObjectOperation() {
+		return true;
+	}
 
-    @Override
-    public void stop() {
-        this.isSuccess = true;
-    }
+	@Override
+	public void stop() {
+		this.isSuccess = true;
+	}
 
-    public OperationCode getOperationCode() {
-        return this.operationCode;
-    }
+	public OperationCode getOperationCode() {
+		return this.operationCode;
+	}
 
-    /**
-     * <p>
-     * There is nothing to do if the VFSOp or ObjectMetadata are null at this point.
-     * They should never have reached here
-     * </p>
-     * 
-     */
-    private void clean() {
+	/**
+	 * <p>
+	 * There is nothing to do if the VFSOp or ObjectMetadata are null at this point.
+	 * They should never have reached here
+	 * </p>
+	 * 
+	 */
+	private void clean() {
 
-        VirtualFileSystemService vfs = getApplicationContext().getBean(VirtualFileSystemService.class);
+		VirtualFileSystemService vfs = getApplicationContext().getBean(VirtualFileSystemService.class);
 
-        if (getOperationCode() == null) {
-            logger.error("Invalid " + OperationCode.class.getName() + " is null ", SharedConstant.NOT_THROWN);
-            return;
-        }
+		if (getOperationCode() == null) {
+			logger.error("Invalid " + OperationCode.class.getName() + " is null ", SharedConstant.NOT_THROWN);
+			return;
+		}
 
-        if (this.meta == null) {
-            logger.error("Invalid " + ObjectMetadata.class.getName() + " is null ", SharedConstant.NOT_THROWN);
-            return;
-        }
+		if (this.meta == null) {
+			logger.error("Invalid " + ObjectMetadata.class.getName() + " is null ", SharedConstant.NOT_THROWN);
+			return;
+		}
 
-        if (this.getOperationCode() == OperationCode.DELETE_OBJECT)
-            vfs.createVFSIODriver().postObjectDeleteTransaction(meta, headVersion);
+		if (this.getOperationCode() == OperationCode.DELETE_OBJECT)
+			vfs.createVFSIODriver().postObjectDeleteTransaction(meta, headVersion);
 
-        else if (getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS)
-            vfs.createVFSIODriver().postObjectPreviousVersionDeleteAllTransaction(meta, headVersion);
-        else
-            logger.error("Invalid " + OperationCode.class.getName() + " -> " + this.operationCode.getName(),
-                    SharedConstant.NOT_THROWN);
-    }
+		else if (getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS)
+			vfs.createVFSIODriver().postObjectPreviousVersionDeleteAllTransaction(meta, headVersion);
+		else
+			logger.error("Invalid " + OperationCode.class.getName() + " -> " + this.operationCode.getName(), SharedConstant.NOT_THROWN);
+	}
 
 }

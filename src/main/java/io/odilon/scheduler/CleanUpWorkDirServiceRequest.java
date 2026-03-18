@@ -43,64 +43,64 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 @JsonTypeName("cleanUpWorkDir")
 public class CleanUpWorkDirServiceRequest extends AbstractServiceRequest implements StandardServiceRequest {
 
-    static private Logger logger = Logger.getLogger(CleanUpWorkDirServiceRequest.class.getName());
+	static private Logger logger = Logger.getLogger(CleanUpWorkDirServiceRequest.class.getName());
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    @JsonIgnore
-    private boolean isSuccess = false;
+	@JsonIgnore
+	private boolean isSuccess = false;
 
-    @JsonProperty("operation")
-    private OdilonVirtualFileSystemOperation operation;
+	@JsonProperty("operation")
+	private OdilonVirtualFileSystemOperation operation;
 
-    protected CleanUpWorkDirServiceRequest() {
-    }
+	protected CleanUpWorkDirServiceRequest() {
+	}
 
-    public CleanUpWorkDirServiceRequest(VirtualFileSystemOperation operation) {
-        this.operation = (OdilonVirtualFileSystemOperation) operation;
-    }
+	public CleanUpWorkDirServiceRequest(VirtualFileSystemOperation operation) {
+		this.operation = (OdilonVirtualFileSystemOperation) operation;
+	}
 
-    /**
-     * <p>
-     * {@link ServiceRequestExecutor} closes the Request
-     * </p>
-     */
-    @Override
-    public void execute() {
+	/**
+	 * <p>
+	 * {@link ServiceRequestExecutor} closes the Request
+	 * </p>
+	 */
+	@Override
+	public void execute() {
 
-        try {
-            setStatus(ServiceRequestStatus.RUNNING);
-            this.isSuccess = true;
-            setStatus(ServiceRequestStatus.COMPLETED);
+		try {
+			setStatus(ServiceRequestStatus.RUNNING);
+			this.isSuccess = true;
+			setStatus(ServiceRequestStatus.COMPLETED);
 
-        } catch (Exception e) {
-            this.isSuccess = false;
-            logger.error(e, SharedConstant.NOT_THROWN);
-        }
-    }
+		} catch (Exception e) {
+			this.isSuccess = false;
+			logger.error(e, SharedConstant.NOT_THROWN);
+		}
+	}
 
-    @Override
-    public boolean isObjectOperation() {
-        return false;
-    }
+	@Override
+	public boolean isObjectOperation() {
+		return false;
+	}
 
-    @Override
-    public void stop() {
-        this.isSuccess = true;
-    }
+	@Override
+	public void stop() {
+		this.isSuccess = true;
+	}
 
-    public VirtualFileSystemOperation getVFSOperation() {
-        return this.operation;
-    }
+	public VirtualFileSystemOperation getVFSOperation() {
+		return this.operation;
+	}
 
-    @Override
-    public boolean isSuccess() {
-        return this.isSuccess;
-    }
+	@Override
+	public boolean isSuccess() {
+		return this.isSuccess;
+	}
 
-    @Override
-    public String getUUID() {
-        return this.operation.getUUID();
-    }
+	@Override
+	public String getUUID() {
+		return this.operation.getUUID();
+	}
 
 }
