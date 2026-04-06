@@ -18,8 +18,6 @@ package io.odilon.virtualFileSystem;
 
 import java.io.File;
 
-import org.springframework.lang.NonNull;
-
 import io.odilon.cache.ObjectMetadataCacheService;
 import io.odilon.encryption.EncryptionService;
 import io.odilon.error.OdilonObjectNotFoundException;
