@@ -35,53 +35,53 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
  */
 public class RAIDSixRollbackDeleteHandler extends RAIDSixRollbackHandler {
 
-    private static Logger logger = Logger.getLogger(RAIDSixRollbackDeleteHandler.class.getName());
+	private static Logger logger = Logger.getLogger(RAIDSixRollbackDeleteHandler.class.getName());
 
-    public RAIDSixRollbackDeleteHandler(RAIDSixDriver driver, VirtualFileSystemOperation operation, boolean recovery) {
-        super(driver, operation, recovery);
-    }
+	public RAIDSixRollbackDeleteHandler(RAIDSixDriver driver, VirtualFileSystemOperation operation, boolean recovery) {
+		super(driver, operation, recovery);
+	}
 
-    @Override
-    protected void rollback() {
+	@Override
+	protected void rollback() {
 
-        boolean done = false;
-        try {
-            restoreMetadata();
-            done = true;
-        } catch (InternalCriticalException e) {
-            if (!isRecovery())
-                throw (e);
-            else
-                logger.error(e, opInfo(getOperation()), SharedConstant.NOT_THROWN);
-        } catch (Exception e) {
-            if (!isRecovery())
-                throw new InternalCriticalException(e);
-            else
-                logger.error(e, opInfo(getOperation()), SharedConstant.NOT_THROWN);
-        } finally {
-            if (done || isRecovery())
-                getOperation().cancel();
-        }
-    }
+		boolean done = false;
+		try {
+			restoreMetadata();
+			done = true;
+		} catch (InternalCriticalException e) {
+			if (!isRecovery())
+				throw (e);
+			else
+				logger.error(e, opInfo(getOperation()), SharedConstant.NOT_THROWN);
+		} catch (Exception e) {
+			if (!isRecovery())
+				throw new InternalCriticalException(e);
+			else
+				logger.error(e, opInfo(getOperation()), SharedConstant.NOT_THROWN);
+		} finally {
+			if (done || isRecovery())
+				getOperation().cancel();
+		}
+	}
 
-    /**
-     * restore metadata directory
-     */
-    private void restoreMetadata() {
+	/**
+	 * restore metadata directory
+	 */
+	private void restoreMetadata() {
 
-        ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
-        String objectName = getOperation().getObjectName();
+		ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
+		String objectName = getOperation().getObjectName();
 
-        for (Drive drive : getDriver().getDrivesAll()) {
-            String objectMetadataBackupDirPath = drive.getBucketWorkDirPath(bucket) + File.separator + objectName;
-            String objectMetadataDirPath = drive.getObjectMetadataDirPath(bucket, objectName);
-            try {
-                if ((new File(objectMetadataBackupDirPath)).exists())
-                    FileUtils.copyDirectory(new File(objectMetadataBackupDirPath), new File(objectMetadataDirPath));
-            } catch (IOException e) {
-                throw new InternalCriticalException(e, objectInfo(bucket, objectName));
-            }
-        }
-    }
+		for (Drive drive : getDriver().getDrivesAll()) {
+			String objectMetadataBackupDirPath = drive.getBucketWorkDirPath(bucket) + File.separator + objectName;
+			String objectMetadataDirPath = drive.getObjectMetadataDirPath(bucket, objectName);
+			try {
+				if ((new File(objectMetadataBackupDirPath)).exists())
+					FileUtils.copyDirectory(new File(objectMetadataBackupDirPath), new File(objectMetadataDirPath));
+			} catch (IOException e) {
+				throw new InternalCriticalException(e, objectInfo(bucket, objectName));
+			}
+		}
+	}
 
 }

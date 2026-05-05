@@ -38,49 +38,49 @@ import io.odilon.virtualFileSystem.model.ServerBucket;
  */
 public class RAIDSixSDriveSyncEncoder extends RAIDSixEncoder {
 
-    /**
-     * @param driver can not be null
-     */
-    protected RAIDSixSDriveSyncEncoder(RAIDSixDriver driver) {
-        super(driver);
-    }
+	/**
+	 * @param driver can not be null
+	 */
+	protected RAIDSixSDriveSyncEncoder(RAIDSixDriver driver) {
+		super(driver);
+	}
 
-    protected RAIDSixSDriveSyncEncoder(RAIDSixDriver driver, List<Drive> zDrives) {
-        super(driver, zDrives);
-    }
+	protected RAIDSixSDriveSyncEncoder(RAIDSixDriver driver, List<Drive> zDrives) {
+		super(driver, zDrives);
+	}
 
-    /**
-     * <p>
-     * We can not use the {@link ObjectMetadata} here because it may not exist yet.
-     * The steps to upload objects are: <br/>
-     * - upload binary data <br/>
-     * - create ObjectMetadata <br/>
-     * </p>
-     */
-    public RAIDSixBlocks encodeHead(InputStream is, ServerBucket bucket, String objectName) {
-        return super.encodeHead(is, bucket, objectName);
-    }
+	/**
+	 * <p>
+	 * We can not use the {@link ObjectMetadata} here because it may not exist yet.
+	 * The steps to upload objects are: <br/>
+	 * - upload binary data <br/>
+	 * - create ObjectMetadata <br/>
+	 * </p>
+	 */
+	public RAIDSixBlocks encodeHead(InputStream is, ServerBucket bucket, String objectName) {
+		return super.encodeHead(is, bucket, objectName);
+	}
 
-    /**
-     * <p>
-     * We can not use the {@link ObjectMetadata} here because it may not exist yet.
-     * The steps to upload objects are: <br/>
-     * - upload binary data <br/>
-     * - create ObjectMetadata <br/>
-     * </p>
-     */
+	/**
+	 * <p>
+	 * We can not use the {@link ObjectMetadata} here because it may not exist yet.
+	 * The steps to upload objects are: <br/>
+	 * - upload binary data <br/>
+	 * - create ObjectMetadata <br/>
+	 * </p>
+	 */
 
-    public RAIDSixBlocks encodeVersion(InputStream is, ServerBucket bucket, String objectName, int version) {
-        return super.encodeVersion(is, bucket, objectName, version);
-    }
+	public RAIDSixBlocks encodeVersion(InputStream is, ServerBucket bucket, String objectName, int version) {
+		return super.encodeVersion(is, bucket, objectName, version);
+	}
 
-    /**
-     * <p>
-     * only write on Drives in status {@link DriveStatus.NOTSYNC}
-     * </p>
-     */
-    protected boolean isWrite(int diskOrder) {
-        return (getDrives().get(diskOrder).getDriveInfo().getStatus() == DriveStatus.NOTSYNC);
-    }
+	/**
+	 * <p>
+	 * only write on Drives in status {@link DriveStatus.NOTSYNC}
+	 * </p>
+	 */
+	protected boolean isWrite(int diskOrder) {
+		return (getDrives().get(diskOrder).getDriveInfo().getStatus() == DriveStatus.NOTSYNC);
+	}
 
 }

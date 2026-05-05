@@ -127,31 +127,28 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionObjectHandler 
 	 * @param srcFileName
 	 */
 	private RAIDSixBlocks saveData(InputStream stream) {
-		
-		
+
 		Check.requireNonNullArgument(stream, "stream is null");
-		
-		
 
 		if (isEncrypt()) {
-			boolean isMainException = false; 
+			boolean isMainException = false;
 			InputStream sourceStream = null;
 			try {
 				EncryptedResult encryptedResult = getEncryptionService().encryptStream(stream);
 				sourceStream = encryptedResult.getInputStream();
 				RAIDSixEncoder encoder = new RAIDSixEncoder(getDriver());
 				RAIDSixBlocks blocks = encoder.encodeHead(sourceStream, getBucket(), getObjectName());
-				long totalBytesRead=encryptedResult.getCountingStream().getCount();
+				long totalBytesRead = encryptedResult.getCountingStream().getCount();
 				blocks.setSrcFileSize(totalBytesRead);
 				return blocks;
 
 			} catch (InternalCriticalException e) {
-				isMainException=true;
+				isMainException = true;
 				throw e;
-				
+
 			} catch (Exception e) {
-				isMainException=true;
-				throw new InternalCriticalException(e, objectInfo( getBucket(), getObjectName()));
+				isMainException = true;
+				throw new InternalCriticalException(e, objectInfo(getBucket(), getObjectName()));
 
 			} finally {
 				IOException secEx = null;
@@ -160,33 +157,32 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionObjectHandler 
 						sourceStream.close();
 
 				} catch (IOException e) {
-					logger.error(e, (objectInfo( getBucket(), getObjectName())) + (isMainException ? SharedConstant.NOT_THROWN : ""));
+					logger.error(e, (objectInfo(getBucket(), getObjectName())) + (isMainException ? SharedConstant.NOT_THROWN : ""));
 					secEx = e;
 				}
 				if (!isMainException && (secEx != null))
 					throw new InternalCriticalException(secEx);
 			}
-			
-		}
-		else {
 
-			boolean isMainException = false; 
+		} else {
+
+			boolean isMainException = false;
 			InputStream sourceStream = null;
 			try {
 				sourceStream = stream;
 				RAIDSixEncoder encoder = new RAIDSixEncoder(getDriver());
 				RAIDSixBlocks blocks = encoder.encodeHead(sourceStream, getBucket(), getObjectName());
-				long totalBytesRead= blocks.getFileSize();
+				long totalBytesRead = blocks.getFileSize();
 				blocks.setSrcFileSize(totalBytesRead);
 				return blocks;
 
 			} catch (InternalCriticalException e) {
-				isMainException=true;
+				isMainException = true;
 				throw e;
-				
+
 			} catch (Exception e) {
-				isMainException=true;
-				throw new InternalCriticalException(e, objectInfo( getBucket(), getObjectName()));
+				isMainException = true;
+				throw new InternalCriticalException(e, objectInfo(getBucket(), getObjectName()));
 
 			} finally {
 				IOException secEx = null;
@@ -195,21 +191,21 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionObjectHandler 
 						sourceStream.close();
 
 				} catch (IOException e) {
-					logger.error(e, (objectInfo( getBucket(), getObjectName())) + (isMainException ? SharedConstant.NOT_THROWN : ""));
+					logger.error(e, (objectInfo(getBucket(), getObjectName())) + (isMainException ? SharedConstant.NOT_THROWN : ""));
 					secEx = e;
 				}
 				if (!isMainException && (secEx != null))
 					throw new InternalCriticalException(secEx);
 			}
 		}
-		
+
 		/**
-		try (InputStream sourceStream = isEncrypt() ? (getVirtualFileSystemService().getEncryptionService().encryptStream(stream)) : stream) {
-			return (new RAIDSixEncoder(getDriver())).encodeHead(sourceStream, getBucket(), getObjectName());
-		} catch (Exception e) {
-			throw new InternalCriticalException(e, info());
-		}
-		**/
+		 * try (InputStream sourceStream = isEncrypt() ?
+		 * (getVirtualFileSystemService().getEncryptionService().encryptStream(stream))
+		 * : stream) { return (new RAIDSixEncoder(getDriver())).encodeHead(sourceStream,
+		 * getBucket(), getObjectName()); } catch (Exception e) { throw new
+		 * InternalCriticalException(e, info()); }
+		 **/
 	}
 
 	/**

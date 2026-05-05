@@ -62,175 +62,175 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 @Scope("prototype")
 public class RAIDSixDriveSetup implements IODriveSetup, ApplicationContextAware {
 
-    static private Logger logger = Logger.getLogger(RAIDSixDriveSetup.class.getName());
-    static private Logger startuplogger = Logger.getLogger("StartupLogger");
+	static private Logger logger = Logger.getLogger(RAIDSixDriveSetup.class.getName());
+	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 
-    @JsonIgnore
-    private RAIDSixDriver driver;
+	@JsonIgnore
+	private RAIDSixDriver driver;
 
-    @JsonIgnore
-    private AtomicLong checkOk = new AtomicLong(0);
+	@JsonIgnore
+	private AtomicLong checkOk = new AtomicLong(0);
 
-    @JsonIgnore
-    private AtomicLong counter = new AtomicLong(0);
+	@JsonIgnore
+	private AtomicLong counter = new AtomicLong(0);
 
-    @JsonIgnore
-    private AtomicLong moved = new AtomicLong(0);
+	@JsonIgnore
+	private AtomicLong moved = new AtomicLong(0);
 
-    @JsonIgnore
-    private AtomicLong totalBytesMoved = new AtomicLong(0);
+	@JsonIgnore
+	private AtomicLong totalBytesMoved = new AtomicLong(0);
 
-    @JsonIgnore
-    private AtomicLong totalBytesCleaned = new AtomicLong(0);
+	@JsonIgnore
+	private AtomicLong totalBytesCleaned = new AtomicLong(0);
 
-    @JsonIgnore
-    private AtomicLong errors = new AtomicLong(0);
+	@JsonIgnore
+	private AtomicLong errors = new AtomicLong(0);
 
-    @JsonIgnore
-    private AtomicLong cleaned = new AtomicLong(0);
+	@JsonIgnore
+	private AtomicLong cleaned = new AtomicLong(0);
 
-    @JsonIgnore
-    private AtomicLong notAvailable = new AtomicLong(0);
+	@JsonIgnore
+	private AtomicLong notAvailable = new AtomicLong(0);
 
-    @JsonIgnore
-    int maxProcessingThread;
+	@JsonIgnore
+	int maxProcessingThread;
 
-    @JsonIgnore
-    private long start_ms;
+	@JsonIgnore
+	private long start_ms;
 
-    @JsonIgnore
-    private long start_move;
+	@JsonIgnore
+	private long start_move;
 
-    @JsonIgnore
-    private long start_cleanup;
+	@JsonIgnore
+	private long start_cleanup;
 
-    @JsonIgnore
-    private List<Drive> listEnabledBefore = new ArrayList<Drive>();
+	@JsonIgnore
+	private List<Drive> listEnabledBefore = new ArrayList<Drive>();
 
-    @JsonIgnore
-    private List<Drive> listAllBefore = new ArrayList<Drive>();
+	@JsonIgnore
+	private List<Drive> listAllBefore = new ArrayList<Drive>();
 
-    @JsonIgnore
-    private ApplicationContext applicationContext;
+	@JsonIgnore
+	private ApplicationContext applicationContext;
 
-    /**
-     * @param driver
-     */
-    public RAIDSixDriveSetup(RAIDSixDriver driver) {
-        this.driver = driver;
-    }
+	/**
+	 * @param driver
+	 */
+	public RAIDSixDriveSetup(RAIDSixDriver driver) {
+		this.driver = driver;
+	}
 
-    @Override
-    public boolean setup() {
+	@Override
+	public boolean setup() {
 
-        startuplogger.info("This process is async for RAID 6");
-        startuplogger.info("It will start a background process to setup the new drives.");
-        startuplogger.info("The background process will copy all objects into the newly added drives");
+		startuplogger.info("This process is async for RAID 6");
+		startuplogger.info("It will start a background process to setup the new drives.");
+		startuplogger.info("The background process will copy all objects into the newly added drives");
 
-        final OdilonServerInfo serverInfo = getDriver().getServerInfo();
-        final File keyFile = getDriver().getDrivesEnabled().get(0).getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE);
-        final String jsonString;
+		final OdilonServerInfo serverInfo = getDriver().getServerInfo();
+		final File keyFile = getDriver().getDrivesEnabled().get(0).getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE);
+		final String jsonString;
 
-        try {
-            jsonString = getDriver().getObjectMapper().writeValueAsString(serverInfo);
-        } catch (JsonProcessingException e) {
-            startuplogger.error(e, SharedConstant.NOT_THROWN);
-            return false;
-        }
+		try {
+			jsonString = getDriver().getObjectMapper().writeValueAsString(serverInfo);
+		} catch (JsonProcessingException e) {
+			startuplogger.error(e, SharedConstant.NOT_THROWN);
+			return false;
+		}
 
-        try {
+		try {
 
-            startuplogger.info("1. Copying -> " + VirtualFileSystemService.SERVER_METADATA_FILE);
-            getDriver().getDrivesAll().forEach(item -> {
-                File file = item.getSysFile(VirtualFileSystemService.SERVER_METADATA_FILE);
-                if ((item.getDriveInfo().getStatus() == DriveStatus.NOTSYNC) && ((file == null) || (!file.exists()))) {
-                    try {
-                        item.putSysFile(VirtualFileSystemService.SERVER_METADATA_FILE, jsonString);
-                    } catch (Exception e) {
-                        startuplogger.error(e, "Drive -> " + item.getName());
-                        throw new InternalCriticalException(e, "Drive -> " + item.getName());
+			startuplogger.info("1. Copying -> " + VirtualFileSystemService.SERVER_METADATA_FILE);
+			getDriver().getDrivesAll().forEach(item -> {
+				File file = item.getSysFile(VirtualFileSystemService.SERVER_METADATA_FILE);
+				if ((item.getDriveInfo().getStatus() == DriveStatus.NOTSYNC) && ((file == null) || (!file.exists()))) {
+					try {
+						item.putSysFile(VirtualFileSystemService.SERVER_METADATA_FILE, jsonString);
+					} catch (Exception e) {
+						startuplogger.error(e, "Drive -> " + item.getName());
+						throw new InternalCriticalException(e, "Drive -> " + item.getName());
 
-                    }
-                }
-            });
+					}
+				}
+			});
 
-            if ((keyFile != null) && keyFile.exists()) {
-                startuplogger.info("2. Copying -> " + VirtualFileSystemService.ENCRYPTION_KEY_FILE);
-                getDriver().getDrivesAll().forEach(item -> {
-                    File file = item.getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE);
-                    if ((item.getDriveInfo().getStatus() == DriveStatus.NOTSYNC) && ((file == null) || (!file.exists()))) {
-                        try {
-                            Files.copy(keyFile, file);
-                        } catch (Exception e) {
-                            throw new InternalCriticalException(e, "Drive -> " + item.getName());
-                        }
-                    }
-                });
-            } else {
-                startuplogger.info("2. Copying -> " + VirtualFileSystemService.ENCRYPTION_KEY_FILE + " | file not exist. skipping");
-            }
+			if ((keyFile != null) && keyFile.exists()) {
+				startuplogger.info("2. Copying -> " + VirtualFileSystemService.ENCRYPTION_KEY_FILE);
+				getDriver().getDrivesAll().forEach(item -> {
+					File file = item.getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE);
+					if ((item.getDriveInfo().getStatus() == DriveStatus.NOTSYNC) && ((file == null) || (!file.exists()))) {
+						try {
+							Files.copy(keyFile, file);
+						} catch (Exception e) {
+							throw new InternalCriticalException(e, "Drive -> " + item.getName());
+						}
+					}
+				});
+			} else {
+				startuplogger.info("2. Copying -> " + VirtualFileSystemService.ENCRYPTION_KEY_FILE + " | file not exist. skipping");
+			}
 
-        } catch (Exception e) {
-            startuplogger.error(e, SharedConstant.NOT_THROWN);
-            startuplogger.error("The process can not be completed due to errors");
-            return false;
-        }
+		} catch (Exception e) {
+			startuplogger.error(e, SharedConstant.NOT_THROWN);
+			startuplogger.error("The process can not be completed due to errors");
+			return false;
+		}
 
-        createBuckets();
+		createBuckets();
 
-        if (this.errors.get() > 0 || this.notAvailable.get() > 0) {
-            startuplogger.error("The process can not be completed due to errors");
-            return false;
-        }
+		if (this.errors.get() > 0 || this.notAvailable.get() > 0) {
+			startuplogger.error("The process can not be completed due to errors");
+			return false;
+		}
 
-        startuplogger.info("4. Starting Async process -> " + RAIDSixDriveSync.class.getSimpleName());
+		startuplogger.info("4. Starting Async process -> " + RAIDSixDriveSync.class.getSimpleName());
 
-        /** The rest of the process is async */
-        @SuppressWarnings("unused")
-        RAIDSixDriveSync checker = getApplicationContext().getBean(RAIDSixDriveSync.class, getDriver());
+		/** The rest of the process is async */
+		@SuppressWarnings("unused")
+		RAIDSixDriveSync checker = getApplicationContext().getBean(RAIDSixDriveSync.class, getDriver());
 
-        startuplogger.info("done");
+		startuplogger.info("done");
 
-        return true;
-    }
+		return true;
+	}
 
-    public ApplicationContext getApplicationContext() {
-        return this.applicationContext;
-    }
+	public ApplicationContext getApplicationContext() {
+		return this.applicationContext;
+	}
 
-    @Override
-    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-        this.applicationContext = applicationContext;
-    }
+	@Override
+	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+		this.applicationContext = applicationContext;
+	}
 
-    private void createBuckets() {
+	private void createBuckets() {
 
-        List<ServerBucket> list = getDriver().getVirtualFileSystemService().listAllBuckets();
+		List<ServerBucket> list = getDriver().getVirtualFileSystemService().listAllBuckets();
 
-        startuplogger.info("3. Creating " + String.valueOf(list.size()) + " Buckets");
+		startuplogger.info("3. Creating " + String.valueOf(list.size()) + " Buckets");
 
-        for (ServerBucket bucket : list) {
-            for (Drive drive : getDriver().getDrivesAll()) {
-                if (drive.getDriveInfo().getStatus() == DriveStatus.NOTSYNC) {
-                    try {
-                        if (!drive.existsBucketById(bucket.getId())) {
-                            drive.createBucket(bucket.getBucketMetadata());
-                        }
-                    } catch (Exception e) {
-                        this.errors.getAndIncrement();
-                        logger.error(e, SharedConstant.NOT_THROWN);
-                        return;
-                    }
-                }
-            }
-        }
-    }
+		for (ServerBucket bucket : list) {
+			for (Drive drive : getDriver().getDrivesAll()) {
+				if (drive.getDriveInfo().getStatus() == DriveStatus.NOTSYNC) {
+					try {
+						if (!drive.existsBucketById(bucket.getId())) {
+							drive.createBucket(bucket.getBucketMetadata());
+						}
+					} catch (Exception e) {
+						this.errors.getAndIncrement();
+						logger.error(e, SharedConstant.NOT_THROWN);
+						return;
+					}
+				}
+			}
+		}
+	}
 
-    /**
-     * 
-     */
-    private RAIDSixDriver getDriver() {
-        return this.driver;
-    }
+	/**
+	 * 
+	 */
+	private RAIDSixDriver getDriver() {
+		return this.driver;
+	}
 
 }

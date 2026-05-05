@@ -35,51 +35,50 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
  */
 public class RAIDSixRollbackSyncHandler extends RAIDSixRollbackHandler {
 
-    private static Logger logger = Logger.getLogger(RAIDSixRollbackSyncHandler.class.getName());
+	private static Logger logger = Logger.getLogger(RAIDSixRollbackSyncHandler.class.getName());
 
-    public RAIDSixRollbackSyncHandler(RAIDSixDriver driver, VirtualFileSystemOperation operation, boolean recovery) {
-        super(driver, operation, recovery);
-    }
+	public RAIDSixRollbackSyncHandler(RAIDSixDriver driver, VirtualFileSystemOperation operation, boolean recovery) {
+		super(driver, operation, recovery);
+	}
 
-    @Override
-    protected void rollback() {
-        boolean done = false;
-        try {
-            restore();
-            done = true;
-        } catch (InternalCriticalException e) {
-            if (!isRecovery())
-                throw (e);
-            else
-                logger.error(e, opInfo(getOperation()), SharedConstant.NOT_THROWN);
-        } catch (Exception e) {
-            if (!isRecovery())
-                throw new InternalCriticalException(e);
-            else
-                logger.error(e, opInfo(getOperation()), SharedConstant.NOT_THROWN);
-        } finally {
-            if (done || isRecovery())
-                getOperation().cancel();
-        }
-    }
+	@Override
+	protected void rollback() {
+		boolean done = false;
+		try {
+			restore();
+			done = true;
+		} catch (InternalCriticalException e) {
+			if (!isRecovery())
+				throw (e);
+			else
+				logger.error(e, opInfo(getOperation()), SharedConstant.NOT_THROWN);
+		} catch (Exception e) {
+			if (!isRecovery())
+				throw new InternalCriticalException(e);
+			else
+				logger.error(e, opInfo(getOperation()), SharedConstant.NOT_THROWN);
+		} finally {
+			if (done || isRecovery())
+				getOperation().cancel();
+		}
+	}
 
-    private void restore() {
+	private void restore() {
 
-        ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
-        String objectName = getOperation().getObjectName();
+		ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
+		String objectName = getOperation().getObjectName();
 
-        try {
-            for (Drive drive : getDriver().getDrivesEnabled()) {
-                File dest = new File(drive.getObjectMetadataDirPath(bucket, objectName));
-                File src = new File(drive.getBucketWorkDirPath(bucket) + File.separator + objectName);
-                if (src.exists())
-                    FileUtils.copyDirectory(src, dest);
-                else
-                    throw new InternalCriticalException(
-                            "dir does not exist " + objectInfo(bucket, objectName) + " | dir:" + src.getAbsolutePath());
-            }
-        } catch (IOException e) {
-            throw new InternalCriticalException(e, objectInfo(bucket, objectName));
-        }
-    }
+		try {
+			for (Drive drive : getDriver().getDrivesEnabled()) {
+				File dest = new File(drive.getObjectMetadataDirPath(bucket, objectName));
+				File src = new File(drive.getBucketWorkDirPath(bucket) + File.separator + objectName);
+				if (src.exists())
+					FileUtils.copyDirectory(src, dest);
+				else
+					throw new InternalCriticalException("dir does not exist " + objectInfo(bucket, objectName) + " | dir:" + src.getAbsolutePath());
+			}
+		} catch (IOException e) {
+			throw new InternalCriticalException(e, objectInfo(bucket, objectName));
+		}
+	}
 }

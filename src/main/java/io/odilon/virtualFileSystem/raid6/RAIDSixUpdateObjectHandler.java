@@ -427,7 +427,8 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionObjectHandler 
 		}
 	}
 
-	private void saveObjectMetadata(ServerBucket bucket, String objectName, RAIDSixBlocks ei, String srcFileName, String contentType, int version, OffsetDateTime headCreationDate, Optional<List<String>> customTags, Optional<Boolean> o_public) {
+	private void saveObjectMetadata(ServerBucket bucket, String objectName, RAIDSixBlocks ei, String srcFileName, String contentType, int version, OffsetDateTime headCreationDate, Optional<List<String>> customTags,
+			Optional<Boolean> o_public) {
 
 		Check.requireNonNullArgument(bucket, "bucket is null");
 

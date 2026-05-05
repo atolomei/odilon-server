@@ -37,16 +37,21 @@ import io.odilon.service.ServerSettings;
 
 /**
  * <p>
- * The pool buffers are used only by RAID 6 ({@link RAIDSixEncoder} and {@link RAIDSixDecoder}).
+ * The pool buffers are used only by RAID 6 ({@link RAIDSixEncoder} and
+ * {@link RAIDSixDecoder}).
  * </p>
- <p>
- * <p>The pool requires a minimum of one 32 MB buffer for each disk used by the RAID 6 configuration (ie. 3, 6, 12, 24, 48). 
- * Default value is 20 buffers or the number of disks, whatever value is larger.
- * The total buffers can be set in odilon.properties (parameter -> <i>raid6.buffers</i>)
+ * <p>
+ * <p>
+ * The pool requires a minimum of one 32 MB buffer for each disk used by the
+ * RAID 6 configuration (ie. 3, 6, 12, 24, 48). Default value is 20 buffers or
+ * the number of disks, whatever value is larger. The total buffers can be set
+ * in odilon.properties (parameter -> <i>raid6.buffers</i>)
  * </p>
- * <p>When Odilon is used in RAID 0 or RAID 1 this service is not used, 
- * and no memory is allocated for buffers, regardless of the parameter set in odilon.properties.
- * </p> 
+ * <p>
+ * When Odilon is used in RAID 0 or RAID 1 this service is not used, and no
+ * memory is allocated for buffers, regardless of the parameter set in
+ * odilon.properties.
+ * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */

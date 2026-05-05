@@ -102,17 +102,14 @@ public abstract class RAIDSixHandler extends BaseRAIDHandler implements RAIDHand
 
 	@Override
 	protected Drive getObjectMetadataReadDrive(ServerBucket bucket, String objectName) {
-		return getDriver().getDrivesEnabled()
-				.get(Math.abs(getKey(bucket, objectName).hashCode()) % getDriver().getDrivesEnabled().size());
+		return getDriver().getDrivesEnabled().get(Math.abs(getKey(bucket, objectName).hashCode()) % getDriver().getDrivesEnabled().size());
 	}
 
-	protected void saveRAIDSixObjectMetadataToDisk(final List<Drive> drives, final List<ObjectMetadata> list,
-			final boolean isHead) {
+	protected void saveRAIDSixObjectMetadataToDisk(final List<Drive> drives, final List<ObjectMetadata> list, final boolean isHead) {
 
 		if (logger.isDebugEnabled()) {
 			Check.requireTrue(drives.size() > 0, "no drives");
-			Check.requireTrue(drives.size() == list.size(), "must have the same number of elements." + " Drives -> "
-					+ String.valueOf(drives.size()) + " - ObjectMetadata -> " + String.valueOf(list.size()));
+			Check.requireTrue(drives.size() == list.size(), "must have the same number of elements." + " Drives -> " + String.valueOf(drives.size()) + " - ObjectMetadata -> " + String.valueOf(list.size()));
 		}
 
 		final int size = drives.size();

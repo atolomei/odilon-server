@@ -27,62 +27,61 @@ import io.odilon.model.BaseObject;
 
 /**
  * <p>
- * List of encoded blocks stored in File System.
- *  See the coding convention here {@link RAIDSixDriver}
+ * List of encoded blocks stored in File System. See the coding convention here
+ * {@link RAIDSixDriver}
  * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public class RAIDSixBlocks extends BaseObject {
 
-    @JsonIgnore
-    private List<File> encodedBlocks = new ArrayList<File>();
+	@JsonIgnore
+	private List<File> encodedBlocks = new ArrayList<File>();
 
-    @JsonProperty("fileSize")
-    private long fileSize;
+	@JsonProperty("fileSize")
+	private long fileSize;
 
-    @JsonProperty("srcFileSize")
-    private long srcFileSize;
-    
-    
-    public RAIDSixBlocks() {
-    }
+	@JsonProperty("srcFileSize")
+	private long srcFileSize;
 
-    public long getFileSize() {
-        return fileSize;
-    }
+	public RAIDSixBlocks() {
+	}
 
-    public void setFileSize(long fileSize) {
-        this.fileSize = fileSize;
-    }
+	public long getFileSize() {
+		return fileSize;
+	}
 
-    public List<File> getEncodedBlocks() {
-        return encodedBlocks;
-    }
+	public void setFileSize(long fileSize) {
+		this.fileSize = fileSize;
+	}
 
-    public void setEncodedBlocks(List<File> encodedBlocks) {
-        this.encodedBlocks = encodedBlocks;
-    }
+	public List<File> getEncodedBlocks() {
+		return encodedBlocks;
+	}
 
-    @Override
-    public String toJSON() {
-        StringBuilder str = new StringBuilder();
-        if (getEncodedBlocks() != null) {
-            str.append("[");
-            getEncodedBlocks().forEach(f -> str.append("\"" + f.getName() + "\" "));
-            str.append("]");
-        }
-        str.append("\"fileSize\":" + String.valueOf(getFileSize()));
-        return str.toString();
-    }
+	public void setEncodedBlocks(List<File> encodedBlocks) {
+		this.encodedBlocks = encodedBlocks;
+	}
 
-    @Override
-    public String toString() {
-        StringBuilder str = new StringBuilder();
-        str.append(this.getClass().getSimpleName());
-        str.append(toJSON());
-        return str.toString();
-    }
+	@Override
+	public String toJSON() {
+		StringBuilder str = new StringBuilder();
+		if (getEncodedBlocks() != null) {
+			str.append("[");
+			getEncodedBlocks().forEach(f -> str.append("\"" + f.getName() + "\" "));
+			str.append("]");
+		}
+		str.append("\"fileSize\":" + String.valueOf(getFileSize()));
+		return str.toString();
+	}
+
+	@Override
+	public String toString() {
+		StringBuilder str = new StringBuilder();
+		str.append(this.getClass().getSimpleName());
+		str.append(toJSON());
+		return str.toString();
+	}
 
 	public long getSrcFileSize() {
 		return srcFileSize;

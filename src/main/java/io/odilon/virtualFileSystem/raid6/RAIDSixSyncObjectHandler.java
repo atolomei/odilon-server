@@ -52,198 +52,192 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 @ThreadSafe
 public class RAIDSixSyncObjectHandler extends RAIDSixTransactionHandler {
 
-    private static Logger logger = Logger.getLogger(RAIDSixSyncObjectHandler.class.getName());
+	private static Logger logger = Logger.getLogger(RAIDSixSyncObjectHandler.class.getName());
 
-    @JsonIgnore
-    private List<Drive> drives;
+	@JsonIgnore
+	private List<Drive> drives;
 
-    @JsonIgnore
-    private List<Drive> drivesToSync;
+	@JsonIgnore
+	private List<Drive> drivesToSync;
 
-    /**
-     * @param driver can not be null
-     */
-    protected RAIDSixSyncObjectHandler(RAIDSixDriver driver) {
-        super(driver);
-    }
+	/**
+	 * @param driver can not be null
+	 */
+	protected RAIDSixSyncObjectHandler(RAIDSixDriver driver) {
+		super(driver);
+	}
 
-    /**
-     * @param meta can not be null
-     */
-    public void sync(ObjectMetadata meta) {
+	/**
+	 * @param meta can not be null
+	 */
+	public void sync(ObjectMetadata meta) {
 
-        VirtualFileSystemOperation operation = null;
-        boolean done = false;
-        ServerBucket bucket;
+		VirtualFileSystemOperation operation = null;
+		boolean done = false;
+		ServerBucket bucket;
 
-        objectWriteLock(meta.getBucketId(), meta.getObjectName());
-        try {
+		objectWriteLock(meta.getBucketId(), meta.getObjectName());
+		try {
 
-            bucketReadLock(meta.getBucketId());
-            try {
+			bucketReadLock(meta.getBucketId());
+			try {
 
-                /** must be executed inside the critical zone. */
-                checkExistsBucket(meta.getBucketId());
+				/** must be executed inside the critical zone. */
+				checkExistsBucket(meta.getBucketId());
 
-                bucket = getBucketCache().get(meta.getBucketId());
+				bucket = getBucketCache().get(meta.getBucketId());
 
-                /**
-                 * backup metadata, there is no need to 
-                 * backup data because existing data files
-                 * are not touched.
-                 **/
-                backup(bucket, meta);
-                operation = getJournalService().syncObject(bucket, meta.getObjectName());
-                syncHead(meta, bucket);
-                syncVersions(meta, bucket);
-                done = operation.commit();
+				/**
+				 * backup metadata, there is no need to backup data because existing data files
+				 * are not touched.
+				 **/
+				backup(bucket, meta);
+				operation = getJournalService().syncObject(bucket, meta.getObjectName());
+				syncHead(meta, bucket);
+				syncVersions(meta, bucket);
+				done = operation.commit();
 
-            } finally {
-                try {
-                    if ((!done)) {
-                        try {
-                            rollback(operation);
-                        } catch (Exception e) {
-                            throw new InternalCriticalException(e, objectInfo(meta));
-                        }
-                    }
-                } finally {
-                    bucketReadUnLock(meta.getBucketId());
-                }
-            }
-        } finally {
-            objectWriteUnLock(meta.getBucketId(), meta.getObjectName());
-        }
-    }
+			} finally {
+				try {
+					if ((!done)) {
+						try {
+							rollback(operation);
+						} catch (Exception e) {
+							throw new InternalCriticalException(e, objectInfo(meta));
+						}
+					}
+				} finally {
+					bucketReadUnLock(meta.getBucketId());
+				}
+			}
+		} finally {
+			objectWriteUnLock(meta.getBucketId(), meta.getObjectName());
+		}
+	}
 
-    protected synchronized List<Drive> getDrives() {
+	protected synchronized List<Drive> getDrives() {
 
-        if (this.drives != null)
-            return this.drives;
+		if (this.drives != null)
+			return this.drives;
 
-        this.drives = new ArrayList<Drive>();
+		this.drives = new ArrayList<Drive>();
 
-        getDriver().getDrivesAll().forEach(d -> this.drives.add(d));
-        this.drives.sort(new Comparator<Drive>() {
-            @Override
-            public int compare(Drive o1, Drive o2) {
-                try {
-                    return o1.getDriveInfo().getOrder() < o2.getDriveInfo().getOrder() ? -1 : 1;
-                } catch (Exception e) {
-                    return 0;
-                }
-            }
-        });
-        return this.drives;
-    }
+		getDriver().getDrivesAll().forEach(d -> this.drives.add(d));
+		this.drives.sort(new Comparator<Drive>() {
+			@Override
+			public int compare(Drive o1, Drive o2) {
+				try {
+					return o1.getDriveInfo().getOrder() < o2.getDriveInfo().getOrder() ? -1 : 1;
+				} catch (Exception e) {
+					return 0;
+				}
+			}
+		});
+		return this.drives;
+	}
 
-    protected synchronized List<Drive> getDrivesToSync() {
-        if (this.drivesToSync != null)
-            return this.drivesToSync;
-        this.drivesToSync = new ArrayList<Drive>();
-        getDrives().forEach(d -> {
-            if (d.getDriveInfo().getStatus() == DriveStatus.NOTSYNC)
-                this.drivesToSync.add(d);
-        });
+	protected synchronized List<Drive> getDrivesToSync() {
+		if (this.drivesToSync != null)
+			return this.drivesToSync;
+		this.drivesToSync = new ArrayList<Drive>();
+		getDrives().forEach(d -> {
+			if (d.getDriveInfo().getStatus() == DriveStatus.NOTSYNC)
+				this.drivesToSync.add(d);
+		});
 
-        return this.drivesToSync;
-    }
+		return this.drivesToSync;
+	}
 
-    /**
-     * <p>
-     * copy metadata directory <br/>
-     * . back up the full metadata directory (ie. ObjectMetadata for all versions)
-     * </p>
-     * 
-     * @param bucket
-     * @param objectName
-     */
-    private void backup(ServerBucket bucket, ObjectMetadata meta) {
-        try {
-            for (Drive drive : getDriver().getDrivesEnabled()) {
-                File src = new File(drive.getObjectMetadataDirPath(bucket, meta.getObjectName()));
-                File dest = new File(drive.getBucketWorkDirPath(bucket) + File.separator + meta.getObjectName());
-                if (src.exists())
-                    FileUtils.copyDirectory(src, dest);
-            }
-            
-            
-            
-        } catch (IOException e) {
-            throw new InternalCriticalException(e, objectInfo(meta));
-        }
-    }
+	/**
+	 * <p>
+	 * copy metadata directory <br/>
+	 * . back up the full metadata directory (ie. ObjectMetadata for all versions)
+	 * </p>
+	 * 
+	 * @param bucket
+	 * @param objectName
+	 */
+	private void backup(ServerBucket bucket, ObjectMetadata meta) {
+		try {
+			for (Drive drive : getDriver().getDrivesEnabled()) {
+				File src = new File(drive.getObjectMetadataDirPath(bucket, meta.getObjectName()));
+				File dest = new File(drive.getBucketWorkDirPath(bucket) + File.separator + meta.getObjectName());
+				if (src.exists())
+					FileUtils.copyDirectory(src, dest);
+			}
 
-    private void syncHead(ObjectMetadata meta, ServerBucket bucket) {
+		} catch (IOException e) {
+			throw new InternalCriticalException(e, objectInfo(meta));
+		}
+	}
 
-        {
-            /** Data (head) */
-            RAIDSixDecoder decoder = new RAIDSixDecoder(getDriver());
-            File file = decoder.decodeHead(meta, bucket);
+	private void syncHead(ObjectMetadata meta, ServerBucket bucket) {
 
-            RAIDSixSDriveSyncEncoder driveInitEncoder = new RAIDSixSDriveSyncEncoder(getDriver(), getDrives());
+		{
+			/** Data (head) */
+			RAIDSixDecoder decoder = new RAIDSixDecoder(getDriver());
+			File file = decoder.decodeHead(meta, bucket);
 
-            try (InputStream in = new BufferedInputStream(new FileInputStream(file.getAbsolutePath()))) {
-                driveInitEncoder.encodeHead(in, bucket, meta.getObjectName());
-            } catch (FileNotFoundException e) {
-                throw new InternalCriticalException(e, objectInfo(meta));
-            } catch (IOException e) {
-                throw new InternalCriticalException(e, objectInfo(meta));
-            }
+			RAIDSixSDriveSyncEncoder driveInitEncoder = new RAIDSixSDriveSyncEncoder(getDriver(), getDrives());
 
-            /** MetaData (head) */
-            meta.setDateSynced(OffsetDateTime.now());
+			try (InputStream in = new BufferedInputStream(new FileInputStream(file.getAbsolutePath()))) {
+				driveInitEncoder.encodeHead(in, bucket, meta.getObjectName());
+			} catch (FileNotFoundException e) {
+				throw new InternalCriticalException(e, objectInfo(meta));
+			} catch (IOException e) {
+				throw new InternalCriticalException(e, objectInfo(meta));
+			}
 
-            List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
-            getDrivesToSync().forEach(d -> list.add(meta));
-            saveRAIDSixObjectMetadataToDisk(getDrivesToSync(), list, true);
-        }
-    }
+			/** MetaData (head) */
+			meta.setDateSynced(OffsetDateTime.now());
 
-    private void syncVersions(ObjectMetadata meta, ServerBucket bucket) {
+			List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
+			getDrivesToSync().forEach(d -> list.add(meta));
+			saveRAIDSixObjectMetadataToDisk(getDrivesToSync(), list, true);
+		}
+	}
 
-        if (getDriver().getVirtualFileSystemService().getServerSettings().isVersionControl()) {
-        
-            for (int version = 0; version < meta.getVersion(); version++) {
-            
-                ObjectMetadata versionMeta = getDriver().getObjectMetadataReadDrive(bucket, meta.getObjectName())
-                        .getObjectMetadataVersion(bucket, meta.getObjectName(), version);
+	private void syncVersions(ObjectMetadata meta, ServerBucket bucket) {
 
-                if (versionMeta != null) {
+		if (getDriver().getVirtualFileSystemService().getServerSettings().isVersionControl()) {
 
-                    /** Data (version) */
-                    RAIDSixDecoder decoder = new RAIDSixDecoder(getDriver());
-                    RAIDSixSDriveSyncEncoder driveEncoder = new RAIDSixSDriveSyncEncoder(getDriver(), getDrives());
-                    try (InputStream in = new BufferedInputStream(new FileInputStream(decoder.decodeVersion(versionMeta, bucket).getAbsolutePath()))) {
-                        /**
-                         * encodes version without saving existing blocks, 
-                         * only the ones that go to the
-                         * new drive/s
-                         */
-                        driveEncoder.encodeVersion(in, bucket, meta.getObjectName(), versionMeta.getVersion());
-                    } catch (FileNotFoundException e) {
-                        throw new InternalCriticalException(e, objectInfo(meta));
-                    } catch (IOException e) {
-                        throw new InternalCriticalException(e, objectInfo(meta));
-                    }
+			for (int version = 0; version < meta.getVersion(); version++) {
 
-                    /** Metadata (version) */
-                    /**
-                     * changes the date of sync in order to prevent this object's sync if the
-                     * process is re run
-                     */
-                    versionMeta.setDateSynced(OffsetDateTime.now());
+				ObjectMetadata versionMeta = getDriver().getObjectMetadataReadDrive(bucket, meta.getObjectName()).getObjectMetadataVersion(bucket, meta.getObjectName(), version);
 
-                    List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
-                    getDrives().forEach(d -> list.add(versionMeta));
-                    saveRAIDSixObjectMetadataToDisk(getDrives(), list, false);
+				if (versionMeta != null) {
 
-                } else {
-                    logger.warn("previous version was deleted for Object -> " + String.valueOf(version) + " |  head "
-                            + objectInfo(meta) + "  head version:" + String.valueOf(meta.getVersion()));
-                }
-            }
-        }
-    }
+					/** Data (version) */
+					RAIDSixDecoder decoder = new RAIDSixDecoder(getDriver());
+					RAIDSixSDriveSyncEncoder driveEncoder = new RAIDSixSDriveSyncEncoder(getDriver(), getDrives());
+					try (InputStream in = new BufferedInputStream(new FileInputStream(decoder.decodeVersion(versionMeta, bucket).getAbsolutePath()))) {
+						/**
+						 * encodes version without saving existing blocks, only the ones that go to the
+						 * new drive/s
+						 */
+						driveEncoder.encodeVersion(in, bucket, meta.getObjectName(), versionMeta.getVersion());
+					} catch (FileNotFoundException e) {
+						throw new InternalCriticalException(e, objectInfo(meta));
+					} catch (IOException e) {
+						throw new InternalCriticalException(e, objectInfo(meta));
+					}
+
+					/** Metadata (version) */
+					/**
+					 * changes the date of sync in order to prevent this object's sync if the
+					 * process is re run
+					 */
+					versionMeta.setDateSynced(OffsetDateTime.now());
+
+					List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
+					getDrives().forEach(d -> list.add(versionMeta));
+					saveRAIDSixObjectMetadataToDisk(getDrives(), list, false);
+
+				} else {
+					logger.warn("previous version was deleted for Object -> " + String.valueOf(version) + " |  head " + objectInfo(meta) + "  head version:" + String.valueOf(meta.getVersion()));
+				}
+			}
+		}
+	}
 
 }
