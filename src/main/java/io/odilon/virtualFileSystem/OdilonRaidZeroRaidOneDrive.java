@@ -70,6 +70,7 @@ public class OdilonRaidZeroRaidOneDrive extends OdilonDrive implements SimpleDri
 	 * <p>
 	 * Constructor explicit
 	 * 
+	 * 
 	 * @param driveNanme
 	 * @param rootDir
 	 */
