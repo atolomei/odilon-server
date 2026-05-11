@@ -83,6 +83,8 @@ public interface ServiceRequest extends Serializable, ApplicationContextAware {
 
     public int getRetries();
 
+    public int incrementAndGetRetries();
+
     public void setTimeZone(String timeZoneID);
 
     public String getTimeZone();

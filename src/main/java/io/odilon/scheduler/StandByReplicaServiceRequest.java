@@ -82,13 +82,15 @@ public class StandByReplicaServiceRequest extends AbstractServiceRequest {
 
         } catch (Exception e) {
             isSuccess = false;
+            setStatus(ServiceRequestStatus.ERROR);
             logger.error(e, SharedConstant.NOT_THROWN);
         }
     }
 
     @Override
     public void stop() {
-        this.isSuccess = true;
+        this.isSuccess = false;
+        setStatus(ServiceRequestStatus.STOPPED);
     }
 
     @Override

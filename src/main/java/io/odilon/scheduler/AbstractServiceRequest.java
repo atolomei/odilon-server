@@ -19,6 +19,7 @@ package io.odilon.scheduler;
 import java.io.Serializable;
 import java.time.OffsetDateTime;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
@@ -90,7 +91,7 @@ public abstract class AbstractServiceRequest implements ServiceRequest {
     private Map<String, String> parameters;
 
     @JsonProperty("retries")
-    private int retries = 0;
+    private AtomicInteger retries = new AtomicInteger(0);
 
     @JsonIgnore
     private OffsetDateTime started;
@@ -251,11 +252,19 @@ public abstract class AbstractServiceRequest implements ServiceRequest {
     }
 
     public int getRetries() {
-        return this.retries;
+        return this.retries.get();
     }
 
     public void setRetries(int retries) {
-        this.retries = retries;
+        this.retries.set(retries);
+    }
+
+    /**
+     * Atomically increments the retry counter and returns the new value.
+     * Use this instead of {@code setRetries(getRetries() + 1)} to avoid race conditions.
+     */
+    public int incrementAndGetRetries() {
+        return this.retries.incrementAndGet();
     }
 
     public String toJSON() {

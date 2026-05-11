@@ -18,6 +18,7 @@ package io.odilon.scheduler;
 
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TimeZone;
@@ -134,9 +135,8 @@ public abstract class CronJobRequest extends AbstractServiceRequest {
         clone.setTimeZone(getTimeZone());
         Map<String, String> pa = getParameters();
         if (pa != null) {
-            for (Entry<String, String> e : pa.entrySet())
-                pa.put(e.getKey().toString(), e.getValue());
-            clone.setParameters(pa);
+            Map<String, String> copy = new HashMap<>(pa);
+            clone.setParameters(copy);
         }
     }
 

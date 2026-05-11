@@ -29,11 +29,11 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 /***
  * 
  * <p>
- * Cron jobs queue that execute regularly based on a {@link CropnExpressionJ8},
+ * Cron jobs queue that execute regularly based on a {@link CronExpressionJ8},
  * they are non blocking
  * </p>
  * 
- * @see {@link CronExpressionJ8}
+ * @see CronExpressionJ8
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
@@ -78,19 +78,29 @@ public class CronJobSchedulerWorker extends SchedulerWorker {
 		while ((!done) && (!getCronJobList().isEmpty())) {
 
 			CronJobRequest job = getCronJobList().first();
+			if (job == null) {
+				done = true;
+				break;
+			}
 
 			final ZonedDateTime now = ZonedDateTime.now();
 			final ZonedDateTime time = job.getTime();
 
 			if (now.isAfter(time) || now.isEqual(time)) {
+				/** pollFirst is not guaranteed to return the same element as first() in a
+				 *  concurrent scenario; guard against null */
+				job = getCronJobList().pollFirst();
+				if (job == null) {
+					done = true;
+					break;
+				}
 				try {
-					job = getCronJobList().pollFirst();
 					if (job.isEnabled())
 						dispatch(job);
-
 				} catch (Exception e) {
 					logger.error(e, SharedConstant.NOT_THROWN);
-					done = true;
+					/** do NOT set done=true here: a single job failure should not
+					 *  stop processing of remaining due cron jobs */
 				}
 			} else {
 				done = true;
@@ -108,7 +118,7 @@ public class CronJobSchedulerWorker extends SchedulerWorker {
 		ZonedDateTime now = ZonedDateTime.now();
 		if (!getCronJobList().isEmpty()) {
 			ZonedDateTime next = getCronJobList().first().getTime();
-			if ((next != null) && now.plusSeconds(getSiestaMillisecs()).isAfter(next))
+			if ((next != null) && now.plus(Duration.ofMillis(getSiestaMillisecs())).isAfter(next))
 				rest(Duration.between(now, next).toMillis());
 			else
 				rest(getSiestaMillisecs());

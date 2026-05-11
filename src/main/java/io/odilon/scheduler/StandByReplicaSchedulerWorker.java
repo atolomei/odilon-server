@@ -42,7 +42,7 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  * be completed.
  * </p>
  * 
- * @see {@link StandardSchedulerWorker}
+ * @see StandardSchedulerWorker
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  * 
@@ -116,26 +116,32 @@ public class StandByReplicaSchedulerWorker extends SchedulerWorker {
 
 	public void cancel(VirtualFileSystemOperation opx) {
 		Check.requireNonNullArgument(opx, "opx is null");
+		ServiceRequest found = null;
 		Iterator<ServiceRequest> it = getServiceRequestQueue().iterator();
 		while (it.hasNext()) {
 			ServiceRequest req = it.next();
 			if (((StandByReplicaServiceRequest) req).getVFSOperation().getId().equals(opx.getId())) {
-				this.cancel(req);
-				return;
+				found = req;
+				break;
 			}
 		}
+		if (found != null)
+			this.cancel(found);
 	}
 
 	public void cancel(Serializable id) {
 		Check.requireNonNullArgument(id, "id is null");
+		ServiceRequest found = null;
 		Iterator<ServiceRequest> it = getServiceRequestQueue().iterator();
 		while (it.hasNext()) {
 			ServiceRequest req = it.next();
 			if (((StandByReplicaServiceRequest) req).getId().equals(id)) {
-				this.cancel(req);
-				return;
+				found = req;
+				break;
 			}
 		}
+		if (found != null)
+			this.cancel(found);
 	}
 
 	public void fail(ServiceRequest request) {
@@ -170,7 +176,7 @@ public class StandByReplicaSchedulerWorker extends SchedulerWorker {
 		List<ServiceRequest> list = new ArrayList<ServiceRequest>();
 		Map<String, ServiceRequest> map = new HashMap<String, ServiceRequest>();
 
-		int numThreads = getDispatcher().getPoolSize() - getExecuting().size() + 1;
+		int numThreads = getDispatcher().getPoolSize() - getExecuting().size();
 
 		/** Failed retry ------------ */
 
@@ -188,7 +194,6 @@ public class StandByReplicaSchedulerWorker extends SchedulerWorker {
 				} else
 					done = true;
 			}
-			this.lastFailedTry = OffsetDateTime.now();
 
 		} else {
 
@@ -210,16 +215,19 @@ public class StandByReplicaSchedulerWorker extends SchedulerWorker {
 
 		if (list.isEmpty())
 			return;
-		{
-			for (int n = 0; n < list.size(); n++) {
-				ServiceRequest request = list.get(n);
-				/** moveOut -> removes from the Queue without deleting the file in disk */
-				getServiceRequestQueue().moveOut(request);
-				request.setApplicationContext(getApplicationContext());
-				getExecuting().put(request.getId(), request);
-				dispatch(request);
-			}
+
+		for (int n = 0; n < list.size(); n++) {
+			ServiceRequest request = list.get(n);
+			/** moveOut -> removes from the Queue without deleting the file in disk */
+			getServiceRequestQueue().moveOut(request);
+			request.setApplicationContext(getApplicationContext());
+			getExecuting().put(request.getId(), request);
+			dispatch(request);
 		}
+
+		/** Only reset the retry timer when jobs were actually dispatched */
+		if (!getFailed().isEmpty())
+			this.lastFailedTry = OffsetDateTime.now();
 	}
 
 	@Override

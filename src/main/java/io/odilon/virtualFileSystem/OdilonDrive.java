@@ -96,9 +96,9 @@ import org.springframework.context.annotation.Scope;
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @JsonInclude(Include.NON_NULL)
-@Component
-@Scope("prototype")
-public class OdilonDrive extends BaseObject implements Drive {
+//@Component
+//@Scope("prototype")
+public abstract class OdilonDrive extends BaseObject implements Drive {
 
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 	static private Logger logger = Logger.getLogger(OdilonDrive.class.getName());
@@ -138,6 +138,7 @@ public class OdilonDrive extends BaseObject implements Drive {
 
 	@Autowired
 	protected OdilonDrive(String rootDir) {
+		Check.requireNonNull(rootDir);
 		this.name = rootDir;
 		this.rootDir = rootDir;
 	}
@@ -152,6 +153,9 @@ public class OdilonDrive extends BaseObject implements Drive {
 	 * @param rootDir
 	 */
 	protected OdilonDrive(String name, String rootDir, int configOrder, String raidSetup, int raidDrives) {
+		Check.requireNonNull(name);
+		Check.requireNonNull(rootDir);
+		Check.requireNonNull(raidSetup);
 		this.name = name;
 		this.rootDir = rootDir;
 		this.configOrder = configOrder;
@@ -522,14 +526,6 @@ public class OdilonDrive extends BaseObject implements Drive {
 		}
 	}
 
-	private ObjectMetadata getObjectMetadataById(Long bucketId, String objectName) {
-		try {
-			return getObjectMapper().readValue(getObjectMetadataFileById(bucketId, objectName), ObjectMetadata.class);
-		} catch (Exception e) {
-			throw new InternalCriticalException(e);
-		}
-	}
-
 	/**
 	 * ObjectMetadata Version
 	 * 
@@ -793,32 +789,6 @@ public class OdilonDrive extends BaseObject implements Drive {
 		return "ok";
 	}
 
-	/**
-	 * @param stream
-	 * @param destFileName
-	 * @throws IOException
-	 */
-	protected void transferTo(InputStream stream, String destFileName) throws IOException {
-		byte[] buf = new byte[ServerConstant.BUFFER_SIZE];
-		int bytesRead;
-		BufferedOutputStream out = null;
-		try {
-			out = new BufferedOutputStream(new FileOutputStream(destFileName), ServerConstant.BUFFER_SIZE);
-			while ((bytesRead = stream.read(buf, 0, buf.length)) >= 0)
-				out.write(buf, 0, bytesRead);
-		} catch (IOException e) {
-			throw (e);
-
-		} finally {
-
-			if (stream != null)
-				stream.close();
-
-			if (out != null)
-				out.close();
-		}
-	}
-
 	@JsonIgnore
 	@Override
 	public long getAvailableSpace() {
@@ -882,6 +852,137 @@ public class OdilonDrive extends BaseObject implements Drive {
 				logger.debug("Removed temp files from dir: " + getBucketWorkDirPath(bucket) + " | b:" + bucket.getName() + " total:" + String.valueOf(n));
 		} catch (Exception e) {
 			logger.error(e, SharedConstant.NOT_THROWN);
+		}
+	}
+
+	
+	@Override
+	public void updateBucket(BucketMetadata meta) throws IOException {
+		Check.requireNonNullArgument(meta, "meta is null");
+		saveBucketMetadata(meta);
+	}
+
+	public String objectInfo(ServerBucket bucket, String objectName) {
+		return "bn:" + (bucket != null ? bucket.getId().toString() : "null") + " o:" + (objectName != null ? objectName : "null");
+	}
+
+	/** Delete Metadata directory */
+	@Override
+	public void deleteObjectMetadata(ServerBucket bucket, String objectName) {
+		Check.requireNonNullArgument(bucket, "bucket is null");
+		Check.requireNonNullStringArgument(objectName, "objectName is null " + objectInfo(bucket));
+		FileUtils.deleteQuietly(new File(this.getObjectMetadataDirPath(bucket, objectName)));
+	}
+
+	public String objectInfo(BucketMetadata bucket) {
+		if (bucket == null)
+			return "b: null";
+		return "b_id:" + (bucket.getId() != null ? bucket.getId().toString() : "null") + " bn:" + (bucket.getBucketName() != null ? bucket.getBucketName() : "null");
+	}
+
+	public String objectInfo(Drive drive) {
+		if (drive == null)
+			return "d: null";
+		return "d:" + drive.getName();
+	}
+
+	public String objectInfo(ServerBucket bucket) {
+		if (bucket == null)
+			return "b: null";
+		return "b_id:" + (bucket.getId() != null ? bucket.getId().toString() : "null") + " bn:" + (bucket.getName() != null ? bucket.getName() : "null");
+	}
+
+	protected void saveBucketMetadata(BucketMetadata meta) {
+		Check.requireNonNullArgument(meta, "meta is null");
+		Check.requireNonNullArgument(meta.id, "meta.id is null");
+		try {
+			String jsonString = getObjectMapper().writeValueAsString(meta);
+			Files.writeString(Paths.get(this.getBucketsDirPath() + File.separator + meta.id.toString() + File.separator + meta.id.toString() + ServerConstant.JSON), jsonString);
+			this.driveBuckets.put(meta.id, new DriveBucket(this, meta));
+
+		} catch (Exception e) {
+			throw new InternalCriticalException(e, "b:" + meta.bucketName + ", d:" + getName());
+		}
+	}
+
+	/**
+	 * @param bucketName
+	 */
+	protected void createDataBucketDirIfNotExists(Long bucketId) {
+
+		Check.requireNonNullArgument(bucketId, "bucketId is null");
+
+		try {
+
+			this.drive_lock.writeLock().lock();
+
+			/** data */
+			if (!Files.exists(Paths.get(getRootDirPath() + File.separator + bucketId.toString()))) {
+				logger.debug("Creating Data Bucket Directory for  -> b:" + bucketId.toString());
+				io.odilon.util.OdilonFileUtils.forceMkdir(new File(getRootDirPath() + File.separator + bucketId.toString()));
+			}
+
+			/** data version */
+			if (!Files.exists(Paths.get(getRootDirPath() + File.separator + bucketId.toString() + File.separator + VirtualFileSystemService.VERSION_DIR))) {
+				io.odilon.util.OdilonFileUtils.forceMkdir(new File(getRootDirPath() + File.separator + bucketId.toString() + File.separator + VirtualFileSystemService.VERSION_DIR));
+			}
+
+		} catch (IOException e) {
+			throw new InternalCriticalException(e, "Can not create Bucket Data Directory -> d:" + getName() + " b:" + (Optional.ofNullable(bucketId.toString()).orElse("null")));
+		} finally {
+			this.drive_lock.writeLock().unlock();
+		}
+	}
+
+	protected boolean existBucketMetadataDir(ServerBucket bucket) {
+		return Files.exists(Paths.get(getBucketMetadataDirPath(bucket)));
+	}
+
+	protected void createRootDirectory() {
+		try {
+			logger.debug("Creating Data Directory -> " + getRootDirPath());
+			io.odilon.util.OdilonFileUtils.forceMkdir(new File(getRootDirPath()));
+
+		} catch (IOException e) {
+			throw new InternalCriticalException(e, "Can not create root Directory -> dir:" + rootDir + "  | d:" + name);
+		}
+	}
+
+	protected void createSysDirectory() {
+		try {
+			logger.debug("Creating Directory -> " + getSysDirPath());
+			io.odilon.util.OdilonFileUtils.forceMkdir(new File(getSysDirPath()));
+
+		} catch (IOException e) {
+			String msg = "Can not create sys Directory ->  dir:" + getSysDirPath() + "  d:" + name;
+			throw new InternalCriticalException(e, msg);
+		}
+	}
+
+	
+	/**
+	 * @param stream
+	 * @param destFileName
+	 * @throws IOException
+	 */
+	protected void transferTo(InputStream stream, String destFileName) throws IOException {
+		byte[] buf = new byte[ServerConstant.BUFFER_SIZE];
+		int bytesRead;
+		BufferedOutputStream out = null;
+		try {
+			out = new BufferedOutputStream(new FileOutputStream(destFileName), ServerConstant.BUFFER_SIZE);
+			while ((bytesRead = stream.read(buf, 0, buf.length)) >= 0)
+				out.write(buf, 0, bytesRead);
+		} catch (IOException e) {
+			throw (e);
+
+		} finally {
+
+			if (stream != null)
+				stream.close();
+
+			if (out != null)
+				out.close();
 		}
 	}
 
@@ -1012,6 +1113,7 @@ public class OdilonDrive extends BaseObject implements Drive {
 
 		} catch (Exception e) {
 			if (done) {
+				logger.error(e, SharedConstant.NOT_THROWN);
 				return;
 			}
 			throw e;
@@ -1020,79 +1122,7 @@ public class OdilonDrive extends BaseObject implements Drive {
 		}
 	}
 
-	@Override
-	public void updateBucket(BucketMetadata meta) throws IOException {
-		Check.requireNonNullArgument(meta, "meta is null");
-		saveBucketMetadata(meta);
-	}
-
-	protected void saveBucketMetadata(BucketMetadata meta) {
-		Check.requireNonNullArgument(meta, "meta is null");
-		Check.requireNonNullArgument(meta.id, "meta.id is null");
-		try {
-			String jsonString = getObjectMapper().writeValueAsString(meta);
-			Files.writeString(Paths.get(this.getBucketsDirPath() + File.separator + meta.id.toString() + File.separator + meta.id.toString() + ServerConstant.JSON), jsonString);
-			this.driveBuckets.put(meta.id, new DriveBucket(this, meta));
-
-		} catch (Exception e) {
-			throw new InternalCriticalException(e, "b:" + meta.bucketName + ", d:" + getName());
-		}
-	}
-
-	/**
-	 * @param bucketName
-	 */
-	protected void createDataBucketDirIfNotExists(Long bucketId) {
-
-		Check.requireNonNullArgument(bucketId, "bucketId is null");
-
-		try {
-
-			this.drive_lock.writeLock().lock();
-
-			/** data */
-			if (!Files.exists(Paths.get(getRootDirPath() + File.separator + bucketId.toString()))) {
-				logger.debug("Creating Data Bucket Directory for  -> b:" + bucketId.toString());
-				io.odilon.util.OdilonFileUtils.forceMkdir(new File(getRootDirPath() + File.separator + bucketId.toString()));
-			}
-
-			/** data version */
-			if (!Files.exists(Paths.get(getRootDirPath() + File.separator + bucketId.toString() + File.separator + VirtualFileSystemService.VERSION_DIR))) {
-				io.odilon.util.OdilonFileUtils.forceMkdir(new File(getRootDirPath() + File.separator + bucketId.toString() + File.separator + VirtualFileSystemService.VERSION_DIR));
-			}
-
-		} catch (IOException e) {
-			throw new InternalCriticalException(e, "Can not create Bucket Data Directory -> d:" + getName() + " b:" + (Optional.ofNullable(bucketId.toString()).orElse("null")));
-		} finally {
-			this.drive_lock.writeLock().unlock();
-		}
-	}
-
-	protected boolean existBucketMetadataDir(ServerBucket bucket) {
-		return Files.exists(Paths.get(getBucketMetadataDirPath(bucket)));
-	}
-
-	protected void createRootDirectory() {
-		try {
-			logger.debug("Creating Data Directory -> " + getRootDirPath());
-			io.odilon.util.OdilonFileUtils.forceMkdir(new File(getRootDirPath()));
-
-		} catch (IOException e) {
-			throw new InternalCriticalException(e, "Can not create root Directory -> dir:" + rootDir + "  | d:" + name);
-		}
-	}
-
-	protected void createSysDirectory() {
-		try {
-			logger.debug("Creating Directory -> " + getSysDirPath());
-			io.odilon.util.OdilonFileUtils.forceMkdir(new File(getSysDirPath()));
-
-		} catch (IOException e) {
-			String msg = "Can not create sys Directory ->  dir:" + getSysDirPath() + "  d:" + name;
-			throw new InternalCriticalException(e, msg);
-		}
-	}
-
+	
 	private void createWorkDirectory() {
 		try {
 
@@ -1270,35 +1300,31 @@ public class OdilonDrive extends BaseObject implements Drive {
 		}
 	}
 
-	private synchronized void saveDriveMetadata(DriveInfo info) {
-		Check.requireNonNullArgument(info, "info is null");
-		String jsonString = null;
-		try {
-
-			jsonString = getObjectMapper().writeValueAsString(info);
-			Files.writeString(Paths.get(getSysDirPath() + File.separator + VirtualFileSystemService.DRIVE_INFO), jsonString);
-
-		} catch (Exception e) {
-			throw new InternalCriticalException(e, "json:" + (Optional.ofNullable(jsonString).isPresent() ? jsonString : "null"));
-		}
+	private String fileInfo(String fileName) {
+		return "f:" + (fileName != null ? fileName : "null") + " d:" + getName();
 	}
 
-	private synchronized DriveInfo readDriveMetadata() {
+	private String getBucketWorkDirPathById(Long id) {
+		return this.getWorkDirPath() + File.separator + id.toString();
+	}
 
-		File file = null;
+	private File getObjectMetadataFileById(Long bucketId, String objectName) {
+		return new File(getObjectMetadataFilePathById(bucketId, objectName));
+	}
+
+	private String getBucketMetadataDirPathById(Long id) {
+		return this.getBucketsDirPath() + File.separator + id.toString();
+	}
+
+	private String getObjectMetadataDirPathById(Long bucketId, String objectName) {
+		return getBucketsDirPath() + File.separator + bucketId.toString() + File.separator + objectName;
+	}
+
+	private ObjectMetadata getObjectMetadataById(Long bucketId, String objectName) {
 		try {
-			file = new File(getSysDirPath() + File.separator + VirtualFileSystemService.DRIVE_INFO);
-
-			if (!file.exists())
-				return null;
-
-			String str = Files.readString(file.toPath());
-			DriveInfo d = getObjectMapper().readValue(str, DriveInfo.class);
-			return d;
-			// return getObjectMapper().readValue(file, DriveInfo.class);
-
+			return getObjectMapper().readValue(getObjectMetadataFileById(bucketId, objectName), ObjectMetadata.class);
 		} catch (Exception e) {
-			throw new InternalCriticalException(e, "f:" + (Optional.ofNullable(file).isPresent() ? file.getName() : "null"));
+			throw new InternalCriticalException(e);
 		}
 	}
 
@@ -1335,54 +1361,36 @@ public class OdilonDrive extends BaseObject implements Drive {
 		}
 	}
 
-	/** Delete Metadata directory */
-	@Override
-	public void deleteObjectMetadata(ServerBucket bucket, String objectName) {
-		Check.requireNonNullArgument(bucket, "bucket is null");
-		Check.requireNonNullStringArgument(objectName, "objectName is null " + objectInfo(bucket));
-		FileUtils.deleteQuietly(new File(this.getObjectMetadataDirPath(bucket, objectName)));
+	private synchronized void saveDriveMetadata(DriveInfo info) {
+		Check.requireNonNullArgument(info, "info is null");
+		String jsonString = null;
+		try {
+
+			jsonString = getObjectMapper().writeValueAsString(info);
+			Files.writeString(Paths.get(getSysDirPath() + File.separator + VirtualFileSystemService.DRIVE_INFO), jsonString);
+
+		} catch (Exception e) {
+			throw new InternalCriticalException(e, "json:" + (Optional.ofNullable(jsonString).isPresent() ? jsonString : "null"));
+		}
 	}
 
-	public String objectInfo(BucketMetadata bucket) {
-		if (bucket == null)
-			return "b: null";
-		return "b_id:" + (bucket.getId() != null ? bucket.getId().toString() : "null") + " bn:" + (bucket.getBucketName() != null ? bucket.getBucketName() : "null");
-	}
+	private synchronized DriveInfo readDriveMetadata() {
 
-	public String objectInfo(Drive drive) {
-		if (drive == null)
-			return "d: null";
-		return "d:" + drive.getName();
-	}
+		File file = null;
+		try {
+			file = new File(getSysDirPath() + File.separator + VirtualFileSystemService.DRIVE_INFO);
 
-	public String objectInfo(ServerBucket bucket) {
-		if (bucket == null)
-			return "b: null";
-		return "b_id:" + (bucket.getId() != null ? bucket.getId().toString() : "null") + " bn:" + (bucket.getName() != null ? bucket.getName() : "null");
-	}
+			if (!file.exists())
+				return null;
 
-	private String fileInfo(String fileName) {
-		return "f:" + (fileName != null ? fileName : "null") + " d:" + getName();
-	}
+			String str = Files.readString(file.toPath());
+			DriveInfo d = getObjectMapper().readValue(str, DriveInfo.class);
+			return d;
+			// return getObjectMapper().readValue(file, DriveInfo.class);
 
-	public String objectInfo(ServerBucket bucket, String objectName) {
-		return "bn:" + (bucket != null ? bucket.getId().toString() : "null") + " o:" + (objectName != null ? objectName : "null");
-	}
-
-	private String getBucketWorkDirPathById(Long id) {
-		return this.getWorkDirPath() + File.separator + id.toString();
-	}
-
-	private File getObjectMetadataFileById(Long bucketId, String objectName) {
-		return new File(getObjectMetadataFilePathById(bucketId, objectName));
-	}
-
-	private String getBucketMetadataDirPathById(Long id) {
-		return this.getBucketsDirPath() + File.separator + id.toString();
-	}
-
-	private String getObjectMetadataDirPathById(Long bucketId, String objectName) {
-		return getBucketsDirPath() + File.separator + bucketId.toString() + File.separator + objectName;
+		} catch (Exception e) {
+			throw new InternalCriticalException(e, "f:" + (Optional.ofNullable(file).isPresent() ? file.getName() : "null"));
+		}
 	}
 
 }

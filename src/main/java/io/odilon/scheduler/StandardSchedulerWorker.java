@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.locks.ReentrantLock;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
@@ -63,267 +64,287 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  */
 public class StandardSchedulerWorker extends SchedulerWorker {
 
-    static private Logger logger = Logger.getLogger(StandardSchedulerWorker.class.getName());
-    static private Logger startuplogger = Logger.getLogger("StartupLogger");
+	static private Logger logger = Logger.getLogger(StandardSchedulerWorker.class.getName());
+	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 
-    static final int RETRY_FAILED_SECONDS = 15;
-    static final int MAX_RETRIES = 5;
+	static final int RETRY_FAILED_SECONDS = 15;
+	static final int MAX_RETRIES = 5;
 
-    @JsonIgnore
-    private ServiceRequestQueue queue;
+	@JsonIgnore
+	private ServiceRequestQueue queue;
 
-    @JsonIgnore
-    private Map<Serializable, ServiceRequest> executing;
+	@JsonIgnore
+	private Map<Serializable, ServiceRequest> executing;
 
-    @JsonIgnore
-    private Map<Serializable, ServiceRequest> failed;
+	@JsonIgnore
+	private Map<Serializable, ServiceRequest> failed;
 
-    @JsonIgnore
-    private OffsetDateTime lastFailedTry = OffsetDateTime.MIN;
+	@JsonIgnore
+	private final ReentrantLock doJobsLock = new ReentrantLock();
 
-    /**
-     * @param id
-     * @param virtualFileSystemService
-     */
-    public StandardSchedulerWorker(String id, VirtualFileSystemService virtualFileSystemService) {
-        super(id, virtualFileSystemService);
-    }
+	/**
+	 * @param id
+	 * @param virtualFileSystemService
+	 */
+	public StandardSchedulerWorker(String id, VirtualFileSystemService virtualFileSystemService) {
+		super(id, virtualFileSystemService);
+	}
 
-    @Override
-    public void add(ServiceRequest request) {
-        Check.requireNonNullArgument(request, "request is null");
-        Check.requireTrue(request instanceof StandardServiceRequest,
-                "must be instance of -> " + StandardServiceRequest.class.getName() + " | request: " + request.getClass().getName());
-        getServiceRequestQueue().add(request);
-    }
+	@Override
+	public void add(ServiceRequest request) {
+		Check.requireNonNullArgument(request, "request is null");
+		Check.requireTrue(request instanceof StandardServiceRequest, "must be instance of -> " + StandardServiceRequest.class.getName() + " | request: " + request.getClass().getName());
+		getServiceRequestQueue().add(request);
+	}
 
-    public void close(ServiceRequest request) {
-        Check.requireNonNullArgument(request, "request is null");
-        try {
-            if (getExecuting().containsKey(request.getId()))
-                getExecuting().remove(request.getId());
+	public void close(ServiceRequest request) {
+		Check.requireNonNullArgument(request, "request is null");
+		try {
+			if (getExecuting().containsKey(request.getId()))
+				getExecuting().remove(request.getId());
 
-            if (getFailed().containsKey(request.getId()))
-                getFailed().remove(request.getId());
+			if (getFailed().containsKey(request.getId()))
+				getFailed().remove(request.getId());
 
-            getServiceRequestQueue().remove(request);
+			getServiceRequestQueue().remove(request);
 
-        } catch (Exception e) {
-            logger.error(e, SharedConstant.NOT_THROWN);
-        }
-    }
+		} catch (Exception e) {
+			logger.error(e, SharedConstant.NOT_THROWN);
+		}
+	}
 
-    /**
-     * 
-     */
-    public void cancel(ServiceRequest request) {
-        Check.requireNonNullArgument(request, "request is null");
-        try {
-            if (getExecuting().containsKey(request.getId()))
-                getExecuting().remove(request.getId());
+	/**
+	 * 
+	 */
+	public void cancel(ServiceRequest request) {
+		Check.requireNonNullArgument(request, "request is null");
+		try {
+			if (getExecuting().containsKey(request.getId()))
+				getExecuting().remove(request.getId());
 
-            if (getFailed().containsKey(request.getId()))
-                getFailed().remove(request.getId());
+			if (getFailed().containsKey(request.getId()))
+				getFailed().remove(request.getId());
 
-            getServiceRequestQueue().remove(request);
+			getServiceRequestQueue().remove(request);
 
-        } catch (Exception e) {
-            logger.error(e, SharedConstant.NOT_THROWN);
-        }
-    }
+		} catch (Exception e) {
+			logger.error(e, SharedConstant.NOT_THROWN);
+		}
+	}
 
-    /**
-     * <p>
-     * In this SchedulerWorkder after {@link MAX_RETRIES} retries the
-     * {@link ServiceRequest} is discarded
-     * </p>
-     */
-    public void fail(ServiceRequest request) {
-        Check.requireNonNullArgument(request, "request is null");
-        try {
+	/**
+	 * <p>
+	 * In this SchedulerWorkder after {@link MAX_RETRIES} retries the
+	 * {@link ServiceRequest} is discarded
+	 * </p>
+	 */
+	public void fail(ServiceRequest request) {
+		Check.requireNonNullArgument(request, "request is null");
+		try {
 
-            if (getExecuting().containsKey(request.getId()))
-                getExecuting().remove(request.getId());
+			if (getExecuting().containsKey(request.getId()))
+				getExecuting().remove(request.getId());
 
-            request.setStatus(ServiceRequestStatus.ERROR);
+			request.setStatus(ServiceRequestStatus.ERROR);
 
-            if (request.getRetries() > MAX_RETRIES)
-                getServiceRequestQueue().remove(request);
-            else {
-                request.setRetries(request.getRetries() + 1);
-                getFailed().put(request.getId(), request);
-            }
+			if (request.getRetries() > MAX_RETRIES) {
+				logger.error("MAX_RETRIES exceeded, discarding | requestId: " + request.getId() + " | type: " + request.getClass().getSimpleName());
+				getServiceRequestQueue().remove(request);
+			} else {
+				request.incrementAndGetRetries();
+				request.setExecuteAfter(OffsetDateTime.now().plusSeconds(RETRY_FAILED_SECONDS));
+				getFailed().put(request.getId(), request);
+			}
 
-        } catch (Exception e) {
-            logger.error(e, SharedConstant.NOT_THROWN);
-        }
-    }
+		} catch (Exception e) {
+			logger.error(e, SharedConstant.NOT_THROWN);
+		}
+	}
 
-    @Override
-    protected synchronized void onInitialize() {
+	@Override
+	protected synchronized void onInitialize() {
 
-        this.queue = getApplicationContext().getBean(ServiceRequestQueue.class, getId());
-        this.queue.setVirtualFileSystemService(getVirtualFileSystemService());
-        this.queue.loadFSQueue();
+		this.queue = getApplicationContext().getBean(ServiceRequestQueue.class, getId());
+		this.queue.setVirtualFileSystemService(getVirtualFileSystemService());
+		this.queue.loadFSQueue();
 
-        if (this.queue.size() > 0)
-            startuplogger.info(this.getClass().getSimpleName() + " Queue size -> " + String.valueOf(this.queue.size()));
+		if (this.queue.size() > 0)
+			startuplogger.info(this.getClass().getSimpleName() + " Queue size -> " + String.valueOf(this.queue.size()));
 
-        this.executing = new ConcurrentHashMap<Serializable, ServiceRequest>(16, 0.9f, 1);
-        this.failed = new ConcurrentSkipListMap<Serializable, ServiceRequest>();
-    }
+		this.executing = new ConcurrentHashMap<Serializable, ServiceRequest>(16, 0.9f, 1);
+		this.failed = new ConcurrentSkipListMap<Serializable, ServiceRequest>();
+	}
 
-    @Override
-    protected void doJobs() {
+	@Override
+	protected void doJobs() {
 
-        if (isFullCapacity()) {
-            logger.error(this.getClass().getSimpleName() + " operating at full capacity -> "
-                    + String.valueOf(getDispatcher().getPoolSize()));
-            return;
-        }
+		if (!doJobsLock.tryLock()) {
+			logger.debug(this.getClass().getSimpleName() + " doJobs() already running, skipping this cycle");
+			return;
+		}
 
-        List<ServiceRequest> list = new ArrayList<ServiceRequest>();
-        Map<String, ServiceRequest> map = new HashMap<String, ServiceRequest>();
+		try {
 
-        int numThreads = getDispatcher().getPoolSize() - getExecuting().size() + 1;
+			if (isFullCapacity()) {
+				logger.error(this.getClass().getSimpleName() + " operating at full capacity -> " + String.valueOf(getDispatcher().getPoolSize()));
+				return;
+			}
 
-        /** Failed retry ------------ */
+			List<ServiceRequest> list = new ArrayList<ServiceRequest>();
+			Map<String, ServiceRequest> map = new HashMap<String, ServiceRequest>();
 
-        if (!getFailed().isEmpty()) {
+			int numThreads = getDispatcher().getPoolSize() - getExecuting().size() + 1;
 
-            int n = 0;
+			/** Failed retry ------------ */
 
-            Iterator<Entry<Serializable, ServiceRequest>> it = getFailed().entrySet().iterator();
+			if (!getFailed().isEmpty()) {
 
-            boolean done = false;
+				int n = 0;
+				OffsetDateTime now = OffsetDateTime.now();
+				Iterator<Entry<Serializable, ServiceRequest>> it = getFailed().entrySet().iterator();
 
-            while ((n++ < numThreads) && it.hasNext() && (!done)) {
-                ServiceRequest request = it.next().getValue();
-                if (isCompatible(request, map)) {
-                    list.add(request);
-                    map.put(((StandardServiceRequest) request).getUUID(), request);
-                } else
-                    done = true;
-            }
-            this.lastFailedTry = OffsetDateTime.now();
-        }
+				boolean done = false;
 
-        else
+				while ((n++ < numThreads) && it.hasNext() && (!done)) {
+					ServiceRequest request = it.next().getValue();
+					if (request.getExecuteAfter() != null && request.getExecuteAfter().isAfter(now))
+						continue; // not yet ready — skip this request, check the next
+					if (isCompatible(request, map)) {
+						list.add(request);
+						map.put(((StandardServiceRequest) request).getUUID(), request);
+					} else
+						done = true;
+				}
+			}
 
-        {
-            /** New Request ------------ */
+			else
 
-            int n = 0;
+			{
+				/** New Request ------------ */
 
-            Iterator<ServiceRequest> it = getServiceRequestQueue().iterator();
+				int n = 0;
 
-            boolean done = false;
+				Iterator<ServiceRequest> it = getServiceRequestQueue().iterator();
 
-            while ((n++ < numThreads) && (it.hasNext()) && (!done)) {
-                ServiceRequest request = it.next();
-                if (isCompatible(request, map)) {
-                    list.add(request);
-                    map.put(((StandardServiceRequest) request).getUUID(), request);
-                } else
-                    done = true;
-            }
-        }
+				boolean done = false;
 
-        if (list.isEmpty())
-            return;
-        {
-            for (int n = 0; n < list.size(); n++) {
-                ServiceRequest request = list.get(n);
-                /**
-                 * moveOut -> removes from the Queue without deleting the file in disk
-                 */
-                getServiceRequestQueue().moveOut(request);
-                request.setApplicationContext(getApplicationContext());
-                getExecuting().put(request.getId(), request);
-                dispatch(request);
-            }
-        }
-    }
+				while ((n++ < numThreads) && (it.hasNext()) && (!done)) {
+					ServiceRequest request = it.next();
+					if (isCompatible(request, map)) {
+						list.add(request);
+						map.put(((StandardServiceRequest) request).getUUID(), request);
+					} else
+						done = true;
+				}
+			}
 
-    @Override
-    protected void restFullCapacity() {
-        rest(ONE_SECOND);
-    }
+			if (list.isEmpty())
+				return;
+			{
+				for (int n = 0; n < list.size(); n++) {
+					ServiceRequest request = list.get(n);
+					/**
+					 * moveOut -> removes from the Queue without deleting the file in disk
+					 */
+					getServiceRequestQueue().moveOut(request);
+					request.setApplicationContext(getApplicationContext());
+					getExecuting().put(request.getId(), request);
+					try {
+						dispatch(request);
+					} catch (Exception e) {
+						logger.error(e, "Dispatch failed, re-queuing to failed | requestId: " + request.getId() + " | type: " + request.getClass().getSimpleName() + " | " + e.getMessage());
+						getExecuting().remove(request.getId());
+						fail(request);
+					}
+				}
+			}
 
-    @Override
-    protected void restNoWork() {
-        rest(getSiestaMillisecs());
-    }
+		} finally {
+			doJobsLock.unlock();
+		}
+	}
 
-    @Override
-    protected boolean isFullCapacity() {
-        return (getExecuting().size() >= (getDispatcher().getPoolSize()));
-    }
+	@Override
+	protected void restFullCapacity() {
+		rest(ONE_SECOND);
+	}
 
-    @Override
-    protected boolean isWork() {
+	@Override
+	protected void restNoWork() {
+		rest(getSiestaMillisecs());
+	}
 
-        if (!getFailed().isEmpty()) {
-            if (this.lastFailedTry.plusSeconds(RETRY_FAILED_SECONDS).isBefore(OffsetDateTime.now()))
-                return true;
-            else
-                return false;
-        }
+	@Override
+	protected boolean isFullCapacity() {
+		return (getExecuting().size() >= (getDispatcher().getPoolSize()));
+	}
 
-        if (!getServiceRequestQueue().isEmpty())
-            return true;
+	@Override
+	protected boolean isWork() {
 
-        return false;
-    }
+		if (!getFailed().isEmpty()) {
+			OffsetDateTime now = OffsetDateTime.now();
+			boolean anyReady = getFailed().values().stream().anyMatch(r -> r.getExecuteAfter() == null || r.getExecuteAfter().isBefore(now));
+			if (anyReady)
+				return true;
+			else
+				return false;
+		}
 
-    protected ServiceRequestQueue getServiceRequestQueue() {
-        return this.queue;
-    }
+		if (!getServiceRequestQueue().isEmpty())
+			return true;
 
-    protected Map<Serializable, ServiceRequest> getExecuting() {
-        return this.executing;
-    }
+		return false;
+	}
 
-    protected Map<Serializable, ServiceRequest> getFailed() {
-        return this.failed;
-    }
+	protected ServiceRequestQueue getServiceRequestQueue() {
+		return this.queue;
+	}
 
-    /**
-     * <p>
-     * This method determines if a {@link ServiceRequest} can be executed in
-     * parallel along with the other {@link ServiceRequest} in the Map
-     * </p>
-     * <p>
-     * Normally we should build a dependency graph to decide which operations can be
-     * parallelized, but the (simple) criteria so far is: <br/>
-     * if all requests are Object operations, allow if the Object id is not in the
-     * map. otherwise restrict requests for {@link Bucket} and other classes are
-     * assumed to be infrequent and executed alone.
-     * </p>
-     * 
-     * @param request
-     * @param map
-     * @return
-     */
-    private boolean isCompatible(ServiceRequest request, Map<String, ServiceRequest> map) {
+	protected Map<Serializable, ServiceRequest> getExecuting() {
+		return this.executing;
+	}
 
-        if (!(request instanceof StandardServiceRequest)) {
-            logger.error("invalid class -> " + request.getClass().getName(), SharedConstant.NOT_THROWN);
-            return false;
-        }
+	protected Map<Serializable, ServiceRequest> getFailed() {
+		return this.failed;
+	}
 
-        if (map.isEmpty())
-            return true;
+	/**
+	 * <p>
+	 * This method determines if a {@link ServiceRequest} can be executed in
+	 * parallel along with the other {@link ServiceRequest} in the Map
+	 * </p>
+	 * <p>
+	 * Normally we should build a dependency graph to decide which operations can be
+	 * parallelized, but the (simple) criteria so far is: <br/>
+	 * if all requests are Object operations, allow if the Object id is not in the
+	 * map. otherwise restrict requests for {@link Bucket} and other classes are
+	 * assumed to be infrequent and executed alone.
+	 * </p>
+	 * 
+	 * @param request
+	 * @param map
+	 * @return
+	 */
+	private boolean isCompatible(ServiceRequest request, Map<String, ServiceRequest> map) {
 
-        StandardServiceRequest repRequest = (StandardServiceRequest) request;
+		if (!(request instanceof StandardServiceRequest)) {
+			logger.error("invalid class -> " + request.getClass().getName(), SharedConstant.NOT_THROWN);
+			return false;
+		}
 
-        if (!repRequest.isObjectOperation())
-            return false;
+		if (map.isEmpty())
+			return true;
 
-        if (map.containsKey(repRequest.getUUID()))
-            return false;
+		StandardServiceRequest repRequest = (StandardServiceRequest) request;
 
-        return true;
-    }
+		if (!repRequest.isObjectOperation())
+			return false;
+
+		if (map.containsKey(repRequest.getUUID()))
+			return false;
+
+		return true;
+	}
 
 }

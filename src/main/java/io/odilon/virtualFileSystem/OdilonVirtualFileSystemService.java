@@ -933,10 +933,10 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 			for (String dir : getServerSettings().getRootDirs()) {
 				Drive drive = null;
 				if (getRedundancyLevel() == RedundancyLevel.RAID_6) {
-					drive = new OdilonDrive(String.valueOf(configOrder), dir, configOrder, getRedundancyLevel().getName(), getServerSettings().getTotalDisks());
+					drive = new OdilonRaidSixDrive(String.valueOf(configOrder), dir, configOrder, getRedundancyLevel().getName(), getServerSettings().getTotalDisks());
 					configOrder++;
 				} else {
-					drive = new OdilonSimpleDrive(String.valueOf(configOrder), dir, configOrder, getRedundancyLevel().getName(), getServerSettings().getTotalDisks());
+					drive = new OdilonRaidZeroRaidOneDrive(String.valueOf(configOrder), dir, configOrder, getRedundancyLevel().getName(), getServerSettings().getTotalDisks());
 					configOrder++;
 				}
 				baselist.add(drive);

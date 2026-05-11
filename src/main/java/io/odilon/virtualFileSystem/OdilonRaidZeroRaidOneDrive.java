@@ -32,6 +32,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
 import io.odilon.log.Logger;
+import io.odilon.model.RedundancyLevel;
 import io.odilon.util.Check;
 import io.odilon.virtualFileSystem.model.SimpleDrive;
 
@@ -51,9 +52,9 @@ import io.odilon.virtualFileSystem.model.SimpleDrive;
 @NotThreadSafe
 @Component
 @Scope("prototype")
-public class OdilonSimpleDrive extends OdilonDrive implements SimpleDrive {
+public class OdilonRaidZeroRaidOneDrive extends OdilonDrive implements SimpleDrive {
 
-	static private Logger logger = Logger.getLogger(OdilonSimpleDrive.class.getName());
+	static private Logger logger = Logger.getLogger(OdilonRaidZeroRaidOneDrive.class.getName());
 
 	/**
 	 * Constructor called by Spring.io
@@ -61,7 +62,7 @@ public class OdilonSimpleDrive extends OdilonDrive implements SimpleDrive {
 	 * @param rootDir
 	 */
 	@Autowired
-	protected OdilonSimpleDrive(String rootDir) {
+	protected OdilonRaidZeroRaidOneDrive(String rootDir) {
 		super(rootDir);
 	}
 
@@ -72,58 +73,16 @@ public class OdilonSimpleDrive extends OdilonDrive implements SimpleDrive {
 	 * @param driveNanme
 	 * @param rootDir
 	 */
-	protected OdilonSimpleDrive(String driveName, String rootDir, int configOrder, String raidSetup, int raidDrives) {
+	protected OdilonRaidZeroRaidOneDrive(String driveName, String rootDir, int configOrder, String raidSetup, int raidDrives) {
 		super(driveName, rootDir, configOrder, raidSetup, raidDrives);
+		
+		Check.requireTrue(	raidSetup.equals(RedundancyLevel.RAID_0.getName()) || 
+							raidSetup.equals(RedundancyLevel.RAID_1.getName()) ,"raidSetup must be " + RedundancyLevel.RAID_0.getName() + " or " + RedundancyLevel.RAID_1.getName() + " and it is -> " + raidSetup);
+
+		
 	}
 
 	/**
-	 * <p>
-	 * </p>
-	 */
-	// @Override
-	// public String getObjectDataFilePath(Long bucketId, String objectName) {
-	// return this.getRootDirPath() + File.separator + bucketId.toString() +
-	// File.separator + objectName;
-	// }
-
-	// @Override
-	// public String getObjectDataVersionFilePath(Long bucketId, String objectName,
-	// int version) {
-	// return this.getRootDirPath() + File.separator + bucketId.toString() +
-	// File.separator + VirtualFileSystemService.VERSION_DIR + File.separator +
-	// objectName + VirtualFileSystemService.VERSION_EXTENSION +
-	// String.valueOf(version);
-	// }
-
-	/**
-	 * <b>Object Data</b>
-	 * <p>
-	 * This method is not ThreadSafe
-	 * </p>
-	 * 
-	 * @Override public InputStream getObjectInputStream(Long bucketId, String
-	 *           objectName) {
-	 * 
-	 *           Check.requireNonNullArgument(bucketId.toString(), "bucketId is
-	 *           null"); Check.requireNonNullStringArgument(objectName, "objectName
-	 *           can not be null -> b:" + bucketId.toString());
-	 * 
-	 *           try {
-	 * 
-	 *           ObjectPath path = new ObjectPath(this, bucketId, objectName); File
-	 *           file = path.dataFilePath().toFile();
-	 * 
-	 *           //return Files.newInputStream(getObjectDataFile(bucketId,
-	 *           objectName).toPath()); return Files.newInputStream(file.toPath());
-	 * 
-	 *           } catch (Exception e) { throw new InternalCriticalException(e, "b:"
-	 *           + bucketId.toString() + ", o:" + objectName +", d:" + getName()); }
-	 *           }
-	 */
-
-	/**
-	 * <b>bDATA</b>
-	 * 
 	 * Dir -> directory Path -> to File File -> File
 	 * 
 	 */
@@ -138,7 +97,6 @@ public class OdilonSimpleDrive extends OdilonDrive implements SimpleDrive {
 
 		try {
 			ObjectPath path = new ObjectPath(this, bucketId, objectName);
-			// String dataFilePath = this.getObjectDataFilePath(bucketId, objectName);
 			String dataFilePath = path.dataFilePath().toString();
 			transferTo(stream, dataFilePath);
 			return new File(dataFilePath);
@@ -171,9 +129,6 @@ public class OdilonSimpleDrive extends OdilonDrive implements SimpleDrive {
 		try {
 			ObjectPath path = new ObjectPath(this, bucketId, objectName);
 			String dataFilePath = path.dataFileVersionPath(version).toString();
-			// String dataFilePath = this.getObjectDataVersionFilePath(bucketId, objectName,
-			// version);
-
 			transferTo(stream, dataFilePath);
 			return new File(dataFilePath);
 		} catch (IOException e) {

@@ -40,13 +40,27 @@ public class CronJobList implements SortedSet<CronJobRequest> {
 		@Override
 		public int compare(CronJobRequest a, CronJobRequest b) {
 			try {
-				if (a.getTime() == null && b.getTime() == null)
-					return 0;
-				if (a.getTime() == null)
+				if (a.getTime() == null && b.getTime() == null) {
+					// fall through to tiebreaker
+				} else if (a.getTime() == null) {
 					return -1;
-				if (b.getTime() == null)
+				} else if (b.getTime() == null) {
 					return 1;
-				return a.getTime().isBefore(b.getTime()) ? -1 : 1;
+				} else {
+					int timeComp = a.getTime().compareTo(b.getTime());
+					if (timeComp != 0)
+						return timeComp;
+				}
+				// Tiebreaker by ID to keep both entries in the TreeSet and maintain a
+				// consistent total order — prevents silent job loss when two cron jobs
+				// are scheduled at exactly the same instant.
+				if (a.getId() == null && b.getId() == null)
+					return 0;
+				if (a.getId() == null)
+					return -1;
+				if (b.getId() == null)
+					return 1;
+				return a.getId().toString().compareTo(b.getId().toString());
 			} catch (Exception e) {
 				logger.error(e, SharedConstant.NOT_THROWN);
 				return 0;
@@ -60,6 +74,8 @@ public class CronJobList implements SortedSet<CronJobRequest> {
 	public synchronized CronJobRequest pollFirst() {
 
 		CronJobRequest job = getJobs().pollFirst();
+		if (job == null)
+			return null;
 		CronJobRequest nextjob = job.clone();
 
 		nextjob.setId(job.getId());
@@ -69,69 +85,69 @@ public class CronJobList implements SortedSet<CronJobRequest> {
 	}
 
 	@Override
-	public int size() {
+	public synchronized int size() {
 		return getJobs().size();
 	}
 
 	@Override
-	public boolean isEmpty() {
+	public synchronized boolean isEmpty() {
 		return getJobs().isEmpty();
 	}
 
 	@Override
-	public boolean contains(Object o) {
+	public synchronized boolean contains(Object o) {
 		return getJobs().contains(o);
 	}
 
 	@Override
-	public Iterator<CronJobRequest> iterator() {
+	public synchronized Iterator<CronJobRequest> iterator() {
 		return getJobs().iterator();
 	}
 
 	@Override
-	public Object[] toArray() {
+	public synchronized Object[] toArray() {
 		return getJobs().toArray();
 	}
 
 	@Override
-	public <T> T[] toArray(T[] a) {
+	public synchronized <T> T[] toArray(T[] a) {
 		return getJobs().toArray(a);
 	}
 
 	@Override
-	public boolean add(CronJobRequest cre) {
+	public synchronized boolean add(CronJobRequest cre) {
 		return getJobs().add(cre);
 	}
 
 	@Override
-	public boolean remove(Object o) {
+	public synchronized boolean remove(Object o) {
 		return getJobs().remove(o);
 	}
 
 	@Override
-	public boolean containsAll(Collection<?> c) {
+	public synchronized boolean containsAll(Collection<?> c) {
 		return getJobs().containsAll(c);
 	}
 
 	@Override
-	public boolean addAll(Collection<? extends CronJobRequest> c) {
+	public synchronized boolean addAll(Collection<? extends CronJobRequest> c) {
 		c.forEach(i -> getJobs().add(i));
 		return true;
 	}
 
 	@Override
-	public boolean retainAll(Collection<?> c) {
+	public synchronized boolean retainAll(Collection<?> c) {
 		return getJobs().retainAll(c);
 	}
 
 	@Override
-	public boolean removeAll(Collection<?> c) {
+	public synchronized boolean removeAll(Collection<?> c) {
 		c.forEach(i -> getJobs().remove(i));
 		return true;
 	}
 
 	@Override
-	public void clear() {
+	public synchronized void clear() {
 		getJobs().clear();
 	}
 
@@ -156,12 +172,12 @@ public class CronJobList implements SortedSet<CronJobRequest> {
 	}
 
 	@Override
-	public CronJobRequest first() {
+	public synchronized CronJobRequest first() {
 		return this.jobs.first();
 	}
 
 	@Override
-	public CronJobRequest last() {
+	public synchronized CronJobRequest last() {
 		return this.jobs.last();
 	}
 
