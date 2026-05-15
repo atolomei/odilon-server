@@ -78,7 +78,9 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  * to a sequential execution.
  * </p>
  * 
- * <p>See article Odilon Architecture: {@linkplain https://odilon.io/architecture.html}
+ * <p>
+ * See article Odilon Architecture:
+ * {@linkplain https://odilon.io/architecture.html}
  * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
@@ -87,216 +89,214 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 @Service
 public class SchedulerService extends BaseService implements SystemService, ApplicationContextAware {
 
-    static private Logger startuplogger = Logger.getLogger("StartupLogger");
-    static private Logger logger = Logger.getLogger(SchedulerService.class.getName());
+	static private Logger startuplogger = Logger.getLogger("StartupLogger");
+	static private Logger logger = Logger.getLogger(SchedulerService.class.getName());
 
-    private OffsetDateTime started = OffsetDateTime.now();
+	private OffsetDateTime started = OffsetDateTime.now();
 
-    @JsonIgnore
-    private VirtualFileSystemService virtualFileSystemService;
+	@JsonIgnore
+	private VirtualFileSystemService virtualFileSystemService;
 
-    @JsonIgnore
-    @Autowired
-    private ServerSettings serverSettings;
+	@JsonIgnore
+	@Autowired
+	private ServerSettings serverSettings;
 
-    @JsonIgnore
-    @Autowired
-    private SystemMonitorService monitoringService;
+	@JsonIgnore
+	@Autowired
+	private SystemMonitorService monitoringService;
 
-    @JsonIgnore
-    @Autowired
-    private ApplicationContext applicationContext;
+	@JsonIgnore
+	@Autowired
+	private ApplicationContext applicationContext;
 
-    /**
-     * blocking semantics. Standard local. CRUD operations after the TRX is commited
-     */
-    @JsonIgnore
-    private StandardSchedulerWorker standardSchedulerWorker;
+	/**
+	 * blocking semantics. Standard local. CRUD operations after the TRX is commited
+	 */
+	@JsonIgnore
+	private StandardSchedulerWorker standardSchedulerWorker;
 
-    /** non blocking semantics */
-    @JsonIgnore
-    private SchedulerWorker cronjobsWorker;
+	/** non blocking semantics */
+	@JsonIgnore
+	private SchedulerWorker cronjobsWorker;
 
-    /**
-     * non blocking semantics. It will not be started if there is no Standby server
-     * connected.
-     */
-    @JsonIgnore
-    private StandByReplicaSchedulerWorker replicaWorker;
+	/**
+	 * non blocking semantics. It will not be started if there is no Standby server
+	 * connected.
+	 */
+	@JsonIgnore
+	private StandByReplicaSchedulerWorker replicaWorker;
 
-    public SchedulerService(ServerSettings serverSettings, SystemMonitorService montoringService) {
-        this.serverSettings = serverSettings;
-        this.monitoringService = montoringService;
-    }
+	public SchedulerService(ServerSettings serverSettings, SystemMonitorService montoringService) {
+		this.serverSettings = serverSettings;
+		this.monitoringService = montoringService;
+	}
 
-    /**
-     * 
-     * @param request
-     * @return
-     */
-    public Serializable enqueue(ServiceRequest request) {
+	/**
+	 * 
+	 * @param request
+	 * @return
+	 */
+	public Serializable enqueue(ServiceRequest request) {
 
-        Check.requireNonNullArgument(request, "request is null");
+		Check.requireNonNullArgument(request, "request is null");
 
-        long id = System.nanoTime();
+		long id = System.nanoTime();
 
-        request.setId(id);
-        request.setTimeZone(getServerSettings().getTimeZone());
+		request.setId(id);
+		request.setTimeZone(getServerSettings().getTimeZone());
 
-        if (request.isCronJob()) {
-            getCronjobsWorker().add(request);
-        } else if (request instanceof StandByReplicaServiceRequest) {
-            getReplicaWorker().add(request);
-            synchronized (getReplicaWorker()) {
-                getReplicaWorker().notify();
-            }
-        } else if (request instanceof StandardServiceRequest) {
-            getStandardSchedulerWorker().add(request);
-            synchronized (getStandardSchedulerWorker()) {
-                getStandardSchedulerWorker().notify();
-            }
-        } else
-            logger.error("invalid " + ServiceRequest.class.getSimpleName() + " of class -> " + request.getClass().getName()
-                    + SharedConstant.NOT_THROWN);
+		if (request.isCronJob()) {
+			getCronjobsWorker().add(request);
+		} else if (request instanceof StandByReplicaServiceRequest) {
+			getReplicaWorker().add(request);
+			synchronized (getReplicaWorker()) {
+				getReplicaWorker().notify();
+			}
+		} else if (request instanceof StandardServiceRequest) {
+			getStandardSchedulerWorker().add(request);
+			synchronized (getStandardSchedulerWorker()) {
+				getStandardSchedulerWorker().notify();
+			}
+		} else
+			logger.error("invalid " + ServiceRequest.class.getSimpleName() + " of class -> " + request.getClass().getName() + SharedConstant.NOT_THROWN);
 
-        return request.getId();
-    }
+		return request.getId();
+	}
 
-    @PostConstruct
-    protected void onInitialize() {
-        setStatus(ServiceStatus.STARTING);
-    }
+	@PostConstruct
+	protected void onInitialize() {
+		setStatus(ServiceStatus.STARTING);
+	}
 
-    public synchronized void start() {
+	public synchronized void start() {
 
-        try {
+		try {
 
-            /** Cron Jobs */
-            this.cronjobsWorker = new CronJobSchedulerWorker("cron", getVirtualFileSystemService());
-            this.cronjobsWorker.setApplicationContext(getApplicationContext());
+			/** Cron Jobs */
+			this.cronjobsWorker = new CronJobSchedulerWorker("cron", getVirtualFileSystemService());
+			this.cronjobsWorker.setApplicationContext(getApplicationContext());
 
-            /** Replica. It will not be started if there is no Standby */
-            this.replicaWorker = new StandByReplicaSchedulerWorker("replica", getVirtualFileSystemService());
-            this.replicaWorker.setApplicationContext(getApplicationContext());
+			/** Replica. It will not be started if there is no Standby */
+			this.replicaWorker = new StandByReplicaSchedulerWorker("replica", getVirtualFileSystemService());
+			this.replicaWorker.setApplicationContext(getApplicationContext());
 
-            /** Standard local. CRUD operations after the TRX is commited */
-            this.standardSchedulerWorker = new StandardSchedulerWorker("standard", getVirtualFileSystemService());
-            this.standardSchedulerWorker.setApplicationContext(getApplicationContext());
+			/** Standard local. CRUD operations after the TRX is commited */
+			this.standardSchedulerWorker = new StandardSchedulerWorker("standard", getVirtualFileSystemService());
+			this.standardSchedulerWorker.setApplicationContext(getApplicationContext());
 
-            getCronjobsWorker().start();
-            getStandardSchedulerWorker().start();
+			getCronjobsWorker().start();
+			getStandardSchedulerWorker().start();
 
-            if (getServerSettings().isStandByEnabled())
-                getReplicaWorker().start();
+			if (getServerSettings().isStandByEnabled())
+				getReplicaWorker().start();
 
-            setStatus(ServiceStatus.RUNNING);
-            startuplogger.debug("Started -> " + this.getClass().getSimpleName());
-        } catch (Exception e) {
-            setStatus(ServiceStatus.STOPPED);
-            throw (e);
-        }
-    }
+			setStatus(ServiceStatus.RUNNING);
+			startuplogger.debug("Started -> " + this.getClass().getSimpleName());
+		} catch (Exception e) {
+			setStatus(ServiceStatus.STOPPED);
+			throw (e);
+		}
+	}
 
-    public void close(ServiceRequest request) {
-        Check.requireNonNullArgument(request, "request is null");
-        if (request instanceof StandByReplicaServiceRequest)
-            getReplicaWorker().close(request);
-        else if (request instanceof StandardServiceRequest)
-            this.getStandardSchedulerWorker().close(request);
-        else {
-            logger.error("Class not supported -> " + request.getClass().getName(), SharedConstant.NOT_THROWN);
-        }
-    }
+	public void close(ServiceRequest request) {
+		Check.requireNonNullArgument(request, "request is null");
+		if (request instanceof StandByReplicaServiceRequest)
+			getReplicaWorker().close(request);
+		else if (request instanceof StandardServiceRequest)
+			this.getStandardSchedulerWorker().close(request);
+		else {
+			logger.error("Class not supported -> " + request.getClass().getName(), SharedConstant.NOT_THROWN);
+		}
+	}
 
-    /**
-     * Request could not complete successfully
-     * 
-     * @param rqt
-     */
-    public void fail(ServiceRequest request) {
-        Check.requireNonNullArgument(request, "request is null");
-        if (request instanceof StandByReplicaServiceRequest)
-            getReplicaWorker().fail(request);
-    }
+	/**
+	 * Request could not complete successfully
+	 * 
+	 * @param rqt
+	 */
+	public void fail(ServiceRequest request) {
+		Check.requireNonNullArgument(request, "request is null");
+		if (request instanceof StandByReplicaServiceRequest)
+			getReplicaWorker().fail(request);
+	}
 
-    public void cancel(VirtualFileSystemOperation opx) {
-        Check.requireNonNullArgument(opx, "opx is null");
-        getReplicaWorker().cancel(opx);
-    }
+	public void cancel(VirtualFileSystemOperation opx) {
+		Check.requireNonNullArgument(opx, "opx is null");
+		getReplicaWorker().cancel(opx);
+	}
 
-    public void cancel(Serializable id) {
-        Check.requireNonNullArgument(id, "id is null");
-        getReplicaWorker().cancel(id);
-    }
+	public void cancel(Serializable id) {
+		Check.requireNonNullArgument(id, "id is null");
+		getReplicaWorker().cancel(id);
+	}
 
-    @Override
-    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-        this.applicationContext = applicationContext;
-    }
-  
-    public void setVirtualFileSystemService(VirtualFileSystemService virtualFileSystemService) {
-        this.virtualFileSystemService = virtualFileSystemService;
-    }
+	@Override
+	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+		this.applicationContext = applicationContext;
+	}
 
-    public VirtualFileSystemService getVirtualFileSystemService() {
-        if (this.virtualFileSystemService == null) {
-            throw new IllegalStateException("The " + VirtualFileSystemService.class.getName()
-                    + " must be setted during the @PostConstruct method of the " + VirtualFileSystemService.class.getName()
-                    + " instance. " + "It can not be injected via @AutoWired because of circular dependencies.");
-        }
-        return virtualFileSystemService;
-    }
+	public void setVirtualFileSystemService(VirtualFileSystemService virtualFileSystemService) {
+		this.virtualFileSystemService = virtualFileSystemService;
+	}
 
-    public ApplicationContext getApplicationContext() {
-        return this.applicationContext;
-    }
+	public VirtualFileSystemService getVirtualFileSystemService() {
+		if (this.virtualFileSystemService == null) {
+			throw new IllegalStateException("The " + VirtualFileSystemService.class.getName() + " must be setted during the @PostConstruct method of the " + VirtualFileSystemService.class.getName() + " instance. "
+					+ "It can not be injected via @AutoWired because of circular dependencies.");
+		}
+		return virtualFileSystemService;
+	}
 
-    public OffsetDateTime getStarted() {
-        return this.started;
-    }
+	public ApplicationContext getApplicationContext() {
+		return this.applicationContext;
+	}
 
-    public SystemMonitorService getSystemMonitorService() {
-        return this.monitoringService;
-    }
+	public OffsetDateTime getStarted() {
+		return this.started;
+	}
 
-    public ServerSettings getServerSettings() {
-        return this.serverSettings;
-    }
+	public SystemMonitorService getSystemMonitorService() {
+		return this.monitoringService;
+	}
 
-    public boolean isRunning() {
-        return getStatus() == ServiceStatus.RUNNING;
-    }
+	public ServerSettings getServerSettings() {
+		return this.serverSettings;
+	}
 
-    public int getReplicaQueueSize() {
-        return getReplicaWorker().getServiceRequestQueue().size();
-    }
+	public boolean isRunning() {
+		return getStatus() == ServiceStatus.RUNNING;
+	}
 
-    public int getStandardQueueSize() {
-        return getStandardSchedulerWorker().getServiceRequestQueue().size();
-    }
+	public int getReplicaQueueSize() {
+		return getReplicaWorker().getServiceRequestQueue().size();
+	}
 
-    protected SchedulerWorker getCronjobsWorker() {
-        return this.cronjobsWorker;
-    }
+	public int getStandardQueueSize() {
+		return getStandardSchedulerWorker().getServiceRequestQueue().size();
+	}
 
-    protected void setCronjobsWorker(SchedulerWorker cronjobsWorker) {
-        this.cronjobsWorker = cronjobsWorker;
-    }
+	protected SchedulerWorker getCronjobsWorker() {
+		return this.cronjobsWorker;
+	}
 
-    protected StandardSchedulerWorker getStandardSchedulerWorker() {
-        return this.standardSchedulerWorker;
-    }
+	protected void setCronjobsWorker(SchedulerWorker cronjobsWorker) {
+		this.cronjobsWorker = cronjobsWorker;
+	}
 
-    protected void setStandardWorker(StandardSchedulerWorker worker) {
-        this.standardSchedulerWorker = worker;
-    }
+	protected StandardSchedulerWorker getStandardSchedulerWorker() {
+		return this.standardSchedulerWorker;
+	}
 
-    protected StandByReplicaSchedulerWorker getReplicaWorker() {
-        return this.replicaWorker;
-    }
+	protected void setStandardWorker(StandardSchedulerWorker worker) {
+		this.standardSchedulerWorker = worker;
+	}
 
-    protected void setReplicaWorker(StandByReplicaSchedulerWorker replicaWorker) {
-        this.replicaWorker = replicaWorker;
-    }
+	protected StandByReplicaSchedulerWorker getReplicaWorker() {
+		return this.replicaWorker;
+	}
+
+	protected void setReplicaWorker(StandByReplicaSchedulerWorker replicaWorker) {
+		this.replicaWorker = replicaWorker;
+	}
 
 }

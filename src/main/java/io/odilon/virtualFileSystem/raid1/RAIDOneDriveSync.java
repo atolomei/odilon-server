@@ -188,7 +188,7 @@ public class RAIDOneDriveSync implements Runnable {
 
 			for (ServerBucket bucket : this.getDriver().getVirtualFileSystemService().listAllBuckets()) {
 
-				Integer pageSize = Integer.valueOf(ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE);
+				Long pageSize = Long.valueOf(ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE);
 				Long offset = Long.valueOf(0);
 				String agentId = null;
 
@@ -198,7 +198,8 @@ public class RAIDOneDriveSync implements Runnable {
 
 				while (!done) {
 
-					DataList<Item<ObjectMetadata>> data = this.driver.getVirtualFileSystemService().listObjects(bucket.getName(), Optional.of(offset), Optional.ofNullable(pageSize), Optional.empty(), Optional.ofNullable(agentId));
+					DataList<Item<ObjectMetadata>> data = this.driver.getVirtualFileSystemService().listObjects(bucket.getName(), Optional.of(offset), 
+							Optional.ofNullable(pageSize), Optional.empty(), Optional.ofNullable(agentId));
 
 					if (agentId == null)
 						agentId = data.getAgentId();

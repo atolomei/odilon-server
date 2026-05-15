@@ -41,7 +41,7 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.core.JsonProcessingException;
+//import com.fasterxml.jackson.core.JsonProcessingException;
 
 import io.odilon.encryption.EncryptionService;
 import io.odilon.errors.InternalCriticalException;
@@ -151,7 +151,7 @@ public class OdilonTokenService extends BaseService implements TokenService, App
 
 			return getObjectMapper().readValue(str, AuthToken.class);
 
-		} catch (JsonProcessingException e) {
+		} catch (Exception e) {
 			throw new InternalCriticalException(e, "decrypt");
 		}
 	}

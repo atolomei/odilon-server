@@ -24,7 +24,6 @@ import java.util.Optional;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.odilon.json.OdilonObjectMapper;
 import io.odilon.log.Logger;
@@ -43,7 +42,7 @@ public class OdilonVirtualFileSystemOperation implements VirtualFileSystemOperat
 	static private Logger logger = Logger.getLogger(OdilonVirtualFileSystemOperation.class.getName());
 
 	@JsonIgnore
-	static private ObjectMapper mapper = new OdilonObjectMapper();
+	static private OdilonObjectMapper mapper = new OdilonObjectMapper();
 
 	@JsonIgnore
 	static final private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("YYYY-MM-dd'T'HH:mm:ss.XXX-z", Locale.ENGLISH);

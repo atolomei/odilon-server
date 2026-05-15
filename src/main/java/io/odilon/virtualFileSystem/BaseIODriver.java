@@ -41,7 +41,6 @@ import org.springframework.context.ApplicationContextAware;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
  
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 
 import io.odilon.OdilonVersion;
@@ -76,6 +75,7 @@ import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.OperationCode;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * <p>
@@ -98,7 +98,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
     static final public int MAX_CACHE_SIZE = 4000000;
 
     @JsonIgnore
-    static private ObjectMapper mapper = new OdilonObjectMapper();
+    static private OdilonObjectMapper mapper = new OdilonObjectMapper();
 
     /**
     static {
@@ -594,7 +594,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
                 AbstractServiceRequest request = getObjectMapper().readValue(file, AbstractServiceRequest.class);
                 list.add((ServiceRequest) request);
 
-            } catch (IOException e) {
+            } catch (Exception e) {
                 try {
                     Files.delete(file.toPath());
                 } catch (IOException e1) {
@@ -672,7 +672,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
         try {
             getLockService().getServerLock().readLock().lock();
             return getObjectMapper().readValue(file, OdilonServerInfo.class);
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new InternalCriticalException(e);
         } finally {
             getLockService().getServerLock().readLock().unlock();

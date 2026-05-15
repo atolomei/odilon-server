@@ -525,7 +525,7 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 	}
 
 	@Override
-	public DataList<Item<ObjectMetadata>> listObjects(String bucketName, Optional<Long> offset, Optional<Integer> pageSize, Optional<String> prefix, Optional<String> serverAgentId) {
+	public DataList<Item<ObjectMetadata>> listObjects(String bucketName, Optional<Long> offset, Optional<Long> pageSize, Optional<String> prefix, Optional<String> serverAgentId) {
 		Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
 		IODriver driver = createVFSIODriver();
 		Check.requireTrue(driver.existsBucket(bucketName), "bucket does not exist -> " + bucketName);

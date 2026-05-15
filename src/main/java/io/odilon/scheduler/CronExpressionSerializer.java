@@ -16,11 +16,13 @@
  */
 package io.odilon.scheduler;
 
-import java.io.IOException;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.databind.SerializationContext;
+import tools.jackson.databind.ser.std.StdSerializer;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.ser.std.StdSerializer;
+//import com.fasterxml.jackson.core.JsonGenerator;
+//import com.fasterxml.jackson.databind.SerializerProvider;
+//import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 
 /**
  * 
@@ -28,18 +30,17 @@ import com.fasterxml.jackson.databind.ser.std.StdSerializer;
  */
 public class CronExpressionSerializer extends StdSerializer<CronExpressionJ8> {
 
-    private static final long serialVersionUID = 1L;
+	//private static final long serialVersionUID = 1L;
 
-    protected CronExpressionSerializer() {
-        super(CronExpressionJ8.class);
-    }
+	public CronExpressionSerializer() {
+		super(CronExpressionJ8.class);
+	}
 
-    @Override
-    public void serialize(CronExpressionJ8 value, JsonGenerator gen, SerializerProvider serializers)
-            throws IOException {
+	@Override
+	public void serialize(CronExpressionJ8 value, JsonGenerator gen, SerializationContext ctx) {
 
-        gen.writeStartObject();
-        gen.writeStringField("expr", value.getExpression());
-        gen.writeEndObject();
-    }
+		gen.writeStartObject();
+		gen.writeString(value.getExpression());
+		gen.writeEndObject();
+	}
 }

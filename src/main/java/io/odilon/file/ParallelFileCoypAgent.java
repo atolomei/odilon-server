@@ -51,153 +51,153 @@ import io.odilon.util.DateTimeUtil;
  */
 public class ParallelFileCoypAgent extends FileCopyAgent {
 
-    static private Logger logger = Logger.getLogger(ParallelFileCoypAgent.class.getName());
+	static private Logger logger = Logger.getLogger(ParallelFileCoypAgent.class.getName());
 
-    @JsonIgnore
-    private final byte[][] source;
+	@JsonIgnore
+	private final byte[][] source;
 
-    @JsonIgnore
-    private final List<File> destination;
+	@JsonIgnore
+	private final List<File> destination;
 
-    @JsonIgnore
-    private final Boolean[] requiresCopy;
+	@JsonIgnore
+	private final Boolean[] requiresCopy;
 
-    @JsonIgnore
-    private ExecutorService executor;
+	@JsonIgnore
+	private ExecutorService executor;
 
-    @JsonIgnore
-    private OffsetDateTime start;
+	@JsonIgnore
+	private OffsetDateTime start;
 
-    @JsonIgnore
-    private OffsetDateTime end;
+	@JsonIgnore
+	private OffsetDateTime end;
 
-    public ParallelFileCoypAgent(byte[][] source, List<File> destination, Boolean[] requiresCopy) {
+	public ParallelFileCoypAgent(byte[][] source, List<File> destination, Boolean[] requiresCopy) {
 
-        Check.requireNonNull(source);
-        Check.requireNonNull(destination);
-        Check.requireTrue(requiresCopy.length == source.length, "Error not true -> requiresCopy.length == source.length");
-        Check.requireTrue(source.length >= destination.size(), "Error not true -> source.length >= destination.size()");
-        if (logger.isDebugEnabled()) {
-            int toCopy = 0;
-            for (int n = 0; n < requiresCopy.length; n++) {
-                if (requiresCopy[n].booleanValue())
-                    toCopy++;
-            }
-            Check.requireTrue(toCopy == destination.size(), "Error toCopy must be equal to destination.size()");
-        }
+		Check.requireNonNull(source);
+		Check.requireNonNull(destination);
+		Check.requireTrue(requiresCopy.length == source.length, "Error not true -> requiresCopy.length == source.length");
+		Check.requireTrue(source.length >= destination.size(), "Error not true -> source.length >= destination.size()");
+		if (logger.isDebugEnabled()) {
+			int toCopy = 0;
+			for (int n = 0; n < requiresCopy.length; n++) {
+				if (requiresCopy[n].booleanValue())
+					toCopy++;
+			}
+			Check.requireTrue(toCopy == destination.size(), "Error toCopy must be equal to destination.size()");
+		}
 
-        this.source = source;
-        this.destination = destination;
-        this.requiresCopy = requiresCopy;
-    }
+		this.source = source;
+		this.destination = destination;
+		this.requiresCopy = requiresCopy;
+	}
 
-    @Override
-    public long durationMillisecs() {
-        if (getStart() == null || getEnd() == null)
-            return -1;
-        return DateTimeUtil.dateTimeDifference(getStart(), getEnd(), ChronoUnit.MILLIS);
-    }
+	@Override
+	public long durationMillisecs() {
+		if (getStart() == null || getEnd() == null)
+			return -1;
+		return DateTimeUtil.dateTimeDifference(getStart(), getEnd(), ChronoUnit.MILLIS);
+	}
 
-    public ExecutorService getExecutor() {
-        return executor;
-    }
+	public ExecutorService getExecutor() {
+		return executor;
+	}
 
-    public void setExecutor(ExecutorService executor) {
-        this.executor = executor;
-    }
+	public void setExecutor(ExecutorService executor) {
+		this.executor = executor;
+	}
 
-    @Override
-    public boolean execute() {
+	@Override
+	public boolean execute() {
 
-        try {
-            setStart(OffsetDateTime.now());
+		try {
+			setStart(OffsetDateTime.now());
 
-            int size = getDestination().size();
+			int size = getDestination().size();
 
-            int total = this.source.length;
+			int total = this.source.length;
 
-            if (getExecutor() == null)
-                setExecutor(Executors.newFixedThreadPool(size));
+			if (getExecutor() == null)
+				setExecutor(Executors.newFixedThreadPool(size));
 
-            List<Callable<Boolean>> tasks = new ArrayList<Callable<Boolean>>(size);
+			List<Callable<Boolean>> tasks = new ArrayList<Callable<Boolean>>(size);
 
-            int toCopy = 0;
+			int toCopy = 0;
 
-            for (int index = 0; index < total; index++) {
+			for (int index = 0; index < total; index++) {
 
-                if (requiresCopy[index].booleanValue()) {
+				if (requiresCopy[index].booleanValue()) {
 
-                    final int f_val = index;
-                    final int f_toCopy = toCopy++;
+					final int f_val = index;
+					final int f_toCopy = toCopy++;
 
-                    tasks.add(() -> {
-                        try {
+					tasks.add(() -> {
+						try {
 
-                            File outputFile = getDestination().get(f_toCopy);
-                            try (OutputStream out = new BufferedOutputStream(new FileOutputStream(outputFile))) {
-                                out.write(this.source[f_val]);
-                            } catch (FileNotFoundException e) {
-                                throw new InternalCriticalException(e, "f: " + outputFile.getName());
-                            } catch (IOException e) {
-                                throw new InternalCriticalException(e, "f: " + outputFile.getName());
-                            }
-                            return Boolean.valueOf(true);
+							File outputFile = getDestination().get(f_toCopy);
+							try (OutputStream out = new BufferedOutputStream(new FileOutputStream(outputFile))) {
+								out.write(this.source[f_val]);
+							} catch (FileNotFoundException e) {
+								throw new InternalCriticalException(e, "f: " + outputFile.getName());
+							} catch (IOException e) {
+								throw new InternalCriticalException(e, "f: " + outputFile.getName());
+							}
+							return Boolean.valueOf(true);
 
-                        } catch (Exception e) {
-                            logger.error(e, SharedConstant.NOT_THROWN);
-                            return Boolean.valueOf(false);
-                        } finally {
+						} catch (Exception e) {
+							logger.error(e, SharedConstant.NOT_THROWN);
+							return Boolean.valueOf(false);
+						} finally {
 
-                        }
-                    });
-                }
-            }
-            /** process buffer in parallel */
-            try {
-                List<Future<Boolean>> future = this.getExecutor().invokeAll(tasks, 15, TimeUnit.MINUTES);
-                Iterator<Future<Boolean>> it = future.iterator();
-                while (it.hasNext()) {
-                    if (!it.next().get())
-                        return false;
-                }
+						}
+					});
+				}
+			}
+			/** process buffer in parallel */
+			try {
+				List<Future<Boolean>> future = this.getExecutor().invokeAll(tasks, 15, TimeUnit.MINUTES);
+				Iterator<Future<Boolean>> it = future.iterator();
+				while (it.hasNext()) {
+					if (!it.next().get())
+						return false;
+				}
 
-            } catch (InterruptedException e) {
-                logger.error(e, SharedConstant.NOT_THROWN);
-            }
+			} catch (InterruptedException e) {
+				logger.error(e, SharedConstant.NOT_THROWN);
+			}
 
-            return true;
+			return true;
 
-        } catch (Exception e) {
-            logger.error(e, SharedConstant.NOT_THROWN);
-            return false;
+		} catch (Exception e) {
+			logger.error(e, SharedConstant.NOT_THROWN);
+			return false;
 
-        } finally {
-            setEnd(OffsetDateTime.now());
-        }
-    }
+		} finally {
+			setEnd(OffsetDateTime.now());
+		}
+	}
 
-    public OffsetDateTime getStart() {
-        return start;
-    }
+	public OffsetDateTime getStart() {
+		return start;
+	}
 
-    public void setStart(OffsetDateTime start) {
-        this.start = start;
-    }
+	public void setStart(OffsetDateTime start) {
+		this.start = start;
+	}
 
-    public OffsetDateTime getEnd() {
-        return end;
-    }
+	public OffsetDateTime getEnd() {
+		return end;
+	}
 
-    public void setEnd(OffsetDateTime end) {
-        this.end = end;
-    }
+	public void setEnd(OffsetDateTime end) {
+		this.end = end;
+	}
 
-    public byte[][] getSource() {
-        return source;
-    }
+	public byte[][] getSource() {
+		return source;
+	}
 
-    public List<File> getDestination() {
-        return destination;
-    }
+	public List<File> getDestination() {
+		return destination;
+	}
 
 }

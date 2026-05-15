@@ -22,12 +22,13 @@ import java.util.Optional;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.databind.ObjectMapper;
+//import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.odilon.json.OdilonObjectMapper;
 import io.odilon.log.Logger;
 import io.odilon.model.JSONObject;
 import io.odilon.model.SharedConstant;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * @author atolomei@novamens.com (Alejandro Tolomei)
@@ -38,7 +39,7 @@ public class OdilonTrafficPass implements TrafficPass, JSONObject {
 
 	static private Logger logger = Logger.getLogger(OdilonTrafficPass.class.getName());
 
-	static final private ObjectMapper mapper = new OdilonObjectMapper();
+	static final private OdilonObjectMapper mapper = new OdilonObjectMapper();
 
 	private static final long serialVersionUID = 1L;
 

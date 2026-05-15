@@ -194,7 +194,7 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
     }
 
     @Override
-    public DataList<Item<ObjectMetadata>> listObjects(String bucketName, Optional<Long> offset, Optional<Integer> pageSize,
+    public DataList<Item<ObjectMetadata>> listObjects(String bucketName, Optional<Long> offset, Optional<Long> pageSize,
             Optional<String> prefix, Optional<String> serverAgentId) {
         Check.requireTrue(isVirtualFileSystemServiceEnabled(), invalidStateMsg());
         return getVirtualFileSystemService().listObjects(bucketName, offset, pageSize, prefix, serverAgentId);

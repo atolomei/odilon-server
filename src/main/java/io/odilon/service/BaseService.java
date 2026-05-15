@@ -17,8 +17,6 @@
 package io.odilon.service;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.odilon.json.OdilonObjectMapper;
 import io.odilon.log.Logger;
@@ -26,6 +24,7 @@ import io.odilon.model.JSONObject;
 import io.odilon.model.ServiceStatus;
 import io.odilon.model.SharedConstant;
 import io.odilon.util.RandomIDGenerator;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * 
@@ -39,7 +38,7 @@ public abstract class BaseService implements JSONObject {
 	static final private RandomIDGenerator idGenerator = new RandomIDGenerator();
 
 	@JsonIgnore
-	static final private ObjectMapper mapper = new OdilonObjectMapper();
+	static final private OdilonObjectMapper mapper = new OdilonObjectMapper();
 
 	static protected String randomString(final int size) {
 		return idGenerator.randomString(size);
@@ -72,7 +71,7 @@ public abstract class BaseService implements JSONObject {
 	public String toJSON() {
 		try {
 			return mapper.writeValueAsString(this);
-		} catch (JsonProcessingException e) {
+		} catch (Exception e) {
 			logger.error(e, SharedConstant.NOT_THROWN);
 			return "\"error\":\"" + e.getClass().getName() + " | " + e.getMessage() + "\"";
 		}

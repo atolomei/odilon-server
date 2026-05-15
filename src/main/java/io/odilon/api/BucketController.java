@@ -112,7 +112,7 @@ public class BucketController extends BaseApiController {
 	 */
 	@RequestMapping(value = "/objects/{name}", produces = "application/json", method = RequestMethod.GET)
 	public ResponseEntity<DataList<Item<ObjectMetadata>>> queryObjects(@PathVariable("name") String bucketName,
-			@RequestParam("offset") Optional<Long> offset, @RequestParam("pageSize") Optional<Integer> pageSize,
+			@RequestParam("offset") Optional<Long> offset, @RequestParam("pageSize") Optional<Long> pageSize,
 			@RequestParam("prefix") Optional<String> prefix,
 			@RequestParam("serverAgentId") Optional<String> serverAgentId) {
 

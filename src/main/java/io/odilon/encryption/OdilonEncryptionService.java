@@ -24,16 +24,22 @@ import java.io.SequenceInputStream;
 import java.nio.charset.StandardCharsets;
 
 import jakarta.annotation.PostConstruct;
+import tools.jackson.core.JsonParser;
+import tools.jackson.core.StreamReadFeature;
+import tools.jackson.core.json.JsonFactory;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonParser;
+//import com.fasterxml.jackson.core.JsonFactory;
+//import com.fasterxml.jackson.core.JsonParser;
 
-import com.fasterxml.jackson.databind.MappingJsonFactory;
-import com.fasterxml.jackson.databind.ObjectMapper;
+//import com.fasterxml.jackson.databind.MappingJsonFactory;
+//import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
@@ -44,7 +50,7 @@ import io.odilon.service.ServerSettings;
 
 /**
  * <p>
- * Object Encryption Service 
+ * Object Encryption Service
  * </p>
  * <p>
  * The variable <b>encryption.key</b> in <b>odilon.properties</b> contain a AES
@@ -56,8 +62,8 @@ import io.odilon.service.ServerSettings;
  * </p>
  * 
  * <p>
- * It used by the {@link EncryptionService} to encrypt/decrypt
- * the key used to encrypt/decrypt every Object. <br/>
+ * It used by the {@link EncryptionService} to encrypt/decrypt the key used to
+ * encrypt/decrypt every Object. <br/>
  * Each Object has its own unique encryption key
  * </p>
  *
@@ -158,35 +164,74 @@ public class OdilonEncryptionService extends BaseService implements EncryptionSe
 		}
 	}
 
+
+	/**
+	JsonFactory f = JsonMapper.builder()
+	        .disable(StreamReadFeature.AUTO_CLOSE_SOURCE)
+	        .build()
+	        .tokenStreamFactory();
+	**/
+	
+	
 	@Override
 	public InputStream decryptStream(InputStream inputStream) {
-		try {
 
-			JsonFactory f = new MappingJsonFactory();
-			f.disable(JsonParser.Feature.AUTO_CLOSE_SOURCE);
-			JsonParser parser = f.createParser(inputStream);
-			String json = parser.readValueAsTree().toString();
+	    try {
 
-			StreamEncryptorInfo streamEncryptionInfo = new ObjectMapper().readValue(json, StreamEncryptorInfo.class);
+	        JsonFactory factory = JsonFactory.builder()
+	                .disable(StreamReadFeature.AUTO_CLOSE_SOURCE)
+	                .build();
 
-			String key = streamEncryptionInfo.getEncryptedKey();
-			String iv = streamEncryptionInfo.getIV();
+	        JsonParser parser = factory.createParser(inputStream);
 
-			StreamEncryptor streamEncryption = streamEncryptionInfo.getStreamEncryption();
+	        JsonNode node = parser.readValueAs(JsonNode.class);
 
-			ByteArrayOutputStream remainderOutputStream = new ByteArrayOutputStream();
-			parser.releaseBuffered(remainderOutputStream);
-			ByteArrayInputStream remainderInputStream = new ByteArrayInputStream(remainderOutputStream.toByteArray());
+	        String json = node.toString();
 
-			InputStream encryptedStream = new SequenceInputStream(remainderInputStream, inputStream);
+	        JsonMapper mapper = JsonMapper.builder().build();
 
-			getSystemMonitorService().getDecryptFileMeter().mark();
+	        StreamEncryptorInfo streamEncryptionInfo =
+	                mapper.readValue(json, StreamEncryptorInfo.class);
 
-			return streamEncryption.decrypt(encryptedStream, key, iv);
+	        String key = streamEncryptionInfo.getEncryptedKey();
+	        String iv = streamEncryptionInfo.getIV();
 
-		} catch (IOException e) {
-			throw new InternalCriticalException(e, "decryptStream");
-		}
+	        StreamEncryptor streamEncryption =
+	                streamEncryptionInfo.getStreamEncryption();
+
+	        ByteArrayOutputStream remainderOutputStream =
+	                new ByteArrayOutputStream();
+
+	        parser.releaseBuffered(remainderOutputStream);
+
+	        ByteArrayInputStream remainderInputStream =
+	                new ByteArrayInputStream(
+	                        remainderOutputStream.toByteArray()
+	                );
+
+	        InputStream encryptedStream =
+	                new SequenceInputStream(
+	                        remainderInputStream,
+	                        inputStream
+	                );
+
+	        getSystemMonitorService()
+	                .getDecryptFileMeter()
+	                .mark();
+
+	        return streamEncryption.decrypt(
+	                encryptedStream,
+	                key,
+	                iv
+	        );
+
+	    } catch (Exception e) {
+
+	        throw new InternalCriticalException(
+	                e,
+	                "decryptStream"
+	        );
+	    }
 	}
 
 	public SystemMonitorService getSystemMonitorService() {
@@ -225,10 +270,6 @@ public class OdilonEncryptionService extends BaseService implements EncryptionSe
 
 			InputStream finalStream = new SequenceInputStream(jsonStream, encryptedStream);
 
-			// long encryptedPayloadSize =
-			// EncryptionSizeCalculator.encryptedPayloadSizeGcmSiv(plainSize);
-			// long totalEncryptedSize = jsonBytes.length + encryptedPayloadSize;
-
 			getSystemMonitorService().getEncrpytFileMeter().mark();
 
 			return new EncryptedResult(finalStream, plainSize);
@@ -237,32 +278,5 @@ public class OdilonEncryptionService extends BaseService implements EncryptionSe
 			throw new InternalCriticalException(e, "encryptStream");
 		}
 	}
-
-	/*
-	 * @Override public InputStream encryptStream(InputStream inputStream) { try {
-	 * 
-	 * StreamEncryptor streamEnc = new
-	 * JCipherStreamEncryptor(EncryptionService.ENCRYPTION_ALGORITHM_METHOD,
-	 * EncryptionService.ENCRYPTION_ALGORITHM, this.odilonKeyEncriptorWrapper);
-	 * 
-	 * String key = streamEnc.getNewKey(); String iv = streamEnc.getIV();
-	 * 
-	 * EncryptedInputStream odilonEncryptedInputStream =
-	 * streamEnc.encrypt(inputStream, key, iv);
-	 * 
-	 * String jsonStreamEncryptionInfo = getObjectMapper()
-	 * .writeValueAsString(odilonEncryptedInputStream.getStreamEncryptorInfo());
-	 * InputStream jsonStreamEncryptionInfoStream = new
-	 * ByteArrayInputStream(jsonStreamEncryptionInfo.getBytes());
-	 * 
-	 * getSystemMonitorService().getEncrpytFileMeter().mark();
-	 * 
-	 * return new SequenceInputStream(jsonStreamEncryptionInfoStream,
-	 * odilonEncryptedInputStream);
-	 * 
-	 * } catch (Exception e) { throw new InternalCriticalException(e,
-	 * "encryptStream"); } }
-	 * 
-	 */
 
 }

@@ -125,13 +125,13 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 	private String rootDir;
 
 	@JsonProperty("configOrder")
-	private int configOrder;
+	private Integer configOrder;
 
 	@JsonProperty("driveInfo")
 	DriveInfo driveInfo;
 
 	@JsonProperty("raidDrives")
-	private int raidDrives;
+	private Integer raidDrives;
 
 	@JsonProperty("raidSetup")
 	private String raidSetup;
@@ -1048,7 +1048,12 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 			DriveInfo info = readDriveMetadata();
 
 			if (readDriveMetadata() == null) {
-				info = new DriveInfo(getName(), randomString(12), OffsetDateTime.now(), DriveStatus.NOTSYNC, getConfigOrder(), this.raidSetup, this.raidDrives);
+				info = new DriveInfo(getName(), 
+						randomString(12), 
+						OffsetDateTime.now(), 
+						DriveStatus.NOTSYNC, getConfigOrder(), 
+						this.raidSetup, 
+						this.raidDrives==null?0:this.raidDrives.intValue());
 				saveDriveMetadata(info);
 			}
 

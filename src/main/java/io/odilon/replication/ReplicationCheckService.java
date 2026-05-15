@@ -105,7 +105,7 @@ public class ReplicationCheckService extends BaseService {
 		List<String> errors = new ArrayList<String>();
 
 		{
-			Integer pageSize = Integer.valueOf(ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE);
+			Long pageSize = Long.valueOf(ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE);
 			Long offset = Long.valueOf(0);
 			String agentId = null;
 

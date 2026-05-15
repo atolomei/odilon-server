@@ -57,7 +57,7 @@ public class DeleteBucketObjectPreviousVersionServiceRequest extends AbstractSer
 
     static AtomicBoolean instanceRunning = new AtomicBoolean(false);
 
-    static final int PAGESIZE = 1000;
+    static final long PAGESIZE = 1000;
 
     private String bucketName;
 
@@ -181,7 +181,7 @@ public class DeleteBucketObjectPreviousVersionServiceRequest extends AbstractSer
     }
 
     private void processBucket(Long bucketId) {
-        Integer pageSize = Integer.valueOf(PAGESIZE);
+        Long pageSize = Long.valueOf(PAGESIZE);
         Long offset = Long.valueOf(0);
         String agentId = null;
         boolean done = false;

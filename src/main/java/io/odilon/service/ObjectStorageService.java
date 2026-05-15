@@ -97,7 +97,7 @@ public interface ObjectStorageService extends SystemService {
     /**
      * ------------------- Query -------------------
      */
-    public DataList<Item<ObjectMetadata>> listObjects(String bucketName, Optional<Long> offset, Optional<Integer> pageSize,
+    public DataList<Item<ObjectMetadata>> listObjects(String bucketName, Optional<Long> offset, Optional<Long> pageSize,
             Optional<String> prefix, Optional<String> serverAgentId);
 
     public boolean existsObject(String bucketName, String objectName);

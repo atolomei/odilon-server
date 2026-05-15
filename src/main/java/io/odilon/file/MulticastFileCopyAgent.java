@@ -91,7 +91,8 @@ public class MulticastFileCopyAgent extends FileCopyAgent {
              * 
              * 
              */
-            int bytesRead;
+            @SuppressWarnings("unused")
+			int bytesRead = 0;
 
             List<OutputStream> out = new ArrayList<OutputStream>();
 
@@ -99,8 +100,7 @@ public class MulticastFileCopyAgent extends FileCopyAgent {
                 try {
                     out.add(new BufferedOutputStream(new FileOutputStream(file)));
                 } catch (FileNotFoundException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
+                	 logger.error(e, SharedConstant.NOT_THROWN);
                 }
             });
 

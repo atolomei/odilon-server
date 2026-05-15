@@ -151,7 +151,7 @@ public class DataIntegrityChecker implements Runnable, ApplicationContextAware {
             executor = Executors.newFixedThreadPool(getMaxProcessingThread());
 
             for (ServerBucket bucket : getVirtualFileSystemService().listAllBuckets()) {
-                Integer pageSize = Integer.valueOf(ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE);
+            	Long pageSize = Long.valueOf(ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE);
                 Long offset = Long.valueOf(0);
                 String agentId = null;
                 boolean done = false;

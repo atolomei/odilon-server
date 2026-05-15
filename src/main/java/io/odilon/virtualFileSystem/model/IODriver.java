@@ -89,7 +89,7 @@ public interface IODriver {
     /**
      * Object List
      */
-    public DataList<Item<ObjectMetadata>> listObjects(ServerBucket bucket, Optional<Long> offset, Optional<Integer> pageSize,
+    public DataList<Item<ObjectMetadata>> listObjects(ServerBucket bucket, Optional<Long> offset, Optional<Long> pageSize,
             Optional<String> prefix, Optional<String> serverAgentId);
 
     /**

@@ -428,7 +428,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	 *                      </p>
 	 */
 	@Override
-	public DataList<Item<ObjectMetadata>> listObjects(ServerBucket bucket, Optional<Long> offset, Optional<Integer> pageSize, Optional<String> prefix, Optional<String> serverAgentId) {
+	public DataList<Item<ObjectMetadata>> listObjects(ServerBucket bucket, Optional<Long> offset, Optional<Long> pageSize, Optional<String> prefix, Optional<String> serverAgentId) {
 
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible " + objectInfo(bucket));
@@ -447,7 +447,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 				getBucketIteratorService().register(iterator);
 			}
 			List<Item<ObjectMetadata>> list = new ArrayList<Item<ObjectMetadata>>();
-			int size = pageSize.orElseGet(() -> ServerConstant.DEFAULT_PAGE_SIZE);
+			long size = pageSize.orElseGet(() -> ServerConstant.DEFAULT_PAGE_SIZE);
 			int counter = 0;
 			while (iterator.hasNext() && (counter++ < size)) {
 				Item<ObjectMetadata> item;
@@ -714,7 +714,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		for (File file : drive.getSchedulerRequests(queueId)) {
 			try {
 				list.add((ServiceRequest) getObjectMapper().readValue(file, AbstractServiceRequest.class));
-			} catch (IOException e) {
+			} catch (Exception e) {
 				try {
 					Files.delete(file.toPath());
 				} catch (IOException e1) {
@@ -1066,7 +1066,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 			if (file == null || !file.exists())
 				return null;
 			return getObjectMapper().readValue(file, OdilonServerInfo.class);
-		} catch (IOException e) {
+		} catch (Exception e) {
 			logger.error(e, SharedConstant.NOT_THROWN);
 			throw new InternalCriticalException(e);
 

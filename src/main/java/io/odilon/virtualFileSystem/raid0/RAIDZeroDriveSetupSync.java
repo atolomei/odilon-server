@@ -31,7 +31,6 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.io.Files;
 
 import io.odilon.errors.InternalCriticalException;
@@ -148,7 +147,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 
 		try {
 			jsonString = getDriver().getObjectMapper().writeValueAsString(serverInfo);
-		} catch (JsonProcessingException e) {
+		} catch (Exception e) {
 			throw new InternalCriticalException(e);
 		}
 
@@ -272,7 +271,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 
 			for (ServerBucket bucket : listAllBuckets()) {
 
-				Integer pageSize = Integer.valueOf(ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE);
+				Long pageSize = Long.valueOf(ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE);
 				Long offset = Long.valueOf(0);
 				String agentId = null;
 
@@ -379,14 +378,15 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 
 			for (final ServerBucket bucket : getDriver().getVirtualFileSystemService().listAllBuckets()) {
 
-				Integer pageSize = Integer.valueOf(ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE);
+				Long pageSize = Long.valueOf(ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE);
 
 				Long offset = Long.valueOf(0);
 				String agentId = null;
 				boolean done = false;
 
 				while (!done) {
-					DataList<Item<ObjectMetadata>> data = getDriver().getVirtualFileSystemService().listObjects(bucket.getName(), Optional.of(offset), Optional.ofNullable(pageSize), Optional.empty(), Optional.ofNullable(agentId));
+					DataList<Item<ObjectMetadata>> data = getDriver().getVirtualFileSystemService().listObjects(bucket.getName(), Optional.of(offset),
+							Optional.ofNullable(pageSize), Optional.empty(), Optional.ofNullable(agentId));
 
 					if (agentId == null)
 						agentId = data.getAgentId();

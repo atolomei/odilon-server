@@ -21,6 +21,7 @@ import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.json.JSONException;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Scope;
@@ -31,12 +32,11 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
  
 import io.odilon.json.OdilonObjectMapper;
 import io.odilon.log.Logger;
 import io.odilon.model.SharedConstant;
+import tools.jackson.databind.ObjectMapper;
 
 @Component
 @Scope("prototype")
@@ -67,7 +67,7 @@ public abstract class AbstractServiceRequest implements ServiceRequest {
     private static final long serialVersionUID = 1L;
 
     @JsonIgnore
-    static private final ObjectMapper mapper = new OdilonObjectMapper();
+    static private final OdilonObjectMapper mapper = new OdilonObjectMapper();
     
     @JsonProperty("timezone")
     private String timezone;
@@ -270,7 +270,7 @@ public abstract class AbstractServiceRequest implements ServiceRequest {
     public String toJSON() {
         try {
             return mapper.writeValueAsString(this);
-        } catch (JsonProcessingException e) {
+        } catch (Exception e) {
             logger.error(e, SharedConstant.NOT_THROWN);
             return "\"error\":\"" + e.getClass().getName() + " | " + e.getMessage() + "\"";
         }

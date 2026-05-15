@@ -24,11 +24,14 @@ import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.codahale.metrics.Counter;
-import com.codahale.metrics.Meter;
-import com.codahale.metrics.MetricRegistry;
+//import com.codahale.metrics.Counter;
+//import com.codahale.metrics.Meter;
+//import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import io.dropwizard.metrics5.Counter;
+import io.dropwizard.metrics5.Meter;
+import io.dropwizard.metrics5.MetricRegistry;
 import io.odilon.cache.FileCacheService;
 import io.odilon.cache.ObjectMetadataCacheService;
 import io.odilon.log.Logger;

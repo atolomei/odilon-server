@@ -23,9 +23,6 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonProcessingException;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.odilon.json.OdilonObjectMapper;
 import io.odilon.log.Logger;
@@ -46,7 +43,7 @@ public abstract class BucketIterator implements Iterator<Path> {
 
 	private static final Logger logger = Logger.getLogger(BucketIterator.class.getName());
 
-	static private ObjectMapper mapper = new OdilonObjectMapper();
+	static private OdilonObjectMapper mapper = new OdilonObjectMapper();
 
 	@JsonProperty("cumulativeIndex")
 	private long cumulativeIndex = 0;
@@ -177,7 +174,7 @@ public abstract class BucketIterator implements Iterator<Path> {
 	public String toJSON() {
 		try {
 			return mapper.writeValueAsString(this);
-		} catch (JsonProcessingException e) {
+		} catch (Exception e) {
 			logger.error(e, SharedConstant.NOT_THROWN);
 			return "\"error\":\"" + e.getClass().getName() + " | " + e.getMessage() + "\"";
 		}

@@ -16,13 +16,18 @@
  */
 package io.odilon.scheduler;
 
-import java.io.IOException;
+import tools.jackson.core.JsonParser;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.deser.std.StdDeserializer;
 
+/**
 import com.fasterxml.jackson.core.JacksonException;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+**/
 
 /**
  * 
@@ -30,7 +35,7 @@ import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
  */
 public class CronExpressionDeserializer extends StdDeserializer<CronExpressionJ8> {
 
-	private static final long serialVersionUID = 1L;
+	 
 
 	public CronExpressionDeserializer() {
 		this(null);
@@ -41,10 +46,11 @@ public class CronExpressionDeserializer extends StdDeserializer<CronExpressionJ8
 	}
 
 	@Override
-	public CronExpressionJ8 deserialize(JsonParser parser, DeserializationContext ctx) throws IOException, JacksonException {
+	public CronExpressionJ8 deserialize(JsonParser parser, DeserializationContext ctx) {
 
-		JsonNode node = parser.getCodec().readTree(parser);
-		String expr = node.get("expr").asText();
+		JsonNode node = ctx.readTree(parser);
+
+		 String expr = node.path("expr").asString();
 
 		return new CronExpressionJ8(expr, true);
 	}

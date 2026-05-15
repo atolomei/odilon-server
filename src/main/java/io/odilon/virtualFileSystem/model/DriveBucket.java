@@ -21,13 +21,11 @@ import java.io.IOException;
 import java.time.OffsetDateTime;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import io.odilon.log.Logger;
 import io.odilon.model.BucketMetadata;
 import io.odilon.model.BucketStatus;
+//import tools.jackson.databind.ObjectMapper;
 
 /**
  * 
@@ -37,12 +35,11 @@ public class DriveBucket {
 
 	@SuppressWarnings("unused")
 	static private Logger logger = Logger.getLogger(DriveBucket.class.getName());
-	static private ObjectMapper objectMapper = new ObjectMapper();
-
-	static {
-		objectMapper.registerModule(new JavaTimeModule());
-		objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-	}
+//	static private ObjectMapper objectMapper = new ObjectMapper();
+//	static {
+//		objectMapper.registerModule(new JavaTimeModule());
+//		objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+//	}
 
 	private BucketMetadata meta;
 

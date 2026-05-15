@@ -209,7 +209,7 @@ public interface VirtualFileSystemService extends SystemService {
     /**
      * Query
      */
-    public DataList<Item<ObjectMetadata>> listObjects(String bucketName, Optional<Long> offset, Optional<Integer> pageSize,
+    public DataList<Item<ObjectMetadata>> listObjects(String bucketName, Optional<Long> offset, Optional<Long> pageSize,
             Optional<String> prefix, Optional<String> serverAgentId);
 
     public DataList<Item<ObjectMetadata>> listObjects(String bucketName);

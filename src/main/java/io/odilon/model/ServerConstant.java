@@ -44,7 +44,7 @@ public class ServerConstant {
     /** default expiration for a presigned URL is 7 days in seconds */
     static final public int DEFAULT_EXPIRY_TIME = SharedConstant.DEFAULT_EXPIRY_TIME;
     static final public int DEFAULT_COMMANDS_PAGE_SIZE = 1000;
-    static final public int DEFAULT_PAGE_SIZE = SharedConstant.DEFAULT_PAGE_SIZE;
+    static final public long DEFAULT_PAGE_SIZE = SharedConstant.DEFAULT_PAGE_SIZE;
 
     /** 15 minutes */
     static public final long MAX_CONNECTION_IDLE_TIME_SECS = 15 * 60;

@@ -439,7 +439,7 @@ public class RAIDOneDriver extends BaseIODriver {
 	 * </p>
 	 */
 	@Override
-	public DataList<Item<ObjectMetadata>> listObjects(ServerBucket bucket, Optional<Long> offset, Optional<Integer> pageSize, Optional<String> prefix, Optional<String> serverAgentId) {
+	public DataList<Item<ObjectMetadata>> listObjects(ServerBucket bucket, Optional<Long> offset, Optional<Long> pageSize, Optional<String> prefix, Optional<String> serverAgentId) {
 
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		BucketIterator bucketIterator = null;
@@ -453,7 +453,7 @@ public class RAIDOneDriver extends BaseIODriver {
 				walkerService.register(bucketIterator);
 			}
 			List<Item<ObjectMetadata>> list = new ArrayList<Item<ObjectMetadata>>();
-			int size = pageSize.orElseGet(() -> ServerConstant.DEFAULT_PAGE_SIZE);
+			long size = pageSize.orElseGet(() -> ServerConstant.DEFAULT_PAGE_SIZE);
 			int counter = 0;
 			while (bucketIterator.hasNext() && counter++ < size) {
 				Item<ObjectMetadata> item;

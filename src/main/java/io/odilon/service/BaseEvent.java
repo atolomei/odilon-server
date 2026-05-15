@@ -19,9 +19,9 @@ package io.odilon.service;
 import org.springframework.context.ApplicationEvent;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.core.JsonProcessingException;
+//import com.fasterxml.jackson.core.JsonProcessingException;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+//import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.odilon.json.OdilonObjectMapper;
 import io.odilon.log.Logger;
@@ -29,6 +29,7 @@ import io.odilon.model.JSONObject;
 import io.odilon.model.SharedConstant;
 import io.odilon.virtualFileSystem.Action;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
+import tools.jackson.databind.ObjectMapper;
 
 public class BaseEvent extends ApplicationEvent implements JSONObject {
 
@@ -38,7 +39,7 @@ public class BaseEvent extends ApplicationEvent implements JSONObject {
 	static private Logger logger = Logger.getLogger(BaseEvent.class.getName());
 
 	@JsonIgnore
-	static final private ObjectMapper mapper = new OdilonObjectMapper();
+	static final private OdilonObjectMapper mapper = new OdilonObjectMapper();
 
 	private final VirtualFileSystemOperation operation;
 
@@ -70,7 +71,7 @@ public class BaseEvent extends ApplicationEvent implements JSONObject {
 	public String toJSON() {
 		try {
 			return getObjectMapper().writeValueAsString(this);
-		} catch (JsonProcessingException e) {
+		} catch (Exception e) {
 			logger.error(e, SharedConstant.NOT_THROWN);
 			return "\"error\":\"" + e.getClass().getName() + " | " + e.getMessage() + "\"";
 		}

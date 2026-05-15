@@ -203,7 +203,7 @@ public class StandByInitialSync implements Runnable {
 
 			for (ServerBucket bucket : buckets) {
 
-				Integer pageSize = Integer.valueOf(ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE);
+				Long pageSize = Long.valueOf(ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE);
 				Long offset = Long.valueOf(0);
 				String agentId = null;
 

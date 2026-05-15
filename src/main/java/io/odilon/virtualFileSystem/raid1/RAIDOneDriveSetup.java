@@ -27,7 +27,6 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.io.Files;
 
 import io.odilon.errors.InternalCriticalException;
@@ -106,7 +105,7 @@ public class RAIDOneDriveSetup implements IODriveSetup, ApplicationContextAware 
 
 		try {
 			jsonString = getDriver().getObjectMapper().writeValueAsString(serverInfo);
-		} catch (JsonProcessingException e) {
+		} catch (Exception e) {
 			startuplogger.error(e, SharedConstant.NOT_THROWN);
 			return false;
 		}

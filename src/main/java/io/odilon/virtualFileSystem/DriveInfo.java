@@ -49,7 +49,7 @@ public class DriveInfo extends BaseObject implements Serializable {
     private DriveStatus driveStatus;
 
     @JsonProperty("order")
-    private int order; 
+    private Integer order; 
 
     @JsonProperty("raidSetup")
     private String raidSetup;
@@ -60,12 +60,12 @@ public class DriveInfo extends BaseObject implements Serializable {
     public DriveInfo() {
     }
 
-    public DriveInfo(String name, String driveId, OffsetDateTime dateConnected, DriveStatus status, int cOrder, String raidSetup, int raidDrives) {
+    public DriveInfo(String name, String driveId, OffsetDateTime dateConnected, DriveStatus status, Integer order, String raidSetup, int raidDrives) {
         this.name = name;
         this.driveId = driveId;
         this.dateConnected = dateConnected;
         this.driveStatus = status;
-        this.order = cOrder;
+        this.order = order;
         this.raidSetup=raidSetup;
         this.raidDrives=raidDrives;
     }

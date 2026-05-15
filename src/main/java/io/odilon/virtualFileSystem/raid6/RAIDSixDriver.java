@@ -764,7 +764,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 	 * </p>
 	 */
 	@Override
-	public DataList<Item<ObjectMetadata>> listObjects(ServerBucket bucket, Optional<Long> offset, Optional<Integer> pageSize, Optional<String> prefix, Optional<String> serverAgentId) {
+	public DataList<Item<ObjectMetadata>> listObjects(ServerBucket bucket, Optional<Long> offset, Optional<Long> pageSize, Optional<String> prefix, Optional<String> serverAgentId) {
 
 		Check.requireNonNullArgument(bucket, "bucket is null");
 
@@ -782,7 +782,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 
 			List<Item<ObjectMetadata>> list = new ArrayList<Item<ObjectMetadata>>();
 
-			int size = pageSize.orElseGet(() -> ServerConstant.DEFAULT_PAGE_SIZE);
+			 long size = pageSize.orElseGet(() -> ServerConstant.DEFAULT_PAGE_SIZE);
 
 			int counter = 0;
 
