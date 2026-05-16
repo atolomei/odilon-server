@@ -18,7 +18,6 @@ package io.odilon.encryption;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
 import java.nio.charset.StandardCharsets;
@@ -26,20 +25,13 @@ import java.nio.charset.StandardCharsets;
 import jakarta.annotation.PostConstruct;
 import tools.jackson.core.JsonParser;
 import tools.jackson.core.StreamReadFeature;
-import tools.jackson.core.json.JsonFactory;
 import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-//import com.fasterxml.jackson.core.JsonFactory;
-//import com.fasterxml.jackson.core.JsonParser;
-
-//import com.fasterxml.jackson.databind.MappingJsonFactory;
-//import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
@@ -102,6 +94,9 @@ public class OdilonEncryptionService extends BaseService implements EncryptionSe
 
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 
+	static private Logger logger = Logger.getLogger(OdilonEncryptionService.class.getName());
+	
+	
 	public final class EncryptionSizeCalculator {
 		private static final int GCM_SIV_TAG_LENGTH = 16; // bytes
 
@@ -178,20 +173,20 @@ public class OdilonEncryptionService extends BaseService implements EncryptionSe
 
 	    try {
 
-	        JsonFactory factory = JsonFactory.builder()
+	    	// Jackson 3.x: parsers MUST be created via ObjectMapper (not JsonFactory directly).
+	    	// JsonFactory.createParser() sets ObjectReadContext.Base as context — a stub that
+	    	// throws UnsupportedOperationException on readValueAs(). ObjectMapper sets itself
+	    	// as the ObjectReadContext, which is fully functional.
+	        JsonMapper mapper = JsonMapper.builder()
 	                .disable(StreamReadFeature.AUTO_CLOSE_SOURCE)
 	                .build();
 
-	        JsonParser parser = factory.createParser(inputStream);
+	        JsonParser parser = mapper.createParser(inputStream);
 
 	        JsonNode node = parser.readValueAs(JsonNode.class);
 
-	        String json = node.toString();
-
-	        JsonMapper mapper = JsonMapper.builder().build();
-
 	        StreamEncryptorInfo streamEncryptionInfo =
-	                mapper.readValue(json, StreamEncryptorInfo.class);
+	                mapper.treeToValue(node, StreamEncryptorInfo.class);
 
 	        String key = streamEncryptionInfo.getEncryptedKey();
 	        String iv = streamEncryptionInfo.getIV();
@@ -226,6 +221,8 @@ public class OdilonEncryptionService extends BaseService implements EncryptionSe
 	        );
 
 	    } catch (Exception e) {
+	    	
+	    	logger.error(e, "Error decrypting stream");
 
 	        throw new InternalCriticalException(
 	                e,

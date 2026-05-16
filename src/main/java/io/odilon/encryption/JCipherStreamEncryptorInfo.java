@@ -16,6 +16,9 @@
  */
 package io.odilon.encryption;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+
+
 /**
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
@@ -30,6 +33,8 @@ public class JCipherStreamEncryptorInfo implements StreamEncryptorInfo {
 
     private KeyEncryptor keyEncryptor;
 
+    
+    /*
     public JCipherStreamEncryptorInfo() {
     }
 
@@ -40,7 +45,35 @@ public class JCipherStreamEncryptorInfo implements StreamEncryptorInfo {
         this.setIV(iv);
         this.setEncryptedKey(encryptedKey);
     }
+*/
+    
+    
+    
+    @JsonCreator
+    public JCipherStreamEncryptorInfo() {
+    }
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    public JCipherStreamEncryptorInfo(
+            JCipherStreamEncryptor jCipherStreamEncryption,
+            String encryptedKey,
+            String iv) {
+
+        this.encryptionAlgorithm =
+                jCipherStreamEncryption.getEncryptionAlgorithm();
+
+        this.keyAlgorithm =
+                jCipherStreamEncryption.getKeyAlgorithm();
+
+        this.keyEncryptor =
+                jCipherStreamEncryption.getKeyEncryptor();
+
+        this.iv = iv;
+        this.encryptedKey = encryptedKey;
+    }
+    
+    
+    
     @Override
     public StreamEncryptor getStreamEncryption() {
         return new JCipherStreamEncryptor(this.encryptionAlgorithm, this.keyAlgorithm, this.keyEncryptor);

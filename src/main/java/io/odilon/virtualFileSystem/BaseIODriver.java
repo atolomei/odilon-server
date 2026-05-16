@@ -739,6 +739,13 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
                 logger.error(
                         "HMAC of 'encryption.key' in 'odilon.properties' does not match with HMAC in 'key.enc'  -> encryption.key="
                                 + encryptionKey + encryptionIV);
+
+                
+                std_logger.error(
+                        "HMAC of 'encryption.key' in 'odilon.properties' does not match with HMAC in 'key.enc'  -> encryption.key="
+                                + encryptionKey + encryptionIV);
+                
+                
                 throw new InternalCriticalException(
                         "HMAC of 'encryption.key' in 'odilon.properties' does not match with HMAC in 'key.enc'  -> encryption.key="
                                 + encryptionKey + encryptionIV);
@@ -751,11 +758,14 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
             return key;
 
         } catch (InternalCriticalException e) {
-            if ((e.getCause() != null) && (e.getCause() instanceof javax.crypto.BadPaddingException))
+            if ((e.getCause() != null) && (e.getCause() instanceof javax.crypto.BadPaddingException)) {
                 logger.error("possible cause -> the value of 'encryption.key' in 'odilon.properties' is incorrect");
+                std_logger.error("possible cause -> the value of 'encryption.key' in 'odilon.properties' is incorrect");
+            }
             throw e;
 
         } catch (IOException e) {
+            std_logger.error(e, "getServerMasterKey");
             throw new InternalCriticalException(e, "getServerMasterKey");
 
         } finally {
