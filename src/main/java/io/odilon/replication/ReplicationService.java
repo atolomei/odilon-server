@@ -497,19 +497,28 @@ public class ReplicationService extends BaseService implements ApplicationContex
 				ObjectMetadata meta = getVirtualFileSystemService().getObjectMetadata(bucket, opx.getObjectName());
 				try {
 
+					logger.debug("Replicating -> " + meta.toString() );
+					
 					InputStream is = getVirtualFileSystemService().getObjectStream(bucket.getName(), opx.getObjectName());
 
 					((ODClient) getClient()).putReplicateObjectStream(bucket.getName(), opx.getObjectName(), is, Optional.ofNullable(meta.getFileName()), Optional.empty(), Optional.empty(), Optional.ofNullable(meta.getCustomTags()));
 
+					logger.debug("done");
 					getMonitoringService().getReplicationObjectCreateCounter().inc();
 
 				} catch (IOException e) {
+					logger.debug(e, opx.toString());
 					throw new InternalCriticalException(e, opx.toString());
 				}
 
 			} catch (ODClientException e) {
 				logger.debug(e, opx.toString());
 				throw new InternalCriticalException(e, opx.toString());
+				
+			} catch (InternalCriticalException e) {
+				logger.debug(e, opx.toString());
+				throw e;
+			
 			} finally {
 				getLockService().getBucketLock(opx.getBucketId()).readLock().unlock();
 			}
@@ -700,6 +709,14 @@ public class ReplicationService extends BaseService implements ApplicationContex
 	private void replicateDeleteBucket(VirtualFileSystemOperation opx) {
 		Check.requireNonNullArgument(opx, "opx is null");
 		try {
+			// Guard: if the bucket does not exist on the standby it is already in the
+			// desired end-state — treat as success (idempotent delete).
+			// Without this check a 404 from the standby becomes an InternalCriticalException
+			// that permanently blocks the replica queue.
+			if (!getClient().existsBucket(opx.getBucketName())) {
+				logger.debug("delete b: " + opx.getBucketName() + " -> bucket does not exist on standby, skipping");
+				return;
+			}
 			logger.debug("delete b: " + opx.getBucketName());
 			getClient().deleteBucket(opx.getBucketName());
 		} catch (ODClientException e) {

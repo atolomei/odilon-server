@@ -19,7 +19,10 @@ package io.odilon.model;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
- 
+
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
+
 import io.odilon.log.Logger;
 import io.odilon.util.Check;
 
@@ -51,9 +54,6 @@ public enum DataStorage {
     }
 
     public String getDescription(Locale locale) {
-        // ResourceBundle res =
-        // ResourceBundle.getBundle(DataStorage.this.getClass().getName(), locale);
-        // return res.getString(this.getName());
         return this.getName();
     }
 
@@ -64,6 +64,13 @@ public enum DataStorage {
         str.append(", \"description\": \"" + getDescription() + "\"");
         return str.toString();
     }
+    
+    
+    @JsonValue
+    public String toJson() {
+        return this.name;
+    }
+    
 
     @Override
     public String toString() {
@@ -128,25 +135,50 @@ public enum DataStorage {
             throw new IllegalArgumentException("id not integer -> " + id);
         }
     }
+    @JsonCreator
+    public static DataStorage fromValue(String value) {
 
-    /**
-     * @param name
-     * @return
-     */
-    public static DataStorage fromString(String name) {
+        if (value == null) {
+            return null;
+        }
 
-        Check.requireNonNullArgument(name, "name is null");
+        String normalized = value.trim();
 
-        String normalized = name.toLowerCase().trim();
+        /*
+         * Legacy toString() compatibility
+         */
+        if (normalized.startsWith("DataStorage")) {
 
-        if (normalized.equals(READ_WRITE.getName()))
-            return READ_WRITE;
-        if (normalized.equals(READONLY.getName()))
-            return READONLY;
-        if (normalized.equals(WORM.getName()))
-            return WORM;
+            int idx = normalized.indexOf("\"name\":");
 
-        throw new IllegalArgumentException("unsuported name -> " + name);
+            if (idx >= 0) {
+
+                int firstQuote =
+                        normalized.indexOf('"', idx + 7);
+
+                int secondQuote =
+                        normalized.indexOf('"', firstQuote + 1);
+
+                if (firstQuote >= 0 && secondQuote > firstQuote) {
+
+                    normalized =
+                            normalized.substring(firstQuote + 1,
+                                                 secondQuote);
+                }
+            }
+        }
+
+        for (DataStorage ds : values()) {
+
+            if (ds.name.equalsIgnoreCase(normalized)
+                    || ds.name().equalsIgnoreCase(normalized)) {
+
+                return ds;
+            }
+        }
+
+        throw new IllegalArgumentException(
+                "unsupported name -> " + value);
     }
 
     public static DataStorage fromCode(int code) {

@@ -375,7 +375,10 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 			this.counter = new AtomicLong(0);
 
 			executor = Executors.newFixedThreadPool(maxProcessingThread);
-
+			
+			logger.debug("Threads for copy process -> " + maxProcessingThread);
+			
+			
 			for (final ServerBucket bucket : getDriver().getVirtualFileSystemService().listAllBuckets()) {
 
 				Long pageSize = Long.valueOf(ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE);
@@ -428,6 +431,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 												if (data_head.exists()) {
 													((SimpleDrive) newDrive).putObjectDataFile(item.getObject().getBucketId(), item.getObject().getObjectName(), data_head);
 													totalBytesMoved.getAndAdd(data_head.length());
+													logger.debug("copied -> " + data_head.getAbsolutePath() + "  to  " + newDrive.getRootDirPath());
 												}
 
 												/** Metadata */
@@ -457,6 +461,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 
 														if (version_n.exists()) {
 															((SimpleDrive) newDrive).putObjectDataVersionFile(item.getObject().getBucketId(), item.getObject().getObjectName(), n, version_n);
+															logger.debug("copied -> " + version_n.getAbsolutePath() + "  to  " + newDrive.getRootDirPath());
 															totalBytesMoved.getAndAdd(version_n.length());
 														}
 													}

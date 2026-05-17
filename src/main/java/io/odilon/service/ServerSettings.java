@@ -524,7 +524,7 @@ public class ServerSettings implements JSONObject {
 		t_tokens = t.intValue();
 
 		try {
-			dataStorage = (dataStorageMode == null) ? DataStorage.READ_WRITE : DataStorage.fromString(dataStorageMode);
+			dataStorage = (dataStorageMode == null) ? DataStorage.READ_WRITE : DataStorage.fromValue(dataStorageMode);
 		} catch (Exception e) {
 			exit("dataStorage must be one of {" + DataStorage.getNames().toString() + "} -> " + dataStorageMode);
 		}

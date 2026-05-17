@@ -131,15 +131,15 @@ public class EncryptionInitializer extends BaseObject {
         if (info == null)
             info = getVirtualFileSystemService().getServerSettings().getDefaultOdilonServerInfo();
 
-        if (info.isEncryptionIntialized()) {
+        boolean isEncryptionIntialized = info.isEncryptionIntialized();
+        
+        if (isEncryptionIntialized) {
 
             startuplogger
                     .info("Encryption Service has already been initialized on -> " + info.getEncryptionIntializedDate().toString());
             startuplogger.info("The server will shutdown now.");
             try {
-
                 Thread.sleep(10000);
-
             } catch (InterruptedException e) {
             }
             ((ConfigurableApplicationContext) this.getVirtualFileSystemService().getApplicationContext()).close();
@@ -189,6 +189,8 @@ public class EncryptionInitializer extends BaseObject {
         info.setEncryptionLastModifiedDate(now);
 
         driver.setServerInfo(info);
+        
+        startuplogger.info("");
 
         startuplogger.info("ENCRYPTION KEY");
         startuplogger.info("--------------");
@@ -213,7 +215,9 @@ public class EncryptionInitializer extends BaseObject {
         startuplogger.info("It is recommended that you store it securely.");
         startuplogger.info("");
         startuplogger.info("process completed.");
+        startuplogger.info("");
 
+        
         /** try to copy kbee.enc -> /config */
 
         try {
@@ -228,6 +232,8 @@ public class EncryptionInitializer extends BaseObject {
         } catch (Exception e) {
             logger.error(e, "Backup encrypted key to -> " + System.getProperty("user.dir") + File.separator + "config");
         }
+
+        startuplogger.info("");
 
         shutDown(0);
     }

@@ -49,8 +49,6 @@ public enum ServiceStatus {
     }
 
     public String getDescription(Locale locale) {
-        // ResourceBundle res = ResourceBundle.getBundle(getClass().getName(), locale);
-        // return res.getString(this.getName());
         return this.getName();
     }
 

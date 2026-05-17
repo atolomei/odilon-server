@@ -620,6 +620,8 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 
 			String jsonString = getObjectMapper().writeValueAsString(serviceRequest);
 
+			logger.debug("Save Scheduler -> " + jsonString );
+			
 			File dir = new File(getSchedulerDirPath() + File.separator + queueId);
 			if (!dir.exists() || !dir.isDirectory()) {
 				try {

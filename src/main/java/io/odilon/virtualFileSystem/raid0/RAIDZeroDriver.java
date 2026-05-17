@@ -715,11 +715,10 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 			try {
 				list.add((ServiceRequest) getObjectMapper().readValue(file, AbstractServiceRequest.class));
 			} catch (Exception e) {
-				try {
-					Files.delete(file.toPath());
-				} catch (IOException e1) {
-					logger.error(e, SharedConstant.NOT_THROWN);
-				}
+				// Log the error but DO NOT delete the file — deleting would permanently lose
+				// pending replication/scheduler work that should be retried on next startup
+				logger.error("Failed to deserialize ServiceRequest from file -> " + file.getAbsolutePath()
+						+ " | " + e.getClass().getName() + " | " + e.getMessage(), SharedConstant.NOT_THROWN);
 			}
 		}
 		return list;

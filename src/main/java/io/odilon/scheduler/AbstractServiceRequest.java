@@ -203,11 +203,13 @@ public abstract class AbstractServiceRequest implements ServiceRequest {
         return this.executeAfter;
     }
 
+    @JsonIgnore
     @Override
     public boolean isExecuting() {
         return getStatus() == ServiceRequestStatus.RUNNING;
     }
 
+    @JsonIgnore
     @Override
     public boolean isCronJob() {
         return false;
@@ -231,24 +233,27 @@ public abstract class AbstractServiceRequest implements ServiceRequest {
         this.status = status;
     }
 
+    @JsonIgnore
     public ObjectMapper getObjectMapper() {
         return mapper;
     }
 
+    @JsonIgnore
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
         this.applicationContext = applicationContext;
     }
 
+    @JsonIgnore
     public ApplicationContext getApplicationContext() {
         return this.applicationContext;
     }
 
     @Override
     public String toString() {
-        StringBuilder str = new StringBuilder();
-        str.append(this.getClass().getSimpleName());
-        str.append(toJSON());
-        return str.toString();
+        return getClass().getSimpleName()
+                + "[id=" + id
+                + ", type=" + type
+                + "]";
     }
 
     public int getRetries() {
@@ -266,7 +271,7 @@ public abstract class AbstractServiceRequest implements ServiceRequest {
     public int incrementAndGetRetries() {
         return this.retries.incrementAndGet();
     }
-
+/**
     public String toJSON() {
         try {
             return mapper.writeValueAsString(this);
@@ -275,7 +280,8 @@ public abstract class AbstractServiceRequest implements ServiceRequest {
             return "\"error\":\"" + e.getClass().getName() + " | " + e.getMessage() + "\"";
         }
     }
-
+**/
+    
     public void setTimeZone(String timezoneid) {
         this.timezone = timezoneid;
     }

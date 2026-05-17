@@ -43,9 +43,10 @@ public class OdilonVirtualFileSystemOperation implements VirtualFileSystemOperat
 
 	@JsonIgnore
 	static private OdilonObjectMapper mapper = new OdilonObjectMapper();
+	 
 
 	@JsonIgnore
-	static final private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("YYYY-MM-dd'T'HH:mm:ss.XXX-z", Locale.ENGLISH);
+	static final private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.XXX-z", Locale.ENGLISH);
 
 	@JsonIgnore
 	private JournalService journalService;
@@ -182,12 +183,12 @@ public class OdilonVirtualFileSystemOperation implements VirtualFileSystemOperat
 
 	@Override
 	public String toString() {
-		StringBuilder str = new StringBuilder();
-		str.append(this.getClass().getSimpleName());
-		str.append(toJSON());
-		return str.toString();
+	    return getClass().getSimpleName()
+	        + "[id=" + id
+	        + ", operation=" + operationCode
+	        + "]";
 	}
-
+	
 	@Override
 	public OffsetDateTime getTimestamp() {
 		return timestamp;
@@ -205,10 +206,6 @@ public class OdilonVirtualFileSystemOperation implements VirtualFileSystemOperat
 	@Override
 	public OperationCode getOperationCode() {
 		return operationCode;
-	}
-
-	public void setOp(OperationCode op) {
-		this.operationCode = op;
 	}
 
 	@Override

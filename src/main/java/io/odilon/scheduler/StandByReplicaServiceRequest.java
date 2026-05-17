@@ -93,15 +93,18 @@ public class StandByReplicaServiceRequest extends AbstractServiceRequest {
         setStatus(ServiceRequestStatus.STOPPED);
     }
 
+    @JsonIgnore
     @Override
     public String getUUID() {
         return getVFSOperation().getUUID();
     }
 
+    @JsonIgnore
     public VirtualFileSystemOperation getVFSOperation() {
         return operation;
     }
 
+    @JsonIgnore
     @Override
     public boolean isSuccess() {
         return isSuccess;

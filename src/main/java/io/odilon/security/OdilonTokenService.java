@@ -41,7 +41,7 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-//import com.fasterxml.jackson.core.JsonProcessingException;
+//import tools.jackson.core.JsonProcessingException;
 
 import io.odilon.encryption.EncryptionService;
 import io.odilon.errors.InternalCriticalException;

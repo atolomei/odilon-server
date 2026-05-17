@@ -175,6 +175,9 @@ public class RAIDOneDriveSync implements Runnable {
 	private void copy() {
 
 		long start_ms = System.currentTimeMillis();
+		
+		logger.debug("Starting copy process...");
+		
 
 		final int maxProcessingThread = Double.valueOf(Double.valueOf(Runtime.getRuntime().availableProcessors() - 1) / 2.0).intValue() + 1;
 
@@ -184,8 +187,15 @@ public class RAIDOneDriveSync implements Runnable {
 
 			this.errors = new AtomicLong(0);
 
+			final Drive enabledDrive = getDriver().getDrivesEnabled().get(0);
+
+			
 			executor = Executors.newFixedThreadPool(maxProcessingThread);
 
+			logger.debug("Enabled drive -> " + enabledDrive.getRootDirPath());
+			logger.debug("Threads for copy process -> " + maxProcessingThread);
+			
+			
 			for (ServerBucket bucket : this.getDriver().getVirtualFileSystemService().listAllBuckets()) {
 
 				Long pageSize = Long.valueOf(ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE);
@@ -193,8 +203,6 @@ public class RAIDOneDriveSync implements Runnable {
 				String agentId = null;
 
 				boolean done = false;
-
-				final Drive enabledDrive = getDriver().getDrivesEnabled().get(0);
 
 				while (!done) {
 
@@ -213,7 +221,7 @@ public class RAIDOneDriveSync implements Runnable {
 								this.counter.getAndIncrement();
 
 								if (((this.counter.get() + 1) % 50) == 0)
-									logger.debug("scanned (copy) so far -> " + String.valueOf(this.counter.get()));
+									logger.info("scanned (copy) so far -> " + String.valueOf(this.counter.get()));
 
 								if (item.isOk()) {
 									for (Drive drive : getDriver().getDrivesAll()) {
@@ -229,6 +237,9 @@ public class RAIDOneDriveSync implements Runnable {
 													getLockService().getBucketLock(bucket).readLock().lock();
 
 													{
+														
+														logger.debug("Syncing object -> " + item.getObject().bucketId + "/" + item.getObject().objectName + " to -> " + drive.getRootDirPath());
+												
 														/**
 														 * HEAD VERSION ---------------------------------------------------------
 														 */
@@ -239,13 +250,15 @@ public class RAIDOneDriveSync implements Runnable {
 														if (!newmeta.exists()) {
 
 															ObjectPath path = new ObjectPath(drive, bucket, item.getObject().getObjectName());
-															File dataFile = path.dataFilePath().toFile();
+															
+															ObjectPath srcPath = new ObjectPath( enabledDrive, bucket, item.getObject().getObjectName());
+															File dataFile = srcPath.dataFilePath().toFile();
 
 															try (InputStream is = new BufferedInputStream(new FileInputStream(dataFile))) {
 
 																String sPath = path.dataFilePath().toString();
 
-																byte[] buf = new byte[ServerConstant.BUFFER_SIZE];
+																byte[] buf = new byte[ ServerConstant.BUFFER_SIZE ];
 
 																try (BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(sPath), ServerConstant.BUFFER_SIZE)) {
 																	int bytesRead;

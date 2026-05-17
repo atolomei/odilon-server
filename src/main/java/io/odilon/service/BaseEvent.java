@@ -19,9 +19,9 @@ package io.odilon.service;
 import org.springframework.context.ApplicationEvent;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-//import com.fasterxml.jackson.core.JsonProcessingException;
+//import tools.jackson.core.JsonProcessingException;
 
-//import com.fasterxml.jackson.databind.ObjectMapper;
+//import tools.jackson.databind.ObjectMapper;
 
 import io.odilon.json.OdilonObjectMapper;
 import io.odilon.log.Logger;

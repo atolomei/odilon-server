@@ -1041,7 +1041,9 @@ public class ObjectController extends BaseApiController {
 
 			if (customTags.isPresent()) {
 				List<String> tags = new ArrayList<String>();
-				String arr[] = customTags.get().split("||");
+				// "||" must be escaped as regex literal; also the value arrives percent-decoded
+				// so splitting on "\\|\\|" correctly reconstructs the original tag list
+				String arr[] = customTags.get().split("\\|\\|");
 				for (String s : arr)
 					tags.add(s);
 				o_list = Optional.ofNullable(tags);
