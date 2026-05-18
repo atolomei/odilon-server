@@ -185,6 +185,14 @@ public class ServerSettings implements JSONObject {
 	//
 	@Value("${scheduler.standard.threads:0}")
 	protected int schedulerThreads;
+	
+	
+	@Value("${scheduler.standByReplica.threads:2}")
+	protected int schedulerStandByReplicaThreads;
+	
+	public int getStandByReplicaDispatcherPoolSize() {
+		return schedulerStandByReplicaThreads;
+	}
 
 	@Value("${scheduler.cron.threads:0}")
 	protected int cronSchedulerThreads;
@@ -1039,4 +1047,6 @@ public class ServerSettings implements JSONObject {
 			return true;
 		return false;
 	}
+
+	
 }

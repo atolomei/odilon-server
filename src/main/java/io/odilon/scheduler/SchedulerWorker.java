@@ -54,6 +54,7 @@ public abstract class SchedulerWorker implements Runnable {
 	static private Logger logger = Logger.getLogger(SchedulerWorker.class.getName());
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 
+	static public final long TWO_SECONDS = 2000;
 	static public final long ONE_SECOND = 1000;
 	static public final long _SIESTA_SECS = 40;
 	static public final long _STARTUP_SIESTA_MILSECS = 15 * 1000;

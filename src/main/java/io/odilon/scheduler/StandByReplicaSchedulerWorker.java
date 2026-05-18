@@ -75,6 +75,11 @@ public class StandByReplicaSchedulerWorker extends SchedulerWorker {
 	}
 
 	@Override
+	public int getPoolSize() {
+		return getVirtualFileSystemService().getServerSettings().getStandByReplicaDispatcherPoolSize();
+	}
+	
+	@Override
 	public void add(ServiceRequest request) {
 		Check.requireNonNullArgument(request, " request is null");
 		Check.requireTrue(request instanceof StandByReplicaServiceRequest,
@@ -251,7 +256,7 @@ public class StandByReplicaSchedulerWorker extends SchedulerWorker {
 
 	@Override
 	protected void restFullCapacity() {
-		rest(ONE_SECOND);
+		rest(TWO_SECONDS);
 	}
 
 	@Override
@@ -318,6 +323,8 @@ public class StandByReplicaSchedulerWorker extends SchedulerWorker {
 		if (repRequest.getVFSOperation().getOperationCode().isObjectOperation()) {
 			String bucketName = repRequest.getVFSOperation().getBucketName();
 			String uuid       = repRequest.getVFSOperation().getUUID();
+
+			// Guard 1: check already-dispatched operations (getExecuting)
 			for (ServiceRequest exec : getExecuting().values()) {
 				if (exec instanceof StandByReplicaServiceRequest) {
 					StandByReplicaServiceRequest execRep = (StandByReplicaServiceRequest) exec;
@@ -332,6 +339,23 @@ public class StandByReplicaSchedulerWorker extends SchedulerWorker {
 					if (uuid.equals(execRep.getVFSOperation().getUUID())) {
 						logger.debug("Holding op for object uuid '" + uuid
 								+ "' — same object still executing -> id:" + execRep.getId());
+						return false;
+					}
+				}
+			}
+
+			// Guard 2: check the current dispatch batch (map) — fixes the race where
+			// create_bucket and create_object for the same bucket land in the same doJobs()
+			// cycle. create_bucket is added to map first but is not yet in getExecuting(),
+			// so the guard above would miss it and dispatch create_object immediately,
+			// causing the HTTP 500 "bucket not found" on the standby.
+			for (ServiceRequest pending : map.values()) {
+				if (pending instanceof StandByReplicaServiceRequest) {
+					StandByReplicaServiceRequest pendingRep = (StandByReplicaServiceRequest) pending;
+					if (!pendingRep.getVFSOperation().getOperationCode().isObjectOperation()
+							&& bucketName.equals(pendingRep.getVFSOperation().getBucketName())) {
+						logger.debug("Holding object op for bucket '" + bucketName
+								+ "' — bucket op pending in same batch -> id:" + pendingRep.getId());
 						return false;
 					}
 				}
