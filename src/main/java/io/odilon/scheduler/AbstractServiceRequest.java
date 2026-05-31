@@ -21,7 +21,6 @@ import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.json.JSONException;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Scope;
@@ -32,23 +31,18 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
- 
+
 import io.odilon.json.OdilonObjectMapper;
 import io.odilon.log.Logger;
-import io.odilon.model.SharedConstant;
 import tools.jackson.databind.ObjectMapper;
 
 @Component
 @Scope("prototype")
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = As.PROPERTY, property = "type")
-@JsonSubTypes({ @JsonSubTypes.Type(value = CronJobDataIntegrityCheckRequest.class, name = "dataIntegrity"),
-        @JsonSubTypes.Type(value = PingCronJobRequest.class, name = "ping"),
-        @JsonSubTypes.Type(value = CronJobWorkDirCleanUpRequest.class, name = "workDirCleanUp"),
-        @JsonSubTypes.Type(value = StandByReplicaServiceRequest.class, name = "standByReplica"),
-        @JsonSubTypes.Type(value = AfterUpdateObjectServiceRequest.class, name = "afterUpdateObject"),
-        @JsonSubTypes.Type(value = AfterDeleteObjectServiceRequest.class, name = "afterDeleteObject"),
-        @JsonSubTypes.Type(value = AfterDeleteObjectServiceRequest.class, name = "deleteBucketObjectPreviousVersion"),
-        @JsonSubTypes.Type(value = TestServiceRequest.class, name = "test") })
+@JsonSubTypes({ @JsonSubTypes.Type(value = CronJobDataIntegrityCheckRequest.class, name = "dataIntegrity"), @JsonSubTypes.Type(value = PingCronJobRequest.class, name = "ping"),
+		@JsonSubTypes.Type(value = CronJobWorkDirCleanUpRequest.class, name = "workDirCleanUp"), @JsonSubTypes.Type(value = StandByReplicaServiceRequest.class, name = "standByReplica"),
+		@JsonSubTypes.Type(value = AfterUpdateObjectServiceRequest.class, name = "afterUpdateObject"), @JsonSubTypes.Type(value = AfterDeleteObjectServiceRequest.class, name = "afterDeleteObject"),
+		@JsonSubTypes.Type(value = AfterDeleteObjectServiceRequest.class, name = "deleteBucketObjectPreviousVersion"), @JsonSubTypes.Type(value = TestServiceRequest.class, name = "test") })
 
 /**
  * <p>
@@ -62,231 +56,225 @@ import tools.jackson.databind.ObjectMapper;
  */
 public abstract class AbstractServiceRequest implements ServiceRequest {
 
-    static private Logger logger = Logger.getLogger(AbstractServiceRequest.class.getName());
+	@SuppressWarnings("unused")
+	static private Logger logger = Logger.getLogger(AbstractServiceRequest.class.getName());
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    @JsonIgnore
-    static private final OdilonObjectMapper mapper = new OdilonObjectMapper();
-    
-    @JsonProperty("timezone")
-    private String timezone;
+	@JsonIgnore
+	static private final OdilonObjectMapper mapper = new OdilonObjectMapper();
 
-    @JsonProperty("type")
-    private String type;
+	@JsonProperty("timezone")
+	private String timezone;
 
-    @JsonProperty("clazz")
-    private String clazz = getClass().getName();
+	@JsonProperty("type")
+	private String type;
 
-    @JsonProperty("id")
-    private Long id;
+	@JsonProperty("clazz")
+	private String clazz = getClass().getName();
 
-    @JsonProperty("name")
-    private String name;
+	@JsonProperty("id")
+	private Long id;
 
-    @JsonProperty("description")
-    private String description;
+	@JsonProperty("name")
+	private String name;
 
-    @JsonProperty("parameters")
-    private Map<String, String> parameters;
+	@JsonProperty("description")
+	private String description;
 
-    @JsonProperty("retries")
-    private AtomicInteger retries = new AtomicInteger(0);
+	@JsonProperty("parameters")
+	private Map<String, String> parameters;
 
-    @JsonIgnore
-    private OffsetDateTime started;
+	@JsonProperty("retries")
+	private AtomicInteger retries = new AtomicInteger(0);
 
-    @JsonIgnore
-    private OffsetDateTime ended;
+	@JsonIgnore
+	private OffsetDateTime started;
 
-    @JsonIgnore
-    private OffsetDateTime executeAfter;
+	@JsonIgnore
+	private OffsetDateTime ended;
 
-    @JsonIgnore
-    private double progress = 0.0;
+	@JsonIgnore
+	private OffsetDateTime executeAfter;
 
-    @JsonIgnore
-    private ServiceRequestStatus status;
+	@JsonIgnore
+	private double progress = 0.0;
 
-    @JsonIgnore
-    private volatile ApplicationContext applicationContext;
+	@JsonIgnore
+	private ServiceRequestStatus status;
 
-    public AbstractServiceRequest() {
-        setName(getClass().getSimpleName());
-    }
+	@JsonIgnore
+	private volatile ApplicationContext applicationContext;
 
-    @Override
-    public abstract void execute();
+	public AbstractServiceRequest() {
+		setName(getClass().getSimpleName());
+	}
 
-    @Override
-    public abstract void stop();
+	@Override
+	public abstract void execute();
 
-    @Override
-    public boolean equals(Object o) {
+	@Override
+	public abstract void stop();
 
-        if (o == null)
-            return false;
+	@Override
+	public boolean equals(Object o) {
 
-        if (o instanceof ServiceRequest) {
+		if (o == null)
+			return false;
 
-            if (!o.getClass().equals(this.getClass()))
-                return false;
+		if (o instanceof ServiceRequest) {
 
-            return (((ServiceRequest) o).getId().equals(getId()));
-        }
+			if (!o.getClass().equals(this.getClass()))
+				return false;
 
-        return false;
-    }
+			return (((ServiceRequest) o).getId().equals(getId()));
+		}
 
-    @Override
-    public void setStart(OffsetDateTime start) {
-        this.started = start;
-    }
+		return false;
+	}
 
-    @Override
-    public void setEnd(OffsetDateTime end) {
-        this.ended = end;
-    }
+	@Override
+	public void setStart(OffsetDateTime start) {
+		this.started = start;
+	}
 
-    @Override
-    public double getProgress() {
-        return this.progress;
-    }
+	@Override
+	public void setEnd(OffsetDateTime end) {
+		this.ended = end;
+	}
 
-    @Override
-    public OffsetDateTime started() {
-        return this.started;
-    }
+	@Override
+	public double getProgress() {
+		return this.progress;
+	}
 
-    @Override
-    public OffsetDateTime ended() {
-        return this.ended;
-    }
+	@Override
+	public OffsetDateTime started() {
+		return this.started;
+	}
 
-    @Override
-    public String getName() {
-        return this.name;
-    }
+	@Override
+	public OffsetDateTime ended() {
+		return this.ended;
+	}
 
-    @Override
-    public void setName(String name) {
-        this.name = name;
-    }
+	@Override
+	public String getName() {
+		return this.name;
+	}
 
-    @Override
-    public String getDescription() {
-        return this.description;
-    }
+	@Override
+	public void setName(String name) {
+		this.name = name;
+	}
 
-    @Override
-    public void setDescription(String des) {
-        this.description = des;
-    }
+	@Override
+	public String getDescription() {
+		return this.description;
+	}
 
-    @Override
-    public void setParameters(Map<String, String> map) {
-        this.parameters = map;
-    }
+	@Override
+	public void setDescription(String des) {
+		this.description = des;
+	}
 
-    @Override
-    public Map<String, String> getParameters() {
-        return this.parameters;
-    }
+	@Override
+	public void setParameters(Map<String, String> map) {
+		this.parameters = map;
+	}
 
-    @Override
-    public void setExecuteAfter(OffsetDateTime d) {
-        this.executeAfter = d;
-    }
+	@Override
+	public Map<String, String> getParameters() {
+		return this.parameters;
+	}
 
-    @Override
-    public OffsetDateTime getExecuteAfter() {
-        return this.executeAfter;
-    }
+	@Override
+	public void setExecuteAfter(OffsetDateTime d) {
+		this.executeAfter = d;
+	}
 
-    @JsonIgnore
-    @Override
-    public boolean isExecuting() {
-        return getStatus() == ServiceRequestStatus.RUNNING;
-    }
+	@Override
+	public OffsetDateTime getExecuteAfter() {
+		return this.executeAfter;
+	}
 
-    @JsonIgnore
-    @Override
-    public boolean isCronJob() {
-        return false;
-    }
+	@JsonIgnore
+	@Override
+	public boolean isExecuting() {
+		return getStatus() == ServiceRequestStatus.RUNNING;
+	}
 
-    @Override
-    public Serializable getId() {
-        return this.id;
-    }
+	@JsonIgnore
+	@Override
+	public boolean isCronJob() {
+		return false;
+	}
 
-    @Override
-    public void setId(Serializable id) {
-        this.id = (Long) id;
-    }
+	@Override
+	public Serializable getId() {
+		return this.id;
+	}
 
-    public ServiceRequestStatus getStatus() {
-        return this.status;
-    }
+	@Override
+	public void setId(Serializable id) {
+		this.id = (Long) id;
+	}
 
-    public void setStatus(ServiceRequestStatus status) {
-        this.status = status;
-    }
+	public ServiceRequestStatus getStatus() {
+		return this.status;
+	}
 
-    @JsonIgnore
-    public ObjectMapper getObjectMapper() {
-        return mapper;
-    }
+	public void setStatus(ServiceRequestStatus status) {
+		this.status = status;
+	}
 
-    @JsonIgnore
-    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-        this.applicationContext = applicationContext;
-    }
+	@JsonIgnore
+	public ObjectMapper getObjectMapper() {
+		return mapper;
+	}
 
-    @JsonIgnore
-    public ApplicationContext getApplicationContext() {
-        return this.applicationContext;
-    }
+	@JsonIgnore
+	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+		this.applicationContext = applicationContext;
+	}
 
-    @Override
-    public String toString() {
-        return getClass().getSimpleName()
-                + "[id=" + id
-                + ", type=" + type
-                + "]";
-    }
+	@JsonIgnore
+	public ApplicationContext getApplicationContext() {
+		return this.applicationContext;
+	}
 
-    public int getRetries() {
-        return this.retries.get();
-    }
+	@Override
+	public String toString() {
+		return getClass().getSimpleName() + "[id=" + id + ", type=" + type + "]";
+	}
 
-    public void setRetries(int retries) {
-        this.retries.set(retries);
-    }
+	public int getRetries() {
+		return this.retries.get();
+	}
 
-    /**
-     * Atomically increments the retry counter and returns the new value.
-     * Use this instead of {@code setRetries(getRetries() + 1)} to avoid race conditions.
-     */
-    public int incrementAndGetRetries() {
-        return this.retries.incrementAndGet();
-    }
-/**
-    public String toJSON() {
-        try {
-            return mapper.writeValueAsString(this);
-        } catch (Exception e) {
-            logger.error(e, SharedConstant.NOT_THROWN);
-            return "\"error\":\"" + e.getClass().getName() + " | " + e.getMessage() + "\"";
-        }
-    }
-**/
-    
-    public void setTimeZone(String timezoneid) {
-        this.timezone = timezoneid;
-    }
+	public void setRetries(int retries) {
+		this.retries.set(retries);
+	}
 
-    public String getTimeZone() {
-        return this.timezone;
-    }
+	/**
+	 * Atomically increments the retry counter and returns the new value. Use this
+	 * instead of {@code setRetries(getRetries() + 1)} to avoid race conditions.
+	 */
+	public int incrementAndGetRetries() {
+		return this.retries.incrementAndGet();
+	}
+
+	/**
+	 * public String toJSON() { try { return mapper.writeValueAsString(this); }
+	 * catch (Exception e) { logger.error(e, SharedConstant.NOT_THROWN); return
+	 * "\"error\":\"" + e.getClass().getName() + " | " + e.getMessage() + "\""; } }
+	 **/
+
+	public void setTimeZone(String timezoneid) {
+		this.timezone = timezoneid;
+	}
+
+	public String getTimeZone() {
+		return this.timezone;
+	}
 }

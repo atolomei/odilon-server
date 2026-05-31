@@ -19,7 +19,9 @@ package io.odilon.virtualFileSystem.model;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-//import java.util.ResourceBundle;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
 
 /**
  * <p>
@@ -111,40 +113,40 @@ public enum OperationCode {
         if (name == null)
             throw new IllegalArgumentException("name is null");
 
-        String normalized = name.toUpperCase().trim();
+        String normalized = name.trim();
 
-        if (normalized.equals(CREATE_BUCKET.getName()))
+        if (normalized.equalsIgnoreCase(CREATE_BUCKET.getName()))
             return CREATE_BUCKET;
-        if (normalized.equals(UPDATE_BUCKET.getName()))
+        if (normalized.equalsIgnoreCase(UPDATE_BUCKET.getName()))
             return UPDATE_BUCKET;
-        if (normalized.equals(DELETE_BUCKET.getName()))
+        if (normalized.equalsIgnoreCase(DELETE_BUCKET.getName()))
             return DELETE_BUCKET;
 
-        if (normalized.equals(CREATE_OBJECT.getName()))
+        if (normalized.equalsIgnoreCase(CREATE_OBJECT.getName()))
             return CREATE_OBJECT;
-        if (normalized.equals(UPDATE_OBJECT.getName()))
+        if (normalized.equalsIgnoreCase(UPDATE_OBJECT.getName()))
             return UPDATE_OBJECT;
-        if (normalized.equals(DELETE_OBJECT.getName()))
+        if (normalized.equalsIgnoreCase(DELETE_OBJECT.getName()))
             return DELETE_OBJECT;
-        if (normalized.equals(SYNC_OBJECT_NEW_DRIVE.getName()))
+        if (normalized.equalsIgnoreCase(SYNC_OBJECT_NEW_DRIVE.getName()))
             return SYNC_OBJECT_NEW_DRIVE;
-        if (normalized.equals(UPDATE_OBJECT_METADATA.getName()))
+        if (normalized.equalsIgnoreCase(UPDATE_OBJECT_METADATA.getName()))
             return UPDATE_OBJECT_METADATA;
 
-        if (normalized.equals(DELETE_OBJECT_PREVIOUS_VERSIONS.getName()))
+        if (normalized.equalsIgnoreCase(DELETE_OBJECT_PREVIOUS_VERSIONS.getName()))
             return DELETE_OBJECT_PREVIOUS_VERSIONS;
-        if (normalized.equals(RESTORE_OBJECT_PREVIOUS_VERSION.getName()))
+        if (normalized.equalsIgnoreCase(RESTORE_OBJECT_PREVIOUS_VERSION.getName()))
             return RESTORE_OBJECT_PREVIOUS_VERSION;
 
-        if (normalized.equals(CREATE_SERVER_METADATA.getName()))
+        if (normalized.equalsIgnoreCase(CREATE_SERVER_METADATA.getName()))
             return CREATE_SERVER_METADATA;
-        if (normalized.equals(UPDATE_SERVER_METADATA.getName()))
+        if (normalized.equalsIgnoreCase(UPDATE_SERVER_METADATA.getName()))
             return UPDATE_SERVER_METADATA;
 
-        if (normalized.equals(CREATE_SERVER_MASTERKEY.getName()))
+        if (normalized.equalsIgnoreCase(CREATE_SERVER_MASTERKEY.getName()))
             return CREATE_SERVER_MASTERKEY;
 
-        if (normalized.equals(INTEGRITY_CHECK.getName()))
+        if (normalized.equalsIgnoreCase(INTEGRITY_CHECK.getName()))
             return INTEGRITY_CHECK;
 
         throw new IllegalArgumentException("unsuported name -> " + name);
@@ -216,8 +218,43 @@ public enum OperationCode {
         return str.toString();
     }
 
+    @JsonValue
     public String getName() {
         return name;
+    }
+
+    /**
+     * Deserializes an {@code OperationCode} from JSON.
+     *
+     * Handles two formats for backward-compatibility with operation files
+     * already on disk:
+     * <ul>
+     *   <li><b>New format</b> – plain name string, e.g. {@code "create_object"}</li>
+     *   <li><b>Old toString() format</b> – e.g.
+     *       {@code "OperationCode{\"name\": \"create_object\", \"code\": 10, ...}"}</li>
+     * </ul>
+     */
+    @JsonCreator
+    public static OperationCode fromJson(String value) {
+        if (value == null)
+            throw new IllegalArgumentException("OperationCode value is null");
+        String v = value.trim();
+        // Old toString() format: OperationCode{"name": "create_object", ...}
+        if (v.startsWith("OperationCode{")) {
+            int nameStart = v.indexOf("\"name\": \"");
+            if (nameStart >= 0) {
+                nameStart += "\"name\": \"".length();
+                int nameEnd = v.indexOf("\"", nameStart);
+                if (nameEnd > nameStart)
+                    v = v.substring(nameStart, nameEnd).trim();
+            }
+        }
+        // Match by the lowercase 'name' field stored in each constant
+        for (OperationCode op : values()) {
+            if (op.name.equalsIgnoreCase(v))
+                return op;
+        }
+        throw new IllegalArgumentException("Unsupported OperationCode value: " + value);
     }
 
     public int getCode() {

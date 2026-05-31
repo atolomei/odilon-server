@@ -387,9 +387,11 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionObjectHandler 
 	private void backupVersionObjectMetadata(ServerBucket bucket, String objectName, int version) {
 		try {
 			for (Drive drive : getDriver().getDrivesAll()) {
-				File file = drive.getObjectMetadataFile(bucket, objectName);
-				if (file.exists())
-					drive.putObjectMetadataVersionFile(bucket, objectName, version, file);
+				if (drive.getObjectMetadataFile(bucket, objectName).exists()) {
+					ObjectMetadata meta = drive.getObjectMetadata(bucket, objectName);
+					meta.setVersion(version);
+					drive.saveObjectMetadataVersion(meta);
+				}
 			}
 		} catch (InternalCriticalException e) {
 			throw e;

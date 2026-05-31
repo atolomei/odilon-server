@@ -17,13 +17,16 @@
 package io.odilon.virtualFileSystem;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -51,6 +54,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
+import io.odilon.encryption.EncryptionService;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.BaseObject;
@@ -63,6 +67,7 @@ import io.odilon.model.ObjectStatus;
 import io.odilon.model.ServiceStatus;
 import io.odilon.model.SharedConstant;
 import io.odilon.scheduler.ServiceRequest;
+import io.odilon.service.ServerSettings;
 import io.odilon.util.Check;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.DriveBucket;
@@ -108,6 +113,14 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 
 	@JsonIgnore
 	private ReadWriteLock drive_lock = new ReentrantReadWriteLock();
+
+	/** Injected lazily by the VirtualFileSystemService after Spring context is ready */
+	@JsonIgnore
+	private EncryptionService encryptionService;
+
+	/** Injected lazily by the VirtualFileSystemService after Spring context is ready */
+	@JsonIgnore
+	private ServerSettings serverSettings;
 
 	/**
 	 * <p>
@@ -191,7 +204,8 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 	public File getObjectMetadataFile(ServerBucket bucket, String objectName) {
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullStringArgument(objectName, "objectName is null " + objectInfo(bucket));
-		return getObjectMetadataFileById(bucket.getId(), objectName);
+		ObjectPath path = new ObjectPath(this, bucket, objectName);
+		return path.existingMetadataFilePath().toFile();
 	}
 
 	@JsonIgnore
@@ -520,7 +534,7 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 	@Override
 	public ObjectMetadata getObjectMetadata(ServerBucket bucket, String objectName) {
 		try {
-			return getObjectMapper().readValue(getObjectMetadataFileById(bucket.getId(), objectName), ObjectMetadata.class);
+			return getObjectMetadataById(bucket.getId(), objectName);
 		} catch (Exception e) {
 			throw new InternalCriticalException(e);
 		}
@@ -545,7 +559,7 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 			if (!file.exists())
 				return null;
 
-			return getObjectMapper().readValue(file, ObjectMetadata.class);
+			return readObjectMetadataFromFile(file);
 
 		} catch (Exception e) {
 			throw new InternalCriticalException(e, objectInfo(bucket, objectName));
@@ -582,11 +596,30 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 
 			ObjectPath path = new ObjectPath(this, meta.getBucketId(), meta.getObjectName());
 
-			if (isHead) {
-				Files.writeString(path.metadataFilePath(), jsonString);
+			boolean shouldEncrypt = meta.isEncrypt()
+					&& (serverSettings != null) && serverSettings.isEncryptMetadata()
+					&& (encryptionService != null);
+
+			if (shouldEncrypt) {
+				/* write encrypted file and remove any stale plain file */
+				byte[] jsonBytes = jsonString.getBytes(StandardCharsets.UTF_8);
+				InputStream encryptedStream = encryptionService.encryptStream(new ByteArrayInputStream(jsonBytes)).getInputStream();
+				Path encPath = isHead
+						? path.metadataFileEncPath()
+						: path.metadataFileVersionEncPath(version.get());
+				transferTo(encryptedStream, encPath.toString());
+				/* remove stale plain file if it exists */
+				Path plainPath = isHead ? path.metadataFilePath() : path.metadataFileVersionPath(version.get());
+				Files.deleteIfExists(plainPath);
 			} else {
-				Files.writeString(Paths.get(getObjectMetadataVersionFilePathById(meta.getBucketId(), meta.getObjectName(), version.get().intValue())), jsonString);
+				/* write plain JSON file and remove any stale encrypted file */
+				Path plainPath = isHead ? path.metadataFilePath() : path.metadataFileVersionPath(version.get());
+				Files.writeString(plainPath, jsonString);
+				/* remove stale encrypted file if it exists */
+				Path encPath = isHead ? path.metadataFileEncPath() : path.metadataFileVersionEncPath(version.get());
+				Files.deleteIfExists(encPath);
 			}
+
 		} catch (Exception e) {
 			throw new InternalCriticalException(e, "b:" + meta.getBucketId().toString() + "o: + " + meta.getObjectName() + " v: " + (version.isPresent() ? String.valueOf(version.get()) : "head"));
 		}
@@ -683,7 +716,8 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 
 	@Override
 	public File getObjectMetadataVersionFile(ServerBucket bucket, String objectName, int version) {
-		return new File(getObjectMetadataVersionFilePath(bucket, objectName, version));
+		ObjectPath path = new ObjectPath(this, bucket, objectName);
+		return path.existingMetadataFileVersionPath(version).toFile();
 	}
 
 	/**
@@ -765,6 +799,14 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 	@JsonIgnore
 	public ServiceStatus getStatus() {
 		return this.status;
+	}
+
+	public void setEncryptionService(EncryptionService encryptionService) {
+		this.encryptionService = encryptionService;
+	}
+
+	public void setServerSettings(ServerSettings serverSettings) {
+		this.serverSettings = serverSettings;
 	}
 
 	@Override
@@ -1316,7 +1358,8 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 	}
 
 	private File getObjectMetadataFileById(Long bucketId, String objectName) {
-		return new File(getObjectMetadataFilePathById(bucketId, objectName));
+		ObjectPath path = new ObjectPath(this, bucketId, objectName);
+		return path.existingMetadataFilePath().toFile();
 	}
 
 	private String getBucketMetadataDirPathById(Long id) {
@@ -1327,12 +1370,33 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 		return getBucketsDirPath() + File.separator + bucketId.toString() + File.separator + objectName;
 	}
 
+	/**
+	 * Dual-probe: try .json.enc first, fall back to .json.
+	 */
 	private ObjectMetadata getObjectMetadataById(Long bucketId, String objectName) {
 		try {
-			return getObjectMapper().readValue(getObjectMetadataFileById(bucketId, objectName), ObjectMetadata.class);
+			ObjectPath path = new ObjectPath(this, bucketId, objectName);
+			File encFile = path.metadataFileEncPath().toFile();
+			if (encFile.exists())
+				return readObjectMetadataFromFile(encFile);
+			return getObjectMapper().readValue(path.metadataFilePath().toFile(), ObjectMetadata.class);
 		} catch (Exception e) {
 			throw new InternalCriticalException(e);
 		}
+	}
+
+	/**
+	 * Reads ObjectMetadata from a file, decrypting it if the file has the
+	 * {@link ServerConstant#JSON_ENC} extension and the encryptionService is available.
+	 */
+	private ObjectMetadata readObjectMetadataFromFile(File file) throws Exception {
+		if (file.getName().endsWith(ServerConstant.JSON_ENC) && encryptionService != null) {
+			try (InputStream raw = new BufferedInputStream(new FileInputStream(file));
+				 InputStream plain = encryptionService.decryptStream(raw)) {
+				return getObjectMapper().readValue(plain, ObjectMetadata.class);
+			}
+		}
+		return getObjectMapper().readValue(file, ObjectMetadata.class);
 	}
 
 	private String getObjectMetadataFilePathById(Long bucketId, String objectName) {

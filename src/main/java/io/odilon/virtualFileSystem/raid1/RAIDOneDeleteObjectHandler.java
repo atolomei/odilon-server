@@ -44,7 +44,8 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
  * </p>
  * 
  * 
- * <p>DATA CONSISTENCY: If The system crashes before Commit or Cancel -> next time
+ * <p>
+ * DATA CONSISTENCY: If The system crashes before Commit or Cancel -> next time
  * the system starts up it will REDO all stored operations. Also, the if there
  * are error buckets in the drives, they will be normalized when the system
  * starts.

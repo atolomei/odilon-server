@@ -159,7 +159,9 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionObjectHandle
 
 		/** version metadata */
 		try {
-			drive.putObjectMetadataVersionFile(getBucket(), getObjectName(), version, drive.getObjectMetadataFile(getBucket(), getObjectName()));
+			ObjectMetadata meta = drive.getObjectMetadata(getBucket(), getObjectName());
+			meta.setVersion(version);
+			drive.saveObjectMetadataVersion(meta);
 		} catch (Exception e) {
 			throw new InternalCriticalException(e, info());
 		}

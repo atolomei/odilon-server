@@ -88,8 +88,41 @@ public class ObjectPath extends PathBuilder {
 		return metadataDirPath(context).resolve(getObjectName() + ServerConstant.JSON);
 	}
 
+	/** Path for the encrypted metadata file (.json.enc) */
+	public Path metadataFileEncPath() {
+		return metadataDirPath(Context.STORAGE).resolve(getObjectName() + ServerConstant.JSON_ENC);
+	}
+
+	/**
+	 * Resolves whichever metadata file actually exists on disk:
+	 * checks .json.enc first, then falls back to .json.
+	 * Returns the .json path if neither exists (caller handles missing file).
+	 */
+	public Path existingMetadataFilePath() {
+		Path enc = metadataFileEncPath();
+		if (enc.toFile().exists())
+			return enc;
+		return metadataFilePath();
+	}
+
 	public Path metadataFileVersionPath(int version) {
 		return metadataDirPath(Context.STORAGE).resolve(getObjectName() + VirtualFileSystemService.VERSION_EXTENSION + String.valueOf(version) + ServerConstant.JSON);
+	}
+
+	/** Path for the encrypted versioned metadata file (.v<n>.json.enc) */
+	public Path metadataFileVersionEncPath(int version) {
+		return metadataDirPath(Context.STORAGE).resolve(getObjectName() + VirtualFileSystemService.VERSION_EXTENSION + String.valueOf(version) + ServerConstant.JSON_ENC);
+	}
+
+	/**
+	 * Resolves whichever versioned metadata file actually exists on disk:
+	 * checks .json.enc first, then falls back to .json.
+	 */
+	public Path existingMetadataFileVersionPath(int version) {
+		Path enc = metadataFileVersionEncPath(version);
+		if (enc.toFile().exists())
+			return enc;
+		return metadataFileVersionPath(version);
 	}
 
 	public Path metadataFileVersionPath(Context context) {

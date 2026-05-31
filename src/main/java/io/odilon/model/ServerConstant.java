@@ -41,6 +41,9 @@ public class ServerConstant {
 
     static final public String JSON = ".json";
 
+    /** extension for encrypted metadata files */
+    static final public String JSON_ENC = ".json.enc";
+
     /** default expiration for a presigned URL is 7 days in seconds */
     static final public int DEFAULT_EXPIRY_TIME = SharedConstant.DEFAULT_EXPIRY_TIME;
     static final public int DEFAULT_COMMANDS_PAGE_SIZE = 1000;

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-APP=./app/odilon-server-0.5-beta.jar
+APP=./target/odilon-server-2.1.jar
 
 source $ODILON_HOME/bin/config.sh
 rm -f $ODILON_HOME/logs/startup.log  2> /dev/null

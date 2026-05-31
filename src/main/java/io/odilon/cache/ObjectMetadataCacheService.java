@@ -105,6 +105,10 @@ public class ObjectMetadataCacheService extends BaseService implements Applicati
 	@Override
 	public void onApplicationEvent(CacheEvent event) {
 
+		if (event.getOperation().getOperationCode() == OperationCode.UPDATE_OBJECT_METADATA) {
+			remove(event.getOperation().getBucketId(), event.getOperation().getObjectName());
+			return;
+		}
 		if (event.getOperation().getOperationCode() == OperationCode.CREATE_OBJECT) {
 			remove(event.getOperation().getBucketId(), event.getOperation().getObjectName());
 			return;

@@ -138,6 +138,17 @@ public class ServerSettings implements JSONObject {
 	@Value("${encryption.enabled:false}")
 	protected boolean isEncrypt;
 
+	/** When true, ObjectMetadata JSON files are encrypted on disk. by default this field mirrors data encryption setting,
+	 * if encryption.enabled=true and encrypt.metadata will be true by default
+	 * if encryption.enabled=false, then metadata encryption is disabled regardless of the value of encrypt.metadata 
+	 * */
+	
+   /*  Requires encryption.enabled=true to have any effect. */
+	@Value("${encrypt.metadata:null}")
+	protected String encryptMetadataStr;
+
+	protected boolean encryptMetadata;
+
 	@Value("${encryption.key:#{null}}")
 	protected String encryptionKeyIV;
 
@@ -332,6 +343,10 @@ public class ServerSettings implements JSONObject {
 		return isEncrypt;
 	}
 
+	public boolean isEncryptMetadata() {
+		return isEncrypt && encryptMetadata;
+	}
+
 	@Override
 	public String toJSON() {
 
@@ -376,6 +391,9 @@ public class ServerSettings implements JSONObject {
 		str.append("\"dataStorage\":\"" + getDataStorage() + "\"");
 
 		str.append(", \"encrypt\":\"" + "\"" + (isEncryptionEnabled() ? "true" : "false") + "\"");
+
+		str.append(", \"encryptMetadata\":\"" + "\"" + ( this.encryptMetadata ? "true" : "false") + "\"");
+
 		str.append(", \"keyAlgorithm\":" + (Optional.ofNullable(keyAlgorithm).isPresent() ? ("\"" + keyAlgorithm + "\"") : "null"));
 
 		str.append(", \"lockRateMillisecs\":" + String.format("%6.2f", getLockRateMillisecs()).trim());
@@ -474,6 +492,9 @@ public class ServerSettings implements JSONObject {
 			exit("secretKey can not be null");
 		}
 
+		
+		
+		
 		if (this.presignedSalt.length() < 20)
 			exit("presignedSalt must be at least 20 characters (it has " + String.valueOf(this.presignedSalt.length()) + ")");
 
@@ -691,6 +712,10 @@ public class ServerSettings implements JSONObject {
 			raidSixBuffers = ServerConstant.R6_BUFFERS;
 		}
 
+		this.encryptMetadata = (isEncrypt && (encryptMetadataStr == null || encryptMetadataStr.trim().toLowerCase().equals("null") || encryptMetadataStr.trim().toLowerCase().equals("true"))) ? true : false;
+
+		
+		
 		startuplogger.debug("Started -> " + ServerSettings.class.getSimpleName());
 
 	}

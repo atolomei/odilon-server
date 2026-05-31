@@ -175,8 +175,9 @@ public class RAIDZeroRestoreObjectPreviousVersionHandler extends RAIDZeroTransac
 
 		/** version metadata */
 		try {
-			File file = drive.getObjectMetadataFile(getBucket(), getObjectName());
-			drive.putObjectMetadataVersionFile(getBucket(), getObjectName(), version, file);
+			ObjectMetadata meta = drive.getObjectMetadata(getBucket(), getObjectName());
+			meta.setVersion(version);
+			drive.saveObjectMetadataVersion(meta);
 		} catch (Exception e) {
 			throw new InternalCriticalException(e, info());
 		}

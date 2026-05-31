@@ -187,7 +187,9 @@ public abstract class RAIDZeroHandler extends BaseRAIDHandler implements RAIDHan
 
 			if (!path.metadataDirPath().toFile().exists())
 				FileUtils.forceMkdir(path.metadataDirPath().toFile());
-			Files.writeString(path.metadataFilePath(), getObjectMapper().writeValueAsString(meta));
+
+			drive.saveObjectMetadata(meta);
+
 		} catch (Exception e) {
 			throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
 		}

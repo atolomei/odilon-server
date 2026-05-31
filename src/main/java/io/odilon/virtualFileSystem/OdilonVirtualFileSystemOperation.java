@@ -81,6 +81,7 @@ public class OdilonVirtualFileSystemOperation implements VirtualFileSystemOperat
 	public OdilonVirtualFileSystemOperation() {
 	}
 
+	@JsonIgnore
 	public OdilonVirtualFileSystemOperation(String id, OperationCode op, Optional<Long> bucketId, Optional<String> bucketName, Optional<String> objectName, Optional<Integer> iVersion, RedundancyLevel raid, JournalService journalService) {
 
 		this.id = id;

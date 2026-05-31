@@ -632,9 +632,13 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 						try {
 							String str = Files.readString(pa);
 							OdilonVirtualFileSystemOperation op = getObjectMapper().readValue(str, OdilonVirtualFileSystemOperation.class);
-							op.setJournalService(getJournalService());
-							if (!list.contains(op))
-								list.add(op);
+							if (op!=null) {
+								op.setJournalService(getJournalService());
+								if (!list.contains(op)) {
+									list.add(op);
+									logger.debug("added to rollback -> " + op.toString());
+								}
+							}
 
 						} catch (IOException e) {
 							try {
@@ -646,7 +650,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 					}
 				}
 			}
-			std_logger.debug("Total operations that will rollback -> " + String.valueOf(list.size()));
+			std_logger.info("Total operations that will rollback -> " + String.valueOf(list.size()));
 			return list;
 
 		} finally {

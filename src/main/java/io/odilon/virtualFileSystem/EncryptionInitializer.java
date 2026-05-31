@@ -17,11 +17,16 @@
 package io.odilon.virtualFileSystem;
 
 import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.springframework.context.ConfigurableApplicationContext;
 
@@ -31,9 +36,11 @@ import io.odilon.encryption.EncryptionService;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.BaseObject;
+import io.odilon.model.ObjectMetadata;
 import io.odilon.model.OdilonServerInfo;
 import io.odilon.model.ServerConstant;
 import io.odilon.service.util.ByteToString;
+import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.IODriver;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
@@ -384,6 +391,131 @@ public class EncryptionInitializer extends BaseObject {
 
     private Optional<String> getProvidedMasterKey() {
         return this.providedMasterKey;
+    }
+
+    /**
+     * <p>
+     * Migrates all existing plain {@code .json} ObjectMetadata files on all drives
+     * to encrypted {@code .json.enc} files.
+     * </p>
+     * <p>
+     * Called at server startup when {@code encrypt.metadata=true} and
+     * {@code encryption.enabled=true}. Safe to run multiple times — files that are
+     * already {@code .json.enc} are skipped. Plain {@code .json} files at the
+     * bucket level (BucketMetadata) are not touched.
+     * </p>
+     *
+     * @param driver must not be null
+     */
+    public void encryptExistingMetadata(IODriver driver) {
+
+        AtomicLong migrated  = new AtomicLong(0);
+        AtomicLong skipped   = new AtomicLong(0);
+        AtomicLong errors    = new AtomicLong(0);
+
+        startuplogger.info(ServerConstant.SEPARATOR);
+        startuplogger.info("ObjectMetadata encryption migration starting ...");
+
+        for (Drive drive : driver.getDrivesAll()) {
+            try {
+                migrateMetadataOnDrive((OdilonDrive) drive, migrated, skipped, errors);
+            } catch (Exception e) {
+                logger.error(e, "Migration error on drive -> " + drive.getName());
+                errors.incrementAndGet();
+            }
+        }
+
+        startuplogger.info("ObjectMetadata encryption migration done."
+                + "  migrated=" + migrated.get()
+                + "  skipped="  + skipped.get()
+                + "  errors="   + errors.get());
+        startuplogger.info(ServerConstant.SEPARATOR);
+    }
+
+    // -----------------------------------------------------------------------
+    // private helpers
+    // -----------------------------------------------------------------------
+
+    /**
+     * Walk one drive's buckets directory and re-save every {@code .json} object
+     * metadata file through {@link OdilonDrive#saveObjectMetadata} so that it is
+     * written as {@code .json.enc} (the save method deletes the plain file).
+     *
+     * <pre>
+     * {drive}/sys/buckets/
+     *   {bucketId}/
+     *     {bucketId}.json          ← BucketMetadata   — skipped
+     *     {objectName}/
+     *       {objectName}.json      ← head version     — migrated
+     *       {objectName}.vN.json   ← older versions   — migrated
+     * </pre>
+     */
+    private void migrateMetadataOnDrive(OdilonDrive drive,
+                                        AtomicLong migrated,
+                                        AtomicLong skipped,
+                                        AtomicLong errors) throws Exception {
+
+        Path bucketsRoot = Paths.get(drive.getBucketsDirPath());
+        if (!bucketsRoot.toFile().exists())
+            return;
+
+        /* iterate over bucket directories */
+        try (var bucketStream = java.nio.file.Files.list(bucketsRoot)) {
+            bucketStream.filter(p -> p.toFile().isDirectory()).forEach(bucketDir -> {
+
+                /* iterate over object subdirectories inside the bucket */
+                try (var objectStream = java.nio.file.Files.list(bucketDir)) {
+                    objectStream.filter(p -> p.toFile().isDirectory()).forEach(objectDir -> {
+
+                        String objectName = objectDir.getFileName().toString();
+
+                        /* iterate over .json files inside the object directory */
+                        try (var fileStream = java.nio.file.Files.list(objectDir)) {
+                            fileStream
+                                .filter(p -> p.toString().endsWith(ServerConstant.JSON)
+                                             && p.toFile().isFile())
+                                .forEach(jsonFile -> {
+                                    try {
+                                        ObjectMetadata meta = drive.getObjectMapper()
+                                                .readValue(jsonFile.toFile(), ObjectMetadata.class);
+
+                                        if (meta == null) {
+                                            skipped.incrementAndGet();
+                                            return;
+                                        }
+
+                                        /*
+                                         * saveObjectMetadata re-writes the file
+                                         * (as .json.enc when encrypt is required)
+                                         * and removes the stale .json.
+                                         */
+                                        String fileName = jsonFile.getFileName().toString();
+                                        boolean isHead  = fileName.equals(objectName + ServerConstant.JSON);
+
+                                        if (isHead) {
+                                            drive.saveObjectMetadata(meta, true);
+                                        } else {
+                                            drive.saveObjectMetadata(meta, false);
+                                        }
+
+                                        migrated.incrementAndGet();
+
+                                    } catch (Exception e) {
+                                        logger.error(e, "Migration failed for -> " + jsonFile.toString());
+                                        errors.incrementAndGet();
+                                    }
+                                });
+                        } catch (Exception e) {
+                            logger.error(e, "Error listing object dir -> " + objectDir.toString());
+                            errors.incrementAndGet();
+                        }
+                    });
+                } catch (Exception e) {
+                    logger.error(e, "Error listing bucket dir -> " + bucketDir.toString());
+                    errors.incrementAndGet();
+                }
+            });
+        }
     }
 
     private void shutDown(int code) {

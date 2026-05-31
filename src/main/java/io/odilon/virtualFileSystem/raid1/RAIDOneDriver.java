@@ -201,9 +201,9 @@ public class RAIDOneDriver extends BaseIODriver {
 
 	@Override
 	public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName, String contentType, Optional<List<String>> customTags) {
-			putObject(bucket,objectName, stream, fileName, contentType, customTags, Optional.of(Boolean.FALSE));
+		putObject(bucket, objectName, stream, fileName, contentType, customTags, Optional.of(Boolean.FALSE));
 	}
-	
+
 	@Override
 	public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName, String contentType, Optional<List<String>> customTags, Optional<Boolean> o_public) {
 		Check.requireNonNullArgument(bucket, "bucket is null");
@@ -255,7 +255,7 @@ public class RAIDOneDriver extends BaseIODriver {
 	public ObjectMetadata updateObjectMetadata(ObjectMetadata meta) {
 		Check.requireNonNullArgument(meta, "meta is null");
 		meta.setLastModified(OffsetDateTime.now());
-		putObjectMetadata( meta );
+		putObjectMetadata(meta);
 		return meta;
 	}
 

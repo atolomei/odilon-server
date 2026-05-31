@@ -884,6 +884,13 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 				/** load master key */
 				loadMasterKey();
 
+				/** migrate plain .json metadata to .json.enc if encrypt.metadata is enabled */
+				//if (getServerSettings().isEncryptMetadata()) {
+				//	new EncryptionInitializer(this, Optional.empty())
+				//			.encryptExistingMetadata(createVFSIODriver());
+				//}
+                //
+				
 				/** Starts up Scheduler */
 				getSchedulerService().start();
 
@@ -939,6 +946,9 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 					drive = new OdilonRaidZeroRaidOneDrive(String.valueOf(configOrder), dir, configOrder, getRedundancyLevel().getName(), getServerSettings().getTotalDisks());
 					configOrder++;
 				}
+				/** inject services needed for metadata encryption */
+				((OdilonDrive) drive).setEncryptionService(this.encrpytionService);
+				((OdilonDrive) drive).setServerSettings(this.serverSettings);
 				baselist.add(drive);
 				this.drivesAll.put(drive.getName(), drive);
 				if (drive.getDriveInfo().getStatus() == DriveStatus.ENABLED)

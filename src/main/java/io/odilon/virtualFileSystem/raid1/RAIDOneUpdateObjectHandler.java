@@ -359,13 +359,14 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
 	private void saveVersionObjectMetadata(ServerBucket bucket, String objectName, int version) {
 		// TODO AT: parallel
 		try {
-			for (Drive drive : getDriver().getDrivesAll())
-				drive.putObjectMetadataVersionFile(bucket, objectName, version, drive.getObjectMetadataFile(bucket, objectName));
-
+			for (Drive drive : getDriver().getDrivesAll()) {
+				ObjectMetadata meta = drive.getObjectMetadata(bucket, objectName);
+				meta.setVersion(version);
+				drive.saveObjectMetadataVersion(meta);
+			}
 		} catch (Exception e) {
 			throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName));
 		}
-
 	}
 
 	private void saveVersionObjectDataFile(ServerBucket bucket, String objectName, int version) {
