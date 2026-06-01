@@ -33,7 +33,7 @@
 				</p>
 
 <h2>Security</h2>
-<p>Odilon keeps objects encrypted (<i>Encryption at Rest</i>) using <a href="https://es.wikipedia.org/wiki/Advanced_Encryption_Standard" target="_blank">AES GCM-SIV</a>.  Encryption has the following benefits: <br/>	
+<p>Odilon keeps objects encrypted (<i>Encryption at Rest</i>) using <a href="https://es.wikipedia.org/wiki/Advanced_Encryption_Standard" target="_blank">AES GCM-SIV</a> with key size of 256 bits.  Encryption has the following benefits: <br/>	
 <ul>
  <li>It simplifies data protection, applications dont need to worry about protecting the data or encryption keys.</li>
  <li>If data falls into the hands of an attacker, they cannot read it without also having access to the encryption keys. If attackers obtain the storage devices containing the data, they will not be able to understand or decrypt it.</li>
