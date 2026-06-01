@@ -54,7 +54,7 @@ import io.odilon.virtualFileSystem.model.OperationCode;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
- * *
+ *
  * <p>
  * Odilon contains two cache services: {@link ObjectMetadataCacheService} for
  * {@link ObjectMetadata} and {@link FileCacheService} used by RAID 6

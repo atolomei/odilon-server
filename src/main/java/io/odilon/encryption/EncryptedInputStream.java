@@ -25,18 +25,18 @@ import java.io.InputStream;
  */
 public class EncryptedInputStream extends FilterInputStream {
 
-    private StreamEncryptorInfo streamEncryptorInfo;
+	private StreamEncryptorInfo streamEncryptorInfo;
 
-    protected EncryptedInputStream(InputStream in, StreamEncryptorInfo streamEncryptorInfo) {
-        super(in);
-        setStreamEncryptorInfo(streamEncryptorInfo);
-    }
+	protected EncryptedInputStream(InputStream in, StreamEncryptorInfo streamEncryptorInfo) {
+		super(in);
+		setStreamEncryptorInfo(streamEncryptorInfo);
+	}
 
-    public StreamEncryptorInfo getStreamEncryptorInfo() {
-        return this.streamEncryptorInfo;
-    }
+	public StreamEncryptorInfo getStreamEncryptorInfo() {
+		return this.streamEncryptorInfo;
+	}
 
-    public void setStreamEncryptorInfo(StreamEncryptorInfo streamEncryptorInfo) {
-        this.streamEncryptorInfo = streamEncryptorInfo;
-    }
+	public void setStreamEncryptorInfo(StreamEncryptorInfo streamEncryptorInfo) {
+		this.streamEncryptorInfo = streamEncryptorInfo;
+	}
 }

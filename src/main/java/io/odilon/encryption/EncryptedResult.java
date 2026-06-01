@@ -10,7 +10,7 @@ public class EncryptedResult {
 
 	// If totalLengthKnown is true, totalLength contains the final value.
 	// If false, countingStream will provide live/count-after-close value.
-	
+
 	private final boolean totalLengthKnown;
 	private final long totalLength;
 	private final CountingInputStream countingStream; // may be null if known
