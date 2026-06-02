@@ -16,7 +16,7 @@
 				<li> Scalable Object Storage on commodity disks</li>
 				<li>Single binary, does not need a database or other external software</li>
     				<li>It has a simple single-level folder structure similar to the Bucket/Object model of <a href="https://aws.amazon.com/s3 /" target="_blank">Amazon S3</a></li>					
-				<li> Runs on Linux and Windows</li>				
+				<li> Runs on Linux, Mac and Windows</li>				
 				<li> SDK Java 11+ for client applications</li >
 				<li> HTTP/S for client server communication</li>
 				<li>License <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank">Open Source Apache 2</a>. It can be used for Open Source and commercial projects </li>
