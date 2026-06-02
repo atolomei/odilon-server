@@ -42,9 +42,9 @@ public interface VirtualFileSystemOperation {
 
     public boolean commit(Object payload);
 
-    public boolean cancel();
+    public void cancel();
 
-    public boolean cancel(Object payload);
+    public void cancel(Object payload);
 
     public boolean isReplicates();
 

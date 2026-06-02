@@ -511,8 +511,19 @@ public class ServerSettings implements JSONObject {
 
 		if (this.encryptionKeyIV != null) {
 			this.encryptionKeyIV = encryptionKeyIV.trim();
-			if (this.encryptionKeyIV.length() != (2 * (EncryptionService.AES_KEY_SIZE_BITS + EncryptionService.AES_IV_SIZE_BITS) / VirtualFileSystemService.BITS_PER_BYTE))
-				exit("encryption key length must be -> " + String.valueOf((2 * (EncryptionService.AES_KEY_SIZE_BITS + EncryptionService.AES_IV_SIZE_BITS) / VirtualFileSystemService.BITS_PER_BYTE)));
+
+			// Legacy 128-bit key: 32 hex (key) + 24 hex (IV) = 56 chars
+			// New     256-bit key: 64 hex (key) + 24 hex (IV) = 88 chars
+			final int ivHexLen   = 2 * EncryptionService.AES_IV_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE; // always 24
+			final int key128Len  = 2 * 128 / VirtualFileSystemService.BITS_PER_BYTE; // 32
+			final int key256Len  = 2 * 256 / VirtualFileSystemService.BITS_PER_BYTE; // 64
+			final int total128   = key128Len + ivHexLen; // 56
+			final int total256   = key256Len + ivHexLen; // 88
+
+			int totalLen = this.encryptionKeyIV.length();
+			if (totalLen != total128 && totalLen != total256)
+				exit("encryption.key length must be " + total128 + " hex chars (128-bit key) or "
+						+ total256 + " hex chars (256-bit key) -> provided length: " + totalLen);
 			try {
 				@SuppressWarnings("unused")
 				byte[] be = ByteToString.hexStringToByte(encryptionKeyIV);
@@ -520,9 +531,9 @@ public class ServerSettings implements JSONObject {
 				exit("encryption key is not a valid hex String -> " + encryptionKeyIV);
 			}
 
-			this.encryptionKey = encryptionKeyIV.substring(0, 2 * EncryptionService.AES_KEY_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE);
-			this.encryptionIV = encryptionKeyIV.substring(2 * EncryptionService.AES_KEY_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE);
-
+			int keyHexLen = totalLen - ivHexLen;
+			this.encryptionKey = encryptionKeyIV.substring(0, keyHexLen);
+			this.encryptionIV  = encryptionKeyIV.substring(keyHexLen);
 		}
 
 		if ((this.masterKey == null) && (this.masterkey_lowercase != null)) {
@@ -531,8 +542,11 @@ public class ServerSettings implements JSONObject {
 
 		if (masterKey != null) {
 			masterKey = masterKey.trim();
-			if (masterKey.length() != (2 * EncryptionService.AES_KEY_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE))
-				exit("masterKey key length must be -> " + String.valueOf((2 * EncryptionService.AES_KEY_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE)));
+			final int masterKey128Len = 2 * 128 / VirtualFileSystemService.BITS_PER_BYTE; // 32 hex chars
+			final int masterKey256Len = 2 * 256 / VirtualFileSystemService.BITS_PER_BYTE; // 64 hex chars
+			if (masterKey.length() != masterKey128Len && masterKey.length() != masterKey256Len)
+				exit("masterKey length must be " + masterKey128Len + " hex chars (128-bit) or "
+						+ masterKey256Len + " hex chars (256-bit) -> provided length: " + masterKey.length());
 			try {
 				@SuppressWarnings("unused")
 				byte[] be = ByteToString.hexStringToByte(masterKey);

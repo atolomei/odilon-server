@@ -220,13 +220,13 @@ public class OdilonVirtualFileSystemOperation implements VirtualFileSystemOperat
 	}
 
 	@Override
-	public boolean cancel() {
-		return this.getJournalService().cancel(this);
+	public void cancel() {
+		this.getJournalService().cancel(this);
 	}
 
 	@Override
-	public boolean cancel(Object payload) {
-		return this.getJournalService().cancel(this, payload);
+	public void cancel(Object payload) {
+		this.getJournalService().cancel(this, payload);
 	}
 
 	public void setJournalService(JournalService journalService) {

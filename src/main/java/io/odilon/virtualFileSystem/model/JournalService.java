@@ -20,8 +20,14 @@ import io.odilon.model.BucketMetadata;
 import io.odilon.service.SystemService;
 
 /**
+ * 
  * <p>
- * Service for ensuring Data Integrity<br/>
+ * The journal system follows a write-ahead log (WAL) pattern: a journal file is
+ * written to disk before the operation begins, and removed only after a
+ * successful commit or a complete rollback. Recovery on startup replays any
+ * leftover journal entries as rollbacks.
+ * </p>
+ * <p>
  * Changes to data files must be written only after those changes have been
  * logged, that is, <br/>
  * after log records describing the changes have been flushed to permanent
@@ -29,68 +35,68 @@ import io.odilon.service.SystemService;
  * This is roll-forward recovery, also known as REDO.
  * </p>
  * 
+ * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public interface JournalService extends SystemService {
 
-    /**
-     * ----------------- KEY ------------------
-     */
-    public VirtualFileSystemOperation saveServerKey();
+	/**
+	 * ----------------- KEY ------------------
+	 */
+	public VirtualFileSystemOperation saveServerKey();
 
-    /**
-     * ----------------- SERVER ------------------
-     */
-    public VirtualFileSystemOperation createServerMetadata();
+	/**
+	 * ----------------- SERVER ------------------
+	 */
+	public VirtualFileSystemOperation createServerMetadata();
 
-    public VirtualFileSystemOperation updateServerMetadata();
+	public VirtualFileSystemOperation updateServerMetadata();
 
-    /**
-     * ----------------- BUCKET ------------------
-     */
-    public VirtualFileSystemOperation createBucket(BucketMetadata meta);
+	/**
+	 * ----------------- BUCKET ------------------
+	 */
+	public VirtualFileSystemOperation createBucket(BucketMetadata meta);
 
-    public VirtualFileSystemOperation updateBucket(ServerBucket bucket, String newBucketName);
+	public VirtualFileSystemOperation updateBucket(ServerBucket bucket, String newBucketName);
 
-    public VirtualFileSystemOperation deleteBucket(ServerBucket bucket);
+	public VirtualFileSystemOperation deleteBucket(ServerBucket bucket);
 
-    /**
-     * ----------------- OJBECT ------------------
-     */
-    public VirtualFileSystemOperation createObject(ServerBucket bucket, String objectName);
+	/**
+	 * ----------------- OJBECT ------------------
+	 */
+	public VirtualFileSystemOperation createObject(ServerBucket bucket, String objectName);
 
-    public VirtualFileSystemOperation updateObject(ServerBucket bucket, String objectName, int version);
+	public VirtualFileSystemOperation updateObject(ServerBucket bucket, String objectName, int version);
 
-    public VirtualFileSystemOperation updateObjectMetadata(ServerBucket bucket, String objectName, int version);
+	public VirtualFileSystemOperation updateObjectMetadata(ServerBucket bucket, String objectName, int version);
 
-    /** Version control */
-    public VirtualFileSystemOperation restoreObjectPreviousVersion(ServerBucket bucket, String objectName, int versionToRestore);
+	/** Version control */
+	public VirtualFileSystemOperation restoreObjectPreviousVersion(ServerBucket bucket, String objectName, int versionToRestore);
 
-    public VirtualFileSystemOperation deleteObject(ServerBucket bucket, String objectName, int currentHeadVersion);
+	public VirtualFileSystemOperation deleteObject(ServerBucket bucket, String objectName, int currentHeadVersion);
 
-    public VirtualFileSystemOperation deleteObjectPreviousVersions(ServerBucket bucket, String objectName, int currentHeadVersion);
+	public VirtualFileSystemOperation deleteObjectPreviousVersions(ServerBucket bucket, String objectName, int currentHeadVersion);
 
-    /** sync new drive */
-    public VirtualFileSystemOperation syncObject(ServerBucket bucket, String objectName);
+	/** sync new drive */
+	public VirtualFileSystemOperation syncObject(ServerBucket bucket, String objectName);
 
-    /** ----------------- */
-    public boolean commit(VirtualFileSystemOperation operation);
-    public boolean commit(VirtualFileSystemOperation operation, Object payload);
-    
-    public boolean cancel(VirtualFileSystemOperation operation);
-    public boolean cancel(VirtualFileSystemOperation odilonVirtualFileSystemOperation, Object payload);
-    
-    public String newOperationId();
+	/** ----------------- */
+	public boolean commit(VirtualFileSystemOperation operation);
 
+	public boolean commit(VirtualFileSystemOperation operation, Object payload);
 
+	public void cancel(VirtualFileSystemOperation operation);
 
-    /**
-     * <p>
-     * If there is a replica enabled, 1. save the op into the replica queue 2.
-     * remove op from journal error -> remove from replication on recovery rollback
-     * op -> 1. remove op from replica, remove op from local ops
-     * </p>
-     */
-    
+	public void cancel(VirtualFileSystemOperation odilonVirtualFileSystemOperation, Object payload);
+
+	public String newOperationId();
+
+	/**
+	 * <p>
+	 * If there is a replica enabled, 1. save the op into the replica queue 2.
+	 * remove op from journal error -> remove from replication on recovery rollback
+	 * op -> 1. remove op from replica, remove op from local ops
+	 * </p>
+	 */
 
 }

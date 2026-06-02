@@ -204,14 +204,28 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		Check.requireNonNullStringArgument(fileName, "fileName is null " + objectInfo(bucket, objectName));
 		Check.requireNonNullArgument(stream, "InpuStream can not null " + objectInfo(bucket, objectName));
 
-		if (exists(bucket, objectName)) {
-			RAIDZeroUpdateObjectHandler updateAgent = new RAIDZeroUpdateObjectHandler(this, bucket, objectName);
-			updateAgent.update(stream, fileName, contentType, customTags, o_public);
-			getSystemMonitorService().getUpdateObjectCounter().inc();
-		} else {
-			RAIDZeroCreateObjectHandler createAgent = new RAIDZeroCreateObjectHandler(this, bucket, objectName);
-			createAgent.create(stream, fileName, contentType, customTags, o_public);
-			getSystemMonitorService().getCreateObjectCounter().inc();
+		/**
+		 * Acquire the object write-lock here so that the exists() check and the
+		 * subsequent handler dispatch are atomic. Without this guard, two concurrent
+		 * threads could both observe "not exists", both enter create(), and the second
+		 * would fail on checkNotExistObject() inside the locked region.
+		 *
+		 * ReentrantReadWriteLock supports reentrancy, so the handler's own
+		 * objectWriteLock() call will succeed immediately on the same thread.
+		 */
+		getLockService().getObjectLock(bucket, objectName).writeLock().lock();
+		try {
+			if (existsObjectMetadata(bucket, objectName)) {
+				RAIDZeroUpdateObjectHandler updateAgent = new RAIDZeroUpdateObjectHandler(this, bucket, objectName);
+				updateAgent.update(stream, fileName, contentType, customTags, o_public);
+				getSystemMonitorService().getUpdateObjectCounter().inc();
+			} else {
+				RAIDZeroCreateObjectHandler createAgent = new RAIDZeroCreateObjectHandler(this, bucket, objectName);
+				createAgent.create(stream, fileName, contentType, customTags, o_public);
+				getSystemMonitorService().getCreateObjectCounter().inc();
+			}
+		} finally {
+			getLockService().getObjectLock(bucket, objectName).writeLock().unlock();
 		}
 	}
 
@@ -411,21 +425,31 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 
 	/**
 	 * <p>
-	 * Returns a {@link DataList} of {@link Items} <br/>
-	 * The list contained by the {@link DataList} has <code>pageSize</code> items
-	 * starting from <code>offset</code> (first element is 0), or less if there are
-	 * not enough items.
-	 * 
+	 * Returns a {@link DataList} of {@link Item}s.<br/>
+	 * The list contained by the {@link DataList} has at most {@code pageSize} items
+	 * starting from {@code offset} (first element is 0).
+	 * </p>
+	 *
+	 * <p>
 	 * {@link Item} is a wrapper of an {@link ObjectMetadata} or an error. The items
-	 * in the DataList are not ordered.<br/>
-	 * 
-	 * @param serverAgentId is an optional Id that works as a cache of the object
-	 *                      that is generating the pages for this query.
-	 *                      {@link BucketIteratorService} contains a cache of
-	 *                      {@link BucketIterator} for ongoing queries.
-	 * 
-	 * @param prefix        of the objectname
-	 *                      </p>
+	 * in the DataList are <b>not</b> ordered.
+	 * </p>
+	 *
+	 * <p>
+	 * <b>Intentional design trade-off — no lock held across pages:</b><br/>
+	 * Pagination does <em>not</em> hold a bucket-level read lock across successive
+	 * page requests. Holding such a lock would block all concurrent writes to the
+	 * bucket for the entire duration of a multi-page scan, which is unacceptable for
+	 * large buckets. The accepted consequence is that objects created or deleted
+	 * between two page fetches may appear in duplicate or be skipped. Callers that
+	 * require a consistent point-in-time snapshot must implement their own
+	 * application-level reconciliation.
+	 * </p>
+	 *
+	 * @param serverAgentId optional id that works as a cache key for the
+	 *                      {@link BucketIterator} held by {@link BucketIteratorService}
+	 *                      across successive page requests from the same client.
+	 * @param prefix        optional prefix filter on object names.
 	 */
 	@Override
 	public DataList<Item<ObjectMetadata>> listObjects(ServerBucket bucket, Optional<Long> offset, Optional<Long> pageSize, Optional<String> prefix, Optional<String> serverAgentId) {
@@ -792,27 +816,21 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		try {
 
 			if (operation.getOperationCode() == OperationCode.CREATE_BUCKET) {
-
 				done = generalRollbackJournal(operation);
 
 			} else if (operation.getOperationCode() == OperationCode.DELETE_BUCKET) {
-
 				done = generalRollbackJournal(operation);
 
 			} else if (operation.getOperationCode() == OperationCode.UPDATE_BUCKET) {
-
 				done = generalRollbackJournal(operation);
-			}
-			if (operation.getOperationCode() == OperationCode.CREATE_SERVER_MASTERKEY) {
 
+			} else if (operation.getOperationCode() == OperationCode.CREATE_SERVER_MASTERKEY) {
 				done = generalRollbackJournal(operation);
 
 			} else if (operation.getOperationCode() == OperationCode.CREATE_SERVER_METADATA) {
-
 				done = generalRollbackJournal(operation);
 
 			} else if (operation.getOperationCode() == OperationCode.UPDATE_SERVER_METADATA) {
-
 				done = generalRollbackJournal(operation);
 			}
 
@@ -939,10 +957,13 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		boolean bucketLock = false;
 
 		try {
+			// saveObjectMetadata() requires the object WRITE lock (per contract on
+			// OdilonDrive.saveObjectMetadata). Use writeLock throughout so the lock
+			// upgrade is already held before the metadata read, avoiding a TOCTOU gap.
 			try {
-				objectLock = getLockService().getObjectLock(bucket, objectName).readLock().tryLock(30, TimeUnit.SECONDS);
+				objectLock = getLockService().getObjectLock(bucket, objectName).writeLock().tryLock(30, TimeUnit.SECONDS);
 				if (!objectLock) {
-					logger.warn("Can not acquire read Lock for o: " + objectName + ". Assumes -> check is ok");
+					logger.warn("Can not acquire write Lock for o: " + objectName + ". Assumes -> check is ok");
 					return true;
 				}
 			} catch (InterruptedException e) {
@@ -1018,7 +1039,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 
 			try {
 				if (objectLock)
-					getLockService().getObjectLock(bucket, objectName).readLock().unlock();
+					getLockService().getObjectLock(bucket, objectName).writeLock().unlock();
 			} catch (Exception e) {
 				logger.error(e, SharedConstant.NOT_THROWN);
 			}
@@ -1029,7 +1050,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 			} catch (Exception e) {
 				logger.error(e, SharedConstant.NOT_THROWN);
 			}
-
 		}
 	}
 
@@ -1092,13 +1112,17 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 			op = getJournalService().updateServerMetadata();
 			String jsonString = getObjectMapper().writeValueAsString(serverInfo);
 
+			/** backup current odilon.json on every drive before overwriting */
 			for (Drive drive : getDrivesAll()) {
 				try {
-					// drive.putSysFile(ServerConstant.ODILON_SERVER_METADATA_FILE, jsonString);
-					// backup
+					File current = drive.getSysFile(VirtualFileSystemService.SERVER_METADATA_FILE);
+					if (current != null && current.exists()) {
+						File backup = drive.getSysFile(VirtualFileSystemService.SERVER_METADATA_FILE + ".backup");
+						FileUtils.copyFile(current, backup);
+					}
 				} catch (Exception e) {
 					done = false;
-					throw new InternalCriticalException(e, "Drive -> " + drive.getName());
+					throw new InternalCriticalException(e, "backup server metadata | Drive -> " + drive.getName());
 				}
 			}
 

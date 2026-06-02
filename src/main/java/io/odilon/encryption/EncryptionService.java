@@ -32,7 +32,7 @@ public interface EncryptionService extends SystemService {
     static public final String ENCRYPTION_ALGORITHM_METHOD = "AES/GCM/NoPadding";
     static public final int IV_LENGTH_BIT = 128;
 
-    static final public int AES_KEY_SIZE_BITS = 128; // 16 bytes
+    static final public int AES_KEY_SIZE_BITS = 256; // 32 bytes — new installations only; existing 128-bit keys remain valid
     static final public int AES_IV_SIZE_BITS = 96; // 12 bytes
     static final public int AES_KEY_SALT_SIZE_BITS = 512;
     static final public int HMAC_SIZE = 32;

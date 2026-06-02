@@ -32,6 +32,7 @@ import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.util.Arrays;
 import java.util.Base64;
 
 /**
@@ -68,18 +69,10 @@ public class JCipherStreamEncryptor implements StreamEncryptor {
     @Override
     public String getNewKey() {
         try {
-
-            // Creating a KeyGenerator object
             KeyGenerator keyGen = KeyGenerator.getInstance(getKeyAlgorithm());
-
-            // Initializing the KeyGenerator
-            keyGen.init(secRandom);
-
-            // Creating/Generating a key
+            keyGen.init(EncryptionService.AES_KEY_SIZE_BITS, secRandom);
             Key key = keyGen.generateKey();
-
             return Base64.getEncoder().encodeToString(key.getEncoded());
-
         } catch (NoSuchAlgorithmException e) {
             throw new InternalCriticalException(e, "genNewKey");
         }
@@ -97,9 +90,10 @@ public class JCipherStreamEncryptor implements StreamEncryptor {
 
     @Override
     public EncryptedInputStream encrypt(InputStream inputStream, String key, String ivString) {
+        byte[] decodedKey = null;
         try {
 
-            byte[] decodedKey = Base64.getDecoder().decode(key);
+            decodedKey = Base64.getDecoder().decode(key);
             byte[] ivec = Base64.getDecoder().decode(ivString);
 
             InputStream encryptedStream = processStream(inputStream, Cipher.ENCRYPT_MODE, decodedKey, ivec);
@@ -110,22 +104,27 @@ public class JCipherStreamEncryptor implements StreamEncryptor {
 
         } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException e) {
             throw new InternalCriticalException(e, "encrypt");
+        } finally {
+            if (decodedKey != null) Arrays.fill(decodedKey, (byte) 0);
         }
     }
 
     @Override
     public InputStream decrypt(InputStream inputStream, String encryptedKey, String ivString) {
+        byte[] key = null;
         try {
 
             byte[] decodedEncryptedkey = Base64.getDecoder().decode(encryptedKey);
             byte[] ivec = Base64.getDecoder().decode(ivString);
 
-            byte[] key = getKeyEncryptor().decryptKey(decodedEncryptedkey, ivec);
+            key = getKeyEncryptor().decryptKey(decodedEncryptedkey, ivec);
 
             return processStream(inputStream, Cipher.DECRYPT_MODE, key, ivec);
 
         } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException e) {
             throw new InternalCriticalException(e, " decrypt");
+        } finally {
+            if (key != null) Arrays.fill(key, (byte) 0);
         }
     }
 
@@ -167,9 +166,8 @@ public class JCipherStreamEncryptor implements StreamEncryptor {
 
         try {
             c.init(encryptMode, secretKeySpec, new GCMParameterSpec(EncryptionService.IV_LENGTH_BIT, iv));
-
         } catch (InvalidKeyException | InvalidAlgorithmParameterException e) {
-
+            throw new InternalCriticalException(e, "processStream: cipher init failed (bad key or IV)");
         }
         return new CipherInputStream(inputStream, c);
 

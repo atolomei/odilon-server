@@ -149,7 +149,8 @@ public class OdilonLockService extends BaseService implements LockService {
 	}
 
 	public boolean isLocked(ServerBucket bucket) {
-		return isLocked(bucket);
+		Check.requireNonNullArgument(bucket, "bucket is null");
+		return isLocked(bucket.getName());
 	}
 
 	public boolean isLocked(String bucketName) {
@@ -253,54 +254,52 @@ public class OdilonLockService extends BaseService implements LockService {
 				if (exit())
 					return;
 
+				// --- objectLocks ---
 				if (getObjectLocks().size() > 0) {
 					long maxToPurge = Math.round(getRatePerMillisec() * maxTimeToSleepMillisec) + (long) (getRatePerMillisec() * 1000.0);
-					List<String> list = new ArrayList<String>();
-					try {
-						int counter = 0;
-						for (Entry<String, ReentrantReadWriteLock> entry : getObjectLocks().entrySet()) {
-							if (entry.getValue().writeLock().tryLock()) {
-								list.add(entry.getKey());
-								counter++;
-								if (counter >= maxToPurge) {
-									break;
-								}
-							}
-						}
-						list.forEach(item -> {
-							ReentrantReadWriteLock lock = getObjectLocks().get(item);
-							getObjectLocks().remove(item);
-							lock.writeLock().unlock();
-						});
-						list.forEach(item -> getObjectLocks().remove(item));
+					List<String> toEvict = new ArrayList<>();
+					List<ReentrantReadWriteLock> toUnlock = new ArrayList<>();
 
-					} finally {
-					}
-				}
-				{
-					if (getFileCacheLocks().size() > 0) { // FC>0
-						try {
-							long maxToPurge = Math.round(getRatePerMillisec() * maxTimeToSleepMillisec) + (long) (getRatePerMillisec() * 1000.0);
-							List<String> list = new ArrayList<String>();
-							int counter = 0;
-							for (Entry<String, ReentrantReadWriteLock> entry : getFileCacheLocks().entrySet()) {
-								if (entry.getValue().writeLock().tryLock()) {
-									list.add(entry.getKey());
-									counter++;
-									if (counter >= maxToPurge) {
-										break;
-									}
-								}
-							}
-							list.forEach(item -> {
-								ReentrantReadWriteLock lock = getFileCacheLocks().get(item);
-								getFileCacheLocks().remove(item);
-								lock.writeLock().unlock();
-							});
-							list.forEach(item -> getFileCacheLocks().remove(item));
-						} finally {
+					// Stage 1: collect idle locks (those where tryLock() succeeds)
+					int counter = 0;
+					for (Entry<String, ReentrantReadWriteLock> entry : getObjectLocks().entrySet()) {
+						if (entry.getValue().writeLock().tryLock()) {
+							toEvict.add(entry.getKey());
+							toUnlock.add(entry.getValue());
+							if (++counter >= maxToPurge)
+								break;
 						}
-					} // FC>0
+					}
+
+					// Stage 2: remove all collected keys from the map first
+					toEvict.forEach(key -> getObjectLocks().remove(key));
+
+					// Stage 3: unlock — lock is no longer reachable via the map
+					toUnlock.forEach(lock -> lock.writeLock().unlock());
+				}
+
+				// --- fileCacheLocks ---
+				if (getFileCacheLocks().size() > 0) {
+					long maxToPurge = Math.round(getRatePerMillisec() * maxTimeToSleepMillisec) + (long) (getRatePerMillisec() * 1000.0);
+					List<String> toEvict = new ArrayList<>();
+					List<ReentrantReadWriteLock> toUnlock = new ArrayList<>();
+
+					// Stage 1: collect idle locks
+					int counter = 0;
+					for (Entry<String, ReentrantReadWriteLock> entry : getFileCacheLocks().entrySet()) {
+						if (entry.getValue().writeLock().tryLock()) {
+							toEvict.add(entry.getKey());
+							toUnlock.add(entry.getValue());
+							if (++counter >= maxToPurge)
+								break;
+						}
+					}
+
+					// Stage 2: remove all collected keys from the map first
+					toEvict.forEach(key -> getFileCacheLocks().remove(key));
+
+					// Stage 3: unlock — lock is no longer reachable via the map
+					toUnlock.forEach(lock -> lock.writeLock().unlock());
 				}
 			}
 		};

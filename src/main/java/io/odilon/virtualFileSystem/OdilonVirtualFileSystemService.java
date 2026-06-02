@@ -19,14 +19,21 @@ package io.odilon.virtualFileSystem;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.attribute.PosixFileAttributeView;
+import java.nio.file.attribute.PosixFilePermission;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -245,7 +252,12 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 	 * @param schedulerService
 	 * @param walkerService
 	 * @param replicationService
-	 * 
+	 * @param objectCacheService
+	 * @param masterKeyEncryptorService
+	 * @param odilonKeyEncryptorService
+	 * @param fileCacheService
+	 * @param bufferPoolService
+	 * @param applicationEventPublisher
 	 */
 	@Autowired
 	public OdilonVirtualFileSystemService(ServerSettings serverSettings, SystemMonitorService montoringService, EncryptionService encrpytionService, LockService vfsLockService, JournalService journalService,
@@ -871,56 +883,56 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 	@PostConstruct
 	protected void onInitialize() {
 
-		synchronized (this) {
-			setStatus(ServiceStatus.STARTING);
-			try {
+		// Spring @PostConstruct is invoked exactly once on a single thread before the
+		// bean is published to other threads. No synchronization is needed here.
+		setStatus(ServiceStatus.STARTING);
+		try {
 
-				lazyInjection();
-				loadDrives();
-				loadBuckets();
+			lazyInjection();
+			loadDrives();
+			loadBuckets();
 
-				startuplogger.info(ServerConstant.SEPARATOR);
+			startuplogger.info(ServerConstant.SEPARATOR);
 
-				/** load master key */
-				loadMasterKey();
+			/** load master key */
+			loadMasterKey();
 
-				/** migrate plain .json metadata to .json.enc if encrypt.metadata is enabled */
-				//if (getServerSettings().isEncryptMetadata()) {
-				//	new EncryptionInitializer(this, Optional.empty())
-				//			.encryptExistingMetadata(createVFSIODriver());
-				//}
-                //
-				
-				/** Starts up Scheduler */
-				getSchedulerService().start();
+			/** migrate plain .json metadata to .json.enc if encrypt.metadata is enabled */
+			//if (getServerSettings().isEncryptMetadata()) {
+			//	new EncryptionInitializer(this, Optional.empty())
+			//			.encryptExistingMetadata(createVFSIODriver());
+			//}
+			//
 
-				/** process unfinished transactions */
-				processJournalQueue(true);
+			/** Starts up Scheduler */
+			getSchedulerService().start();
 
-				/**
-				 * After completing all unfinished trx -> buckets "marked as deleted" on a
-				 * drive, must be purged from that drive
-				 **/
-				deleteGhostsBuckets();
-				checkDriveBuckets();
-				setUpNewDrives();
-				checkServerInfo();
-				cleanUpWorkDir();
+			/** process unfinished transactions */
+			processJournalQueue(true);
 
-				if (getSchedulerService().getStandardQueueSize() > 0) {
-					try {
-						Thread.sleep(1000 * 3);
-					} catch (Exception e) {
-						logger.error(e, SharedConstant.NOT_THROWN);
-					}
+			/**
+			 * After completing all unfinished trx -> buckets "marked as deleted" on a
+			 * drive, must be purged from that drive
+			 **/
+			deleteGhostsBuckets();
+			checkDriveBuckets();
+			setUpNewDrives();
+			checkServerInfo();
+			cleanUpWorkDir();
+
+			if (getSchedulerService().getStandardQueueSize() > 0) {
+				try {
+					Thread.sleep(1000 * 3);
+				} catch (Exception e) {
+					logger.error(e, SharedConstant.NOT_THROWN);
 				}
-
-				setStatus(ServiceStatus.RUNNING);
-
-			} catch (Exception e) {
-				setStatus(ServiceStatus.STOPPED);
-				throw e;
 			}
+
+			setStatus(ServiceStatus.RUNNING);
+
+		} catch (Exception e) {
+			setStatus(ServiceStatus.STOPPED);
+			throw e;
 		}
 	}
 
@@ -1295,6 +1307,9 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 		if (!getServerSettings().isEncryptionEnabled())
 			return;
 
+		/** Check permissions of key files before reading them */
+		checkKeyFileSecurity();
+
 		if (getServerSettings().getEncryptionKey() == null) {
 			StringBuilder str = new StringBuilder();
 			str.append("\n" + ServerConstant.SEPARATOR + "\n");
@@ -1347,6 +1362,54 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 
 	private String getEnableEncryptionScriptName() {
 		return isLinux() ? ServerConstant.ENABLE_ENCRYPTION_SCRIPT_LINUX : ServerConstant.ENABLE_ENCRYPTION_SCRIPT_WINDOWS;
+	}
+
+	/**
+	 * <p>
+	 * Checks that sensitive key files are not world- or group-readable.
+	 * Logs a security warning for every file that is too permissive.
+	 * Only runs on POSIX file systems (Linux / macOS); silently skipped on Windows.
+	 * </p>
+	 */
+	private void checkKeyFileSecurity() {
+
+		Set<PosixFilePermission> insecurePermissions = EnumSet.of(
+				PosixFilePermission.GROUP_READ,
+				PosixFilePermission.GROUP_WRITE,
+				PosixFilePermission.OTHERS_READ,
+				PosixFilePermission.OTHERS_WRITE);
+
+		// 1. kbee.enc on every enabled drive
+		for (Drive drive : getMapDrivesEnabled().values()) {
+			File encFile = drive.getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE);
+			if (encFile != null && encFile.exists())
+				warnIfInsecure(encFile.toPath(), insecurePermissions);
+		}
+
+		// 2. odilon.properties in the standard deployment location
+		Path propsFile = Paths.get(System.getProperty("user.dir"), "config", "odilon.properties");
+		if (propsFile.toFile().exists())
+			warnIfInsecure(propsFile, insecurePermissions);
+	}
+
+	private void warnIfInsecure(Path path, Set<PosixFilePermission> insecurePermissions) {
+		try {
+			PosixFileAttributeView view = Files.getFileAttributeView(path, PosixFileAttributeView.class);
+			if (view == null)
+				return; // not a POSIX file system (e.g. Windows NTFS) – skip silently
+			Set<PosixFilePermission> perms = view.readAttributes().permissions();
+			Set<PosixFilePermission> found = EnumSet.copyOf(insecurePermissions);
+			found.retainAll(perms);
+			if (!found.isEmpty()) {
+				startuplogger.error(ServerConstant.SEPARATOR);
+				startuplogger.error("SECURITY WARNING: sensitive file has insecure permissions -> " + path.toAbsolutePath());
+				startuplogger.error("Current permissions : " + perms);
+				startuplogger.error("Recommended fix    : chmod 600 " + path.toAbsolutePath());
+				startuplogger.error(ServerConstant.SEPARATOR);
+			}
+		} catch (IOException e) {
+			logger.error(e, "checkKeyFileSecurity: could not read permissions for -> " + path.toAbsolutePath());
+		}
 	}
 
 	private AtomicLong getBucketIdGenerator() {

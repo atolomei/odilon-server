@@ -19,6 +19,7 @@ package io.odilon.virtualFileSystem;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 import jakarta.annotation.PostConstruct;
 import javax.annotation.concurrent.ThreadSafe;
@@ -86,6 +87,16 @@ public class OdilonJournalService extends BaseService implements JournalService 
 
 	@JsonIgnore
 	private Map<String, String> ops_aborted = new ConcurrentHashMap<String, String>();
+
+	/**
+	 * Monotonically increasing operation ID counter.
+	 * Seeded from System.nanoTime() at construction time so IDs remain unique
+	 * across JVM restarts (journal files from a previous run will never collide
+	 * with new ones), and incremented atomically to guarantee uniqueness within a
+	 * single JVM session regardless of clock resolution.
+	 */
+	@JsonIgnore
+	private final AtomicLong opIdGenerator = new AtomicLong(System.nanoTime());
 
 	@JsonIgnore
 	private boolean isStandBy;
@@ -193,6 +204,15 @@ public class OdilonJournalService extends BaseService implements JournalService 
 	 * remove op from journal error -> remove from replication on recovery rollback
 	 * op -> 1. remove op from replica, remove op from local ops
 	 * </p>
+	 * <p>
+	 * The journal file is removed from disk and the in-memory map is cleaned up
+	 * <b>before</b> publishing the cache COMMIT event. This ordering guarantees
+	 * that if the cache event publication fails, the operation is already durably
+	 * committed (journal gone) and no stale journal entry will be replayed on
+	 * restart. It also avoids the inverse hazard: if we published COMMIT first and
+	 * then removeJournal threw, the cache would have a COMMIT state but the journal
+	 * would still be present, causing a spurious rollback on the next restart.
+	 * </p>
 	 */
 	@Override
 	public boolean commit(VirtualFileSystemOperation operation, Object payload) {
@@ -202,27 +222,24 @@ public class OdilonJournalService extends BaseService implements JournalService 
 
 		synchronized (this) {
 
-			boolean isOK = false;
-
 			try {
-
 				if (isStandBy())
 					getReplicationService().enqueue(operation);
 
+				// Step 1: durably remove the journal entry first
+				getVirtualFileSystemService().removeJournal(operation.getId());
+				getOperations().remove(operation.getId());
+
+				// Step 2: notify cache and bucket listeners only after journal is gone
 				getApplicationEventPublisher().publishEvent(new CacheEvent(operation, Action.COMMIT));
 
 				if ((payload != null) && (payload instanceof ServerBucket)) {
 					getApplicationEventPublisher().publishEvent(new BucketEvent(operation, Action.COMMIT, (ServerBucket) payload));
 				}
 
-				getVirtualFileSystemService().removeJournal(operation.getId());
-				getOperations().remove(operation.getId());
-
-				isOK = true;
-				return isOK;
+				return true;
 
 			} catch (Exception e) {
-
 				if (isStandBy()) {
 					getOpsAborted().put(operation.getId(), operation.getId());
 					getReplicationService().cancel(operation);
@@ -233,39 +250,42 @@ public class OdilonJournalService extends BaseService implements JournalService 
 	}
 
 	@Override
-	public boolean cancel(VirtualFileSystemOperation virtualFileSystemOperation) {
-		return cancel(virtualFileSystemOperation, null);
+	public void cancel(VirtualFileSystemOperation virtualFileSystemOperation) {
+		cancel(virtualFileSystemOperation, null);
 	}
 
 	@Override
-	public boolean cancel(VirtualFileSystemOperation operation, Object payload) {
+	public void cancel(VirtualFileSystemOperation operation, Object payload) {
 
 		if (operation == null)
-			return true;
+			return;
 
 		synchronized (this) {
 			try {
-
 				CacheEvent event = new CacheEvent(operation, Action.ROLLBACK);
 				getApplicationEventPublisher().publishEvent(event);
 
 				if (payload instanceof ServerBucket)
 					getApplicationEventPublisher().publishEvent(new BucketEvent(operation, Action.ROLLBACK, (ServerBucket) payload));
 
-				getVirtualFileSystemService().removeJournal(operation.getId());
+				try {
+					getVirtualFileSystemService().removeJournal(operation.getId());
+				} catch (InternalCriticalException e) {
+					logger.error(e, "the operation was saved in just some of the drives due to a crash", SharedConstant.NOT_THROWN);
+				} catch (Exception e) {
+					logger.error(e, "cancel: could not remove journal entry for op:" + operation.getId(), SharedConstant.NOT_THROWN);
+				}
 
-			} catch (InternalCriticalException e) {
-				logger.error(e, "the operation was saved in just some of the drives due to a crash", SharedConstant.NOT_THROWN);
+			} finally {
+				getOperations().remove(operation.getId());
 			}
 			logger.debug("Cancel ->" + operation.toString());
-			getOperations().remove(operation.getId());
 		}
-		return true;
 	}
 
 	@Override
-	public synchronized String newOperationId() {
-		return String.valueOf(System.nanoTime());
+	public String newOperationId() {
+		return String.valueOf(opIdGenerator.incrementAndGet());
 	}
 
 	public boolean isExecuting(String opid) {

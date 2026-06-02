@@ -273,7 +273,7 @@ public abstract class BaseRAIDHandler extends BaseObject {
 	}
 
 	protected void bucketReadUnLock(String bucketName) {
-		getLockService().getBucketLock(bucketName).readLock().lock();
+		getLockService().getBucketLock(bucketName).readLock().unlock();
 	}
 
 	protected void bucketReadLock(ServerBucket bucket) {

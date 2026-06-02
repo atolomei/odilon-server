@@ -577,6 +577,26 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 		saveObjectMetadata(meta, false);
 	}
 
+	/**
+	 * <p>
+	 * Persists {@link ObjectMetadata} to disk, either as the head version or as a
+	 * numbered version file.
+	 * </p>
+	 *
+	 * <p>
+	 * <b>Concurrency contract:</b> this method is <em>not</em> thread-safe on its
+	 * own. Callers <strong>must</strong> hold the per-object <em>write</em> lock for
+	 * {@code (meta.bucketId, meta.objectName)} before calling this method, and must
+	 * not release it until any related data file has also been written. The
+	 * {@link io.odilon.virtualFileSystem.raid0.RAIDZeroHandler} family of classes
+	 * (and their RAID 1 / RAID 6 counterparts) enforce this invariant by acquiring
+	 * the object write-lock at the top of each transaction handler.
+	 * </p>
+	 *
+	 * @param meta   the metadata to persist; must not be {@code null}
+	 * @param isHead {@code true}  → write as head version ({@code objectName.json[.enc]})
+	 *               {@code false} → write as numbered version
+	 */
 	protected void saveObjectMetadata(ObjectMetadata meta, boolean isHead) {
 
 		Check.requireNonNullArgument(meta, "meta");

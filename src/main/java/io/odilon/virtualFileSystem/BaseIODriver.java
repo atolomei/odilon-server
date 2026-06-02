@@ -23,6 +23,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.PosixFileAttributeView;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.time.OffsetDateTime;
@@ -33,6 +36,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
 import org.springframework.beans.BeansException;
@@ -438,8 +442,21 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 				}
 				return true;
 			} else if (operation.getOperationCode() == OperationCode.UPDATE_SERVER_METADATA) {
-				logger.debug("no action yet, rollback -> " + OperationCode.UPDATE_SERVER_METADATA.getName());
-				return true;
+			    // Restore odilon.json from the .backup copy that setServerInfo() writes before
+			    // overwriting the file. If no backup exists the original is intact (crash
+			    // between journal write and backup write) so no action is needed.
+			    for (Drive drive : getDrivesAll()) {
+			        File backup = drive.getSysFile(VirtualFileSystemService.SERVER_METADATA_FILE + ".backup");
+			        if (backup != null && backup.exists()) {
+			            File current = drive.getSysFile(VirtualFileSystemService.SERVER_METADATA_FILE);
+			            FileUtils.copyFile(backup, current);
+			            FileUtils.deleteQuietly(backup);
+			        } else {
+			            logger.warn("UPDATE_SERVER_METADATA rollback: no backup found on drive -> "
+			                    + drive.getName() + " | original file left unchanged");
+			        }
+			    }
+			    return true;
 			}
 
 		} catch (InternalCriticalException e) {
@@ -701,6 +718,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 	public byte[] getServerMasterKey() {
 
 		getLockService().getServerLock().readLock().lock();
+		byte[] bdataDec = null;
 		try {
 
 			File file = getDrivesEnabled().get(0).getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE);
@@ -728,7 +746,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 			}
 
 			/** HMAC(32) + Master Key (16) + IV(12) + Salt (64) */
-			byte[] bdataDec = getVirtualFileSystemService().getMasterKeyEncryptorService().decryptKey(bDataEnc);
+			bdataDec = getVirtualFileSystemService().getMasterKeyEncryptorService().decryptKey(bDataEnc);
 
 			byte[] b_hmacNew = new byte[EncryptionService.HMAC_SIZE];
 			System.arraycopy(bdataDec, 0, b_hmacNew, 0, b_hmacNew.length);
@@ -742,7 +760,14 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 			}
 
 			/** HMAC is correct */
-			byte[] key = new byte[EncryptionService.AES_KEY_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE];
+			// Derive the master key size from the stored buffer rather than the constant so
+			// that existing 128-bit (16-byte) and new 256-bit (32-byte) master keys are
+			// both handled transparently.
+			// Buffer layout: HMAC(32) + MasterKey(N) + IV(12) + Salt(64)
+			int ivSizeBytes   = EncryptionService.AES_IV_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE;
+			int saltSizeBytes = EncryptionService.AES_KEY_SALT_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE;
+			int masterKeySizeBytes = bdataDec.length - EncryptionService.HMAC_SIZE - ivSizeBytes - saltSizeBytes;
+			byte[] key = new byte[masterKeySizeBytes];
 			System.arraycopy(bdataDec, b_hmacNew.length, key, 0, key.length);
 
 			return key;
@@ -759,6 +784,8 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 			throw new InternalCriticalException(e, "getServerMasterKey");
 
 		} finally {
+			/** Zero the decrypted buffer so HMAC+masterKey+IV+salt do not linger in the heap */
+			if (bdataDec != null) Arrays.fill(bdataDec, (byte) 0);
 			getLockService().getServerLock().readLock().unlock();
 		}
 	}
@@ -815,6 +842,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 				try {
 					File file = drive.getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE);
 					FileUtils.writeByteArrayToFile(file, dataEnc);
+					setOwnerReadWriteOnly(file.toPath());
 
 				} catch (Exception e) {
 					eThrow = new InternalCriticalException(e, objectInfo(drive));
@@ -1555,6 +1583,26 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 			} finally {
 				getLockService().getServerLock().writeLock().unlock();
 			}
+		}
+	}
+
+	/**
+	 * <p>
+	 * Sets the file permissions to {@code rw-------} (owner read+write only, mode 600).
+	 * Only has effect on POSIX file systems (Linux / macOS).
+	 * Silently skipped on Windows where POSIX views are unavailable.
+	 * </p>
+	 */
+	private void setOwnerReadWriteOnly(Path path) {
+		try {
+			PosixFileAttributeView view = Files.getFileAttributeView(path, PosixFileAttributeView.class);
+			if (view == null)
+				return; // Windows NTFS — skip
+			Set<PosixFilePermission> perms = PosixFilePermissions.fromString("rw-------");
+			view.setPermissions(perms);
+		} catch (IOException e) {
+			// Log but do not abort — a permission warning is better than crashing init
+			logger.error(e, "setOwnerReadWriteOnly: could not set permissions on -> " + path.toAbsolutePath());
 		}
 	}
 

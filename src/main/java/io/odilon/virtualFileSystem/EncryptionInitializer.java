@@ -17,8 +17,12 @@
 package io.odilon.virtualFileSystem;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.PosixFileAttributeView;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
@@ -26,6 +30,7 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.springframework.context.ConfigurableApplicationContext;
@@ -232,6 +237,7 @@ public class EncryptionInitializer extends BaseObject {
             File destFile = new File(
                     System.getProperty("user.dir") + File.separator + "config" + File.separator + srcFile.getName());
             Files.copy(srcFile, destFile);
+            setOwnerReadWriteOnly(destFile.toPath());
             startuplogger.info("");
             startuplogger.info("Odilon made a backup of the encrypted key to -> " + System.getProperty("user.dir") + File.separator
                     + "config" + File.separator + srcFile.getName());
@@ -333,6 +339,7 @@ public class EncryptionInitializer extends BaseObject {
             File destFile = new File(
                     System.getProperty("user.dir") + File.separator + "config" + File.separator + srcFile.getName());
             Files.copy(srcFile, destFile);
+            setOwnerReadWriteOnly(destFile.toPath());
             startuplogger.info("");
             startuplogger.info("Odilon made a backup of the encrypted key to -> " + System.getProperty("user.dir") + File.separator
                     + "config" + File.separator + srcFile.getName());
@@ -526,6 +533,24 @@ public class EncryptionInitializer extends BaseObject {
         }
         ((ConfigurableApplicationContext) getVirtualFileSystemService().getApplicationContext()).close();
         System.exit(code);
+    }
+
+    /**
+     * <p>
+     * Sets file permissions to {@code rw-------} (owner read+write only, mode 600).
+     * Only effective on POSIX file systems (Linux / macOS); silently skipped on Windows.
+     * </p>
+     */
+    private void setOwnerReadWriteOnly(Path path) {
+        try {
+            PosixFileAttributeView view = java.nio.file.Files.getFileAttributeView(path, PosixFileAttributeView.class);
+            if (view == null)
+                return; // Windows NTFS — skip silently
+            Set<PosixFilePermission> perms = PosixFilePermissions.fromString("rw-------");
+            view.setPermissions(perms);
+        } catch (IOException e) {
+            logger.error(e, "setOwnerReadWriteOnly: could not set permissions on -> " + path.toAbsolutePath());
+        }
     }
 
 }
