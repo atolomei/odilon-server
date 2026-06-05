@@ -47,57 +47,54 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 @RequestMapping(value = "/servicerequest")
 public class RequestController extends BaseApiController {
 
-    @Autowired
-    private SchedulerService schedulerService;
+	@Autowired
+	private SchedulerService schedulerService;
 
-    @Autowired
-    public RequestController(ObjectStorageService objectStorageService, VirtualFileSystemService virtualFileSystemService,
-            SystemMonitorService monitoringService, TrafficControlService trafficControlService,
-            SchedulerService schedulerService) {
-        super(objectStorageService, virtualFileSystemService, monitoringService, trafficControlService);
+	@Autowired
+	public RequestController(ObjectStorageService objectStorageService, VirtualFileSystemService virtualFileSystemService, SystemMonitorService monitoringService, TrafficControlService trafficControlService,
+			SchedulerService schedulerService) {
+		super(objectStorageService, virtualFileSystemService, monitoringService, trafficControlService);
 
-        this.schedulerService = schedulerService;
-    }
+		this.schedulerService = schedulerService;
+	}
 
-    /**
-     * @param name
-     * @return
-     */
-    @RequestMapping(value = "/add/{name}", produces = "application/json", method = RequestMethod.POST)
-    public void addRequest(@PathVariable("name") String name) {
+	/**
+	 * @param name
+	 * @return
+	 */
+	@RequestMapping(value = "/add/{name}", produces = "application/json", method = RequestMethod.POST)
+	public void addRequest(@PathVariable("name") String name) {
 
-        TrafficPass pass = null;
+		TrafficPass pass = null;
 
-        try {
+		try {
 
-            pass =  getTrafficControlService().getPass(this.getClass().getSimpleName());
+			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
 
+			if (name == null)
+				throw new OdilonObjectNotFoundException(ErrorCode.INTERNAL_ERROR, String.format("parameter request is null"));
 
-            if (name == null)
-                throw new OdilonObjectNotFoundException(ErrorCode.INTERNAL_ERROR, String.format("parameter request is null"));
+			name = TestServiceRequest.class.getName();
+			ServiceRequest request = (ServiceRequest) getApplicationContext().getBean(TestServiceRequest.class);
 
-            name = TestServiceRequest.class.getName();
-            ServiceRequest request = (ServiceRequest) getApplicationContext().getBean(TestServiceRequest.class);
+			if (request == null) {
+				throw new OdilonObjectNotFoundException(ErrorCode.OBJECT_NOT_FOUND, String.format("Request does not exist -> %s", name));
+			}
 
-            if (request == null) {
-                throw new OdilonObjectNotFoundException(ErrorCode.OBJECT_NOT_FOUND,
-                        String.format("Request does not exist -> %s", name));
-            }
+			getSchedulerService().enqueue(request);
 
-            getSchedulerService().enqueue(request);
+		} catch (OdilonServerAPIException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new OdilonInternalErrorException(getMessage(e));
+		} finally {
+			getTrafficControlService().release(pass);
+			mark();
+		}
+	}
 
-        } catch (OdilonServerAPIException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new OdilonInternalErrorException(getMessage(e));
-        } finally {
-            getTrafficControlService().release(pass);
-            mark();
-        }
-    }
-
-    private SchedulerService getSchedulerService() {
-        return schedulerService;
-    }
+	private SchedulerService getSchedulerService() {
+		return schedulerService;
+	}
 
 }

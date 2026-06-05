@@ -59,34 +59,33 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 @RestController
 public class PingController extends BaseApiController {
 
-    @Autowired
-    public PingController(ObjectStorageService objectStorageService, VirtualFileSystemService virtualFileSystemService,
-            SystemMonitorService monitoringService, TrafficControlService trafficControlService) {
-        super(objectStorageService, virtualFileSystemService, monitoringService, trafficControlService);
-    }
+	@Autowired
+	public PingController(ObjectStorageService objectStorageService, VirtualFileSystemService virtualFileSystemService, SystemMonitorService monitoringService, TrafficControlService trafficControlService) {
+		super(objectStorageService, virtualFileSystemService, monitoringService, trafficControlService);
+	}
 
-    /**
-     * <p>
-     * in JSON format
-     * </p>
-     */
-    @RequestMapping(value = "/ping", produces = "application/json", method = RequestMethod.GET)
-    public ResponseEntity<String> getMetrics() {
+	/**
+	 * <p>
+	 * in JSON format
+	 * </p>
+	 */
+	@RequestMapping(value = "/ping", produces = "application/json", method = RequestMethod.GET)
+	public ResponseEntity<String> getMetrics() {
 
-        TrafficPass pass = null;
+		TrafficPass pass = null;
 
-        try {
-            pass =  getTrafficControlService().getPass(this.getClass().getSimpleName());
+		try {
+			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
 
-            StringBuilder str = new StringBuilder();
-            String ping = getObjectStorageService().ping();
-            str.append(ping);
-            return new ResponseEntity<String>(str.toString(), HttpStatus.OK);
+			StringBuilder str = new StringBuilder();
+			String ping = getObjectStorageService().ping();
+			str.append(ping);
+			return new ResponseEntity<String>(str.toString(), HttpStatus.OK);
 
-        } finally {
-            getTrafficControlService().release(pass);
-            mark();
-        }
-    }
+		} finally {
+			getTrafficControlService().release(pass);
+			mark();
+		}
+	}
 
 }

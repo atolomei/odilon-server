@@ -89,7 +89,8 @@ public class SystemMonitorService extends BaseService implements SystemService {
 	private Counter deleteObjectVersionCounter;
 
 	/**
-	 * ---------------------------- OBJECT VERSION CONTROL ----------------------------
+	 * ---------------------------- OBJECT VERSION CONTROL
+	 * ----------------------------
 	 */
 
 	@JsonIgnore
@@ -175,8 +176,7 @@ public class SystemMonitorService extends BaseService implements SystemService {
 	@Autowired
 	private final FileCacheService fileCacheService;
 
-	public SystemMonitorService(ServerSettings serverSettings, ObjectMetadataCacheService cacheService,
-			FileCacheService fileCacheService) {
+	public SystemMonitorService(ServerSettings serverSettings, ObjectMetadataCacheService cacheService, FileCacheService fileCacheService) {
 		this.objectCacheService = cacheService;
 		this.serverSettings = serverSettings;
 		this.fileCacheService = fileCacheService;
@@ -369,8 +369,7 @@ public class SystemMonitorService extends BaseService implements SystemService {
 		map.put("objectDeleteCounter", String.valueOf(this.deleteObjectCounter.getCount()));
 		map.put("objectDeleteVersionCounter", String.valueOf(this.deleteObjectVersionCounter.getCount()));
 
-		map.put("objectRestorePreviousVersionCounter",
-				String.valueOf(this.objectRestorePreviousVersionCounter.getCount()));
+		map.put("objectRestorePreviousVersionCounter", String.valueOf(this.objectRestorePreviousVersionCounter.getCount()));
 		map.put("objectDeleteAllVersionsCounter", String.valueOf(this.objectDeleteAllVersionsCounter.getCount()));
 
 		map.put("objectGetMeter", getString(this.getObjectMeter));
@@ -387,10 +386,8 @@ public class SystemMonitorService extends BaseService implements SystemService {
 			map.put("replicaObjectUpdate", String.valueOf(this.replicaUpdateObject.getCount()));
 			map.put("replicaObjectDelete", String.valueOf(this.replicaDeleteObject.getCount()));
 
-			map.put("replicaRestoreObjectPreviousVersionCounter",
-					String.valueOf(this.replicaRestoreObjectPreviousVersionCounter.getCount()));
-			map.put("replicaDeleteObjectAllVersionsCounter",
-					String.valueOf(this.replicaDeleteObjectAllVersionsCounter.getCount()));
+			map.put("replicaRestoreObjectPreviousVersionCounter", String.valueOf(this.replicaRestoreObjectPreviousVersionCounter.getCount()));
+			map.put("replicaDeleteObjectAllVersionsCounter", String.valueOf(this.replicaDeleteObjectAllVersionsCounter.getCount()));
 
 		}
 
@@ -443,8 +440,7 @@ public class SystemMonitorService extends BaseService implements SystemService {
 			this.replicaDeleteObject = metrics.counter("replicaObjectDelete");
 
 			// replica Version Control
-			this.replicaRestoreObjectPreviousVersionCounter = metrics
-					.counter("replicaRestoreObjectPreivousVersionCounter");
+			this.replicaRestoreObjectPreviousVersionCounter = metrics.counter("replicaRestoreObjectPreivousVersionCounter");
 			this.replicaDeleteObjectAllVersionsCounter = metrics.counter("replicaDeleteObjectAllVersionsCounter");
 
 			// api put object and get object
@@ -468,9 +464,7 @@ public class SystemMonitorService extends BaseService implements SystemService {
 	}
 
 	private String getString(Meter meter) {
-		return String.format("%10.4f", meter.getOneMinuteRate()).trim() + ", "
-				+ String.format("%10.4f", meter.getFiveMinuteRate()).trim() + ", "
-				+ String.format("%10.4f", meter.getFifteenMinuteRate()).trim();
+		return String.format("%10.4f", meter.getOneMinuteRate()).trim() + ", " + String.format("%10.4f", meter.getFiveMinuteRate()).trim() + ", " + String.format("%10.4f", meter.getFifteenMinuteRate()).trim();
 	}
 
 	private void set(double[] v, Meter m) {

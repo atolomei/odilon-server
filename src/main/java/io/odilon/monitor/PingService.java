@@ -38,7 +38,10 @@ import io.odilon.service.ObjectStorageService;
 import io.odilon.service.ServerSettings;
 
 /**
- * <p>Monitor the status of the system and returns "ok" the system is normal or the problem found</p>
+ * <p>
+ * Monitor the status of the system and returns "ok" the system is normal or the
+ * problem found
+ * </p>
  * 
  * <pre>{@code # the following command should display the info page in the Linux console
  * 
@@ -50,91 +53,94 @@ import io.odilon.service.ServerSettings;
  * }
  * </pre>
  * 
- * <p>It is also called regularly by {@PingCronJobRequest}</p>
-
-
+ * <p>
+ * It is also called regularly by {@PingCronJobRequest}
+ * </p>
+ * 
+ * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  * 
  */
-@Service		
-public class PingService extends BaseService implements ApplicationContextAware  {
-	
+@Service
+public class PingService extends BaseService implements ApplicationContextAware {
+
 	static private Logger logger = Logger.getLogger(PingService.class.getName());
-	
+
 	static final int defaultThreshold = Runtime.getRuntime().availableProcessors() + 2;
-	
+
 	@JsonIgnore
 	private ApplicationContext applicationContext;
-	
-	@JsonIgnore
-    private OffsetDateTime lastVaultReconnect = OffsetDateTime.now();
 
-	public PingService() {}
-	
+	@JsonIgnore
+	private OffsetDateTime lastVaultReconnect = OffsetDateTime.now();
+
+	public PingService() {
+	}
+
 	public synchronized List<String> pingList() {
 
 		List<String> list = new ArrayList<String>();
-		
+
 		try {
-				{
-					String ping = pingCPULoad();
-					if ( (ping==null) || (!ping.equals("ok")))  {
-						list.add(ping==null?"cpu load null":ping);
+			{
+				String ping = pingCPULoad();
+				if ((ping == null) || (!ping.equals("ok"))) {
+					list.add(ping == null ? "cpu load null" : ping);
+				}
+			}
+			{
+				String ping = getApplicationContext().getBean(ObjectStorageService.class).ping();
+				if ((ping == null) || (!ping.equals("ok"))) {
+					list.add(ping == null ? "null" : ping);
+				}
+			}
+			{
+				ServerSettings serverSettings = getApplicationContext().getBean(ServerSettings.class);
+				if (serverSettings.isStandByEnabled()) {
+					ReplicationService replicationService = getApplicationContext().getBean(ReplicationService.class);
+					String rping = replicationService.ping();
+					if ((rping == null) || (!rping.equals("ok"))) {
+						list.add(rping == null ? "replication ping null" : rping);
 					}
 				}
-				{
-					String ping = getApplicationContext().getBean(ObjectStorageService.class).ping();
-					if ( (ping==null) || (!ping.equals("ok")))  {
-						list.add(ping==null?"null":ping);
-					}
-				}
-				{
-					ServerSettings serverSettings = getApplicationContext().getBean(ServerSettings.class);
-					if (serverSettings.isStandByEnabled()) {
-						ReplicationService replicationService = getApplicationContext().getBean(ReplicationService.class);
-						String rping = replicationService.ping();
-						if ( (rping==null) || (!rping.equals("ok")))  {
-							list.add(rping==null?"replication ping null":rping);
-						}
-					}
-				}
-				
+			}
+
 		} catch (Throwable e) {
 			logger.error(e, SharedConstant.NOT_THROWN);
-			list.add(e.getClass().getName()+" | " + e.getMessage());
+			list.add(e.getClass().getName() + " | " + e.getMessage());
 		}
 		return list;
-		
+
 	}
+
 	public String pingString() {
 		try {
-		List<String> list = pingList();
-		String str=list.stream().map((s) -> s).collect(Collectors.joining(" | "));
-		return ((str==null || str.length()==0) ? "ok" :str);
+			List<String> list = pingList();
+			String str = list.stream().map((s) -> s).collect(Collectors.joining(" | "));
+			return ((str == null || str.length() == 0) ? "ok" : str);
 		} catch (Exception e) {
 			return (e.getClass().getName() + " | pingString");
 		}
 	}
-	
-	public ApplicationContext getApplicationContext()  {
+
+	public ApplicationContext getApplicationContext() {
 		return this.applicationContext;
 	}
-	
+
 	@Override
 	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-        this.applicationContext = applicationContext;
+		this.applicationContext = applicationContext;
 	}
 
 	private String pingCPULoad() {
 		int processors = Runtime.getRuntime().availableProcessors();
 		OperatingSystemMXBean os = ManagementFactory.getOperatingSystemMXBean();
 		double load_average = os.getSystemLoadAverage();
-		if (processors>0 && load_average>0.0) {
-			Double percent = Double.valueOf (Double.valueOf(load_average) / Double.valueOf(processors));
+		if (processors > 0 && load_average > 0.0) {
+			Double percent = Double.valueOf(Double.valueOf(load_average) / Double.valueOf(processors));
 			if (percent > defaultThreshold)
-				return "CPU load -> "+ String.format("%6.2f", percent.doubleValue()*100.0)+ "%";
+				return "CPU load -> " + String.format("%6.2f", percent.doubleValue() * 100.0) + "%";
 		}
 		return "ok";
 	}
 }
-

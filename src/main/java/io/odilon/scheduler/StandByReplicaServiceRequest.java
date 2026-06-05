@@ -44,70 +44,70 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 @JsonTypeName("standByReplica")
 public class StandByReplicaServiceRequest extends AbstractServiceRequest {
 
-    static private Logger logger = Logger.getLogger(StandByReplicaServiceRequest.class.getName());
+	static private Logger logger = Logger.getLogger(StandByReplicaServiceRequest.class.getName());
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    @JsonIgnore
-    private boolean isSuccess = false;
+	@JsonIgnore
+	private boolean isSuccess = false;
 
-    @JsonProperty("operation")
-    private OdilonVirtualFileSystemOperation operation;
+	@JsonProperty("operation")
+	private OdilonVirtualFileSystemOperation operation;
 
-    protected StandByReplicaServiceRequest() {
-    }
+	protected StandByReplicaServiceRequest() {
+	}
 
-    public StandByReplicaServiceRequest(VirtualFileSystemOperation operation) {
-        this.operation = (OdilonVirtualFileSystemOperation) operation;
-    }
+	public StandByReplicaServiceRequest(VirtualFileSystemOperation operation) {
+		this.operation = (OdilonVirtualFileSystemOperation) operation;
+	}
 
-    /**
-     * <p>
-     * {@link ServiceRequestExecutor} will close/fail/cancel he request after this
-     * method
-     * </p>
-     */
-    @Override
-    public void execute() {
+	/**
+	 * <p>
+	 * {@link ServiceRequestExecutor} will close/fail/cancel he request after this
+	 * method
+	 * </p>
+	 */
+	@Override
+	public void execute() {
 
-        try {
-            setStatus(ServiceRequestStatus.RUNNING);
-            ReplicationService rs = getApplicationContext().getBean(ReplicationService.class);
-            if (rs.isStandByEnabled()) {
-                rs.replicate(getVFSOperation());
-                isSuccess = true;
-            } else
-                isSuccess = true;
-            setStatus(ServiceRequestStatus.COMPLETED);
+		try {
+			setStatus(ServiceRequestStatus.RUNNING);
+			ReplicationService rs = getApplicationContext().getBean(ReplicationService.class);
+			if (rs.isStandByEnabled()) {
+				rs.replicate(getVFSOperation());
+				isSuccess = true;
+			} else
+				isSuccess = true;
+			setStatus(ServiceRequestStatus.COMPLETED);
 
-        } catch (Exception e) {
-            isSuccess = false;
-            setStatus(ServiceRequestStatus.ERROR);
-            logger.error(e, SharedConstant.NOT_THROWN);
-        }
-    }
+		} catch (Exception e) {
+			isSuccess = false;
+			setStatus(ServiceRequestStatus.ERROR);
+			logger.error(e, SharedConstant.NOT_THROWN);
+		}
+	}
 
-    @Override
-    public void stop() {
-        this.isSuccess = false;
-        setStatus(ServiceRequestStatus.STOPPED);
-    }
+	@Override
+	public void stop() {
+		this.isSuccess = false;
+		setStatus(ServiceRequestStatus.STOPPED);
+	}
 
-    @JsonIgnore
-    @Override
-    public String getUUID() {
-        return getVFSOperation().getUUID();
-    }
+	@JsonIgnore
+	@Override
+	public String getUUID() {
+		return getVFSOperation().getUUID();
+	}
 
-    @JsonIgnore
-    public VirtualFileSystemOperation getVFSOperation() {
-        return operation;
-    }
+	@JsonIgnore
+	public VirtualFileSystemOperation getVFSOperation() {
+		return operation;
+	}
 
-    @JsonIgnore
-    @Override
-    public boolean isSuccess() {
-        return isSuccess;
-    }
+	@JsonIgnore
+	@Override
+	public boolean isSuccess() {
+		return isSuccess;
+	}
 
 }

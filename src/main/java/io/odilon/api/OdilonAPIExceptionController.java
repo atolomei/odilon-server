@@ -30,11 +30,10 @@ import org.springframework.http.HttpStatus;
  */
 public class OdilonAPIExceptionController {
 
-    @ResponseBody
-    @ExceptionHandler(Exception.class)
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    String employeeNotFoundHandler(Exception ex) {
-        return ex.getMessage();
-    }
+	@ResponseBody
+	@ExceptionHandler(Exception.class)
+	@ResponseStatus(HttpStatus.NOT_FOUND)
+	String employeeNotFoundHandler(Exception ex) {
+		return ex.getMessage();
+	}
 }
- 

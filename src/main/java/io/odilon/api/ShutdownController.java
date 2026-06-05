@@ -40,29 +40,28 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 @RestController
 public class ShutdownController extends BaseApiController {
 
-    static private Logger logger = Logger.getLogger(ShutdownController.class.getName());
+	static private Logger logger = Logger.getLogger(ShutdownController.class.getName());
 
-    @Autowired
-    public ShutdownController(ObjectStorageService objectStorageService, VirtualFileSystemService virtualFileSystemService,
-            SystemMonitorService monitoringService, TrafficControlService trafficControlService) {
-        super(objectStorageService, virtualFileSystemService, monitoringService, trafficControlService);
-    }
+	@Autowired
+	public ShutdownController(ObjectStorageService objectStorageService, VirtualFileSystemService virtualFileSystemService, SystemMonitorService monitoringService, TrafficControlService trafficControlService) {
+		super(objectStorageService, virtualFileSystemService, monitoringService, trafficControlService);
+	}
 
-    @RequestMapping(value = "/shutdown", produces = "application/json", method = RequestMethod.GET)
-    public ResponseEntity<String> shutDown() {
-        try {
-            logger.error("Shutdown command received");
-            try {
-                Thread.sleep(2000);
-            } catch (InterruptedException e) {
-            }
-            ((ConfigurableApplicationContext) this.getApplicationContext()).close();
-            System.exit(1);
+	@RequestMapping(value = "/shutdown", produces = "application/json", method = RequestMethod.GET)
+	public ResponseEntity<String> shutDown() {
+		try {
+			logger.error("Shutdown command received");
+			try {
+				Thread.sleep(2000);
+			} catch (InterruptedException e) {
+			}
+			((ConfigurableApplicationContext) this.getApplicationContext()).close();
+			System.exit(1);
 
-            return new ResponseEntity<String>(new String("ok"), HttpStatus.OK);
-        } finally {
-            mark();
-        }
-    }
+			return new ResponseEntity<String>(new String("ok"), HttpStatus.OK);
+		} finally {
+			mark();
+		}
+	}
 
 }

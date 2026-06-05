@@ -708,27 +708,21 @@ public class RAIDOneDriver extends BaseIODriver {
 		try {
 
 			if (operation.getOperationCode() == OperationCode.CREATE_BUCKET) {
-
 				done = generalRollbackJournal(operation);
 
 			} else if (operation.getOperationCode() == OperationCode.DELETE_BUCKET) {
-
 				done = generalRollbackJournal(operation);
 
 			} else if (operation.getOperationCode() == OperationCode.UPDATE_BUCKET) {
-
 				done = generalRollbackJournal(operation);
-			}
-			if (operation.getOperationCode() == OperationCode.CREATE_SERVER_MASTERKEY) {
 
+			} else if (operation.getOperationCode() == OperationCode.CREATE_SERVER_MASTERKEY) {
 				done = generalRollbackJournal(operation);
 
 			} else if (operation.getOperationCode() == OperationCode.CREATE_SERVER_METADATA) {
-
 				done = generalRollbackJournal(operation);
 
 			} else if (operation.getOperationCode() == OperationCode.UPDATE_SERVER_METADATA) {
-
 				done = generalRollbackJournal(operation);
 			}
 

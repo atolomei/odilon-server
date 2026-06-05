@@ -46,97 +46,97 @@ import io.odilon.util.DateTimeUtil;
  */
 public class MulticastFileCopyAgent extends FileCopyAgent {
 
-    static private Logger logger = Logger.getLogger(MulticastFileCopyAgent.class.getName());
+	static private Logger logger = Logger.getLogger(MulticastFileCopyAgent.class.getName());
 
-    @JsonIgnore
-    private ExecutorService executor;
+	@JsonIgnore
+	private ExecutorService executor;
 
-    private OffsetDateTime start;
-    private OffsetDateTime end;
+	private OffsetDateTime start;
+	private OffsetDateTime end;
 
-    @JsonIgnore
-    List<File> destination;
-    
-    @JsonIgnore
-    File source;
-    
-    @JsonIgnore
-    InputStream sourceStream;
+	@JsonIgnore
+	List<File> destination;
 
-    @Override
-    public long durationMillisecs() {
-        if (start == null || end == null)
-            return -1;
-        return DateTimeUtil.dateTimeDifference(start, end, ChronoUnit.MILLIS);
-    }
+	@JsonIgnore
+	File source;
 
-    @Override
-    public boolean execute() {
+	@JsonIgnore
+	InputStream sourceStream;
 
-        try {
+	@Override
+	public long durationMillisecs() {
+		if (start == null || end == null)
+			return -1;
+		return DateTimeUtil.dateTimeDifference(start, end, ChronoUnit.MILLIS);
+	}
 
-            this.start = OffsetDateTime.now();
+	@Override
+	public boolean execute() {
 
-            int size = destination.size();
+		try {
 
-            /** Thread pool */
-            this.executor = Executors.newFixedThreadPool(size);
+			this.start = OffsetDateTime.now();
 
-            byte[] buf = new byte[ServerConstant.BUFFER_SIZE];
+			int size = destination.size();
 
-            /**
-             * copy 1 buffer 16k
-             * 
-             * paso el buffer a N threads espero que todos terminen loop
-             * 
-             * 
-             */
-            @SuppressWarnings("unused")
+			/** Thread pool */
+			this.executor = Executors.newFixedThreadPool(size);
+
+			byte[] buf = new byte[ServerConstant.BUFFER_SIZE];
+
+			/**
+			 * copy 1 buffer 16k
+			 * 
+			 * paso el buffer a N threads espero que todos terminen loop
+			 * 
+			 * 
+			 */
+			@SuppressWarnings("unused")
 			int bytesRead = 0;
 
-            List<OutputStream> out = new ArrayList<OutputStream>();
+			List<OutputStream> out = new ArrayList<OutputStream>();
 
-            destination.forEach(file -> {
-                try {
-                    out.add(new BufferedOutputStream(new FileOutputStream(file)));
-                } catch (FileNotFoundException e) {
-                	 logger.error(e, SharedConstant.NOT_THROWN);
-                }
-            });
+			destination.forEach(file -> {
+				try {
+					out.add(new BufferedOutputStream(new FileOutputStream(file)));
+				} catch (FileNotFoundException e) {
+					logger.error(e, SharedConstant.NOT_THROWN);
+				}
+			});
 
-            List<Callable<Boolean>> tasks = new ArrayList<Callable<Boolean>>(size);
+			List<Callable<Boolean>> tasks = new ArrayList<Callable<Boolean>>(size);
 
-            while ((bytesRead = sourceStream.read(buf, 0, buf.length)) >= 0) {
+			while ((bytesRead = sourceStream.read(buf, 0, buf.length)) >= 0) {
 
-                for (int index = 0; index < size; index++) {
-                    final int val = index;
+				for (int index = 0; index < size; index++) {
+					final int val = index;
 
-                    tasks.add(() -> {
-                        try {
-                            out.get(val).write(buf);
-                        } catch (FileNotFoundException e) {
-                            throw new InternalCriticalException(e, "f: " + destination.get(val).getName());
-                        } catch (IOException e) {
-                            throw new InternalCriticalException(e, "f: " + destination.get(val).getName());
-                        } finally {
-                        }
-                        return true;
-                    });
-                }
+					tasks.add(() -> {
+						try {
+							out.get(val).write(buf);
+						} catch (FileNotFoundException e) {
+							throw new InternalCriticalException(e, "f: " + destination.get(val).getName());
+						} catch (IOException e) {
+							throw new InternalCriticalException(e, "f: " + destination.get(val).getName());
+						} finally {
+						}
+						return true;
+					});
+				}
 
-                // out.write(buf, 0, bytesRead);
-            }
+				// out.write(buf, 0, bytesRead);
+			}
 
-            return true;
+			return true;
 
-        } catch (Exception e) {
-            logger.error(e, SharedConstant.NOT_THROWN);
-            return false;
+		} catch (Exception e) {
+			logger.error(e, SharedConstant.NOT_THROWN);
+			return false;
 
-        } finally {
-            this.end = OffsetDateTime.now();
-            logger.info("Duration: " + DateTimeUtil.timeElapsed(this.start, this.end));
-        }
-    }
+		} finally {
+			this.end = OffsetDateTime.now();
+			logger.info("Duration: " + DateTimeUtil.timeElapsed(this.start, this.end));
+		}
+	}
 
 }

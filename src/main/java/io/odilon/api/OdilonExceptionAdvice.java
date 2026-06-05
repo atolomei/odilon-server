@@ -36,39 +36,35 @@ import io.odilon.net.ErrorCode;
 @ControllerAdvice
 public class OdilonExceptionAdvice {
 
-    static private Logger logger = Logger.getLogger(OdilonExceptionAdvice.class.getName());
+	static private Logger logger = Logger.getLogger(OdilonExceptionAdvice.class.getName());
 
-    @ExceptionHandler(OdilonServerAPIException.class)
-    public ResponseEntity<OdilonErrorProxy> odilonExceptionHandler(OdilonServerAPIException ex) {
+	@ExceptionHandler(OdilonServerAPIException.class)
+	public ResponseEntity<OdilonErrorProxy> odilonExceptionHandler(OdilonServerAPIException ex) {
 
-        ResponseEntity<OdilonErrorProxy> response = new ResponseEntity<OdilonErrorProxy>(
-                new OdilonErrorProxy(ex.getHttpsStatus(), ex.getErrorCode(), ex.getErrorMessage()),
-                HttpStatus.valueOf(ex.getHttpsStatus()));
-        return response;
-    }
+		ResponseEntity<OdilonErrorProxy> response = new ResponseEntity<OdilonErrorProxy>(new OdilonErrorProxy(ex.getHttpsStatus(), ex.getErrorCode(), ex.getErrorMessage()), HttpStatus.valueOf(ex.getHttpsStatus()));
+		return response;
+	}
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<OdilonErrorProxy> handle(Exception ex) {
+	@ExceptionHandler(Exception.class)
+	public ResponseEntity<OdilonErrorProxy> handle(Exception ex) {
 
-        logger.debug("Server error -> " + ex.getClass().getName() + " | msg: " + ex.getMessage() + " | cause: " + ex.getCause());
+		logger.debug("Server error -> " + ex.getClass().getName() + " | msg: " + ex.getMessage() + " | cause: " + ex.getCause());
 
-        if (ex instanceof NullPointerException) {
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        }
+		if (ex instanceof NullPointerException) {
+			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+		}
 
-        OdilonErrorProxy p;
+		OdilonErrorProxy p;
 
-        if (ex instanceof org.springframework.web.multipart.MultipartException) {
-            p = new OdilonErrorProxy(HttpStatus.INTERNAL_SERVER_ERROR.value(), ErrorCode.INTERNAL_MULTIPART_ERROR.value(),
-                    ex.getClass().getName() + " | msg: " + ex.getMessage() + " | cause: " + ex.getCause());
-        } else {
-            p = new OdilonErrorProxy(HttpStatus.INTERNAL_SERVER_ERROR.value(), ErrorCode.INTERNAL_ERROR.value(),
-                    ex.getClass().getName() + " | " + ex.getMessage());
-        }
+		if (ex instanceof org.springframework.web.multipart.MultipartException) {
+			p = new OdilonErrorProxy(HttpStatus.INTERNAL_SERVER_ERROR.value(), ErrorCode.INTERNAL_MULTIPART_ERROR.value(), ex.getClass().getName() + " | msg: " + ex.getMessage() + " | cause: " + ex.getCause());
+		} else {
+			p = new OdilonErrorProxy(HttpStatus.INTERNAL_SERVER_ERROR.value(), ErrorCode.INTERNAL_ERROR.value(), ex.getClass().getName() + " | " + ex.getMessage());
+		}
 
-        ResponseEntity<OdilonErrorProxy> response = new ResponseEntity<OdilonErrorProxy>(p, HttpStatus.INTERNAL_SERVER_ERROR);
-        return response;
+		ResponseEntity<OdilonErrorProxy> response = new ResponseEntity<OdilonErrorProxy>(p, HttpStatus.INTERNAL_SERVER_ERROR);
+		return response;
 
-    }
+	}
 
 }

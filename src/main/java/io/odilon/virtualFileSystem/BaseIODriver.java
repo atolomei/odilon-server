@@ -1546,13 +1546,17 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 			op = getJournalService().updateServerMetadata();
 			String jsonString = getObjectMapper().writeValueAsString(serverInfo);
 
+			/** backup current odilon.json on every drive before overwriting */
 			for (Drive drive : getDrivesAll()) {
 				try {
-					// drive.putSysFile(ServerConstant.ODILON_SERVER_METADATA_FILE, jsonString);
-					// backup
+					File current = drive.getSysFile(VirtualFileSystemService.SERVER_METADATA_FILE);
+					if (current != null && current.exists()) {
+						File backup = drive.getSysFile(VirtualFileSystemService.SERVER_METADATA_FILE + ".backup");
+						FileUtils.copyFile(current, backup);
+					}
 				} catch (Exception e) {
 					done = false;
-					throw new InternalCriticalException(e, "Drive -> " + drive.getName());
+					throw new InternalCriticalException(e, "backup server metadata | Drive -> " + drive.getName());
 				}
 			}
 
@@ -1577,6 +1581,11 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 					op.cancel();
 				} else if (!done) {
 					rollback(op);
+				} else {
+					/** commit succeeded — clean up the backup files */
+					for (Drive drive : getDrivesAll()) {
+						FileUtils.deleteQuietly(drive.getSysFile(VirtualFileSystemService.SERVER_METADATA_FILE + ".backup"));
+					}
 				}
 			} catch (Exception e) {
 				logger.error(e, SharedConstant.NOT_THROWN);

@@ -65,8 +65,22 @@ public class BasicAuthWebSecurityConfiguration {
 		// http.requiresChannel(channel -> channel.anyRequest().requiresSecure())
 
 		http.authorizeHttpRequests(
-				(authorize) -> 
-				authorize.requestMatchers("/presigned/", "/presigned/object",  "/public/*/*/*",  "/static/", "/static/object").permitAll())
+				(authorize) ->
+				authorize
+						// Existing public surfaces
+						.requestMatchers("/presigned/", "/presigned/object", "/public/*/*/*", "/static/", "/static/object").permitAll()
+						// Swagger UI and OpenAPI spec — accessible without credentials so the
+						// docs can be browsed from a browser without a Basic-auth prompt.
+						// The spec itself contains no sensitive data.
+						.requestMatchers(
+								"/swagger-ui.html",
+								"/swagger-ui/**",
+								"/swagger-ui/index.html",
+								"/v3/api-docs",
+								"/v3/api-docs/**",
+								"/v3/api-docs.yaml",
+								"/webjars/swagger-ui/**"
+						).permitAll())
 				.authorizeHttpRequests(authorizeRequests -> authorizeRequests.anyRequest().authenticated())
 				.httpBasic(Customizer.withDefaults()).formLogin(Customizer.withDefaults())
 				.csrf(AbstractHttpConfigurer::disable);

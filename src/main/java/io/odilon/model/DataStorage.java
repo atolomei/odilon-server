@@ -36,161 +36,154 @@ import io.odilon.util.Check;
  */
 public enum DataStorage {
 
-    READ_WRITE("rw", 0), READONLY("ro", 1), WORM("worm", 2);
+	READ_WRITE("rw", 0), READONLY("ro", 1), WORM("worm", 2);
 
-    /** Write Once Read Many */
+	/** Write Once Read Many */
 
-    @SuppressWarnings("unused")
-    private static Logger logger = Logger.getLogger(DataStorage.class.getName());
+	@SuppressWarnings("unused")
+	private static Logger logger = Logger.getLogger(DataStorage.class.getName());
 
-    private static List<DataStorage> ds;
-    private static List<String> names;
+	private static List<DataStorage> ds;
+	private static List<String> names;
 
-    private String name;
-    private int code;
+	private String name;
+	private int code;
 
-    public String getDescription() {
-        return getDescription(Locale.getDefault());
-    }
+	public String getDescription() {
+		return getDescription(Locale.getDefault());
+	}
 
-    public String getDescription(Locale locale) {
-        return this.getName();
-    }
+	public String getDescription(Locale locale) {
+		return this.getName();
+	}
 
-    public String toJSON() {
-        StringBuilder str = new StringBuilder();
-        str.append("\"name\":\"" + name + "\"");
-        str.append(", \"code\":" + code);
-        str.append(", \"description\": \"" + getDescription() + "\"");
-        return str.toString();
-    }
-    
-    
-    @JsonValue
-    public String toJson() {
-        return this.name;
-    }
-    
+	public String toJSON() {
+		StringBuilder str = new StringBuilder();
+		str.append("\"name\":\"" + name + "\"");
+		str.append(", \"code\":" + code);
+		str.append(", \"description\": \"" + getDescription() + "\"");
+		return str.toString();
+	}
 
-    @Override
-    public String toString() {
-        StringBuilder str = new StringBuilder();
-        str.append(this.getClass().getSimpleName());
-        str.append(toJSON());
-        return str.toString();
-    }
+	@JsonValue
+	public String toJson() {
+		return this.name;
+	}
 
-    public String getName() {
-        return this.name;
-    }
+	@Override
+	public String toString() {
+		StringBuilder str = new StringBuilder();
+		str.append(this.getClass().getSimpleName());
+		str.append(toJSON());
+		return str.toString();
+	}
 
-    public int getCode() {
-        return this.code;
-    }
+	public String getName() {
+		return this.name;
+	}
 
-    private DataStorage(String name, int code) {
-        this.name = name;
-        this.code = code;
-    }
+	public int getCode() {
+		return this.code;
+	}
 
-    public static List<String> getNames() {
+	private DataStorage(String name, int code) {
+		this.name = name;
+		this.code = code;
+	}
 
-        if (names != null)
-            return names;
+	public static List<String> getNames() {
 
-        synchronized (DataStorage.class) {
-            names = new ArrayList<String>();
-            names.add(READ_WRITE.getName());
-            names.add(READONLY.getName());
-            names.add(WORM.getName());
-        }
-        return names;
-    }
+		if (names != null)
+			return names;
 
-    public static List<DataStorage> getValues() {
+		synchronized (DataStorage.class) {
+			names = new ArrayList<String>();
+			names.add(READ_WRITE.getName());
+			names.add(READONLY.getName());
+			names.add(WORM.getName());
+		}
+		return names;
+	}
 
-        if (ds != null)
-            return ds;
+	public static List<DataStorage> getValues() {
 
-        synchronized (DataStorage.class) {
-            ds = new ArrayList<DataStorage>();
-            ds.add(READ_WRITE);
-            ds.add(READONLY);
-            ds.add(WORM);
-        }
-        return ds;
-    }
+		if (ds != null)
+			return ds;
 
-    public static DataStorage fromId(String id) {
+		synchronized (DataStorage.class) {
+			ds = new ArrayList<DataStorage>();
+			ds.add(READ_WRITE);
+			ds.add(READONLY);
+			ds.add(WORM);
+		}
+		return ds;
+	}
 
-        Check.requireNonNullArgument(id, "id is null");
+	public static DataStorage fromId(String id) {
 
-        try {
-            int value = Integer.valueOf(id).intValue();
-            return fromCode(value);
+		Check.requireNonNullArgument(id, "id is null");
 
-        } catch (IllegalArgumentException e) {
-            throw (e);
-        } catch (Exception e) {
-            throw new IllegalArgumentException("id not integer -> " + id);
-        }
-    }
-    @JsonCreator
-    public static DataStorage fromValue(String value) {
+		try {
+			int value = Integer.valueOf(id).intValue();
+			return fromCode(value);
 
-        if (value == null) {
-            return null;
-        }
+		} catch (IllegalArgumentException e) {
+			throw (e);
+		} catch (Exception e) {
+			throw new IllegalArgumentException("id not integer -> " + id);
+		}
+	}
 
-        String normalized = value.trim();
+	@JsonCreator
+	public static DataStorage fromValue(String value) {
 
-        /*
-         * Legacy toString() compatibility
-         */
-        if (normalized.startsWith("DataStorage")) {
+		if (value == null) {
+			return null;
+		}
 
-            int idx = normalized.indexOf("\"name\":");
+		String normalized = value.trim();
 
-            if (idx >= 0) {
+		/*
+		 * Legacy toString() compatibility
+		 */
+		if (normalized.startsWith("DataStorage")) {
 
-                int firstQuote =
-                        normalized.indexOf('"', idx + 7);
+			int idx = normalized.indexOf("\"name\":");
 
-                int secondQuote =
-                        normalized.indexOf('"', firstQuote + 1);
+			if (idx >= 0) {
 
-                if (firstQuote >= 0 && secondQuote > firstQuote) {
+				int firstQuote = normalized.indexOf('"', idx + 7);
 
-                    normalized =
-                            normalized.substring(firstQuote + 1,
-                                                 secondQuote);
-                }
-            }
-        }
+				int secondQuote = normalized.indexOf('"', firstQuote + 1);
 
-        for (DataStorage ds : values()) {
+				if (firstQuote >= 0 && secondQuote > firstQuote) {
 
-            if (ds.name.equalsIgnoreCase(normalized)
-                    || ds.name().equalsIgnoreCase(normalized)) {
+					normalized = normalized.substring(firstQuote + 1, secondQuote);
+				}
+			}
+		}
 
-                return ds;
-            }
-        }
+		for (DataStorage ds : values()) {
 
-        throw new IllegalArgumentException(
-                "unsupported name -> " + value);
-    }
+			if (ds.name.equalsIgnoreCase(normalized) || ds.name().equalsIgnoreCase(normalized)) {
 
-    public static DataStorage fromCode(int code) {
+				return ds;
+			}
+		}
 
-        if (code == READ_WRITE.getCode())
-            return READ_WRITE;
-        if (code == READONLY.getCode())
-            return READONLY;
-        if (code == WORM.getCode())
-            return WORM;
+		throw new IllegalArgumentException("unsupported name -> " + value);
+	}
 
-        throw new IllegalArgumentException("unsuported code -> " + String.valueOf(code));
-    }
+	public static DataStorage fromCode(int code) {
+
+		if (code == READ_WRITE.getCode())
+			return READ_WRITE;
+		if (code == READONLY.getCode())
+			return READONLY;
+		if (code == WORM.getCode())
+			return WORM;
+
+		throw new IllegalArgumentException("unsuported code -> " + String.valueOf(code));
+	}
 
 }

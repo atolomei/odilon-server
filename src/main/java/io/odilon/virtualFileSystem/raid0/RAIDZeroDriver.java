@@ -1148,6 +1148,11 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 					op.cancel();
 				} else if (!done) {
 					rollback(op);
+				} else {
+					/** commit succeeded — clean up the backup files */
+					for (Drive drive : getDrivesAll()) {
+						FileUtils.deleteQuietly(drive.getSysFile(VirtualFileSystemService.SERVER_METADATA_FILE + ".backup"));
+					}
 				}
 			} catch (Exception e) {
 				logger.error(e, SharedConstant.NOT_THROWN);

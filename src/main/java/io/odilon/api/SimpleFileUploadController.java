@@ -61,12 +61,11 @@ public class SimpleFileUploadController extends BaseApiController {
 	@JsonIgnore
 	@Autowired
 	private final ServerSettings serverSettings;
-	  
-	public SimpleFileUploadController(ObjectStorageService objectStorageService,
-			VirtualFileSystemService virtualFileSystemService, SystemMonitorService monitoringService,
-			TrafficControlService trafficControlService, ServerSettings serverSettings) {
+
+	public SimpleFileUploadController(ObjectStorageService objectStorageService, VirtualFileSystemService virtualFileSystemService, SystemMonitorService monitoringService, TrafficControlService trafficControlService,
+			ServerSettings serverSettings) {
 		super(objectStorageService, virtualFileSystemService, monitoringService, trafficControlService);
-		this.serverSettings=serverSettings;
+		this.serverSettings = serverSettings;
 
 	}
 
@@ -102,11 +101,10 @@ public class SimpleFileUploadController extends BaseApiController {
 	}
 
 	@RequestMapping(value = "/upload", produces = "application/json", method = RequestMethod.POST)
-	public ResponseEntity<FileUploadResponse> uploadFile(@RequestParam("file") MultipartFile multipartFile)
-			throws IOException {
+	public ResponseEntity<FileUploadResponse> uploadFile(@RequestParam("file") MultipartFile multipartFile) throws IOException {
 
 		try {
-			
+
 			String fileName = StringUtils.cleanPath(multipartFile.getOriginalFilename());
 			long size = multipartFile.getSize();
 
@@ -124,7 +122,6 @@ public class SimpleFileUploadController extends BaseApiController {
 
 	}
 
-	
 	private String saveFile(String fileName, MultipartFile multipartFile) throws IOException {
 
 		String currentDirectory = System.getProperty("user.dir");
@@ -133,7 +130,7 @@ public class SimpleFileUploadController extends BaseApiController {
 		if (!Files.exists(temp.toPath())) {
 			Files.createDirectories(temp.toPath());
 		}
-		
+
 		Path uploadPath = Paths.get(temp.getAbsolutePath(), "odilon-upload");
 
 		if (!Files.exists(uploadPath)) {
@@ -151,5 +148,5 @@ public class SimpleFileUploadController extends BaseApiController {
 
 		return fileCode;
 	}
-	
+
 }

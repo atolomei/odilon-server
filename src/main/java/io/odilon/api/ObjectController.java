@@ -162,15 +162,11 @@ public class ObjectController extends BaseApiController {
 		}
 	}
 
-	
 	/**
 	 * 
 	 */
 	@RequestMapping(value = "/set/publicaccess/{bucketName}/{objectName}", method = RequestMethod.GET)
-	public ResponseEntity<ObjectMetadata> setPublicAccess(
-			@PathVariable("bucketName") String bucketName, 
-			@PathVariable("objectName") String objectName, 
-			@RequestParam("publicAccess")  Boolean publicAccess) {
+	public ResponseEntity<ObjectMetadata> setPublicAccess(@PathVariable("bucketName") String bucketName, @PathVariable("objectName") String objectName, @RequestParam("publicAccess") Boolean publicAccess) {
 
 		TrafficPass pass = null;
 
@@ -178,17 +174,17 @@ public class ObjectController extends BaseApiController {
 
 			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
 
-			if (publicAccess==null)
+			if (publicAccess == null)
 				throw new IllegalArgumentException(String.format("boolean value not found for -> b: %s | o:%s", Optional.ofNullable(bucketName).orElse("null"), Optional.ofNullable(objectName).orElse("null")));
-					
+
 			ObjectMetadata meta = getObjectStorageService().getObjectMetadata(bucketName, objectName);
 
 			if (meta == null || meta.getStatus() == ObjectStatus.DELETED || meta.getStatus() == ObjectStatus.DRAFT)
 				throw new OdilonObjectNotFoundException(String.format("object not found -> b: %s | o:%s", Optional.ofNullable(bucketName).orElse("null"), Optional.ofNullable(objectName).orElse("null")));
-			
-			if (meta.isPublicAccess()!=publicAccess.booleanValue()) {
+
+			if (meta.isPublicAccess() != publicAccess.booleanValue()) {
 				meta.setPublicAccess(publicAccess.booleanValue());
-				meta = getObjectStorageService().updateObjectMetadata( meta );
+				meta = getObjectStorageService().updateObjectMetadata(meta);
 				getSystemMonitorService().getGetObjectMeter().mark();
 			}
 			return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(meta);
@@ -205,8 +201,6 @@ public class ObjectController extends BaseApiController {
 		}
 	}
 
-	
-	
 	/**
 	 * @param bucketName
 	 * @param objectName
@@ -236,14 +230,13 @@ public class ObjectController extends BaseApiController {
 					meta.setContentType("image/svg+xml");
 				}
 			}
-		
+
 			MediaType contentType = MediaType.valueOf(meta.getContentType());
 			if (meta.contentType() == null || meta.getContentType().equals("application/octet-stream")) {
 				contentType = estimateContentType(meta.getFileName());
 			}
 
-            long fileLength = getSrcFileLength(meta);
-
+			long fileLength = getSrcFileLength(meta);
 
 			int cacheDurationSecs = this.settings.getserverObjectstreamCacheSecs();
 
@@ -254,75 +247,44 @@ public class ObjectController extends BaseApiController {
 			responseHeaders.set("Content-Disposition", "inline; filename=\"" + f_name + "\"");
 			responseHeaders.set(HttpHeaders.ACCEPT_RANGES, "bytes");
 
-           
-			
-			// CACHE  ---
+			// CACHE ---
 			//
-            String cacheHeader =
-                cacheDurationSecs > 0
-                    ? "public, max-age=" + cacheDurationSecs + ", immutable, no-transform"
-                    : "no-cache, no-store, must-revalidate";
-                
-            responseHeaders.set(HttpHeaders.CACHE_CONTROL, cacheHeader);
+			String cacheHeader = cacheDurationSecs > 0 ? "public, max-age=" + cacheDurationSecs + ", immutable, no-transform" : "no-cache, no-store, must-revalidate";
 
-            // ETAG
-            if (fileLength>-1)
-            	responseHeaders.setETag("\"" + fileLength + "\"");
-            
-            // SECURITY
-            responseHeaders.set("X-Content-Type-Options", "nosniff");
+			responseHeaders.set(HttpHeaders.CACHE_CONTROL, cacheHeader);
 
-            // CORS (si aplica)
-            responseHeaders.set("Access-Control-Allow-Origin", "*");
-            responseHeaders.set("Access-Control-Expose-Headers",
-                "Content-Length, Content-Range, Accept-Ranges");
-                
-            
+			// ETAG
+			if (fileLength > -1)
+				responseHeaders.setETag("\"" + fileLength + "\"");
 
-            // LAST MODIFIED (si tenés timestamp)
-            OffsetDateTime lastModified = meta.getLastModified();
-            if (lastModified != null) {
-                responseHeaders.setLastModified(lastModified.toInstant().toEpochMilli());
-            }
-            
-            
-            
+			// SECURITY
+			responseHeaders.set("X-Content-Type-Options", "nosniff");
+
+			// CORS (si aplica)
+			responseHeaders.set("Access-Control-Allow-Origin", "*");
+			responseHeaders.set("Access-Control-Expose-Headers", "Content-Length, Content-Range, Accept-Ranges");
+
+			// LAST MODIFIED (si tenés timestamp)
+			OffsetDateTime lastModified = meta.getLastModified();
+			if (lastModified != null) {
+				responseHeaders.setLastModified(lastModified.toInstant().toEpochMilli());
+			}
+
 			in = getObjectStorageService().getObjectStream(bucketName, objectName);
 
-            
-            
-			if (fileLength==-1) {
+			if (fileLength == -1) {
 
-				return ResponseEntity.
-						ok().
-						headers(responseHeaders).
-						 cacheControl(
-	                        	    CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)
-	                        	        .cachePublic()
-	                        	        .immutable()
-	                        	).
-						contentType(contentType).
-						body(new InputStreamResource(in));
+				return ResponseEntity.ok().headers(responseHeaders).cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS).cachePublic().immutable()).contentType(contentType).body(new InputStreamResource(in));
 
+			} else {
+
+				// Full file
+				responseHeaders.setContentLength(fileLength);
+
+				return ResponseEntity.ok().headers(responseHeaders).cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS).cachePublic().immutable()).contentType(contentType).contentLength(fileLength)
+						.body(new InputStreamResource(in));
 			}
-			else {
-				
-				  // Full file
-                responseHeaders.setContentLength(fileLength);
-				
-				return ResponseEntity.
-						ok().
-						headers(responseHeaders).
-						 cacheControl(
-	                        	    CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)
-	                        	        .cachePublic()
-	                        	        .immutable()
-	                        	).
-						contentType(contentType).
-						contentLength(fileLength).
-						body(new InputStreamResource(in));
-			}
-			
+
 		} catch (OdilonServerAPIException e1) {
 
 			if (in != null) {
@@ -392,7 +354,7 @@ public class ObjectController extends BaseApiController {
 
 			if (meta.version == 0)
 				throw new OdilonObjectNotFoundException(String.format("object version not found"));
-			
+
 			List<ObjectMetadata> list = getObjectStorageService().getObjectMetadataAllPreviousVersions(bucketName, objectName);
 
 			if (list == null || list.isEmpty())
@@ -400,27 +362,24 @@ public class ObjectController extends BaseApiController {
 
 			if (version.isEmpty())
 				throw new IllegalArgumentException("version can not be null");
-			
+
 			if (version.get() < 0)
 				throw new IllegalArgumentException("version must be 0 or greater");
-			
-			
+
 			ObjectMetadata metaVersion = null;
 
-			for (ObjectMetadata m: list) {
-					if (m.getVersion()==version.get()) {
-						metaVersion=m;
-						break;
-					}
+			for (ObjectMetadata m : list) {
+				if (m.getVersion() == version.get()) {
+					metaVersion = m;
+					break;
 				}
-			
-			if (metaVersion==null)
-				throw new OdilonObjectNotFoundException(String.format("object version not found" ));
-			
-			
+			}
+
+			if (metaVersion == null)
+				throw new OdilonObjectNotFoundException(String.format("object version not found"));
+
 			getSystemMonitorService().getGetObjectMeter().mark();
 
-		 	
 			if (metaVersion.getFileName() != null) {
 				if (metaVersion.getFileName().toLowerCase().endsWith(".svg")) {
 					metaVersion.setContentType("image/svg+xml");
@@ -430,81 +389,49 @@ public class ObjectController extends BaseApiController {
 			if (metaVersion.contentType() == null || metaVersion.getContentType().equals("application/octet-stream")) {
 				contentType = estimateContentType(metaVersion.getFileName());
 			}
-			
-			
+
 			int cacheDurationSecs = this.settings.getserverObjectstreamCacheSecs();
-			
+
 			long fileLength = super.getSrcFileLength(metaVersion);
 
-	 	
-			
 			HttpHeaders responseHeaders = new HttpHeaders();
 			String f_name = meta.getFileName().replace("[", "").replace("]", "");
 			responseHeaders.set("Content-Disposition", "inline; filename=\"" + f_name + "\"");
 			responseHeaders.set(HttpHeaders.ACCEPT_RANGES, "bytes");
-			
-			// CACHE  ---
+
+			// CACHE ---
 			//
-            String cacheHeader =
-                cacheDurationSecs > 0
-                    ? "public, max-age=" + cacheDurationSecs + ", immutable, no-transform"
-                    : "no-cache, no-store, must-revalidate";
-                
-            responseHeaders.set(HttpHeaders.CACHE_CONTROL, cacheHeader);
+			String cacheHeader = cacheDurationSecs > 0 ? "public, max-age=" + cacheDurationSecs + ", immutable, no-transform" : "no-cache, no-store, must-revalidate";
 
-            // ETAG
-            if (fileLength>-1)
-            	responseHeaders.setETag("\"" + fileLength + "\"");
-            
-            // SECURITY
-            responseHeaders.set("X-Content-Type-Options", "nosniff");
+			responseHeaders.set(HttpHeaders.CACHE_CONTROL, cacheHeader);
 
-            // CORS (si aplica)
-            responseHeaders.set("Access-Control-Allow-Origin", "*");
-            responseHeaders.set("Access-Control-Expose-Headers",
-                "Content-Length, Content-Range, Accept-Ranges");
-                
-            
+			// ETAG
+			if (fileLength > -1)
+				responseHeaders.setETag("\"" + fileLength + "\"");
 
-            // LAST MODIFIED (si tenés timestamp)
-            OffsetDateTime lastModified = meta.getLastModified();
-            if (lastModified != null) {
-                responseHeaders.setLastModified(lastModified.toInstant().toEpochMilli());
-            }
+			// SECURITY
+			responseHeaders.set("X-Content-Type-Options", "nosniff");
 
-        	in = getObjectStorageService().getObjectPreviousVersionStream(bucketName, objectName, metaVersion.version);
+			// CORS (si aplica)
+			responseHeaders.set("Access-Control-Allow-Origin", "*");
+			responseHeaders.set("Access-Control-Expose-Headers", "Content-Length, Content-Range, Accept-Ranges");
 
-    		
-        	
-			
-			if (fileLength==-1) {
-
-				return ResponseEntity.
-						ok().
-						headers(responseHeaders).
-						 cacheControl(
-	                        	    CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)
-	                        	        .cachePublic()
-	                        	        .immutable()
-	                        	).
-						contentType(contentType).
-						body(new InputStreamResource(in));
-
-			}
-			else {
-				return ResponseEntity.
-						ok().
-						headers(responseHeaders).
-						 cacheControl(
-	                        	    CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)
-	                        	        .cachePublic()
-	                        	        .immutable()
-	                        	).
-						contentType(contentType).
-						contentLength(fileLength).
-						body(new InputStreamResource(in));
+			// LAST MODIFIED (si tenés timestamp)
+			OffsetDateTime lastModified = meta.getLastModified();
+			if (lastModified != null) {
+				responseHeaders.setLastModified(lastModified.toInstant().toEpochMilli());
 			}
 
+			in = getObjectStorageService().getObjectPreviousVersionStream(bucketName, objectName, metaVersion.version);
+
+			if (fileLength == -1) {
+
+				return ResponseEntity.ok().headers(responseHeaders).cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS).cachePublic().immutable()).contentType(contentType).body(new InputStreamResource(in));
+
+			} else {
+				return ResponseEntity.ok().headers(responseHeaders).cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS).cachePublic().immutable()).contentType(contentType).contentLength(fileLength)
+						.body(new InputStreamResource(in));
+			}
 
 		} catch (OdilonServerAPIException e) {
 
@@ -519,7 +446,7 @@ public class ObjectController extends BaseApiController {
 			throw e;
 
 		} catch (Exception e) {
-			
+
 			logger.error(e);
 
 			if (in != null) {
@@ -566,14 +493,10 @@ public class ObjectController extends BaseApiController {
 			if (currMeta.version == 0)
 				throw new OdilonObjectNotFoundException(String.format("object version not found"));
 
-			
-			
-	 
 			getSystemMonitorService().getGetObjectMeter().mark();
 
-	
-			ObjectMetadata prev =  getObjectStorageService().getObjectMetadataPreviousVersion(bucketName, objectName);
-			
+			ObjectMetadata prev = getObjectStorageService().getObjectMetadataPreviousVersion(bucketName, objectName);
+
 			if (prev.getFileName() != null) {
 				if (prev.getFileName().toLowerCase().endsWith(".svg")) {
 					prev.setContentType("image/svg+xml");
@@ -583,9 +506,7 @@ public class ObjectController extends BaseApiController {
 			if (prev.contentType() == null || prev.getContentType().equals("application/octet-stream")) {
 				contentType = estimateContentType(prev.getFileName());
 			}
-			
-	 
-			
+
 			int cacheDurationSecs = this.settings.getserverObjectstreamCacheSecs();
 			long fileLength = super.getSrcFileLength(prev);
 
@@ -593,68 +514,41 @@ public class ObjectController extends BaseApiController {
 			String f_name = prev.getFileName().replace("[", "").replace("]", "");
 			responseHeaders.set("Content-Disposition", "inline; filename=\"" + f_name + "\"");
 			responseHeaders.set(HttpHeaders.ACCEPT_RANGES, "bytes");
-			
-			
-			// CACHE  ---
+
+			// CACHE ---
 			//
-            String cacheHeader =
-                cacheDurationSecs > 0
-                    ? "public, max-age=" + cacheDurationSecs + ", immutable, no-transform"
-                    : "no-cache, no-store, must-revalidate";
-                
-            responseHeaders.set(HttpHeaders.CACHE_CONTROL, cacheHeader);
+			String cacheHeader = cacheDurationSecs > 0 ? "public, max-age=" + cacheDurationSecs + ", immutable, no-transform" : "no-cache, no-store, must-revalidate";
 
-            // ETAG
-            if (fileLength>-1)
-            	responseHeaders.setETag("\"" + fileLength + "\"");
-            
-            // SECURITY
-            responseHeaders.set("X-Content-Type-Options", "nosniff");
+			responseHeaders.set(HttpHeaders.CACHE_CONTROL, cacheHeader);
 
-            // CORS (si aplica)
-            responseHeaders.set("Access-Control-Allow-Origin", "*");
-            responseHeaders.set("Access-Control-Expose-Headers",
-                "Content-Length, Content-Range, Accept-Ranges");
-                
-            
+			// ETAG
+			if (fileLength > -1)
+				responseHeaders.setETag("\"" + fileLength + "\"");
 
-            // LAST MODIFIED (si tenés timestamp)
-            OffsetDateTime lastModified = prev.getLastModified();
-            if (lastModified != null) {
-                responseHeaders.setLastModified(lastModified.toInstant().toEpochMilli());
-            }
-	
+			// SECURITY
+			responseHeaders.set("X-Content-Type-Options", "nosniff");
+
+			// CORS (si aplica)
+			responseHeaders.set("Access-Control-Allow-Origin", "*");
+			responseHeaders.set("Access-Control-Expose-Headers", "Content-Length, Content-Range, Accept-Ranges");
+
+			// LAST MODIFIED (si tenés timestamp)
+			OffsetDateTime lastModified = prev.getLastModified();
+			if (lastModified != null) {
+				responseHeaders.setLastModified(lastModified.toInstant().toEpochMilli());
+			}
+
 			in = getObjectStorageService().getObjectPreviousVersionStream(bucketName, objectName, prev.version);
-			
-			if (fileLength==-1) {
 
-				return ResponseEntity.
-						ok().
-						headers(responseHeaders).
-						cacheControl(
-                        	    CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)
-                        	        .cachePublic()
-                        	        .immutable()
-                        	).
-						contentType(contentType).
-						body(new InputStreamResource(in));
+			if (fileLength == -1) {
 
+				return ResponseEntity.ok().headers(responseHeaders).cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS).cachePublic().immutable()).contentType(contentType).body(new InputStreamResource(in));
+
+			} else {
+				return ResponseEntity.ok().headers(responseHeaders).cacheControl(CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS).cachePublic().immutable()).contentType(contentType).contentLength(fileLength)
+						.body(new InputStreamResource(in));
 			}
-			else {
-				return ResponseEntity.
-						ok().
-						headers(responseHeaders).
-						cacheControl(
-                        	    CacheControl.maxAge(cacheDurationSecs, TimeUnit.SECONDS)
-                        	        .cachePublic()
-                        	        .immutable()
-                        	).
-						contentType(contentType).
-						contentLength(fileLength).
-						body(new InputStreamResource(in));
-			}
-			
-			
+
 		} catch (OdilonServerAPIException e1) {
 
 			if (in != null) {
@@ -715,7 +609,7 @@ public class ObjectController extends BaseApiController {
 			atoken = new AuthToken(bucketName, objectName);
 			atoken.setObjectCacheDurationSecs(-1);
 			atoken.setExpirationDate(null);
-		
+
 			logger.debug(atoken.toString());
 
 			String token = this.getTokenService().encrypt(atoken);
@@ -737,10 +631,12 @@ public class ObjectController extends BaseApiController {
 		}
 	}
 
-	
 	/**
 	 * 
-	 * <p>The Object must hace publicAccess=true for this method to return a url. Otherwise it throws exception UNATHORIZED</p>
+	 * <p>
+	 * The Object must hace publicAccess=true for this method to return a url.
+	 * Otherwise it throws exception UNATHORIZED
+	 * </p>
 	 * 
 	 * @param bucketName
 	 * @param objectName
@@ -748,9 +644,7 @@ public class ObjectController extends BaseApiController {
 	 */
 	@RequestMapping(path = "/get/public/{bucketName}/{objectName}", method = RequestMethod.GET)
 	@ResponseBody
-	public ResponseEntity<String> getPublicUrl(
-			@PathVariable("bucketName") String bucketName, 
-			@PathVariable("objectName") String objectName) {
+	public ResponseEntity<String> getPublicUrl(@PathVariable("bucketName") String bucketName, @PathVariable("objectName") String objectName) {
 
 		TrafficPass pass = null;
 
@@ -766,17 +660,16 @@ public class ObjectController extends BaseApiController {
 			if (meta == null || meta.getStatus() == ObjectStatus.DELETED || meta.getStatus() == ObjectStatus.DRAFT)
 				throw new OdilonObjectNotFoundException(String.format("object not found -> b: %s | o:%s", Optional.ofNullable(bucketName).orElse("null"), Optional.ofNullable(objectName).orElse("null")));
 
-			
 			if (!meta.isPublicAccess()) {
 				logger.error("Object is not public access -> " + meta.toString());
 				throw new OdilonServerAPIException(ODHttpStatus.UNAUTHORIZED, ErrorCode.AUTHENTICATION_ERROR, meta.toString());
-				
+
 			}
 
 			String uri = "public/" + bucketName + "/" + objectName + "/" + meta.getFileName();
-			
+
 			getSystemMonitorService().getGetObjectMeter().mark();
-		
+
 			return ResponseEntity.ok().contentType(MediaType.TEXT_PLAIN).body(uri);
 
 		} catch (OdilonServerAPIException e) {
@@ -790,9 +683,6 @@ public class ObjectController extends BaseApiController {
 		}
 	}
 
-	
-	
-	
 	/**
 	 * 
 	 * @param bucketName
@@ -1029,8 +919,9 @@ public class ObjectController extends BaseApiController {
 
 		try {
 
-			logger.debug("start putObject ->  b. " + bucketName +  " o." + objectName + " | f. " + oFileName.orElse("null") + " | contentType. " + (contentType!=null?contentType:" null") + " | public. " + o_isPublic.orElse(Boolean.FALSE));
-			
+			logger.debug(
+					"start putObject ->  b. " + bucketName + " o." + objectName + " | f. " + oFileName.orElse("null") + " | contentType. " + (contentType != null ? contentType : " null") + " | public. " + o_isPublic.orElse(Boolean.FALSE));
+
 			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
 
 			String fileName = Optional.ofNullable(oFileName.get()).orElseGet(() -> objectName);
@@ -1083,8 +974,6 @@ public class ObjectController extends BaseApiController {
 			mark();
 		}
 	}
-
-
 
 	/**
 	 * @param bucketName
@@ -1140,7 +1029,6 @@ public class ObjectController extends BaseApiController {
 			mark();
 		}
 	}
-
 
 	@PostConstruct
 	public void init() {

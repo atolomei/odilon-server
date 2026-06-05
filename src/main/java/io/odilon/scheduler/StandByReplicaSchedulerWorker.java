@@ -78,12 +78,11 @@ public class StandByReplicaSchedulerWorker extends SchedulerWorker {
 	public int getPoolSize() {
 		return getVirtualFileSystemService().getServerSettings().getStandByReplicaDispatcherPoolSize();
 	}
-	
+
 	@Override
 	public void add(ServiceRequest request) {
 		Check.requireNonNullArgument(request, " request is null");
-		Check.requireTrue(request instanceof StandByReplicaServiceRequest,
-				"request is not instance of -> " + StandByReplicaServiceRequest.class.getName());
+		Check.requireTrue(request instanceof StandByReplicaServiceRequest, "request is not instance of -> " + StandByReplicaServiceRequest.class.getName());
 		getServiceRequestQueue().add(request);
 	}
 
@@ -173,8 +172,7 @@ public class StandByReplicaSchedulerWorker extends SchedulerWorker {
 	protected void doJobs() {
 
 		if (isFullCapacity()) {
-			logger.debug(this.getClass().getSimpleName() + " operating at full capacity -> "
-					+ String.valueOf(getDispatcher().getPoolSize()) + " Threads");
+			logger.debug(this.getClass().getSimpleName() + " operating at full capacity -> " + String.valueOf(getDispatcher().getPoolSize()) + " Threads");
 			return;
 		}
 
@@ -204,7 +202,7 @@ public class StandByReplicaSchedulerWorker extends SchedulerWorker {
 
 			/** New Requests ------------ */
 			logger.debug("Checking new requests -> " + getServiceRequestQueue().size() + " requests");
-		
+
 			int n = 0;
 			Iterator<ServiceRequest> it = getServiceRequestQueue().iterator();
 			boolean done = false;
@@ -229,7 +227,7 @@ public class StandByReplicaSchedulerWorker extends SchedulerWorker {
 			request.setApplicationContext(getApplicationContext());
 
 			logger.debug("Dispatching -> " + request.toString());
-		
+
 			getExecuting().put(request.getId(), request);
 			dispatch(request);
 		}
@@ -249,7 +247,7 @@ public class StandByReplicaSchedulerWorker extends SchedulerWorker {
 		if (this.queue.size() > 0) {
 			startuplogger.info(this.getClass().getSimpleName() + " Queue size -> " + String.valueOf(this.queue.size()));
 		}
-		
+
 		this.executing = new ConcurrentHashMap<Serializable, ServiceRequest>(16, 0.9f, 1);
 		this.failed = new ConcurrentSkipListMap<Serializable, ServiceRequest>();
 	}
@@ -273,9 +271,7 @@ public class StandByReplicaSchedulerWorker extends SchedulerWorker {
 	protected boolean isWork() {
 
 		if (!getFailed().isEmpty()) {
-			if (this.lastFailedTry
-					.plusSeconds(getVirtualFileSystemService().getServerSettings().getRetryFailedSeconds())
-					.isBefore(OffsetDateTime.now()))
+			if (this.lastFailedTry.plusSeconds(getVirtualFileSystemService().getServerSettings().getRetryFailedSeconds()).isBefore(OffsetDateTime.now()))
 				return true;
 			else
 				return false;
@@ -311,34 +307,31 @@ public class StandByReplicaSchedulerWorker extends SchedulerWorker {
 		/**
 		 * Race condition guards — both checked by scanning getExecuting():
 		 *
-		 * 1. Bucket guard: block an object operation if a bucket-level operation for the
-		 *    same bucket is still executing (e.g. create_object dispatched before
-		 *    create_bucket completes on the standby → HTTP 500 bucket-not-found).
+		 * 1. Bucket guard: block an object operation if a bucket-level operation for
+		 * the same bucket is still executing (e.g. create_object dispatched before
+		 * create_bucket completes on the standby → HTTP 500 bucket-not-found).
 		 *
 		 * 2. Object UUID guard: block an object operation if another operation for the
-		 *    exact same object UUID is still executing (e.g. update_object dispatched
-		 *    while create_object is still in-flight → standby gets an update for an
-		 *    object that does not yet exist there).
+		 * exact same object UUID is still executing (e.g. update_object dispatched
+		 * while create_object is still in-flight → standby gets an update for an object
+		 * that does not yet exist there).
 		 */
 		if (repRequest.getVFSOperation().getOperationCode().isObjectOperation()) {
 			String bucketName = repRequest.getVFSOperation().getBucketName();
-			String uuid       = repRequest.getVFSOperation().getUUID();
+			String uuid = repRequest.getVFSOperation().getUUID();
 
 			// Guard 1: check already-dispatched operations (getExecuting)
 			for (ServiceRequest exec : getExecuting().values()) {
 				if (exec instanceof StandByReplicaServiceRequest) {
 					StandByReplicaServiceRequest execRep = (StandByReplicaServiceRequest) exec;
 					// bucket guard
-					if (!execRep.getVFSOperation().getOperationCode().isObjectOperation()
-							&& bucketName.equals(execRep.getVFSOperation().getBucketName())) {
-						logger.debug("Holding object op for bucket '" + bucketName
-								+ "' — bucket op still executing -> id:" + execRep.getId());
+					if (!execRep.getVFSOperation().getOperationCode().isObjectOperation() && bucketName.equals(execRep.getVFSOperation().getBucketName())) {
+						logger.debug("Holding object op for bucket '" + bucketName + "' — bucket op still executing -> id:" + execRep.getId());
 						return false;
 					}
 					// same-object UUID guard
 					if (uuid.equals(execRep.getVFSOperation().getUUID())) {
-						logger.debug("Holding op for object uuid '" + uuid
-								+ "' — same object still executing -> id:" + execRep.getId());
+						logger.debug("Holding op for object uuid '" + uuid + "' — same object still executing -> id:" + execRep.getId());
 						return false;
 					}
 				}
@@ -352,10 +345,8 @@ public class StandByReplicaSchedulerWorker extends SchedulerWorker {
 			for (ServiceRequest pending : map.values()) {
 				if (pending instanceof StandByReplicaServiceRequest) {
 					StandByReplicaServiceRequest pendingRep = (StandByReplicaServiceRequest) pending;
-					if (!pendingRep.getVFSOperation().getOperationCode().isObjectOperation()
-							&& bucketName.equals(pendingRep.getVFSOperation().getBucketName())) {
-						logger.debug("Holding object op for bucket '" + bucketName
-								+ "' — bucket op pending in same batch -> id:" + pendingRep.getId());
+					if (!pendingRep.getVFSOperation().getOperationCode().isObjectOperation() && bucketName.equals(pendingRep.getVFSOperation().getBucketName())) {
+						logger.debug("Holding object op for bucket '" + bucketName + "' — bucket op pending in same batch -> id:" + pendingRep.getId());
 						return false;
 					}
 				}
