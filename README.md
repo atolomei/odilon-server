@@ -4,11 +4,21 @@
 
 <h1>Odilon Object Storage</h2>
 
-<h2>Enterprise-class Storage made simple</h2>
-<p>Odilon is a simple, secure, and fully Open Source object storage server that runs on standard hardware. (<a href="https://odilon.io" target="_blank">Odilon project website</a>).</p>
-<p>Designed for small and medium-scale deployments (up to roughly 100 TB), it provides reliable storage for documents, images, audio, video, and other large files—without the complexity of distributed storage systems.</p>
-<p>Odilon includes encryption, software RAID, erasure coding, object versioning, and Internet-based master–standby replication, all under a clear standard license with no hidden commercial restrictions.</p>
+
+<h2>Enterprise-class storage made simple</h2>h2>
+<p>Odilon is a simple, secure, fully Open Source object storage server that runs on standard hardware.
+	(<a href="https://odilon.io" target="_blank">Odilon project website</a>).
 </p>
+
+<p>Designed for small and medium-scale deployments (up to roughly 100 TB), it provides reliable storage for documents, images, audio, video, and other large files without the complexity of distributed systems.
+</p>
+
+<p>It includes encryption, software RAID, erasure coding, versioning, and Internet-based replication under a clear standard license with no hidden restrictions.
+</p>
+
+<p>Ideal for organizations that need secure, reliable object storage without depending on cloud providers or large-scale distributed infrastructure.
+</p>
+
 
 <h2>Main features</h2>
 				<p>
