@@ -5,7 +5,7 @@
 <h1>Odilon Object Storage</h2>
 
 
-<h2>Enterprise-class storage made simple</h2>h2>
+<h2>Enterprise-class storage made simple</h2>
 <p>Odilon is a simple, secure, fully Open Source object storage server that runs on standard hardware.
 	(<a href="https://odilon.io" target="_blank">Odilon project website</a>).
 </p>
@@ -43,7 +43,10 @@
 				</p>
 
 <h2>Security</h2>
-<p>Odilon keeps objects encrypted (<i>Encryption at Rest</i>) using <a href="https://es.wikipedia.org/wiki/Advanced_Encryption_Standard" target="_blank">AES GCM-SIV</a> with key size of 256 bits.  Encryption has the following benefits: <br/>	
+<p>Odilon keeps objects encrypted (<i>Encryption at Rest</i>) using <a href="https://es.wikipedia.org/wiki/Advanced_Encryption_Standard" target="_blank">AES GCM-SIV</a> wwith keys size of 256 bits (v2.1+) or 128 bits (v2.0 or older). 
+	
+</p>
+	<p>Encryption has the following benefits: <br/>	
 <ul>
  <li>It simplifies data protection, applications dont need to worry about protecting the data or encryption keys.</li>
  <li>If data falls into the hands of an attacker, they cannot read it without also having access to the encryption keys. If attackers obtain the storage devices containing the data, they will not be able to understand or decrypt it.</li>
@@ -135,7 +138,19 @@ Plus the extra meta file and shards for erasure coding.
 </li>
 </ul>
 
+<h2>Who is using Odilon</h2>
 
+<p>To be included in this list please send email to info@novamens.com</p>
+
+<h3><a href="https://dellemmuse.app" target="_blank">dellemuse</a></h3>
+<p>Dellemuse is a service that enriches the cultural experience in museums and historical buildings through AI-generated audio guides that visitors can listen to on their mobile phones.
+They use Odilon to store the audio files of the guides.</p>
+
+<h3><a href="https://kbee.io" target="_blank">kbee</a></h3>
+<p>Document management software. kbee uses Odilon to store technical and regulatory documentation in the aviation industry.</p>
+
+
+				
 <h2>Using Odilon</h2>
 <p>
 A Java client program that interacts with the Odilon server must include the Odilon SDK jar in the classpath.
