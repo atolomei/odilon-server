@@ -142,7 +142,7 @@ Plus the extra meta file and shards for erasure coding.
 
 <p>To be included in this list please send email to info@novamens.com</p>
 
-<h3><a href="https://dellemmuse.app" target="_blank">dellemuse</a></h3>
+<h3><a href="https://dellemuse.app" target="_blank">dellemuse</a></h3>
 <p>Dellemuse is a service that enriches the cultural experience in museums and historical buildings through AI-generated audio guides that visitors can listen to on their mobile phones.
 They use Odilon to store the audio files of the guides.</p>
 
