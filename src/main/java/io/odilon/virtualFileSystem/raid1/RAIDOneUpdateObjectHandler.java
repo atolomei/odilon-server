@@ -53,6 +53,8 @@ import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.SimpleDrive;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
+import io.odilon.model.VersionControl;
+
 /**
  * <p>
  * RAID 1. Update Handler
@@ -838,7 +840,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
 
 		try {
 			Check.requireNonNullArgument(bucket, "meta is null");
-			if (!getVirtualFileSystemService().getServerSettings().isVersionControl()) {
+			if (getVersionControl()==VersionControl.DISABLED) {
 				for (Drive drive : getDriver().getDrivesAll()) {
 					FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(bucket, objectName, previousVersion));
 					ObjectPath path = new ObjectPath(drive, bucket, objectName);

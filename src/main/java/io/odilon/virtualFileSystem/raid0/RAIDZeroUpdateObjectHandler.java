@@ -30,6 +30,7 @@ import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.SharedConstant;
+import io.odilon.model.VersionControl;
 import io.odilon.virtualFileSystem.ObjectPath;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
@@ -120,7 +121,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionObjectHandle
 						 * locks are still applied. Also it is required to be fast<br/>
 						 */
 						try {
-							if ((!isVersionControl()) && (beforeHeadVersion >= 0)) {
+							if (( getVersionControl()==VersionControl.DISABLED) && (beforeHeadVersion >= 0)) {
 								FileUtils.deleteQuietly(getObjectPath().metadataFileVersionPath(beforeHeadVersion).toFile());
 								FileUtils.deleteQuietly(getObjectPath().dataFileVersionPath(beforeHeadVersion).toFile());
 							}

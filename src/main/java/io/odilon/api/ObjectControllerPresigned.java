@@ -51,6 +51,7 @@ import io.odilon.service.ServerSettings;
 import io.odilon.service.ObjectStorageService;
 import io.odilon.traffic.TrafficControlService;
 import io.odilon.traffic.TrafficPass;
+import io.odilon.virtualFileSystem.LimitedInputStream;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemObject;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 

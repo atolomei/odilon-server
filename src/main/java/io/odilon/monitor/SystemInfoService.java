@@ -46,6 +46,7 @@ import io.odilon.model.RedundancyLevel;
 import io.odilon.model.ServiceStatus;
 import io.odilon.model.SharedConstant;
 import io.odilon.model.SystemInfo;
+import io.odilon.model.VersionControl;
 import io.odilon.service.BaseService;
 import io.odilon.service.ServerSettings;
 import io.odilon.service.SystemService;
@@ -94,7 +95,8 @@ public class SystemInfoService extends BaseService implements SystemService {
 	private String vaultUrl;
 
 	private String isVersionControl;
-
+	private VersionControl versionControl;
+	
 	private String trafficTokens;
 
 	@JsonIgnore
@@ -159,7 +161,10 @@ public class SystemInfoService extends BaseService implements SystemService {
 		info.vaultUrl = vaultUrl;
 
 		info.isVersionControl = isVersionControl;
+		info.versionControl = versionControl;
 
+		
+		
 		info.isEncryptEnabled = isEncryptEnabled;
 
 		info.isEncryptionInitialized = isEncryptionInitialized;
@@ -279,9 +284,11 @@ public class SystemInfoService extends BaseService implements SystemService {
 
 				this.serverDataStorageMode = serverSettings.getDataStorage().getName();
 
-				this.isVersionControl = serverSettings.isVersionControl() ? "true" : "false";
+				this.isVersionControl = serverSettings.getVersionControl()==VersionControl.DISABLED ? "false" : "true";
+				this.versionControl = serverSettings.getVersionControl();
 				this.isEncryptEnabled = serverSettings.isEncryptionEnabled() ? "true" : "false";
 
+				
 				this.isVaultEnabled = serverSettings.isVaultEnabled() ? "true" : "false";
 				if (serverSettings.isVaultEnabled()) {
 					this.vaultUrl = serverSettings.getVaultUrl().isPresent() ? serverSettings.getVaultUrl().get() : "";

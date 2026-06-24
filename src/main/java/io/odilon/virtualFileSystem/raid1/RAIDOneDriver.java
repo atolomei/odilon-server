@@ -40,6 +40,7 @@ import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
+import io.odilon.model.VersionControl;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.RedundancyLevel;
 import io.odilon.model.list.DataList;
@@ -888,5 +889,7 @@ public class RAIDOneDriver extends BaseIODriver {
 			objectReadUnLock(bucket, objectName);
 		}
 	}
+
+
 
 }

@@ -27,6 +27,9 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import io.odilon.log.Logger;
 import io.odilon.model.MetricsValues;
 import io.odilon.model.SystemInfo;
 import io.odilon.monitor.SystemMonitorService;
@@ -59,6 +62,11 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 @RestController
 public class MetricsController extends BaseApiController {
 
+	@JsonIgnore
+	static private Logger logger = Logger.getLogger(MetricsController.class.getName());
+
+	
+	
     @Autowired
     private final ServerSettings serverSettings;
 
@@ -94,7 +102,11 @@ public class MetricsController extends BaseApiController {
 
         try {
             pass =  getTrafficControlService().getPass(this.getClass().getSimpleName());
-            return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(objectStorageService.getSystemInfo());
+            
+            SystemInfo info=getObjectStorageService().getSystemInfo();
+            logger.debug("SystemInfo: " + info.toString());
+            
+            return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(info);
         } finally {
             getTrafficControlService().release(pass);
             mark();

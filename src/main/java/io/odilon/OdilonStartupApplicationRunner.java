@@ -38,6 +38,7 @@ import io.odilon.model.OdilonServerInfo;
 import io.odilon.model.RedundancyLevel;
 import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
+import io.odilon.model.VersionControl;
 import io.odilon.replication.ReplicationService;
 import io.odilon.scheduler.CronJobDataIntegrityCheckRequest;
 import io.odilon.scheduler.CronJobWorkDirCleanUpRequest;
@@ -193,7 +194,7 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 		startupLogger.info("Encryption service initialized -> "
 				+ (((info != null) && info.isEncryptionIntialized()) ? "true" : "false"));
 		startupLogger.info("Encryption enabled -> " + String.valueOf(settingsService.isEncryptionEnabled()));
-		startupLogger.info("Version Control -> " + String.valueOf(settingsService.isVersionControl()));
+		startupLogger.info("Version Control -> " + String.valueOf(settingsService.getVersionControl().getName()));
 		startupLogger.info("Data Storage mode -> " + settingsService.getDataStorage().getName());
 
 		if (settingsService.getRedundancyLevel() == RedundancyLevel.RAID_6) {
@@ -293,7 +294,7 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 				if (ping.equals("ok")) {
 					startupLogger.info("Standby connection status -> " + ping);
 
-					if (settingsService.isVersionControl() && (!replicationService.isVersionControl())) {
+					if (settingsService.getVersionControl() != replicationService.getVersionControl()) {
 
 						startupLogger.error(
 								"Server has Version Control enabled but Standby replica does not. You must either:");

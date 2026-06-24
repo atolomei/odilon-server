@@ -36,6 +36,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
+import io.odilon.model.VersionControl;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.DriveStatus;
 import io.odilon.virtualFileSystem.model.ServerBucket;
@@ -199,7 +200,7 @@ public class RAIDSixSyncObjectHandler extends RAIDSixTransactionHandler {
 
 	private void syncVersions(ObjectMetadata meta, ServerBucket bucket) {
 
-		if (getDriver().getVirtualFileSystemService().getServerSettings().isVersionControl()) {
+		if (getVersionControl()!=VersionControl.DISABLED) {
 
 			for (int version = 0; version < meta.getVersion(); version++) {
 

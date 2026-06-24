@@ -45,6 +45,7 @@ import io.odilon.log.Logger;
 import io.odilon.model.ServerConstant;
 import io.odilon.model.ServiceStatus;
 import io.odilon.model.SharedConstant;
+import io.odilon.model.VersionControl;
 import io.odilon.service.BaseService;
 import io.odilon.service.ServerSettings;
 import io.odilon.util.Check;
@@ -273,7 +274,7 @@ public class FileCacheService extends BaseService implements ApplicationListener
 		}
 		if (event.getOperation().getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS) {
 			remove(event.getOperation().getBucketId(), event.getOperation().getObjectName(), Optional.empty());
-			if (getVirtualFileSystemService().getServerSettings().isVersionControl()) {
+			if (getVirtualFileSystemService().getServerSettings().getVersionControl()!=VersionControl.DISABLED) {
 				for (int version = 0; version < event.getOperation().getVersion(); version++)
 					remove(event.getOperation().getBucketId(), event.getOperation().getObjectName(), Optional.of(version));
 			}

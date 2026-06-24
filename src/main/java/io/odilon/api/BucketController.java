@@ -37,6 +37,7 @@ import io.odilon.error.OdilonObjectNotFoundException;
 import io.odilon.log.Logger;
 import io.odilon.model.Bucket;
 import io.odilon.model.ObjectMetadata;
+import io.odilon.model.VersionControl;
 import io.odilon.model.list.Item;
 import io.odilon.model.list.DataList;
 import io.odilon.monitor.SystemMonitorService;
@@ -342,6 +343,17 @@ public class BucketController extends BaseApiController {
 		try {
 			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
 
+			if (!getObjectStorageService().existsBucket(name)) 
+				return;
+			
+			if (getVersionControl() == VersionControl.PROTECTED) {
+					if (!getObjectStorageService().isEmptyBucket(name)) {
+						throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED,
+								"Version Control is protected, can not delete bucket contents");
+					}
+				}
+
+		
 			if (getObjectStorageService().existsBucket(name)) {
 				getObjectStorageService().deleteBucketByName(name);
 			} else
@@ -358,6 +370,7 @@ public class BucketController extends BaseApiController {
 		}
 	}
 
+	
 	@RequestMapping(value = "/deleteallpreviousversion/{name}", produces = "application/json", method = RequestMethod.DELETE)
 	public ResponseEntity<Boolean> deleteAllPreviousVersions(@PathVariable("name") String name) {
 
@@ -367,15 +380,19 @@ public class BucketController extends BaseApiController {
 
 			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
 
-
-			if (!this.getVirtualFileSystemService().getServerSettings().isVersionControl())
-				throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED,
-						"Version Control not enabled");
-
 			if (!getObjectStorageService().existsBucket(name))
 				throw new OdilonObjectNotFoundException(ErrorCode.BUCKET_NOT_EXISTS,
 						String.format("bucket does not exist -> %s", Optional.ofNullable(name).orElse("null")));
 
+			if (this.getVirtualFileSystemService().getServerSettings().getVersionControl()==VersionControl.DISABLED)
+				throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED,
+						"Version Control not enabled");
+
+			else if (this.getVirtualFileSystemService().getServerSettings().getVersionControl()==VersionControl.PROTECTED) {
+				throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED,
+						"Version Control is in Protected Mode, can not delete previous versions");
+			}
+			
 			if (!getObjectStorageService().isEmptyBucket(name))
 				getObjectStorageService().deleteBucketAllPreviousVersions(name);
 

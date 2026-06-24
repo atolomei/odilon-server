@@ -117,11 +117,11 @@ public class RAIDSixDeleteObjectAllPreviousVersionsHandler extends RAIDSixTransa
 						postCommit(meta, getBucket(), meta.getVersion());
 					}
 				} finally {
-					bucketReadLock();
+					bucketReadUnLock();
 				}
 			}
 		} finally {
-			objectWriteLock();
+			objectWriteUnLock();
 		}
 
 		if (commitOK) {

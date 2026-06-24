@@ -26,6 +26,7 @@ import org.springframework.http.MediaType;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.odilon.model.BaseObject;
 import io.odilon.model.ObjectMetadata;
+import io.odilon.model.VersionControl;
 import io.odilon.monitor.SystemMonitorService;
 import io.odilon.service.ObjectStorageService;
 import io.odilon.traffic.TrafficControlService;
@@ -97,6 +98,12 @@ public abstract class BaseApiController extends BaseObject implements Applicatio
 		return this.monitoringService;
 	}
 
+	protected VersionControl getVersionControl() {
+		return virtualFileSystemService.getVersionControl();
+	}
+
+	
+	
 	@Override
 	public void setApplicationContext(ApplicationContext applicationContext) {
 		this.applicationContext = applicationContext;

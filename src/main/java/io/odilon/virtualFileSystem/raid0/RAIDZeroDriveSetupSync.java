@@ -40,6 +40,7 @@ import io.odilon.model.ObjectMetadata;
 import io.odilon.model.OdilonServerInfo;
 import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
+import io.odilon.model.VersionControl;
 import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
 import io.odilon.virtualFileSystem.DriveInfo;
@@ -314,7 +315,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 											/**
 											 * PREVIOUS VERSIONS -----------------------------------------------------
 											 */
-											if (getDriver().getVirtualFileSystemService().getServerSettings().isVersionControl()) {
+											if (getVersionControl()!=VersionControl.DISABLED) {
 												for (int version = 0; version < item.getObject().getVersion(); version++) {
 
 													File metaVersion = currentDrive.getObjectMetadataVersionFile(bucket, item.getObject().getObjectName(), version);
@@ -447,7 +448,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 												 * PREVIOUS VERSIONS ---------------------------------------------------------
 												 */
 
-												if (getDriver().getVirtualFileSystemService().getServerSettings().isVersionControl()) {
+												if (getVersionControl()!=VersionControl.DISABLED) {
 													for (int n = 0; n < item.getObject().getVersion(); n++) {
 														// move Meta Version
 														File meta_version_n = currentDrive.getObjectMetadataVersionFile(bucket, item.getObject().getObjectName(), n);
@@ -506,6 +507,10 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 		} finally {
 			startuplogger.info("move completed -> " + String.valueOf(Double.valueOf(System.currentTimeMillis() - start_move) / Double.valueOf(1000)) + " secs");
 		}
+	}
+
+	protected VersionControl getVersionControl() {
+		return getDriver().getVirtualFileSystemService().getServerSettings().getVersionControl();
 	}
 
 	private Drive getCurrentDrive(Long bucketId, String objectName) {

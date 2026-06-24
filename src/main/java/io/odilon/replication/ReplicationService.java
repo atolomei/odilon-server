@@ -44,6 +44,7 @@ import io.odilon.model.OdilonServerInfo;
 import io.odilon.model.ServerConstant;
 import io.odilon.model.ServiceStatus;
 import io.odilon.model.SharedConstant;
+import io.odilon.model.VersionControl;
 import io.odilon.monitor.SystemMonitorService;
 import io.odilon.scheduler.SchedulerService;
 import io.odilon.scheduler.StandByReplicaServiceRequest;
@@ -773,6 +774,14 @@ public class ReplicationService extends BaseService implements ApplicationContex
 
 		StandByInitialSync syncer = new StandByInitialSync(this.getVirtualFileSystemService().createVFSIODriver());
 		syncer.start();
+	}
+
+	public VersionControl getVersionControl() {
+		try {
+			return getClient().getVersionControl();
+		} catch (ODClientException e) {
+			throw new InternalCriticalException(e);
+		}
 	}
 
 }

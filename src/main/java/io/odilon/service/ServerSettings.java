@@ -42,6 +42,7 @@ import io.odilon.model.OdilonServerInfo;
 import io.odilon.model.RedundancyLevel;
 import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
+import io.odilon.model.VersionControl;
 import io.odilon.service.util.ByteToString;
 import io.odilon.util.RandomIDGenerator;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
@@ -119,9 +120,13 @@ public class ServerSettings implements JSONObject {
 	protected String serverMode;
 
 	/** Version Control. by default not enabled **/
-	@Value("${server.versioncontrol:false}")
-	protected boolean versionControl;
+	@Value("${server.versioncontrol:disabled}")
+	protected String versionControlStr;
+	// protected boolean versionControl;
 
+	protected VersionControl versionControlModel;
+
+	
 	@Value("${recovery:false}")
 	protected boolean recovery = false;
 
@@ -413,8 +418,9 @@ public class ServerSettings implements JSONObject {
 		str.append(", \"timeZone\":\"" + getTimeZone() + "\"");
 
 		str.append(", \"trafficTokens\":" + String.valueOf(t_tokens) + "");
-		str.append(", \"versionControl\":\"" + (this.versionControl ? "true" : "false") + "\"");
-
+		str.append(", \"versionControl\":\"" + 	versionControlModel.getName() + "\"");
+		
+		
 		str.append("\"objectMetadataCache.maxCapacity\":\"" + String.valueOf(objectCacheMaxCapacity) + "\"");
 		str.append("\"objectMetadataCache.durationDays\":\"" + String.valueOf(objectExpireDays) + "\"");
 
@@ -491,9 +497,6 @@ public class ServerSettings implements JSONObject {
 		if (this.secretKey == null) {
 			exit("secretKey can not be null");
 		}
-
-		
-		
 		
 		if (this.presignedSalt.length() < 20)
 			exit("presignedSalt must be at least 20 characters (it has " + String.valueOf(this.presignedSalt.length()) + ")");
@@ -509,6 +512,25 @@ public class ServerSettings implements JSONObject {
 			this.rootDirs = getDefaultRootDirs();
 		}
 
+		
+		if (this.versionControlStr==null)
+				this.versionControlStr = "disabled";
+		
+		this.versionControlStr = this.versionControlStr.trim().toLowerCase();
+		
+		
+		if (this.versionControlStr.equals("disabled") || this.versionControlStr.equals("false"))
+			this.versionControlModel = VersionControl.DISABLED;
+		
+		else if (this.versionControlStr.equals("standard")|| this.versionControlStr.equals("true"))
+			this.versionControlModel = VersionControl.STANDARD;
+		
+		else if (this.versionControlStr.equals("protected"))
+			this.versionControlModel = VersionControl.PROTECTED;
+		else
+			throw new IllegalArgumentException("versionControl must be one of {disabled, standard, protected} -> provided value: " + versionControlStr);
+		
+		
 		if (this.encryptionKeyIV != null) {
 			this.encryptionKeyIV = encryptionKeyIV.trim();
 
@@ -782,8 +804,8 @@ public class ServerSettings implements JSONObject {
 		return isStandByEnabled;
 	}
 
-	public boolean isVersionControl() {
-		return this.versionControl;
+	public VersionControl getVersionControl() {
+		return this.versionControlModel;
 	}
 
 	public boolean isHTTPS() {
@@ -1008,13 +1030,20 @@ public class ServerSettings implements JSONObject {
 		OdilonServerInfo si = new OdilonServerInfo();
 		si.setCreationDate(now);
 		si.setName(ServerConstant.applicationName);
-		si.setVersionControl(isVersionControl());
 
+		
+		// ----
+		// TODO VER
+		// si.setVersionControl(isVersionControl());
+		// --
+		
+		
 		si.setEncryptionIntialized(false);
 
-		if (isVersionControl())
+		if (getVersionControl()!=VersionControl.DISABLED)
 			si.setVersionControlDate(now);
 
+		
 		si.setServerMode(getServerMode());
 		si.setId(randomString(16));
 		si.setStandByEnabled(isStandByEnabled());

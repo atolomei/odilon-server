@@ -40,6 +40,7 @@ import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ObjectStatus;
 import io.odilon.model.SharedConstant;
+import io.odilon.model.VersionControl;
 import io.odilon.util.Check;
 import io.odilon.util.OdilonFileUtils;
 import io.odilon.virtualFileSystem.model.Drive;
@@ -609,7 +610,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionObjectHandler 
 		if (meta == null)
 			return;
 		try {
-			if (!getServerSettings().isVersionControl()) {
+			if (getVersionControl()==VersionControl.DISABLED) {
 				for (Drive drive : getDriver().getDrivesAll()) {
 					FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(bucket, meta.getObjectName(), previousVersion));
 					List<File> files = getDriver().getObjectDataFiles(meta, bucket, Optional.of(previousVersion));

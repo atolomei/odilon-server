@@ -59,6 +59,7 @@ import io.odilon.model.ObjectMetadata;
 import io.odilon.model.OdilonServerInfo;
 import io.odilon.model.RedundancyLevel;
 import io.odilon.model.SharedConstant;
+import io.odilon.model.VersionControl;
 import io.odilon.monitor.SystemMonitorService;
 import io.odilon.query.BucketIteratorService;
 import io.odilon.replication.ReplicationService;
@@ -1189,6 +1190,12 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		return getVirtualFileSystemService().getServerSettings().getTotalDisks();
 	}
 
+	
+	public VersionControl getVersionControl() {
+		return getVirtualFileSystemService().getVersionControl();
+	}
+	
+	
 	protected abstract Drive getObjectMetadataReadDrive(ServerBucket bucket, String objectName);
 
 	/**

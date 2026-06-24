@@ -44,6 +44,7 @@ import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ServerConstant;
 import io.odilon.model.ServiceStatus;
 import io.odilon.model.SharedConstant;
+import io.odilon.model.VersionControl;
 import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
 import io.odilon.virtualFileSystem.DriveInfo;
@@ -280,7 +281,7 @@ public class RAIDOneDriveSync implements Runnable {
 													 * PREVIOUS VERSIONS ---------------------------------------------------------
 													 */
 
-													if (getDriver().getVirtualFileSystemService().getServerSettings().isVersionControl()) {
+													if (getVersionControl()!=VersionControl.DISABLED) {
 
 														for (int version = 0; version < item.getObject().version; version++) {
 															
@@ -375,7 +376,10 @@ public class RAIDOneDriveSync implements Runnable {
 	}
 
 	 
-
+	protected VersionControl getVersionControl() {
+		return getDriver().getVirtualFileSystemService().getVersionControl();
+	}
+	
 	private void updateDrives() {
 		for (Drive drive : getDriver().getDrivesAll()) {
 			if (drive.getDriveInfo().getStatus() == DriveStatus.NOTSYNC) {

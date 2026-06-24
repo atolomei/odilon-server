@@ -38,6 +38,7 @@ import io.odilon.encryption.MasterKeyService;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.OdilonServerInfo;
 import io.odilon.model.RedundancyLevel;
+import io.odilon.model.VersionControl;
 import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
 import io.odilon.monitor.SystemMonitorService;
@@ -287,6 +288,8 @@ public interface VirtualFileSystemService extends SystemService {
     public ExecutorService getExecutorService();
 
 	public BufferPoolService getBufferPoolService();
+
+	public VersionControl getVersionControl();
 
 
 }

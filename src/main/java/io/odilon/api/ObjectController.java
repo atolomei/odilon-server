@@ -48,9 +48,11 @@ import io.odilon.error.OdilonServerAPIException;
 import io.odilon.error.OdilonInternalErrorException;
 import io.odilon.error.OdilonObjectNotFoundException;
 import io.odilon.log.Logger;
+import io.odilon.model.DataStorage;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ObjectStatus;
 import io.odilon.model.SharedConstant;
+import io.odilon.model.VersionControl;
 import io.odilon.monitor.SystemMonitorService;
 import io.odilon.net.ErrorCode;
 import io.odilon.net.ODHttpStatus;
@@ -144,7 +146,7 @@ public class ObjectController extends BaseApiController {
 
 			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
 
-			if (!this.getVirtualFileSystemService().getServerSettings().isVersionControl())
+			if (this.getVirtualFileSystemService().getServerSettings().getVersionControl()==VersionControl.DISABLED)
 				throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Version Control not enabled");
 
 			if (!getObjectStorageService().existsObject(bucketName, objectName))
@@ -341,7 +343,7 @@ public class ObjectController extends BaseApiController {
 
 			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
 
-			if (!this.getVirtualFileSystemService().getServerSettings().isVersionControl())
+			if (this.getVirtualFileSystemService().getServerSettings().getVersionControl()==VersionControl.DISABLED)
 				throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Version Control not enabled");
 
 			if (!getObjectStorageService().existsObject(bucketName, objectName))
@@ -479,7 +481,7 @@ public class ObjectController extends BaseApiController {
 
 			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
 
-			if (!this.getVirtualFileSystemService().getServerSettings().isVersionControl())
+			if (this.getVirtualFileSystemService().getServerSettings().getVersionControl()==VersionControl.DISABLED)
 				throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Version Control not enabled");
 
 			if (!getObjectStorageService().existsObject(bucketName, objectName))
@@ -736,7 +738,7 @@ public class ObjectController extends BaseApiController {
 
 			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
 
-			if (!this.getVirtualFileSystemService().getServerSettings().isVersionControl())
+			if (this.getVirtualFileSystemService().getServerSettings().getVersionControl()==VersionControl.DISABLED)
 				throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Version Control not enabled");
 
 			ObjectMetadata meta = getObjectStorageService().getObjectMetadataPreviousVersion(bucketName, objectName);
@@ -775,8 +777,8 @@ public class ObjectController extends BaseApiController {
 
 			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
 
-			if (!this.getVirtualFileSystemService().getServerSettings().isVersionControl())
-				throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Version Control not enabled");
+			if (this.getVirtualFileSystemService().getServerSettings().getVersionControl()==VersionControl.DISABLED)
+								throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Version Control not enabled");
 
 			ObjectMetadata meta = getObjectStorageService().getObjectMetadataPreviousVersion(bucketName, objectName);
 
@@ -816,9 +818,20 @@ public class ObjectController extends BaseApiController {
 			if (!getObjectStorageService().existsObject(bucketName, objectName))
 				throw new OdilonObjectNotFoundException(String.format("object not found -> b: %s | o:%s", Optional.ofNullable(bucketName).orElse("null"), Optional.ofNullable(objectName).orElse("null")));
 
+			if (getVirtualFileSystemService().getServerSettings().getDataStorage()==DataStorage.READONLY)
+				throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Data Storage is in read only mode, can not delete objects");
+			
+			if (getVirtualFileSystemService().getServerSettings().getDataStorage()==DataStorage.WORM)
+				throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Data Storage is in WORM mode, can not delete objects");
+			
+			if (getVirtualFileSystemService().getServerSettings().getVersionControl()==VersionControl.PROTECTED)
+				throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Version Control is in protected mode, can not delete objects");
+			
+			
 			getObjectStorageService().deleteObject(bucketName, objectName);
 			getSystemMonitorService().getDeleteObjectCounter().inc();
-
+			
+			
 		} catch (OdilonServerAPIException e) {
 			throw e;
 		} catch (Exception e) {
@@ -841,9 +854,20 @@ public class ObjectController extends BaseApiController {
 
 			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
 
-			if (!this.getVirtualFileSystemService().getServerSettings().isVersionControl())
+			
+			if (getVirtualFileSystemService().getServerSettings().getDataStorage()==DataStorage.READONLY)
+				throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Data Storage is in read only mode, can not delete objects");
+		
+			if (getVirtualFileSystemService().getServerSettings().getDataStorage()==DataStorage.WORM)
+				throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Data Storage is in WORM mode, can not delete objects");
+			
+			if (this.getVirtualFileSystemService().getServerSettings().getVersionControl()==VersionControl.DISABLED)
 				throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Version Control not enabled");
 
+			if (this.getVirtualFileSystemService().getServerSettings().getVersionControl()==VersionControl.PROTECTED)
+				throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Version Control is in protected mode, can not delete previous versions");
+
+			
 			getObjectStorageService().deleteObjectAllPreviousVersions(bucketName, objectName);
 			getSystemMonitorService().getObjectDeleteAllVersionsCounter().inc();
 
@@ -871,7 +895,12 @@ public class ObjectController extends BaseApiController {
 
 			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
 
-			if (!this.getVirtualFileSystemService().getServerSettings().isVersionControl())
+			
+			if (getVirtualFileSystemService().getServerSettings().getDataStorage()==DataStorage.READONLY)
+				throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Data Storage is in read only mode, can not delete objects");
+		
+			
+			if (this.getVirtualFileSystemService().getServerSettings().getVersionControl()==VersionControl.DISABLED)
 				throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Version Control not enabled");
 
 			if (!getObjectStorageService().existsObject(bucketName, objectName))
@@ -919,6 +948,7 @@ public class ObjectController extends BaseApiController {
 
 		try {
 
+			
 			logger.debug(
 					"start putObject ->  b. " + bucketName + " o." + objectName + " | f. " + oFileName.orElse("null") + " | contentType. " + (contentType != null ? contentType : " null") + " | public. " + o_isPublic.orElse(Boolean.FALSE));
 

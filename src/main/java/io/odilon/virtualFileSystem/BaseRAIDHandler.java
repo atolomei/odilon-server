@@ -25,6 +25,7 @@ import io.odilon.model.BaseObject;
 import io.odilon.model.BucketMetadata;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.RedundancyLevel;
+import io.odilon.model.VersionControl;
 import io.odilon.replication.ReplicationService;
 import io.odilon.scheduler.SchedulerService;
 import io.odilon.service.ServerSettings;
@@ -82,8 +83,8 @@ public abstract class BaseRAIDHandler extends BaseObject {
 		return bucket.getId().toString() + File.separator + objectName;
 	}
 
-	protected boolean isVersionControl() {
-		return getServerSettings().isVersionControl();
+	protected VersionControl getVersionControl() {
+		return getServerSettings().getVersionControl();
 	}
 
 	/**
