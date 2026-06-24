@@ -35,7 +35,7 @@
 				<li>Data replication using <a href="https://en.wikipedia.org/wiki/Erasure_code" target="_blank">Erasure Coding</a> and <a href="https://en.wikipedia.org/wiki/RAID" target="_blank">software RAID</a>. Tolerates full disk failures</li>
 				<li>Data immutability. Odilon supports two storage modes that protect data from deletion, whether accidental or intentional: Read Only and <a href="https://en.wikipedia.org/wiki/Write_once_read_many" target="_blank">WORM</a> (Write Once Read Many)
 				<li>Master - Standby architecture with async replication over the web, for disaster recovery, high availability, archival, ransomware recovery</li>
-				<li>Version Control</b></li>
+				<li>Version Control</b>. Odilon supports two modes: standard and protected version control, designed for compliance and ransomware protection, where previous versions can not be deleted</li>
 				<li>Integration with Key Management Server <a href="https://www.vaultproject.io/" target="_blank">Hashicorp Vault</a> </li>
 				<li>Disk monitoring for silent and slow data degradation detection (<a href="https://en.wikipedia.org/wiki/Data_degradation" target="_blank" >bit rot detection</a>)</li>
 				<li> Developed in Java, the server requires Java 17+ (uses <a href="https://spring.io/projects/spring-boot">Spring Boot</a>, <a href="https://square.github.io/okhttp/">OkHttp</a>, <a href="https://github.com/FasterXML/jackson">Jackson</a>, <a href="https://github.com/ben-manes/caffeine">Caffeine</a>, <a href="https://metrics.dropwizard.io/4.2.0/">Metrics</a>, among others) </li>
@@ -85,6 +85,20 @@ It is a method of encoding data into blocks that can be distributed across multi
 	
 </ul>
 </p>
+
+
+<h2>Version Control</h2>
+
+<p>Odilon supports two version control modes: standard and protected (see manual page how to configure version control).</p>
+
+<p>The standard mode is the usual version control mode, where updating an object generates a new version, and client applications have the control to delete previous versions.</p>
+
+<p>The protected mode is designed for compliance or ransomware protection; client applications can create new versions of an object but cannot delete previous versions, nor can they delete stored objects.</p>
+
+<p>These three version control configurations (disabled, standard, protected) are complementary to the three Data Storage modes: rw(normal read-write), Read Only for immutable servers, and WORM (Write Once Read Many) where objects can be created and accessed but cannot be updated or deleted..</p>
+
+
+
 
 <h2>Master Standby Architecture</h2>
 <p>Odilon supports Master - Standby Architecture for <b>disaster recovery</b>, <b>high availability</b>, <b>archival</b>, and <b>anti-ransomware</b> protection. Data replication is done asynchronously using HTTP/S over the local network or the Internet. Setting up a standby server is simple, just add the URL and credentials to the master configuration file and restart. 
