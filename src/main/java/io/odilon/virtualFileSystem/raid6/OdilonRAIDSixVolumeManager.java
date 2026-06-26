@@ -71,6 +71,9 @@ public class OdilonRAIDSixVolumeManager {
     /** Which volume receives new-object writes. */
     private volatile int activeVolumeId = 0;
 
+    private List<RAIDSixVolume> raidSixVolume;
+
+    
     public OdilonRAIDSixVolumeManager() {}
 
     // ─── Mutation ──────────────────────────────────────────────────────────────
@@ -88,7 +91,7 @@ public class OdilonRAIDSixVolumeManager {
                     "Volumes must be added in order. Expected volumeId=" + expected
                     + " but received volumeId=" + volume.getVolumeId());
         volumes.add(volume);
-        logger.info("Registered " + volume);
+        logger.info("Registered -> " + volume);
     }
 
     /**
@@ -145,16 +148,28 @@ public class OdilonRAIDSixVolumeManager {
      *       objects written just before a volume transition.</li>
      * </ul>
      */
+    
+    
+     
     public List<RAIDSixVolume> getVolumesInSearchOrder() {
-        List<RAIDSixVolume> order = new ArrayList<>();
-        RAIDSixVolume active = getActiveVolume();
-        order.add(active);
-        new ArrayList<>(volumes).stream()
-                .filter(v -> v.getVolumeId() != activeVolumeId)
-                .sorted(Comparator.comparingInt(RAIDSixVolume::getVolumeId).reversed())
-                .forEach(order::add);
-        return Collections.unmodifiableList(order);
+    	
+    	if (raidSixVolume!=null)
+    		return this.raidSixVolume;
+    	
+    	synchronized (this) {
+  	    	List<RAIDSixVolume> order = new ArrayList<>();
+	        RAIDSixVolume active = getActiveVolume();
+	        order.add(active);
+	        new ArrayList<>(volumes).stream()
+	                .filter(v -> v.getVolumeId() != activeVolumeId)
+	                .sorted(Comparator.comparingInt(RAIDSixVolume::getVolumeId).reversed())
+	                .forEach(order::add);
+	        //return Collections.unmodifiableList(order);
+	        this.raidSixVolume = Collections.unmodifiableList(order);
+    	}
+    	return this.raidSixVolume;
     }
+        
 
     /** Currently active volume id. */
     public int getActiveVolumeId() { return activeVolumeId; }

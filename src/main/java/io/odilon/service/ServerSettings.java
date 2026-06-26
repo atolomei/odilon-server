@@ -422,6 +422,9 @@ public class ServerSettings implements JSONObject {
 		if (rootDirs != null && rootDirs.size() > 0)
 			str.append(rootDirs.stream().map((s) -> "\"" + s + "\"").collect(Collectors.joining(", ")));
 		str.append("]");
+		
+		
+		
 
 		// STAND BY --------------
 

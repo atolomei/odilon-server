@@ -21,7 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
+ 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -223,16 +223,26 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		try {
 			bucketReadLock(bucket);
 			try {
-
-				/** must be executed inside the critical zone */
 				checkExistBucket(bucket);
-
 				checkIsAccesible(bucket);
-				/** RAID 6: read is from any of the drives */
-				Drive readDrive = getObjectMetadataReadDrive(bucket, objectName);
+
+				// ── Resolve owning volume before reading version metadata ─────────────────────
+				// getObjectMetadataReadDrive() for a cache-miss returns a drive from the active
+				// volume. If the object lives on an older (READONLY) volume that drive has no
+				// metadata → NPE / OdilonObjectNotFoundException. Load head meta first (cross-
+				// volume aware) to obtain volumeId, then read the version from the right drive.
+				ObjectMetadata headMeta = getDriverObjectMetadataInternal(bucket, objectName, true);
+				if (headMeta == null || !headMeta.isAccesible())
+					throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
+
+				List<Drive> vDrives = getVolumeForObject(headMeta).getDrives();
+				Drive readDrive = vDrives.get(
+						Double.valueOf(Math.abs(Math.random() * 1000)).intValue() % vDrives.size());
+
 				ObjectMetadata meta = readDrive.getObjectMetadataVersion(bucket, objectName, version);
 				if ((meta == null) || (!meta.isAccesible()))
-					throw new OdilonObjectNotFoundException("object version does not exists for -> b:" + objectInfo(bucket, objectName) + " | v:" + String.valueOf(version));
+					throw new OdilonObjectNotFoundException("object version does not exist -> b:" + objectInfo(bucket, objectName) + " | v:" + version);
+
 				RAIDSixDecoder decoder = new RAIDSixDecoder(this);
 				File file = decoder.decodeVersion(meta, bucket);
 
@@ -297,7 +307,11 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 			}
 
 			readDrive = getObjectMetadataReadDrive(bucket, objectName);
-			metadata = readDrive.getObjectMetadata(bucket, objectName);
+			// ── Use cross-volume metadata lookup ─────────────────────────────────────────
+			// readDrive for a cache-miss may be from the active volume; if the object lives
+			// on an older volume that drive has no metadata → null. Use
+			// getDriverObjectMetadataInternal which searches all volumes.
+			metadata = getDriverObjectMetadataInternal(bucket, objectName, false);
 
 			// --- start of inserted detection-only logic ---
 
@@ -651,26 +665,19 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 
 		List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
-		Drive readDrive = null;
 
 		getLockService().getObjectLock(bucket, objectName).readLock().lock();
-
 		try {
 			bucketReadLock(bucket);
 			try {
-
 				checkIsAccesible(bucket);
 
-				/**
-				 * This check was executed by the VirtualFilySystemService, but it must be
-				 * executed also inside the critical zone.
-				 */
 				if (!existsCacheBucket(bucket.getName()))
 					throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
 
-				/** read is from only 1 drive */
-				readDrive = getObjectMetadataReadDrive(bucket, objectName);
-
+				// ── Cross-volume head metadata lookup ─────────────────────────────────────────
+				// getDriverObjectMetadataInternal() searches active volume first, then archives.
+				// This gives us the correct volumeId so that version reads go to the right drive.
 				ObjectMetadata meta = getDriverObjectMetadataInternal(bucket, objectName, true);
 
 				if ((meta == null) || (!meta.isAccesible()))
@@ -681,23 +688,24 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 				if (meta.getVersion() == 0)
 					return list;
 
+				// Use any drive from the owning volume for version reads
+				List<Drive> vDrives = getVolumeForObject(meta).getDrives();
+				Drive readDrive = vDrives.get(
+						Double.valueOf(Math.abs(Math.random() * 1000)).intValue() % vDrives.size());
+
 				for (int version = 0; version < meta.getVersion(); version++) {
 					ObjectMetadata meta_version = readDrive.getObjectMetadataVersion(bucket, objectName, version);
 					if (meta_version != null) {
-
-						/**
-						 * bucketName is not stored on disk, only bucketId, we must set it explicitly
-						 */
 						meta_version.setBucketName(bucket.getName());
 						list.add(meta_version);
 					}
 				}
 				return list;
+
 			} catch (OdilonObjectNotFoundException e) {
-				e.setErrorMessage((e.getMessage() != null ? (e.getMessage() + " | ") : "") + objectInfo(bucket, objectName) + ", d:" + (Optional.ofNullable(readDrive).isPresent() ? (readDrive.getName()) : "null"));
 				throw e;
 			} catch (Exception e) {
-				throw new InternalCriticalException(e, objectInfo(bucket, objectName) + ", d:" + (Optional.ofNullable(readDrive).isPresent() ? (readDrive.getName()) : "null"));
+				throw new InternalCriticalException(e, objectInfo(bucket, objectName));
 			} finally {
 				bucketReadUnLock(bucket);
 			}
@@ -872,9 +880,9 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 
 		// 1. Cache hit
 		if (getServerSettings().isUseObjectCache() && getObjectMetadataCacheService().containsKey(bucket, objectName)) {
-			getSystemMonitorService().getCacheObjectHitCounter().inc();
 			ObjectMetadata cached = getObjectMetadataCacheService().get(bucket, objectName);
 			cached.setBucketName(bucket.getName());
+			getSystemMonitorService().getCacheObjectHitCounter().inc();
 			return cached;
 		}
 
@@ -902,23 +910,31 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullStringArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
-		Drive readDrive = null;
 
 		objectReadLock(bucket, objectName);
 		try {
-
 			bucketReadLock(bucket);
 			try {
-
 				checkIsAccesible(bucket);
-
-				/** read is from only 1 drive */
-				readDrive = getObjectMetadataReadDrive(bucket, objectName);
 
 				ObjectMetadata meta;
 
 				if (o_version.isPresent()) {
-					meta = readDrive.getObjectMetadataVersion(bucket, objectName, o_version.get());
+					// ── Version read: first resolve the owning volume via cross-volume search ──
+					// getObjectMetadataReadDrive() for a cache-miss returns a random drive from the
+					// ACTIVE volume, which is wrong when the object lives on an older (READONLY)
+					// volume. Load the head metadata (cross-volume aware) to get volumeId, then
+					// read the version from a drive that actually has it.
+					ObjectMetadata headMeta = getDriverObjectMetadataInternal(bucket, objectName, true);
+					if (headMeta == null || !headMeta.isAccesible())
+						throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
+
+					// Pick any drive from the owning volume
+					List<Drive> vDrives = getVolumeForObject(headMeta).getDrives();
+					Drive vDrive = vDrives.get(
+							Double.valueOf(Math.abs(Math.random() * 1000)).intValue() % vDrives.size());
+
+					meta = vDrive.getObjectMetadataVersion(bucket, objectName, o_version.get());
 				} else {
 					meta = getDriverObjectMetadataInternal(bucket, objectName, addToCacheifMiss);
 				}
@@ -931,7 +947,6 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 
 			} catch (InternalCriticalException e) {
 				throw e;
-
 			} catch (Exception e) {
 				throw new InternalCriticalException(e, objectInfo(bucket, objectName) + (o_version.isPresent() ? (", v:" + String.valueOf(o_version.get())) : ""));
 			} finally {

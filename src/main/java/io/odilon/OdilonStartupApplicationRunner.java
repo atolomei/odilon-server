@@ -21,7 +21,7 @@ import java.io.File;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
- 
+import java.util.List;
 import java.util.Locale;
  
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,7 +38,7 @@ import io.odilon.model.OdilonServerInfo;
 import io.odilon.model.RedundancyLevel;
 import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
-import io.odilon.model.VersionControl;
+ 
 import io.odilon.replication.ReplicationService;
 import io.odilon.scheduler.CronJobDataIntegrityCheckRequest;
 import io.odilon.scheduler.CronJobWorkDirCleanUpRequest;
@@ -47,7 +47,9 @@ import io.odilon.scheduler.SchedulerService;
 import io.odilon.security.VaultService;
 import io.odilon.service.ObjectStorageService;
 import io.odilon.service.ServerSettings;
+import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
+import io.odilon.virtualFileSystem.raid6.RAIDSixVolume;
 
 /**
  * <p>
@@ -201,10 +203,22 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 			startupLogger.info("Data Storage redundancy level -> " + settingsService.getRedundancyLevel().getName()
 					+ " [data:" + String.valueOf(settingsService.getRAID6DataDrives()) + ", parity:"
 					+ String.valueOf(settingsService.getRAID6ParityDrives()) + "]");
-		} else
+
+			List<RAIDSixVolume> vols=  getAppContext().getBean(VirtualFileSystemService.class).getVolumeManager().getAllVolumes();
+			for (RAIDSixVolume vol : vols) {
+				startupLogger.info("Volume: " + String. valueOf( vol.getVolumeId() ) + " | " + (vol.isActive()?"active":"read-only"));
+				for (Drive d : vol.getDrives()) {
+					startupLogger.info("Volume: " + String.valueOf( vol.getVolumeId() ) + " | Drive: " + d.getName() + " | rootDir: " + d.getRootDirPath());
+				}
+			}
+			
+		
+		} else {
 			startupLogger.info("Data Storage redundancy level -> " + settingsService.getRedundancyLevel().getName());
-		getAppContext().getBean(VirtualFileSystemService.class).getMapDrivesEnabled()
+		
+			getAppContext().getBean(VirtualFileSystemService.class).getMapDrivesEnabled()
 				.forEach((k, v) -> startupLogger.info("Drive: " + k + " | rootDir: " + v.getRootDirPath()));
+		}
 		return true;
 	}
 
