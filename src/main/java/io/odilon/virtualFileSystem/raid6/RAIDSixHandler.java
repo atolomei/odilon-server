@@ -92,17 +92,26 @@ public abstract class RAIDSixHandler extends BaseRAIDHandler implements RAIDHand
 	}
 
 	/**
-	 * This check must be executed inside the critical section
+	 * This check must be executed inside the critical section.
+	 * Uses the driver's volume-aware cross-volume search so that objects on any
+	 * volume are correctly detected.
 	 */
 	protected boolean existsObjectMetadata(ServerBucket bucket, String objectName) {
 		if (existsCacheObject(bucket, objectName))
 			return true;
-		return getDriver().getObjectMetadataReadDrive(bucket, objectName).existsObjectMetadata(bucket, objectName);
+		// delegate to the volume-aware override in RAIDSixDriver
+		return getDriver().getDriverObjectMetadataInternal(bucket, objectName, false) != null;
 	}
 
+	/**
+	 * Returns a random drive from the active volume (used only when the owning
+	 * volume is not yet known). The authoritative lookup is done inside
+	 * {@link RAIDSixDriver#getDriverObjectMetadataInternal}.
+	 */
 	@Override
 	protected Drive getObjectMetadataReadDrive(ServerBucket bucket, String objectName) {
-		return getDriver().getDrivesEnabled().get(Math.abs(getKey(bucket, objectName).hashCode()) % getDriver().getDrivesEnabled().size());
+		List<Drive> activeDrives = getDriver().getActiveVolume().getDrives();
+		return activeDrives.get(Math.abs(getKey(bucket, objectName).hashCode()) % activeDrives.size());
 	}
 
 	protected void saveRAIDSixObjectMetadataToDisk(final List<Drive> drives, final List<ObjectMetadata> list, final boolean isHead) {
@@ -162,6 +171,9 @@ public abstract class RAIDSixHandler extends BaseRAIDHandler implements RAIDHand
 				if (!it.next().get())
 					throw new InternalCriticalException(ObjectMetadata.class.getSimpleName());
 			}
+			
+			logger.debug("RAID 6 | save metadata to disk | drives: " + String.valueOf(size) + " | head: " + String.valueOf(isHead));
+			
 		} catch (InterruptedException | ExecutionException e) {
 			throw new InternalCriticalException(e, ObjectMetadata.class.getSimpleName());
 		}

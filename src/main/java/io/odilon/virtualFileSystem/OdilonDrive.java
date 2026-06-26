@@ -1129,6 +1129,7 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 
 		} catch (Exception e) {
 			setStatus(ServiceStatus.STOPPED);
+			logger.error(e, SharedConstant.NOT_THROWN);
 			throw new InternalCriticalException(e, "Drive Startup | d:" + getName());
 		}
 
@@ -1200,6 +1201,7 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 
 		} catch (IOException e) {
 			String msg = "Can not create work Directory ->  dir:" + getWorkDirPath() + "  d:" + name;
+			logger.error(e, msg, SharedConstant.NOT_THROWN);
 			throw new InternalCriticalException(e, msg);
 		}
 	}
@@ -1212,6 +1214,7 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 
 		} catch (IOException e) {
 			String msg = "Can not create cache Directory ->  dir:" + getCacheDirPath() + "  d:" + name;
+			logger.error(e, msg, SharedConstant.NOT_THROWN);
 			throw new InternalCriticalException(e, msg);
 		}
 	}
@@ -1223,6 +1226,7 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 
 		} catch (IOException e) {
 			String msg = "Can not create scheduler Directory ->  dir:" + getSchedulerDirPath() + "  d:" + name;
+			logger.error(e, msg, SharedConstant.NOT_THROWN);
 			throw new InternalCriticalException(e, msg);
 		}
 	}
@@ -1234,6 +1238,7 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 
 		} catch (IOException e) {
 			String msg = "Can not create Buckets Metadata Directory ->  dir:" + getBucketsDirPath() + "  d:" + name;
+			logger.error(e, msg, SharedConstant.NOT_THROWN);
 			throw new InternalCriticalException(e, msg);
 		}
 	}
@@ -1246,6 +1251,7 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 
 		} catch (IOException e) {
 			String msg = "Can not create Journal Directory ->  dir:" + getJournalDirPath() + "  d:" + name;
+			logger.error(e, msg, SharedConstant.NOT_THROWN);
 			throw new InternalCriticalException(e, msg);
 
 		}
@@ -1258,6 +1264,7 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 
 		} catch (IOException e) {
 			String msg = "Can not create temp Directory ->  dir:" + getTempDirPath() + "  d:" + name;
+			logger.error(e, msg, SharedConstant.NOT_THROWN);
 			throw new InternalCriticalException(e, msg);
 		}
 	}
@@ -1269,6 +1276,7 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 		try {
 			stream = Files.walk(start, 1).skip(1).filter(file -> Files.isDirectory(file));
 		} catch (IOException e) {
+			logger.error(e, SharedConstant.NOT_THROWN);
 			throw new InternalCriticalException(e, "checkWorkBucketDirs");
 		}
 
@@ -1299,6 +1307,7 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 					try {
 						io.odilon.util.OdilonFileUtils.forceMkdir(cacheDir);
 					} catch (IOException e) {
+						logger.error(e, SharedConstant.NOT_THROWN);
 						throw new InternalCriticalException(e, "Can not create -> " + cacheDir.getName());
 					}
 				}
@@ -1330,6 +1339,7 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 					try {
 						io.odilon.util.OdilonFileUtils.forceMkdir(new File(version));
 					} catch (IOException e) {
+						logger.error(e, SharedConstant.NOT_THROWN);
 						throw new InternalCriticalException(e, "Can not create -> " + version);
 					}
 				}
@@ -1362,6 +1372,7 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 					}
 				});
 			} catch (IOException e) {
+				logger.error(e, SharedConstant.NOT_THROWN);
 				throw new InternalCriticalException(e, "loadbuckets");
 			}
 		} finally {
@@ -1377,11 +1388,12 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 		return this.getWorkDirPath() + File.separator + id.toString();
 	}
 
-	private File getObjectMetadataFileById(Long bucketId, String objectName) {
-		ObjectPath path = new ObjectPath(this, bucketId, objectName);
-		return path.existingMetadataFilePath().toFile();
-	}
+	//private File getObjectMetadataFileById(Long bucketId, String objectName) {
+	//	ObjectPath path = new ObjectPath(this, bucketId, objectName);
+	//	return path.existingMetadataFilePath().toFile();
+	//}
 
+	
 	private String getBucketMetadataDirPathById(Long id) {
 		return this.getBucketsDirPath() + File.separator + id.toString();
 	}
@@ -1399,8 +1411,14 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 			File encFile = path.metadataFileEncPath().toFile();
 			if (encFile.exists())
 				return readObjectMetadataFromFile(encFile);
+			
+			if (!path.metadataFilePath().toFile().exists())
+				return null;
+			
 			return getObjectMapper().readValue(path.metadataFilePath().toFile(), ObjectMetadata.class);
+			
 		} catch (Exception e) {
+			logger.error(e, SharedConstant.NOT_THROWN);
 			throw new InternalCriticalException(e);
 		}
 	}
@@ -1419,17 +1437,17 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 		return getObjectMapper().readValue(file, ObjectMetadata.class);
 	}
 
-	private String getObjectMetadataFilePathById(Long bucketId, String objectName) {
-		return getObjectMetadataDirPathById(bucketId, objectName) + File.separator + objectName + ServerConstant.JSON;
-	}
+	//private String getObjectMetadataFilePathById(Long bucketId, String objectName) {
+	//	return getObjectMetadataDirPathById(bucketId, objectName) + File.separator + objectName + ServerConstant.JSON;
+	//}
 
 	private String getObjectMetadataVersionFilePath(ServerBucket bucket, String objectName, int version) {
 		return getObjectMetadataDirPath(bucket, objectName) + File.separator + objectName + VirtualFileSystemService.VERSION_EXTENSION + String.valueOf(version) + ServerConstant.JSON;
 	}
 
-	private String getObjectMetadataVersionFilePathById(Long bucketId, String objectName, int version) {
-		return getObjectMetadataDirPathById(bucketId, objectName) + File.separator + objectName + VirtualFileSystemService.VERSION_EXTENSION + String.valueOf(version) + ServerConstant.JSON;
-	}
+	//private String getObjectMetadataVersionFilePathById(Long bucketId, String objectName, int version) {
+	//	return getObjectMetadataDirPathById(bucketId, objectName) + File.separator + objectName + VirtualFileSystemService.VERSION_EXTENSION + String.valueOf(version) + ServerConstant.JSON;
+	//}
 
 	/**
 	 * @param bucketName
@@ -1448,6 +1466,7 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 		try {
 			transferTo(stream, this.getBucketMetadataDirPath(bucket) + File.separator + objectName + File.separator + objectName + ServerConstant.JSON);
 		} catch (Exception e) {
+			logger.error(e, SharedConstant.NOT_THROWN);
 			throw new InternalCriticalException(e, objectInfo(bucket, objectName));
 		}
 	}
@@ -1461,6 +1480,7 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 			Files.writeString(Paths.get(getSysDirPath() + File.separator + VirtualFileSystemService.DRIVE_INFO), jsonString);
 
 		} catch (Exception e) {
+			logger.error(e, SharedConstant.NOT_THROWN);
 			throw new InternalCriticalException(e, "json:" + (Optional.ofNullable(jsonString).isPresent() ? jsonString : "null"));
 		}
 	}
@@ -1480,6 +1500,7 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 			// return getObjectMapper().readValue(file, DriveInfo.class);
 
 		} catch (Exception e) {
+			logger.error(e, SharedConstant.NOT_THROWN);
 			throw new InternalCriticalException(e, "f:" + (Optional.ofNullable(file).isPresent() ? file.getName() : "null"));
 		}
 	}

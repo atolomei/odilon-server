@@ -123,7 +123,9 @@ public class RAIDSixRollbackUpdateHandler extends RAIDSixRollbackHandler {
 			boolean success = true;
 			ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
 			ObjectMetadata versionMeta = getDriver().getObjectMetadataVersion(bucket, getOperation().getObjectName(), getOperation().getVersion());
-			for (Drive drive : getDriver().getDrivesAll()) {
+			// Restore only on the drives of the volume that owns this object
+			List<Drive> drives = getDriver().getVolumeForObject(versionMeta).getDrives();
+			for (Drive drive : drives) {
 				versionMeta.setDrive(drive.getName());
 				drive.saveObjectMetadata(versionMeta);
 			}

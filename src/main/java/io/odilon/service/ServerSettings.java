@@ -19,6 +19,7 @@ package io.odilon.service;
 import java.io.File;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -32,9 +33,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
+import org.springframework.core.env.Environment;
 
 import io.odilon.OdilonVersion;
 import io.odilon.encryption.EncryptionService;
+import io.odilon.model.RAID6Config;
 import io.odilon.log.Logger;
 import io.odilon.model.JSONObject;
 import io.odilon.model.DataStorage;
@@ -175,18 +178,56 @@ public class ServerSettings implements JSONObject {
 	@Value("${redundancyLevel:null}")
 	protected String redundancyLevelStr;
 
-	@Value("#{'${dataStorage}'.split(',')}")
+	/**
+	 * Legacy flat drive list.  Used by RAID 0, RAID 1 and as a backward-compatible
+	 * fallback for RAID 6.  For new RAID 6 deployments use
+	 * {@code dataStorage.volume.N=} instead.
+	 * Default is empty so the property is optional when the per-volume syntax is used.
+	 */
+	@Value("#{'${dataStorage:}'.split(',')}")
 	private List<String> rootDirs;
 
-	@Value("${raid6.dataDrives:-1}")
-	protected int raid6DataDrives;
+	/**
+	 * Per-volume ordered drive lists, populated from
+	 * {@code dataStorage.volume.0=...}, {@code dataStorage.volume.1=...}, etc.
+	 * Empty for RAID 0 / RAID 1 and for legacy RAID 6 deployments.
+	 */
+	private List<List<String>> volumeRootDirs = new ArrayList<>();
 
-	@Value("${raid6.parityDrives:-1}")
-	protected int raid6ParityDrives;
+	/**
+	 * Data shards per volume — derived from {@link RAID6Config}, never user-configured.
+	 */
+	protected int raid6DataDrives = -1;
+
+	/**
+	 * Parity shards per volume — derived from {@link RAID6Config}, never user-configured.
+	 */
+	protected int raid6ParityDrives = -1;
+
+	/**
+	 * Number of volumes — derived from the number of {@code dataStorage.volume.*}
+	 * keys (new style) or from the legacy {@code raid6.volumes} property.
+	 */
+	protected int raid6Volumes = 1;
+
+	@Autowired
+	private Environment environment;
 
 	@Value("${dataStorageMode:rw}")
 	protected String dataStorageMode;
 	/** readwrite, readonly, WORM */
+
+	/**
+	 * <p>
+	 * The 0-based id of the RAID 6 volume that receives new-object writes.
+	 * </p>
+	 * <p>
+	 * Controlled by the {@code volume.active} property in
+	 * {@code odilon.properties} (default: {@code 0}).
+	 * </p>
+	 */
+	@Value("${volume.active:0}")
+	protected int activeVolumeId;
 
 	private DataStorage dataStorage;
 
@@ -440,6 +481,42 @@ public class ServerSettings implements JSONObject {
 		return raid6DataDrives;
 	}
 
+	/**
+	 * Returns the number of RAID 6 volumes, derived at startup from the number of
+	 * {@code dataStorage.volume.N} keys (new style) or {@code 1} for legacy
+	 * {@code dataStorage=} deployments.
+	 */
+	public int getRAID6Volumes() {
+		return raid6Volumes;
+	}
+
+	/**
+	 * <p>
+	 * Returns the ordered per-volume drive-directory lists.
+	 * </p>
+	 * <p>
+	 * {@code get(v)} is the ordered list of root-directory paths for volume {@code v},
+	 * matching the order in {@code dataStorage.volume.v=}. The position inside the
+	 * list equals the <em>volume-local shard index</em> used in RS-encoded file names.
+	 * </p>
+	 * <p>
+	 * For legacy {@code dataStorage=} deployments this returns a single-entry list
+	 * (volume 0 only).
+	 * </p>
+	 */
+	public List<List<String>> getVolumeRootDirs() {
+		return volumeRootDirs;
+	}
+
+	/**
+	 * Returns the 0-based id of the RAID 6 volume that currently receives new
+	 * object writes. Controlled by {@code volume.active} in
+	 * {@code odilon.properties} (default: {@code 0}).
+	 */
+	public int getActiveVolumeId() {
+		return activeVolumeId;
+	}
+
 	public Map<String, Object> toMap() {
 
 		Map<String, Object> map = new TreeMap<String, Object>();
@@ -614,19 +691,24 @@ public class ServerSettings implements JSONObject {
 
 		this.redundancyLevel = RedundancyLevel.get(redundancyLevelStr);
 
-		List<String> dirs = new ArrayList<String>();
+		// Normalise flat rootDirs for RAID 0, RAID 1 and legacy RAID 6.
+		// For new-style RAID 6 (dataStorage.volume.N=) rootDirs starts empty;
+		// the RAID 6 block below will build it from volumeRootDirs.
+		boolean isNewStyleRAID6 = (this.redundancyLevel == RedundancyLevel.RAID_6)
+				&& environment.containsProperty("dataStorage.volume.0");
 
-		if (isWindows())
-			this.rootDirs.forEach(item -> dirs.add(item.replace("/", File.separator).replace("\\", File.separator).replaceAll("[?;<>|]", "").trim()));
-		else
-			this.rootDirs.forEach(item -> dirs.add(item.replace("/", File.separator).replace("\\", File.separator).replaceAll("[?;<>|]", "").trim()));
-
-		this.rootDirs = dirs.stream().distinct().collect(Collectors.toList());
-
-		if (this.rootDirs.size() != dirs.size())
-			exit("DataStorage can not have duplicate entries -> " + dirs.toString());
-
-		this.rootDirs = dirs;
+		if (!isNewStyleRAID6) {
+			List<String> dirs = new ArrayList<String>();
+			this.rootDirs.forEach(item -> dirs.add(
+					item.replace("/", File.separator)
+					    .replace("\\", File.separator)
+					    .replaceAll("[?;<>|]", "")
+					    .trim()));
+			List<String> unique = dirs.stream().filter(s -> !s.isEmpty()).distinct().collect(Collectors.toList());
+			if (unique.size() != dirs.stream().filter(s -> !s.isEmpty()).count())
+				exit("DataStorage can not have duplicate entries -> " + dirs.toString());
+			this.rootDirs = unique;
+		}
 
 		this.o_vaultUrl = Optional.ofNullable(this.vaultUrl);
 
@@ -639,47 +721,113 @@ public class ServerSettings implements JSONObject {
 		if (this.redundancyLevel == RedundancyLevel.RAID_1) {
 			if (this.rootDirs.size() <= 1)
 				exit("DataStorage must have at least 2 entries for -> " + redundancyLevel.getName() + " | dataStorage=" + rootDirs.toString() + " | you must use " + RedundancyLevel.RAID_0.getName() + "for only one mount directory");
+
 		} else if (this.redundancyLevel == RedundancyLevel.RAID_6) {
 
-			if (!((this.rootDirs.size() == 3) || (this.rootDirs.size() == 6) || (this.rootDirs.size() == 12) || (this.rootDirs.size() == 24) || (this.rootDirs.size() == 48))) {
-				exit("DataStorage must have 3, 6, 12, 24, 48 entries for -> " + redundancyLevel.getName() + " | value provided -> " + String.valueOf(this.rootDirs.size()));
+			// ── Detect configuration style ────────────────────────────────────────────
+			//
+			// NEW style:  dataStorage.volume.0=dir1,dir2,dir3
+			//             dataStorage.volume.1=dir4,dir5,dir6
+			//             volume.active=1
+			//             (raid6.dataDrives and raid6.parityDrives are NOT needed)
+			//
+			// LEGACY fallback:  dataStorage=dir1,dir2,...,dirN
+			//                   (single volume, backward compatible)
+
+			boolean newStyle = environment.containsProperty("dataStorage.volume.0");
+
+			if (newStyle) {
+				// ── New per-volume style ───────────────────────────────────────────────
+				this.volumeRootDirs = new ArrayList<>();
+				int v = 0;
+				while (environment.containsProperty("dataStorage.volume." + v)) {
+					String raw = environment.getProperty("dataStorage.volume." + v, "");
+					List<String> vDirs = new ArrayList<>();
+					for (String d : raw.split(",")) {
+						String trimmed = d.replace("/", File.separator)
+								          .replace("\\", File.separator)
+								          .replaceAll("[?;<>|]", "")
+								          .trim();
+						if (!trimmed.isEmpty())
+							vDirs.add(trimmed);
+					}
+					if (vDirs.isEmpty())
+						exit("dataStorage.volume." + v + " has no drive entries.");
+
+					// All volumes must have the same drive count
+					if (v > 0 && vDirs.size() != this.volumeRootDirs.get(0).size())
+						exit("dataStorage.volume." + v + " has " + vDirs.size()
+								+ " drives but volume 0 has " + this.volumeRootDirs.get(0).size()
+								+ ". All volumes must have the same number of drives.");
+
+					this.volumeRootDirs.add(vDirs);
+					v++;
+				}
+
+				if (this.volumeRootDirs.isEmpty())
+					exit("No dataStorage.volume.N entries found despite dataStorage.volume.0 being present.");
+
+				int drivesPerVol = this.volumeRootDirs.get(0).size();
+				this.raid6Volumes = this.volumeRootDirs.size();
+
+				// Derive data/parity from drive count — no user config needed
+				try {
+					RAID6Config cfg = RAID6Config.fromDriveCount(drivesPerVol);
+					this.raid6DataDrives   = cfg.dataDrives;
+					this.raid6ParityDrives = cfg.parityDrives;
+					startuplogger.info("RAID 6: " + this.raid6Volumes + " volume(s), "
+							+ drivesPerVol + " drives/volume -> " + cfg);
+				} catch (IllegalArgumentException e) {
+					exit("dataStorage.volume.0 has " + drivesPerVol + " drives. "
+							+ "Supported drives per volume: " + RAID6Config.supportedCounts() + ".");
+				}
+
+				// Build flat rootDirs from the per-volume lists (used by loadDrives)
+				this.rootDirs = new ArrayList<>();
+				for (List<String> vd : this.volumeRootDirs)
+					this.rootDirs.addAll(vd);
+
+			} else {
+				// ── Legacy flat dataStorage style ─────────────────────────────────────
+				// Single volume only.  Emit a deprecation warning.
+				startuplogger.warn("RAID 6: using legacy 'dataStorage=' syntax (single volume). "
+						+ "For multi-volume deployments use 'dataStorage.volume.N=' instead.");
+
+				// Remove empty entries that result from the default empty split
+				this.rootDirs = this.rootDirs.stream()
+						.map(s -> s.replace("/", File.separator)
+								   .replace("\\", File.separator)
+								   .replaceAll("[?;<>|]", "")
+								   .trim())
+						.filter(s -> !s.isEmpty())
+						.distinct()
+						.collect(Collectors.toList());
+
+				if (this.rootDirs.isEmpty())
+					exit("redundancyLevel=RAID 6 requires at least one drive in 'dataStorage' or 'dataStorage.volume.0'.");
+
+				int drivesPerVol = this.rootDirs.size();
+				this.raid6Volumes = 1;
+
+				try {
+					RAID6Config cfg = RAID6Config.fromDriveCount(drivesPerVol);
+					this.raid6DataDrives   = cfg.dataDrives;
+					this.raid6ParityDrives = cfg.parityDrives;
+				} catch (IllegalArgumentException e) {
+					exit("dataStorage has " + drivesPerVol + " drives. "
+							+ "Supported drives per volume: " + RAID6Config.supportedCounts() + ".");
+				}
+
+				// Wrap in single-volume list for uniform access
+				this.volumeRootDirs = new ArrayList<>();
+				this.volumeRootDirs.add(new ArrayList<>(this.rootDirs));
 			}
 
-			if (this.rootDirs.size() == 3) {
-				if (this.raid6DataDrives == -1)
-					this.raid6DataDrives = 2;
-				if (this.raid6ParityDrives == -1)
-					this.raid6ParityDrives = 1;
-			} else if (this.rootDirs.size() == 6) {
-				if (this.raid6DataDrives == -1)
-					this.raid6DataDrives = 4;
-				if (this.raid6ParityDrives == -1)
-					this.raid6ParityDrives = 2;
-			} else if (this.rootDirs.size() == 12) {
-				if (this.raid6DataDrives == -1)
-					this.raid6DataDrives = 8;
-				if (this.raid6ParityDrives == -1)
-					this.raid6ParityDrives = 4;
-			} else if (this.rootDirs.size() == 24) {
-				if (this.raid6DataDrives == -1)
-					this.raid6DataDrives = 16;
-				if (this.raid6ParityDrives == -1)
-					this.raid6ParityDrives = 8;
-			}
-
-			else if (this.rootDirs.size() == 48) {
-				if (this.raid6DataDrives == -1)
-					this.raid6DataDrives = 32;
-				if (this.raid6ParityDrives == -1)
-					this.raid6ParityDrives = 16;
-			}
-
-			if (!(((this.rootDirs.size() == 3) && (this.raid6DataDrives == 2) && (this.raid6ParityDrives == 1)) || ((this.rootDirs.size() == 6) && (this.raid6DataDrives == 4) && (this.raid6ParityDrives == 2))
-					|| ((this.rootDirs.size() == 12) && (this.raid6DataDrives == 8) && (this.raid6ParityDrives == 4)) || ((this.rootDirs.size() == 24) && (this.raid6DataDrives == 16) && (this.raid6ParityDrives == 8))
-					|| ((this.rootDirs.size() == 48) && (this.raid6DataDrives == 32) && (this.raid6ParityDrives == 16)))) {
-				exit(RedundancyLevel.RAID_6.getName() + " configurations supported are -> " + " 3 dirs in DataStorage and raid6.dataDrives=2 and raid6.parityDrives=1  | "
-						+ " 6 dirs in DataStorage and raid6.dataDrives=4 and raid6.parityDrives=2  | " + "12 dirs in DataStorage and raid6.dataDrives=8 and raid6.parityDrives=4  | "
-						+ "24 dirs in DataStorage and raid6.dataDrives=16 and raid6.parityDrives=8 |  " + "48 dirs in DataStorage and raid6.dataDrives=32 and raid6.parityDrives=16 ");
+			// ── Validate volume.active is in range ────────────────────────────────────
+			if (this.activeVolumeId < 0 || this.activeVolumeId >= this.raid6Volumes) {
+				exit("volume.active=" + this.activeVolumeId
+						+ " is out of range. Total volumes=" + this.raid6Volumes
+						+ " (valid range: 0.." + (this.raid6Volumes - 1) + ")");
 			}
 		}
 		try {

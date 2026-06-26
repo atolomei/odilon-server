@@ -93,12 +93,25 @@ public class RAIDSixEncoder extends RAIDSixCoder {
 	 */
 	protected RAIDSixEncoder(RAIDSixDriver driver, List<Drive> udrives) {
 		super(driver);
-		this.r6Drives = (udrives != null) ? udrives : driver.getDrivesAll();
+		// When no explicit drive list is given, use the active volume's drive list
+		// so that new objects are always written to the currently-active volume.
+		// If the VolumeManager is unavailable (e.g. during drive-sync bootstrap)
+		// we fall back to the global drivesAll list.
+		if (udrives != null) {
+			this.r6Drives = udrives;
+		} else {
+			try {
+				RAIDSixVolume activeVolume = driver.getActiveVolume();
+				this.r6Drives = activeVolume.getDrives();
+			} catch (Exception e) {
+				// fallback: volume manager not yet initialized (e.g. drive sync bootstrap)
+				this.r6Drives = driver.getDrivesAll();
+			}
+		}
 		this.data_shards = getVirtualFileSystemService().getServerSettings().getRAID6DataDrives();
 		this.partiy_shards = getVirtualFileSystemService().getServerSettings().getRAID6ParityDrives();
 		this.total_shards = data_shards + partiy_shards;
 		this.reedSolomon = new ReedSolomon(getDataShards(), getPartityShards());
-
 	}
 
 	/**

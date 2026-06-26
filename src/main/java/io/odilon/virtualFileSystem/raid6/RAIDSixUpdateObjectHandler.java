@@ -361,7 +361,8 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionObjectHandler 
 
 			String objectName = metaHeadRemoved.getObjectName();
 
-			for (Drive drive : getDriver().getDrivesAll()) {
+			// Only touch drives on the volume that owns this object
+			for (Drive drive : getDriver().getVolumeForObject(metaHeadRemoved).getDrives()) {
 				FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(bucket, objectName, versionDiscarded));
 				FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(bucket, objectName, metaNewHeadRestored.getVersion()));
 			}
@@ -387,7 +388,12 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionObjectHandler 
 	 */
 	private void backupVersionObjectMetadata(ServerBucket bucket, String objectName, int version) {
 		try {
-			for (Drive drive : getDriver().getDrivesAll()) {
+			// Resolve the owning volume via cross-volume search (object exists on disk)
+			ObjectMetadata currentMeta = getDriver().getDriverObjectMetadataInternal(bucket, objectName, false);
+			List<Drive> drives = (currentMeta != null)
+					? getDriver().getVolumeForObject(currentMeta).getDrives()
+					: getDriver().getActiveVolume().getDrives();
+			for (Drive drive : drives) {
 				if (drive.getObjectMetadataFile(bucket, objectName).exists()) {
 					ObjectMetadata meta = drive.getObjectMetadata(bucket, objectName);
 					meta.setVersion(version);
@@ -458,41 +464,51 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionObjectHandler 
 
 		OffsetDateTime versionCreationDate = OffsetDateTime.now();
 
+		// ── Write metadata to the ACTIVE volume's drives ──────────────────────────
+		// The encoder (RAIDSixEncoder) always writes new data shards to the active
+		// volume. Metadata must follow those shards, so we write it to the same set
+		// of drives. This means an updated object migrates to the active volume;
+		// the previous version's metadata backup stays on the old volume's drives.
+		final RAIDSixVolume activeVolume = getDriver().getActiveVolume();
+		final List<Drive> drives = activeVolume.getDrives();
 		final List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
-		for (Drive drive : getDriver().getDrivesAll()) {
+
+		for (Drive drive : drives) {
 
 			try {
-				ObjectMetadata meta = new ObjectMetadata(bucket.getId(), objectName);
-				meta.setFileName(srcFileName);
-				meta.setAppVersion(OdilonVersion.VERSION);
-				meta.setContentType(contentType);
-				meta.setCreationDate(headCreationDate);
-				meta.setVersion(version);
-				meta.setVersioncreationDate(versionCreationDate);
+				ObjectMetadata newMeta = new ObjectMetadata(bucket.getId(), objectName);
+				newMeta.setFileName(srcFileName);
+				newMeta.setAppVersion(OdilonVersion.VERSION);
+				newMeta.setContentType(contentType);
+				newMeta.setCreationDate(headCreationDate);
+				newMeta.setVersion(version);
+				newMeta.setVersioncreationDate(versionCreationDate);
 
-				meta.setLength(ei.getFileSize());
-				meta.setSourceLength(ei.getSrcFileSize());
+				newMeta.setLength(ei.getFileSize());
+				newMeta.setSourceLength(ei.getSrcFileSize());
 
-				meta.setTotalBlocks(ei.getEncodedBlocks().size());
-				meta.setSha256Blocks(shaBlocks);
-				meta.setEtag(etag);
-				meta.setEncrypt(getVirtualFileSystemService().isEncrypt());
-				meta.setIntegrityCheck(meta.getCreationDate());
-				meta.setStatus(ObjectStatus.ENABLED);
-				meta.setDrive(drive.getName());
-				meta.setPublicAccess(o_public.orElse(Boolean.FALSE));
-				meta.setRaid(String.valueOf(getRedundancyLevel().getCode()).trim());
-				meta.setRaidDrives(getDriver().getTotalDisks());
+				newMeta.setTotalBlocks(ei.getEncodedBlocks().size());
+				newMeta.setSha256Blocks(shaBlocks);
+				newMeta.setEtag(etag);
+				newMeta.setEncrypt(getVirtualFileSystemService().isEncrypt());
+				newMeta.setIntegrityCheck(newMeta.getCreationDate());
+				newMeta.setStatus(ObjectStatus.ENABLED);
+				newMeta.setDrive(drive.getName());
+				newMeta.setPublicAccess(o_public.orElse(Boolean.FALSE));
+				newMeta.setRaid(String.valueOf(getRedundancyLevel().getCode()).trim());
+				newMeta.setRaidDrives(activeVolume.getTotalShards());
+				// The updated object now lives on the active volume.
+				newMeta.setVolumeId(activeVolume.getVolumeId());
 				if (customTags.isPresent())
-					meta.setCustomTags(customTags.get());
-				list.add(meta);
+					newMeta.setCustomTags(customTags.get());
+				list.add(newMeta);
 
 			} catch (Exception e) {
 				throw new InternalCriticalException(e, objectInfo(bucket, objectName));
 			}
 		}
 
-		saveRAIDSixObjectMetadataToDisk(getDriver().getDrivesAll(), list, true);
+		saveRAIDSixObjectMetadataToDisk(drives, list, true);
 	}
 
 	/**
@@ -576,7 +592,8 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionObjectHandler 
 	 */
 	private void backup(ObjectMetadata meta, ServerBucket bucket) {
 		try {
-			for (Drive drive : getDriver().getDrivesAll()) {
+			// Backup only from the drives that actually hold this object's metadata
+			for (Drive drive : getDriver().getVolumeForObject(meta).getDrives()) {
 				File src = new File(drive.getObjectMetadataDirPath(bucket, meta.getObjectName()));
 				if (src.exists()) {
 					File dest = new File(drive.getBucketWorkDirPath(bucket) + File.separator + meta.getObjectName());
@@ -598,7 +615,8 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionObjectHandler 
 	 */
 	private void cleanUpBackupMetadataDir(ServerBucket bucket, String objectName) {
 		try {
-			for (Drive drive : getDriver().getDrivesAll()) {
+			// Clean up backup work dirs on the active volume drives
+			for (Drive drive : getDriver().getActiveVolume().getDrives()) {
 				FileUtils.deleteQuietly(new File(drive.getBucketWorkDirPath(bucket) + File.separator + objectName));
 			}
 		} catch (Exception e) {
@@ -611,7 +629,8 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionObjectHandler 
 			return;
 		try {
 			if (getVersionControl()==VersionControl.DISABLED) {
-				for (Drive drive : getDriver().getDrivesAll()) {
+				// Remove previous-version metadata and data from the object's owning volume
+				for (Drive drive : getDriver().getVolumeForObject(meta).getDrives()) {
 					FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(bucket, meta.getObjectName(), previousVersion));
 					List<File> files = getDriver().getObjectDataFiles(meta, bucket, Optional.of(previousVersion));
 					files.forEach(file -> {
@@ -628,10 +647,10 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionObjectHandler 
 
 		Check.requireNonNullArgument(meta, "meta is null");
 
-		final List<Drive> drives = getDriver().getDrivesAll();
+		// Use the drives of the volume that owns this object, not all drives.
+		final List<Drive> drives = getDriver().getVolumeForObject(meta).getDrives();
 		final List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
-
-		getDriver().getDrivesAll().forEach(d -> list.add(meta));
+		drives.forEach(d -> list.add(meta));
 		saveRAIDSixObjectMetadataToDisk(drives, list, isHead);
 	}
 
@@ -643,7 +662,9 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionObjectHandler 
 		try {
 			boolean success = true;
 			ObjectMetadata versionMeta = getDriver().getObjectMetadataVersion(bucket, objectName, version);
-			for (Drive drive : getDriver().getDrivesAll()) {
+			// Stay on the same volume as the version being restored.
+			List<Drive> drives = getDriver().getVolumeForObject(versionMeta).getDrives();
+			for (Drive drive : drives) {
 				versionMeta.setDrive(drive.getName());
 				drive.saveObjectMetadata(versionMeta);
 			}

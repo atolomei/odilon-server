@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -49,7 +50,9 @@ import io.odilon.model.SharedConstant;
 import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
 import io.odilon.query.BucketIteratorService;
+import io.odilon.scheduler.AbstractServiceRequest;
 import io.odilon.scheduler.DeleteBucketObjectPreviousVersionServiceRequest;
+import io.odilon.scheduler.ServiceRequest;
 import io.odilon.util.Check;
 import io.odilon.virtualFileSystem.BaseIODriver;
 import io.odilon.virtualFileSystem.OdilonObject;
@@ -61,6 +64,9 @@ import io.odilon.virtualFileSystem.model.OperationCode;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemObject;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
+
+// Volume-expansion imports
+// (same package – no import needed for RAIDSixVolume / OdilonRAIDSixVolumeManager)
 
 /**
  * <p>
@@ -496,6 +502,12 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 	 * Invariant: all drives contain the same bucket structure
 	 * </p>
 	 */
+	/**
+	 * <p>
+	 * Volume-aware existence check: searches across all volumes so that an object
+	 * stored on any volume is correctly detected.
+	 * </p>
+	 */
 	@Override
 	public boolean exists(ServerBucket bucket, String objectName) {
 		Check.requireNonNullArgument(bucket, "bucket is null");
@@ -506,7 +518,8 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 			getLockService().getBucketLock(bucket).readLock().lock();
 			try {
 				checkIsAccesible(bucket);
-				return getObjectMetadataReadDrive(bucket, objectName).existsObjectMetadata(bucket, objectName);
+				// Cross-volume metadata search (active volume first)
+				return getDriverObjectMetadataInternal(bucket, objectName, false) != null;
 			} catch (Exception e) {
 				throw new InternalCriticalException(e, objectInfo(bucket, objectName));
 			} finally {
@@ -813,16 +826,78 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		}
 	}
 
+	/**
+	 * <p>
+	 * RAID 6 volume-aware metadata read drive selection.
+	 * </p>
+	 * <p>
+	 * When the object metadata is in cache its {@code volumeId} is already known —
+	 * pick a random drive from that volume's drive list.
+	 * When it is a cache-miss we do not yet know which volume owns the object, so
+	 * we fall back to a random drive from the <em>active</em> volume (the most
+	 * likely owner for recently-written objects). The cross-volume search is done
+	 * in {@link #getDriverObjectMetadataInternal} which is always called before any
+	 * actual read.
+	 * </p>
+	 */
 	@Override
 	protected Drive getObjectMetadataReadDrive(ServerBucket bucket, String objectName) {
-		return getDrivesEnabled().get(Double.valueOf(Math.abs(Math.random() * 1000)).intValue() % getDrivesEnabled().size());
+		// Fast path: object is cached and volumeId is known
+		if (getObjectMetadataCacheService().containsKey(bucket, objectName)) {
+			ObjectMetadata cached = getObjectMetadataCacheService().get(bucket, objectName);
+			List<Drive> vDrives = getVolumeManager().getVolumeById(cached.getVolumeId()).getDrives();
+			return vDrives.get(Double.valueOf(Math.abs(Math.random() * 1000)).intValue() % vDrives.size());
+		}
+		// Cache-miss: return a random drive from the active volume as a sensible default.
+		// getDriverObjectMetadataInternal() will do the real cross-volume search.
+		List<Drive> activeDrives = getVolumeManager().getActiveVolume().getDrives();
+		return activeDrives.get(Double.valueOf(Math.abs(Math.random() * 1000)).intValue() % activeDrives.size());
 	}
 
 	/**
 	 * <p>
-	 * RAID 6. Metadata read is from only 1 drive, selected randomly from all drives
+	 * Volume-aware ObjectMetadata lookup for RAID 6.
 	 * </p>
+	 * <ol>
+	 *   <li>Check the object-metadata cache — if found, return immediately
+	 *       (volumeId already embedded).</li>
+	 *   <li>Search the <b>active volume</b> first (most objects are recent).</li>
+	 *   <li>Search remaining volumes newest-to-oldest.</li>
+	 *   <li>Cache the result and return it; return {@code null} if not found
+	 *       anywhere (caller turns this into {@link OdilonObjectNotFoundException}).</li>
+	 * </ol>
 	 */
+	@Override
+	protected ObjectMetadata getDriverObjectMetadataInternal(ServerBucket bucket, String objectName, boolean addToCacheIfMiss) {
+
+		// 1. Cache hit
+		if (getServerSettings().isUseObjectCache() && getObjectMetadataCacheService().containsKey(bucket, objectName)) {
+			getSystemMonitorService().getCacheObjectHitCounter().inc();
+			ObjectMetadata cached = getObjectMetadataCacheService().get(bucket, objectName);
+			cached.setBucketName(bucket.getName());
+			return cached;
+		}
+
+		// 2. Cross-volume search: active volume first, then archives newest-to-oldest
+		for (RAIDSixVolume volume : getVolumeManager().getVolumesInSearchOrder()) {
+			List<Drive> vDrives = volume.getDrives();
+			// Pick a random drive within this volume to spread read load
+			Drive candidate = vDrives.get(Double.valueOf(Math.abs(Math.random() * 1000)).intValue() % vDrives.size());
+			ObjectMetadata meta = candidate.getObjectMetadata(bucket, objectName);
+			if (meta != null) {
+				meta.setBucketName(bucket.getName());
+				// Ensure volumeId is correctly set (guards against legacy objects with volumeId==0)
+				meta.setVolumeId(volume.getVolumeId());
+				getSystemMonitorService().getCacheObjectMissCounter().inc();
+				if (addToCacheIfMiss && getServerSettings().isUseObjectCache())
+					getObjectMetadataCacheService().put(bucket, objectName, meta);
+				return meta;
+			}
+		}
+
+		// Not found on any volume
+		return null;
+	}
 	private ObjectMetadata getOM(ServerBucket bucket, String objectName, Optional<Integer> o_version, boolean addToCacheifMiss) {
 
 		Check.requireNonNullArgument(bucket, "bucket is null");
@@ -872,42 +947,85 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 	 * @param version
 	 * @return
 	 */
+	protected boolean isConfigurationValid(int dataShards, int parityShards) {
+		return getVirtualFileSystemService().getServerSettings().isRAID6ConfigurationValid(dataShards, parityShards);
+	}
+
+	// ─── Volume helpers ────────────────────────────────────────────────────────
+
+	/**
+	 * Returns the {@link OdilonRAIDSixVolumeManager} from the VFS service.
+	 */
+	public OdilonRAIDSixVolumeManager getVolumeManager() {
+		return getVirtualFileSystemService().getVolumeManager();
+	}
+
+	/**
+	 * Returns the currently active {@link RAIDSixVolume} – the one that receives
+	 * new-object writes.
+	 */
+	public RAIDSixVolume getActiveVolume() {
+		return getVolumeManager().getActiveVolume();
+	}
+
+	/**
+	 * Resolves the {@link RAIDSixVolume} that holds the shards for {@code meta}.
+	 * Defaults to volume 0 when {@code meta.volumeId == 0} (backward compatible
+	 * with objects created before multi-volume support).
+	 */
+	public RAIDSixVolume getVolumeForObject(ObjectMetadata meta) {
+		return getVolumeManager().getVolumeById(meta.getVolumeId());
+	}
+
+	// ─── Shard-file helpers (volume-aware) ────────────────────────────────────
+
+	/**
+	 * <p>
+	 * Returns a map {@code Drive → [shard file names]} for the given object,
+	 * using the <em>volume-local</em> disk indices stored in the shard file names.
+	 * </p>
+	 * <p>
+	 * Uses {@code meta.getVolumeId()} to select the correct volume. Backward
+	 * compatible: objects with {@code volumeId == 0} behave exactly as before
+	 * (volume-local index == global {@link Drive#getConfigOrder()}).
+	 * </p>
+	 */
 	protected Map<Drive, List<String>> getObjectDataFilesNames(ObjectMetadata meta, Optional<Integer> version) {
 
 		Check.requireNonNullArgument(meta, "meta is null");
 
-		Map<Drive, List<String>> map = new HashMap<Drive, List<String>>();
+		RAIDSixVolume volume = getVolumeForObject(meta);
+		List<Drive> volumeDrives = volume.getDrives();
 
-		for (Drive drive : getDrivesAll())
+		Map<Drive, List<String>> map = new HashMap<Drive, List<String>>();
+		for (Drive drive : volumeDrives)
 			map.put(drive, new ArrayList<String>());
 
 		int totalBlocks = meta.getSha256Blocks().size();
+		int totalDisks  = volume.getTotalShards();
 
-		int totalDisks = getVirtualFileSystemService().getServerSettings().getRAID6DataDrives() + getVirtualFileSystemService().getServerSettings().getRAID6ParityDrives();
 		Check.checkTrue(totalDisks > 0, "total disks must be greater than zero");
 
 		int chunks = totalBlocks / totalDisks;
 		Check.checkTrue(chunks > 0, "chunks must be greater than zero");
 
 		for (int chunk = 0; chunk < chunks; chunk++) {
-			for (int disk = 0; disk < getDrivesAll().size(); disk++) {
-				String suffix = "." + String.valueOf(chunk) + "." + String.valueOf(disk) + (version.isEmpty() ? "" : (".v" + String.valueOf(version.get())));
-				Drive drive = getDrivesAll().get(disk);
+			for (int disk = 0; disk < volumeDrives.size(); disk++) {
+				// disk == volume-local index (matches encoder / decoder convention)
+				String suffix = "." + String.valueOf(chunk) + "." + String.valueOf(disk)
+						+ (version.isEmpty() ? "" : (".v" + String.valueOf(version.get())));
+				Drive drive = volumeDrives.get(disk);
 				map.get(drive).add(meta.getObjectName() + suffix);
 			}
 		}
 		return map;
 	}
 
-	protected boolean isConfigurationValid(int dataShards, int parityShards) {
-		return getVirtualFileSystemService().getServerSettings().isRAID6ConfigurationValid(dataShards, parityShards);
-	}
-
 	/**
-	 * 
-	 * @param meta
-	 * @param version
-	 * @return
+	 * <p>
+	 * Returns the list of shard {@link File}s for the given object, using
+	 * volume-local disk indices so that files on any volume are located correctly.
+	 * </p>
 	 */
 	protected List<File> getObjectDataFiles(ObjectMetadata meta, ServerBucket bucket, Optional<Integer> version) {
 
@@ -916,24 +1034,211 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		if (meta == null)
 			return files;
 
-		int totalBlocks = meta.getSha256Blocks().size();
+		RAIDSixVolume volume = getVolumeForObject(meta);
+		List<Drive> volumeDrives = volume.getDrives();
 
-		int totalDisks = getServerSettings().getRAID6DataDrives() + getServerSettings().getRAID6ParityDrives();
+		int totalBlocks = meta.getSha256Blocks().size();
+		int totalDisks  = volume.getTotalShards();
+
 		Check.checkTrue(totalDisks > 0, "total disks must be greater than zero");
 
 		int chunks = totalBlocks / totalDisks;
 		Check.checkTrue(chunks > 0, "chunks must be greater than zero");
 
 		for (int chunk = 0; chunk < chunks; chunk++) {
-			for (int disk = 0; disk < getDrivesAll().size(); disk++) {
-				String suffix = "." + String.valueOf(chunk) + "." + String.valueOf(disk) + (version.isEmpty() ? "" : (".v" + String.valueOf(version.get())));
-				Drive drive = getDrivesAll().get(disk);
+			for (int disk = 0; disk < volumeDrives.size(); disk++) {
+				String suffix = "." + String.valueOf(chunk) + "." + String.valueOf(disk)
+						+ (version.isEmpty() ? "" : (".v" + String.valueOf(version.get())));
+				Drive drive = volumeDrives.get(disk);
 				if (version.isEmpty())
 					files.add(new File(drive.getBucketObjectDataDirPath(bucket), meta.getObjectName() + suffix));
 				else
-					files.add(new File(drive.getBucketObjectDataDirPath(bucket) + File.separator + VirtualFileSystemService.VERSION_DIR, meta.getObjectName() + suffix));
+					files.add(new File(drive.getBucketObjectDataDirPath(bucket) + File.separator + VirtualFileSystemService.VERSION_DIR,
+							meta.getObjectName() + suffix));
 			}
 		}
 		return files;
 	}
-}
+
+	// ─── Journal overrides ────────────────────────────────────────────────────────
+
+	/**
+	 * <p>
+	 * RAID 6 multi-volume override: write journal entries only to the
+	 * <em>active</em> volume's drives.
+	 * </p>
+	 * <p>
+	 * Rationale: if volume 0 is at OS-level capacity, writing to its drives would
+	 * throw an {@link IOException}. Journal files for new operations belong on the
+	 * drives that are currently receiving writes. Recovery ({@link #getJournalPending})
+	 * already scans ALL enabled drives, so entries written here will always be
+	 * found on restart.
+	 * </p>
+	 */
+	@Override
+	public void saveJournal(VirtualFileSystemOperation op) {
+		getLockService().getJournalLock().writeLock().lock();
+		try {
+			for (Drive drive : getActiveVolume().getDrives())
+				drive.saveJournal(op);
+		} finally {
+			getLockService().getJournalLock().writeLock().unlock();
+		}
+	}
+
+	/**
+	 * <p>
+	 * RAID 6 multi-volume override: remove journal entries from <em>all</em>
+	 * enabled drives across all volumes.
+	 * </p>
+	 * <p>
+	 * On a server restart the active volume may differ from the one that was active
+	 * when a pending operation was saved. Scanning all drives ensures stale journal
+	 * files left on an old volume's drives are cleaned up.
+	 * {@link Drive#removeJournal} is a quiet-delete so missing files are ignored.
+	 * </p>
+	 */
+	@Override
+	public void removeJournal(String id) {
+		getLockService().getJournalLock().writeLock().lock();
+		try {
+			for (Drive drive : getDrivesEnabled())
+				drive.removeJournal(id);
+		} finally {
+			getLockService().getJournalLock().writeLock().unlock();
+		}
+	}
+
+	// ─── Scheduler overrides ──────────────────────────────────────────────────────
+
+	/**
+	 * <p>
+	 * RAID 6 multi-volume override: persist scheduler requests only on the
+	 * <em>active</em> volume's drives.
+	 * </p>
+	 * <p>
+	 * The single-volume base implementation writes to every enabled drive and
+	 * validates completeness by requiring the file to appear on <em>every</em>
+	 * enabled drive ({@link #getSchedulerPendingRequests}). With multiple volumes
+	 * this cross-volume check would wrongly discard a request saved before a volume
+	 * switch. Scoping writes to the active volume makes the consistency boundary
+	 * per-volume instead of server-global.
+	 * </p>
+	 */
+	@Override
+	public void saveScheduler(ServiceRequest request, String queueId) {
+		getLockService().getSchedulerLock().writeLock().lock();
+		try {
+			for (Drive drive : getActiveVolume().getDrives())
+				drive.saveScheduler(request, queueId);
+		} finally {
+			getLockService().getSchedulerLock().writeLock().unlock();
+		}
+	}
+
+	/**
+	 * <p>
+	 * RAID 6 multi-volume override: remove scheduler requests from <em>all</em>
+	 * enabled drives across all volumes.
+	 * </p>
+	 * <p>
+	 * A request may have been saved on an older volume before the active volume
+	 * switched. Removing from all drives ensures no orphan scheduler files remain.
+	 * </p>
+	 */
+	@Override
+	public void removeScheduler(ServiceRequest request, String queueId) {
+		getLockService().getSchedulerLock().writeLock().lock();
+		try {
+			for (Drive drive : getDrivesEnabled())
+				drive.removeScheduler(request, queueId);
+		} finally {
+			getLockService().getSchedulerLock().writeLock().unlock();
+		}
+	}
+
+	/**
+	 * <p>
+	 * RAID 6 multi-volume override: recover scheduler requests by checking
+	 * consistency <em>per-volume</em> rather than across all drives globally.
+	 * </p>
+	 * <p>
+	 * The base implementation ({@link BaseIODriver#getSchedulerPendingRequests})
+	 * requires every request to appear on <em>all</em> enabled drives. In a
+	 * multi-volume setup a request saved on volume 0 would be absent from volume 1's
+	 * drives and wrongly discarded. This override checks completeness within each
+	 * volume independently and aggregates valid requests from all volumes.
+	 * </p>
+	 */
+	@Override
+	public synchronized List<ServiceRequest> getSchedulerPendingRequests(String queueId) {
+
+		List<ServiceRequest> result = new ArrayList<>();
+
+		getLockService().getSchedulerLock().writeLock().lock();
+		try {
+			for (RAIDSixVolume volume : getVolumeManager().getAllVolumes()) {
+
+				List<Drive> vDrives = volume.getDrives();
+				if (vDrives.isEmpty())
+					continue;
+
+				// Collect scheduler files per drive within this volume
+				Map<Drive, Map<String, File>> driveFiles = new HashMap<>();
+				for (Drive drive : vDrives) {
+					Map<String, File> fileMap = new HashMap<>();
+					for (File file : drive.getSchedulerRequests(queueId))
+						fileMap.put(file.getName(), file);
+					driveFiles.put(drive, fileMap);
+				}
+
+				Drive referenceDrive = vDrives.get(0);
+				Map<String, File> referenceMap = driveFiles.get(referenceDrive);
+				Map<String, File> useful  = new HashMap<>();
+				Map<String, File> useless = new HashMap<>();
+
+				// A request is valid iff it exists on ALL drives within this volume
+				referenceMap.forEach((name, file) -> {
+					boolean complete = vDrives.stream()
+							.filter(d -> !d.equals(referenceDrive))
+							.allMatch(d -> driveFiles.get(d).containsKey(name));
+					if (complete)
+						useful.put(name, file);
+					else
+						useless.put(name, file);
+				});
+
+				// Deserialize valid requests (skip if already collected from another volume)
+				for (Map.Entry<String, File> entry : useful.entrySet()) {
+					try {
+						AbstractServiceRequest req = getObjectMapper().readValue(entry.getValue(), AbstractServiceRequest.class);
+						boolean alreadyPresent = result.stream()
+								.anyMatch(r -> r.getId() != null && r.getId().equals(req.getId()));
+						if (!alreadyPresent)
+							result.add(req);
+					} catch (Exception e) {
+						logger.error("Failed to deserialize ServiceRequest: " + entry.getValue().getAbsolutePath()
+								+ " | " + e.getMessage(), SharedConstant.NOT_THROWN);
+					}
+				}
+
+				// Delete incomplete (useless) files from this volume's drives
+				for (Drive drive : vDrives) {
+					driveFiles.get(drive).forEach((name, file) -> {
+						if (!useful.containsKey(name)) {
+							try {
+								Files.delete(file.toPath());
+							} catch (Exception e) {
+								logger.error(e, SharedConstant.NOT_THROWN);
+							}
+						}
+					});
+				}
+			}
+		} finally {
+			getLockService().getSchedulerLock().writeLock().unlock();
+		}
+		return result;
+	}
+
+} // end RAIDSixDriver

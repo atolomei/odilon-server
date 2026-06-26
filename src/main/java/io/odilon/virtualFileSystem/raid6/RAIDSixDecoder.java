@@ -62,24 +62,13 @@ public class RAIDSixDecoder extends RAIDSixCoder {
 	@JsonIgnore
 	static final private DateTimeFormatter formatter = DateTimeFormatter.RFC_1123_DATE_TIME;
 
-	private final int data_shards;
-	private final int parity_shards;
-	private final int total_shards;
-
-	private final ReedSolomon reedSolomon;
-
 	protected RAIDSixDecoder(RAIDSixDriver driver) {
 		super(driver);
-
-		this.data_shards = getVirtualFileSystemService().getServerSettings().getRAID6DataDrives();
-		this.parity_shards = getVirtualFileSystemService().getServerSettings().getRAID6ParityDrives();
-		this.total_shards = data_shards + parity_shards;
-
-		if (!driver.isConfigurationValid(data_shards, parity_shards))
-			throw new InternalCriticalException("Invalid configuration -> " + this.toString());
-
-		reedSolomon = new ReedSolomon(data_shards, parity_shards);
-
+		// Validate that the default volume's RS configuration is sane at startup.
+		int d = getVirtualFileSystemService().getServerSettings().getRAID6DataDrives();
+		int p = getVirtualFileSystemService().getServerSettings().getRAID6ParityDrives();
+		if (!driver.isConfigurationValid(d, p))
+			throw new InternalCriticalException("Invalid RAID 6 configuration -> data=" + d + " parity=" + p);
 	}
 
 	public BufferPoolService getBullferPoolService() {
@@ -104,15 +93,21 @@ public class RAIDSixDecoder extends RAIDSixCoder {
 		String bucketName = meta.getBucketName();
 		String objectName = meta.getObjectName();
 
-		int totalChunks = meta.getTotalBlocks() / getTotalShards();
+		// Resolve the volume that holds this object's shards.
+		// For single-volume deployments (volumeId == 0) this is identical to the
+		// previous behaviour; for multi-volume deployments it selects the correct group.
+		RAIDSixVolume volume = getDriver().getVolumeForObject(meta);
+		int volumeTotalShards = volume.getTotalShards();
 
-		if ((meta.getRaidDrives() > 0) && (meta.getRaidDrives() != this.getTotalShards())) {
+		int totalChunks = meta.getTotalBlocks() / volumeTotalShards;
+
+		if ((meta.getRaidDrives() > 0) && (meta.getRaidDrives() != volumeTotalShards)) {
 			String errStr = "b: " + meta.getBucketName() + " o: " + meta.getObjectName() + " | was stored on " + formatter.format(meta.getLastModified()) + " | with  " + String.valueOf(meta.getRaidDrives())
-					+ " drives | Server is currently set up with -> " + String.valueOf(getTotalShards()) + " drives";
+					+ " drives | Volume " + volume.getVolumeId() + " has -> " + String.valueOf(volumeTotalShards) + " drives";
 
 			logger.error(errStr);
-			logger.error("RAID Drives");
-			getDriver().getDrivesEnabled().forEach(s -> logger.error(s.getRootDirPath()));
+			logger.error("Volume " + volume.getVolumeId() + " drives:");
+			volume.getDrives().forEach(s -> logger.error(s.getRootDirPath()));
 			throw new InternalCriticalException(errStr);
 		}
 
@@ -137,7 +132,7 @@ public class RAIDSixDecoder extends RAIDSixCoder {
 
 			try (OutputStream out = new BufferedOutputStream(new FileOutputStream(tempPath))) {
 				while (chunk < totalChunks) {
-					decodeChunk(meta, bucket, chunk++, out, isHead);
+					decodeChunk(meta, volume, bucket, chunk++, out, isHead);
 				}
 			} catch (FileNotFoundException e) {
 				throw new InternalCriticalException(e, objectInfo(bucketName, objectName, tempPath));
@@ -154,64 +149,81 @@ public class RAIDSixDecoder extends RAIDSixCoder {
 		}
 	}
 
-	private boolean decodeChunk(ObjectMetadata meta, ServerBucket bucket, int chunk, OutputStream out, boolean isHead) {
+	/**
+	 * Decodes one RS chunk using volume-local disk indices.
+	 * <p>
+	 * The shard-file naming convention is
+	 * {@code objectName.<chunk>.<volumeLocalDiskIndex>} — where
+	 * {@code volumeLocalDiskIndex} is the position of the drive inside the
+	 * volume's ordered drive list (0 … totalShards−1), <em>not</em> the global
+	 * {@link Drive#getConfigOrder()}.
+	 * </p>
+	 */
+	private boolean decodeChunk(ObjectMetadata meta, RAIDSixVolume volume, ServerBucket bucket, int chunk, OutputStream out, boolean isHead) {
 
-		final byte[][] shards = new byte[this.total_shards][];
-		final boolean[] shardPresent = new boolean[this.total_shards];
+		// Use the volume-local drive map (key = volume-local index 0..totalShards-1)
+		Map<Integer, Drive> map = volume.getDrivesRSDecode();
+		int totalShards = volume.getTotalShards();
+		int dataShards  = volume.getDataDrives();
+
+		final byte[][] shards = new byte[totalShards][];
+		final boolean[] shardPresent = new boolean[totalShards];
 
 		int shardSize = 0;
 		int shardCount = 0;
 
-		Map<Integer, Drive> map = this.getMapDrivesRSDecode();
+		// Read available shards using volume-local disk index as the shard index
+		for (int localDisk = 0; localDisk < totalShards; localDisk++) {
 
-		// 1️⃣ Read available shards
-		for (int counter = 0; counter < getTotalShards(); counter++) {
-
-			Drive drive = map.get(counter);
+			Drive drive = map.get(localDisk);
 			if (drive == null)
 				continue;
 
-			int disk = drive.getConfigOrder();
-			File shardFile = isHead ? new File(drive.getBucketObjectDataDirPath(bucket), meta.getObjectName() + "." + chunk + "." + disk)
-					: new File(drive.getBucketObjectDataDirPath(bucket) + File.separator + VirtualFileSystemService.VERSION_DIR, meta.getObjectName() + "." + chunk + "." + disk + ".v" + meta.getVersion());
+			// Shard files are named with the volume-local index, NOT configOrder
+			File shardFile = isHead
+					? new File(drive.getBucketObjectDataDirPath(bucket),
+							meta.getObjectName() + "." + chunk + "." + localDisk)
+					: new File(drive.getBucketObjectDataDirPath(bucket) + File.separator + VirtualFileSystemService.VERSION_DIR,
+							meta.getObjectName() + "." + chunk + "." + localDisk + ".v" + meta.getVersion());
 
 			if (!shardFile.exists())
 				continue;
 
 			shardSize = (int) shardFile.length();
-			shards[disk] = new byte[shardSize];
-			shardPresent[disk] = true;
+			shards[localDisk] = new byte[shardSize];
+			shardPresent[localDisk] = true;
 			shardCount++;
 
 			try (InputStream in = new BufferedInputStream(new FileInputStream(shardFile))) {
-				readFully(in, shards[disk]);
+				readFully(in, shards[localDisk]);
 			} catch (IOException e) {
 				logger.error(objectInfo(meta) + " | f:" + shardFile.getName(), SharedConstant.NOT_THROWN);
-				shardPresent[disk] = false;
-				shards[disk] = null;
+				shardPresent[localDisk] = false;
+				shards[localDisk] = null;
 				shardCount--;
 			}
 		}
 
 		// Validate quorum
-		if (shardCount < this.data_shards) {
-			throw new InternalCriticalException("We need at least " + this.data_shards + " shards to reconstruct | " + objectInfo(meta));
+		if (shardCount < dataShards) {
+			throw new InternalCriticalException("We need at least " + dataShards + " shards to reconstruct | " + objectInfo(meta));
 		}
 
-		// ️Allocate missing shards
-		for (int i = 0; i < this.total_shards; i++) {
+		// Allocate missing shards
+		for (int i = 0; i < totalShards; i++) {
 			if (!shardPresent[i]) {
 				shards[i] = new byte[shardSize];
 			}
 		}
 
-		// Reconstruct missing shards
-		reedSolomon.decodeMissing(shards, shardPresent, 0, shardSize);
+		// Reconstruct missing shards using volume-local RS parameters
+		ReedSolomon rs = new ReedSolomon(dataShards, volume.getParityDrives());
+		rs.decodeMissing(shards, shardPresent, 0, shardSize);
 
 		// Reassemble directly into pooled buffer
 		byte[] allBytes = getBullferPoolService().acquire();
 		try {
-			for (int i = 0; i < this.data_shards; i++) {
+			for (int i = 0; i < dataShards; i++) {
 				System.arraycopy(shards[i], 0, allBytes, i * shardSize, shardSize);
 			}
 			// Read payload size (no ByteBuffer)
@@ -228,15 +240,6 @@ public class RAIDSixDecoder extends RAIDSixCoder {
 
 		return true;
 	}
-
-	/**
-	 * @param meta
-	 * @param bucket
-	 * @param chunk
-	 * @param out    note that this OutputStream is not closed by this method.
-	 * @param isHead
-	 * @return
-	 */
 	private static void readFully(InputStream in, byte[] buffer) throws IOException {
 
 		int offset = 0;
@@ -265,10 +268,6 @@ public class RAIDSixDecoder extends RAIDSixCoder {
 
 	private LockService getLockService() {
 		return getFileCacheService().getLockService();
-	}
-
-	private int getTotalShards() {
-		return this.total_shards;
 	}
 }
 

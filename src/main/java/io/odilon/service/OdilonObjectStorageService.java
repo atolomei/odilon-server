@@ -278,6 +278,7 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
 		try {
 			getVirtualFileSystemService().putObject(bucketName, objectName, is, fileName, contentType, customTags, o_public);
 		} catch (Exception e) {
+			logger.error(e, "b: " + bucketName + " o: " + objectName + " f: " + fileName);
 			throw new OdilonInternalErrorException(e);
 		}
 	}
@@ -298,6 +299,7 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
 					logger.error(e, SharedConstant.NOT_THROWN);
 				}
 			}
+			logger.error(e1, "b: " + bucketName + " o: " + objectName);
 			throw new InternalCriticalException(e1);
 		}
 	}

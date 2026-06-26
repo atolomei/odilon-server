@@ -18,6 +18,7 @@ package io.odilon.virtualFileSystem.raid6;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
 import org.apache.commons.io.FileUtils;
 
@@ -72,7 +73,20 @@ public class RAIDSixRollbackDeleteHandler extends RAIDSixRollbackHandler {
 		ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
 		String objectName = getOperation().getObjectName();
 
-		for (Drive drive : getDriver().getDrivesAll()) {
+		// Resolve the owning volume via cross-volume search (backup exists on work dir
+		// of the volume that held the object when delete was attempted)
+		List<Drive> drives = null;
+		for (RAIDSixVolume vol : getDriver().getVolumeManager().getVolumesInSearchOrder()) {
+			String backupPath = vol.getDrives().get(0).getBucketWorkDirPath(bucket) + File.separator + objectName;
+			if (new File(backupPath).exists()) {
+				drives = vol.getDrives();
+				break;
+			}
+		}
+		if (drives == null)
+			drives = getDriver().getActiveVolume().getDrives();
+
+		for (Drive drive : drives) {
 			String objectMetadataBackupDirPath = drive.getBucketWorkDirPath(bucket) + File.separator + objectName;
 			String objectMetadataDirPath = drive.getObjectMetadataDirPath(bucket, objectName);
 			try {

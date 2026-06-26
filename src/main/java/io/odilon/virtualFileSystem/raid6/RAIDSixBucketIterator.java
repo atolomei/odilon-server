@@ -24,6 +24,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -48,9 +49,13 @@ import io.odilon.virtualFileSystem.model.ServerBucket;
  * </p>
  *
  * <p>
- * This {@link BucketIterator} uses a randomly selected {@link Drive} to iterate
- * and return {@link ObjectMetata}instances. All Drives contain all
- * {@link ObjectMetadata} in RAID 6.
+ * This {@link BucketIterator} uses the first enabled {@link Drive} of
+ * <em>each</em> volume to iterate {@link ObjectMetadata} instances, then merges
+ * the per-volume streams.  This is necessary because in a multi-volume
+ * deployment objects on different volumes have their metadata stored on
+ * different sets of drives: randomly picking a single drive from the flat
+ * {@code drivesEnabled} list would silently miss all objects on all other
+ * volumes.
  * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
@@ -58,9 +63,12 @@ import io.odilon.virtualFileSystem.model.ServerBucket;
 @ThreadSafe
 public class RAIDSixBucketIterator extends BucketIterator implements Closeable {
 
-	/** must be from DrivesEnabled */
-	@JsonProperty("drive")
-	private final Drive drive;
+	/**
+	 * One representative (first enabled) drive per volume.
+	 * Objects on volume N are listed via drives.get(N).
+	 */
+	@JsonProperty("drives")
+	private final List<Drive> drives;
 
 	@JsonProperty("cumulativeIndex")
 	private long cumulativeIndex = 0;
@@ -71,17 +79,32 @@ public class RAIDSixBucketIterator extends BucketIterator implements Closeable {
 	@JsonIgnore
 	private Stream<Path> stream;
 
-	/**
-	 * @param driver     can not be null
-	 * @param bucketName can not be null
-	 * @param opOffset
-	 * @param opPrefix
-	 */
 	public RAIDSixBucketIterator(RAIDSixDriver driver, ServerBucket bucket, Optional<Long> opOffset, Optional<String> opPrefix) {
 		super(driver, bucket);
 		opPrefix.ifPresent(x -> setPrefix(x.toLowerCase().trim()));
 		opOffset.ifPresent(x -> setOffset(x));
-		this.drive = driver.getDrivesEnabled().get(Double.valueOf(Math.abs(Math.random() * 1000)).intValue() % getDriver().getDrivesEnabled().size());
+
+		// Pick the first ENABLED drive from each volume so we list exactly the objects
+		// stored on that volume. Using all drives from all volumes via the flat
+		// drivesEnabled list would cause every object to be returned once per drive
+		// within its volume; using a single random drive misses all other volumes.
+		List<Drive> repDrives = new ArrayList<>();
+		for (RAIDSixVolume vol : driver.getVolumeManager().getAllVolumes()) {
+			vol.getDrives().stream()
+					.filter(d -> d.getDriveInfo() != null
+							&& d.getDriveInfo().getStatus() == io.odilon.virtualFileSystem.model.DriveStatus.ENABLED)
+					.findFirst()
+					.ifPresent(repDrives::add);
+		}
+		// Fallback: if somehow no enabled drive found in any volume (e.g. first boot
+		// with all drives NOTSYNC), fall back to the first drive of each volume.
+		if (repDrives.isEmpty()) {
+			for (RAIDSixVolume vol : driver.getVolumeManager().getAllVolumes()) {
+				if (!vol.getDrives().isEmpty())
+					repDrives.add(vol.getDrives().get(0));
+			}
+		}
+		this.drives = repDrives;
 	}
 
 	@Override
@@ -91,17 +114,26 @@ public class RAIDSixBucketIterator extends BucketIterator implements Closeable {
 	}
 
 	/**
-	 * <p>
-	 * No need to synchronize because it is called from the synchronized method
-	 * {@link BucketIterator#hasNext}
-	 * </p>
+	 * Initializes a merged stream of metadata-directory paths from every volume's
+	 * representative drive. Each volume contributes only the objects stored on it,
+	 * so the union covers the full bucket namespace across all volumes.
 	 */
 	@Override
 	protected void init() {
-		Path start = new File(getDrive().getBucketMetadataDirPath(getBucket())).toPath();
 		try {
-			this.stream = Files.walk(start, 1).skip(1).filter(file -> Files.isDirectory(file)).filter(file -> (getPrefix() == null) || file.getFileName().toString().toLowerCase().startsWith(getPrefix())).filter(file -> isValidState(file));
-
+			Stream<Path> merged = Stream.empty();
+			for (Drive d : this.drives) {
+				Path start = new File(d.getBucketMetadataDirPath(getBucket())).toPath();
+				if (!start.toFile().exists())
+					continue;
+				Stream<Path> volStream = Files.walk(start, 1)
+						.skip(1)
+						.filter(Files::isDirectory)
+						.filter(p -> (getPrefix() == null) || p.getFileName().toString().toLowerCase().startsWith(getPrefix()))
+						.filter(p -> isValidState(p));
+				merged = Stream.concat(merged, volStream);
+			}
+			this.stream = merged;
 		} catch (IOException e) {
 			throw new InternalCriticalException(e);
 		}
@@ -149,10 +181,6 @@ public class RAIDSixBucketIterator extends BucketIterator implements Closeable {
 
 	private Stream<Path> getStream() {
 		return this.stream;
-	}
-
-	private Drive getDrive() {
-		return this.drive;
 	}
 
 	private Iterator<Path> getIterator() {

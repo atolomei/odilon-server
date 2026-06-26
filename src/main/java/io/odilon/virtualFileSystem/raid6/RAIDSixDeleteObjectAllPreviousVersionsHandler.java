@@ -69,16 +69,15 @@ public class RAIDSixDeleteObjectAllPreviousVersionsHandler extends RAIDSixTransa
 					return;
 
 				/** backup */
-				backup();
+				backup(meta);
 
 				/** start operation */
 				operation = deleteObjectPreviousVersions(meta.getVersion());
 
-				/**
-				 * remove all "objectmetadata.json.vn" Files, but keep -> "objectmetadata.json"
-				 */
+				// Remove version metadata files only from the object's owning volume drives
+				final List<Drive> volumeDrives = getDriver().getVolumeForObject(meta).getDrives();
 				for (int version = 0; version < meta.getVersion(); version++) {
-					for (Drive drive : getDriver().getDrivesAll()) {
+					for (Drive drive : volumeDrives) {
 						FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(getBucket(), getObjectName(), version));
 					}
 				}
@@ -86,11 +85,10 @@ public class RAIDSixDeleteObjectAllPreviousVersionsHandler extends RAIDSixTransa
 				meta.addSystemTag("delete versions");
 				meta.setLastModified(OffsetDateTime.now());
 
-				final List<Drive> drives = getDriver().getDrivesAll();
+				// Write updated head metadata only to the object's owning volume drives
 				final List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
-
-				getDriver().getDrivesAll().forEach(d -> list.add(d.getObjectMetadata(getBucket(), getObjectName())));
-				saveRAIDSixObjectMetadataToDisk(drives, list, true);
+				volumeDrives.forEach(d -> list.add(d.getObjectMetadata(getBucket(), getObjectName())));
+				saveRAIDSixObjectMetadataToDisk(volumeDrives, list, true);
 
 				/** commit */
 				commitOK = operation.commit();
@@ -135,9 +133,10 @@ public class RAIDSixDeleteObjectAllPreviousVersionsHandler extends RAIDSixTransa
 	 * @param bucket
 	 * @param objectName
 	 */
-	private void backup() {
+	private void backup(ObjectMetadata meta) {
 		try {
-			for (Drive drive : getDriver().getDrivesAll()) {
+			// Backup only from the drives that actually hold this object's metadata
+			for (Drive drive : getDriver().getVolumeForObject(meta).getDrives()) {
 				String objectMetadataDirPath = drive.getObjectMetadataDirPath(getBucket(), getObjectName());
 				String objectMetadataBackupDirPath = drive.getBucketWorkDirPath(getBucket()) + File.separator + getObjectName();
 				File src = new File(objectMetadataDirPath);
@@ -171,8 +170,8 @@ public class RAIDSixDeleteObjectAllPreviousVersionsHandler extends RAIDSixTransa
 				});
 			}
 
-			/** delete backup Metadata */
-			for (Drive drive : getDriver().getDrivesAll())
+			/** delete backup Metadata — only on the object's owning volume drives */
+			for (Drive drive : getDriver().getVolumeForObject(meta).getDrives())
 				FileUtils.deleteQuietly(new File(drive.getBucketWorkDirPath(bucket), meta.getObjectName()));
 
 		} catch (Exception e) {

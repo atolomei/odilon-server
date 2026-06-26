@@ -17,6 +17,7 @@
 package io.odilon.virtualFileSystem.raid6;
 
 import java.io.File;
+import java.util.List;
 import java.util.Optional;
 
 import org.apache.commons.io.FileUtils;
@@ -52,20 +53,28 @@ public class RAIDSixRollbackCreateHandler extends RAIDSixRollbackHandler {
 
 			ObjectMetadata meta = null;
 
-			/** remove metadata dir on all drives */
-			for (Drive drive : getDriver().getDrivesAll()) {
-				File f_meta = drive.getObjectMetadataFile(bucket, getOperation().getObjectName());
-				if ((meta == null) && (f_meta != null)) {
-					try {
-						meta = drive.getObjectMetadata(bucket, getOperation().getObjectName());
-					} catch (Exception e) {
-						logger.error("can not load meta -> d: " + drive.getName() + SharedConstant.NOT_THROWN);
-					}
+			// A failed CREATE only wrote to the active volume's drives.
+			// Search all volumes (active first) in case the journal is replayed after
+			// a volume switch.
+			List<Drive> targetDrives = null;
+			for (RAIDSixVolume vol : getDriver().getVolumeManager().getVolumesInSearchOrder()) {
+				Drive candidate = vol.getDrives().get(0);
+				File f_meta = candidate.getObjectMetadataFile(bucket, getOperation().getObjectName());
+				if (f_meta != null && f_meta.exists()) {
+					meta = candidate.getObjectMetadata(bucket, getOperation().getObjectName());
+					targetDrives = vol.getDrives();
+					break;
 				}
+			}
+			if (targetDrives == null)
+				targetDrives = getDriver().getActiveVolume().getDrives();
+
+			/** remove metadata dir only on the drives that actually received it */
+			for (Drive drive : targetDrives) {
 				FileUtils.deleteQuietly(new File(drive.getObjectMetadataDirPath(bucket, getOperation().getObjectName())));
 			}
 
-			/// remove data dir on all drives
+			/// remove data shards
 			if (meta != null)
 				getDriver().getObjectDataFiles(meta, bucket, Optional.empty()).forEach(file -> {
 					FileUtils.deleteQuietly(file);

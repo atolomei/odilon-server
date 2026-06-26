@@ -101,7 +101,10 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 import io.odilon.virtualFileSystem.raid0.RAIDZeroDriver;
 import io.odilon.virtualFileSystem.raid1.RAIDOneDriver;
 import io.odilon.virtualFileSystem.raid6.BufferPoolService;
+import io.odilon.virtualFileSystem.raid6.OdilonRAIDSixVolumeManager;
 import io.odilon.virtualFileSystem.raid6.RAIDSixDriver;
+import io.odilon.virtualFileSystem.raid6.RAIDSixVolume;
+import io.odilon.virtualFileSystem.raid6.VolumeStatus;
 
 /**
  * <p>
@@ -125,15 +128,16 @@ import io.odilon.virtualFileSystem.raid6.RAIDSixDriver;
  * </p>
  * 
  * <p>
- * All DataStorage/VersionControl policy guards sit exclusively in OdilonVirtualFileSystemService. 
- * he three RAID drivers (RAIDZeroDriver, RAIDOneDriver, RAIDSixDriver) are pure I/O implementation layers, 
- * always called through the service. 
+ * All DataStorage/VersionControl policy guards sit exclusively in
+ * OdilonVirtualFileSystemService. he three RAID drivers (RAIDZeroDriver,
+ * RAIDOneDriver, RAIDSixDriver) are pure I/O implementation layers, always
+ * called through the service.
  * </p>
  *
  * <p>
- * The DeleteBucketObjectPreviousVersionServiceRequest scheduler also calls back via 
- * getVirtualFileSystemService().deleteObjectAllPreviousVersions(...), 
- * so it inherits the guards already applied in the previous session.
+ * The DeleteBucketObjectPreviousVersionServiceRequest scheduler also calls back
+ * via getVirtualFileSystemService().deleteObjectAllPreviousVersions(...), so it
+ * inherits the guards already applied in the previous session.
  * </p>
  * 
  * <p>
@@ -254,6 +258,23 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 	@JsonIgnore
 	private final Map<Integer, Drive> drivesRSDecode = new ConcurrentHashMap<Integer, Drive>();
 
+	/**
+	 * <p>
+	 * Manages all RAID 6 volumes. Each volume is an independent RAID 6 disk group
+	 * (data + parity drives). When the active volume is full the administrator can
+	 * declare a new volume and set {@code volume.active} to it so all new objects
+	 * land there. Existing objects remain on their original volume;
+	 * {@link io.odilon.model.ObjectMetadata#volumeId} always identifies the right
+	 * volume for reads, deletes and rollbacks.
+	 * </p>
+	 * <p>
+	 * Only used when {@link RedundancyLevel#RAID_6} is active. {@code null} for
+	 * other modes.
+	 * </p>
+	 */
+	@JsonIgnore
+	private OdilonRAIDSixVolumeManager volumeManager;
+
 	@JsonIgnore
 	private ApplicationContext applicationContext;
 
@@ -353,16 +374,16 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 		IODriver driver = createVFSIODriver();
 		Check.requireTrue(driver.existsBucket(bucketName), "bucket does not exist -> " + bucketName);
 
-		if (getDataStorage()==DataStorage.READONLY)
+		if (getDataStorage() == DataStorage.READONLY)
 			throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Data Storage is in read only mode, can not delete objects");
 
-		if (getDataStorage()==DataStorage.WORM)
+		if (getDataStorage() == DataStorage.WORM)
 			throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Data Storage is in WORM mode, can not delete objects");
 
-		if (getVersionControl()==VersionControl.DISABLED)
+		if (getVersionControl() == VersionControl.DISABLED)
 			throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Version Control is disabled");
 
-		if (getVersionControl()==VersionControl.PROTECTED)
+		if (getVersionControl() == VersionControl.PROTECTED)
 			throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Version Control is protected, can not delete previous versions");
 
 		driver.deleteObjectAllPreviousVersions(driver.getBucket(bucketName), objectName);
@@ -370,46 +391,46 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 
 	@Override
 	public void deleteBucketAllPreviousVersions(String bucketName) {
-	
+
 		Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
-		
+
 		IODriver driver = createVFSIODriver();
 		Check.requireTrue(driver.existsBucket(bucketName), "bucket does not exist -> " + bucketName);
 
-		if (getDataStorage()==DataStorage.READONLY)
+		if (getDataStorage() == DataStorage.READONLY)
 			throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Data Storage is in read only mode, can not delete objects");
-	
-		if (getDataStorage()==DataStorage.WORM)
+
+		if (getDataStorage() == DataStorage.WORM)
 			throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Data Storage is in WORM mode, can not delete objects");
-		
-		if (getVersionControl()==VersionControl.DISABLED)
+
+		if (getVersionControl() == VersionControl.DISABLED)
 			throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Version Control is disabled");
 
-		if (getVersionControl()==VersionControl.PROTECTED)
+		if (getVersionControl() == VersionControl.PROTECTED)
 			throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Version Control is protected, can not delete previous versions");
 
 		driver.deleteBucketAllPreviousVersions(driver.getBucket(bucketName));
 	}
-	
+
 	public DataStorage getDataStorage() {
-	 	return this.getServerSettings().getDataStorage();
+		return this.getServerSettings().getDataStorage();
 	}
 
 	@Override
 	public void wipeAllPreviousVersions() {
-		
-		if (getDataStorage()==DataStorage.READONLY)
+
+		if (getDataStorage() == DataStorage.READONLY)
 			throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Data Storage is in read only mode, can not delete objects");
-	
-		if (getDataStorage()==DataStorage.WORM)
+
+		if (getDataStorage() == DataStorage.WORM)
 			throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Data Storage is in WORM mode, can not delete objects");
-		
-		if (getVersionControl()==VersionControl.DISABLED)
+
+		if (getVersionControl() == VersionControl.DISABLED)
 			throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Version Control is disabled");
 
-		if (getVersionControl()==VersionControl.PROTECTED)
+		if (getVersionControl() == VersionControl.PROTECTED)
 			throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Version Control is protected, can not delete previous versions");
-		
+
 		createVFSIODriver().wipeAllPreviousVersions();
 	}
 
@@ -418,20 +439,20 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 
 		Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null or empty | b:" + bucketName);
-		
+
 		IODriver driver = createVFSIODriver();
 		Check.requireTrue(driver.existsBucket(bucketName), "bucket does not exist -> " + bucketName);
 
-		if (getDataStorage()==DataStorage.READONLY)
+		if (getDataStorage() == DataStorage.READONLY)
 			throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Data Storage is in read only mode");
-	
-		if (getDataStorage()==DataStorage.WORM)
+
+		if (getDataStorage() == DataStorage.WORM)
 			throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Data Storage is in WORM mode");
 
-		if (getVersionControl()==VersionControl.DISABLED)
+		if (getVersionControl() == VersionControl.DISABLED)
 			throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Version Control is disabled");
 
-		if (getVersionControl()==VersionControl.PROTECTED)
+		if (getVersionControl() == VersionControl.PROTECTED)
 			throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Version Control is protected, can not restore previous versions");
 
 		return driver.restorePreviousVersion(driver.getBucket(bucketName), objectName);
@@ -452,11 +473,10 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 	@Override
 	public ServerBucket createBucket(String bucketName) throws IOException {
 		Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
-	
-		if (getDataStorage()==DataStorage.READONLY)
+
+		if (getDataStorage() == DataStorage.READONLY)
 			throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Data Storage is in read only mode");
-	
-		
+
 		return createVFSIODriver().createBucket(bucketName);
 	}
 
@@ -464,11 +484,11 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 	public ServerBucket renameBucketName(String bucketName, String newBucketName) {
 		Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
 		Check.requireNonNullStringArgument(newBucketName, "newBucketName can not be null or empty");
-	
-		if (getDataStorage()==DataStorage.READONLY)
+
+		if (getDataStorage() == DataStorage.READONLY)
 			throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Data Storage is in read only mode");
 
-		if (getDataStorage()==DataStorage.WORM)
+		if (getDataStorage() == DataStorage.WORM)
 			throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Data Storage is in WORM mode");
 
 		if (!newBucketName.matches(SharedConstant.bucket_valid_regex))
@@ -484,13 +504,13 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 		Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
 		IODriver driver = createVFSIODriver();
 		Check.requireTrue(driver.existsBucket(bucketName), "bucket does not exist -> " + bucketName);
-		
-		if (getDataStorage()==DataStorage.READONLY)
+
+		if (getDataStorage() == DataStorage.READONLY)
 			throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Data Storage is in read only mode");
-	
-		if (getDataStorage()==DataStorage.WORM)
+
+		if (getDataStorage() == DataStorage.WORM)
 			throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Data Storage is in WORM mode");
-		
+
 		driver.removeBucket(driver.getBucket(bucketName), false);
 	}
 
@@ -499,11 +519,11 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 		Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
 		IODriver driver = createVFSIODriver();
 		Check.requireTrue(driver.existsBucket(bucketName), "bucket does not exist -> " + bucketName);
-		
-		if (getDataStorage()==DataStorage.READONLY)
+
+		if (getDataStorage() == DataStorage.READONLY)
 			throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Data Storage is in read only mode");
-	
-		if (getDataStorage()==DataStorage.WORM)
+
+		if (getDataStorage() == DataStorage.WORM)
 			throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Data Storage is in WORM mode");
 
 		driver.removeBucket(driver.getBucket(bucketName), true);
@@ -532,12 +552,12 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 	@Override
 	public void putObject(ServerBucket bucket, String objectName, File file) {
 		Check.requireNonNullArgument(bucket, "bucket can not be null");
-		
-		if (getDataStorage()==DataStorage.READONLY)
+
+		if (getDataStorage() == DataStorage.READONLY)
 			throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Data Storage is in read only mode");
 
 		IODriver driverFile = createVFSIODriver();
-		if (getDataStorage()==DataStorage.WORM && driverFile.exists(bucket, objectName))
+		if (getDataStorage() == DataStorage.WORM && driverFile.exists(bucket, objectName))
 			throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Data Storage is in WORM mode, can not update existing objects");
 
 		driverFile.putObject(bucket, objectName, file);
@@ -546,11 +566,11 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 	@Override
 	public ObjectMetadata updateObjectMetadata(ObjectMetadata meta) {
 		Check.requireNonNullArgument(meta, "meta can not be null");
-		
-		if (getDataStorage()==DataStorage.READONLY)
+
+		if (getDataStorage() == DataStorage.READONLY)
 			throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Data Storage is in read only mode");
 
-		if (getDataStorage()==DataStorage.WORM)
+		if (getDataStorage() == DataStorage.WORM)
 			throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Data Storage is in WORM mode");
 
 		return createVFSIODriver().updateObjectMetadata(meta);
@@ -561,10 +581,9 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 		putObject(bucket, objectName, stream, fileName, contentType, Optional.empty());
 	}
 
-	
 	@Override
 	public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName, String contentType, Optional<List<String>> customTags) {
-		putObject(bucket, objectName, stream, fileName, contentType, customTags, Optional.empty()); 
+		putObject(bucket, objectName, stream, fileName, contentType, customTags, Optional.empty());
 	}
 
 	@Override
@@ -576,7 +595,6 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 		putObject(driver.getBucket(bucketName), objectName, is, fileName, contentType, customTags);
 	}
 
-	
 	@Override
 	public void putObject(String bucketName, String objectName, InputStream stream, String fileName, String contentType, Optional<List<String>> customTags, Optional<Boolean> o_public) {
 		Check.requireNonNullArgument(bucketName, "bucketName can not be null ");
@@ -585,19 +603,16 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 		putObject(driver.getBucket(bucketName), objectName, stream, fileName, contentType, customTags, o_public);
 	}
 
-	
-	
 	@Override
 	public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName, String contentType, Optional<List<String>> customTags, Optional<Boolean> o_public) {
 		Check.requireNonNullArgument(bucket, "bucket can not be null ");
 		Check.requireNonNullArgument(objectName, "objectName can not be null -> b:" + bucket.getName());
 
-
-		if (getDataStorage()==DataStorage.READONLY)
+		if (getDataStorage() == DataStorage.READONLY)
 			throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Data Storage is in read only mode");
 
 		IODriver driverStream = createVFSIODriver();
-		if (getDataStorage()==DataStorage.WORM && driverStream.exists(bucket, objectName))
+		if (getDataStorage() == DataStorage.WORM && driverStream.exists(bucket, objectName))
 			throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Data Storage is in WORM mode, can not update existing objects");
 
 		driverStream.putObject(bucket, objectName, stream, fileName, contentType, customTags, o_public);
@@ -718,14 +733,14 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 	public void deleteObject(ServerBucket bucket, String objectName) {
 		Check.requireNonNullArgument(bucket, "bucket can not be null");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null or empty | b:" + bucket.getName());
-		
-		if (getDataStorage()==DataStorage.READONLY)
+
+		if (getDataStorage() == DataStorage.READONLY)
 			throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Data Storage is in read only mode");
 
-		if (getDataStorage()==DataStorage.WORM)
+		if (getDataStorage() == DataStorage.WORM)
 			throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Data Storage is in WORM mode, can not delete objects");
 
-		if (getVersionControl()==VersionControl.PROTECTED)
+		if (getVersionControl() == VersionControl.PROTECTED)
 			throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Version Control is protected, can not delete objects");
 
 		createVFSIODriver().delete(bucket, objectName);
@@ -908,6 +923,15 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 		return bufferPoolService;
 	}
 
+	/**
+	 * Returns the {@link OdilonRAIDSixVolumeManager} for RAID 6 deployments.
+	 * Returns {@code null} for RAID 0 and RAID 1.
+	 */
+	@Override
+	public OdilonRAIDSixVolumeManager getVolumeManager() {
+		return volumeManager;
+	}
+
 	@Override
 	public ServerSettings getServerSettings() {
 		return serverSettings;
@@ -967,14 +991,11 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 			return;
 		}
 	}
-	
-	
-	
+
 	public VersionControl getVersionControl() {
 		return getServerSettings().getVersionControl();
 	}
-	
-				
+
 	/**
 	 * <p>
 	 * if the object does not exist or is in state {@link ObjectStatus#DELETE} ->
@@ -1044,10 +1065,10 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 			loadMasterKey();
 
 			/** migrate plain .json metadata to .json.enc if encrypt.metadata is enabled */
-			//if (getServerSettings().isEncryptMetadata()) {
-			//	new EncryptionInitializer(this, Optional.empty())
-			//			.encryptExistingMetadata(createVFSIODriver());
-			//}
+			// if (getServerSettings().isEncryptMetadata()) {
+			// new EncryptionInitializer(this, Optional.empty())
+			// .encryptExistingMetadata(createVFSIODriver());
+			// }
 			//
 
 			/** Starts up Scheduler */
@@ -1089,29 +1110,46 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 	private void loadDrives() {
 
 		List<Drive> baselist = new ArrayList<Drive>();
-		/** load enabled drives and new drives */
-		{
+
+		this.drivesAll.clear();
+		this.drivesEnabled.clear();
+		this.drivesRSDecode.clear();
+
+		if (getRedundancyLevel() == RedundancyLevel.RAID_6) {
+			// ── RAID 6: iterate per-volume, preserving volume-local ordering ──────────
+			// configOrder is the global drive index (used for drive naming / journal).
+			// Within each volume the position in the list == volume-local shard index.
 			int configOrder = 0;
-			this.drivesAll.clear();
-			this.drivesEnabled.clear();
-			this.drivesRSDecode.clear();
-			for (String dir : getServerSettings().getRootDirs()) {
-				Drive drive = null;
-				if (getRedundancyLevel() == RedundancyLevel.RAID_6) {
-					drive = new OdilonRaidSixDrive(String.valueOf(configOrder), dir, configOrder, getRedundancyLevel().getName(), getServerSettings().getTotalDisks());
-					configOrder++;
-				} else {
-					drive = new OdilonRaidZeroRaidOneDrive(String.valueOf(configOrder), dir, configOrder, getRedundancyLevel().getName(), getServerSettings().getTotalDisks());
+			for (List<String> vDirs : getServerSettings().getVolumeRootDirs()) {
+				for (String dir : vDirs) {
+					Drive drive = new OdilonRaidSixDrive(
+							String.valueOf(configOrder), dir, configOrder,
+							getRedundancyLevel().getName(),
+							getServerSettings().getTotalDisks());
+					((OdilonDrive) drive).setEncryptionService(this.encrpytionService);
+					((OdilonDrive) drive).setServerSettings(this.serverSettings);
+					baselist.add(drive);
+					this.drivesAll.put(drive.getName(), drive);
+					if (drive.getDriveInfo().getStatus() == DriveStatus.ENABLED)
+						this.drivesEnabled.put(drive.getName(), drive);
 					configOrder++;
 				}
-				/** inject services needed for metadata encryption */
+			}
+		} else {
+			// ── RAID 0 / RAID 1: flat list ────────────────────────────────────────────
+			int configOrder = 0;
+			for (String dir : getServerSettings().getRootDirs()) {
+				Drive drive = new OdilonRaidZeroRaidOneDrive(
+						String.valueOf(configOrder), dir, configOrder,
+						getRedundancyLevel().getName(),
+						getServerSettings().getTotalDisks());
 				((OdilonDrive) drive).setEncryptionService(this.encrpytionService);
 				((OdilonDrive) drive).setServerSettings(this.serverSettings);
 				baselist.add(drive);
 				this.drivesAll.put(drive.getName(), drive);
 				if (drive.getDriveInfo().getStatus() == DriveStatus.ENABLED)
 					this.drivesEnabled.put(drive.getName(), drive);
-
+				configOrder++;
 			}
 		}
 
@@ -1139,6 +1177,11 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 		/** set up drives for RS Decoding */
 		this.drivesEnabled.values().forEach(drive -> this.drivesRSDecode.put(Integer.valueOf(drive.getDriveInfo().getOrder()), drive));
 
+		/** initialize volume manager for RAID 6 */
+		if (getRedundancyLevel() == RedundancyLevel.RAID_6) {
+			initializeVolumeManager(baselist);
+		}
+
 		if (logger.isDebugEnabled()) {
 			logger.debug(ServerConstant.SEPARATOR);
 			logger.debug("Drives enabled");
@@ -1151,9 +1194,67 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 	}
 
 	/**
-	 * 
-	 * 
+	 * <p>
+	 * Partitions the ordered {@code baselist} of RAID 6 drives into
+	 * {@link RAIDSixVolume}s, one volume per contiguous block of
+	 * {@code (dataDrives + parityDrives)} drives, then wires up the
+	 * {@link OdilonRAIDSixVolumeManager} and marks the configured active volume.
+	 * </p>
+	 * <p>
+	 * Drive positions inside the list are the <em>volume-local disk indices</em> (0
+	 * … totalShards−1) used in RS-shard file names. Global
+	 * {@link Drive#getConfigOrder()} values are preserved unchanged so that journal
+	 * / rollback code that addresses drives by name still works.
+	 * </p>
+	 *
+	 * @param baselist ordered list of all RAID 6 drives (all volumes combined), in
+	 *                 the same order as {@code dataStorage} entries in
+	 *                 {@code odilon.properties}.
 	 */
+	private void initializeVolumeManager(List<Drive> baselist) {
+		int data         = getServerSettings().getRAID6DataDrives();
+		int parity       = getServerSettings().getRAID6ParityDrives();
+		int drivesPerVol = data + parity;
+
+		// Use the explicit raid6.volumes value — never infer silently.
+		// ServerSettings.afterPropertiesSet() has already validated that
+		// raid6.volumes × drivesPerVol == totalDirs, so the assertion below
+		// is a cheap safety net against future code changes.
+		int numVolumes       = getServerSettings().getRAID6Volumes();
+		int configuredActive = getServerSettings().getActiveVolumeId();
+
+		if (baselist.size() != numVolumes * drivesPerVol)
+			throw new IllegalStateException(
+					"RAID 6 internal consistency failure: baselist.size()=" + baselist.size()
+					+ " != raid6.volumes=" + numVolumes + " × drivesPerVol=" + drivesPerVol
+					+ ". This should have been caught by ServerSettings validation.");
+
+		this.volumeManager = new OdilonRAIDSixVolumeManager();
+
+		for (int v = 0; v < numVolumes; v++) {
+			List<Drive> vDrives = new ArrayList<>(baselist.subList(v * drivesPerVol, (v + 1) * drivesPerVol));
+			RAIDSixVolume volume = new RAIDSixVolume(v, data, parity, vDrives);
+			this.volumeManager.addVolume(volume);
+		}
+
+		// Point the manager to the configured active volume (validates it exists).
+		this.volumeManager.setActiveVolumeId(configuredActive);
+
+		// Mark every other volume as READONLY (readable, no new writes).
+		for (RAIDSixVolume vol : this.volumeManager.getAllVolumes()) {
+			if (vol.getVolumeId() != configuredActive)
+				vol.setStatus(VolumeStatus.READONLY);
+		}
+
+		startuplogger.info("RAID 6 volume manager initialized: "
+				+ numVolumes + " volume(s), "
+				+ drivesPerVol + " drives/volume (" + data + " data + " + parity + " parity), "
+				+ "active=" + configuredActive);
+		this.volumeManager.getAllVolumes().forEach(v -> startuplogger.info("  " + v));
+	}
+
+	// ...existing code...
+
 	private void deleteGhostsBuckets() {
 		for (Entry<String, Drive> entry : getMapDrivesAll().entrySet()) {
 			Drive drive = entry.getValue();
@@ -1313,7 +1414,7 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 	}
 
 	private void checkServerInfo() {
-		
+
 		IODriver driver = createVFSIODriver();
 		/** If there is no ServerInfo, create it */
 		OdilonServerInfo si = driver.getServerInfo();
@@ -1323,16 +1424,15 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 		}
 		boolean requireUpdate = false;
 		boolean forceSync = false;
-		
-		
-		VersionControl oldVC=si.getVersionControl();
 
-		 if (oldVC == null) {
-			 oldVC=si.isVersionControl() ? VersionControl.STANDARD : VersionControl.DISABLED;
-		 }
-		
+		VersionControl oldVC = si.getVersionControl();
+
+		if (oldVC == null) {
+			oldVC = si.isVersionControl() ? VersionControl.STANDARD : VersionControl.DISABLED;
+		}
+
 		boolean newStandByConnection = ((getServerSettings().isStandByEnabled()) && (!si.isStandByEnabled()));
-		boolean newVersionControl = (getServerSettings().getVersionControl()!=VersionControl.DISABLED)  && (oldVC==VersionControl.DISABLED);
+		boolean newVersionControl = (getServerSettings().getVersionControl() != VersionControl.DISABLED) && (oldVC == VersionControl.DISABLED);
 		boolean standByChangedUrl = false;
 
 		OffsetDateTime now = OffsetDateTime.now();
@@ -1400,7 +1500,7 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 			si.setStandbyUrl(getServerSettings().getStandByUrl());
 			si.setStandByEnabled(getServerSettings().isStandByEnabled());
 			si.setVersionControl(getServerSettings().getVersionControl());
-			si.setVersionControl(getServerSettings().getVersionControl()!=VersionControl.DISABLED);
+			si.setVersionControl(getServerSettings().getVersionControl() != VersionControl.DISABLED);
 			driver.setServerInfo(si);
 		}
 	}
@@ -1521,18 +1621,14 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 
 	/**
 	 * <p>
-	 * Checks that sensitive key files are not world- or group-readable.
-	 * Logs a security warning for every file that is too permissive.
-	 * Only runs on POSIX file systems (Linux / macOS); silently skipped on Windows.
+	 * Checks that sensitive key files are not world- or group-readable. Logs a
+	 * security warning for every file that is too permissive. Only runs on POSIX
+	 * file systems (Linux / macOS); silently skipped on Windows.
 	 * </p>
 	 */
 	private void checkKeyFileSecurity() {
 
-		Set<PosixFilePermission> insecurePermissions = EnumSet.of(
-				PosixFilePermission.GROUP_READ,
-				PosixFilePermission.GROUP_WRITE,
-				PosixFilePermission.OTHERS_READ,
-				PosixFilePermission.OTHERS_WRITE);
+		Set<PosixFilePermission> insecurePermissions = EnumSet.of(PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_WRITE, PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_WRITE);
 
 		// 1. kbee.enc on every enabled drive
 		for (Drive drive : getMapDrivesEnabled().values()) {

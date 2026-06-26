@@ -239,10 +239,16 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionObjectHandler 
 
 		OffsetDateTime creationDate = OffsetDateTime.now();
 
-		final List<Drive> drives = getDriver().getDrivesAll();
+		// ── Write ObjectMetadata ONLY to the active volume's drives ──────────────────
+		// Drives on other (older) volumes must NOT receive new object metadata files.
+		// The active volume id is stamped into every ObjectMetadata so that reads
+		// can route to the correct volume later.
+		final RAIDSixVolume activeVolume = getDriver().getActiveVolume();
+		final List<Drive> drives = activeVolume.getDrives();
+		final int activeVolumeId = activeVolume.getVolumeId();
 		final List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
 
-		for (Drive drive : getDriver().getDrivesAll()) {
+		for (Drive drive : drives) {
 			try {
 				ObjectMetadata meta = new ObjectMetadata(getBucket().getId(), getObjectName());
 				meta.setFileName(srcFileName);
@@ -262,7 +268,9 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionObjectHandler 
 				meta.setDrive(drive.getName());
 				meta.setPublicAccess(o_public.orElse(Boolean.FALSE));
 				meta.setRaid(String.valueOf(getRedundancyLevel().getCode()).trim());
-				meta.setRaidDrives(getDriver().getTotalDisks());
+				meta.setRaidDrives(activeVolume.getTotalShards());
+				// Permanent pointer to the volume that holds this object's shards.
+				meta.setVolumeId(activeVolumeId);
 
 				if (customTags.isPresent())
 					meta.setCustomTags(customTags.get());

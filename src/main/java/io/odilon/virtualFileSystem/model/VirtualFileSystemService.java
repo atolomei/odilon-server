@@ -50,6 +50,7 @@ import io.odilon.service.ServerSettings;
 import io.odilon.service.SystemService;
 import io.odilon.virtualFileSystem.BucketCache;
 import io.odilon.virtualFileSystem.raid6.BufferPoolService;
+import io.odilon.virtualFileSystem.raid6.OdilonRAIDSixVolumeManager;
 
 /**
  * <p>
@@ -288,6 +289,12 @@ public interface VirtualFileSystemService extends SystemService {
     public ExecutorService getExecutorService();
 
 	public BufferPoolService getBufferPoolService();
+
+	/**
+	 * Returns the RAID 6 volume manager, or {@code null} when the server
+	 * is running in RAID 0 or RAID 1 mode.
+	 */
+	public OdilonRAIDSixVolumeManager getVolumeManager();
 
 	public VersionControl getVersionControl();
 
