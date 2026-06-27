@@ -423,6 +423,16 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 					}
 				}
 				if (meta != null) {
+					// ── Remove the stale new-name entry from the cache ──────────────────────────
+					// operation.getObjectName() holds the new bucket name recorded at journal
+					// creation time (see OdilonJournalService.updateBucket).
+					// After a crash mid-rename, loadBuckets() may have loaded the bucket under
+					// the new name (from drives already updated before the crash). If we only
+					// call addCacheBucket(old), the new-name entry persists in nameMap, making
+					// checkNotExistsBucket(newName) report a false positive forever.
+					String newBucketName = operation.getObjectName();
+					if (newBucketName != null)
+						getVirtualFileSystemService().getBucketCache().remove(newBucketName);
 					ServerBucket bucket = new OdilonBucket(meta);
 					addCacheBucket(bucket);
 				}
@@ -639,10 +649,20 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		try {
 			for (Drive drive : getDrivesEnabled()) {
 				File dir = new File(drive.getJournalDirPath());
-				if (!dir.exists())
-					return list;
-				if (!dir.isDirectory())
-					return list;
+				if (!dir.exists()) {
+					// In multi-volume RAID 6, saveJournal writes only to the active volume's
+					// drives, so earlier volumes' journal directories may legitimately be empty;
+					// after a filesystem issue any drive's directory may be temporarily gone.
+					// `return list` here would silently drop every entry from all subsequent
+					// drives — including the volume that actually holds the journal file.
+					// Skip this drive and keep scanning the rest.
+					logger.warn("getJournalPending: journal dir does not exist on drive -> " + drive.getName() + " | " + dir.getAbsolutePath() + " — skipping");
+					continue;
+				}
+				if (!dir.isDirectory()) {
+					logger.warn("getJournalPending: journal dir path is not a directory on drive -> " + drive.getName() + " | " + dir.getAbsolutePath() + " — skipping");
+					continue;
+				}
 				File[] files = dir.listFiles();
 				// listFiles() returns null on I/O error or if the directory disappears between
 				// the isDirectory() check above and this call. A null here would throw NPE
@@ -1255,20 +1275,22 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 	protected Map<String, ServerBucket> getBucketsMap() {
 
 		Map<String, ServerBucket> map = new HashMap<String, ServerBucket>();
-		Map<String, Integer> control = new HashMap<String, Integer>();
+
+		// ── Count bucket presence by ID, not by name ───────────────────────────────
+		// A crash during renameBucket leaves some drives with the old bucket name and
+		// some with the new name. Counting by name would make neither name reach
+		// totalDrives, causing the bucket to disappear from the cache and triggering a
+		// NullPointerException when the journal rollback tries to restore it.
+		// Counting by the stable bucket ID correctly aggregates both name variants.
+		Map<Long, Integer> control = new HashMap<Long, Integer>();
 
 		int totalDrives = getDrivesEnabled().size();
 
 		for (Drive drive : getDrivesEnabled()) {
 			for (DriveBucket bucket : drive.getBuckets()) {
 				if (bucket.getStatus().isAccesible()) {
-					String name = bucket.getName();
-					Integer count;
-					if (control.containsKey(name))
-						count = control.get(name) + 1;
-					else
-						count = Integer.valueOf(1);
-					control.put(name, count);
+					Long id = bucket.getId();
+					control.put(id, control.getOrDefault(id, 0) + 1);
 				}
 			}
 		}
@@ -1278,9 +1300,9 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		 */
 		Drive drive = getDrivesEnabled().get(Double.valueOf(Math.abs(Math.random() * 1000)).intValue() % getDrivesEnabled().size());
 		for (DriveBucket bucket : drive.getBuckets()) {
-			String name = bucket.getName();
-			if (control.containsKey(name)) {
-				Integer count = control.get(name);
+			Long id = bucket.getId();
+			if (control.containsKey(id)) {
+				Integer count = control.get(id);
 				if (count == totalDrives) {
 					ServerBucket vfsbucket = new OdilonBucket(bucket);
 					map.put(vfsbucket.getName(), vfsbucket);
@@ -1298,6 +1320,16 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 			for (Drive drive : getDrivesAll()) {
 				BucketPath b_path = new BucketPath(drive, bucket);
 				Path backup = b_path.bucketMetadata(Context.BACKUP);
+				// ── Guard: backup file may not exist if the crash occurred during
+				// backupBucketMetadata itself (before this drive's backup was written).
+				// In that case the drive's metadata file was never overwritten, so it
+				// still holds the correct pre-rename state — nothing to restore here.
+				if (!backup.toFile().exists()) {
+					logger.warn("restoreBucketMetadata: backup file missing on drive -> "
+							+ drive.getName() + " b:" + (bucket != null ? bucket.getName() : "null")
+							+ " | drive metadata left unchanged (pre-rename state intact)");
+					continue;
+				}
 				drive.updateBucket(getObjectMapper().readValue(backup.toFile(), BucketMetadata.class));
 			}
 		} catch (Exception e) {

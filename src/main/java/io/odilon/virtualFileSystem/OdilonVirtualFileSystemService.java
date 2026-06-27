@@ -1099,6 +1099,12 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 
 		} catch (Exception e) {
 			setStatus(ServiceStatus.STOPPED);
+
+			startuplogger.error(ServerConstant.SEPARATOR);
+			startuplogger.error("OdilonServer failed to start");
+			startuplogger.error(e);
+			startuplogger.error(ServerConstant.SEPARATOR);
+
 			throw e;
 		}
 	}
