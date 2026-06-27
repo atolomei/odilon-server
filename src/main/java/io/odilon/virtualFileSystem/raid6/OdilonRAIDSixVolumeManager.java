@@ -71,7 +71,7 @@ public class OdilonRAIDSixVolumeManager {
     /** Which volume receives new-object writes. */
     private volatile int activeVolumeId = 0;
 
-    private List<RAIDSixVolume> raidSixVolume;
+    private volatile List<RAIDSixVolume> raidSixVolume;
 
     
     public OdilonRAIDSixVolumeManager() {}
@@ -153,18 +153,22 @@ public class OdilonRAIDSixVolumeManager {
      
     public List<RAIDSixVolume> getVolumesInSearchOrder() {
     	
-    	if (raidSixVolume!=null)
+    	if (raidSixVolume != null)
     		return this.raidSixVolume;
     	
     	synchronized (this) {
-  	    	List<RAIDSixVolume> order = new ArrayList<>();
+    		// Inner null-check: required for correct DCL — another thread may have
+    		// computed the list between the outer check and acquiring the monitor.
+    		if (raidSixVolume != null)
+    			return this.raidSixVolume;
+
+	    	List<RAIDSixVolume> order = new ArrayList<>();
 	        RAIDSixVolume active = getActiveVolume();
 	        order.add(active);
 	        new ArrayList<>(volumes).stream()
 	                .filter(v -> v.getVolumeId() != activeVolumeId)
 	                .sorted(Comparator.comparingInt(RAIDSixVolume::getVolumeId).reversed())
 	                .forEach(order::add);
-	        //return Collections.unmodifiableList(order);
 	        this.raidSixVolume = Collections.unmodifiableList(order);
     	}
     	return this.raidSixVolume;

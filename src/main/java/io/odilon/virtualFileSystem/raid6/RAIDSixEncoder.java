@@ -235,9 +235,13 @@ public class RAIDSixEncoder extends RAIDSixCoder {
 			for (int diskOrder = 0; diskOrder < totalShards; diskOrder++) {
 				if (isWrite(diskOrder)) {
 
-					String dirPath = getDrives().get(diskOrder).getBucketObjectDataDirPath(bucket) + (o_version.isEmpty() ? "" : File.separator + VirtualFileSystemService.VERSION_DIR);
+				String dirPath = getDrives().get(diskOrder).getBucketObjectDataDirPath(bucket) + (o_version.isEmpty() ? "" : File.separator + VirtualFileSystemService.VERSION_DIR);
 
-					String name = objectName + "." + chunk + "." + diskOrder + (o_version.isEmpty() ? "" : "v." + o_version.get());
+				// ── Bug A fix: shard file naming convention must be objectName.<chunk>.<disk>.v<version>
+				// The original string "v." + version produced "objectName.0.2v.1" (dot on wrong side).
+				// The decoder (RAIDSixDecoder.decodeChunk) and getObjectDataFilesNames() both expect
+				// the format objectName.0.2.v1, i.e. ".v" + version (dot BEFORE v, no dot after).
+				String name = objectName + "." + chunk + "." + diskOrder + (o_version.isEmpty() ? "" : ".v" + o_version.get());
 
 					destination.add(new File(dirPath, name));
 					requiresCopy[diskOrder] = Boolean.TRUE;

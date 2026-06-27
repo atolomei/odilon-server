@@ -1110,15 +1110,33 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 	 * On a server restart the active volume may differ from the one that was active
 	 * when a pending operation was saved. Scanning all drives ensures stale journal
 	 * files left on an old volume's drives are cleaned up.
-	 * {@link Drive#removeJournal} is a quiet-delete so missing files are ignored.
+	 * {@link Drive#removeJournal} uses {@code deleteIfExists} so missing files are
+	 * silently ignored — this is correct because {@link #saveJournal} writes only
+	 * to the <em>active</em> volume's drives, so drives on other volumes will never
+	 * have the file.
+	 * </p>
+	 * <p>
+	 * Each drive is attempted independently: a genuine I/O error on one drive is
+	 * logged but must not abort the loop, otherwise the journal file would remain
+	 * on all subsequent drives and be replayed again on the next restart.
 	 * </p>
 	 */
 	@Override
 	public void removeJournal(String id) {
 		getLockService().getJournalLock().writeLock().lock();
 		try {
-			for (Drive drive : getDrivesEnabled())
-				drive.removeJournal(id);
+			for (Drive drive : getDrivesEnabled()) {
+				try {
+					drive.removeJournal(id);
+				} catch (Exception e) {
+					// Log and continue: a failure on one drive must not prevent deletion
+					// from all remaining drives (including the volume that actually holds
+					// the journal file). The caller (OdilonJournalService) already treats
+					// a partial-delete gracefully.
+					logger.error("removeJournal: failed on drive -> " + drive.getName()
+							+ " | id=" + id + " | " + e.getMessage(), SharedConstant.NOT_THROWN);
+				}
+			}
 		} finally {
 			getLockService().getJournalLock().writeLock().unlock();
 		}

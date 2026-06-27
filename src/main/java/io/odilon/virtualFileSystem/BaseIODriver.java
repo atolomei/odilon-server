@@ -644,6 +644,13 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 				if (!dir.isDirectory())
 					return list;
 				File[] files = dir.listFiles();
+				// listFiles() returns null on I/O error or if the directory disappears between
+				// the isDirectory() check above and this call. A null here would throw NPE
+				// and abort recovery for every subsequent drive / volume — guard against it.
+				if (files == null) {
+					logger.warn("getJournalPending: listFiles() returned null for journal dir -> " + dir.getAbsolutePath() + " (I/O error or directory disappeared)");
+					continue;
+				}
 				for (File file : files) {
 					if (!file.isDirectory()) {
 						Path pa = Paths.get(file.getAbsolutePath());

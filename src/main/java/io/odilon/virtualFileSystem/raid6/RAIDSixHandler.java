@@ -114,6 +114,30 @@ public abstract class RAIDSixHandler extends BaseRAIDHandler implements RAIDHand
 		return activeDrives.get(Math.abs(getKey(bucket, objectName).hashCode()) % activeDrives.size());
 	}
 
+	/**
+	 * <p>
+	 * <b>Bug D0 fix — multi-volume metadata read.</b>
+	 * </p>
+	 * <p>
+	 * {@link BaseRAIDHandler#getMetadata} calls {@code getObjectMetadataReadDrive()}
+	 * for both the cache-disabled path and the cache-miss path. For RAID 6 that
+	 * method returns a random drive from the <em>active</em> volume on a cache-miss.
+	 * Objects stored on an older (READONLY) volume have no metadata on those drives
+	 * → {@code drive.getObjectMetadata()} returns {@code null} → the caller receives
+	 * {@code null} even though the object exists → NPE / OdilonObjectNotFoundException
+	 * on the very next line.
+	 * </p>
+	 * <p>
+	 * This override delegates to {@link RAIDSixDriver#getDriverObjectMetadataInternal}
+	 * which searches <em>all</em> volumes (active first, then archives
+	 * newest-to-oldest) and caches the result according to {@code addToCacheIfMiss}.
+	 * </p>
+	 */
+	@Override
+	protected ObjectMetadata getMetadata(ServerBucket bucket, String objectName, boolean addToCacheIfMiss) {
+		return getDriver().getDriverObjectMetadataInternal(bucket, objectName, addToCacheIfMiss);
+	}
+
 	protected void saveRAIDSixObjectMetadataToDisk(final List<Drive> drives, final List<ObjectMetadata> list, final boolean isHead) {
 
 		if (logger.isDebugEnabled()) {

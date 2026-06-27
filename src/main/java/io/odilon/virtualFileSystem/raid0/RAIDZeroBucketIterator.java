@@ -106,6 +106,9 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
 						.filter(file -> isValidState(file));
 				this.getStreamMap().put(drive, stream);
 			} catch (IOException e) {
+				// close every stream opened so far before re-throwing so that
+				// file-descriptor resources are not leaked when a later drive fails.
+				this.getStreamMap().forEach((k, v) -> v.close());
 				throw new InternalCriticalException(e);
 			}
 			Iterator<Path> it = stream.iterator();
@@ -175,8 +178,9 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
 		}
 		long skipped = getCumulativeIndex();
 
+		 
+		int d_index = 0;
 		while (isItems && skipped < getOffset()) {
-			int d_index = 0;
 			int d_poll = d_index++ % this.getDrives().size();
 			Drive drive = this.getDrives().get(d_poll);
 			Iterator<Path> iterator = getItMap().get(drive);
@@ -189,6 +193,9 @@ public class RAIDZeroBucketIterator extends BucketIterator implements Closeable 
 				this.getItMap().remove(drive);
 				this.getDrives().remove(d_poll);
 				isItems = !this.getDrives().isEmpty();
+				// Step d_index back: the list just shrank by one so the same logical position
+				// now points to the next drive without any additional increment.
+				d_index--;
 			}
 		}
 	}

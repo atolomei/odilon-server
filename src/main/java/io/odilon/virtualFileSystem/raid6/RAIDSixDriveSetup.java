@@ -34,6 +34,7 @@ import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.OdilonServerInfo;
 import io.odilon.model.SharedConstant;
+import io.odilon.virtualFileSystem.DriveInfo;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.DriveStatus;
 import io.odilon.virtualFileSystem.model.IODriveSetup;
@@ -184,6 +185,19 @@ public class RAIDSixDriveSetup implements IODriveSetup, ApplicationContextAware 
 
 		startuplogger.info("4. Starting Async process -> " + RAIDSixDriveSync.class.getSimpleName());
 
+		// ── Bug 5 fix: new-volume fast path ───────────────────────────────────────────
+		// When every NOTSYNC drive belongs to a brand-new volume (no existing objects
+		// to re-encode), launching the async RAIDSixDriveSync is unnecessary. Mark the
+		// new drives ENABLED directly and return immediately.
+		if (isNewVolumeExpansion()) {
+			startuplogger.info("   All NOTSYNC drives form a new volume — no objects to re-encode.");
+			startuplogger.info("   Marking new drives ENABLED directly.");
+			markNewVolumeDrivesEnabled();
+			startuplogger.info("done");
+			return true;
+		}
+		// ─────────────────────────────────────────────────────────────────────────────
+
 		/** The rest of the process is async */
 		@SuppressWarnings("unused")
 		RAIDSixDriveSync checker = getApplicationContext().getBean(RAIDSixDriveSync.class, getDriver());
@@ -221,6 +235,45 @@ public class RAIDSixDriveSetup implements IODriveSetup, ApplicationContextAware 
 						return;
 					}
 				}
+			}
+		}
+	}
+
+	/**
+	 * Returns {@code true} when every NOTSYNC drive belongs to a volume where
+	 * <em>all</em> drives are NOTSYNC (i.e. a brand-new volume is being added).
+	 * Returns {@code false} when at least one volume has a mix of ENABLED and
+	 * NOTSYNC drives — that is a drive-replacement scenario that requires
+	 * re-encoding of existing objects via {@link RAIDSixDriveSync}.
+	 */
+	private boolean isNewVolumeExpansion() {
+		OdilonRAIDSixVolumeManager vm = getDriver().getVolumeManager();
+		if (vm == null)
+			return false; // safety: volume manager not initialised (non-RAID-6 path)
+		for (RAIDSixVolume volume : vm.getAllVolumes()) {
+			List<Drive> vDrives = volume.getDrives();
+			boolean anyEnabled = vDrives.stream().anyMatch(d -> d.getDriveInfo().getStatus() == DriveStatus.ENABLED);
+			boolean anyNotSync = vDrives.stream().anyMatch(d -> d.getDriveInfo().getStatus() == DriveStatus.NOTSYNC);
+			if (anyNotSync && anyEnabled)
+				return false; // mixed state → real re-encode needed
+		}
+		return true;
+	}
+
+	/**
+	 * Marks every NOTSYNC drive as ENABLED without launching re-encoding.
+	 * Used only from the new-volume-expansion fast path
+	 * (see {@link #isNewVolumeExpansion()}).
+	 */
+	private void markNewVolumeDrivesEnabled() {
+		for (Drive drive : getDriver().getDrivesAll()) {
+			if (drive.getDriveInfo().getStatus() == DriveStatus.NOTSYNC) {
+				DriveInfo info = drive.getDriveInfo();
+				info.setStatus(DriveStatus.ENABLED);
+				info.setOrder(drive.getConfigOrder());
+				drive.setDriveInfo(info);
+				getDriver().getVirtualFileSystemService().updateDriveStatus(drive);
+				startuplogger.info("   Drive ENABLED -> " + drive.getName() + " | " + drive.getRootDirPath());
 			}
 		}
 	}

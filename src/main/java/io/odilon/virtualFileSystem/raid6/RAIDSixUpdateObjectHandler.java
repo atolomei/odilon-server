@@ -81,10 +81,29 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionObjectHandler 
 	 * @param objectName
 	 * @return
 	 */
+	/**
+	 * <p>
+	 * Volume-aware existence check (Bug U1 fix).
+	 * </p>
+	 * <p>
+	 * The original implementation called {@code getObjectMetadataReadDrive()} which,
+	 * on a cache-miss, returns a random drive from the <em>active</em> volume. Objects
+	 * stored on an older (READONLY) volume have no metadata on that drive → the method
+	 * returned {@code false} → {@code checkExistObject} threw
+	 * {@link OdilonObjectNotFoundException} → every {@code update()} on an object
+	 * created before the last volume switch failed.
+	 * </p>
+	 * <p>
+	 * Delegating to {@link RAIDSixDriver#getDriverObjectMetadataInternal} (which
+	 * searches the active volume first, then all older volumes) fixes the problem
+	 * and is consistent with every other existence check in the RAID 6 layer.
+	 * </p>
+	 */
 	protected boolean existsObjectMetadata(ServerBucket bucket, String objectName) {
 		if (existsCacheObject(bucket, objectName))
 			return true;
-		return getDriver().getObjectMetadataReadDrive(bucket, objectName).existsObjectMetadata(bucket, objectName);
+		// cross-volume search: active volume first, then archives newest-to-oldest
+		return getDriver().getDriverObjectMetadataInternal(bucket, objectName, false) != null;
 	}
 
 	/**
@@ -215,12 +234,12 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionObjectHandler 
 						} catch (Exception e) {
 							throw new InternalCriticalException(e, objectInfo(meta));
 						}
-					} else {
-						/**
-						 * TODO AT -> Sync by the moment. TODO see how to make it Async
-						 */
-						cleanUpBackupMetadataDir(bucket, meta.getObjectName());
-					}
+				} else {
+					/**
+					 * TODO AT -> Sync by the moment. TODO see how to make it Async
+					 */
+					cleanUpBackupMetadataDir(bucket, meta);
+				}
 				} finally {
 					getLockService().getBucketLock(meta.getBucketId()).readLock().unlock();
 				}
@@ -274,8 +293,19 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionObjectHandler 
 
 				List<ObjectMetadata> metaVersions = new ArrayList<ObjectMetadata>();
 
+				// ── Bug U2 fix: read version metadata from the object's owning volume ─────────
+				// getObjectMetadataReadDrive() for a cache-miss returns a drive from the ACTIVE
+				// volume. Objects on older (READONLY) volumes have no version metadata on those
+				// drives → mv == null for every iteration → metaVersions stays empty →
+				// OdilonObjectNotFoundException("previous versions deleted").
+				// metaHeadToRemove already carries the correct volumeId from the cross-volume
+				// search above, so we use its volume's drive list directly.
+				List<Drive> ownerDrives = getDriver().getVolumeForObject(metaHeadToRemove).getDrives();
+				Drive vReadDrive = ownerDrives.get(Double.valueOf(Math.abs(Math.random() * 1000)).intValue() % ownerDrives.size());
+				// ─────────────────────────────────────────────────────────────────────────────
+
 				for (int version = 0; version < beforeHeadVersion; version++) {
-					ObjectMetadata mv = getDriver().getObjectMetadataReadDrive(bucket, objectName).getObjectMetadataVersion(bucket, objectName, version);
+					ObjectMetadata mv = vReadDrive.getObjectMetadataVersion(bucket, objectName, version);
 					if (mv != null)
 						metaVersions.add(mv);
 				}
@@ -613,11 +643,22 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionObjectHandler 
 	 * @param bucketName
 	 * @param objectName
 	 */
-	private void cleanUpBackupMetadataDir(ServerBucket bucket, String objectName) {
+	/**
+	 * <p>
+	 * Deletes the work-dir backup created by {@link #backup(ObjectMetadata, ServerBucket)}.
+	 * </p>
+	 * <p>
+	 * <b>Bug U3 fix:</b> the original implementation used
+	 * {@code getActiveVolume().getDrives()} for the cleanup, but the backup is
+	 * written to {@code getVolumeForObject(meta).getDrives()}. For metadata-only
+	 * updates of objects on non-active volumes the backup directories were never
+	 * removed, leaking work-dir disk space indefinitely.
+	 * </p>
+	 */
+	private void cleanUpBackupMetadataDir(ServerBucket bucket, ObjectMetadata meta) {
 		try {
-			// Clean up backup work dirs on the active volume drives
-			for (Drive drive : getDriver().getActiveVolume().getDrives()) {
-				FileUtils.deleteQuietly(new File(drive.getBucketWorkDirPath(bucket) + File.separator + objectName));
+			for (Drive drive : getDriver().getVolumeForObject(meta).getDrives()) {
+				FileUtils.deleteQuietly(new File(drive.getBucketWorkDirPath(bucket) + File.separator + meta.getObjectName()));
 			}
 		} catch (Exception e) {
 			logger.error(e, SharedConstant.NOT_THROWN);

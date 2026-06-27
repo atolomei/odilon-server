@@ -71,11 +71,26 @@ public class RAIDSixRollbackSyncHandler extends RAIDSixRollbackHandler {
 		try {
 			for (Drive drive : getDriver().getDrivesEnabled()) {
 				File dest = new File(drive.getObjectMetadataDirPath(bucket, objectName));
-				File src = new File(drive.getBucketWorkDirPath(bucket) + File.separator + objectName);
-				if (src.exists())
+				File src  = new File(drive.getBucketWorkDirPath(bucket) + File.separator + objectName);
+				if (src.exists()) {
 					FileUtils.copyDirectory(src, dest);
-				else
-					throw new InternalCriticalException("dir does not exist " + objectInfo(bucket, objectName) + " | dir:" + src.getAbsolutePath());
+				} else {
+					// ── Multi-volume fix (Bug B) ───────────────────────────────────────────────
+					// In a multi-volume deployment enabled drives from OTHER volumes will have
+					// no work-dir backup for this object because it lives on a different volume.
+					// Throwing here crashes the rollback for a perfectly legitimate situation.
+					//
+					// Rule: if neither the backup (src) NOR the metadata dir (dest) exist on
+					// this drive, the object simply never lived here — silently skip.
+					// If dest exists but src is missing, backup was expected but lost → log
+					// an error but do not throw so that the rollback can still complete.
+					if (dest.exists()) {
+						logger.error("rollback: work-dir backup missing but metadata dir present on drive "
+								+ drive.getName() + " -> " + objectInfo(bucket, objectName)
+								+ " | backup:" + src.getAbsolutePath());
+					}
+					// else: different-volume drive with no object data here — skip silently
+				}
 			}
 		} catch (IOException e) {
 			throw new InternalCriticalException(e, objectInfo(bucket, objectName));

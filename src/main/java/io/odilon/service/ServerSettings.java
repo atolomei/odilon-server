@@ -122,8 +122,16 @@ public class ServerSettings implements JSONObject {
 	@Value("${server.mode:master}") /** server.mode = master | standby */
 	protected String serverMode;
 
-	/** Version Control. by default not enabled **/
-	@Value("${server.versioncontrol:disabled}")
+	
+	/** Version Control. by default disabled **/
+	@Deprecated
+	@Value("${server.versionControl:null}")
+	protected String serverVersionControlStr;
+	// protected boolean versionControl;
+
+	
+	/** Version Control. by default disabled  **/
+	@Value("${version.control:null}")
 	protected String versionControlStr;
 	// protected boolean versionControl;
 
@@ -593,12 +601,22 @@ public class ServerSettings implements JSONObject {
 		}
 
 		
+		
+			
+		if (this.versionControlStr==null || this.versionControlStr.toLowerCase().trim().equals("null")) {
+			if (this.serverVersionControlStr!=null && !this.serverVersionControlStr.toLowerCase().trim().equals("null")) {
+				this.versionControlStr = this.serverVersionControlStr.toLowerCase().trim();
+			}
+			else
+				this.versionControlStr = "disabled";
+		}
+		
+		
 		if (this.versionControlStr==null)
 				this.versionControlStr = "disabled";
 		
 		this.versionControlStr = this.versionControlStr.trim().toLowerCase();
-		
-		
+				
 		if (this.versionControlStr.equals("disabled") || this.versionControlStr.equals("false"))
 			this.versionControlModel = VersionControl.DISABLED;
 		
@@ -608,7 +626,7 @@ public class ServerSettings implements JSONObject {
 		else if (this.versionControlStr.equals("protected"))
 			this.versionControlModel = VersionControl.PROTECTED;
 		else
-			throw new IllegalArgumentException("versionControl must be one of {disabled, standard, protected} -> provided value: " + versionControlStr);
+			throw new IllegalArgumentException("versionControl must be one of {disabled, standard, protected} -> provided value -> " + versionControlStr);
 		
 		
 		if (this.encryptionKeyIV != null) {
@@ -721,9 +739,13 @@ public class ServerSettings implements JSONObject {
 			exit("RedundancyLevel error -> " + redundancyLevelStr + " | Supported values are: " + str.toString());
 		}
 
-		if (this.redundancyLevel == RedundancyLevel.RAID_1) {
-			if (this.rootDirs.size() <= 1)
-				exit("DataStorage must have at least 2 entries for -> " + redundancyLevel.getName() + " | dataStorage=" + rootDirs.toString() + " | you must use " + RedundancyLevel.RAID_0.getName() + "for only one mount directory");
+		if (this.redundancyLevel == RedundancyLevel.RAID_0) {
+			if (this.rootDirs.size() < 1)
+				exit("DataStorage must have at least 1 entry for -> " + redundancyLevel.getName() + " | dataStorage=" + rootDirs.toString());
+
+		} else if (this.redundancyLevel == RedundancyLevel.RAID_1) {
+			if (this.rootDirs.size() < 2)
+				exit("DataStorage must have at least 2 entries for -> " + redundancyLevel.getName() + " | dataStorage=" + rootDirs.toString() + " | you must use " + RedundancyLevel.RAID_0.getName() + " for only one mount directory");
 
 		} else if (this.redundancyLevel == RedundancyLevel.RAID_6) {
 
@@ -827,6 +849,8 @@ public class ServerSettings implements JSONObject {
 			}
 
 			// ── Validate volume.active is in range ────────────────────────────────────
+			// By design, only ONE volume can be active at a time (activeVolumeId is a single integer).
+			// This validation ensures the configured active volume ID is within the valid range.
 			if (this.activeVolumeId < 0 || this.activeVolumeId >= this.raid6Volumes) {
 				exit("volume.active=" + this.activeVolumeId
 						+ " is out of range. Total volumes=" + this.raid6Volumes

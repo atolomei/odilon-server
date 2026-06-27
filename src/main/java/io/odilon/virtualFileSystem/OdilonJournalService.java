@@ -226,11 +226,10 @@ public class OdilonJournalService extends BaseService implements JournalService 
 				if (isStandBy())
 					getReplicationService().enqueue(operation);
 
-				// Step 1: durably remove the journal entry first
+				// Step 1: durably remove the journal entry first.
 				getVirtualFileSystemService().removeJournal(operation.getId());
-				getOperations().remove(operation.getId());
 
-				// Step 2: notify cache and bucket listeners only after journal is gone
+				// Step 2: notify cache and bucket listeners only after journal is gone.
 				getApplicationEventPublisher().publishEvent(new CacheEvent(operation, Action.COMMIT));
 
 				if ((payload != null) && (payload instanceof ServerBucket)) {
@@ -245,6 +244,11 @@ public class OdilonJournalService extends BaseService implements JournalService 
 					getReplicationService().cancel(operation);
 				}
 				throw e;
+			} finally {
+				// Always clean up the in-memory map regardless of whether event publication
+				// throws. Previously this sat between the two steps above: if publishEvent()
+				// threw, the operation stayed in the map and would be double-removed later.
+				getOperations().remove(operation.getId());
 			}
 		}
 	}
@@ -262,12 +266,13 @@ public class OdilonJournalService extends BaseService implements JournalService 
 
 		synchronized (this) {
 			try {
-				CacheEvent event = new CacheEvent(operation, Action.ROLLBACK);
-				getApplicationEventPublisher().publishEvent(event);
-
-				if (payload instanceof ServerBucket)
-					getApplicationEventPublisher().publishEvent(new BucketEvent(operation, Action.ROLLBACK, (ServerBucket) payload));
-
+				// Step 1: durably remove the journal entry BEFORE notifying listeners.
+				// Mirrors commit() ordering exactly. If publishEvent(ROLLBACK) throws first,
+				// the journal survives on every volume's drives and getJournalPending() on the
+				// next restart replays the rollback against state that is already (partially)
+				// rolled back. In RAID 6 multi-volume, removeJournal() fans out across ALL
+				// enabled drives on ALL volumes, so the entry is guaranteed gone everywhere
+				// before any listener observes the ROLLBACK event.
 				try {
 					getVirtualFileSystemService().removeJournal(operation.getId());
 				} catch (InternalCriticalException e) {
@@ -275,6 +280,12 @@ public class OdilonJournalService extends BaseService implements JournalService 
 				} catch (Exception e) {
 					logger.error(e, "cancel: could not remove journal entry for op:" + operation.getId(), SharedConstant.NOT_THROWN);
 				}
+
+				// Step 2: notify cache and bucket listeners only after journal is gone.
+				getApplicationEventPublisher().publishEvent(new CacheEvent(operation, Action.ROLLBACK));
+
+				if (payload instanceof ServerBucket)
+					getApplicationEventPublisher().publishEvent(new BucketEvent(operation, Action.ROLLBACK, (ServerBucket) payload));
 
 			} finally {
 				getOperations().remove(operation.getId());

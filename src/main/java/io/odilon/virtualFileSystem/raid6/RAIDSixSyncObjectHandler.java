@@ -62,6 +62,14 @@ public class RAIDSixSyncObjectHandler extends RAIDSixTransactionHandler {
 	private List<Drive> drivesToSync;
 
 	/**
+	 * Metadata of the object currently being synced.
+	 * Set as the first statement of {@link #sync} so that {@link #getDrives()} and
+	 * {@link #getDrivesToSync()} can scope their results to the correct volume.
+	 */
+	@JsonIgnore
+	private ObjectMetadata syncMeta;
+
+	/**
 	 * @param driver can not be null
 	 */
 	protected RAIDSixSyncObjectHandler(RAIDSixDriver driver) {
@@ -72,6 +80,9 @@ public class RAIDSixSyncObjectHandler extends RAIDSixTransactionHandler {
 	 * @param meta can not be null
 	 */
 	public void sync(ObjectMetadata meta) {
+
+		// Must be set before getDrives() / getDrivesToSync() are first called.
+		this.syncMeta = meta;
 
 		VirtualFileSystemOperation operation = null;
 		boolean done = false;
@@ -87,6 +98,15 @@ public class RAIDSixSyncObjectHandler extends RAIDSixTransactionHandler {
 				checkExistsBucket(meta.getBucketId());
 
 				bucket = getBucketCache().get(meta.getBucketId());
+
+				// ── Multi-volume early exit (Bug 2) ───────────────────────────────────────
+				// If this object's volume has no NOTSYNC drives there is nothing to
+				// re-encode. This is the normal case when a brand-new volume is added:
+				// existing objects live on an older volume whose drives are all ENABLED;
+				// the NOTSYNC drives belong to the new, still-empty volume.
+				if (getDrivesToSync().isEmpty())
+					return;
+				// ──────────────────────────────────────────────────────────────────────────
 
 				/**
 				 * backup metadata, there is no need to backup data because existing data files
@@ -116,24 +136,42 @@ public class RAIDSixSyncObjectHandler extends RAIDSixTransactionHandler {
 		}
 	}
 
+	/**
+	 * <p>
+	 * Returns the ordered list of drives used for encoding.
+	 * </p>
+	 * <p>
+	 * <b>Multi-volume fix (Bug 1):</b> when {@link #syncMeta} is set the list is
+	 * scoped to the <em>object's own volume</em>. The encoder loop runs
+	 * {@code 0 .. total_shards-1} using volume-local indices. Returning
+	 * {@code drivesAll} (which spans all volumes) places NOTSYNC drives at indices
+	 * &ge; {@code total_shards} so they are never written. Using the volume-local
+	 * list ensures each index maps to the correct drive.
+	 * </p>
+	 */
 	protected synchronized List<Drive> getDrives() {
 
 		if (this.drives != null)
 			return this.drives;
 
-		this.drives = new ArrayList<Drive>();
-
-		getDriver().getDrivesAll().forEach(d -> this.drives.add(d));
-		this.drives.sort(new Comparator<Drive>() {
-			@Override
-			public int compare(Drive o1, Drive o2) {
-				try {
-					return o1.getDriveInfo().getOrder() < o2.getDriveInfo().getOrder() ? -1 : 1;
-				} catch (Exception e) {
-					return 0;
+		if (this.syncMeta != null) {
+			// Volume-aware path: use only the drives belonging to this object's volume.
+			this.drives = new ArrayList<>(getDriver().getVolumeForObject(this.syncMeta).getDrives());
+		} else {
+			// Fallback: single-volume deployment or syncMeta not yet set.
+			this.drives = new ArrayList<Drive>();
+			getDriver().getDrivesAll().forEach(d -> this.drives.add(d));
+			this.drives.sort(new Comparator<Drive>() {
+				@Override
+				public int compare(Drive o1, Drive o2) {
+					try {
+						return o1.getDriveInfo().getOrder() < o2.getDriveInfo().getOrder() ? -1 : 1;
+					} catch (Exception e) {
+						return 0;
+					}
 				}
-			}
-		});
+			});
+		}
 		return this.drives;
 	}
 
@@ -204,7 +242,14 @@ public class RAIDSixSyncObjectHandler extends RAIDSixTransactionHandler {
 
 			for (int version = 0; version < meta.getVersion(); version++) {
 
-				ObjectMetadata versionMeta = getDriver().getObjectMetadataReadDrive(bucket, meta.getObjectName()).getObjectMetadataVersion(bucket, meta.getObjectName(), version);
+				// ── Bug 3 fix: read version metadata from the object's own volume ───────────
+				// getObjectMetadataReadDrive() for a cache-miss returns a random drive from the
+				// ACTIVE volume. If the object lives on an older (READONLY) volume, the
+				// active-volume drives have no version metadata → versionMeta == null →
+				// silently logged as "previous version deleted" → version data loss.
+				List<Drive> vDrives = getDriver().getVolumeForObject(meta).getDrives();
+				Drive vReadDrive = vDrives.get(Double.valueOf(Math.abs(Math.random() * 1000)).intValue() % vDrives.size());
+				ObjectMetadata versionMeta = vReadDrive.getObjectMetadataVersion(bucket, meta.getObjectName(), version);
 
 				if (versionMeta != null) {
 
@@ -230,9 +275,14 @@ public class RAIDSixSyncObjectHandler extends RAIDSixTransactionHandler {
 					 */
 					versionMeta.setDateSynced(OffsetDateTime.now());
 
-					List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
-					getDrives().forEach(d -> list.add(versionMeta));
-					saveRAIDSixObjectMetadataToDisk(getDrives(), list, false);
+				// ── Bug 4 fix: save version metadata only to NOTSYNC drives ─────────────────
+				// syncHead() already scopes its save to getDrivesToSync(). Without this fix
+				// version metadata is written to all drives (getDrives()), overwriting
+				// existing metadata on ENABLED drives and causing a list/drives size mismatch
+				// when multiple volumes are present.
+				List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
+				getDrivesToSync().forEach(d -> list.add(versionMeta));
+				saveRAIDSixObjectMetadataToDisk(getDrivesToSync(), list, false);
 
 				} else {
 					logger.warn("previous version was deleted for Object -> " + String.valueOf(version) + " |  head " + objectInfo(meta) + "  head version:" + String.valueOf(meta.getVersion()));

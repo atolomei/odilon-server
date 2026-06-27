@@ -73,14 +73,24 @@ public class RAIDSixRollbackDeleteHandler extends RAIDSixRollbackHandler {
 		ServerBucket bucket = getBucketCache().get(getOperation().getBucketId());
 		String objectName = getOperation().getObjectName();
 
-		// Resolve the owning volume via cross-volume search (backup exists on work dir
-		// of the volume that held the object when delete was attempted)
+		// ── Bug D1 fix: scan ALL drives per volume, not just drive[0] ─────────────────
+		// backup() in RAIDSixDeleteObjectHandler writes the work-dir backup to every
+		// drive of the owning volume. The original code checked only
+		// vol.getDrives().get(0), so if that drive's backup was absent (partial write,
+		// drive failure) the volume was never found and drives fell back to
+		// getActiveVolume().getDrives() — which in a multi-volume setup may be a
+		// completely different volume. This left orphan metadata un-restored and the
+		// object permanently gone after rollback.
+		// ─────────────────────────────────────────────────────────────────────────────
 		List<Drive> drives = null;
+		outer:
 		for (RAIDSixVolume vol : getDriver().getVolumeManager().getVolumesInSearchOrder()) {
-			String backupPath = vol.getDrives().get(0).getBucketWorkDirPath(bucket) + File.separator + objectName;
-			if (new File(backupPath).exists()) {
-				drives = vol.getDrives();
-				break;
+			for (Drive d : vol.getDrives()) {
+				String backupPath = d.getBucketWorkDirPath(bucket) + File.separator + objectName;
+				if (new File(backupPath).exists()) {
+					drives = vol.getDrives();
+					break outer;
+				}
 			}
 		}
 		if (drives == null)

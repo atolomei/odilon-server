@@ -127,7 +127,10 @@ public class RAIDOneBucketIterator extends BucketIterator implements Closeable {
 		if (getOffset() == 0)
 			return;
 		boolean isItems = true;
-		int skipped = 0;
+		// Bug fix: must be long — getOffset() returns Long.
+		// int overflows to negative after Integer.MAX_VALUE iterations,
+		// turning the loop infinite on large buckets.
+		long skipped = 0L;
 		while (isItems && skipped < getOffset()) {
 			if (getIt().hasNext()) {
 				getIt().next();

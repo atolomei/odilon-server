@@ -728,7 +728,17 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 	public void removeJournal(String id) {
 		Check.requireNonNullArgument(id, "id is null");
 		try {
-			Files.delete(Paths.get(getJournalDirPath() + File.separator + id + ServerConstant.JSON));
+			// deleteIfExists() rather than delete():
+			// In multi-volume RAID 6, saveJournal() writes only to the active volume's
+			// drives. removeJournal() is called for ALL enabled drives across all volumes,
+			// so drives on non-active volumes never had the file. Files.delete() was
+			// throwing NoSuchFileException here, which propagated as InternalCriticalException
+			// and aborted the RAIDSixDriver.removeJournal() loop before it reached the
+			// drives that actually hold the journal file — leaving it on disk and causing
+			// an infinite rollback-replay on every subsequent restart.
+			// deleteIfExists() silently ignores a missing file, honouring the documented
+			// "quiet-delete" contract stated in RAIDSixDriver.removeJournal().
+			Files.deleteIfExists(Paths.get(getJournalDirPath() + File.separator + id + ServerConstant.JSON));
 		} catch (Exception e) {
 			throw new InternalCriticalException(e, "id: " + (Optional.ofNullable(id).isPresent() ? id : "null"));
 		}

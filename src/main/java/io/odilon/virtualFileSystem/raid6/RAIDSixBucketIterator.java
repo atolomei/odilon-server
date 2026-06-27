@@ -37,6 +37,7 @@ import io.odilon.errors.InternalCriticalException;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.virtualFileSystem.model.BucketIterator;
 import io.odilon.virtualFileSystem.model.Drive;
+import io.odilon.virtualFileSystem.model.DriveStatus;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 
 /**
@@ -70,9 +71,6 @@ public class RAIDSixBucketIterator extends BucketIterator implements Closeable {
 	@JsonProperty("drives")
 	private final List<Drive> drives;
 
-	@JsonProperty("cumulativeIndex")
-	private long cumulativeIndex = 0;
-
 	@JsonIgnore
 	private Iterator<Path> iterator;
 
@@ -90,18 +88,25 @@ public class RAIDSixBucketIterator extends BucketIterator implements Closeable {
 		// within its volume; using a single random drive misses all other volumes.
 		List<Drive> repDrives = new ArrayList<>();
 		for (RAIDSixVolume vol : driver.getVolumeManager().getAllVolumes()) {
-			vol.getDrives().stream()
+
+			// Bug 2 fix: ARCHIVED means "no I/O accepted" — skip entirely.
+			if (!vol.isActive() && !vol.isReadable())
+				continue;
+
+			// Bug 1 fix: apply the NOTSYNC fallback per-volume, not globally.
+			// A volume whose drives are all NOTSYNC (e.g. mid-sync on first boot) must
+			// still contribute its first drive; without the per-volume check it would be
+			// silently skipped and all its objects would be invisible.
+			Optional<Drive> rep = vol.getDrives().stream()
 					.filter(d -> d.getDriveInfo() != null
-							&& d.getDriveInfo().getStatus() == io.odilon.virtualFileSystem.model.DriveStatus.ENABLED)
-					.findFirst()
-					.ifPresent(repDrives::add);
-		}
-		// Fallback: if somehow no enabled drive found in any volume (e.g. first boot
-		// with all drives NOTSYNC), fall back to the first drive of each volume.
-		if (repDrives.isEmpty()) {
-			for (RAIDSixVolume vol : driver.getVolumeManager().getAllVolumes()) {
-				if (!vol.getDrives().isEmpty())
-					repDrives.add(vol.getDrives().get(0));
+							&& d.getDriveInfo().getStatus() == DriveStatus.ENABLED)
+					.findFirst();
+
+			if (rep.isPresent()) {
+				repDrives.add(rep.get());
+			} else if (!vol.getDrives().isEmpty()) {
+				// Fallback: volume has drives but none is ENABLED yet — use the first one.
+				repDrives.add(vol.getDrives().get(0));
 			}
 		}
 		this.drives = repDrives;
@@ -117,11 +122,16 @@ public class RAIDSixBucketIterator extends BucketIterator implements Closeable {
 	 * Initializes a merged stream of metadata-directory paths from every volume's
 	 * representative drive. Each volume contributes only the objects stored on it,
 	 * so the union covers the full bucket namespace across all volumes.
+	 *
+	 * <p>Bug 3 fix: streams are collected into an explicit list before being merged.
+	 * If {@link Files#walk} throws on drive N, all streams opened for drives 0..N-1
+	 * are closed before re-throwing, preventing resource leaks that the old
+	 * {@code Stream.concat} chain left behind.</p>
 	 */
 	@Override
 	protected void init() {
+		List<Stream<Path>> streams = new ArrayList<>();
 		try {
-			Stream<Path> merged = Stream.empty();
 			for (Drive d : this.drives) {
 				Path start = new File(d.getBucketMetadataDirPath(getBucket())).toPath();
 				if (!start.toFile().exists())
@@ -131,10 +141,12 @@ public class RAIDSixBucketIterator extends BucketIterator implements Closeable {
 						.filter(Files::isDirectory)
 						.filter(p -> (getPrefix() == null) || p.getFileName().toString().toLowerCase().startsWith(getPrefix()))
 						.filter(p -> isValidState(p));
-				merged = Stream.concat(merged, volStream);
+				streams.add(volStream);
 			}
-			this.stream = merged;
+			this.stream = streams.stream().reduce(Stream.empty(), Stream::concat);
 		} catch (IOException e) {
+			// Close every stream that was successfully opened before the failure.
+			streams.forEach(Stream::close);
 			throw new InternalCriticalException(e);
 		}
 		this.iterator = this.stream.iterator();
