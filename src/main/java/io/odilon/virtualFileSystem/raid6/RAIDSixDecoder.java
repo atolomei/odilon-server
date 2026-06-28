@@ -42,16 +42,20 @@ import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
 import io.odilon.monitor.SystemMonitorService;
 import io.odilon.virtualFileSystem.model.Drive;
+import io.odilon.virtualFileSystem.model.DriveStatus;
 import io.odilon.virtualFileSystem.model.LockService;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
  * <p>
- * Reed Solomon erasure coding decoder for {@link RAIDSixDriver}.<br/>
+ * Reed Solomon Erasure Coding decoder for {@link RAIDSixDriver}.<br/>
  * Files decoded are stored in {@link FileCacheService}. <br/>
  * If the server uses encryption, the cache contains encrypted files.
  * </p>
+ * 
+ * <p> Read-repair is performed on any missing shard that is reconstructed, but only if the
+ * drive is ENABLED. NOTSYNC drives are intentionally skipped, as RAIDSixDriveSync owns their repair.</p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
@@ -220,6 +224,43 @@ public class RAIDSixDecoder extends RAIDSixCoder {
 		ReedSolomon rs = new ReedSolomon(dataShards, volume.getParityDrives());
 		rs.decodeMissing(shards, shardPresent, 0, shardSize);
 
+		// ── Read-repair ───────────────────────────────────────────────────────────
+		// Write each reconstructed shard back to its ENABLED drive so that future
+		// reads find the file on disk instead of re-reconstructing it every time.
+		// NOTSYNC drives are intentionally skipped — RAIDSixDriveSync owns their
+		// repair; writing here would interfere with the sync process.
+		for (int localDisk = 0; localDisk < totalShards; localDisk++) {
+			if (shardPresent[localDisk]) continue;           // shard was already on disk
+			Drive repairDrive = map.get(localDisk);
+			if (repairDrive == null) continue;
+			if (repairDrive.getDriveInfo() == null
+					|| repairDrive.getDriveInfo().getStatus() != DriveStatus.ENABLED) continue;
+
+			File repairFile = isHead
+					? new File(repairDrive.getBucketObjectDataDirPath(bucket),
+							meta.getObjectName() + "." + chunk + "." + localDisk)
+					: new File(repairDrive.getBucketObjectDataDirPath(bucket)
+							+ File.separator + VirtualFileSystemService.VERSION_DIR,
+							meta.getObjectName() + "." + chunk + "." + localDisk
+							+ ".v" + meta.getVersion());
+
+			try {
+				File parentDir = repairFile.getParentFile();
+				if (parentDir != null && !parentDir.exists())
+					parentDir.mkdirs();
+				try (OutputStream repairOut = new BufferedOutputStream(new FileOutputStream(repairFile))) {
+					repairOut.write(shards[localDisk]);
+				}
+				logger.info("Read-repair: restored shard -> " + repairFile.getAbsolutePath()
+						+ " | " + objectInfo(meta));
+			} catch (IOException e) {
+				// Log but do NOT fail the read — the object decoded successfully.
+				// The shard will simply be reconstructed again on the next read.
+				logger.error("Read-repair: failed to write shard -> " + repairFile.getAbsolutePath()
+						+ " | " + e.getMessage(), SharedConstant.NOT_THROWN);
+			}
+		}
+
 		// Reassemble directly into pooled buffer
 		byte[] allBytes = getBullferPoolService().acquire();
 		try {
@@ -228,6 +269,18 @@ public class RAIDSixDecoder extends RAIDSixCoder {
 			}
 			// Read payload size (no ByteBuffer)
 			int fileSize = ((allBytes[0] & 0xFF) << 24) | ((allBytes[1] & 0xFF) << 16) | ((allBytes[2] & 0xFF) << 8) | (allBytes[3] & 0xFF);
+
+			// ── Sanity-check ───────────────────────────────────────────────────────────
+			// A corrupt shard causes rs.decodeMissing() to produce garbage bytes, which
+			// makes the fileSize field meaningless (negative, or absurdly large).
+			// Detecting this here turns silent data corruption into a clear exception.
+			int maxDataBytes = shardSize * dataShards - ServerConstant.BYTES_IN_INT;
+			if (fileSize < 0 || fileSize > maxDataBytes) {
+				throw new InternalCriticalException(
+						"Corrupt RS reconstruction: decoded fileSize=" + fileSize
+						+ " is out of range [0, " + maxDataBytes + "]"
+						+ " — likely caused by a corrupt shard | " + objectInfo(meta));
+			}
 
 			// Write payload
 			out.write(allBytes, ServerConstant.BYTES_IN_INT, fileSize);
@@ -254,9 +307,9 @@ public class RAIDSixDecoder extends RAIDSixCoder {
 		}
 	}
 
-	private final Map<Integer, Drive> getMapDrivesRSDecode() {
-		return getDriver().getVirtualFileSystemService().getMapDrivesRSDecode();
-	}
+//	private final Map<Integer, Drive> getMapDrivesRSDecode() {
+//		return getDriver().getVirtualFileSystemService().getMapDrivesRSDecode();
+//	}
 
 	private SystemMonitorService getSystemMonitorService() {
 		return getDriver().getVirtualFileSystemService().getSystemMonitorService();
@@ -271,77 +324,4 @@ public class RAIDSixDecoder extends RAIDSixCoder {
 	}
 }
 
-/**
- * private boolean decodeChunkV2(ObjectMetadata meta, ServerBucket bucket, int
- * chunk, OutputStream out, boolean isHead) {
- * 
- * 
- * final byte[][] shards = new byte[this.total_shards][]; // BUFFER 3 final
- * boolean[] shardPresent = new boolean[this.total_shards];
- * 
- * for (int i = 0; i < shardPresent.length; i++) shardPresent[i] = false;
- * 
- * int shardSize = 0; int shardCount = 0;
- * 
- * Map<Integer, Drive> map = this.getMapDrivesRSDecode();
- * 
- * for (int counter = 0; counter < getTotalShards(); counter++) {
- * 
- * 
- * File shardFile = null;
- * 
- * Drive drive = map.get(Integer.valueOf(counter));
- * 
- * if (drive != null) { int disk = drive.getConfigOrder();
- * 
- * shardFile = (isHead) ? (new File(drive.getBucketObjectDataDirPath(bucket),
- * meta.getObjectName() + "." + String.valueOf(chunk) + "." +
- * String.valueOf(disk))) : (new File(drive.getBucketObjectDataDirPath(bucket) +
- * File.separator + VirtualFileSystemService.VERSION_DIR, meta.getObjectName() +
- * "." + String.valueOf(chunk) + "." + String.valueOf(disk) + ".v" +
- * String.valueOf(meta.getVersion()))); }
- * 
- * if ((shardFile != null) && (shardFile.exists())) {
- * 
- * int disk = drive.getConfigOrder(); shardSize = (int) shardFile.length();
- * shards[disk] = new byte[shardSize]; // BUFFER 4 shardPresent[disk] = true;
- * shardCount += 1;
- * 
- * try (InputStream in = new BufferedInputStream(new
- * FileInputStream(shardFile))) { in.read(shards[disk], 0, shardSize); } catch
- * (FileNotFoundException e) { logger.error(getDriver().objectInfo(meta) + " |
- * f:" + shardFile.getName() + (isHead ? "" : (" v:" +
- * String.valueOf(meta.getVersion()))), SharedConstant.NOT_THROWN);
- * shardPresent[disk] = false; } catch (IOException e) {
- * logger.error(objectInfo(meta) + " | f:" + shardFile.getName() + (isHead ? ""
- * : (" v:" + String.valueOf(meta.getVersion()))), SharedConstant.NOT_THROWN);
- * shardPresent[disk] = false; } } }
- * 
- * 
- * if (shardCount < this.data_shards) { throw new InternalCriticalException("We
- * need at least " + String.valueOf(this.data_shards) + " shards to be able to
- * reconstruct the data file | " + objectInfo(meta) + " | f:" + (isHead ? "" :
- * (" v:" + String.valueOf(meta.version))) + " | shardCount: " +
- * String.valueOf(shardCount)); }
- * 
- * 
- * for (int i = 0; i < this.total_shards; i++) { if (!shardPresent[i]) shards[i]
- * = new byte[shardSize]; // BUFFER 5 }
- * 
- * 
- * ReedSolomon reedSolomon = new ReedSolomon(this.data_shards,
- * this.parity_shards);
- * 
- * reedSolomon.decodeMissing(shards, shardPresent, 0, shardSize);
- * 
- * byte[] allBytes = new byte[shardSize * this.data_shards]; // BUFFER 6 for
- * (int i = 0; i < this.data_shards; i++) System.arraycopy(shards[i], 0,
- * allBytes, shardSize * i, shardSize);
- * 
- * 
- * int fileSize = ByteBuffer.wrap(allBytes).getInt();
- * 
- * try { out.write(allBytes, ServerConstant.BYTES_IN_INT, fileSize); } catch
- * (IOException e) { throw new InternalCriticalException(e, objectInfo(meta)); }
- * return true; }
- */
+ 

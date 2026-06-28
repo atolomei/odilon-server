@@ -26,6 +26,7 @@ import java.util.Optional;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.file.ParallelFileCoypAgent;
+import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ServerConstant;
 import io.odilon.util.Check;
@@ -46,6 +47,10 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  */
 public class RAIDSixEncoder extends RAIDSixCoder {
 
+	private static Logger logger = Logger.getLogger(RAIDSixEncoder.class.getName());
+
+	
+	
 	@JsonIgnore
 	private long fileSize = 0;
 
@@ -172,6 +177,7 @@ public class RAIDSixEncoder extends RAIDSixCoder {
 			while (!done)
 				done = encodeChunk(is, bucket, objectName, chunk++, version);
 		} catch (Exception e) {
+			logger.error(e, "Error encoding object -> " + objectName);
 			throw new InternalCriticalException(e, "o:" + objectName);
 		}
 		this.encodedInfo.setFileSize(this.fileSize);
@@ -235,13 +241,23 @@ public class RAIDSixEncoder extends RAIDSixCoder {
 			for (int diskOrder = 0; diskOrder < totalShards; diskOrder++) {
 				if (isWrite(diskOrder)) {
 
-				String dirPath = getDrives().get(diskOrder).getBucketObjectDataDirPath(bucket) + (o_version.isEmpty() ? "" : File.separator + VirtualFileSystemService.VERSION_DIR);
+					String dirPath = getDrives().get(diskOrder).getBucketObjectDataDirPath(bucket)
+							+ (o_version.isEmpty() ? "" : File.separator + VirtualFileSystemService.VERSION_DIR);
 
-				// ── Bug A fix: shard file naming convention must be objectName.<chunk>.<disk>.v<version>
-				// The original string "v." + version produced "objectName.0.2v.1" (dot on wrong side).
-				// The decoder (RAIDSixDecoder.decodeChunk) and getObjectDataFilesNames() both expect
-				// the format objectName.0.2.v1, i.e. ".v" + version (dot BEFORE v, no dot after).
-				String name = objectName + "." + chunk + "." + diskOrder + (o_version.isEmpty() ? "" : ".v" + o_version.get());
+					// Last-resort guard: ensure the target directory exists before handing the
+					// File to ParallelFileCoypAgent.  RAIDSixDriveSetup.createBuckets() should
+					// have created it during drive-setup, but if that step was incomplete
+					// (e.g. after a partial previous sync run) the FileOutputStream inside
+					// ParallelFileCoypAgent throws FileNotFoundException with a misleading
+					// "No such file or directory" message that obscures the real root cause.
+					File dir = new File(dirPath);
+					if (!dir.exists() && !dir.mkdirs())
+						throw new InternalCriticalException(
+								"Cannot create shard directory: " + dirPath
+								+ " | d:" + getDrives().get(diskOrder).getName());
+
+					String name = objectName + "." + chunk + "." + diskOrder
+							+ (o_version.isEmpty() ? "" : ".v" + o_version.get());
 
 					destination.add(new File(dirPath, name));
 					requiresCopy[diskOrder] = Boolean.TRUE;
@@ -263,6 +279,7 @@ public class RAIDSixEncoder extends RAIDSixCoder {
 			return eof;
 
 		} catch (IOException e) {
+			logger.error(e, "Error encoding object -> " + objectName);
 			throw new InternalCriticalException(e, objectInfo(bucket, objectName));
 		} finally {
 			getBullferPoolService().release(allBytes);

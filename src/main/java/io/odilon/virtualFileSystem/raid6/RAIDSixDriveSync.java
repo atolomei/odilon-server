@@ -195,13 +195,33 @@ public class RAIDSixDriveSync implements Runnable {
 		this.thread.start();
 	}
 
+	
+	protected RAIDSixDriver getDriver() {
+		return this.driver;
+	}
+
+	protected LockService getLockService() {
+		return this.vfsLockService;
+	}
+
+	protected List<Drive> getDrives() {
+		return drives;
+	}
+	
 	/**
 	 * 
 	 */
 	private void encode() {
 
 		logger.debug("Starting Drive init: ");
-		getDriver().getDrivesAll().stream().filter(d -> d.getDriveInfo().getStatus() == DriveStatus.NOTSYNC).forEach(v -> logger.debug("d:" + v.getName() + "  dir:" + v.getRootDirPath()));
+		getDriver().getDrivesAll().stream().filter(d -> d.getDriveInfo().getStatus() == DriveStatus.NOTSYNC).forEach(
+				
+				v -> {
+					
+					logger.debug			("d:" + v.getName() + "  dir:" + v.getRootDirPath());
+					startuplogger.debug		("d:" + v.getName() + "  dir:" + v.getRootDirPath());
+				
+				});
 
 		long start_ms = System.currentTimeMillis();
 
@@ -268,6 +288,7 @@ public class RAIDSixDriveSync implements Runnable {
 								}
 							} catch (Exception e) {
 								logger.error(e, SharedConstant.NOT_THROWN);
+								startuplogger.error(e, SharedConstant.NOT_THROWN);
 								this.errors.getAndIncrement();
 							}
 							return null;
@@ -282,7 +303,14 @@ public class RAIDSixDriveSync implements Runnable {
 					}
 
 					offset += Long.valueOf(Integer.valueOf(data.getList().size()).longValue());
-					done = (data.isEOD() || (this.errors.get() > 0) || (this.notAvailable.get() > 0));
+
+				// Only stop pagination when we reach the end of the data set or errors > 100.
+				// Errors / unavailable-objects are counted and will prevent updateDrives()
+				// from promoting the new drive to ENABLED (see the check in run()), but
+				// they must NOT abort the loop early: doing so leaves every object on
+				// every page after the first error un-synced, which is worse than
+				// finishing the full scan with some individual failures.
+				done = data.isEOD() || this.errors.get() > 100;
 				}
 			}
 
@@ -313,17 +341,7 @@ public class RAIDSixDriveSync implements Runnable {
 		}
 	}
 
-	protected RAIDSixDriver getDriver() {
-		return this.driver;
-	}
 
-	protected LockService getLockService() {
-		return this.vfsLockService;
-	}
-
-	protected List<Drive> getDrives() {
-		return drives;
-	}
 
 	private void updateDrives() {
 		for (Drive drive : getDriver().getDrivesAll()) {

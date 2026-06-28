@@ -185,7 +185,7 @@ public class RAIDSixDriveSetup implements IODriveSetup, ApplicationContextAware 
 
 		startuplogger.info("4. Starting Async process -> " + RAIDSixDriveSync.class.getSimpleName());
 
-		// ── Bug 5 fix: new-volume fast path ───────────────────────────────────────────
+		 
 		// When every NOTSYNC drive belongs to a brand-new volume (no existing objects
 		// to re-encode), launching the async RAIDSixDriveSync is unnecessary. Mark the
 		// new drives ENABLED directly and return immediately.
@@ -196,8 +196,7 @@ public class RAIDSixDriveSetup implements IODriveSetup, ApplicationContextAware 
 			startuplogger.info("done");
 			return true;
 		}
-		// ─────────────────────────────────────────────────────────────────────────────
-
+		 
 		/** The rest of the process is async */
 		@SuppressWarnings("unused")
 		RAIDSixDriveSync checker = getApplicationContext().getBean(RAIDSixDriveSync.class, getDriver());
@@ -228,11 +227,24 @@ public class RAIDSixDriveSetup implements IODriveSetup, ApplicationContextAware 
 					try {
 						if (!drive.existsBucketById(bucket.getId())) {
 							drive.createBucket(bucket.getBucketMetadata());
+						} else {
+							// Bucket metadata dir already exists (e.g. a previous partial sync
+							// run created it) but the data / version dirs may still be absent.
+							// Repair them here so the encoder never gets a FileNotFoundException.
+							File dataDir = new File(drive.getBucketObjectDataDirPath(bucket));
+							if (!dataDir.exists())
+								dataDir.mkdirs();
+							File versionDir = new File(dataDir, VirtualFileSystemService.VERSION_DIR);
+							if (!versionDir.exists())
+								versionDir.mkdirs();
 						}
 					} catch (Exception e) {
 						this.errors.getAndIncrement();
 						logger.error(e, SharedConstant.NOT_THROWN);
-						return;
+						// continue to the next drive/bucket rather than aborting the whole
+						// method — a single failure must not leave all subsequent buckets
+						// without their data directories on the new drive.
+						continue;
 					}
 				}
 			}

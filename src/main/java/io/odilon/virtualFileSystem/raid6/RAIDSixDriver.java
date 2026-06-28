@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.ThreadSafe;
 
@@ -58,6 +59,7 @@ import io.odilon.virtualFileSystem.BaseIODriver;
 import io.odilon.virtualFileSystem.OdilonObject;
 import io.odilon.virtualFileSystem.model.BucketIterator;
 import io.odilon.virtualFileSystem.model.Drive;
+import io.odilon.virtualFileSystem.model.DriveStatus;
 import io.odilon.virtualFileSystem.model.LockService;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.OperationCode;
@@ -236,8 +238,12 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 					throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
 
 				List<Drive> vDrives = getVolumeForObject(headMeta).getDrives();
-				Drive readDrive = vDrives.get(
-						Double.valueOf(Math.abs(Math.random() * 1000)).intValue() % vDrives.size());
+				List<Drive> enabledVer = vDrives.stream()
+						.filter(d -> d.getDriveInfo().getStatus() == DriveStatus.ENABLED)
+						.collect(Collectors.toList());
+				List<Drive> verPool = enabledVer.isEmpty() ? vDrives : enabledVer;
+				Drive readDrive = verPool.get(
+						Double.valueOf(Math.abs(Math.random() * 1000)).intValue() % verPool.size());
 
 				ObjectMetadata meta = readDrive.getObjectMetadataVersion(bucket, objectName, version);
 				if ((meta == null) || (!meta.isAccesible()))
@@ -688,10 +694,14 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 				if (meta.getVersion() == 0)
 					return list;
 
-				// Use any drive from the owning volume for version reads
+				// Use an ENABLED drive from the owning volume for version reads.
 				List<Drive> vDrives = getVolumeForObject(meta).getDrives();
-				Drive readDrive = vDrives.get(
-						Double.valueOf(Math.abs(Math.random() * 1000)).intValue() % vDrives.size());
+				List<Drive> enabledVAll = vDrives.stream()
+						.filter(d -> d.getDriveInfo().getStatus() == DriveStatus.ENABLED)
+						.collect(Collectors.toList());
+				List<Drive> vAllPool = enabledVAll.isEmpty() ? vDrives : enabledVAll;
+				Drive readDrive = vAllPool.get(
+						Double.valueOf(Math.abs(Math.random() * 1000)).intValue() % vAllPool.size());
 
 				for (int version = 0; version < meta.getVersion(); version++) {
 					ObjectMetadata meta_version = readDrive.getObjectMetadataVersion(bucket, objectName, version);
@@ -854,12 +864,21 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		if (getObjectMetadataCacheService().containsKey(bucket, objectName)) {
 			ObjectMetadata cached = getObjectMetadataCacheService().get(bucket, objectName);
 			List<Drive> vDrives = getVolumeManager().getVolumeById(cached.getVolumeId()).getDrives();
-			return vDrives.get(Double.valueOf(Math.abs(Math.random() * 1000)).intValue() % vDrives.size());
+			// NOTSYNC drives have no metadata yet — restrict pool to ENABLED drives only.
+			List<Drive> pool = vDrives.stream()
+					.filter(d -> d.getDriveInfo().getStatus() == DriveStatus.ENABLED)
+					.collect(Collectors.toList());
+			if (pool.isEmpty()) pool = vDrives; // safety fallback (should never happen)
+			return pool.get(Double.valueOf(Math.abs(Math.random() * 1000)).intValue() % pool.size());
 		}
-		// Cache-miss: return a random drive from the active volume as a sensible default.
+		// Cache-miss: return a random ENABLED drive from the active volume.
 		// getDriverObjectMetadataInternal() will do the real cross-volume search.
 		List<Drive> activeDrives = getVolumeManager().getActiveVolume().getDrives();
-		return activeDrives.get(Double.valueOf(Math.abs(Math.random() * 1000)).intValue() % activeDrives.size());
+		List<Drive> pool = activeDrives.stream()
+				.filter(d -> d.getDriveInfo().getStatus() == DriveStatus.ENABLED)
+				.collect(Collectors.toList());
+		if (pool.isEmpty()) pool = activeDrives; // safety fallback
+		return pool.get(Double.valueOf(Math.abs(Math.random() * 1000)).intValue() % pool.size());
 	}
 
 	/**
@@ -889,8 +908,16 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		// 2. Cross-volume search: active volume first, then archives newest-to-oldest
 		for (RAIDSixVolume volume : getVolumeManager().getVolumesInSearchOrder()) {
 			List<Drive> vDrives = volume.getDrives();
-			// Pick a random drive within this volume to spread read load
-			Drive candidate = vDrives.get(Double.valueOf(Math.abs(Math.random() * 1000)).intValue() % vDrives.size());
+			// NOTSYNC drives have no metadata yet — only read from ENABLED drives.
+			// If a candidate NOTSYNC drive is picked, it returns null and the object
+			// looks "not found" even though the metadata exists on the other drives,
+			// causing spurious OdilonObjectNotFoundException during drive sync.
+			List<Drive> pool = vDrives.stream()
+					.filter(d -> d.getDriveInfo().getStatus() == DriveStatus.ENABLED)
+					.collect(Collectors.toList());
+			if (pool.isEmpty())
+				continue; // entire volume is still mid-sync — skip it
+			Drive candidate = pool.get(Double.valueOf(Math.abs(Math.random() * 1000)).intValue() % pool.size());
 			ObjectMetadata meta = candidate.getObjectMetadata(bucket, objectName);
 			if (meta != null) {
 				meta.setBucketName(bucket.getName());
@@ -921,18 +948,19 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 
 				if (o_version.isPresent()) {
 					// ── Version read: first resolve the owning volume via cross-volume search ──
-					// getObjectMetadataReadDrive() for a cache-miss returns a random drive from the
-					// ACTIVE volume, which is wrong when the object lives on an older (READONLY)
-					// volume. Load the head metadata (cross-volume aware) to get volumeId, then
-					// read the version from a drive that actually has it.
 					ObjectMetadata headMeta = getDriverObjectMetadataInternal(bucket, objectName, true);
 					if (headMeta == null || !headMeta.isAccesible())
 						throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
 
-					// Pick any drive from the owning volume
+					// Pick an ENABLED drive from the owning volume.
+					// NOTSYNC drives have no metadata — picking one would return null.
 					List<Drive> vDrives = getVolumeForObject(headMeta).getDrives();
-					Drive vDrive = vDrives.get(
-							Double.valueOf(Math.abs(Math.random() * 1000)).intValue() % vDrives.size());
+					List<Drive> enabledV = vDrives.stream()
+							.filter(d -> d.getDriveInfo().getStatus() == DriveStatus.ENABLED)
+							.collect(Collectors.toList());
+					List<Drive> vPool = enabledV.isEmpty() ? vDrives : enabledV;
+					Drive vDrive = vPool.get(
+							Double.valueOf(Math.abs(Math.random() * 1000)).intValue() % vPool.size());
 
 					meta = vDrive.getObjectMetadataVersion(bucket, objectName, o_version.get());
 				} else {

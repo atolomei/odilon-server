@@ -17,7 +17,7 @@
 package io.odilon.virtualFileSystem;
 
 import java.io.BufferedInputStream;
-import java.io.BufferedInputStream;
+ 
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -47,7 +47,7 @@ import java.util.stream.Stream;
 
 import jakarta.annotation.PostConstruct;
 
-import org.springframework.stereotype.Component;
+ 
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -297,10 +297,15 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 
 			this.drive_lock.writeLock().lock();
 
-			if (metadata_dir.exists() && metadata_dir.isDirectory())
-				throw new IllegalArgumentException("Bucket already exist -> b: " + meta.id.toString());
+			// Make createBucket() idempotent: if the metadata directory already exists the
+			// bucket was previously (partially) created — skip re-creating the metadata dir
+			// and re-saving its metadata, but still ensure every data / work / cache
+			// directory is present.  This covers the case where a prior sync run created
+			// the metadata dir but then crashed before finishing the data dir.
+			final boolean isNewBucket = !metadata_dir.exists() || !metadata_dir.isDirectory();
 
-			FileUtils.forceMkdir(metadata_dir);
+			if (isNewBucket)
+				FileUtils.forceMkdir(metadata_dir);
 
 			if ((!data_dir.exists()) || (!data_dir.isDirectory()))
 				FileUtils.forceMkdir(data_dir);
@@ -314,11 +319,13 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 			if ((!cache_dir.exists()) || (!cache_dir.isDirectory()))
 				FileUtils.forceMkdir(cache_dir);
 
-			saveBucketMetadata(meta);
+			if (isNewBucket)
+				saveBucketMetadata(meta);
 
 			return data_dir;
 
 		} catch (Exception e) {
+			logger.error(e, "createBucket failed: b:" + meta.id.toString() + ", d:" + getName());
 			throw new InternalCriticalException(e, "b:" + meta.id.toString() + ", d:" + getName());
 		}
 

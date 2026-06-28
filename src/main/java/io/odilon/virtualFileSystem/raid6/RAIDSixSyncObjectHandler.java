@@ -99,15 +99,13 @@ public class RAIDSixSyncObjectHandler extends RAIDSixTransactionHandler {
 
 				bucket = getBucketCache().get(meta.getBucketId());
 
-				// ── Multi-volume early exit (Bug 2) ───────────────────────────────────────
-				// If this object's volume has no NOTSYNC drives there is nothing to
+		 		// If this object's volume has no NOTSYNC drives there is nothing to
 				// re-encode. This is the normal case when a brand-new volume is added:
 				// existing objects live on an older volume whose drives are all ENABLED;
 				// the NOTSYNC drives belong to the new, still-empty volume.
 				if (getDrivesToSync().isEmpty())
 					return;
-				// ──────────────────────────────────────────────────────────────────────────
-
+ 
 				/**
 				 * backup metadata, there is no need to backup data because existing data files
 				 * are not touched.
@@ -226,13 +224,16 @@ public class RAIDSixSyncObjectHandler extends RAIDSixTransactionHandler {
 			} catch (IOException e) {
 				throw new InternalCriticalException(e, objectInfo(meta));
 			}
-
+			
 			/** MetaData (head) */
 			meta.setDateSynced(OffsetDateTime.now());
-
+			
 			List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
 			getDrivesToSync().forEach(d -> list.add(meta));
 			saveRAIDSixObjectMetadataToDisk(getDrivesToSync(), list, true);
+
+			logger.debug("Synced -> " + objectInfo(meta) + "  head version:" + String.valueOf(meta.getVersion()));
+		
 		}
 	}
 
@@ -242,7 +243,6 @@ public class RAIDSixSyncObjectHandler extends RAIDSixTransactionHandler {
 
 			for (int version = 0; version < meta.getVersion(); version++) {
 
-				// ── Bug 3 fix: read version metadata from the object's own volume ───────────
 				// getObjectMetadataReadDrive() for a cache-miss returns a random drive from the
 				// ACTIVE volume. If the object lives on an older (READONLY) volume, the
 				// active-volume drives have no version metadata → versionMeta == null →
@@ -275,7 +275,6 @@ public class RAIDSixSyncObjectHandler extends RAIDSixTransactionHandler {
 					 */
 					versionMeta.setDateSynced(OffsetDateTime.now());
 
-				// ── Bug 4 fix: save version metadata only to NOTSYNC drives ─────────────────
 				// syncHead() already scopes its save to getDrivesToSync(). Without this fix
 				// version metadata is written to all drives (getDrives()), overwriting
 				// existing metadata on ENABLED drives and causing a list/drives size mismatch
