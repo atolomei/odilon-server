@@ -356,8 +356,49 @@ public class RAIDSixDriveSync implements Runnable {
 		}
 	}
 
+	/**
+	 * <p>
+	 * Returns {@code true} when the object needs its RS blocks written to the
+	 * replacement drive.
+	 * </p>
+	 * <p>
+	 * <b>Bug fix:</b> the original implementation used {@code lastModified} as the
+	 * reference date. Any object whose head was updated <em>after</em> the new drive
+	 * was connected has a {@code lastModified} &ge; {@code dateConnected}, so the
+	 * predicate returned {@code false} and the object was skipped — even though all
+	 * of its previous-version RS blocks were never written to the replacement drive.
+	 * </p>
+	 * <p>
+	 * Fix: use {@code creationDate} instead. It is set once at v0 and never changed
+	 * on subsequent updates, so it correctly identifies objects that pre-existed the
+	 * replacement drive regardless of how many times they have been updated since.
+	 * Falls back to {@code lastModified} for legacy objects where {@code creationDate}
+	 * may be {@code null}.
+	 * </p>
+	 */
 	private boolean requireSync(Item<ObjectMetadata> item) {
-		return item.getObject().lastModified.isBefore(dateConnected);
+		ObjectMetadata meta = item.getObject();
+
+		// creationDate is stable across all updates; lastModified is not.
+		OffsetDateTime ref = (meta.creationDate != null) ? meta.creationDate : meta.lastModified;
+		boolean needed = ref != null && ref.isBefore(dateConnected);
+
+		// Diagnostic: log objects that the old check would have silently skipped.
+		// These are objects created before the drive was connected but updated after it —
+		// exactly the ones whose previous-version RS blocks were missing on the new drive.
+		if (needed
+				&& meta.creationDate != null
+				&& meta.lastModified != null
+				&& !meta.lastModified.isBefore(dateConnected)) {
+			logger.debug("requireSync: previous-version RS blocks missing on replacement drive"
+					+ " | b:" + meta.bucketName
+					+ " | o:" + meta.objectName
+					+ " | creationDate:" + meta.creationDate
+					+ " | lastModified:" + meta.lastModified
+					+ " | dateConnected:" + dateConnected);
+		}
+
+		return needed;
 	}
 
 }
