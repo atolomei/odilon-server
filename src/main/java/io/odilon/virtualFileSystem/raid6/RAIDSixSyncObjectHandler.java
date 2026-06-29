@@ -26,6 +26,7 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.ThreadSafe;
 
@@ -36,7 +37,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
-import io.odilon.model.VersionControl;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.DriveStatus;
 import io.odilon.virtualFileSystem.model.ServerBucket;
@@ -239,16 +239,31 @@ public class RAIDSixSyncObjectHandler extends RAIDSixTransactionHandler {
 
 	private void syncVersions(ObjectMetadata meta, ServerBucket bucket) {
 
-		if (getVersionControl()!=VersionControl.DISABLED) {
+		
+		// The correct guard is meta.getVersion() > 0.  The version field in the head
+		// metadata is the source of truth for how many previous-version files were
+		// written to disk.  The VersionControl setting governs whether NEW updates
+		// create new versions; it must NOT suppress replication of already-existing
+		// versions to a replacement drive.
+		//
+		// If a version file does not actually exist on the source drives
+		// (e.g. it was cleaned up while VC was disabled), getObjectMetadataVersion
+		// returns null and the inner block is skipped with a warn log — safe.
+		if (meta.getVersion() > 0) {
 
 			for (int version = 0; version < meta.getVersion(); version++) {
 
-				// getObjectMetadataReadDrive() for a cache-miss returns a random drive from the
-				// ACTIVE volume. If the object lives on an older (READONLY) volume, the
-				// active-volume drives have no version metadata → versionMeta == null →
-				// silently logged as "previous version deleted" → version data loss.
+				// NOTSYNC drive could be chosen as the metadata source.
+				// The original code picked a random drive from the full volume drive list,
+				// which includes the NOTSYNC replacement drive.  That drive has no version
+				// metadata yet; picking it returns null → the version is skipped silently.
+				// Restrict the pool to ENABLED drives only so the source is always valid.
 				List<Drive> vDrives = getDriver().getVolumeForObject(meta).getDrives();
-				Drive vReadDrive = vDrives.get(Double.valueOf(Math.abs(Math.random() * 1000)).intValue() % vDrives.size());
+				List<Drive> enabledVDrives = vDrives.stream()
+						.filter(d -> d.getDriveInfo().getStatus() == DriveStatus.ENABLED)
+						.collect(Collectors.toList());
+				List<Drive> readPool = enabledVDrives.isEmpty() ? vDrives : enabledVDrives;
+				Drive vReadDrive = readPool.get(Double.valueOf(Math.abs(Math.random() * 1000)).intValue() % readPool.size());
 				ObjectMetadata versionMeta = vReadDrive.getObjectMetadataVersion(bucket, meta.getObjectName(), version);
 
 				if (versionMeta != null) {
