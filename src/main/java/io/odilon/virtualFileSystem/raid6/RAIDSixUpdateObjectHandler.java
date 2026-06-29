@@ -293,7 +293,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionObjectHandler 
 
 				List<ObjectMetadata> metaVersions = new ArrayList<ObjectMetadata>();
 
-				// ── Bug U2 fix: read version metadata from the object's owning volume ─────────
+				// ── read version metadata from the object's owning volume ─────────
 				// getObjectMetadataReadDrive() for a cache-miss returns a drive from the ACTIVE
 				// volume. Objects on older (READONLY) volumes have no version metadata on those
 				// drives → mv == null for every iteration → metaVersions stays empty →
