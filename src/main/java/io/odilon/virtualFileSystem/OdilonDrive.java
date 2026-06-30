@@ -595,7 +595,7 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 	 * own. Callers <strong>must</strong> hold the per-object <em>write</em> lock for
 	 * {@code (meta.bucketId, meta.objectName)} before calling this method, and must
 	 * not release it until any related data file has also been written. The
-	 * {@link io.odilon.virtualFileSystem.raid0.RAIDZeroHandler} family of classes
+	 * {@link io.odilon.virtualFileSystem.raid0.RAIDZeroObjectHandler} family of classes
 	 * (and their RAID 1 / RAID 6 counterparts) enforce this invariant by acquiring
 	 * the object write-lock at the top of each transaction handler.
 	 * </p>

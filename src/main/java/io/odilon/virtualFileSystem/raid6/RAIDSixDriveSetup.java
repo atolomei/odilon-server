@@ -201,7 +201,7 @@ public class RAIDSixDriveSetup implements IODriveSetup, ApplicationContextAware 
 		@SuppressWarnings("unused")
 		RAIDSixDriveSync checker = getApplicationContext().getBean(RAIDSixDriveSync.class, getDriver());
 
-		startuplogger.info("done");
+		startuplogger.info("async process started");
 
 		return true;
 	}

@@ -25,7 +25,9 @@ import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
@@ -46,7 +48,9 @@ import io.odilon.model.RedundancyLevel;
 import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
 import io.odilon.query.BucketIteratorService;
+import io.odilon.scheduler.AbstractServiceRequest;
 import io.odilon.scheduler.DeleteBucketObjectPreviousVersionServiceRequest;
+import io.odilon.scheduler.ServiceRequest;
 import io.odilon.util.Check;
 import io.odilon.util.OdilonFileUtils;
 import io.odilon.virtualFileSystem.Action;
@@ -56,6 +60,7 @@ import io.odilon.virtualFileSystem.OdilonObject;
 import io.odilon.virtualFileSystem.OdilonVirtualFileSystemOperation;
 import io.odilon.virtualFileSystem.model.BucketIterator;
 import io.odilon.virtualFileSystem.model.Drive;
+import io.odilon.virtualFileSystem.model.JournalService;
 import io.odilon.virtualFileSystem.model.LockService;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.SimpleDrive;
@@ -87,6 +92,7 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 public class RAIDOneDriver extends BaseIODriver {
 
 	private static Logger logger = Logger.getLogger(RAIDOneDriver.class.getName());
+	static private Logger std_logger = Logger.getLogger("StartupLogger");
 
 	/**
 	 * @param virtualFileSystemService
@@ -101,6 +107,190 @@ public class RAIDOneDriver extends BaseIODriver {
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		checkIsAccesible(bucket);
 		return !getObjectMetadataVersionAll(bucket, objectName).isEmpty();
+	}
+
+	@Override
+	public synchronized List<ServiceRequest> getSchedulerPendingRequests(String queueId) {
+
+		List<ServiceRequest> list = new ArrayList<ServiceRequest>();
+		Map<String, File> useful = new HashMap<String, File>();
+		Map<String, File> useless = new HashMap<String, File>();
+
+		Map<Drive, Map<String, File>> allDriveFiles = new HashMap<Drive, Map<String, File>>();
+
+		getLockService().getSchedulerLock().writeLock().lock();
+		try {
+			for (Drive drive : getDrivesEnabled()) {
+				allDriveFiles.put(drive, new HashMap<String, File>());
+				for (File file : drive.getSchedulerRequests(queueId)) {
+					allDriveFiles.get(drive).put(file.getName(), file);
+				}
+			}
+
+			final Drive referenceDrive = getDrivesEnabled().get(0);
+
+			allDriveFiles.get(referenceDrive).forEach((k, file) -> {
+				boolean isOk = true;
+				for (Drive drive : getDrivesEnabled()) {
+					if (!drive.equals(referenceDrive)) {
+						if (!allDriveFiles.get(drive).containsKey(k)) {
+							isOk = false;
+							break;
+						}
+					}
+				}
+				if (isOk)
+					useful.put(k, file);
+				else
+					useless.put(k, file);
+			});
+
+			useful.forEach((k, file) -> {
+				try {
+					AbstractServiceRequest request = getObjectMapper().readValue(file, AbstractServiceRequest.class);
+					list.add((ServiceRequest) request);
+
+				} catch (Exception e) {
+					// Log the error but DO NOT delete the file — deleting would permanently lose
+					// pending replication/scheduler work that should be retried on next startup
+					logger.error("Failed to deserialize ServiceRequest from file -> " + file.getAbsolutePath() + " | " + e.getClass().getName() + " | " + e.getMessage(), SharedConstant.NOT_THROWN);
+				}
+			});
+
+			getDrivesEnabled().forEach(drive -> {
+				allDriveFiles.get(drive).forEach((k, file) -> {
+					if (!useful.containsKey(k)) {
+						try {
+							Files.delete(file.toPath());
+						} catch (Exception e1) {
+							logger.error(e1, SharedConstant.NOT_THROWN);
+						}
+					}
+				});
+			});
+		} finally {
+			getLockService().getSchedulerLock().writeLock().unlock();
+		}
+		return list;
+	}
+
+	@Override
+	public void saveScheduler(ServiceRequest request, String queueId) {
+		getLockService().getSchedulerLock().writeLock().lock();
+		try {
+			for (Drive drive : getDrivesEnabled()) {
+				drive.saveScheduler(request, queueId);
+			}
+		} finally {
+			getLockService().getSchedulerLock().writeLock().unlock();
+		}
+	}
+
+	@Override
+	public void saveJournal(VirtualFileSystemOperation op) {
+		getLockService().getJournalLock().writeLock().lock();
+		try {
+			for (Drive drive : getDrivesEnabled())
+				drive.saveJournal(op);
+		}
+
+		finally {
+			getLockService().getJournalLock().writeLock().unlock();
+		}
+	}
+
+	@Override
+	public List<VirtualFileSystemOperation> getJournalPending() {
+
+		List<VirtualFileSystemOperation> list = new ArrayList<VirtualFileSystemOperation>();
+
+		getLockService().getJournalLock().writeLock().lock();
+		try {
+			for (Drive drive : getDrivesEnabled()) {
+				File dir = new File(drive.getJournalDirPath());
+				if (!dir.exists()) {
+					// In multi-volume RAID 6, saveJournal writes only to the active volume's
+					// drives, so earlier volumes' journal directories may legitimately be empty;
+					// after a filesystem issue any drive's directory may be temporarily gone.
+					// `return list` here would silently drop every entry from all subsequent
+					// drives — including the volume that actually holds the journal file.
+					// Skip this drive and keep scanning the rest.
+					logger.warn("getJournalPending: journal dir does not exist on drive -> " + drive.getName() + " | " + dir.getAbsolutePath() + " — skipping");
+					continue;
+				}
+				if (!dir.isDirectory()) {
+					logger.warn("getJournalPending: journal dir path is not a directory on drive -> " + drive.getName() + " | " + dir.getAbsolutePath() + " — skipping");
+					continue;
+				}
+				File[] files = dir.listFiles();
+				// listFiles() returns null on I/O error or if the directory disappears between
+				// the isDirectory() check above and this call. A null here would throw NPE
+				// and abort recovery for every subsequent drive / volume — guard against it.
+				if (files == null) {
+					logger.warn("getJournalPending: listFiles() returned null for journal dir -> " + dir.getAbsolutePath() + " (I/O error or directory disappeared)");
+					continue;
+				}
+				for (File file : files) {
+					if (!file.isDirectory()) {
+						Path pa = Paths.get(file.getAbsolutePath());
+						try {
+							String str = Files.readString(pa);
+							OdilonVirtualFileSystemOperation op = getObjectMapper().readValue(str, OdilonVirtualFileSystemOperation.class);
+							if (op != null) {
+								op.setJournalService(getJournalService());
+								if (!list.contains(op)) {
+									list.add(op);
+									logger.debug("added to rollback -> " + op.toString());
+								}
+							}
+
+						} catch (IOException e) {
+							try {
+								Files.delete(file.toPath());
+							} catch (IOException e1) {
+								logger.error(e, SharedConstant.NOT_THROWN);
+							}
+						}
+					}
+				}
+			}
+			std_logger.info("Total operations that will rollback -> " + String.valueOf(list.size()));
+			return list;
+
+		} finally {
+			getLockService().getJournalLock().writeLock().unlock();
+		}
+	}
+
+	@Override
+	public void removeJournal(String id) {
+		getLockService().getJournalLock().writeLock().lock();
+		try {
+			for (Drive drive : getDrivesEnabled())
+				drive.removeJournal(id);
+		}
+
+		finally {
+			getLockService().getJournalLock().writeLock().unlock();
+		}
+	}
+
+	/**
+	 * <p>
+	 * Shared by RAID 1
+	 * </p>
+	 */
+	@Override
+	public void removeScheduler(ServiceRequest request, String queueId) {
+		getLockService().getSchedulerLock().writeLock().lock();
+		try {
+			for (Drive drive : getDrivesEnabled()) {
+				drive.removeScheduler(request, queueId);
+			}
+		} finally {
+			getLockService().getSchedulerLock().writeLock().unlock();
+		}
+
 	}
 
 	/**
@@ -250,14 +440,6 @@ public class RAIDOneDriver extends BaseIODriver {
 
 	@Override
 	public void postObjectPreviousVersionDeleteAllTransaction(ObjectMetadata meta, int headVersion) {
-	}
-
-	@Override
-	public ObjectMetadata updateObjectMetadata(ObjectMetadata meta) {
-		Check.requireNonNullArgument(meta, "meta is null");
-		meta.setLastModified(OffsetDateTime.now());
-		putObjectMetadata(meta);
-		return meta;
 	}
 
 	@Override
@@ -889,7 +1071,5 @@ public class RAIDOneDriver extends BaseIODriver {
 			objectReadUnLock(bucket, objectName);
 		}
 	}
-
-
 
 }

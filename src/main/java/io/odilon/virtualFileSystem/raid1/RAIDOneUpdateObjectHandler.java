@@ -317,7 +317,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
 							rollback(op);
 						} catch (Exception e) {
 							if (!isMainException)
-								throw new InternalCriticalException(e, getDriver().objectInfo(meta.bucketId, meta.objectName));
+								throw new InternalCriticalException(e, getDriver().objectInfo(meta.bucketId, meta.objectName, meta.fileName, meta.length));
 							else
 								logger.error(e, objectInfo(meta), SharedConstant.NOT_THROWN);
 						}

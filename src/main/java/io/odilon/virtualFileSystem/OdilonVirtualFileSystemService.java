@@ -573,7 +573,11 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 		if (getDataStorage() == DataStorage.WORM)
 			throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Data Storage is in WORM mode");
 
-		return createVFSIODriver().updateObjectMetadata(meta);
+		meta.setLastModified(OffsetDateTime.now());
+
+		createVFSIODriver().putObjectMetadata(meta);
+		return meta;
+		
 	}
 
 	@Override
@@ -826,7 +830,7 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 
 	@Override
 	public List<VirtualFileSystemOperation> getJournalPendingOperations() {
-		return createVFSIODriver().getJournalPending(getJournalService());
+		return createVFSIODriver().getJournalPending();
 	}
 
 	@Override

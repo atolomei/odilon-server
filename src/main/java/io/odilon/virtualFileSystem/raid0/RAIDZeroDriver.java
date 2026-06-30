@@ -20,8 +20,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+
 import java.security.NoSuchAlgorithmException;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -54,7 +53,7 @@ import io.odilon.model.RedundancyLevel;
 import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
 import io.odilon.query.BucketIteratorService;
-import io.odilon.scheduler.AbstractServiceRequest;
+
 import io.odilon.scheduler.DeleteBucketObjectPreviousVersionServiceRequest;
 import io.odilon.scheduler.ServiceRequest;
 import io.odilon.util.Check;
@@ -68,7 +67,7 @@ import io.odilon.virtualFileSystem.OdilonVirtualFileSystemOperation;
 import io.odilon.virtualFileSystem.model.BucketIterator;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.DriveBucket;
-import io.odilon.virtualFileSystem.model.JournalService;
+
 import io.odilon.virtualFileSystem.model.LockService;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.OperationCode;
@@ -113,13 +112,55 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAware {
 
 	static private Logger logger = Logger.getLogger(RAIDZeroDriver.class.getName());
-	static private Logger std_logger = Logger.getLogger("StartupLogger");
 
 	@JsonIgnore
 	private ApplicationContext applicationContext;
 
 	public RAIDZeroDriver(VirtualFileSystemService virtualFileSystemService, LockService vfsLockService) {
 		super(virtualFileSystemService, vfsLockService);
+	}
+
+	@Override
+	public List<VirtualFileSystemOperation> getJournalPending() {
+		RAIDZeroJournalHandler handler = new RAIDZeroJournalHandler(this);
+		return handler.getJournalPending();
+	}
+
+	@Override
+	public void saveJournal(VirtualFileSystemOperation operation) {
+		Check.requireNonNullArgument(operation, "operation is null");
+		RAIDZeroJournalHandler handler = new RAIDZeroJournalHandler(this);
+		handler.saveJournal(operation);
+	}
+
+	@Override
+	public void removeJournal(String id) {
+		Check.requireNonNullArgument(id, "id is null");
+		RAIDZeroJournalHandler handler = new RAIDZeroJournalHandler(this);
+		handler.removeJournal(id);
+	}
+
+	@Override
+	public void saveScheduler(ServiceRequest request, String queueId) {
+		Check.requireNonNullArgument(request, "request is null");
+		Check.requireNonNullArgument(queueId, "queueId is null");
+		RAIDZeroSchedulerHandler handler = new RAIDZeroSchedulerHandler(this);
+		handler.saveScheduler(request, queueId);
+	}
+
+	@Override
+	public void removeScheduler(ServiceRequest request, String queueId) {
+		Check.requireNonNullArgument(request, "request is null");
+		Check.requireNonNullArgument(queueId, "queueId is null");
+		RAIDZeroSchedulerHandler handler = new RAIDZeroSchedulerHandler(this);
+		handler.removeScheduler(request, queueId);
+	}
+
+	@Override
+	public List<ServiceRequest> getSchedulerPendingRequests(String queueId) {
+		Check.requireNonNullArgument(queueId, "queueId is null");
+		RAIDZeroSchedulerHandler handler = new RAIDZeroSchedulerHandler(this);
+		return handler.getSchedulerPendingRequests(queueId);
 	}
 
 	@Override
@@ -230,19 +271,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	}
 
 	@Override
-	public ObjectMetadata updateObjectMetadata(ObjectMetadata meta) {
-		Check.requireNonNullArgument(meta, "meta is null");
-		meta.setLastModified(OffsetDateTime.now());
-		putObjectMetadata(meta);
-		return meta;
-	}
-
-	/**
-	 * <p>
-	 * This method is called only for Objects that already exist
-	 * </p>
-	 */
-	@Override
 	public void putObjectMetadata(ObjectMetadata meta) {
 		Check.requireNonNullArgument(meta, "meta is null");
 		ServerBucket bucket = getBucket(meta.getBucketName());
@@ -314,7 +342,8 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	 */
 	@Override
 	public boolean setUpDrives() {
-		return getApplicationContext().getBean(RAIDZeroDriveSetupSync.class, this).setup();
+		RAIDZeroDriveSetupSync sync = getApplicationContext().getBean(RAIDZeroDriveSetupSync.class, this);
+		return sync.setup();
 	}
 
 	/**
@@ -385,6 +414,8 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 			} catch (Exception e) {
 				if (e instanceof InternalCriticalException)
 					throw e;
+
+				logger.error(e, SharedConstant.THROWN_WRAPPED);
 				throw new InternalCriticalException(e, objectInfo(bucket, objectName));
 			} finally {
 				bucketReadUnLock(bucket);
@@ -439,16 +470,17 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	 * <b>Intentional design trade-off — no lock held across pages:</b><br/>
 	 * Pagination does <em>not</em> hold a bucket-level read lock across successive
 	 * page requests. Holding such a lock would block all concurrent writes to the
-	 * bucket for the entire duration of a multi-page scan, which is unacceptable for
-	 * large buckets. The accepted consequence is that objects created or deleted
-	 * between two page fetches may appear in duplicate or be skipped. Callers that
-	 * require a consistent point-in-time snapshot must implement their own
-	 * application-level reconciliation.
+	 * bucket for the entire duration of a multi-page scan, which is unacceptable
+	 * for large buckets. The accepted consequence is that objects created or
+	 * deleted between two page fetches may appear in duplicate or be skipped.
+	 * Callers that require a consistent point-in-time snapshot must implement their
+	 * own application-level reconciliation.
 	 * </p>
 	 *
 	 * @param serverAgentId optional id that works as a cache key for the
-	 *                      {@link BucketIterator} held by {@link BucketIteratorService}
-	 *                      across successive page requests from the same client.
+	 *                      {@link BucketIterator} held by
+	 *                      {@link BucketIteratorService} across successive page
+	 *                      requests from the same client.
 	 * @param prefix        optional prefix filter on object names.
 	 */
 	@Override
@@ -476,7 +508,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 			while (iterator.hasNext() && (counter++ < size)) {
 				Item<ObjectMetadata> item;
 				try {
-					ObjectMetadata meta = getOM(bucket, iterator.next().toFile().getName(), Optional.empty(), false);
+					ObjectMetadata meta = getObjectMetadataHeadOrVersion(bucket, iterator.next().toFile().getName(), Optional.empty(), false);
 					item = new Item<ObjectMetadata>(meta);
 				} catch (Exception e) {
 					logger.error(e, SharedConstant.NOT_THROWN);
@@ -559,6 +591,8 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 			} catch (Exception e) {
 				if (e instanceof InternalCriticalException)
 					throw e;
+
+				logger.error(e, SharedConstant.THROWN_WRAPPED);
 				throw new InternalCriticalException(e, objectInfo(bucket, objectName));
 			} finally {
 				bucketReadUnLock(bucket);
@@ -570,12 +604,12 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 
 	@Override
 	public ObjectMetadata getObjectMetadata(ServerBucket bucket, String objectName) {
-		return getOM(bucket, objectName, Optional.empty(), true);
+		return getObjectMetadataHeadOrVersion(bucket, objectName, Optional.empty(), true);
 	}
 
 	@Override
 	public ObjectMetadata getObjectMetadataVersion(ServerBucket bucket, String objectName, int version) {
-		return getOM(bucket, objectName, Optional.of(Integer.valueOf(version)), true);
+		return getObjectMetadataHeadOrVersion(bucket, objectName, Optional.of(Integer.valueOf(version)), true);
 	}
 
 	/**
@@ -619,6 +653,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 			} catch (OdilonObjectNotFoundException e) {
 				throw e;
 			} catch (Exception e) {
+				logger.error(e, SharedConstant.THROWN_WRAPPED);
 				throw new InternalCriticalException(e, objectInfo(bucket, objectName));
 			} finally {
 				bucketReadUnLock(bucket);
@@ -667,6 +702,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 			} catch (IllegalArgumentException e) {
 				throw e;
 			} catch (Exception e) {
+				logger.error(e, SharedConstant.THROWN_WRAPPED);
 				throw new InternalCriticalException(e, objectInfo(bucket, objectName));
 			} finally {
 				bucketReadUnLock(bucket);
@@ -674,97 +710,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		} finally {
 			objectReadUnLock(bucket, objectName);
 		}
-	}
-
-	/**
-	 * <p>
-	 * RAID 0. Journal Files go to drive 0
-	 * </p>
-	 */
-	@Override
-	public List<VirtualFileSystemOperation> getJournalPending(JournalService journalService) {
-
-		List<VirtualFileSystemOperation> list = new ArrayList<VirtualFileSystemOperation>();
-		Drive drive = getDrivesEnabled().get(0);
-
-		File dir = new File(drive.getJournalDirPath());
-
-		if (!dir.exists())
-			return list;
-
-		if (!dir.isDirectory())
-			return list;
-
-		File[] files = dir.listFiles();
-
-		if (files.length == 0)
-			return list;
-
-		for (File file : files) {
-
-			if (!file.isDirectory()) {
-				Path pa = Paths.get(file.getAbsolutePath());
-				try {
-					String str = Files.readString(pa);
-					OdilonVirtualFileSystemOperation operation = getObjectMapper().readValue(str, OdilonVirtualFileSystemOperation.class);
-					operation.setJournalService(getJournalService());
-					list.add(operation);
-				} catch (IOException e) {
-					logger.debug(e, fileInfo(file));
-					try {
-						Files.delete(file.toPath());
-					} catch (IOException e1) {
-						logger.error(e, SharedConstant.NOT_THROWN);
-					}
-				}
-			}
-		}
-		std_logger.info("Rollback -> " + String.valueOf(list.size()) + " transactions");
-		return list;
-	}
-
-	/**
-	 * <p>
-	 * before starting operations load Requests that are stored on disk
-	 * </p>
-	 */
-	@Override
-	public List<ServiceRequest> getSchedulerPendingRequests(String queueId) {
-
-		List<ServiceRequest> list = new ArrayList<ServiceRequest>();
-
-		Drive drive = getDrivesEnabled().get(0);
-
-		for (File file : drive.getSchedulerRequests(queueId)) {
-			try {
-				list.add((ServiceRequest) getObjectMapper().readValue(file, AbstractServiceRequest.class));
-			} catch (Exception e) {
-				// Log the error but DO NOT delete the file — deleting would permanently lose
-				// pending replication/scheduler work that should be retried on next startup
-				logger.error("Failed to deserialize ServiceRequest from file -> " + file.getAbsolutePath() + " | " + e.getClass().getName() + " | " + e.getMessage(), SharedConstant.NOT_THROWN);
-			}
-		}
-		return list;
-	}
-
-	/**
-	 * <p>
-	 * RAID 0. Journal Files go to drive 0
-	 * </p>
-	 */
-	@Override
-	public void saveJournal(VirtualFileSystemOperation operation) {
-		getDrivesEnabled().get(0).saveJournal(operation);
-	}
-
-	/**
-	 * <p>
-	 * RAID 0. Journal Files go to drive 0
-	 * </p>
-	 */
-	@Override
-	public void removeJournal(String id) {
-		getDrivesEnabled().get(0).removeJournal(id);
 	}
 
 	/**
@@ -1058,19 +1003,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		return RedundancyLevel.RAID_0;
 	}
 
-	/**
-	 * Scheduler goes to drive 0
-	 */
-	@Override
-	public void saveScheduler(ServiceRequest request, String queueId) {
-		getDrivesEnabled().get(0).saveScheduler(request, queueId);
-	}
-
-	@Override
-	public void removeScheduler(ServiceRequest request, String queueId) {
-		getDrivesEnabled().get(0).removeScheduler(request, queueId);
-	}
-
 	@Override
 	public ApplicationContext getApplicationContext() {
 		return this.applicationContext;
@@ -1139,7 +1071,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 			done = op.commit();
 
 		} catch (Exception e) {
-			logger.error(e, serverInfo.toString());
+			logger.error(e, serverInfo.toString(), SharedConstant.THROWN_WRAPPED);
 			throw new InternalCriticalException(e, serverInfo.toString());
 
 		} finally {
@@ -1236,22 +1168,12 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	 * @param objectName
 	 * @return
 	 */
-	protected Drive getReadDrive(ServerBucket bucket, String objectName) {
+	public Drive getReadDrive(ServerBucket bucket, String objectName) {
 		return getDrive(bucket, objectName);
 	}
 
-	protected Drive getReadDrive(ServerBucket bucket) {
-		return getDrive(bucket, null);
-	}
-
-	protected Drive getDrive(ServerBucket bucket, String objectName) {
+	public Drive getDrive(ServerBucket bucket, String objectName) {
 		return getDrivesEnabled().get(Math.abs(objectName.hashCode() % getDrivesEnabled().size()));
-	}
-
-	protected String fileInfo(File file) {
-		if (file == null)
-			return "f:null";
-		return "f:" + file.getName();
 	}
 
 	private void saveNewServerInfo(OdilonServerInfo serverInfo) {
@@ -1276,6 +1198,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 			throw (e);
 
 		} catch (Exception e) {
+			logger.error(e, serverInfo.toString(), SharedConstant.THROWN_WRAPPED);
 			throw new InternalCriticalException(e, serverInfo.toString());
 
 		} finally {
@@ -1297,7 +1220,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	 * illegal state
 	 * </p>
 	 */
-	private ObjectMetadata getOM(ServerBucket bucket, String objectName, Optional<Integer> o_version, boolean addToCacheifMiss) {
+	private ObjectMetadata getObjectMetadataHeadOrVersion(ServerBucket bucket, String objectName, Optional<Integer> o_version, boolean addToCacheifMiss) {
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null " + objectInfo(bucket));
 		Drive readDrive = null;
@@ -1332,6 +1255,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 				e.setErrorMessage(objectInfo(bucket, objectName));
 				throw e;
 			} catch (Exception e) {
+				logger.error(e, SharedConstant.THROWN_WRAPPED);
 				throw new InternalCriticalException(e, objectInfo(bucket, objectName));
 			} finally {
 				bucketReadUnLock(bucket);
@@ -1339,14 +1263,6 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		} finally {
 			objectReadUnLock(bucket, objectName);
 		}
-	}
-
-	/**
-	 * must be executed inside the critical zone.
-	 */
-	protected void checkNotExistObject(ServerBucket bucket, String objectName) {
-		if (existsObjectMetadata(bucket, objectName))
-			throw new IllegalArgumentException("Object already exist -> " + objectInfo(bucket, objectName));
 	}
 
 	/**

@@ -17,13 +17,13 @@
 package io.odilon;
 
 import java.io.File;
- 
+
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
- 
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -38,7 +38,7 @@ import io.odilon.model.OdilonServerInfo;
 import io.odilon.model.RedundancyLevel;
 import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
- 
+
 import io.odilon.replication.ReplicationService;
 import io.odilon.scheduler.CronJobDataIntegrityCheckRequest;
 import io.odilon.scheduler.CronJobWorkDirCleanUpRequest;
@@ -115,14 +115,14 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 			startupLogger.info(ServerConstant.SEPARATOR);
 
 		startupLogger.info("Startup at -> " + DateTimeFormatter.RFC_1123_DATE_TIME.format(OffsetDateTime.now()));
-		
+
 	}
-	
+
 	public SchedulerService getSchedulerService() {
 		return schedulerService;
 	}
 
- 	public ApplicationContext getAppContext() {
+	public ApplicationContext getAppContext() {
 		return appContext;
 	}
 
@@ -132,13 +132,10 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 
 		/** Integrity Checks **/
 		if (settingsService.isIntegrityCheck()) {
-			CronJobDataIntegrityCheckRequest checker = appContext.getBean(CronJobDataIntegrityCheckRequest.class,
-					settingsService.getIntegrityCheckCronExpression());
+			CronJobDataIntegrityCheckRequest checker = appContext.getBean(CronJobDataIntegrityCheckRequest.class, settingsService.getIntegrityCheckCronExpression());
 			getSchedulerService().enqueue(checker);
-			startupLogger.debug("Integrity Check -> " + "CronExpression: "
-					+ settingsService.getIntegrityCheckCronExpression() + " | " + "Checking interval (days) "
-					+ String.valueOf(settingsService.getIntegrityCheckDays()) + " | " + "Threads "
-					+ String.valueOf(settingsService.getIntegrityCheckThreads()));
+			startupLogger.debug("Integrity Check -> " + "CronExpression: " + settingsService.getIntegrityCheckCronExpression() + " | " + "Checking interval (days) " + String.valueOf(settingsService.getIntegrityCheckDays()) + " | "
+					+ "Threads " + String.valueOf(settingsService.getIntegrityCheckThreads()));
 		} else {
 			startupLogger.debug("Integrity Check -> disabled");
 		}
@@ -147,8 +144,7 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 		 * Clean up work dirs Default -> Once per hour
 		 **/
 		String cronJobWorkDirCleanUp = settingsService.getCronJobWorkDirCleanUp();
-		CronJobWorkDirCleanUpRequest cleanUpDirs = getAppContext().getBean(CronJobWorkDirCleanUpRequest.class,
-				cronJobWorkDirCleanUp);
+		CronJobWorkDirCleanUpRequest cleanUpDirs = getAppContext().getBean(CronJobWorkDirCleanUpRequest.class, cronJobWorkDirCleanUp);
 		getSchedulerService().enqueue(cleanUpDirs);
 
 		/** Ping **/
@@ -175,8 +171,8 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 				startupLogger.info("osArch -> " + o_service.getSystemInfo().getColloquial().get("osArch"));
 				startupLogger.info("serverHost -> " + o_service.getSystemInfo().getColloquial().get("serverHost"));
 				startupLogger.info("serverStorage -> " + o_service.getSystemInfo().getColloquial().get("serverStorage"));
-				startupLogger.info("TimeZone -> " +   ZoneId.systemDefault().toString());
-				 
+				startupLogger.info("TimeZone -> " + ZoneId.systemDefault().toString());
+
 			}
 		} catch (Exception e) {
 			startupLogger.error(e, SharedConstant.NOT_THROWN);
@@ -193,31 +189,26 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 
 		OdilonServerInfo info = getAppContext().getBean(VirtualFileSystemService.class).getOdilonServerInfo();
 
-		startupLogger.info("Encryption service initialized -> "
-				+ (((info != null) && info.isEncryptionIntialized()) ? "true" : "false"));
+		startupLogger.info("Encryption service initialized -> " + (((info != null) && info.isEncryptionIntialized()) ? "true" : "false"));
 		startupLogger.info("Encryption enabled -> " + String.valueOf(settingsService.isEncryptionEnabled()));
 		startupLogger.info("Version Control -> " + String.valueOf(settingsService.getVersionControl().getName()));
 		startupLogger.info("Data Storage mode -> " + settingsService.getDataStorage().getName());
 
 		if (settingsService.getRedundancyLevel() == RedundancyLevel.RAID_6) {
-			startupLogger.info("Data Storage redundancy level -> " + settingsService.getRedundancyLevel().getName()
-					+ " [data:" + String.valueOf(settingsService.getRAID6DataDrives()) + ", parity:"
+			startupLogger.info("Data Storage redundancy level -> " + settingsService.getRedundancyLevel().getName() + " [data:" + String.valueOf(settingsService.getRAID6DataDrives()) + ", parity:"
 					+ String.valueOf(settingsService.getRAID6ParityDrives()) + "]");
 
-			List<RAIDSixVolume> vols=  getAppContext().getBean(VirtualFileSystemService.class).getVolumeManager().getAllVolumes();
+			List<RAIDSixVolume> vols = getAppContext().getBean(VirtualFileSystemService.class).getVolumeManager().getAllVolumes();
 			for (RAIDSixVolume vol : vols) {
-				startupLogger.info("Volume: " + String. valueOf( vol.getVolumeId() ) + " | " + (vol.isActive()?"active":"read-only"));
+				//startupLogger.info("Volume: " + String.valueOf(vol.getVolumeId()) + " | " + (vol.isActive() ? "active" : "read-only"));
 				for (Drive d : vol.getDrives()) {
-					startupLogger.info("Volume: " + String.valueOf( vol.getVolumeId() ) + " | Drive: " + d.getName() + " | rootDir: " + d.getRootDirPath());
+					startupLogger.info("Volume: " + String.valueOf(vol.getVolumeId())+ (vol.isActive() ? ". active" : ". read-only")  + " | Drive: " + d.getName() + " | rootDir: " + d.getRootDirPath());
 				}
 			}
-			
-		
+
 		} else {
 			startupLogger.info("Data Storage redundancy level -> " + settingsService.getRedundancyLevel().getName());
-		
-			getAppContext().getBean(VirtualFileSystemService.class).getMapDrivesEnabled()
-				.forEach((k, v) -> startupLogger.info("Drive: " + k + " | rootDir: " + v.getRootDirPath()));
+			getAppContext().getBean(VirtualFileSystemService.class).getMapDrivesEnabled().forEach((k, v) -> startupLogger.info("Drive: " + k + " | rootDir: " + v.getRootDirPath()));
 		}
 		return true;
 	}
@@ -249,8 +240,7 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 			}
 			if (!isOk) {
 				startupLogger.error("The system can not run without a Vault operational");
-				startupLogger.error("Check variable 'vault.url' and 'vault' in -> ." + File.separator + "config"
-						+ File.separator + "odilon.properties");
+				startupLogger.error("Check variable 'vault.url' and 'vault' in -> ." + File.separator + "config" + File.separator + "odilon.properties");
 				startupLogger.error("Current value for vault.enabled = " + settingsService.isVaultEnabled());
 				startupLogger.error("Current value for vault.newfiles = " + settingsService.isUseVaultNewFiles());
 				startupLogger.error("Current value for vault.url -> " + settingsService.getVaultUrl().get());
@@ -272,8 +262,7 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 					Thread.sleep(5000);
 				} catch (InterruptedException e) {
 				}
-				((ConfigurableApplicationContext) getAppContext().getBean(VirtualFileSystemService.class)
-						.getApplicationContext()).close();
+				((ConfigurableApplicationContext) getAppContext().getBean(VirtualFileSystemService.class).getApplicationContext()).close();
 				System.exit(1);
 
 			}
@@ -286,8 +275,7 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 		ServerSettings settingsService = getAppContext().getBean(ServerSettings.class);
 		if (settingsService.getAccessKey().equals("odilon") && settingsService.getSecretKey().equals("odilon")) {
 			startupLogger.info("Odilon is running with default vaules for AccessKey and SecretKey (ie. odilon/odilon)");
-			startupLogger.info("It is recommended to change their values in file -> ." + File.separator + "config"
-					+ File.separator + "odilon.properties");
+			startupLogger.info("It is recommended to change their values in file -> ." + File.separator + "config" + File.separator + "odilon.properties");
 			return true;
 		}
 		return false;
@@ -310,23 +298,20 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 
 					if (settingsService.getVersionControl() != replicationService.getVersionControl()) {
 
-						startupLogger.error(
-								"Server has Version Control enabled but Standby replica does not. You must either:");
+						startupLogger.error("Server has Version Control enabled but Standby replica does not. You must either:");
 						startupLogger.error("- Disable Version Control in Master Server");
 						startupLogger.error("- Enable Version Control in Standby Server");
 						startupLogger.error("- Disable Standby replication");
 
 						startupLogger.error("The server can not continue.");
 
-						((ConfigurableApplicationContext) getAppContext().getBean(VirtualFileSystemService.class)
-								.getApplicationContext()).close();
+						((ConfigurableApplicationContext) getAppContext().getBean(VirtualFileSystemService.class).getApplicationContext()).close();
 						System.exit(1);
 					}
 				} else {
 					startupLogger.error("Standby connection  error -> " + ping);
 					startupLogger.error("The server is set up to use a standby connection that is not available");
-					startupLogger.error("You must check the connection or disable standby replica in file -> ."
-							+ File.separator + "config" + File.separator + "odilon.properties");
+					startupLogger.error("You must check the connection or disable standby replica in file -> ." + File.separator + "config" + File.separator + "odilon.properties");
 					startupLogger.error("Current value for standby.enabled -> " + settingsService.isStandByEnabled());
 					startupLogger.error("Exiting");
 					startupLogger.error(ServerConstant.SEPARATOR);
@@ -334,8 +319,7 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 						Thread.sleep(2500);
 					} catch (InterruptedException e) {
 					}
-					((ConfigurableApplicationContext) getAppContext().getBean(VirtualFileSystemService.class)
-							.getApplicationContext()).close();
+					((ConfigurableApplicationContext) getAppContext().getBean(VirtualFileSystemService.class).getApplicationContext()).close();
 					System.exit(1);
 				}
 				try {
@@ -350,8 +334,7 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 					}
 
 					logger.error("You will have to check the standby server to enable replication");
-					logger.error("Meanwhile we recommend to startup the server without it "
-							+ " in ./config/odilon.properties -> standby.enabled=false ");
+					logger.error("Meanwhile we recommend to startup the server without it " + " in ./config/odilon.properties -> standby.enabled=false ");
 					System.exit(1);
 				}
 			}

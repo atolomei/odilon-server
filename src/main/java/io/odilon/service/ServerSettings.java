@@ -366,6 +366,18 @@ public class ServerSettings implements JSONObject {
 
 	private int raidSixBuffers;
 
+	/**
+	 * When {@code true}, every RAID-6 read whose shards are all physically present
+	 * will have their parity checked via {@link ReedSolomon#isParityCorrect} to
+	 * detect silent byte-level corruption.  Repair is attempted for up to 2
+	 * simultaneously corrupt shards (full N=6 tolerance).
+	 * <p>Default: {@code false} — the check adds roughly one parity-encode pass
+	 * per chunk of I/O and should only be enabled when active corruption detection
+	 * on the read path is required.</p>
+	 */
+	@Value("${raid6.readParityCheck:false}")
+	private boolean raid6ReadParityCheck;
+
 	// --------------------------------------------------
 
 	@Value("${retryFailedSeconds:20}")
@@ -424,6 +436,7 @@ public class ServerSettings implements JSONObject {
 			str.append(", \"dataDrives\":" + String.format("%3d", getRAID6DataDrives()).trim());
 			str.append(", \"paritytDrives\":" + String.format("%3d", getRAID6ParityDrives()).trim());
 			str.append(", \"R6BufferPoolSize\":" + String.format("%4d", this.getR6BufferPoolSize()).trim());
+			str.append(", \"raid6.readParityCheck\":\"" + (isRAID6ReadParityCheckEnabled() ? "true" : "false") + "\"");
 		}
 
 		str.append(", \"dataDirs\":[");
@@ -488,6 +501,9 @@ public class ServerSettings implements JSONObject {
 		return raid6ParityDrives;
 	}
 
+	public boolean isRAID6ReadParityCheckEnabled() {
+		return raid6ReadParityCheck;
+	}
 	public int getRAID6DataDrives() {
 		return raid6DataDrives;
 	}

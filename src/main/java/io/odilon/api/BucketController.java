@@ -72,9 +72,7 @@ public class BucketController extends BaseApiController {
 	static private Logger logger = Logger.getLogger(BucketController.class.getName());
 
 	@Autowired
-	public BucketController(ObjectStorageService objectStorageService,
-			VirtualFileSystemService virtualFileSystemService, SystemMonitorService monitoringService,
-			TrafficControlService trafficControlService) {
+	public BucketController(ObjectStorageService objectStorageService, VirtualFileSystemService virtualFileSystemService, SystemMonitorService monitoringService, TrafficControlService trafficControlService) {
 		super(objectStorageService, virtualFileSystemService, monitoringService, trafficControlService);
 	}
 
@@ -91,8 +89,7 @@ public class BucketController extends BaseApiController {
 		try {
 			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
 			List<Bucket> list = new ArrayList<Bucket>();
-			getObjectStorageService().findAllBuckets().forEach(item -> list.add(new Bucket(item.getName(), item.getId(),
-					item.getCreationDate(), item.getLastModifiedDate(), item.getStatus())));
+			getObjectStorageService().findAllBuckets().forEach(item -> list.add(new Bucket(item.getName(), item.getId(), item.getCreationDate(), item.getLastModifiedDate(), item.getStatus())));
 			return new ResponseEntity<List<Bucket>>(list, HttpStatus.OK);
 
 		} catch (OdilonInternalErrorException e) {
@@ -112,10 +109,8 @@ public class BucketController extends BaseApiController {
 	 * @return
 	 */
 	@RequestMapping(value = "/objects/{name}", produces = "application/json", method = RequestMethod.GET)
-	public ResponseEntity<DataList<Item<ObjectMetadata>>> queryObjects(@PathVariable("name") String bucketName,
-			@RequestParam("offset") Optional<Long> offset, @RequestParam("pageSize") Optional<Long> pageSize,
-			@RequestParam("prefix") Optional<String> prefix,
-			@RequestParam("serverAgentId") Optional<String> serverAgentId) {
+	public ResponseEntity<DataList<Item<ObjectMetadata>>> queryObjects(@PathVariable("name") String bucketName, @RequestParam("offset") Optional<Long> offset, @RequestParam("pageSize") Optional<Long> pageSize,
+			@RequestParam("prefix") Optional<String> prefix, @RequestParam("serverAgentId") Optional<String> serverAgentId) {
 
 		TrafficPass pass = null;
 
@@ -123,8 +118,7 @@ public class BucketController extends BaseApiController {
 
 			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
 
-			DataList<Item<ObjectMetadata>> result = getObjectStorageService().listObjects(bucketName, offset, pageSize,
-					prefix, serverAgentId);
+			DataList<Item<ObjectMetadata>> result = getObjectStorageService().listObjects(bucketName, offset, pageSize, prefix, serverAgentId);
 			return new ResponseEntity<DataList<Item<ObjectMetadata>>>(result, HttpStatus.OK);
 
 		} catch (OdilonInternalErrorException e) {
@@ -159,11 +153,9 @@ public class BucketController extends BaseApiController {
 			ServerBucket bucket = getObjectStorageService().findBucketName(name);
 
 			if (bucket == null)
-				throw new OdilonObjectNotFoundException(ErrorCode.BUCKET_NOT_EXISTS,
-						String.format("bucket does not exist -> %s", name));
+				throw new OdilonObjectNotFoundException(ErrorCode.BUCKET_NOT_EXISTS, String.format("bucket does not exist -> %s", name));
 
-			return new ResponseEntity<Bucket>(new Bucket(bucket.getName(), bucket.getId(), bucket.getCreationDate(),
-					bucket.getLastModifiedDate(), bucket.getStatus()), HttpStatus.OK);
+			return new ResponseEntity<Bucket>(new Bucket(bucket.getName(), bucket.getId(), bucket.getCreationDate(), bucket.getLastModifiedDate(), bucket.getStatus()), HttpStatus.OK);
 
 		} catch (OdilonServerAPIException e) {
 			throw e;
@@ -183,11 +175,10 @@ public class BucketController extends BaseApiController {
 	public ResponseEntity<Boolean> exists(@PathVariable("name") String name) {
 		TrafficPass pass = null;
 		try {
-			
+
 			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
 
-			return new ResponseEntity<Boolean>(
-					Boolean.valueOf(getObjectStorageService().existsBucket(name) ? true : false), HttpStatus.OK);
+			return new ResponseEntity<Boolean>(Boolean.valueOf(getObjectStorageService().existsBucket(name) ? true : false), HttpStatus.OK);
 
 		} catch (OdilonServerAPIException e) {
 			throw e;
@@ -210,15 +201,12 @@ public class BucketController extends BaseApiController {
 		try {
 			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
 
-
 			ServerBucket bucket = getObjectStorageService().findBucketName(name);
 
 			if (bucket == null)
-				throw new OdilonObjectNotFoundException(ErrorCode.BUCKET_NOT_EXISTS,
-						String.format("bucket does not exist -> %s", name));
+				throw new OdilonObjectNotFoundException(ErrorCode.BUCKET_NOT_EXISTS, String.format("bucket does not exist -> %s", name));
 
-			return new ResponseEntity<Boolean>(
-					Boolean.valueOf(getObjectStorageService().isEmptyBucket(name) ? true : false), HttpStatus.OK);
+			return new ResponseEntity<Boolean>(Boolean.valueOf(getObjectStorageService().isEmptyBucket(name) ? true : false), HttpStatus.OK);
 
 		} catch (OdilonServerAPIException e) {
 			throw e;
@@ -246,10 +234,8 @@ public class BucketController extends BaseApiController {
 
 			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
 
-
 			if (getObjectStorageService().existsBucket(name))
-				throw new OdilonServerAPIException(ODHttpStatus.CONFLICT, ErrorCode.OBJECT_ALREADY_EXIST,
-						String.format("bucket already exist -> %s", Optional.ofNullable(name).orElse("null")));
+				throw new OdilonServerAPIException(ODHttpStatus.CONFLICT, ErrorCode.OBJECT_ALREADY_EXIST, String.format("bucket already exist -> %s", Optional.ofNullable(name).orElse("null")));
 
 			getObjectStorageService().createBucket(name);
 
@@ -277,22 +263,18 @@ public class BucketController extends BaseApiController {
 
 			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
 
-
 			ServerBucket bucket = getObjectStorageService().findBucketName(name);
 
 			if (bucket == null)
-				throw new OdilonObjectNotFoundException(ErrorCode.BUCKET_NOT_EXISTS,
-						String.format("bucket does not exist -> %s", name));
+				throw new OdilonObjectNotFoundException(ErrorCode.BUCKET_NOT_EXISTS, String.format("bucket does not exist -> %s", name));
 
 			if (getObjectStorageService().existsBucket(newname)) {
-				throw new OdilonServerAPIException(ODHttpStatus.CONFLICT, ErrorCode.OBJECT_ALREADY_EXIST, String
-						.format("new bucket name already exist -> %s", Optional.ofNullable(newname).orElse("null")));
+				throw new OdilonServerAPIException(ODHttpStatus.CONFLICT, ErrorCode.OBJECT_ALREADY_EXIST, String.format("new bucket name already exist -> %s", Optional.ofNullable(newname).orElse("null")));
 			}
 
 			bucket = getObjectStorageService().updateBucketName(bucket, newname);
 
-			return new ResponseEntity<Bucket>(new Bucket(bucket.getName(), bucket.getId(), bucket.getCreationDate(),
-					bucket.getLastModifiedDate(), bucket.getStatus()), HttpStatus.OK);
+			return new ResponseEntity<Bucket>(new Bucket(bucket.getName(), bucket.getId(), bucket.getCreationDate(), bucket.getLastModifiedDate(), bucket.getStatus()), HttpStatus.OK);
 
 		} catch (OdilonServerAPIException e) {
 			throw e;
@@ -314,16 +296,13 @@ public class BucketController extends BaseApiController {
 		try {
 			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
 
-
 			if (getObjectStorageService().existsBucket(name)) {
 				if (getObjectStorageService().isEmptyBucket(name)) {
 					getObjectStorageService().deleteBucketByName(name);
 				} else
-					throw new OdilonServerAPIException(ODHttpStatus.CONFLICT, ErrorCode.BUCKET_NOT_EMPTY,
-							String.format("bucket is not empty -> %s", Optional.ofNullable(name).orElse("null")));
+					throw new OdilonServerAPIException(ODHttpStatus.CONFLICT, ErrorCode.BUCKET_NOT_EMPTY, String.format("bucket is not empty -> %s", Optional.ofNullable(name).orElse("null")));
 			} else {
-				throw new OdilonObjectNotFoundException(ErrorCode.BUCKET_NOT_EXISTS,
-						String.format("bucket does not exist -> %s", Optional.ofNullable(name).orElse("null")));
+				throw new OdilonObjectNotFoundException(ErrorCode.BUCKET_NOT_EXISTS, String.format("bucket does not exist -> %s", Optional.ofNullable(name).orElse("null")));
 			}
 		} catch (OdilonServerAPIException e) {
 			throw e;
@@ -343,22 +322,19 @@ public class BucketController extends BaseApiController {
 		try {
 			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
 
-			if (!getObjectStorageService().existsBucket(name)) 
+			if (!getObjectStorageService().existsBucket(name))
 				return;
-			
-			if (getVersionControl() == VersionControl.PROTECTED) {
-					if (!getObjectStorageService().isEmptyBucket(name)) {
-						throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED,
-								"Version Control is protected, can not delete bucket contents");
-					}
-				}
 
-		
+			if (getVersionControl() == VersionControl.PROTECTED) {
+				if (!getObjectStorageService().isEmptyBucket(name)) {
+					throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Version Control is protected, can not delete bucket contents");
+				}
+			}
+
 			if (getObjectStorageService().existsBucket(name)) {
 				getObjectStorageService().deleteBucketByName(name);
 			} else
-				throw new OdilonObjectNotFoundException(ErrorCode.BUCKET_NOT_EXISTS,
-						String.format("bucket does not exist -> %s", Optional.ofNullable(name).orElse("null")));
+				throw new OdilonObjectNotFoundException(ErrorCode.BUCKET_NOT_EXISTS, String.format("bucket does not exist -> %s", Optional.ofNullable(name).orElse("null")));
 
 		} catch (OdilonServerAPIException e) {
 			throw e;
@@ -370,7 +346,6 @@ public class BucketController extends BaseApiController {
 		}
 	}
 
-	
 	@RequestMapping(value = "/deleteallpreviousversion/{name}", produces = "application/json", method = RequestMethod.DELETE)
 	public ResponseEntity<Boolean> deleteAllPreviousVersions(@PathVariable("name") String name) {
 
@@ -381,18 +356,15 @@ public class BucketController extends BaseApiController {
 			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
 
 			if (!getObjectStorageService().existsBucket(name))
-				throw new OdilonObjectNotFoundException(ErrorCode.BUCKET_NOT_EXISTS,
-						String.format("bucket does not exist -> %s", Optional.ofNullable(name).orElse("null")));
+				throw new OdilonObjectNotFoundException(ErrorCode.BUCKET_NOT_EXISTS, String.format("bucket does not exist -> %s", Optional.ofNullable(name).orElse("null")));
 
-			if (this.getVirtualFileSystemService().getServerSettings().getVersionControl()==VersionControl.DISABLED)
-				throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED,
-						"Version Control not enabled");
+			if (this.getVirtualFileSystemService().getServerSettings().getVersionControl() == VersionControl.DISABLED)
+				throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Version Control not enabled");
 
-			else if (this.getVirtualFileSystemService().getServerSettings().getVersionControl()==VersionControl.PROTECTED) {
-				throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED,
-						"Version Control is in Protected Mode, can not delete previous versions");
+			else if (this.getVirtualFileSystemService().getServerSettings().getVersionControl() == VersionControl.PROTECTED) {
+				throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Version Control is in Protected Mode, can not delete previous versions");
 			}
-			
+
 			if (!getObjectStorageService().isEmptyBucket(name))
 				getObjectStorageService().deleteBucketAllPreviousVersions(name);
 

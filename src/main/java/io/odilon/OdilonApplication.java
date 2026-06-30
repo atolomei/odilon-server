@@ -121,14 +121,4 @@ public class OdilonApplication {
 		});
 	}
 
-	/**
-	 * @Bean public FilterRegistrationBean<Filter> filterRegistrationBean() {
-	 *       CharacterEncodingFilter filter = new CharacterEncodingFilter();
-	 *       filter.setEncoding("UTF-8"); filter.setForceEncoding(true);
-	 * 
-	 *       FilterRegistrationBean<Filter> registrationBean = new
-	 *       FilterRegistrationBean<Filter>(); registrationBean.setFilter(filter);
-	 *       registrationBean.addUrlPatterns("/*"); return registrationBean; }
-	 **/
-
 }

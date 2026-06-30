@@ -102,8 +102,6 @@ public abstract class BaseApiController extends BaseObject implements Applicatio
 		return virtualFileSystemService.getVersionControl();
 	}
 
-	
-	
 	@Override
 	public void setApplicationContext(ApplicationContext applicationContext) {
 		this.applicationContext = applicationContext;

@@ -29,7 +29,7 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
  * @author atolomei@novamens.com (Alejandro Tolomei)
  * 
  */
-public abstract class RAIDZeroRollbackHandler extends RAIDZeroHandler {
+public abstract class RAIDZeroRollbackHandler extends RAIDZeroObjectHandler {
 
 	@JsonProperty("operation")
 	final private VirtualFileSystemOperation operation;

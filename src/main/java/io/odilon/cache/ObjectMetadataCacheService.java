@@ -22,7 +22,10 @@ import java.util.concurrent.TimeUnit;
 
 import jakarta.annotation.PostConstruct;
 
+import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Service;
 
@@ -33,6 +36,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ServiceStatus;
+import io.odilon.monitor.SystemMonitorService;
 import io.odilon.service.BaseService;
 import io.odilon.service.ServerSettings;
 import io.odilon.virtualFileSystem.model.ServerBucket;
@@ -60,7 +64,7 @@ import io.odilon.virtualFileSystem.model.OperationCode;
  * 
  */
 @Service
-public class ObjectMetadataCacheService extends BaseService implements ApplicationListener<CacheEvent> {
+public class ObjectMetadataCacheService extends BaseService implements ApplicationContextAware, ApplicationListener<CacheEvent> {
 
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 	@SuppressWarnings("unused")
@@ -73,6 +77,12 @@ public class ObjectMetadataCacheService extends BaseService implements Applicati
 	@JsonIgnore
 	private Cache<String, ObjectMetadata> cache;
 
+	@JsonIgnore
+	private ApplicationContext applicationContext;
+
+	@JsonIgnore
+	private SystemMonitorService systemMonitorService;
+
 	public ObjectMetadataCacheService(ServerSettings serverSettings) {
 		this.serverSettings = serverSettings;
 	}
@@ -82,14 +92,21 @@ public class ObjectMetadataCacheService extends BaseService implements Applicati
 	}
 
 	public boolean containsKey(ServerBucket bucket, String objectName) {
-		return (getCache().getIfPresent(getKey(bucket.getId(), objectName)) != null);
+		boolean contains = (getCache().getIfPresent(getKey(bucket.getId(), objectName)) != null);
+		if (contains)
+			getSystemMonitorService().getCacheObjectHitCounter().inc();
+		return contains;
 	}
 
 	public ObjectMetadata get(ServerBucket bucket, String objectName) {
-		return getCache().getIfPresent(getKey(bucket.getId(), objectName));
+		ObjectMetadata meta = getCache().getIfPresent(getKey(bucket.getId(), objectName));
+		if (meta != null)
+			getSystemMonitorService().getCacheObjectHitCounter().inc();
+		return meta;
 	}
 
 	public void put(ServerBucket bucket, String objectName, ObjectMetadata value) {
+		getSystemMonitorService().getCacheObjectMissCounter().inc();
 		getCache().put(getKey(bucket.getId(), objectName), value);
 	}
 
@@ -153,14 +170,31 @@ public class ObjectMetadataCacheService extends BaseService implements Applicati
 		}
 	}
 
-	/**
-	 * File.separator is not a valid bucket or object name
-	 * 
-	 * @param bucketName
-	 * @param objectName
-	 * @return
-	 */
+	public ApplicationContext getApplicationContext() {
+		return this.applicationContext;
+	}
+
+	@Override
+	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+		this.applicationContext = applicationContext;
+	}
+
+	
+	private SystemMonitorService getSystemMonitorService() {
+
+		if (this.systemMonitorService == null) {
+			synchronized (this) {
+				if (this.systemMonitorService == null)
+					this.systemMonitorService = this.applicationContext.getBean(SystemMonitorService.class);
+
+			}
+		}
+		return this.systemMonitorService;
+	}
+
+
 	private String getKey(Long bucketId, String objectName) {
+		// NOTE. We use File.separator because it is not a valid bucket or object name
 		return bucketId.toString() + File.separator + objectName;
 	}
 

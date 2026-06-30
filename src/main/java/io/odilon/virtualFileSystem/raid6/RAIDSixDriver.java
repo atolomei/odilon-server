@@ -21,7 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
- 
+import java.nio.file.Paths;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -57,6 +57,7 @@ import io.odilon.scheduler.ServiceRequest;
 import io.odilon.util.Check;
 import io.odilon.virtualFileSystem.BaseIODriver;
 import io.odilon.virtualFileSystem.OdilonObject;
+import io.odilon.virtualFileSystem.OdilonVirtualFileSystemOperation;
 import io.odilon.virtualFileSystem.model.BucketIterator;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.DriveStatus;
@@ -66,9 +67,6 @@ import io.odilon.virtualFileSystem.model.OperationCode;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemObject;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
-
-// Volume-expansion imports
-// (same package – no import needed for RAIDSixVolume / OdilonRAIDSixVolumeManager)
 
 /**
  * <p>
@@ -167,6 +165,7 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAware {
 
 	static private Logger logger = Logger.getLogger(RAIDSixDriver.class.getName());
+	static private Logger std_logger = Logger.getLogger("StartupLogger");
 
 	@JsonIgnore
 	private ApplicationContext applicationContext;
@@ -180,6 +179,69 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		Check.requireNonNullArgument(meta, "meta is null");
 		RAIDSixSyncObjectHandler handler = new RAIDSixSyncObjectHandler(this);
 		handler.sync(meta);
+	}
+
+	@Override
+	public List<VirtualFileSystemOperation> getJournalPending() {
+
+		List<VirtualFileSystemOperation> list = new ArrayList<VirtualFileSystemOperation>();
+
+		getLockService().getJournalLock().writeLock().lock();
+		try {
+			for (Drive drive : getDrivesEnabled()) {
+				File dir = new File(drive.getJournalDirPath());
+				if (!dir.exists()) {
+					// In multi-volume RAID 6, saveJournal writes only to the active volume's
+					// drives, so earlier volumes' journal directories may legitimately be empty;
+					// after a filesystem issue any drive's directory may be temporarily gone.
+					// `return list` here would silently drop every entry from all subsequent
+					// drives — including the volume that actually holds the journal file.
+					// Skip this drive and keep scanning the rest.
+					logger.warn("getJournalPending: journal dir does not exist on drive -> " + drive.getName() + " | " + dir.getAbsolutePath() + " — skipping");
+					continue;
+				}
+				if (!dir.isDirectory()) {
+					logger.warn("getJournalPending: journal dir path is not a directory on drive -> " + drive.getName() + " | " + dir.getAbsolutePath() + " — skipping");
+					continue;
+				}
+				File[] files = dir.listFiles();
+				// listFiles() returns null on I/O error or if the directory disappears between
+				// the isDirectory() check above and this call. A null here would throw NPE
+				// and abort recovery for every subsequent drive / volume — guard against it.
+				if (files == null) {
+					logger.warn("getJournalPending: listFiles() returned null for journal dir -> " + dir.getAbsolutePath() + " (I/O error or directory disappeared)");
+					continue;
+				}
+				for (File file : files) {
+					if (!file.isDirectory()) {
+						Path pa = Paths.get(file.getAbsolutePath());
+						try {
+							String str = Files.readString(pa);
+							OdilonVirtualFileSystemOperation op = getObjectMapper().readValue(str, OdilonVirtualFileSystemOperation.class);
+							if (op != null) {
+								op.setJournalService(getJournalService());
+								if (!list.contains(op)) {
+									list.add(op);
+									logger.debug("added to rollback -> " + op.toString());
+								}
+							}
+
+						} catch (IOException e) {
+							try {
+								Files.delete(file.toPath());
+							} catch (IOException e1) {
+								logger.error(e, SharedConstant.NOT_THROWN);
+							}
+						}
+					}
+				}
+			}
+			std_logger.info("Total operations that will rollback -> " + String.valueOf(list.size()));
+			return list;
+
+		} finally {
+			getLockService().getJournalLock().writeLock().unlock();
+		}
 	}
 
 	@Override
@@ -228,7 +290,8 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 				checkExistBucket(bucket);
 				checkIsAccesible(bucket);
 
-				// ── Resolve owning volume before reading version metadata ─────────────────────
+				// ── Resolve owning volume before reading version metadata
+				// ─────────────────────
 				// getObjectMetadataReadDrive() for a cache-miss returns a drive from the active
 				// volume. If the object lives on an older (READONLY) volume that drive has no
 				// metadata → NPE / OdilonObjectNotFoundException. Load head meta first (cross-
@@ -238,12 +301,9 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 					throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
 
 				List<Drive> vDrives = getVolumeForObject(headMeta).getDrives();
-				List<Drive> enabledVer = vDrives.stream()
-						.filter(d -> d.getDriveInfo().getStatus() == DriveStatus.ENABLED)
-						.collect(Collectors.toList());
+				List<Drive> enabledVer = vDrives.stream().filter(d -> d.getDriveInfo().getStatus() == DriveStatus.ENABLED).collect(Collectors.toList());
 				List<Drive> verPool = enabledVer.isEmpty() ? vDrives : enabledVer;
-				Drive readDrive = verPool.get(
-						Double.valueOf(Math.abs(Math.random() * 1000)).intValue() % verPool.size());
+				Drive readDrive = verPool.get(Double.valueOf(Math.abs(Math.random() * 1000)).intValue() % verPool.size());
 
 				ObjectMetadata meta = readDrive.getObjectMetadataVersion(bucket, objectName, version);
 				if ((meta == null) || (!meta.isAccesible()))
@@ -268,19 +328,13 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		}
 	}
 
-	/**
-	 * <p>
-	 * falta completar
-	 * </p>
-	 */
+
+	
 	@Override
 	public boolean checkIntegrity(ServerBucket bucket, String objectName, boolean forceCheck) {
 
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullArgument(objectName, "objectName is null");
-
-		// TODO
-		logger.warn("integrity check not completed for RAID 6");
 
 		OffsetDateTime thresholdDate = OffsetDateTime.now().minusDays(getVirtualFileSystemService().getServerSettings().getIntegrityCheckDays());
 
@@ -313,6 +367,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 			}
 
 			readDrive = getObjectMetadataReadDrive(bucket, objectName);
+			
 			// ── Use cross-volume metadata lookup ─────────────────────────────────────────
 			// readDrive for a cache-miss may be from the active volume; if the object lives
 			// on an older volume that drive has no metadata → null. Use
@@ -577,14 +632,6 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 	}
 
 	@Override
-	public ObjectMetadata updateObjectMetadata(ObjectMetadata meta) {
-		Check.requireNonNullArgument(meta, "meta is null");
-		meta.setLastModified(OffsetDateTime.now());
-		putObjectMetadata(meta);
-		return meta;
-	}
-
-	@Override
 	public void putObjectMetadata(ObjectMetadata meta) {
 		Check.requireNonNullArgument(meta, "meta is null");
 		RAIDSixUpdateObjectHandler updateAgent = new RAIDSixUpdateObjectHandler(this, getBucket(meta.getBucketName()), meta.getObjectName());
@@ -681,9 +728,12 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 				if (!existsCacheBucket(bucket.getName()))
 					throw new IllegalArgumentException("bucket does not exist -> " + objectInfo(bucket));
 
-				// ── Cross-volume head metadata lookup ─────────────────────────────────────────
-				// getDriverObjectMetadataInternal() searches active volume first, then archives.
-				// This gives us the correct volumeId so that version reads go to the right drive.
+				// ── Cross-volume head metadata lookup
+				// ─────────────────────────────────────────
+				// getDriverObjectMetadataInternal() searches active volume first, then
+				// archives.
+				// This gives us the correct volumeId so that version reads go to the right
+				// drive.
 				ObjectMetadata meta = getDriverObjectMetadataInternal(bucket, objectName, true);
 
 				if ((meta == null) || (!meta.isAccesible()))
@@ -696,12 +746,9 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 
 				// Use an ENABLED drive from the owning volume for version reads.
 				List<Drive> vDrives = getVolumeForObject(meta).getDrives();
-				List<Drive> enabledVAll = vDrives.stream()
-						.filter(d -> d.getDriveInfo().getStatus() == DriveStatus.ENABLED)
-						.collect(Collectors.toList());
+				List<Drive> enabledVAll = vDrives.stream().filter(d -> d.getDriveInfo().getStatus() == DriveStatus.ENABLED).collect(Collectors.toList());
 				List<Drive> vAllPool = enabledVAll.isEmpty() ? vDrives : enabledVAll;
-				Drive readDrive = vAllPool.get(
-						Double.valueOf(Math.abs(Math.random() * 1000)).intValue() % vAllPool.size());
+				Drive readDrive = vAllPool.get(Double.valueOf(Math.abs(Math.random() * 1000)).intValue() % vAllPool.size());
 
 				for (int version = 0; version < meta.getVersion(); version++) {
 					ObjectMetadata meta_version = readDrive.getObjectMetadataVersion(bucket, objectName, version);
@@ -850,11 +897,11 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 	 * </p>
 	 * <p>
 	 * When the object metadata is in cache its {@code volumeId} is already known —
-	 * pick a random drive from that volume's drive list.
-	 * When it is a cache-miss we do not yet know which volume owns the object, so
-	 * we fall back to a random drive from the <em>active</em> volume (the most
-	 * likely owner for recently-written objects). The cross-volume search is done
-	 * in {@link #getDriverObjectMetadataInternal} which is always called before any
+	 * pick a random drive from that volume's drive list. When it is a cache-miss we
+	 * do not yet know which volume owns the object, so we fall back to a random
+	 * drive from the <em>active</em> volume (the most likely owner for
+	 * recently-written objects). The cross-volume search is done in
+	 * {@link #getDriverObjectMetadataInternal} which is always called before any
 	 * actual read.
 	 * </p>
 	 */
@@ -865,19 +912,17 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 			ObjectMetadata cached = getObjectMetadataCacheService().get(bucket, objectName);
 			List<Drive> vDrives = getVolumeManager().getVolumeById(cached.getVolumeId()).getDrives();
 			// NOTSYNC drives have no metadata yet — restrict pool to ENABLED drives only.
-			List<Drive> pool = vDrives.stream()
-					.filter(d -> d.getDriveInfo().getStatus() == DriveStatus.ENABLED)
-					.collect(Collectors.toList());
-			if (pool.isEmpty()) pool = vDrives; // safety fallback (should never happen)
+			List<Drive> pool = vDrives.stream().filter(d -> d.getDriveInfo().getStatus() == DriveStatus.ENABLED).collect(Collectors.toList());
+			if (pool.isEmpty())
+				pool = vDrives; // safety fallback (should never happen)
 			return pool.get(Double.valueOf(Math.abs(Math.random() * 1000)).intValue() % pool.size());
 		}
 		// Cache-miss: return a random ENABLED drive from the active volume.
 		// getDriverObjectMetadataInternal() will do the real cross-volume search.
 		List<Drive> activeDrives = getVolumeManager().getActiveVolume().getDrives();
-		List<Drive> pool = activeDrives.stream()
-				.filter(d -> d.getDriveInfo().getStatus() == DriveStatus.ENABLED)
-				.collect(Collectors.toList());
-		if (pool.isEmpty()) pool = activeDrives; // safety fallback
+		List<Drive> pool = activeDrives.stream().filter(d -> d.getDriveInfo().getStatus() == DriveStatus.ENABLED).collect(Collectors.toList());
+		if (pool.isEmpty())
+			pool = activeDrives; // safety fallback
 		return pool.get(Double.valueOf(Math.abs(Math.random() * 1000)).intValue() % pool.size());
 	}
 
@@ -886,12 +931,12 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 	 * Volume-aware ObjectMetadata lookup for RAID 6.
 	 * </p>
 	 * <ol>
-	 *   <li>Check the object-metadata cache — if found, return immediately
-	 *       (volumeId already embedded).</li>
-	 *   <li>Search the <b>active volume</b> first (most objects are recent).</li>
-	 *   <li>Search remaining volumes newest-to-oldest.</li>
-	 *   <li>Cache the result and return it; return {@code null} if not found
-	 *       anywhere (caller turns this into {@link OdilonObjectNotFoundException}).</li>
+	 * <li>Check the object-metadata cache — if found, return immediately (volumeId
+	 * already embedded).</li>
+	 * <li>Search the <b>active volume</b> first (most objects are recent).</li>
+	 * <li>Search remaining volumes newest-to-oldest.</li>
+	 * <li>Cache the result and return it; return {@code null} if not found anywhere
+	 * (caller turns this into {@link OdilonObjectNotFoundException}).</li>
 	 * </ol>
 	 */
 	@Override
@@ -901,7 +946,6 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		if (getServerSettings().isUseObjectCache() && getObjectMetadataCacheService().containsKey(bucket, objectName)) {
 			ObjectMetadata cached = getObjectMetadataCacheService().get(bucket, objectName);
 			cached.setBucketName(bucket.getName());
-			getSystemMonitorService().getCacheObjectHitCounter().inc();
 			return cached;
 		}
 
@@ -912,18 +956,17 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 			// If a candidate NOTSYNC drive is picked, it returns null and the object
 			// looks "not found" even though the metadata exists on the other drives,
 			// causing spurious OdilonObjectNotFoundException during drive sync.
-			List<Drive> pool = vDrives.stream()
-					.filter(d -> d.getDriveInfo().getStatus() == DriveStatus.ENABLED)
-					.collect(Collectors.toList());
+			List<Drive> pool = vDrives.stream().filter(d -> d.getDriveInfo().getStatus() == DriveStatus.ENABLED).collect(Collectors.toList());
 			if (pool.isEmpty())
 				continue; // entire volume is still mid-sync — skip it
 			Drive candidate = pool.get(Double.valueOf(Math.abs(Math.random() * 1000)).intValue() % pool.size());
 			ObjectMetadata meta = candidate.getObjectMetadata(bucket, objectName);
 			if (meta != null) {
 				meta.setBucketName(bucket.getName());
-				// Ensure volumeId is correctly set (guards against legacy objects with volumeId==0)
+				// Ensure volumeId is correctly set (guards against legacy objects with
+				// volumeId==0)
 				meta.setVolumeId(volume.getVolumeId());
-				getSystemMonitorService().getCacheObjectMissCounter().inc();
+
 				if (addToCacheIfMiss && getServerSettings().isUseObjectCache())
 					getObjectMetadataCacheService().put(bucket, objectName, meta);
 				return meta;
@@ -933,6 +976,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		// Not found on any volume
 		return null;
 	}
+
 	private ObjectMetadata getOM(ServerBucket bucket, String objectName, Optional<Integer> o_version, boolean addToCacheifMiss) {
 
 		Check.requireNonNullArgument(bucket, "bucket is null");
@@ -955,12 +999,9 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 					// Pick an ENABLED drive from the owning volume.
 					// NOTSYNC drives have no metadata — picking one would return null.
 					List<Drive> vDrives = getVolumeForObject(headMeta).getDrives();
-					List<Drive> enabledV = vDrives.stream()
-							.filter(d -> d.getDriveInfo().getStatus() == DriveStatus.ENABLED)
-							.collect(Collectors.toList());
+					List<Drive> enabledV = vDrives.stream().filter(d -> d.getDriveInfo().getStatus() == DriveStatus.ENABLED).collect(Collectors.toList());
 					List<Drive> vPool = enabledV.isEmpty() ? vDrives : enabledV;
-					Drive vDrive = vPool.get(
-							Double.valueOf(Math.abs(Math.random() * 1000)).intValue() % vPool.size());
+					Drive vDrive = vPool.get(Double.valueOf(Math.abs(Math.random() * 1000)).intValue() % vPool.size());
 
 					meta = vDrive.getObjectMetadataVersion(bucket, objectName, o_version.get());
 				} else {
@@ -1024,8 +1065,8 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 
 	/**
 	 * <p>
-	 * Returns a map {@code Drive → [shard file names]} for the given object,
-	 * using the <em>volume-local</em> disk indices stored in the shard file names.
+	 * Returns a map {@code Drive → [shard file names]} for the given object, using
+	 * the <em>volume-local</em> disk indices stored in the shard file names.
 	 * </p>
 	 * <p>
 	 * Uses {@code meta.getVolumeId()} to select the correct volume. Backward
@@ -1045,7 +1086,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 			map.put(drive, new ArrayList<String>());
 
 		int totalBlocks = meta.getSha256Blocks().size();
-		int totalDisks  = volume.getTotalShards();
+		int totalDisks = volume.getTotalShards();
 
 		Check.checkTrue(totalDisks > 0, "total disks must be greater than zero");
 
@@ -1055,8 +1096,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		for (int chunk = 0; chunk < chunks; chunk++) {
 			for (int disk = 0; disk < volumeDrives.size(); disk++) {
 				// disk == volume-local index (matches encoder / decoder convention)
-				String suffix = "." + String.valueOf(chunk) + "." + String.valueOf(disk)
-						+ (version.isEmpty() ? "" : (".v" + String.valueOf(version.get())));
+				String suffix = "." + String.valueOf(chunk) + "." + String.valueOf(disk) + (version.isEmpty() ? "" : (".v" + String.valueOf(version.get())));
 				Drive drive = volumeDrives.get(disk);
 				map.get(drive).add(meta.getObjectName() + suffix);
 			}
@@ -1081,7 +1121,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		List<Drive> volumeDrives = volume.getDrives();
 
 		int totalBlocks = meta.getSha256Blocks().size();
-		int totalDisks  = volume.getTotalShards();
+		int totalDisks = volume.getTotalShards();
 
 		Check.checkTrue(totalDisks > 0, "total disks must be greater than zero");
 
@@ -1090,20 +1130,19 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 
 		for (int chunk = 0; chunk < chunks; chunk++) {
 			for (int disk = 0; disk < volumeDrives.size(); disk++) {
-				String suffix = "." + String.valueOf(chunk) + "." + String.valueOf(disk)
-						+ (version.isEmpty() ? "" : (".v" + String.valueOf(version.get())));
+				String suffix = "." + String.valueOf(chunk) + "." + String.valueOf(disk) + (version.isEmpty() ? "" : (".v" + String.valueOf(version.get())));
 				Drive drive = volumeDrives.get(disk);
 				if (version.isEmpty())
 					files.add(new File(drive.getBucketObjectDataDirPath(bucket), meta.getObjectName() + suffix));
 				else
-					files.add(new File(drive.getBucketObjectDataDirPath(bucket) + File.separator + VirtualFileSystemService.VERSION_DIR,
-							meta.getObjectName() + suffix));
+					files.add(new File(drive.getBucketObjectDataDirPath(bucket) + File.separator + VirtualFileSystemService.VERSION_DIR, meta.getObjectName() + suffix));
 			}
 		}
 		return files;
 	}
 
-	// ─── Journal overrides ────────────────────────────────────────────────────────
+	// ─── Journal overrides
+	// ────────────────────────────────────────────────────────
 
 	/**
 	 * <p>
@@ -1113,9 +1152,9 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 	 * <p>
 	 * Rationale: if volume 0 is at OS-level capacity, writing to its drives would
 	 * throw an {@link IOException}. Journal files for new operations belong on the
-	 * drives that are currently receiving writes. Recovery ({@link #getJournalPending})
-	 * already scans ALL enabled drives, so entries written here will always be
-	 * found on restart.
+	 * drives that are currently receiving writes. Recovery
+	 * ({@link #getJournalPending}) already scans ALL enabled drives, so entries
+	 * written here will always be found on restart.
 	 * </p>
 	 */
 	@Override
@@ -1161,8 +1200,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 					// from all remaining drives (including the volume that actually holds
 					// the journal file). The caller (OdilonJournalService) already treats
 					// a partial-delete gracefully.
-					logger.error("removeJournal: failed on drive -> " + drive.getName()
-							+ " | id=" + id + " | " + e.getMessage(), SharedConstant.NOT_THROWN);
+					logger.error("removeJournal: failed on drive -> " + drive.getName() + " | id=" + id + " | " + e.getMessage(), SharedConstant.NOT_THROWN);
 				}
 			}
 		} finally {
@@ -1170,7 +1208,8 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		}
 	}
 
-	// ─── Scheduler overrides ──────────────────────────────────────────────────────
+	// ─── Scheduler overrides
+	// ──────────────────────────────────────────────────────
 
 	/**
 	 * <p>
@@ -1226,9 +1265,9 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 	 * <p>
 	 * The base implementation ({@link BaseIODriver#getSchedulerPendingRequests})
 	 * requires every request to appear on <em>all</em> enabled drives. In a
-	 * multi-volume setup a request saved on volume 0 would be absent from volume 1's
-	 * drives and wrongly discarded. This override checks completeness within each
-	 * volume independently and aggregates valid requests from all volumes.
+	 * multi-volume setup a request saved on volume 0 would be absent from volume
+	 * 1's drives and wrongly discarded. This override checks completeness within
+	 * each volume independently and aggregates valid requests from all volumes.
 	 * </p>
 	 */
 	@Override
@@ -1255,14 +1294,12 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 
 				Drive referenceDrive = vDrives.get(0);
 				Map<String, File> referenceMap = driveFiles.get(referenceDrive);
-				Map<String, File> useful  = new HashMap<>();
+				Map<String, File> useful = new HashMap<>();
 				Map<String, File> useless = new HashMap<>();
 
 				// A request is valid iff it exists on ALL drives within this volume
 				referenceMap.forEach((name, file) -> {
-					boolean complete = vDrives.stream()
-							.filter(d -> !d.equals(referenceDrive))
-							.allMatch(d -> driveFiles.get(d).containsKey(name));
+					boolean complete = vDrives.stream().filter(d -> !d.equals(referenceDrive)).allMatch(d -> driveFiles.get(d).containsKey(name));
 					if (complete)
 						useful.put(name, file);
 					else
@@ -1273,13 +1310,11 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 				for (Map.Entry<String, File> entry : useful.entrySet()) {
 					try {
 						AbstractServiceRequest req = getObjectMapper().readValue(entry.getValue(), AbstractServiceRequest.class);
-						boolean alreadyPresent = result.stream()
-								.anyMatch(r -> r.getId() != null && r.getId().equals(req.getId()));
+						boolean alreadyPresent = result.stream().anyMatch(r -> r.getId() != null && r.getId().equals(req.getId()));
 						if (!alreadyPresent)
 							result.add(req);
 					} catch (Exception e) {
-						logger.error("Failed to deserialize ServiceRequest: " + entry.getValue().getAbsolutePath()
-								+ " | " + e.getMessage(), SharedConstant.NOT_THROWN);
+						logger.error("Failed to deserialize ServiceRequest: " + entry.getValue().getAbsolutePath() + " | " + e.getMessage(), SharedConstant.NOT_THROWN);
 					}
 				}
 

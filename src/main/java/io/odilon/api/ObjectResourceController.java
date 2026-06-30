@@ -197,6 +197,7 @@ public class ObjectResourceController extends BaseApiController {
 		} catch (OdilonServerAPIException e) {
 			throw e;
 		} catch (Exception e) {
+			logger.error(e, SharedConstant.THROWN_WRAPPED);
 			throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));
 		} finally {
 			getTrafficControlService().release(pass);
@@ -246,6 +247,7 @@ public class ObjectResourceController extends BaseApiController {
 		} catch (OdilonServerAPIException e) {
 			throw e;
 		} catch (Exception e) {
+			logger.error(e, SharedConstant.THROWN_WRAPPED);
 			throw new OdilonInternalErrorException(getMessage(e));
 		} finally {
 			getTrafficControlService().release(pass);
@@ -284,6 +286,7 @@ public class ObjectResourceController extends BaseApiController {
 		} catch (OdilonServerAPIException e) {
 			throw e;
 		} catch (Exception e) {
+			logger.error(e, SharedConstant.THROWN_WRAPPED);
 			throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));
 		} finally {
 			getTrafficControlService().release(pass);
@@ -345,7 +348,7 @@ public class ObjectResourceController extends BaseApiController {
 			throw e;
 		} catch (Exception e) {
 			closeQuietly(in);
-			logger.error(e);
+			logger.error(e, SharedConstant.THROWN_WRAPPED);
 			throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));
 		} finally {
 			getTrafficControlService().release(pass);
@@ -401,10 +404,10 @@ public class ObjectResourceController extends BaseApiController {
 			logger.error(e);
 			throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.DATA_STORAGE_MODE_OPERATION_NOT_ALLOWED, getMessage(e));
 		} catch (OdilonServerAPIException e) {
-			logger.error(e);
+			 
 			throw e;
 		} catch (Exception e) {
-			logger.error(e);
+			logger.error(e, SharedConstant.THROWN_WRAPPED);
 			throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));
 		} finally {
 			getTrafficControlService().release(pass);
@@ -435,6 +438,7 @@ public class ObjectResourceController extends BaseApiController {
 		} catch (OdilonServerAPIException e) {
 			throw e;
 		} catch (Exception e) {
+			logger.error(e, SharedConstant.THROWN_WRAPPED);
 			throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));
 		} finally {
 			getTrafficControlService().release(pass);
@@ -515,7 +519,7 @@ public class ObjectResourceController extends BaseApiController {
 		} catch (OdilonServerAPIException e) {
 			throw e;
 		} catch (Exception e) {
-			logger.error(e);
+			logger.error(e, SharedConstant.THROWN_WRAPPED);
 			throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));
 		} finally {
 			getTrafficControlService().release(pass);
@@ -565,7 +569,7 @@ public class ObjectResourceController extends BaseApiController {
 		} catch (OdilonServerAPIException e) {
 			throw e;
 		} catch (Exception e) {
-			logger.error(e);
+			logger.error(e, SharedConstant.THROWN_WRAPPED);
 			throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));
 		} finally {
 			getTrafficControlService().release(pass);
@@ -663,7 +667,7 @@ public class ObjectResourceController extends BaseApiController {
 			throw e;
 		} catch (Exception e) {
 			closeQuietly(in);
-			logger.error(e);
+			logger.error(e, SharedConstant.THROWN_WRAPPED);
 			throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));
 		} finally {
 			getTrafficControlService().release(pass);
@@ -702,7 +706,7 @@ public class ObjectResourceController extends BaseApiController {
 		} catch (OdilonServerAPIException e) {
 			throw e;
 		} catch (Exception e) {
-			logger.error(e);
+			logger.error(e, SharedConstant.THROWN_WRAPPED);
 			throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));
 		} finally {
 			getTrafficControlService().release(pass);
@@ -735,7 +739,7 @@ public class ObjectResourceController extends BaseApiController {
 		} catch (OdilonServerAPIException e) {
 			throw e;
 		} catch (Exception e) {
-			logger.error(e);
+			logger.error(e, SharedConstant.THROWN_WRAPPED);
 			throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));
 		} finally {
 			getTrafficControlService().release(pass);

@@ -76,7 +76,7 @@ public interface IODriver {
     
     public void putObject(ServerBucket bucket, String objectName, File file);
 
-	public ObjectMetadata updateObjectMetadata(ObjectMetadata meta);
+	//public ObjectMetadata updateObjectMetadata(ObjectMetadata meta);
 
     public VirtualFileSystemObject getObject(ServerBucket bucket, String objectName);
 
@@ -102,6 +102,11 @@ public interface IODriver {
     /**
      * Journal
      */
+
+    public List<VirtualFileSystemOperation> getJournalPending();
+
+    public JournalService getJournalService();
+
     public void saveJournal(VirtualFileSystemOperation op);
 
     public void removeJournal(String id);
@@ -112,9 +117,7 @@ public interface IODriver {
 
     public void rollback(VirtualFileSystemOperation op, Object payload, boolean recoveryMode);
 
-    public List<VirtualFileSystemOperation> getJournalPending(JournalService journalService);
-
-    public JournalService getJournalService();
+    
 
     /**
      * Scheduler
@@ -201,6 +204,8 @@ public interface IODriver {
     public List<Drive> getDrivesEnabled();
 
     public List<Drive> getDrivesAll();
+
+	public String fileInfo(File file);
 
 
 }

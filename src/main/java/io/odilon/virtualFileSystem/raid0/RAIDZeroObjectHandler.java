@@ -54,9 +54,9 @@ import io.odilon.virtualFileSystem.model.ServerBucket;
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @ThreadSafe
-public abstract class RAIDZeroHandler extends BaseRAIDHandler implements RAIDHandler {
+public abstract class RAIDZeroObjectHandler extends BaseRAIDHandler implements RAIDHandler {
 
-	static private Logger logger = Logger.getLogger(RAIDZeroHandler.class.getName());
+	static private Logger logger = Logger.getLogger(RAIDZeroObjectHandler.class.getName());
 	
 	@JsonIgnore
 	private final RAIDZeroDriver driver;
@@ -66,7 +66,7 @@ public abstract class RAIDZeroHandler extends BaseRAIDHandler implements RAIDHan
 		return getDriver().getReadDrive(bucket, objectName);
 	}
 
-	public RAIDZeroHandler(RAIDZeroDriver driver) {
+	public RAIDZeroObjectHandler(RAIDZeroDriver driver) {
 		this.driver = driver;
 	}
 

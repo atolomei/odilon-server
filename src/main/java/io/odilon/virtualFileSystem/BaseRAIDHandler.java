@@ -159,7 +159,6 @@ public abstract class BaseRAIDHandler extends BaseObject {
 			return getObjectMetadataReadDrive(bucket, objectName).getObjectMetadata(bucket, objectName);
 
 		if (getObjectMetadataCacheService().containsKey(bucket, objectName)) {
-			getVirtualFileSystemService().getSystemMonitorService().getCacheObjectHitCounter().inc();
 			ObjectMetadata meta = getObjectMetadataCacheService().get(bucket, objectName);
 			meta.setBucketName(bucket.getName());
 			return meta;
@@ -170,10 +169,10 @@ public abstract class BaseRAIDHandler extends BaseObject {
 			return meta;
 
 		meta.setBucketName(bucket.getName());
-		getVirtualFileSystemService().getSystemMonitorService().getCacheObjectMissCounter().inc();
 
 		if (addToCacheIfmiss)
 			getObjectMetadataCacheService().put(bucket, objectName, meta);
+
 		return meta;
 	}
 

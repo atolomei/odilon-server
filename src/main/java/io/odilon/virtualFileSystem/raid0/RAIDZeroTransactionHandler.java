@@ -23,7 +23,7 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
  * @author atolomei@novamens.com (Alejandro Tolomei)
  * 
  */
-public abstract class RAIDZeroTransactionHandler extends RAIDZeroHandler {
+public abstract class RAIDZeroTransactionHandler extends RAIDZeroObjectHandler {
 
 	public RAIDZeroTransactionHandler(RAIDZeroDriver driver) {
 		super(driver);

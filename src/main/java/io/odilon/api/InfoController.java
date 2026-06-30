@@ -44,7 +44,6 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 @RestController
 public class InfoController extends BaseApiController {
 
-	 
 	static private Logger logger = Logger.getLogger(InfoController.class.getName());
 
 	private ServerSettings settings;
@@ -116,9 +115,8 @@ public class InfoController extends BaseApiController {
 			map.forEach((k, v) -> str.append("    " + k + " -> " + v + "\n"));
 			str.append("\n");
 
-			
 			logger.debug("System info: " + str.toString());
-			
+
 			return new ResponseEntity<String>(str.toString(), HttpStatus.OK);
 
 		} finally {

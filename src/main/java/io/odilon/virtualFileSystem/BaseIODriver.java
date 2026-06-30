@@ -63,7 +63,7 @@ import io.odilon.model.VersionControl;
 import io.odilon.monitor.SystemMonitorService;
 import io.odilon.query.BucketIteratorService;
 import io.odilon.replication.ReplicationService;
-import io.odilon.scheduler.AbstractServiceRequest;
+ 
 import io.odilon.scheduler.SchedulerService;
 import io.odilon.scheduler.ServiceRequest;
 import io.odilon.service.ServerSettings;
@@ -118,19 +118,28 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 	@JsonIgnore
 	private ApplicationContext applicationContext;
 
-	public abstract void rollback(VirtualFileSystemOperation operation, Object payload, boolean recoveryMode);
-
-	/**
-	 * @param virtualFileSystemService
-	 * @param lockService
-	 */
 	public BaseIODriver(VirtualFileSystemService virtualFileSystemService, LockService lockService) {
 		this.virtualFileSystem = virtualFileSystemService;
 		this.lockService = lockService;
 	}
 
-	public abstract RedundancyLevel getRedundancyLevel();
 
+	
+	
+	public abstract void rollback(VirtualFileSystemOperation operation, Object payload, boolean recoveryMode);
+	public abstract RedundancyLevel getRedundancyLevel();
+	public abstract List<VirtualFileSystemOperation> getJournalPending();
+	
+	
+	
+	public String fileInfo(File file) {
+		if (file == null)
+			return "f:null";
+		return "f:" + file.getName();
+	}
+
+
+	
 	@Override
 	public boolean existsBucket(String bucketName) {
 		Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
@@ -144,12 +153,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		}
 	}
 
-	/**
-	 * <p>
-	 * Shared by RAID 0, RAID 1, RAID 6
-	 * </p>
-	 */
-	@Override
+ 	@Override
 	public ServerBucket createBucket(String bucketName) {
 
 		Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
@@ -185,6 +189,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 				} catch (Exception e) {
 					commitOK = false;
 					isMainException = true;
+					logger.error(e, SharedConstant.THROWN_WRAPPED);
 					throw new InternalCriticalException(e, objectInfo(drive));
 				}
 			}
@@ -253,9 +258,11 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 
 					} catch (IOException e) {
 						commitOK = false;
+						logger.error(e, SharedConstant.THROWN_WRAPPED);
 						throw new InternalCriticalException(e, objectInfo(drive));
 					} catch (Exception e) {
 						commitOK = false;
+						logger.error(e, SharedConstant.THROWN_WRAPPED);
 						throw new InternalCriticalException(e, objectInfo(drive));
 					}
 				}
@@ -281,11 +288,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		removeBucket(bucket, false);
 	}
 
-	/**
-	 * <p>
-	 * Shared by RAID 1 and RAID 6
-	 * </p>
-	 */
+	
 	@Override
 	public void removeBucket(ServerBucket bucket, boolean forceDelete) {
 		Check.requireNonNullArgument(bucket, "bucket can not be null");
@@ -310,6 +313,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 						drive.markAsDeletedBucket(bucket);
 					} catch (Exception e) {
 						commitOK = false;
+						logger.error(e, SharedConstant.THROWN_WRAPPED);
 						throw new InternalCriticalException(e);
 					}
 				}
@@ -343,11 +347,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		}
 	}
 
-	/**
-	 * <p>
-	 * Shared by RAID 1 and RAID 6
-	 * </p>
-	 */
 	@Override
 	public boolean isEmpty(ServerBucket bucket) {
 
@@ -367,6 +366,8 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		} catch (Exception e) {
 			if (e instanceof InternalCriticalException)
 				throw e;
+			
+			logger.error(e, SharedConstant.THROWN_WRAPPED);
 			throw new InternalCriticalException(e, objectInfo(bucket));
 
 		} finally {
@@ -453,27 +454,27 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 				}
 				return true;
 			} else if (operation.getOperationCode() == OperationCode.UPDATE_SERVER_METADATA) {
-			    // Restore odilon.json from the .backup copy that setServerInfo() writes before
-			    // overwriting the file. If no backup exists the original is intact (crash
-			    // between journal write and backup write) so no action is needed.
-			    for (Drive drive : getDrivesAll()) {
-			        File backup = drive.getSysFile(VirtualFileSystemService.SERVER_METADATA_FILE + ".backup");
-			        if (backup != null && backup.exists()) {
-			            File current = drive.getSysFile(VirtualFileSystemService.SERVER_METADATA_FILE);
-			            FileUtils.copyFile(backup, current);
-			            FileUtils.deleteQuietly(backup);
-			        } else {
-			            logger.warn("UPDATE_SERVER_METADATA rollback: no backup found on drive -> "
-			                    + drive.getName() + " | original file left unchanged");
-			        }
-			    }
-			    return true;
+				// Restore odilon.json from the .backup copy that setServerInfo() writes before
+				// overwriting the file. If no backup exists the original is intact (crash
+				// between journal write and backup write) so no action is needed.
+				for (Drive drive : getDrivesAll()) {
+					File backup = drive.getSysFile(VirtualFileSystemService.SERVER_METADATA_FILE + ".backup");
+					if (backup != null && backup.exists()) {
+						File current = drive.getSysFile(VirtualFileSystemService.SERVER_METADATA_FILE);
+						FileUtils.copyFile(backup, current);
+						FileUtils.deleteQuietly(backup);
+					} else {
+						logger.warn("UPDATE_SERVER_METADATA rollback: no backup found on drive -> " + drive.getName() + " | original file left unchanged");
+					}
+				}
+				return true;
 			}
 
 		} catch (InternalCriticalException e) {
 			throw (e);
 
 		} catch (IOException e) {
+			logger.error(e, SharedConstant.THROWN_WRAPPED);
 			throw new InternalCriticalException(e);
 		}
 
@@ -511,6 +512,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 			} catch (IllegalArgumentException e1) {
 				throw e1;
 			} catch (Exception e) {
+				logger.error(e, SharedConstant.THROWN_WRAPPED);
 				throw new InternalCriticalException(e, objectInfo(bucket, objectName));
 			} finally {
 				bucketReadUnLock(bucket);
@@ -545,6 +547,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		try {
 			contentType = Files.probeContentType(filePath);
 		} catch (IOException e) {
+			logger.error(e, SharedConstant.THROWN_WRAPPED);
 			throw new InternalCriticalException(e, objectInfo(bucket, objectName));
 		}
 		try {
@@ -565,149 +568,14 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		this.applicationContext = applicationContext;
 	}
 
-	/**
-	 * <p>
-	 * Shared by RAID 1 and RAID 6
-	 * </p>
-	 */
-	@Override
-	public synchronized List<ServiceRequest> getSchedulerPendingRequests(String queueId) {
+	
+	public abstract List<ServiceRequest> getSchedulerPendingRequests(String queueId);
+	
+		
+	
+	
 
-		List<ServiceRequest> list = new ArrayList<ServiceRequest>();
-		Map<String, File> useful = new HashMap<String, File>();
-		Map<String, File> useless = new HashMap<String, File>();
-
-		Map<Drive, Map<String, File>> allDriveFiles = new HashMap<Drive, Map<String, File>>();
-
-		getLockService().getSchedulerLock().writeLock().lock();
-		try {
-			for (Drive drive : getDrivesEnabled()) {
-				allDriveFiles.put(drive, new HashMap<String, File>());
-				for (File file : drive.getSchedulerRequests(queueId)) {
-					allDriveFiles.get(drive).put(file.getName(), file);
-				}
-			}
-
-			final Drive referenceDrive = getDrivesEnabled().get(0);
-
-			allDriveFiles.get(referenceDrive).forEach((k, file) -> {
-				boolean isOk = true;
-				for (Drive drive : getDrivesEnabled()) {
-					if (!drive.equals(referenceDrive)) {
-						if (!allDriveFiles.get(drive).containsKey(k)) {
-							isOk = false;
-							break;
-						}
-					}
-				}
-				if (isOk)
-					useful.put(k, file);
-				else
-					useless.put(k, file);
-			});
-
-			useful.forEach((k, file) -> {
-				try {
-					AbstractServiceRequest request = getObjectMapper().readValue(file, AbstractServiceRequest.class);
-					list.add((ServiceRequest) request);
-
-				} catch (Exception e) {
-					// Log the error but DO NOT delete the file — deleting would permanently lose
-					// pending replication/scheduler work that should be retried on next startup
-					logger.error("Failed to deserialize ServiceRequest from file -> " + file.getAbsolutePath() + " | " + e.getClass().getName() + " | " + e.getMessage(), SharedConstant.NOT_THROWN);
-				}
-			});
-
-			getDrivesEnabled().forEach(drive -> {
-				allDriveFiles.get(drive).forEach((k, file) -> {
-					if (!useful.containsKey(k)) {
-						try {
-							Files.delete(file.toPath());
-						} catch (Exception e1) {
-							logger.error(e1, SharedConstant.NOT_THROWN);
-						}
-					}
-				});
-			});
-		} finally {
-			getLockService().getSchedulerLock().writeLock().unlock();
-		}
-		return list;
-	}
-
-	/**
-	 * <p>
-	 * Shared by RAID 1 and RAID 6
-	 * </p>
-	 */
-	@Override
-	public List<VirtualFileSystemOperation> getJournalPending(JournalService journalService) {
-
-		List<VirtualFileSystemOperation> list = new ArrayList<VirtualFileSystemOperation>();
-
-		getLockService().getJournalLock().writeLock().lock();
-		try {
-			for (Drive drive : getDrivesEnabled()) {
-				File dir = new File(drive.getJournalDirPath());
-				if (!dir.exists()) {
-					// In multi-volume RAID 6, saveJournal writes only to the active volume's
-					// drives, so earlier volumes' journal directories may legitimately be empty;
-					// after a filesystem issue any drive's directory may be temporarily gone.
-					// `return list` here would silently drop every entry from all subsequent
-					// drives — including the volume that actually holds the journal file.
-					// Skip this drive and keep scanning the rest.
-					logger.warn("getJournalPending: journal dir does not exist on drive -> " + drive.getName() + " | " + dir.getAbsolutePath() + " — skipping");
-					continue;
-				}
-				if (!dir.isDirectory()) {
-					logger.warn("getJournalPending: journal dir path is not a directory on drive -> " + drive.getName() + " | " + dir.getAbsolutePath() + " — skipping");
-					continue;
-				}
-				File[] files = dir.listFiles();
-				// listFiles() returns null on I/O error or if the directory disappears between
-				// the isDirectory() check above and this call. A null here would throw NPE
-				// and abort recovery for every subsequent drive / volume — guard against it.
-				if (files == null) {
-					logger.warn("getJournalPending: listFiles() returned null for journal dir -> " + dir.getAbsolutePath() + " (I/O error or directory disappeared)");
-					continue;
-				}
-				for (File file : files) {
-					if (!file.isDirectory()) {
-						Path pa = Paths.get(file.getAbsolutePath());
-						try {
-							String str = Files.readString(pa);
-							OdilonVirtualFileSystemOperation op = getObjectMapper().readValue(str, OdilonVirtualFileSystemOperation.class);
-							if (op!=null) {
-								op.setJournalService(getJournalService());
-								if (!list.contains(op)) {
-									list.add(op);
-									logger.debug("added to rollback -> " + op.toString());
-								}
-							}
-
-						} catch (IOException e) {
-							try {
-								Files.delete(file.toPath());
-							} catch (IOException e1) {
-								logger.error(e, SharedConstant.NOT_THROWN);
-							}
-						}
-					}
-				}
-			}
-			std_logger.info("Total operations that will rollback -> " + String.valueOf(list.size()));
-			return list;
-
-		} finally {
-			getLockService().getJournalLock().writeLock().unlock();
-		}
-	}
-
-	/**
-	 * <p>
-	 * Shared by RAID 1 and RAID 6
-	 * </p>
-	 */
+	 
 	@Override
 	public OdilonServerInfo getServerInfo() {
 		File file = getDrivesEnabled().get(0).getSysFile(VirtualFileSystemService.SERVER_METADATA_FILE);
@@ -723,11 +591,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		}
 	}
 
-	/**
-	 * <p>
-	 * Shared by RAID 1 and RAID 6
-	 * </p>
-	 */
+	 
 	@Override
 	public void setServerInfo(OdilonServerInfo serverInfo) {
 		Check.requireNonNullArgument(serverInfo, "serverInfo is null");
@@ -737,11 +601,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 			updateServerInfo(serverInfo);
 	}
 
-	/**
-	 * <p>
-	 * Shared by RAID 1 and RAID 6
-	 * </p>
-	 */
+	 
 	@Override
 	public byte[] getServerMasterKey() {
 
@@ -792,7 +652,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 			// that existing 128-bit (16-byte) and new 256-bit (32-byte) master keys are
 			// both handled transparently.
 			// Buffer layout: HMAC(32) + MasterKey(N) + IV(12) + Salt(64)
-			int ivSizeBytes   = EncryptionService.AES_IV_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE;
+			int ivSizeBytes = EncryptionService.AES_IV_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE;
 			int saltSizeBytes = EncryptionService.AES_KEY_SALT_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE;
 			int masterKeySizeBytes = bdataDec.length - EncryptionService.HMAC_SIZE - ivSizeBytes - saltSizeBytes;
 			byte[] key = new byte[masterKeySizeBytes];
@@ -812,8 +672,11 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 			throw new InternalCriticalException(e, "getServerMasterKey");
 
 		} finally {
-			/** Zero the decrypted buffer so HMAC+masterKey+IV+salt do not linger in the heap */
-			if (bdataDec != null) Arrays.fill(bdataDec, (byte) 0);
+			/**
+			 * Zero the decrypted buffer so HMAC+masterKey+IV+salt do not linger in the heap
+			 */
+			if (bdataDec != null)
+				Arrays.fill(bdataDec, (byte) 0);
 			getLockService().getServerLock().readLock().unlock();
 		}
 	}
@@ -908,10 +771,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		}
 	}
 
-	/**
-	 * 
-	 * 
-	 */
+	 
 	@Override
 	public synchronized List<Drive> getDrivesEnabled() {
 
@@ -953,9 +813,8 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		return this.drivesEnabled;
 	}
 
-	/**
-	 * 
-	 */
+	
+	
 	public synchronized List<Drive> getDrivesAll() {
 
 		if (drivesAll != null)
@@ -996,84 +855,19 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		return this.drivesAll;
 	}
 
-	/**
-	 * @return
-	 */
+	
+	public abstract void saveScheduler(ServiceRequest request, String queueId);
+	public abstract void removeScheduler(ServiceRequest request, String queueId);
+	public abstract void saveJournal(VirtualFileSystemOperation op);
+	public abstract void removeJournal(String id);
+
+	
+	
 	public boolean isEncrypt() {
 		return getVirtualFileSystemService().isEncrypt();
 	}
 
-	/**
-	 * <p>
-	 * Shared by RAID 1 and RAID 6
-	 * </p>
-	 */
-	@Override
-	public void saveScheduler(ServiceRequest request, String queueId) {
-		getLockService().getSchedulerLock().writeLock().lock();
-		try {
-			for (Drive drive : getDrivesEnabled()) {
-				drive.saveScheduler(request, queueId);
-			}
-		} finally {
-			getLockService().getSchedulerLock().writeLock().unlock();
-		}
-	}
-
-	/**
-	 * <p>
-	 * Shared by RAID 1 and RAID 6
-	 * </p>
-	 */
-	@Override
-	public void removeScheduler(ServiceRequest request, String queueId) {
-		getLockService().getSchedulerLock().writeLock().lock();
-		try {
-			for (Drive drive : getDrivesEnabled()) {
-				drive.removeScheduler(request, queueId);
-			}
-		} finally {
-			getLockService().getSchedulerLock().writeLock().unlock();
-		}
-
-	}
-
-	/**
-	 * <p>
-	 * Shared by RAID 1 and RAID 6
-	 * </p>
-	 */
-	@Override
-	public void saveJournal(VirtualFileSystemOperation op) {
-		getLockService().getJournalLock().writeLock().lock();
-		try {
-			for (Drive drive : getDrivesEnabled())
-				drive.saveJournal(op);
-		}
-
-		finally {
-			getLockService().getJournalLock().writeLock().unlock();
-		}
-	}
-
-	/**
-	 * <p>
-	 * Shared by RAID 1 and RAID 6
-	 * </p>
-	 */
-	@Override
-	public void removeJournal(String id) {
-		getLockService().getJournalLock().writeLock().lock();
-		try {
-			for (Drive drive : getDrivesEnabled())
-				drive.removeJournal(id);
-		}
-
-		finally {
-			getLockService().getJournalLock().writeLock().unlock();
-		}
-	}
-
+	
 	public boolean isStandByEnabled() {
 		return getVirtualFileSystemService().getServerSettings().isStandByEnabled();
 	}
@@ -1157,9 +951,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		return "b_id:" + (bucket.getId() != null ? bucket.getId().toString() : "null") + " bn:" + (bucket.getName() != null ? bucket.getName() : "null");
 	}
 
-	public String objectInfo(Long bucket_id, String objectName) {
-		return "b_id:" + (bucket_id != null ? bucket_id.toString() : "null") + " o:" + (objectName != null ? objectName : "null");
-	}
+
 
 	public String objectInfo(String bucketName) {
 		return "bn:" + (bucketName != null ? bucketName : "null");
@@ -1204,25 +996,33 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 			return "om: null";
 
 		if (meta.getBucketName() != null)
-			return objectInfo(meta.getBucketName(), meta.getObjectName());
+			return objectInfo(meta.getBucketName(), meta.getObjectName(), meta.getFileName(), meta.length());
 		else
-			return objectInfo(meta.getBucketId(), meta.getObjectName());
+			return objectInfo(meta.getBucketId(), meta.getObjectName(), meta.getFileName(), meta.length());
 	}
 
-	public String objectInfo(String bucketName, String objectName, String fileName) {
+	public String objectInfo(Long bucket_id, String objectName, String fileName, long size) {
+		return "b_id:" + (bucket_id != null ? bucket_id.toString() : "null") + " o:" + (objectName != null ? objectName : "null") + (fileName != null ? (" f:" + fileName) : "") + " s:" + String.valueOf(size) + " bytes";
+	}
+	
+	
+	public String objectInfo(String bucketName, String objectName, String fileName ) {
 		return "bn:" + (bucketName != null ? bucketName.toString() : "null") + " o:" + (objectName != null ? objectName : "null") + (fileName != null ? (" f:" + fileName) : "");
+	}
+	
+	
+	public String objectInfo(String bucketName, String objectName, String fileName, long size) {
+		return "bn:" + (bucketName != null ? bucketName.toString() : "null") + " o:" + (objectName != null ? objectName : "null") + (fileName != null ? (" f:" + fileName) : "") + " s:" + String.valueOf(size) + " bytes";
 	}
 
 	public int getTotalDisks() {
 		return getVirtualFileSystemService().getServerSettings().getTotalDisks();
 	}
 
-	
 	public VersionControl getVersionControl() {
 		return getVirtualFileSystemService().getVersionControl();
 	}
-	
-	
+
 	protected abstract Drive getObjectMetadataReadDrive(ServerBucket bucket, String objectName);
 
 	/**
@@ -1247,7 +1047,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		}
 
 		if (getObjectMetadataCacheService().containsKey(bucket, objectName)) {
-			getSystemMonitorService().getCacheObjectHitCounter().inc();
 			ObjectMetadata meta = getObjectMetadataCacheService().get(bucket, objectName);
 			meta.setBucketName(bucket.getName());
 			return meta;
@@ -1259,8 +1058,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 			return meta;
 
 		meta.setBucketName(bucket.getName());
-		getVirtualFileSystemService().getSystemMonitorService().getCacheObjectMissCounter().inc();
-
+		
 		if (addToCacheIfmiss)
 			getObjectMetadataCacheService().put(bucket, objectName, meta);
 
@@ -1325,9 +1123,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 				// In that case the drive's metadata file was never overwritten, so it
 				// still holds the correct pre-rename state — nothing to restore here.
 				if (!backup.toFile().exists()) {
-					logger.warn("restoreBucketMetadata: backup file missing on drive -> "
-							+ drive.getName() + " b:" + (bucket != null ? bucket.getName() : "null")
-							+ " | drive metadata left unchanged (pre-rename state intact)");
+					logger.warn("restoreBucketMetadata: backup file missing on drive -> " + drive.getName() + " b:" + (bucket != null ? bucket.getName() : "null") + " | drive metadata left unchanged (pre-rename state intact)");
 					continue;
 				}
 				drive.updateBucket(getObjectMapper().readValue(backup.toFile(), BucketMetadata.class));
@@ -1643,9 +1439,9 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 
 	/**
 	 * <p>
-	 * Sets the file permissions to {@code rw-------} (owner read+write only, mode 600).
-	 * Only has effect on POSIX file systems (Linux / macOS).
-	 * Silently skipped on Windows where POSIX views are unavailable.
+	 * Sets the file permissions to {@code rw-------} (owner read+write only, mode
+	 * 600). Only has effect on POSIX file systems (Linux / macOS). Silently skipped
+	 * on Windows where POSIX views are unavailable.
 	 * </p>
 	 */
 	private void setOwnerReadWriteOnly(Path path) {

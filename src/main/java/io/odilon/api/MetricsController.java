@@ -65,123 +65,120 @@ public class MetricsController extends BaseApiController {
 	@JsonIgnore
 	static private Logger logger = Logger.getLogger(MetricsController.class.getName());
 
-	
-	
-    @Autowired
-    private final ServerSettings serverSettings;
+	@Autowired
+	private final ServerSettings serverSettings;
 
-    @Autowired
-    public MetricsController(ObjectStorageService objectStorageService, VirtualFileSystemService virtualFileSystemService,
-            SystemMonitorService monitoringService, ServerSettings settings) {
+	@Autowired
+	public MetricsController(ObjectStorageService objectStorageService, VirtualFileSystemService virtualFileSystemService, SystemMonitorService monitoringService, ServerSettings settings) {
 
-        super(objectStorageService, virtualFileSystemService, monitoringService);
-        this.serverSettings = settings;
-    }
+		super(objectStorageService, virtualFileSystemService, monitoringService);
+		this.serverSettings = settings;
+	}
 
-    @RequestMapping(value = "/status", produces = "application/json", method = RequestMethod.GET)
-    public Map<String, Object> getStatus() {
-        TrafficPass pass = null;
-        try {
-            pass =  getTrafficControlService().getPass(this.getClass().getSimpleName());
+	@RequestMapping(value = "/status", produces = "application/json", method = RequestMethod.GET)
+	public Map<String, Object> getStatus() {
+		TrafficPass pass = null;
+		try {
+			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
 
-            return serverSettings.toMap();
-        } finally {
-            getTrafficControlService().release(pass);
-            mark();
-        }
-    }
+			return serverSettings.toMap();
+		} finally {
+			getTrafficControlService().release(pass);
+			mark();
+		}
+	}
 
-    /**
-     * @return info in JSON format
-     */
-    @RequestMapping(value = "/systeminfo", produces = "application/json", method = RequestMethod.GET)
-    @ResponseBody
-    public ResponseEntity<SystemInfo> getSystemInfo() {
+	/**
+	 * @return info in JSON format
+	 */
+	@RequestMapping(value = "/systeminfo", produces = "application/json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<SystemInfo> getSystemInfo() {
 
-        TrafficPass pass = null;
+		TrafficPass pass = null;
 
-        try {
-            pass =  getTrafficControlService().getPass(this.getClass().getSimpleName());
-            
-            SystemInfo info=getObjectStorageService().getSystemInfo();
-            logger.debug("SystemInfo: " + info.toString());
-            
-            return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(info);
-        } finally {
-            getTrafficControlService().release(pass);
-            mark();
-        }
-    }
+		try {
+			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
 
-    /**
-     * <p>
-     * in text format
-     * </p>
-     */
-    @RequestMapping(value = "/metricscolloquial", produces = "text/plain", method = RequestMethod.GET)
-    public ResponseEntity<String> getMetricsColloquial() {
-        return getMetricsInformal();
-    }
+			SystemInfo info = getObjectStorageService().getSystemInfo();
+			logger.debug("SystemInfo: " + info.toString());
 
-    /**
-     * <p>
-     * in text format
-     * </p>
-     */
-    @RequestMapping(value = "/metricsinformal", produces = "text/plain", method = RequestMethod.GET)
-    public ResponseEntity<String> getMetricsInformal() {
+			return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(info);
+		} finally {
+			getTrafficControlService().release(pass);
+			mark();
+		}
+	}
 
-        TrafficPass pass = null;
+	/**
+	 * <p>
+	 * in text format
+	 * </p>
+	 */
+	@RequestMapping(value = "/metricscolloquial", produces = "text/plain", method = RequestMethod.GET)
+	public ResponseEntity<String> getMetricsColloquial() {
+		return getMetricsInformal();
+	}
 
-        try {
+	/**
+	 * <p>
+	 * in text format
+	 * </p>
+	 */
+	@RequestMapping(value = "/metricsinformal", produces = "text/plain", method = RequestMethod.GET)
+	public ResponseEntity<String> getMetricsInformal() {
 
-            pass =  getTrafficControlService().getPass(this.getClass().getSimpleName());
+		TrafficPass pass = null;
 
-            StringBuilder str = new StringBuilder();
+		try {
 
-            MetricsValues info = getSystemMonitorService().getMetricsValues();
+			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
 
-            str.append("\n");
-            str.append("\n");
+			StringBuilder str = new StringBuilder();
 
-            for (String s : this.serverSettings.getAppCharacterName())
-                str.append("    " + s + "\n");
+			MetricsValues info = getSystemMonitorService().getMetricsValues();
 
-            Map<String, String> map = info.getColloquial();
+			str.append("\n");
+			str.append("\n");
 
-            str.append("\n");
-            str.append("\n");
+			for (String s : this.serverSettings.getAppCharacterName())
+				str.append("    " + s + "\n");
 
-            map.forEach((k, v) -> str.append("    " + k + " -> " + v + "\n\n"));
+			Map<String, String> map = info.getColloquial();
 
-            str.append("\n");
-            str.append("\n");
+			str.append("\n");
+			str.append("\n");
 
-            return new ResponseEntity<String>(str.toString(), HttpStatus.OK);
+			map.forEach((k, v) -> str.append("    " + k + " -> " + v + "\n\n"));
 
-        } finally {
-            getTrafficControlService().release(pass);
-            mark();
-        }
-    }
+			str.append("\n");
+			str.append("\n");
 
-    /**
-     * <p>
-     * in JSON format
-     * </p>
-     */
-    @RequestMapping(value = "/metrics", produces = "application/json", method = RequestMethod.GET)
-    public ResponseEntity<MetricsValues> getMetrics() {
+			return new ResponseEntity<String>(str.toString(), HttpStatus.OK);
 
-        TrafficPass pass = null;
+		} finally {
+			getTrafficControlService().release(pass);
+			mark();
+		}
+	}
 
-        try {
-            pass =  getTrafficControlService().getPass(this.getClass().getSimpleName());
-            return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(getSystemMonitorService().getMetricsValues());
+	/**
+	 * <p>
+	 * in JSON format
+	 * </p>
+	 */
+	@RequestMapping(value = "/metrics", produces = "application/json", method = RequestMethod.GET)
+	public ResponseEntity<MetricsValues> getMetrics() {
 
-        } finally {
-            getTrafficControlService().release(pass);
-            mark();
-        }
-    }
+		TrafficPass pass = null;
+
+		try {
+			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
+			return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(getSystemMonitorService().getMetricsValues());
+
+		} finally {
+			getTrafficControlService().release(pass);
+			mark();
+		}
+	}
 }
