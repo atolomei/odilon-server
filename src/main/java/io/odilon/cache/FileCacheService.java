@@ -31,7 +31,10 @@ import javax.annotation.concurrent.ThreadSafe;
 import jakarta.annotation.PostConstruct;
 
 import org.apache.commons.io.FileUtils;
+import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Service;
 
@@ -46,6 +49,7 @@ import io.odilon.model.ServerConstant;
 import io.odilon.model.ServiceStatus;
 import io.odilon.model.SharedConstant;
 import io.odilon.model.VersionControl;
+import io.odilon.monitor.SystemMonitorService;
 import io.odilon.service.BaseService;
 import io.odilon.service.ServerSettings;
 import io.odilon.util.Check;
@@ -80,7 +84,7 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  */
 @ThreadSafe
 @Service
-public class FileCacheService extends BaseService implements ApplicationListener<CacheEvent> {
+public class FileCacheService extends BaseService implements ApplicationContextAware, ApplicationListener<CacheEvent> {
 
 	static private Logger logger = Logger.getLogger(FileCacheService.class.getName());
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
@@ -99,12 +103,26 @@ public class FileCacheService extends BaseService implements ApplicationListener
 	@JsonIgnore
 	private VirtualFileSystemService vfs;
 
+	
+   /** drives to be used by FileServiceCache
+     * RAID 0. all drivesEnabled
+     * RAID 1. all drivesEnabled
+     * RAID 6. all drivesEnabled from active Volume
+     * 
+     * */ 
 	@JsonIgnore
 	private List<Drive> listDrives;
 
 	@JsonIgnore
 	private Cache<String, File> cache;
 
+	@JsonIgnore
+	private ApplicationContext applicationContext;
+	
+	@JsonIgnore
+	private SystemMonitorService systemMonitorService;
+	
+	
 	/**
 	 * <p>
 	 * This File cache uses a {@link Caffeine} based cache of references in memory
@@ -115,6 +133,28 @@ public class FileCacheService extends BaseService implements ApplicationListener
 		this.serverSettings = serverSettings;
 		this.vfsLockService = vfsLockService;
 	}
+	
+	
+	public ApplicationContext getApplicationContext() {
+		return this.applicationContext;
+	}
+
+	@Override
+	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+		this.applicationContext = applicationContext;
+	}
+	
+	private SystemMonitorService getSystemMonitorService() {
+
+		if (this.systemMonitorService == null) {
+			synchronized (this) {
+				if (this.systemMonitorService == null)
+					this.systemMonitorService = this.applicationContext.getBean(SystemMonitorService.class);
+
+			}
+		}
+		return this.systemMonitorService;
+	}
 
 	public boolean containsKey(Long bucketId, String objectName, Optional<Integer> version) {
 
@@ -122,9 +162,13 @@ public class FileCacheService extends BaseService implements ApplicationListener
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null | b:" + bucketId.toString());
 
 		getLockService().getFileCacheLock(bucketId, objectName, version).readLock().lock();
-
 		try {
-			return (getCache().getIfPresent(getKey(bucketId, objectName, version)) != null);
+			File file = getCache().getIfPresent(getKey(bucketId, objectName, version));
+			if (file != null)
+				getSystemMonitorService().getCacheFileHitCounter().inc();
+			else
+				getSystemMonitorService().getCacheFileMissCounter().inc();
+			return (file != null);
 		} finally {
 			getLockService().getFileCacheLock(bucketId, objectName, version).readLock().unlock();
 		}
@@ -144,6 +188,10 @@ public class FileCacheService extends BaseService implements ApplicationListener
 		getLockService().getFileCacheLock(bucketId, objectName, version).readLock().lock();
 		try {
 			File file = getCache().getIfPresent(getKey(bucketId, objectName, version));
+			if (file != null)
+				getSystemMonitorService().getCacheFileHitCounter().inc();
+			else
+				getSystemMonitorService().getCacheFileMissCounter().inc();
 			return file;
 		} finally {
 			getLockService().getFileCacheLock(bucketId, objectName, version).readLock().unlock();
@@ -170,6 +218,7 @@ public class FileCacheService extends BaseService implements ApplicationListener
 		try {
 			getCache().put(getKey(bucketId, objectName, version), file);
 			this.cacheSizeBytes.getAndAdd(file.length());
+		
 		} finally {
 			if (lockRequired)
 				getLockService().getFileCacheLock(bucketId, objectName, version).writeLock().unlock();
@@ -208,7 +257,7 @@ public class FileCacheService extends BaseService implements ApplicationListener
 	 */
 	public String getFileCachePath(Long bucketId, String objectName, Optional<Integer> version) {
 		String path = getKey(bucketId, objectName, version);
-		return getDrivesAll().get(Math.abs(path.hashCode()) % getDrivesAll().size()).getCacheDirPath() + File.separator + path;
+		return getDrivesFileCache().get(Math.abs(path.hashCode()) % getDrivesFileCache().size()).getCacheDirPath() + File.separator + path;
 	}
 
 	/**
@@ -340,10 +389,10 @@ public class FileCacheService extends BaseService implements ApplicationListener
 		return bucketId.toString() + File.separator + objectName + (version.isEmpty() ? "" : (ServerConstant.BO_SEPARATOR + String.valueOf(version.get().intValue())));
 	}
 
-	private synchronized List<Drive> getDrivesAll() {
+	private synchronized List<Drive> getDrivesFileCache() {
 
 		if (this.listDrives == null)
-			this.listDrives = new ArrayList<Drive>(getVirtualFileSystemService().getMapDrivesAll().values());
+			this.listDrives = new ArrayList<Drive>(getVirtualFileSystemService().getMapDrivesFileCache().values());
 
 		this.listDrives.sort(new Comparator<Drive>() {
 			@Override

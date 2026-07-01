@@ -125,6 +125,16 @@ public interface VirtualFileSystemService extends SystemService {
 
     public Map<Integer, Drive> getMapDrivesRSDecode();
 
+    /** drives to be used by FileServiceCache
+     * RAID 0. drivesEnabled
+     * RAID 1. drivesEnabled
+     * RAID 6. drivesEnabled from active Volume
+     * 
+     * */ 
+    public Map<Integer, Drive> getMapDrivesFileCache();
+    
+    
+
     /** used to add a new disk enabled after a Drive sync process */
     public void updateDriveStatus(Drive drive);
 
@@ -297,6 +307,8 @@ public interface VirtualFileSystemService extends SystemService {
 	public OdilonRAIDSixVolumeManager getVolumeManager();
 
 	public VersionControl getVersionControl();
+
+	
 
 
 }

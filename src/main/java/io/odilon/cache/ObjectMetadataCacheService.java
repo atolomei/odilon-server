@@ -95,6 +95,8 @@ public class ObjectMetadataCacheService extends BaseService implements Applicati
 		boolean contains = (getCache().getIfPresent(getKey(bucket.getId(), objectName)) != null);
 		if (contains)
 			getSystemMonitorService().getCacheObjectHitCounter().inc();
+		else
+			getSystemMonitorService().getCacheObjectMissCounter().inc();	
 		return contains;
 	}
 
@@ -102,11 +104,13 @@ public class ObjectMetadataCacheService extends BaseService implements Applicati
 		ObjectMetadata meta = getCache().getIfPresent(getKey(bucket.getId(), objectName));
 		if (meta != null)
 			getSystemMonitorService().getCacheObjectHitCounter().inc();
+		else
+			getSystemMonitorService().getCacheObjectMissCounter().inc();	
+			
 		return meta;
 	}
 
 	public void put(ServerBucket bucket, String objectName, ObjectMetadata value) {
-		getSystemMonitorService().getCacheObjectMissCounter().inc();
 		getCache().put(getKey(bucket.getId(), objectName), value);
 	}
 

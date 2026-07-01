@@ -258,6 +258,10 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 	@JsonIgnore
 	private final Map<Integer, Drive> drivesRSDecode = new ConcurrentHashMap<Integer, Drive>();
 
+	@JsonIgnore
+	private Map<Integer, Drive> drivesFileCache = new ConcurrentHashMap<Integer, Drive>();
+
+	
 	/**
 	 * <p>
 	 * Manages all RAID 6 volumes. Each volume is an independent RAID 6 disk group
@@ -761,6 +765,13 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 	}
 
 	@Override
+	public Map<Integer, Drive> getMapDrivesFileCache() {
+		return this.drivesFileCache;
+	}
+	
+	
+	
+	@Override
 	public Map<Integer, Drive> getMapDrivesRSDecode() {
 		return this.drivesRSDecode;
 	}
@@ -1190,6 +1201,17 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 		/** initialize volume manager for RAID 6 */
 		if (getRedundancyLevel() == RedundancyLevel.RAID_6) {
 			initializeVolumeManager(baselist);
+		}
+		
+		
+		
+		/** initialize FileServiceCache drives  */
+		
+		if (getRedundancyLevel() == RedundancyLevel.RAID_6) {
+			this.getVolumeManager().getActiveVolume().getDrives().forEach(drive -> this.drivesFileCache.put(Integer.valueOf(drive.getDriveInfo().getOrder()), drive));
+		}
+		else {
+			this.drivesEnabled.values().forEach(drive -> this.drivesFileCache.put(Integer.valueOf(drive.getDriveInfo().getOrder()), drive));
 		}
 
 		if (logger.isDebugEnabled()) {

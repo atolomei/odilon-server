@@ -17,6 +17,8 @@
 
 package io.odilon.virtualFileSystem.raid6;
 
+import javax.annotation.concurrent.ThreadSafe;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import io.odilon.cache.FileCacheService;
@@ -36,6 +38,7 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
+@ThreadSafe
 public class RAIDSixCoder extends BaseObject {
 
 	@JsonIgnore

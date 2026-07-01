@@ -180,6 +180,9 @@ public class SystemMonitorService extends BaseService implements SystemService {
 		this.objectCacheService = cacheService;
 		this.serverSettings = serverSettings;
 		this.fileCacheService = fileCacheService;
+		
+		logger.debug("SystemMonitorService created ");
+		
 	}
 
 	public Counter getObjectRestorePreviousVersionCounter() {
@@ -460,6 +463,9 @@ public class SystemMonitorService extends BaseService implements SystemService {
 
 			startuplogger.debug("Started -> " + SystemMonitorService.class.getSimpleName());
 			setStatus(ServiceStatus.RUNNING);
+			
+			logger.debug("SystemMonitorService initialized ");
+
 		}
 	}
 

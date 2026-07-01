@@ -25,6 +25,8 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.annotation.concurrent.ThreadSafe;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import io.odilon.log.Logger;
@@ -38,6 +40,7 @@ import io.odilon.virtualFileSystem.model.IODriver;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
+@ThreadSafe
 public class RAIDSixJournalHandler extends BaseRAIDHandler implements RAIDHandler {
 
 	static private Logger logger = Logger.getLogger(RAIDSixDriver.class.getName());

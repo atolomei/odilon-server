@@ -29,6 +29,7 @@ import io.odilon.file.ParallelFileCoypAgent;
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ServerConstant;
+import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
@@ -49,8 +50,6 @@ public class RAIDSixEncoder extends RAIDSixCoder {
 
 	private static Logger logger = Logger.getLogger(RAIDSixEncoder.class.getName());
 
-	
-	
 	@JsonIgnore
 	private long fileSize = 0;
 
@@ -177,7 +176,7 @@ public class RAIDSixEncoder extends RAIDSixCoder {
 			while (!done)
 				done = encodeChunk(is, bucket, objectName, chunk++, version);
 		} catch (Exception e) {
-			logger.error(e, "Error encoding object -> " + objectName);
+			logger.error(e, "Error encoding object -> " + objectName, SharedConstant.THROWN_WRAPPED);
 			throw new InternalCriticalException(e, "o:" + objectName);
 		}
 		this.encodedInfo.setFileSize(this.fileSize);
@@ -241,23 +240,19 @@ public class RAIDSixEncoder extends RAIDSixCoder {
 			for (int diskOrder = 0; diskOrder < totalShards; diskOrder++) {
 				if (isWrite(diskOrder)) {
 
-					String dirPath = getDrives().get(diskOrder).getBucketObjectDataDirPath(bucket)
-							+ (o_version.isEmpty() ? "" : File.separator + VirtualFileSystemService.VERSION_DIR);
+					String dirPath = getDrives().get(diskOrder).getBucketObjectDataDirPath(bucket) + (o_version.isEmpty() ? "" : File.separator + VirtualFileSystemService.VERSION_DIR);
 
 					// Last-resort guard: ensure the target directory exists before handing the
-					// File to ParallelFileCoypAgent.  RAIDSixDriveSetup.createBuckets() should
+					// File to ParallelFileCoypAgent. RAIDSixDriveSetup.createBuckets() should
 					// have created it during drive-setup, but if that step was incomplete
 					// (e.g. after a partial previous sync run) the FileOutputStream inside
 					// ParallelFileCoypAgent throws FileNotFoundException with a misleading
 					// "No such file or directory" message that obscures the real root cause.
 					File dir = new File(dirPath);
 					if (!dir.exists() && !dir.mkdirs())
-						throw new InternalCriticalException(
-								"Cannot create shard directory: " + dirPath
-								+ " | d:" + getDrives().get(diskOrder).getName());
+						throw new InternalCriticalException("Cannot create shard directory: " + dirPath + " | d:" + getDrives().get(diskOrder).getName());
 
-					String name = objectName + "." + chunk + "." + diskOrder
-							+ (o_version.isEmpty() ? "" : ".v" + o_version.get());
+					String name = objectName + "." + chunk + "." + diskOrder + (o_version.isEmpty() ? "" : ".v" + o_version.get());
 
 					destination.add(new File(dirPath, name));
 					requiresCopy[diskOrder] = Boolean.TRUE;
@@ -279,7 +274,7 @@ public class RAIDSixEncoder extends RAIDSixCoder {
 			return eof;
 
 		} catch (IOException e) {
-			logger.error(e, "Error encoding object -> " + objectName);
+			logger.error(e, "Error encoding object -> " + objectName, SharedConstant.THROWN_WRAPPED);
 			throw new InternalCriticalException(e, objectInfo(bucket, objectName));
 		} finally {
 			getBullferPoolService().release(allBytes);

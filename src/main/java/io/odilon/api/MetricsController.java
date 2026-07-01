@@ -154,6 +154,8 @@ public class MetricsController extends BaseApiController {
 			str.append("\n");
 			str.append("\n");
 
+			logger.debug("MetricsInformal: " + str.toString());
+			
 			return new ResponseEntity<String>(str.toString(), HttpStatus.OK);
 
 		} finally {

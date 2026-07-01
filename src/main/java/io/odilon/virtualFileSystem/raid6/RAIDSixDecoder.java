@@ -129,12 +129,18 @@ public class RAIDSixDecoder extends RAIDSixCoder {
 		int totalChunks = meta.getTotalBlocks() / volumeTotalShards;
 
 		if ((meta.getRaidDrives() > 0) && (meta.getRaidDrives() != volumeTotalShards)) {
-			String errStr = "b: " + meta.getBucketName() + " o: " + meta.getObjectName() + " | was stored on " + formatter.format(meta.getLastModified()) + " | with  " + String.valueOf(meta.getRaidDrives()) + " drives | Volume "
-					+ volume.getVolumeId() + " has -> " + String.valueOf(volumeTotalShards) + " drives";
+			
+			String errStr = "b: " + meta.getBucketName() + " o: " + meta.getObjectName() + 
+					" | was stored on " + formatter.format(meta.getLastModified()) + 
+					" | with  " + 
+					String.valueOf(meta.getRaidDrives()) + " drives | Volume "
+					+ volume.getVolumeId() + 
+					" has -> " + String.valueOf(volumeTotalShards) + " drives";
 
 			logger.error(errStr);
 			logger.error("Volume " + volume.getVolumeId() + " drives:");
 			volume.getDrives().forEach(s -> logger.error(s.getRootDirPath()));
+			
 			throw new InternalCriticalException(errStr);
 		}
 
@@ -144,15 +150,10 @@ public class RAIDSixDecoder extends RAIDSixCoder {
 		File file = getFileCacheService().get(bucket.getId(), objectName, ver);
 
 		/** if the file is in cache, return this file */
-		if ((file != null) && file.exists()) {
-			getSystemMonitorService().getCacheFileHitCounter().inc();
+		if ((file != null) && file.exists()) 
 			return file;
-		}
-
-		getSystemMonitorService().getCacheFileMissCounter().inc();
-
+	
 		getLockService().getFileCacheLock(bucket.getId(), objectName, ver).writeLock().lock();
-
 		try {
 
 			String tempPath = getFileCacheService().getFileCachePath(bucket.getId(), objectName, ver);
@@ -162,8 +163,11 @@ public class RAIDSixDecoder extends RAIDSixCoder {
 					decodeChunk(meta, volume, bucket, chunk++, out, isHead);
 				}
 			} catch (FileNotFoundException e) {
+				logger.error(objectInfo(bucketName, objectName, tempPath) + " | " + e.getMessage(), SharedConstant.THROWN_WRAPPED);
 				throw new InternalCriticalException(e, objectInfo(bucketName, objectName, tempPath));
+
 			} catch (IOException e) {
+				logger.error(objectInfo(bucketName, objectName, tempPath) + " | " + e.getMessage(), SharedConstant.THROWN_WRAPPED);
 				throw new InternalCriticalException(e, objectInfo(bucketName, objectName, tempPath));
 			}
 			File decodedFile = new File(tempPath);
