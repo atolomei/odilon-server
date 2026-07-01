@@ -92,9 +92,9 @@ public abstract class RAIDSixHandler extends BaseRAIDHandler implements RAIDHand
 	}
 
 	/**
-	 * This check must be executed inside the critical section.
-	 * Uses the driver's volume-aware cross-volume search so that objects on any
-	 * volume are correctly detected.
+	 * This check must be executed inside the critical section. Uses the driver's
+	 * volume-aware cross-volume search so that objects on any volume are correctly
+	 * detected.
 	 */
 	protected boolean existsObjectMetadata(ServerBucket bucket, String objectName) {
 		if (existsCacheObject(bucket, objectName))
@@ -116,21 +116,19 @@ public abstract class RAIDSixHandler extends BaseRAIDHandler implements RAIDHand
 
 	/**
 	 * <p>
-	 * <b>Bug D0 fix — multi-volume metadata read.</b>
+	 * {@link BaseRAIDHandler#getMetadata} calls
+	 * {@code getObjectMetadataReadDrive()} for both the cache-disabled path and the
+	 * cache-miss path. For RAID 6 that method returns a random drive from the
+	 * <em>active</em> volume on a cache-miss. Objects stored on an older (READONLY)
+	 * volume have no metadata on those drives → {@code drive.getObjectMetadata()}
+	 * returns {@code null} → the caller receives {@code null} even though the
+	 * object exists → NPE / OdilonObjectNotFoundException on the very next line.
 	 * </p>
 	 * <p>
-	 * {@link BaseRAIDHandler#getMetadata} calls {@code getObjectMetadataReadDrive()}
-	 * for both the cache-disabled path and the cache-miss path. For RAID 6 that
-	 * method returns a random drive from the <em>active</em> volume on a cache-miss.
-	 * Objects stored on an older (READONLY) volume have no metadata on those drives
-	 * → {@code drive.getObjectMetadata()} returns {@code null} → the caller receives
-	 * {@code null} even though the object exists → NPE / OdilonObjectNotFoundException
-	 * on the very next line.
-	 * </p>
-	 * <p>
-	 * This override delegates to {@link RAIDSixDriver#getDriverObjectMetadataInternal}
-	 * which searches <em>all</em> volumes (active first, then archives
-	 * newest-to-oldest) and caches the result according to {@code addToCacheIfMiss}.
+	 * This override delegates to
+	 * {@link RAIDSixDriver#getDriverObjectMetadataInternal} which searches
+	 * <em>all</em> volumes (active first, then archives newest-to-oldest) and
+	 * caches the result according to {@code addToCacheIfMiss}.
 	 * </p>
 	 */
 	@Override
@@ -195,9 +193,9 @@ public abstract class RAIDSixHandler extends BaseRAIDHandler implements RAIDHand
 				if (!it.next().get())
 					throw new InternalCriticalException(ObjectMetadata.class.getSimpleName());
 			}
-			
+
 			logger.debug("RAID 6 | save metadata to disk | drives: " + String.valueOf(size) + " | head: " + String.valueOf(isHead));
-			
+
 		} catch (InterruptedException | ExecutionException e) {
 			throw new InternalCriticalException(e, ObjectMetadata.class.getSimpleName());
 		}

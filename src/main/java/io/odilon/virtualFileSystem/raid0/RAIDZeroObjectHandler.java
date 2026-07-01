@@ -20,7 +20,7 @@ package io.odilon.virtualFileSystem.raid0;
 import java.io.BufferedOutputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
- 
+
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -57,7 +57,7 @@ import io.odilon.virtualFileSystem.model.ServerBucket;
 public abstract class RAIDZeroObjectHandler extends BaseRAIDHandler implements RAIDHandler {
 
 	static private Logger logger = Logger.getLogger(RAIDZeroObjectHandler.class.getName());
-	
+
 	@JsonIgnore
 	private final RAIDZeroDriver driver;
 
@@ -91,17 +91,17 @@ public abstract class RAIDZeroObjectHandler extends BaseRAIDHandler implements R
 	 * @param srcFileName can not be null
 	 */
 	protected long saveData(ServerBucket bucket, String objectName, InputStream stream, String srcFileName) {
-		
+
 		byte[] buf = new byte[ServerConstant.BUFFER_SIZE];
-		
+
 		long totalBytesRead = 0;
-		
+
 		if (isEncrypt()) {
-			
+
 			EncryptedResult encryptedResult = getEncryptionService().encryptStream(stream);
-			
-			try (InputStream sourceStream = encryptedResult.getInputStream() ) {
-				
+
+			try (InputStream sourceStream = encryptedResult.getInputStream()) {
+
 				ObjectPath path = new ObjectPath(getWriteDrive(bucket, objectName), bucket, objectName);
 				try (BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(path.dataFilePath().toFile()), ServerConstant.BUFFER_SIZE)) {
 					int bytesRead;
@@ -109,18 +109,18 @@ public abstract class RAIDZeroObjectHandler extends BaseRAIDHandler implements R
 						out.write(buf, 0, bytesRead);
 					}
 				}
-				
-				totalBytesRead=encryptedResult.getCountingStream().getCount();
-				logger.debug("b: "+ bucket.getName() + " o: " + objectName + " f: " + srcFileName + " | bytes read: " + totalBytesRead +  " | encrypted file -> " + path.dataFilePath().toFile().length() + " bytes ");
+
+				totalBytesRead = encryptedResult.getCountingStream().getCount();
+				logger.debug("b: " + bucket.getName() + " o: " + objectName + " f: " + srcFileName + " | bytes read: " + totalBytesRead + " | encrypted file -> " + path.dataFilePath().toFile().length() + " bytes ");
 
 				return totalBytesRead;
 
 			} catch (Exception e) {
 				throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
 			}
-		
+
 		}
-		
+
 		else {
 			try (stream) {
 				ObjectPath path = new ObjectPath(getWriteDrive(bucket, objectName), bucket, objectName);
@@ -128,7 +128,7 @@ public abstract class RAIDZeroObjectHandler extends BaseRAIDHandler implements R
 					int bytesRead;
 					while ((bytesRead = stream.read(buf, 0, buf.length)) >= 0) {
 						out.write(buf, 0, bytesRead);
-						totalBytesRead+=bytesRead;
+						totalBytesRead += bytesRead;
 					}
 				}
 				return totalBytesRead;
@@ -136,7 +136,7 @@ public abstract class RAIDZeroObjectHandler extends BaseRAIDHandler implements R
 				throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
 			}
 		}
-		
+
 	}
 
 	/**

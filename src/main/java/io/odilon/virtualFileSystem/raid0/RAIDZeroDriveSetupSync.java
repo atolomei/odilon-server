@@ -315,7 +315,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 											/**
 											 * PREVIOUS VERSIONS -----------------------------------------------------
 											 */
-											if (getVersionControl()!=VersionControl.DISABLED) {
+											if (getVersionControl() != VersionControl.DISABLED) {
 												for (int version = 0; version < item.getObject().getVersion(); version++) {
 
 													File metaVersion = currentDrive.getObjectMetadataVersionFile(bucket, item.getObject().getObjectName(), version);
@@ -376,10 +376,9 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 			this.counter = new AtomicLong(0);
 
 			executor = Executors.newFixedThreadPool(maxProcessingThread);
-			
+
 			logger.debug("Threads for copy process -> " + maxProcessingThread);
-			
-			
+
 			for (final ServerBucket bucket : getDriver().getVirtualFileSystemService().listAllBuckets()) {
 
 				Long pageSize = Long.valueOf(ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE);
@@ -389,8 +388,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 				boolean done = false;
 
 				while (!done) {
-					DataList<Item<ObjectMetadata>> data = getDriver().getVirtualFileSystemService().listObjects(bucket.getName(), Optional.of(offset),
-							Optional.ofNullable(pageSize), Optional.empty(), Optional.ofNullable(agentId));
+					DataList<Item<ObjectMetadata>> data = getDriver().getVirtualFileSystemService().listObjects(bucket.getName(), Optional.of(offset), Optional.ofNullable(pageSize), Optional.empty(), Optional.ofNullable(agentId));
 
 					if (agentId == null)
 						agentId = data.getAgentId();
@@ -448,7 +446,7 @@ public class RAIDZeroDriveSetupSync implements IODriveSetup {
 												 * PREVIOUS VERSIONS ---------------------------------------------------------
 												 */
 
-												if (getVersionControl()!=VersionControl.DISABLED) {
+												if (getVersionControl() != VersionControl.DISABLED) {
 													for (int n = 0; n < item.getObject().getVersion(); n++) {
 														// move Meta Version
 														File meta_version_n = currentDrive.getObjectMetadataVersionFile(bucket, item.getObject().getObjectName(), n);

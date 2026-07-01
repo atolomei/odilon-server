@@ -22,7 +22,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
+ 
 import java.nio.file.attribute.PosixFileAttributeView;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
@@ -63,7 +63,7 @@ import io.odilon.model.VersionControl;
 import io.odilon.monitor.SystemMonitorService;
 import io.odilon.query.BucketIteratorService;
 import io.odilon.replication.ReplicationService;
- 
+
 import io.odilon.scheduler.SchedulerService;
 import io.odilon.scheduler.ServiceRequest;
 import io.odilon.service.ServerSettings;
@@ -71,6 +71,8 @@ import io.odilon.service.util.ByteToString;
 import io.odilon.util.Check;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.DriveBucket;
+import javax.annotation.concurrent.GuardedBy;
+
 import io.odilon.virtualFileSystem.model.IODriver;
 import io.odilon.virtualFileSystem.model.JournalService;
 import io.odilon.virtualFileSystem.model.LockService;
@@ -123,23 +125,38 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		this.lockService = lockService;
 	}
 
-
-	
-	
+	/**
+	 * Rolls back a journaled {@link VirtualFileSystemOperation}.
+	 *
+	 * <p>
+	 * <b>Locking contract:</b> this method does <em>not</em> acquire any lock
+	 * internally. Callers are responsible for holding the appropriate
+	 * {@link LockService} locks before invoking it — except during single-threaded
+	 * server startup, where journal recovery runs before any other thread is active
+	 * and no lock is required.
+	 *
+	 * <ul>
+	 * <li>Object operations (CREATE/UPDATE/DELETE/RESTORE): caller must hold the
+	 * object write-lock for the affected {@code (bucketId, objectName)} pair.</li>
+	 * <li>Bucket operations (CREATE_BUCKET/DELETE_BUCKET/UPDATE_BUCKET): caller
+	 * must hold the bucket write-lock for the affected bucket.</li>
+	 * <li>Startup journal recovery: no lock required — single-threaded
+	 * context.</li>
+	 * </ul>
+	 *
+	 * <p>
+	 * This method is intentionally excluded from the {@code @ThreadSafe} guarantee
+	 * of the concrete subclasses. It is annotated {@code @GuardedBy} to make the
+	 * precondition visible to static-analysis tools and code reviewers.
+	 * </p>
+	 */
+	@GuardedBy("LockService.objectWriteLock | LockService.bucketWriteLock | startup")
 	public abstract void rollback(VirtualFileSystemOperation operation, Object payload, boolean recoveryMode);
+
 	public abstract RedundancyLevel getRedundancyLevel();
+
 	public abstract List<VirtualFileSystemOperation> getJournalPending();
-	
-	
-	
-	public String fileInfo(File file) {
-		if (file == null)
-			return "f:null";
-		return "f:" + file.getName();
-	}
 
-
-	
 	@Override
 	public boolean existsBucket(String bucketName) {
 		Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
@@ -153,7 +170,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		}
 	}
 
- 	@Override
+	@Override
 	public ServerBucket createBucket(String bucketName) {
 
 		Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
@@ -288,7 +305,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		removeBucket(bucket, false);
 	}
 
-	
 	@Override
 	public void removeBucket(ServerBucket bucket, boolean forceDelete) {
 		Check.requireNonNullArgument(bucket, "bucket can not be null");
@@ -366,7 +382,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		} catch (Exception e) {
 			if (e instanceof InternalCriticalException)
 				throw e;
-			
+
 			logger.error(e, SharedConstant.THROWN_WRAPPED);
 			throw new InternalCriticalException(e, objectInfo(bucket));
 
@@ -376,15 +392,18 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 	}
 
 	/**
+	 * Handles bucket-level rollback operations (CREATE_BUCKET, DELETE_BUCKET,
+	 * UPDATE_BUCKET, UPDATE_SERVER_METADATA) that are common to all RAID drivers.
+	 *
 	 * <p>
-	 * There is no need to lock resources when rollback is called during server
-	 * startup. Otherwise critical resources must be locked before calling this
-	 * method.
+	 * <b>Locking contract:</b> during normal operation the caller must hold the
+	 * appropriate {@link LockService} bucket write-lock. During single-threaded
+	 * server-startup journal recovery no lock is required.
 	 * </p>
-	 * 
-	 * @param operation
-	 * @return
+	 *
+	 * @see #rollback(VirtualFileSystemOperation, Object, boolean)
 	 */
+	@GuardedBy("LockService.bucketWriteLock | startup")
 	protected boolean generalRollbackJournal(VirtualFileSystemOperation operation) {
 
 		Long bucketId = operation.getBucketId();
@@ -568,14 +587,8 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		this.applicationContext = applicationContext;
 	}
 
-	
 	public abstract List<ServiceRequest> getSchedulerPendingRequests(String queueId);
-	
-		
-	
-	
 
-	 
 	@Override
 	public OdilonServerInfo getServerInfo() {
 		File file = getDrivesEnabled().get(0).getSysFile(VirtualFileSystemService.SERVER_METADATA_FILE);
@@ -591,7 +604,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		}
 	}
 
-	 
 	@Override
 	public void setServerInfo(OdilonServerInfo serverInfo) {
 		Check.requireNonNullArgument(serverInfo, "serverInfo is null");
@@ -601,7 +613,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 			updateServerInfo(serverInfo);
 	}
 
-	 
 	@Override
 	public byte[] getServerMasterKey() {
 
@@ -771,7 +782,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		}
 	}
 
-	 
 	@Override
 	public synchronized List<Drive> getDrivesEnabled() {
 
@@ -813,8 +823,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		return this.drivesEnabled;
 	}
 
-	
-	
 	public synchronized List<Drive> getDrivesAll() {
 
 		if (drivesAll != null)
@@ -855,19 +863,18 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		return this.drivesAll;
 	}
 
-	
 	public abstract void saveScheduler(ServiceRequest request, String queueId);
+
 	public abstract void removeScheduler(ServiceRequest request, String queueId);
+
 	public abstract void saveJournal(VirtualFileSystemOperation op);
+
 	public abstract void removeJournal(String id);
 
-	
-	
 	public boolean isEncrypt() {
 		return getVirtualFileSystemService().isEncrypt();
 	}
 
-	
 	public boolean isStandByEnabled() {
 		return getVirtualFileSystemService().getServerSettings().isStandByEnabled();
 	}
@@ -951,8 +958,6 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		return "b_id:" + (bucket.getId() != null ? bucket.getId().toString() : "null") + " bn:" + (bucket.getName() != null ? bucket.getName() : "null");
 	}
 
-
-
 	public String objectInfo(String bucketName) {
 		return "bn:" + (bucketName != null ? bucketName : "null");
 	}
@@ -1004,15 +1009,19 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 	public String objectInfo(Long bucket_id, String objectName, String fileName, long size) {
 		return "b_id:" + (bucket_id != null ? bucket_id.toString() : "null") + " o:" + (objectName != null ? objectName : "null") + (fileName != null ? (" f:" + fileName) : "") + " s:" + String.valueOf(size) + " bytes";
 	}
-	
-	
-	public String objectInfo(String bucketName, String objectName, String fileName ) {
+
+	public String objectInfo(String bucketName, String objectName, String fileName) {
 		return "bn:" + (bucketName != null ? bucketName.toString() : "null") + " o:" + (objectName != null ? objectName : "null") + (fileName != null ? (" f:" + fileName) : "");
 	}
-	
-	
+
 	public String objectInfo(String bucketName, String objectName, String fileName, long size) {
 		return "bn:" + (bucketName != null ? bucketName.toString() : "null") + " o:" + (objectName != null ? objectName : "null") + (fileName != null ? (" f:" + fileName) : "") + " s:" + String.valueOf(size) + " bytes";
+	}
+
+	public String fileInfo(File file) {
+		if (file == null)
+			return "f:null";
+		return "f:" + file.getName();
 	}
 
 	public int getTotalDisks() {
@@ -1058,7 +1067,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 			return meta;
 
 		meta.setBucketName(bucket.getName());
-		
+
 		if (addToCacheIfmiss)
 			getObjectMetadataCacheService().put(bucket, objectName, meta);
 

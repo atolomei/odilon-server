@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.concurrent.GuardedBy;
 import javax.annotation.concurrent.ThreadSafe;
 
 import org.springframework.context.annotation.Scope;
@@ -851,16 +852,11 @@ public class RAIDOneDriver extends BaseIODriver {
 	}
 
 	/**
-	 * <p>
-	 * Caller of this method must set up appropriate locks or call it from a thread
-	 * that is not subject to concurrency control conditions
-	 * </p>
-	 * 
-	 * @param operation
-	 * @param bucket
-	 * @param objectName
+	 * {@inheritDoc}
+	 *
+	 * @see BaseIODriver#rollback(VirtualFileSystemOperation, Object, boolean)
 	 */
-
+	@GuardedBy("LockService.objectWriteLock | LockService.bucketWriteLock | startup")
 	@Override
 	public void rollback(VirtualFileSystemOperation operation, Object payload, boolean recovery) {
 

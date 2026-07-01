@@ -30,6 +30,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.concurrent.GuardedBy;
+import javax.annotation.concurrent.NotThreadSafe;
 import javax.annotation.concurrent.ThreadSafe;
 
 import org.apache.commons.io.FileUtils;
@@ -713,11 +715,11 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	}
 
 	/**
-	 * <p>
-	 * Rollback from Journal Required locks must be applied before calling this
-	 * method
-	 * </p>
+	 * {@inheritDoc}
+	 *
+	 * @see BaseIODriver#rollback(VirtualFileSystemOperation, Object, boolean)
 	 */
+	@GuardedBy("LockService.objectWriteLock | LockService.bucketWriteLock | startup")
 	@Override
 	public void rollback(VirtualFileSystemOperation operation, Object payload, boolean recovery) {
 
@@ -1268,7 +1270,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 	/**
 	 * must be executed inside the critical zone.
 	 */
-	protected void checkExistObject(ServerBucket bucket, String objectName) {
+	private void checkExistObject(ServerBucket bucket, String objectName) {
 		if (!existsObjectMetadata(bucket, objectName))
 			throw new OdilonObjectNotFoundException("Object does not exist -> " + objectInfo(bucket, objectName));
 	}

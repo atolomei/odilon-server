@@ -199,13 +199,6 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionObjectHandler 
 			}
 		}
 
-		/**
-		 * try (InputStream sourceStream = isEncrypt() ?
-		 * (getVirtualFileSystemService().getEncryptionService().encryptStream(stream))
-		 * : stream) { return (new RAIDSixEncoder(getDriver())).encodeHead(sourceStream,
-		 * getBucket(), getObjectName()); } catch (Exception e) { throw new
-		 * InternalCriticalException(e, info()); }
-		 **/
 	}
 
 	/**
