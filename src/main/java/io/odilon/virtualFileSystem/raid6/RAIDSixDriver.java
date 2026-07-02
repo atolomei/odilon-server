@@ -794,8 +794,18 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		Check.requireNonNullArgument(stream, "InpuStream can not null -> b:" + bucket.getName() + " | o:" + objectName);
 		if (exists(bucket, objectName)) {
 			RAIDSixUpdateObjectHandler updateAgent = new RAIDSixUpdateObjectHandler(this, bucket, objectName);
-			updateAgent.update(bucket, objectName, stream, fileName, contentType, customTags, o_public);
+		
+			updateAgent.update(
+				RAIDSixUpdateObjectHandler.UpdateObjectParams
+					.builder(bucket, objectName, stream)
+					.srcFileName(fileName)
+					.contentType(contentType)
+					.customTags(customTags)
+					.publicAccess(o_public)
+					.build());
+			
 			getVirtualFileSystemService().getSystemMonitorService().getUpdateObjectCounter().inc();
+			
 		} else {
 			RAIDSixCreateObjectHandler createAgent = new RAIDSixCreateObjectHandler(this, bucket, objectName);
 			createAgent.create(stream, fileName, contentType, customTags, o_public);

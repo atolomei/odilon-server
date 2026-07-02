@@ -21,6 +21,10 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+ 
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import jakarta.annotation.PostConstruct;
@@ -87,7 +91,8 @@ public class ReplicationService extends BaseService implements ApplicationContex
 	static private Logger logger = Logger.getLogger(ReplicationService.class.getName());
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 
-	static final int MAX_WAIT_FOR_COMMIT_MS = 15000;
+	/** Default journal wait; overridden by standby.journalWaitMs (Issue 2) */
+	static final int DEFAULT_WAIT_FOR_COMMIT_MS = 15000;
 
 	@JsonIgnore
 	private OdilonClient client;
@@ -106,6 +111,21 @@ public class ReplicationService extends BaseService implements ApplicationContex
 
 	@JsonIgnore
 	private AtomicBoolean initialSync = new AtomicBoolean(false);
+
+	/**
+	 * Timestamp (epoch ms) of the oldest replica operation currently sitting in
+	 * the scheduler queue. Zero when the queue is empty. Used to compute
+	 * replication lag (Issue 8).
+	 */
+	@JsonIgnore
+	private volatile long oldestEnqueuedMs = 0L;
+
+	/**
+	 * Set to true while reconnectClient() is executing so that concurrent
+	 * replicate() calls wait rather than all trying to reconnect at once (Issue 7).
+	 */
+	@JsonIgnore
+	private volatile boolean reconnecting = false;
 
 	@Autowired
 	@JsonIgnore
@@ -242,7 +262,14 @@ public class ReplicationService extends BaseService implements ApplicationContex
 	}
 
 	/**
-	 * @param opx
+	 * Enqueues a committed operation for async propagation to the standby.
+	 *
+	 * Issue 1: rejects new entries when the queue exceeds
+	 * {@code standby.replicaQueueMax} to prevent unbounded growth.
+	 * Issue 8: records the timestamp of the oldest queued entry so that
+	 * the replication-lag gauge stays current.
+	 *
+	 * @param opx committed operation to propagate
 	 */
 	public void enqueue(VirtualFileSystemOperation opx) {
 
@@ -257,19 +284,38 @@ public class ReplicationService extends BaseService implements ApplicationContex
 		case DELETE_OBJECT:
 
 		case DELETE_OBJECT_PREVIOUS_VERSIONS:
-		case RESTORE_OBJECT_PREVIOUS_VERSION:
+		case RESTORE_OBJECT_PREVIOUS_VERSION: {
+
+			// Issue 1 — queue bound
+			int queueSize = getSchedulerService().getReplicaQueueSize();
+			int queueMax  = getServerSettings().getStandbyReplicaQueueMax();
+			int warnAt    = (int) (queueMax * 0.8);
+
+			if (queueSize >= queueMax) {
+				String msg = "Replica queue full (" + queueSize + "/" + queueMax
+						+ ") — dropping: " + opx.getOperationCode() + " | " + opx.toString();
+				logger.error(msg);
+				throw new InternalCriticalException(msg);
+			}
+			if (queueSize >= warnAt)
+				logger.warn("Replica queue approaching limit: " + queueSize + "/" + queueMax);
+
+			// Issue 8 — lag metric: stamp the moment the queue first becomes non-empty
+			if (queueSize == 0)
+				this.oldestEnqueuedMs = System.currentTimeMillis();
+			getMonitoringService().setReplicationLagMs(
+					this.oldestEnqueuedMs == 0 ? 0L : System.currentTimeMillis() - this.oldestEnqueuedMs);
 
 			this.getSchedulerService().enqueue(getApplicationContext().getBean(StandByReplicaServiceRequest.class, opx));
 			break;
+		}
 
 		/** operations that do not propagate */
-
 		case UPDATE_OBJECT_METADATA:
 		case CREATE_SERVER_METADATA:
 		case UPDATE_SERVER_METADATA:
 		case SYNC_OBJECT_NEW_DRIVE:
 		case CREATE_SERVER_MASTERKEY:
-
 			break;
 
 		default: {
@@ -288,9 +334,16 @@ public class ReplicationService extends BaseService implements ApplicationContex
 	}
 
 	/**
-	 * before starting the operation we must get sure
-	 * 
-	 * @param opx
+	 * Propagates a committed operation to the standby server.
+	 *
+	 * Issue 2: uses configurable {@code standby.journalWaitMs} timeout; on
+	 * timeout the operation is re-enqueued so the scheduler can retry it
+	 * instead of throwing InternalCriticalException permanently.
+	 * Issue 7: catches ODClientException from the dispatch methods and
+	 * attempts a single reconnect before re-throwing.
+	 * Issue 8: clears the lag metric when the queue becomes empty again.
+	 *
+	 * @param opx committed operation to propagate
 	 */
 	public void replicate(VirtualFileSystemOperation opx) {
 
@@ -298,91 +351,66 @@ public class ReplicationService extends BaseService implements ApplicationContex
 		Check.requireTrue(this.client != null, "There is no standby connection (" + url + ":" + port + ")");
 
 		OdilonJournalService odj = (OdilonJournalService) getVirtualFileSystemService().getJournalService();
+		final long maxWaitMs = getServerSettings().getStandbyJournalWaitMs();
 
-		boolean journalExecuting = odj.isExecuting(opx.getId());
-		boolean journalAborted = odj.isAborted(opx.getId());
-		boolean journalCommitDone = (!journalExecuting) && (!journalAborted);
-
-		boolean timeOut = false;
-		long start = System.currentTimeMillis();
-
-		boolean end = (journalCommitDone || journalAborted || timeOut);
-
-		/**
-		 * get sure the commit has completed otherwise wait up to 10 seconds for the
-		 * JournalService to complete the operation
-		 * 
-		 */
-
-		while (!end) {
-			try {
-				Thread.sleep(250);
-			} catch (InterruptedException e) {
-			}
-
-			journalExecuting = odj.isExecuting(opx.getId());
-			journalAborted = odj.isAborted(opx.getId());
-			journalCommitDone = (!journalExecuting) && (!journalAborted);
-			timeOut = ((System.currentTimeMillis() - start) > MAX_WAIT_FOR_COMMIT_MS);
-			end = (journalCommitDone || journalAborted || timeOut);
-
-		}
-
-		// if commit was aborted -> do nothing
-		//
-		if (journalAborted) {
+		// Wait for the journal commit to complete (or abort) via a signal rather than
+		// a polling loop. awaitCommit() completes normally on commit and exceptionally
+		// (CancellationException) on abort/cancel. On timeout the operation is
+		// re-enqueued so the scheduler worker can retry it without crashing.
+		try {
+			odj.awaitCommit(opx.getId()).get(maxWaitMs, TimeUnit.MILLISECONDS);
+		} catch (TimeoutException e) {
+			logger.warn(JournalService.class.getSimpleName() + " commit timed out after "
+					+ maxWaitMs + " ms — re-enqueueing for retry: " + opx.toString());
+			enqueue(opx);
+			return;
+		} catch (ExecutionException e) {
+			// operation was aborted or cancelled — nothing to propagate
 			odj.removeAborted(opx.getId());
+			return;
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
 			return;
 		}
 
-		// if commit never completed there is something wrong
-		//
-		if (journalExecuting)
-			throw new InternalCriticalException(JournalService.class.getName() + " still executing on opx after " + (System.currentTimeMillis() - start) + " ms -> " + opx.toString());
+		logger.debug(opx.getOperationCode().getName()
+				+ ((opx.getBucketId()   != null) ? (" b:"  + opx.getBucketId())   : "")
+				+ ((opx.getBucketName() != null) ? (" bn:" + opx.getBucketName()) : "")
+				+ ((opx.getObjectName() != null) ? (" o:"  + opx.getObjectName()) : ""));
 
-		logger.debug(opx.getOperationCode().getName() + " " + ((opx.getBucketId() != null) ? (" b:" + opx.getBucketId()) : "") + ((opx.getBucketName() != null) ? (" bn:" + opx.getBucketName()) : "")
-				+ ((opx.getObjectName() != null) ? (" o:" + opx.getObjectName()) : ""));
+		try {
+			switch (opx.getOperationCode()) {
 
-		switch (opx.getOperationCode()) {
+			case CREATE_BUCKET:             replicateCreateBucket(opx);                   break;
+			case UPDATE_BUCKET:             replicateRenameBucket(opx);                   break;
+			case DELETE_BUCKET:             replicateDeleteBucket(opx);                   break;
+			case CREATE_OBJECT:             replicateCreateObject(opx);                   break;
+			case UPDATE_OBJECT:             replicateUpdateObject(opx);                   break;
+			case DELETE_OBJECT:             replicateDeleteObject(opx);                   break;
+			case RESTORE_OBJECT_PREVIOUS_VERSION:   replicateRestoreObjectPreviousVersion(opx);  break;
+			case DELETE_OBJECT_PREVIOUS_VERSIONS:   replicateDeleteObjectPreviousVersion(opx);   break;
+			case CREATE_SERVER_METADATA:    logger.debug("server metadata not replicated"); break;
+			case UPDATE_OBJECT_METADATA:    logger.debug("object metadata not replicated"); break;
+			case UPDATE_SERVER_METADATA:    logger.debug("server metadata not replicated"); break;
+			default: logger.error(opx.getOperationCode().toString() + " -> not recognized");
+			}
 
-		case CREATE_BUCKET:
-			replicateCreateBucket(opx);
-			break;
-		case UPDATE_BUCKET:
-			replicateRenameBucket(opx);
-			break;
-		case DELETE_BUCKET:
-			replicateDeleteBucket(opx);
-			break;
+		} catch (InternalCriticalException ice) {
+			// Issue 7 — attempt reconnect once on any connection-level failure
+			if (ice.getCause() instanceof ODClientException || ice.getCause() instanceof IOException) {
+				logger.warn("Standby connection error — attempting reconnect: " + ice.getMessage());
+				reconnectClient();
+			}
+			throw ice;
+		}
 
-		case CREATE_OBJECT:
-			replicateCreateObject(opx);
-			break;
-		case UPDATE_OBJECT:
-			replicateUpdateObject(opx);
-			break;
-		case DELETE_OBJECT:
-			replicateDeleteObject(opx);
-			break;
-		case RESTORE_OBJECT_PREVIOUS_VERSION:
-			this.replicateRestoreObjectPreviousVersion(opx);
-			break;
-		case DELETE_OBJECT_PREVIOUS_VERSIONS:
-			this.replicateDeleteObjectPreviousVersion(opx);
-			break;
-
-		case CREATE_SERVER_METADATA:
-			logger.debug("server metadata belongs to the particular server. It is not replicated -> " + opx.toString());
-			break;
-		case UPDATE_OBJECT_METADATA:
-			logger.debug("object metadata belongs to the particular server. It is not replicated -> " + opx.toString());
-			break;
-		case UPDATE_SERVER_METADATA:
-			logger.debug("server metadata belongs to the particular server. It is not replicated -> " + opx.toString());
-			break;
-
-		default:
-			logger.error(opx.getOperationCode().toString() + " -> not recognized");
+		// Issue 8 — lag metric: reset when the queue drains to zero
+		if (getSchedulerService().getReplicaQueueSize() == 0) {
+			this.oldestEnqueuedMs = 0L;
+			getMonitoringService().setReplicationLagMs(0L);
+		} else {
+			getMonitoringService().setReplicationLagMs(
+					this.oldestEnqueuedMs == 0 ? 0L : System.currentTimeMillis() - this.oldestEnqueuedMs);
 		}
 	}
 
@@ -475,6 +503,40 @@ public class ReplicationService extends BaseService implements ApplicationContex
 	}
 	
 	/**
+	 * Issue 7 — Replaces the stale {@link OdilonClient} with a fresh connection.
+	 * Synchronized so that only one thread reconnects at a time; concurrent callers
+	 * busy-wait until the reconnect finishes rather than each spawning their own
+	 * connection attempt.
+	 */
+	private synchronized void reconnectClient() {
+		// Another thread already reconnected while we were waiting on the monitor
+		if (!this.reconnecting && this.client != null) {
+			try {
+				String ping = this.client.ping();
+				if ("ok".equals(ping))
+					return; // already healthy — nothing to do
+			} catch (Exception ignored) {
+				// fall through to reconnect
+			}
+		}
+		this.reconnecting = true;
+		try {
+			logger.warn("Reconnecting to standby -> " + url + ":" + port);
+			this.client = new ODClient(url, port, accessKey, secretKey);
+			String ping = this.client.ping();
+			if (!"ok".equals(ping)) {
+				logger.error("Standby reconnect ping failed -> " + ping);
+			} else {
+				logger.info("Standby reconnected successfully -> " + url + ":" + port);
+			}
+		} catch (Exception e) {
+			logger.error("Standby reconnect failed -> " + e.getMessage(), SharedConstant.NOT_THROWN);
+		} finally {
+			this.reconnecting = false;
+		}
+	}
+
+	/**
 	 * 
 	 * @param opx
 	 */
@@ -501,8 +563,18 @@ public class ReplicationService extends BaseService implements ApplicationContex
 					logger.debug("Replicating -> " + meta.toString() );
 					
 					InputStream is = getVirtualFileSystemService().getObjectStream(bucket.getName(), opx.getObjectName());
-
 					((ODClient) getClient()).putReplicateObjectStream(bucket.getName(), opx.getObjectName(), is, Optional.ofNullable(meta.getFileName()), Optional.empty(), Optional.empty(), Optional.ofNullable(meta.getCustomTags()));
+
+					// Issue 4 — transit integrity check: compare etag on the standby to the
+					// local etag. A mismatch means bytes were corrupted in transit or the
+					// standby wrote a different version.
+					ObjectMetadata standbyMeta = getClient().getObjectMetadata(bucket.getName(), opx.getObjectName());
+					if (standbyMeta != null && meta.getEtag() != null && !meta.getEtag().equals(standbyMeta.getEtag())) {
+						logger.error("Transit integrity failure (CREATE) — etag mismatch for "
+								+ bucket.getName() + "/" + opx.getObjectName()
+								+ " | local=" + meta.getEtag() + " standby=" + standbyMeta.getEtag());
+						throw new InternalCriticalException("Transit etag mismatch on CREATE_OBJECT -> " + opx.toString());
+					}
 
 					logger.debug("done");
 					getMonitoringService().getReplicationObjectCreateCounter().inc();
@@ -557,6 +629,15 @@ public class ReplicationService extends BaseService implements ApplicationContex
 					try {
 						((ODClient) getClient()).putReplicateObjectStream(bucket.getName(), opx.getObjectName(), getVirtualFileSystemService().getObjectStream(bucket.getName(), opx.getObjectName()), Optional.ofNullable(meta.getFileName()),
 								Optional.empty(), Optional.empty(), Optional.ofNullable(meta.getCustomTags()));
+
+						// Issue 4 — transit integrity check
+						ObjectMetadata standbyMeta = getClient().getObjectMetadata(bucket.getName(), opx.getObjectName());
+						if (standbyMeta != null && meta.getEtag() != null && !meta.getEtag().equals(standbyMeta.getEtag())) {
+							logger.error("Transit integrity failure (UPDATE) — etag mismatch for "
+									+ bucket.getName() + "/" + opx.getObjectName()
+									+ " | local=" + meta.getEtag() + " standby=" + standbyMeta.getEtag());
+							throw new InternalCriticalException("Transit etag mismatch on UPDATE_OBJECT -> " + opx.toString());
+						}
 
 						getMonitoringService().getReplicationObjectUpdateCounter().inc();
 

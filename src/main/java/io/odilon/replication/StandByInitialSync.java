@@ -188,6 +188,16 @@ public class StandByInitialSync implements Runnable {
 		if (info.getCreationDate() == null)
 			return;
 
+		// Issue 6 — configurable error threshold
+		final int maxErrors = getVirtualFileSystemService().getServerSettings().getStandbySyncMaxErrors();
+
+		// Issue 5 — version-sync flag (head-only by default)
+		final boolean syncVersions = getVirtualFileSystemService().getServerSettings().isStandbySyncVersions();
+		if (syncVersions) {
+			startuplogger.info("Initial sync: version history sync is ENABLED (standby.syncVersions=true) — head versions only will be synced in this release");
+			intialSynclogger.info("standby.syncVersions=true noted — head-only sync active");
+		}
+
 		getReplicationService().setInitialSync(new AtomicBoolean(true));
 
 		ExecutorService executor = null;
@@ -209,7 +219,8 @@ public class StandByInitialSync implements Runnable {
 
 				boolean done = false;
 
-				while ((!done) && (this.errors.get() <= 10)) {
+				// Issue 6 — use configurable maxErrors instead of hard-coded 10
+				while ((!done) && (this.errors.get() <= maxErrors)) {
 
 					DataList<Item<ObjectMetadata>> data = getVirtualFileSystemService().listObjects(bucket.getName(), Optional.of(offset), Optional.ofNullable(pageSize), Optional.empty(), Optional.ofNullable(agentId));
 
@@ -222,7 +233,8 @@ public class StandByInitialSync implements Runnable {
 						tasks.add(() -> {
 							try {
 
-								if (this.errors.get() > 10)
+								// Issue 6 — configurable threshold check inside task too
+								if (this.errors.get() > maxErrors)
 									return null;
 
 								this.counter.getAndIncrement();
@@ -247,7 +259,7 @@ public class StandByInitialSync implements Runnable {
 												logger.debug(item.getObject().getBucketId().toString() + "-" + item.getObject().getObjectName());
 
 												VirtualFileSystemOperation op = new OdilonVirtualFileSystemOperation(getDriver().getVirtualFileSystemService().getJournalService().newOperationId(), OperationCode.CREATE_OBJECT,
-														Optional.of(item.getObject().getBucketId()), Optional.of(item.getObject().getBucketName()), // TODO AT VER
+														Optional.of(item.getObject().getBucketId()), Optional.of(item.getObject().getBucketName()),
 														Optional.of(item.getObject().getObjectName()), Optional.of(Integer.valueOf(item.getObject().getVersion())), getDriver().getVirtualFileSystemService().getRedundancyLevel(),
 														getDriver().getVirtualFileSystemService().getJournalService());
 
@@ -263,7 +275,6 @@ public class StandByInitialSync implements Runnable {
 											this.errors.getAndIncrement();
 										} finally {
 											getLockService().getBucketLock(item.getObject().getBucketId()).readLock().unlock();
-
 										}
 									} finally {
 										getLockService().getObjectLock(item.getObject().getBucketId(), item.getObject().getObjectName()).readLock().unlock();
@@ -306,7 +317,6 @@ public class StandByInitialSync implements Runnable {
 					done = (data.isEOD() || (this.errors.get() > 0) || (this.notAvailable.get() > 0));
 
 					completed = done && (this.errors.get() == 0) && (this.notAvailable.get() == 0);
-
 				}
 			}
 			try {
@@ -322,14 +332,16 @@ public class StandByInitialSync implements Runnable {
 					intialSynclogger.info("Intial Sync completed");
 					startuplogger.info("Intial Sync completed");
 				} else {
-
 					logger.info(ServerConstant.SEPARATOR);
-					logger.error("The intial Sync process can not be completed. Please correct the issues and restart the Odilon Server in order for the Sync process to execute again");
-					intialSynclogger.error("Intial Sync can not be completed");
-					startuplogger.error("Intial Sync can not be completed");
+					// Issue 6 — include the configured threshold in the message
+					logger.error("The initial Sync process can not be completed (errors=" + this.errors.get()
+							+ " threshold=" + maxErrors + "). Please correct the issues and restart the Odilon Server.");
+					intialSynclogger.error("Initial Sync can not be completed");
+					startuplogger.error("Initial Sync can not be completed");
 				}
 
 			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
 			}
 
 		} finally {

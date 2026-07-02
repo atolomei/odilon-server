@@ -18,6 +18,8 @@ package io.odilon.virtualFileSystem;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -87,6 +89,16 @@ public class OdilonJournalService extends BaseService implements JournalService 
 
 	@JsonIgnore
 	private Map<String, String> ops_aborted = new ConcurrentHashMap<String, String>();
+
+	/**
+	 * One entry per in-flight operation that a {@link ReplicationService#replicate}
+	 * call is waiting on. Completed normally when the journal commit finishes;
+	 * completed exceptionally (CancellationException) when the operation is
+	 * aborted or cancelled. Entries are created lazily by {@link #awaitCommit} and
+	 * removed in the {@code finally} blocks of {@link #commit} and {@link #cancel}.
+	 */
+	@JsonIgnore
+	private final Map<String, CompletableFuture<Void>> commitSignals = new ConcurrentHashMap<>();
 
 	/**
 	 * Monotonically increasing operation ID counter.
@@ -239,16 +251,31 @@ public class OdilonJournalService extends BaseService implements JournalService 
 				return true;
 
 			} catch (Exception e) {
+				logger.error(e, "commit: could not remove journal entry for op:" + operation.getId());
+		
 				if (isStandBy()) {
 					getOpsAborted().put(operation.getId(), operation.getId());
 					getReplicationService().cancel(operation);
 				}
+				
 				throw e;
+			
 			} finally {
 				// Always clean up the in-memory map regardless of whether event publication
 				// throws. Previously this sat between the two steps above: if publishEvent()
 				// threw, the operation stayed in the map and would be double-removed later.
 				getOperations().remove(operation.getId());
+
+				// Signal any replicate() thread waiting on this operation.
+				// Check ops_aborted to decide normal vs exceptional completion —
+				// the exception branch of the try block above populates it before re-throwing.
+				CompletableFuture<Void> signal = commitSignals.remove(operation.getId());
+				if (signal != null) {
+					if (getOpsAborted().containsKey(operation.getId()))
+						signal.completeExceptionally(new CancellationException("operation aborted: " + operation.getId()));
+					else
+						signal.complete(null);
+				}
 			}
 		}
 	}
@@ -289,8 +316,12 @@ public class OdilonJournalService extends BaseService implements JournalService 
 
 			} finally {
 				getOperations().remove(operation.getId());
+
+				// Signal any waiting replicate() thread that this operation was cancelled.
+				CompletableFuture<Void> signal = commitSignals.remove(operation.getId());
+				if (signal != null)
+					signal.completeExceptionally(new CancellationException("operation cancelled: " + operation.getId()));
 			}
-			logger.debug("Cancel ->" + operation.toString());
 		}
 	}
 
@@ -301,6 +332,44 @@ public class OdilonJournalService extends BaseService implements JournalService 
 
 	public boolean isExecuting(String opid) {
 		return getOperations().containsKey(opid);
+	}
+
+	/**
+	 * Returns a {@link CompletableFuture} that completes when the journal commit
+	 * for the given operation finishes (or completes exceptionally if the operation
+	 * is cancelled/aborted).
+	 *
+	 * <p>
+	 * The method is safe against the race between the caller creating the future
+	 * and {@link #commit} / {@link #cancel} completing it:
+	 * <ol>
+	 *   <li>{@code computeIfAbsent} creates the future first — before the
+	 *       operations map is checked.</li>
+	 *   <li>If commit's {@code finally} block already removed the operation from
+	 *       the map before we get here, we complete the future ourselves right
+	 *       away. If both sides race to call {@code complete()}, the second call
+	 *       is a no-op — {@code CompletableFuture.complete()} is idempotent.</li>
+	 * </ol>
+	 * </p>
+	 *
+	 * @param operationId the id of the in-flight operation to wait for
+	 * @return a future that resolves to {@code null} on success, or completes
+	 *         exceptionally with {@link CancellationException} on abort/cancel
+	 */
+	public CompletableFuture<Void> awaitCommit(String operationId) {
+		// Step 1: register the future BEFORE inspecting the operations map.
+		CompletableFuture<Void> future = commitSignals.computeIfAbsent(operationId, id -> new CompletableFuture<>());
+
+		// Step 2: if commit already ran its finally block, the operation is gone
+		// from the map — complete the future now so the caller is not stuck.
+		if (!getOperations().containsKey(operationId)) {
+			if (getOpsAborted().containsKey(operationId))
+				future.completeExceptionally(new CancellationException("operation aborted: " + operationId));
+			else
+				future.complete(null);
+		}
+
+		return future;
 	}
 
 	public boolean isAborted(String opid) {

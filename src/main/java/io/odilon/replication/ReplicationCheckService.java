@@ -134,31 +134,25 @@ public class ReplicationCheckService extends BaseService {
 		}
 
 		{
-			boolean done = false;
-
-			while (!done) {
-
-				ResultSet<Item<ObjectMetadata>> data;
-				try {
-
-					data = getReplicationService().getClient().listObjects(bucket.getName());
-
-					while (data.hasNext()) {
-						Item<ObjectMetadata> item = data.next();
-						if (data.next().isOk()) {
-							try {
-								if (!getVirtualFileSystemService().existsObject(item.getObject().bucketName, item.getObject().objectName)) {
-									remoteNotLocal.add(item.getObject().bucketName + " /" + item.getObject().objectName);
-								}
-							} catch (Exception e) {
-								errors.add(e.getClass().getName());
+			// Iterate the standby's object list exactly once — ResultSet is already
+			// a self-contained iterator; no outer pagination loop is needed.
+			
+			try {
+				ResultSet<Item<ObjectMetadata>> data = getReplicationService().getClient().listObjects(bucket.getName());
+				while (data.hasNext()) {
+					Item<ObjectMetadata> item = data.next();
+					if (item.isOk()) {
+						try {
+							if (!getVirtualFileSystemService().existsObject(item.getObject().bucketName, item.getObject().objectName)) {
+								remoteNotLocal.add(item.getObject().bucketName + " /" + item.getObject().objectName);
 							}
+						} catch (Exception e) {
+							errors.add(e.getClass().getName());
 						}
 					}
-
-				} catch (ODClientException e) {
-					logger.error(e, SharedConstant.NOT_THROWN);
 				}
+			} catch (ODClientException e) {
+				logger.error(e, SharedConstant.NOT_THROWN);
 			}
 		}
 		localNotRemote.forEach(n -> logger.error(n));

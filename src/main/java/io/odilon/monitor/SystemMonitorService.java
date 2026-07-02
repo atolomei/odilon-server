@@ -134,6 +134,14 @@ public class SystemMonitorService extends BaseService implements SystemService {
 	@JsonIgnore
 	private Counter replicaDeleteObjectAllVersionsCounter;
 
+	/**
+	 * Milliseconds between when the oldest unacknowledged replica operation was
+	 * enqueued and now.  Zero means the queue is empty (no lag).
+	 * Updated by {@link io.odilon.replication.ReplicationService}.
+	 */
+	@JsonIgnore
+	private volatile long replicationLagMs = 0L;
+
 	// ----------------------------
 	// PUT/GET OBJECT
 	//
@@ -235,6 +243,16 @@ public class SystemMonitorService extends BaseService implements SystemService {
 
 	public Counter getReplicationObjectDeleteCounter() {
 		return this.replicaDeleteObject;
+	}
+
+	/** Returns the current replication lag in milliseconds (0 = queue empty). */
+	public long getReplicationLagMs() {
+		return this.replicationLagMs;
+	}
+
+	/** Called by ReplicationService to update the lag gauge. */
+	public void setReplicationLagMs(long lagMs) {
+		this.replicationLagMs = lagMs;
 	}
 
 	public Counter getCacheObjectHitCounter() {
@@ -392,6 +410,7 @@ public class SystemMonitorService extends BaseService implements SystemService {
 			map.put("replicaRestoreObjectPreviousVersionCounter", String.valueOf(this.replicaRestoreObjectPreviousVersionCounter.getCount()));
 			map.put("replicaDeleteObjectAllVersionsCounter", String.valueOf(this.replicaDeleteObjectAllVersionsCounter.getCount()));
 
+			map.put("replicationLagMs", String.valueOf(this.replicationLagMs));
 		}
 
 		return map;

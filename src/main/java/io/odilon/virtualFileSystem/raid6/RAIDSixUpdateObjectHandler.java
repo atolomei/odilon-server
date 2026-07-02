@@ -26,6 +26,7 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 import javax.annotation.concurrent.ThreadSafe;
@@ -62,6 +63,76 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionObjectHandler {
 
 	private static Logger logger = Logger.getLogger(RAIDSixUpdateObjectHandler.class.getName());
+
+	// ── Parameter object (Issue 8) ───────────────────────────────────────────
+
+	/**
+	 * Immutable value object that bundles all parameters for a RAID-6 object
+	 * update, replacing the previous 7-argument {@code update()} signature.
+	 */
+	public static final class UpdateObjectParams {
+
+		private final ServerBucket           bucket;
+		private final String                 objectName;
+		private final InputStream            stream;
+		private final String                 srcFileName;
+		private final String                 contentType;
+		private final Optional<List<String>> customTags;
+		private final Optional<Boolean>      publicAccess;
+
+		private UpdateObjectParams(Builder b) {
+			this.bucket      = b.bucket;
+			this.objectName  = b.objectName;
+			this.stream      = b.stream;
+			this.srcFileName = b.srcFileName;
+			this.contentType = b.contentType;
+			this.customTags  = b.customTags;
+			this.publicAccess = b.publicAccess;
+		}
+
+		public ServerBucket           getBucket()      { return bucket;      }
+		public String                 getObjectName()  { return objectName;  }
+		public InputStream            getStream()      { return stream;      }
+		public String                 getSrcFileName() { return srcFileName; }
+		public String                 getContentType() { return contentType; }
+		public Optional<List<String>> getCustomTags()  { return customTags;  }
+		public Optional<Boolean>      getPublicAccess(){ return publicAccess; }
+
+		public static Builder builder(ServerBucket bucket, String objectName, InputStream stream) {
+			return new Builder(bucket, objectName, stream);
+		}
+
+		public static final class Builder {
+
+			// required
+			private final ServerBucket  bucket;
+			private final String        objectName;
+			private final InputStream   stream;
+
+			// optional – safe defaults
+			private String                 srcFileName  = "";
+			private String                 contentType  = "";
+			private Optional<List<String>> customTags   = Optional.empty();
+			private Optional<Boolean>      publicAccess = Optional.empty();
+
+			private Builder(ServerBucket bucket, String objectName, InputStream stream) {
+				this.bucket     = Objects.requireNonNull(bucket,     "bucket is null");
+				this.objectName = Objects.requireNonNull(objectName, "objectName is null");
+				this.stream     = Objects.requireNonNull(stream,     "stream is null");
+			}
+
+			public Builder srcFileName(String v)                { this.srcFileName  = v; return this; }
+			public Builder contentType(String v)                { this.contentType  = v; return this; }
+			public Builder customTags(Optional<List<String>> v) { this.customTags   = v; return this; }
+			public Builder publicAccess(Optional<Boolean> v)    { this.publicAccess = v; return this; }
+
+			public UpdateObjectParams build() {
+				return new UpdateObjectParams(this);
+			}
+		}
+	}
+
+	// ────────────────────────────────────────────────────────────────────────
 
 	/**
 	 * <p>
@@ -107,16 +178,13 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionObjectHandler 
 	}
 
 	/**
-	 * @param bucket      can not be null
-	 * @param objectName  can not be null
-	 * @param stream      can not be null
-	 * @param srcFileName
-	 * @param contentType
-	 * @param customTags
+	 * @param p  all update parameters, built via {@link UpdateObjectParams#builder}
 	 */
-	protected void update(ServerBucket bucket, String objectName, InputStream stream, String srcFileName, String contentType, Optional<List<String>> customTags, Optional<Boolean> o_public) {
+	protected void update(UpdateObjectParams p) {
 
-		String bucketName = bucket.getName();
+		final ServerBucket bucket     = p.getBucket();
+		final String       objectName = p.getObjectName();
+		final String       bucketName = bucket.getName();
 
 		VirtualFileSystemOperation operation = null;
 		boolean commitOK = false;
@@ -130,7 +198,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionObjectHandler 
 		try {
 
 			getLockService().getBucketLock(bucket).readLock().lock();
-			try (stream) {
+			try (InputStream stream = p.getStream()) {
 
 				checkExistsBucket(bucket);
 				checkExistObject(bucket, objectName);
@@ -149,14 +217,14 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionObjectHandler 
 				/** copy new version as head version */
 				afterHeadVersion = meta.getVersion() + 1;
 				RAIDSixBlocks ei = saveObjectDataFile(bucket, objectName, stream);
-				saveObjectMetadata(bucket, objectName, ei, srcFileName, contentType, afterHeadVersion, meta.getCreationDate(), customTags, o_public);
+				saveObjectMetadata(bucket, objectName, ei, p.getSrcFileName(), p.getContentType(), afterHeadVersion, meta.getCreationDate(), p.getCustomTags(), p.getPublicAccess());
 
 				/** commit */
 				commitOK = operation.commit();
 
 			} catch (Exception e) {
 				isMainException = true;
-				throw new InternalCriticalException(e, objectInfo(bucketName, objectName, srcFileName));
+				throw new InternalCriticalException(e, objectInfo(bucketName, objectName, p.getSrcFileName()));
 
 			} finally {
 				try {
@@ -165,9 +233,9 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionObjectHandler 
 							rollback(operation);
 						} catch (Exception e) {
 							if (isMainException)
-								throw new InternalCriticalException(e, objectInfo(bucketName, objectName, srcFileName));
+								throw new InternalCriticalException(e, objectInfo(bucketName, objectName, p.getSrcFileName()));
 							else
-								logger.error(objectInfo(bucketName, objectName, srcFileName), SharedConstant.NOT_THROWN);
+								logger.error(objectInfo(bucketName, objectName, p.getSrcFileName()), SharedConstant.NOT_THROWN);
 						}
 					} else {
 						/** TODO Sync by the moment. see how to make it Async */
@@ -670,14 +738,13 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionObjectHandler 
 			return;
 		try {
 			if (getVersionControl()==VersionControl.DISABLED) {
-				// Remove previous-version metadata and data from the object's owning volume
+				// Remove previous-version metadata from each drive on the owning volume
 				for (Drive drive : getDriver().getVolumeForObject(meta).getDrives()) {
 					FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(bucket, meta.getObjectName(), previousVersion));
-					List<File> files = getDriver().getObjectDataFiles(meta, bucket, Optional.of(previousVersion));
-					files.forEach(file -> {
-						FileUtils.deleteQuietly(file);
-					});
 				}
+				// getObjectDataFiles returns files across ALL drives — call once outside the loop
+				List<File> files = getDriver().getObjectDataFiles(meta, bucket, Optional.of(previousVersion));
+				files.forEach(file -> FileUtils.deleteQuietly(file));
 			}
 		} catch (Exception e) {
 			logger.error(e, SharedConstant.NOT_THROWN);
@@ -691,7 +758,11 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionObjectHandler 
 		// Use the drives of the volume that owns this object, not all drives.
 		final List<Drive> drives = getDriver().getVolumeForObject(meta).getDrives();
 		final List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
-		drives.forEach(d -> list.add(meta));
+		for (Drive d : drives) {
+			ObjectMetadata copy = meta.copy();
+			copy.setDrive(d.getName());
+			list.add(copy);
+		}
 		saveRAIDSixObjectMetadataToDisk(drives, list, isHead);
 	}
 
@@ -701,15 +772,16 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionObjectHandler 
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 
 		try {
-			boolean success = true;
 			ObjectMetadata versionMeta = getDriver().getObjectMetadataVersion(bucket, objectName, version);
+			if (versionMeta == null)
+				return false;
 			// Stay on the same volume as the version being restored.
 			List<Drive> drives = getDriver().getVolumeForObject(versionMeta).getDrives();
 			for (Drive drive : drives) {
 				versionMeta.setDrive(drive.getName());
 				drive.saveObjectMetadata(versionMeta);
 			}
-			return success;
+			return true;
 
 		} catch (InternalCriticalException e) {
 			throw e;
@@ -725,7 +797,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionObjectHandler 
 			Map<Drive, List<String>> versionToRestore = getDriver().getObjectDataFilesNames(meta, Optional.of(version));
 			for (Drive drive : versionToRestore.keySet()) {
 				for (String name : versionToRestore.get(drive)) {
-					String arr[] = name.split(".v");
+					String arr[] = name.split("\\.v");
 					String headFileName = arr[0];
 					try {
 						if (new File(drive.getBucketObjectDataDirPath(bucket) + File.separator + VirtualFileSystemService.VERSION_DIR, name).exists()) {

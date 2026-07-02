@@ -315,6 +315,22 @@ public class ServerSettings implements JSONObject {
 	@Value("${standby.sync.threads:-1}")
 	protected int standbySyncThreads = -1;
 
+	/** Maximum number of pending replica queue entries before new writes are rejected (Issue 1) */
+	@Value("${standby.replicaQueueMax:10000}")
+	protected int standbyReplicaQueueMax;
+
+	/** Milliseconds replicate() will wait for the journal commit to complete before timing out (Issue 2) */
+	@Value("${standby.journalWaitMs:15000}")
+	protected int standbyJournalWaitMs;
+
+	/** Maximum consecutive errors before initial sync aborts and requires a restart (Issue 6) */
+	@Value("${standby.sync.maxErrors:10}")
+	protected int standbySyncMaxErrors;
+
+	/** When true, initial sync propagates all object versions; when false (default) head only (Issue 5) */
+	@Value("${standby.syncVersions:false}")
+	protected boolean standbySyncVersions;
+
 	@Value("${standby.url:null}")
 	protected String standbyUrl;
 
@@ -1192,6 +1208,22 @@ public class ServerSettings implements JSONObject {
 
 	public int getStandbySyncThreads() {
 		return this.standbySyncThreads;
+	}
+
+	public int getStandbyReplicaQueueMax() {
+		return this.standbyReplicaQueueMax;
+	}
+
+	public int getStandbyJournalWaitMs() {
+		return this.standbyJournalWaitMs;
+	}
+
+	public int getStandbySyncMaxErrors() {
+		return this.standbySyncMaxErrors;
+	}
+
+	public boolean isStandbySyncVersions() {
+		return this.standbySyncVersions;
 	}
 
 	public int getFileCacheInitialCapacity() {
