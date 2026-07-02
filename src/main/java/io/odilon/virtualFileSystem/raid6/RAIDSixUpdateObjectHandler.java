@@ -223,6 +223,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionObjectHandler 
 				commitOK = operation.commit();
 
 			} catch (Exception e) {
+				logger.error(e, objectInfo(bucketName, objectName, p.getSrcFileName()), SharedConstant.THROWN_WRAPPED);
 				isMainException = true;
 				throw new InternalCriticalException(e, objectInfo(bucketName, objectName, p.getSrcFileName()));
 
@@ -304,7 +305,8 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionObjectHandler 
 						}
 				} else {
 					/**
-					 * TODO AT -> Sync by the moment. TODO see how to make it Async
+					 * Sync by the moment. 
+					 * TODO see how to make it Async
 					 */
 					cleanUpBackupMetadataDir(bucket, meta);
 				}
@@ -706,22 +708,11 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionObjectHandler 
 	/**
 	 * <p>
 	 * delete backup Metadata
-	 * </p>
-	 * 
-	 * @param bucketName
-	 * @param objectName
-	 */
-	/**
-	 * <p>
 	 * Deletes the work-dir backup created by {@link #backup(ObjectMetadata, ServerBucket)}.
 	 * </p>
-	 * <p>
-	 * <b>Bug U3 fix:</b> the original implementation used
-	 * {@code getActiveVolume().getDrives()} for the cleanup, but the backup is
-	 * written to {@code getVolumeForObject(meta).getDrives()}. For metadata-only
-	 * updates of objects on non-active volumes the backup directories were never
-	 * removed, leaking work-dir disk space indefinitely.
-	 * </p>
+	
+	 * @param bucketName
+	 * @param objectName
 	 */
 	private void cleanUpBackupMetadataDir(ServerBucket bucket, ObjectMetadata meta) {
 		try {
@@ -786,6 +777,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionObjectHandler 
 		} catch (InternalCriticalException e) {
 			throw e;
 		} catch (Exception e) {
+			logger.error(e, objectInfo(bucket, objectName), SharedConstant.THROWN_WRAPPED);
 			throw new InternalCriticalException(e, objectInfo(bucket, objectName));
 		}
 	}
@@ -815,6 +807,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionObjectHandler 
 			throw e;
 
 		} catch (Exception e) {
+			logger.error(e, objectInfo(meta), SharedConstant.THROWN_WRAPPED);
 			throw new InternalCriticalException(e, objectInfo(meta));
 		}
 	}

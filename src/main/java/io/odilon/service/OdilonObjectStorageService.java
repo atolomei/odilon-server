@@ -380,8 +380,10 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
 			throw new IllegalArgumentException("bucketName already used " + newBucketName);
 
 		try {
+			logger.debug("update bucket name: " + bucket.getName() + " to -> " + newBucketName);
 			return getVirtualFileSystemService().renameBucketName(bucket.getName(), newBucketName);
 		} catch (Exception e) {
+			logger.error(e, "b: " + bucket.getName() + " new: " + newBucketName, SharedConstant.THROWN_WRAPPED);
 			throw (new OdilonInternalErrorException(e));
 		}
 	}

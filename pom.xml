@@ -27,7 +27,8 @@
 	</description>
 
 	<properties>
-		<!-- Set to false only when generating the OpenAPI spec with a running server:
+		<!-- Set to false only when generating the OpenAPI spec with a running
+		server:
 		     mvn integration-test -Dspringdoc.skip=false -->
 		<springdoc.skip>true</springdoc.skip>
 		<java.version>17</java.version>
@@ -226,6 +227,18 @@
 			</exclusions>
 		</dependency>
 
+
+		<dependency>
+			<groupId>tools.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+			<!-- version governed by Spring Boot 4.0.2 BOM -->
+		</dependency>
+		<dependency>
+			<groupId>tools.jackson.core</groupId>
+			<artifactId>jackson-core</artifactId>
+		</dependency>
+
+
 		<!--  Testing
 		==============================================================================================  -->
 
@@ -265,7 +278,9 @@
 					<execution>
 						<id>generate-openapi-spec</id>
 						<phase>integration-test</phase>
-						<goals><goal>generate</goal></goals>
+						<goals>
+							<goal>generate</goal>
+						</goals>
 					</execution>
 				</executions>
 				<configuration>
