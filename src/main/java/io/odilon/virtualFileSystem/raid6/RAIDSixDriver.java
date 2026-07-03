@@ -55,6 +55,7 @@ import io.odilon.scheduler.DeleteBucketObjectPreviousVersionServiceRequest;
 import io.odilon.scheduler.ServiceRequest;
 import io.odilon.util.Check;
 import io.odilon.virtualFileSystem.BaseIODriver;
+import io.odilon.virtualFileSystem.OdilonDrive;
 import io.odilon.virtualFileSystem.OdilonObject;
 import io.odilon.virtualFileSystem.model.BucketIterator;
 import io.odilon.virtualFileSystem.model.Drive;
@@ -998,26 +999,75 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 
 		// 2. Cross-volume search: active volume first, then archives newest-to-oldest
 		for (RAIDSixVolume volume : getVolumeManager().getVolumesInSearchOrder()) {
+
 			List<Drive> vDrives = volume.getDrives();
 			// NOTSYNC drives have no metadata yet — only read from ENABLED drives.
-			// If a candidate NOTSYNC drive is picked, it returns null and the object
-			// looks "not found" even though the metadata exists on the other drives,
-			// causing spurious OdilonObjectNotFoundException during drive sync.
-			List<Drive> pool = vDrives.stream().filter(d -> d.getDriveInfo().getStatus() == DriveStatus.ENABLED).collect(Collectors.toList());
+			List<Drive> pool = vDrives.stream()
+					.filter(d -> d.getDriveInfo().getStatus() == DriveStatus.ENABLED)
+					.collect(Collectors.toList());
 			if (pool.isEmpty())
 				continue; // entire volume is still mid-sync — skip it
+
+			// Pick a random candidate drive and read its metadata copy.
 			Drive candidate = pool.get(Double.valueOf(Math.abs(Math.random() * 1000)).intValue() % pool.size());
 			ObjectMetadata meta = candidate.getObjectMetadata(bucket, objectName);
-			if (meta != null) {
-				meta.setBucketName(bucket.getName());
-				// Ensure volumeId is correctly set (guards against legacy objects with
-				// volumeId==0)
-				meta.setVolumeId(volume.getVolumeId());
 
-				if (addToCacheIfMiss && getServerSettings().isUseObjectCache())
-					getObjectMetadataCacheService().put(bucket, objectName, meta);
-				return meta;
+			if (meta == null)
+				continue; // object not on this volume
+
+			// ── Metadata checksum verification + quorum repair ───────────────────────
+			// If the candidate drive's copy fails its self-checksum, scan the other
+			// ENABLED drives on the same volume for a healthy copy.  When one is found:
+			//   1. Overwrite the corrupt copy on the bad drive (read-repair).
+			//   2. Return the healthy copy to the caller.
+			// If ALL copies fail their checksum we still return the candidate's copy
+			// (at least the object is present), log an error, and let the scrubber
+			// deal with a deeper repair on its next pass.
+			if (meta.metaChecksum != null &&
+					!((OdilonDrive) candidate).isMetadataChecksumValid(bucket, objectName)) {
+
+				logger.warn("metaChecksum mismatch on candidate drive " + candidate.getName()
+						+ " | b:" + bucket.getName() + " o:" + objectName
+						+ " — attempting quorum repair from peer drives");
+
+				boolean repaired = false;
+				for (Drive peer : pool) {
+					if (peer == candidate) continue;
+					ObjectMetadata peerMeta = peer.getObjectMetadata(bucket, objectName);
+					if (peerMeta != null && ((OdilonDrive) peer).isMetadataChecksumValid(bucket, objectName)) {
+						// Healthy copy found — overwrite the corrupt drive
+						try {
+							peerMeta.setDrive(candidate.getName());
+							candidate.saveObjectMetadata(peerMeta);
+							logger.info("metaChecksum quorum repair SUCCESS: restored drive "
+									+ candidate.getName() + " from peer " + peer.getName()
+									+ " | b:" + bucket.getName() + " o:" + objectName);
+							meta = peerMeta;
+						} catch (Exception e) {
+							logger.error("metaChecksum quorum repair: could not overwrite drive "
+									+ candidate.getName() + " | " + e.getMessage(),
+									SharedConstant.NOT_THROWN);
+						}
+						repaired = true;
+						break;
+					}
+				}
+
+				if (!repaired) {
+					logger.error("metaChecksum quorum repair FAILED: all copies on volume "
+							+ volume.getVolumeId() + " are corrupt or missing"
+							+ " | b:" + bucket.getName() + " o:" + objectName);
+				}
 			}
+			// ── End of checksum guard ─────────────────────────────────────────────────
+
+			meta.setBucketName(bucket.getName());
+			meta.setVolumeId(volume.getVolumeId());
+
+			if (addToCacheIfMiss && getServerSettings().isUseObjectCache())
+				getObjectMetadataCacheService().put(bucket, objectName, meta);
+			
+			return meta;
 		}
 
 		// Not found on any volume

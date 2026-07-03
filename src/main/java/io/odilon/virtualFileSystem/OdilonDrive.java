@@ -538,6 +538,24 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 	 * ObjectMetadata
 	 * </p>
 	 */
+	/**
+	 * Returns {@code true} if the {@code metaChecksum} stored in this drive's copy
+	 * of the object's head metadata is valid (or absent — legacy).
+	 * Returns {@code false} if the checksum is present but does not match the
+	 * recomputed value, indicating this drive's copy may be corrupt.
+	 * Called by the RAID driver during quorum repair.
+	 */
+	public boolean isMetadataChecksumValid(ServerBucket bucket, String objectName) {
+		try {
+			ObjectMetadata meta = getObjectMetadataById(bucket.getId(), objectName);
+			if (meta == null)
+				return false;
+			return ObjectMetadataChecksum.verify(meta, getObjectMapper());
+		} catch (Exception e) {
+			return false;
+		}
+	}
+
 	@Override
 	public ObjectMetadata getObjectMetadata(ServerBucket bucket, String objectName) {
 		try {
@@ -619,6 +637,23 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 				FileUtils.forceMkdir(dir);
 
 			meta.setLastModified(OffsetDateTime.now());
+
+			// Stamp the self-checksum BEFORE serializing.
+			// ObjectMetadataChecksum.compute() temporarily nulls meta.metaChecksum,
+			// hashes the resulting JSON bytes, then restores the value — so the
+			// checksum covers every field except itself.  The write lock held by
+			// the calling transaction handler makes this mutation window safe.
+			try {
+				meta.setMetaChecksum(ObjectMetadataChecksum.compute(meta, getObjectMapper()));
+			} catch (Exception e) {
+				// Checksum computation failure is non-fatal: log and continue without it.
+				// The record is still written; it will be treated as "unverified" on read.
+				logger.error("saveObjectMetadata: failed to compute metaChecksum for "
+						+ meta.getBucketId() + "/" + meta.getObjectName()
+						+ " | " + e.getMessage(), SharedConstant.NOT_THROWN);
+				meta.setMetaChecksum(null);
+			}
+
 			String jsonString = getObjectMapper().writeValueAsString(meta);
 
 			ObjectPath path = new ObjectPath(this, meta.getBucketId(), meta.getObjectName());
@@ -1421,19 +1456,35 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 
 	/**
 	 * Dual-probe: try .json.enc first, fall back to .json.
+	 * Verifies {@code metaChecksum} after loading; logs WARN on mismatch so the
+	 * calling RAID driver layer can perform cross-drive quorum repair.
 	 */
 	private ObjectMetadata getObjectMetadataById(Long bucketId, String objectName) {
 		try {
 			ObjectPath path = new ObjectPath(this, bucketId, objectName);
 			File encFile = path.metadataFileEncPath().toFile();
+
+			ObjectMetadata meta;
 			if (encFile.exists())
-				return readObjectMetadataFromFile(encFile);
-			
-			if (!path.metadataFilePath().toFile().exists())
+				meta = readObjectMetadataFromFile(encFile);
+			else if (!path.metadataFilePath().toFile().exists())
 				return null;
-			
-			return getObjectMapper().readValue(path.metadataFilePath().toFile(), ObjectMetadata.class);
-			
+			else
+				meta = getObjectMapper().readValue(path.metadataFilePath().toFile(), ObjectMetadata.class);
+
+			// Verify self-checksum.
+			// Null checksum = legacy object written before this feature existed → unverified, not corrupt.
+			// A mismatch is a strong indicator of bit-rot or a partial write on this drive;
+			// we log it at WARN so the RAID driver can attempt quorum repair from a peer drive.
+			if (meta != null && !ObjectMetadataChecksum.verify(meta, getObjectMapper())) {
+				logger.warn("metaChecksum mismatch on drive " + getName()
+						+ " | b:" + bucketId + " o:" + objectName
+						+ " | stored=" + meta.metaChecksum
+						+ " — metadata may be corrupt on this drive");
+			}
+
+			return meta;
+
 		} catch (Exception e) {
 			logger.error(e, SharedConstant.NOT_THROWN);
 			throw new InternalCriticalException(e);

@@ -24,9 +24,12 @@ import java.nio.file.StandardCopyOption;
 import java.security.NoSuchAlgorithmException;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import javax.annotation.concurrent.ThreadSafe;
 
@@ -35,6 +38,7 @@ import org.apache.commons.io.FileUtils;
 import io.odilon.encryption.EncryptedResult;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
+import io.odilon.model.IntegrityStatus;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.SharedConstant;
 import io.odilon.model.VersionControl;
@@ -120,6 +124,37 @@ public class RAIDSixReencodeObjectHandler extends RAIDSixTransactionObjectHandle
 
                 final int headVersion = meta.getVersion();
 
+                // ── 0. Re-verify corruption under the write lock ─────────────────────────
+                // The object write lock was not held between checkIntegrity detecting the
+                // mismatch and this method acquiring it, so the shard state may have changed
+                // (another thread or a prior repair pass may have fixed it already).
+                final int parityShards = getDriver().getVolumeForObject(meta).getParityDrives();
+                final List<Integer> corruptShardIndices = identifyCorruptShards(meta, bucket);
+
+                if (corruptShardIndices.isEmpty()) {
+                    // No corruption found — skip the re-encode entirely.
+                    logger.info("Re-encode: no corruption detected under write lock (already repaired?) -> "
+                            + objectInfo(bucket, objectName));
+                    return true;
+                }
+
+                if (corruptShardIndices.size() > parityShards) {
+                    // More corrupt shards than parity can recover — irrecoverable.
+                    // Persist the status so operators can enumerate affected objects
+                    // without re-running a full scrub pass.
+                    logger.error("Re-encode: " + corruptShardIndices.size()
+                            + " corrupt shard(s) " + corruptShardIndices
+                            + " exceed parity capacity (" + parityShards
+                            + ") — irrecoverable | " + objectInfo(bucket, objectName));
+                    persistIntegrityStatus(meta, bucket, IntegrityStatus.IRRECOVERABLE);
+                    return false;
+                }
+
+                logger.info("Re-encode: identified " + corruptShardIndices.size()
+                        + " corrupt shard(s) " + corruptShardIndices
+                        + " (parity capacity=" + parityShards + ") | "
+                        + objectInfo(bucket, objectName));
+
                 // ── 1. Back up current shard files ───────────────────────────────────────
                 backupVersionObjectDataFile(meta, bucket, headVersion);
 
@@ -128,11 +163,16 @@ public class RAIDSixReencodeObjectHandler extends RAIDSixTransactionObjectHandle
                 // can restore from the .v{headVersion} backup files on failure.
                 operation = getJournalService().updateObject(bucket, objectName, headVersion);
 
-                // ── 3. Decode current head → cached file (may be in encrypted form) ───────
+                // ── 3. Decode current head ────────────────────────────────────────────────
+                // Pass the known-corrupt shard indices so decodeChunk marks them as absent
+                // (erasures) before calling rs.decodeMissing().  This forces RS to
+                // reconstruct those positions from parity + healthy data shards instead of
+                // trusting the corrupt bytes — identical to how a full-disk erasure is
+                // handled, restoring the full P-shard recovery capacity.
                 RAIDSixDecoder decoder = new RAIDSixDecoder(getDriver());
                 File decodedFile;
                 try {
-                    decodedFile = decoder.decodeHead(meta, bucket);
+                    decodedFile = decoder.decodeHead(meta, bucket, corruptShardIndices);
                 } catch (Exception e) {
                     logger.error("Re-encode: decodeHead failed (shards too corrupt) -> "
                             + objectInfo(bucket, objectName) + " | " + e.getMessage(),
@@ -263,6 +303,8 @@ public class RAIDSixReencodeObjectHandler extends RAIDSixTransactionObjectHandle
             repaired.setSourceLength(shards.getSrcFileSize());
             // Stamp the repair time so the next integrity cycle skips this object.
             repaired.setIntegrityCheck(OffsetDateTime.now());
+            // Clear any previous IRRECOVERABLE flag — this object is now healthy.
+            repaired.setIntegrityStatus(IntegrityStatus.OK);
             repaired.setDrive(drive.getName());
             repaired.setRaidDrives(activeVolume.getTotalShards());
             // Shards now live on the active volume.
@@ -320,6 +362,106 @@ public class RAIDSixReencodeObjectHandler extends RAIDSixTransactionObjectHandle
             }
         } catch (Exception e) {
             logger.error(e, SharedConstant.NOT_THROWN);
+        }
+    }
+
+    /**
+     * Scans every shard file for the head version and returns the de-duplicated,
+     * ordered list of volume-local disk indices whose SHA-256 no longer matches
+     * {@code meta.sha256Blocks}.
+     *
+     * <p>
+     * The mapping between {@code sha256Blocks[i]} and the shard file is:
+     * <pre>
+     *   i = chunk * totalShards + localDiskIndex
+     *   file = objectName.chunk.localDiskIndex
+     * </pre>
+     * A disk whose ANY chunk is corrupt is added to the result set once —
+     * the whole disk is treated as an erasure during reconstruction.
+     * </p>
+     *
+     * <p>Must be called while the object write lock is held.</p>
+     */
+    private List<Integer> identifyCorruptShards(ObjectMetadata meta, ServerBucket bucket) {
+
+        List<String> stored = meta.getSha256Blocks();
+        if (stored == null || stored.isEmpty())
+            return Collections.emptyList();
+
+        RAIDSixVolume volume     = getDriver().getVolumeForObject(meta);
+        int totalShards          = volume.getTotalShards();
+        int totalChunks          = meta.getTotalBlocks() / totalShards;
+        Map<Integer, Drive> driveMap = volume.getDrivesRSDecode();
+
+        // LinkedHashSet preserves discovery order and suppresses duplicates —
+        // the same local disk index is added at most once even if multiple
+        // chunks on that disk are corrupt.
+        Set<Integer> corruptDisks = new LinkedHashSet<>();
+
+        int shardIndex = 0;
+        outer:
+        for (int chunk = 0; chunk < totalChunks; chunk++) {
+            for (int localDisk = 0; localDisk < totalShards; localDisk++) {
+
+                if (shardIndex >= stored.size())
+                    break outer;
+
+                Drive drive = driveMap.get(localDisk);
+                if (drive == null) {
+                    // Drive absent from the volume map — treat as missing/corrupt
+                    corruptDisks.add(localDisk);
+                    shardIndex++;
+                    continue;
+                }
+
+                File shardFile = new File(drive.getBucketObjectDataDirPath(bucket),
+                        meta.getObjectName() + "." + chunk + "." + localDisk);
+
+                if (!shardFile.exists()) {
+                    corruptDisks.add(localDisk);
+                } else {
+                    try {
+                        String actual = OdilonFileUtils.calculateSHA256String(shardFile);
+                        if (!actual.equals(stored.get(shardIndex)))
+                            corruptDisks.add(localDisk);
+                    } catch (Exception e) {
+                        // Unreadable shard — treat as corrupt
+                        corruptDisks.add(localDisk);
+                    }
+                }
+                shardIndex++;
+            }
+        }
+        return new ArrayList<>(corruptDisks);
+    }
+
+    /**
+     * Writes {@code status} into {@link ObjectMetadata#integrityStatus} on every
+     * drive that holds the object's current metadata, without opening a journal
+     * operation. This is intentionally a best-effort, non-transactional write:
+     * the flag is informational only and does not affect object data. If the
+     * write fails on some drives it is logged and silently ignored — the next
+     * scrub pass will re-evaluate the object anyway.
+     */
+    private void persistIntegrityStatus(ObjectMetadata meta, ServerBucket bucket, IntegrityStatus status) {
+        if (meta == null) return;
+        try {
+            for (Drive drive : getDriver().getVolumeForObject(meta).getDrives()) {
+                try {
+                    ObjectMetadata onDisk = drive.getObjectMetadata(bucket, meta.getObjectName());
+                    if (onDisk != null) {
+                        onDisk.setIntegrityStatus(status);
+                        drive.saveObjectMetadata(onDisk);
+                    }
+                } catch (Exception e) {
+                    logger.error("persistIntegrityStatus: could not write status="
+                            + status + " to drive " + drive.getName()
+                            + " | " + objectInfo(bucket, meta.getObjectName()),
+                            SharedConstant.NOT_THROWN);
+                }
+            }
+        } catch (Exception e) {
+            logger.error("persistIntegrityStatus: " + e.getMessage(), SharedConstant.NOT_THROWN);
         }
     }
 

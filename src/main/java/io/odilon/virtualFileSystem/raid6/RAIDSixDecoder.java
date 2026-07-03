@@ -30,6 +30,7 @@ import java.io.OutputStream;
 
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -102,7 +103,29 @@ public class RAIDSixDecoder extends RAIDSixCoder {
 	}
 
 	public File decodeHead(ObjectMetadata meta, ServerBucket bucket) {
-		return decode(meta, bucket, true);
+		return decode(meta, bucket, true, null);
+	}
+
+	/**
+	 * Decodes the head version treating the given shard indices as absent (erasures)
+	 * even if the shard files are physically present on disk.
+	 *
+	 * <p>
+	 * Use this overload when per-shard SHA-256 comparison has already identified
+	 * which shards hold corrupt bytes.  Converting known errors to erasures restores
+	 * the full RS parity-shard recovery capacity:
+	 * <ul>
+	 *   <li>N=3  (P=1): up to 1 erasure</li>
+	 *   <li>N=6  (P=2): up to 2 erasures</li>
+	 *   <li>N=12 (P=4): up to 4 erasures</li>
+	 * </ul>
+	 * </p>
+	 *
+	 * @param erasureIndices volume-local shard indices (0-based) to treat as absent;
+	 *                       must contain at most {@code parityShards} entries
+	 */
+	public File decodeHead(ObjectMetadata meta, ServerBucket bucket, List<Integer> erasureIndices) {
+		return decode(meta, bucket, true, erasureIndices);
 	}
 
 	/**
@@ -111,10 +134,10 @@ public class RAIDSixDecoder extends RAIDSixCoder {
 	 * </p>
 	 */
 	public File decodeVersion(ObjectMetadata meta, ServerBucket bucket) {
-		return decode(meta, bucket, false);
+		return decode(meta, bucket, false, null);
 	}
 
-	private File decode(ObjectMetadata meta, ServerBucket bucket, boolean isHead) {
+	private File decode(ObjectMetadata meta, ServerBucket bucket, boolean isHead, List<Integer> erasureIndices) {
 
 		String bucketName = meta.getBucketName();
 		String objectName = meta.getObjectName();
@@ -160,7 +183,7 @@ public class RAIDSixDecoder extends RAIDSixCoder {
 
 			try (OutputStream out = new BufferedOutputStream(new FileOutputStream(tempPath))) {
 				while (chunk < totalChunks) {
-					decodeChunk(meta, volume, bucket, chunk++, out, isHead);
+					decodeChunk(meta, volume, bucket, chunk++, out, isHead, erasureIndices);
 				}
 			} catch (FileNotFoundException e) {
 				logger.error(objectInfo(bucketName, objectName, tempPath) + " | " + e.getMessage(), SharedConstant.THROWN_WRAPPED);
@@ -190,7 +213,7 @@ public class RAIDSixDecoder extends RAIDSixCoder {
 	 * {@link Drive#getConfigOrder()}.
 	 * </p>
 	 */
-	private boolean decodeChunk(ObjectMetadata meta, RAIDSixVolume volume, ServerBucket bucket, int chunk, OutputStream out, boolean isHead) {
+	private boolean decodeChunk(ObjectMetadata meta, RAIDSixVolume volume, ServerBucket bucket, int chunk, OutputStream out, boolean isHead, List<Integer> erasureIndices) {
 
 		// Use the volume-local drive map (key = volume-local index 0..totalShards-1)
 		Map<Integer, Drive> map = volume.getDrivesRSDecode();
@@ -229,6 +252,21 @@ public class RAIDSixDecoder extends RAIDSixCoder {
 				shardPresent[localDisk] = false;
 				shards[localDisk] = null;
 				shardCount--;
+			}
+		}
+
+		// Convert known-corrupt shard positions to erasures.
+		// The caller identified these positions via per-shard SHA-256 comparison
+		// before calling decodeHead(). Marking them absent here lets rs.decodeMissing()
+		// reconstruct them from parity + healthy data shards — identical to how a
+		// full-disk failure is handled — instead of trusting the corrupt bytes.
+		if (erasureIndices != null && !erasureIndices.isEmpty()) {
+			for (int idx : erasureIndices) {
+				if (idx >= 0 && idx < totalShards && shardPresent[idx]) {
+					shardPresent[idx] = false;
+					shards[idx] = null;
+					shardCount--;
+				}
 			}
 		}
 
