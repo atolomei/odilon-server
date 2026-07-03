@@ -83,7 +83,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionObjectHandler 
 				operation = createObject();
 
 				/** save data and metadata */
-				RAIDSixBlocks blocks = saveData(stream);
+				RAIDSixShards blocks = saveData(stream);
 				saveMetadata(blocks, srcFileName, contentType, customTags, o_public);
 
 				/** commit */
@@ -126,7 +126,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionObjectHandler 
 	 * @param stream
 	 * @param srcFileName
 	 */
-	private RAIDSixBlocks saveData(InputStream stream) {
+	private RAIDSixShards saveData(InputStream stream) {
 
 		Check.requireNonNullArgument(stream, "stream is null");
 
@@ -137,7 +137,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionObjectHandler 
 				EncryptedResult encryptedResult = getEncryptionService().encryptStream(stream);
 				sourceStream = encryptedResult.getInputStream();
 				RAIDSixEncoder encoder = new RAIDSixEncoder(getDriver());
-				RAIDSixBlocks blocks = encoder.encodeHead(sourceStream, getBucket(), getObjectName());
+				RAIDSixShards blocks = encoder.encodeHead(sourceStream, getBucket(), getObjectName());
 				long totalBytesRead = encryptedResult.getCountingStream().getCount();
 				blocks.setSrcFileSize(totalBytesRead);
 				return blocks;
@@ -171,7 +171,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionObjectHandler 
 			try {
 				sourceStream = stream;
 				RAIDSixEncoder encoder = new RAIDSixEncoder(getDriver());
-				RAIDSixBlocks blocks = encoder.encodeHead(sourceStream, getBucket(), getObjectName());
+				RAIDSixShards blocks = encoder.encodeHead(sourceStream, getBucket(), getObjectName());
 				long totalBytesRead = blocks.getFileSize();
 				blocks.setSrcFileSize(totalBytesRead);
 				return blocks;
@@ -207,12 +207,12 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionObjectHandler 
 	 * @param stream
 	 * @param srcFileName
 	 */
-	private void saveMetadata(RAIDSixBlocks ei, String srcFileName, String contentType, Optional<List<String>> customTags, Optional<Boolean> o_public) {
+	private void saveMetadata(RAIDSixShards ei, String srcFileName, String contentType, Optional<List<String>> customTags, Optional<Boolean> o_public) {
 
 		List<String> shaBlocks = new ArrayList<String>();
 		StringBuilder etag_b = new StringBuilder();
 
-		ei.getEncodedBlocks().forEach(item -> {
+		ei.getEncodedShards().forEach(item -> {
 			try {
 				shaBlocks.add(OdilonFileUtils.calculateSHA256String(item));
 			} catch (Exception e) {
@@ -253,7 +253,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionObjectHandler 
 				meta.setSourceLength(ei.getSrcFileSize());
 				meta.setLength(ei.getFileSize());
 				meta.setSha256Blocks(shaBlocks);
-				meta.setTotalBlocks(ei.getEncodedBlocks().size());
+				meta.setTotalBlocks(ei.getEncodedShards().size());
 				meta.setEtag(etag);
 				meta.setEncrypt(getVirtualFileSystemService().isEncrypt());
 				meta.setIntegrityCheck(meta.getCreationDate());

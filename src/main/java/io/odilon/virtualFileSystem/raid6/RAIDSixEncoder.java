@@ -42,6 +42,9 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  * <p>
  * Encodes {@link InputStream} into multiple block files in the File System
  * using {@link https://en.wikipedia.org/wiki/Erasure_code}.
+ * A chunk/stripe is a portion of the file that is encoded into multiple shards (data and parity). 
+ * Each shard is stored in a different disk.
+ * 
  * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
@@ -54,7 +57,7 @@ public class RAIDSixEncoder extends RAIDSixCoder {
 	private long fileSize = 0;
 
 	@JsonIgnore
-	private int chunk = 0;
+	private int stripe = 0;
 
 	@JsonIgnore
 	private final int data_shards;
@@ -66,7 +69,7 @@ public class RAIDSixEncoder extends RAIDSixCoder {
 	private final int total_shards;
 
 	@JsonIgnore
-	private RAIDSixBlocks encodedInfo;
+	private RAIDSixShards encodedInfo;
 
 	@JsonIgnore
 	private List<Drive> r6Drives;
@@ -129,11 +132,11 @@ public class RAIDSixEncoder extends RAIDSixCoder {
 	 * </p>
 	 * 
 	 * <p>
-	 * <b>Block naming convention Head version</b><br/>
-	 * objectName.[block].[disk]<br/>
+	 * <b>Shard naming convention Head version</b><br/>
+	 * objectName.[shard].[disk]<br/>
 	 * <br/>
 	 * <b>Previous version</b><br/>
-	 * objectName.[block].[disk].v[version]<br/>
+	 * objectName.[shard].[disk].v[version]<br/>
 	 * </p>
 	 * 
 	 * @param is
@@ -145,16 +148,16 @@ public class RAIDSixEncoder extends RAIDSixCoder {
 	 *         every shard multiple of 4)
 	 */
 
-	public RAIDSixBlocks encodeHead(InputStream is, ServerBucket bucket, String objectName) {
+	public RAIDSixShards encodeHead(InputStream is, ServerBucket bucket, String objectName) {
 		return encode(is, bucket, objectName, Optional.empty());
 	}
 
-	public RAIDSixBlocks encodeVersion(InputStream is, ServerBucket bucket, String objectName, int version) {
+	public RAIDSixShards encodeVersion(InputStream is, ServerBucket bucket, String objectName, int version) {
 		return encode(is, bucket, objectName, Optional.of(version));
 
 	}
 
-	protected RAIDSixBlocks encode(InputStream is, ServerBucket bucket, String objectName, Optional<Integer> version) {
+	protected RAIDSixShards encode(InputStream is, ServerBucket bucket, String objectName, Optional<Integer> version) {
 
 		Check.requireNonNull(is);
 		Check.requireNonNull(objectName);
@@ -167,14 +170,14 @@ public class RAIDSixEncoder extends RAIDSixCoder {
 			throw new InternalCriticalException("There are not enough drives to encode the file in RAID 6 -> drives: " + String.valueOf(getDrives().size()) + " | required: " + String.valueOf(total_shards));
 
 		this.fileSize = 0;
-		this.chunk = 0;
-		this.encodedInfo = new RAIDSixBlocks();
+		this.stripe = 0;
+		this.encodedInfo = new RAIDSixShards();
 
 		boolean done = false;
 
 		try (is) {
 			while (!done)
-				done = encodeChunk(is, bucket, objectName, chunk++, version);
+				done = encodeStripe(is, bucket, objectName, stripe++, version);
 		} catch (Exception e) {
 			logger.error(e, "Error encoding object -> " + objectName, SharedConstant.THROWN_WRAPPED);
 			throw new InternalCriticalException(e, "o:" + objectName);
@@ -187,14 +190,14 @@ public class RAIDSixEncoder extends RAIDSixCoder {
 		return getVirtualFileSystemService().getBufferPoolService();
 	}
 
-	public boolean encodeChunk(InputStream is, ServerBucket bucket, String objectName, int chunk, Optional<Integer> o_version) {
+	public boolean encodeStripe(InputStream is, ServerBucket bucket, String objectName, int nStripe, Optional<Integer> o_version) {
 
 		byte[] allBytes = getBullferPoolService().acquire();
 		boolean eof = false;
 
 		try {
 			int totalBytesRead = 0;
-			final int maxBytesToRead = ServerConstant.MAX_CHUNK_SIZE - ServerConstant.BYTES_IN_INT;
+			final int maxBytesToRead = ServerConstant.MAX_STRIPE_SIZE - ServerConstant.BYTES_IN_INT;
 
 			while (totalBytesRead < maxBytesToRead) {
 				int bytesRead = is.read(allBytes, ServerConstant.BYTES_IN_INT + totalBytesRead, maxBytesToRead - totalBytesRead);
@@ -252,7 +255,7 @@ public class RAIDSixEncoder extends RAIDSixCoder {
 					if (!dir.exists() && !dir.mkdirs())
 						throw new InternalCriticalException("Cannot create shard directory: " + dirPath + " | d:" + getDrives().get(diskOrder).getName());
 
-					String name = objectName + "." + chunk + "." + diskOrder + (o_version.isEmpty() ? "" : ".v" + o_version.get());
+					String name = objectName + "." + nStripe + "." + diskOrder + (o_version.isEmpty() ? "" : ".v" + o_version.get());
 
 					destination.add(new File(dirPath, name));
 					requiresCopy[diskOrder] = Boolean.TRUE;
@@ -269,7 +272,7 @@ public class RAIDSixEncoder extends RAIDSixCoder {
 				throw new InternalCriticalException(objectInfo(bucket, objectName));
 			}
 
-			destination.forEach(f -> this.encodedInfo.getEncodedBlocks().add(f));
+			destination.forEach(f -> this.encodedInfo.getEncodedShards().add(f));
 
 			return eof;
 
@@ -284,7 +287,7 @@ public class RAIDSixEncoder extends RAIDSixCoder {
 	/**
 	 * For normal encoding all disk must be written with RS blocks. However, this
 	 * method is overriden by {@link RAIDSixSDriveSyncEncoder} the class that syncs
-	 * new disks, this class just writes blocks on the newly installed disks,
+	 * new disks, which just writes blocks on the newly installed disks,
 	 * leaving existing blocks untouched.
 	 * 
 	 * @param diskOrder

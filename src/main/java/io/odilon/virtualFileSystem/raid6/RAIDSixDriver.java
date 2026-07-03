@@ -176,48 +176,6 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		RAIDSixJournalHandler handler = new RAIDSixJournalHandler(this);
 		return handler.getJournalPending();
 	}
-	
-	
-	
-	
-
-	/**
-	 * List<VirtualFileSystemOperation> list = new
-	 * ArrayList<VirtualFileSystemOperation>();
-	 * 
-	 * getLockService().getJournalLock().writeLock().lock(); try { for (Drive drive
-	 * : getDrivesEnabled()) { File dir = new File(drive.getJournalDirPath()); if
-	 * (!dir.exists()) { // In multi-volume RAID 6, saveJournal writes only to the
-	 * active volume's // drives, so earlier volumes' journal directories may
-	 * legitimately be empty; // after a filesystem issue any drive's directory may
-	 * be temporarily gone. // `return list` here would silently drop every entry
-	 * from all subsequent // drives — including the volume that actually holds the
-	 * journal file. // Skip this drive and keep scanning the rest.
-	 * logger.warn("getJournalPending: journal dir does not exist on drive -> " +
-	 * drive.getName() + " | " + dir.getAbsolutePath() + " — skipping"); continue; }
-	 * if (!dir.isDirectory()) { logger.warn("getJournalPending: journal dir path is
-	 * not a directory on drive -> " + drive.getName() + " | " +
-	 * dir.getAbsolutePath() + " — skipping"); continue; } File[] files =
-	 * dir.listFiles(); // listFiles() returns null on I/O error or if the directory
-	 * disappears between // the isDirectory() check above and this call. A null
-	 * here would throw NPE // and abort recovery for every subsequent drive /
-	 * volume — guard against it. if (files == null) {
-	 * logger.warn("getJournalPending: listFiles() returned null for journal dir ->
-	 * " + dir.getAbsolutePath() + " (I/O error or directory disappeared)");
-	 * continue; } for (File file : files) { if (!file.isDirectory()) { Path pa =
-	 * Paths.get(file.getAbsolutePath()); try { String str = Files.readString(pa);
-	 * OdilonVirtualFileSystemOperation op = getObjectMapper().readValue(str,
-	 * OdilonVirtualFileSystemOperation.class); if (op != null) {
-	 * op.setJournalService(getJournalService()); if (!list.contains(op)) {
-	 * list.add(op); logger.debug("added to rollback -> " + op.toString()); } }
-	 * 
-	 * } catch (IOException e) { try { Files.delete(file.toPath()); } catch
-	 * (IOException e1) { logger.error(e, SharedConstant.NOT_THROWN); } } } } }
-	 * std_logger.info("Total operations that will rollback -> " +
-	 * String.valueOf(list.size())); return list;
-	 * 
-	 * } finally { getLockService().getJournalLock().writeLock().unlock(); }
-	 */
 
 	@Override
 	public void removeJournal(String id) {
@@ -233,187 +191,73 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		handler.saveJournal(op);
 	}
 
-	/**
-	 * getLockService().getJournalLock().writeLock().lock(); try { for (Drive drive
-	 * : getActiveVolume().getDrives()) drive.saveJournal(op); } finally {
-	 * getLockService().getJournalLock().writeLock().unlock(); }
-	 **/
-
-	/**
-	 * getLockService().getJournalLock().writeLock().lock(); try { for (Drive drive
-	 * : getDrivesEnabled()) { try { drive.removeJournal(id); } catch (Exception e)
-	 * { // Log and continue: a failure on one drive must not prevent deletion //
-	 * from all remaining drives (including the volume that actually holds // the
-	 * journal file). The caller (OdilonJournalService) already treats // a
-	 * partial-delete gracefully. logger.error("removeJournal: failed on drive -> "
-	 * + drive.getName() + " | id=" + id + " | " + e.getMessage(),
-	 * SharedConstant.NOT_THROWN); } } } finally {
-	 * getLockService().getJournalLock().writeLock().unlock(); }
-	 */
-
-	
 	// ─── Scheduler overrides
-		// ──────────────────────────────────────────────────────
+	// ──────────────────────────────────────────────────────
 
-		/**
-		 * <p>
-		 * RAID 6 multi-volume override: persist scheduler requests only on the
-		 * <em>active</em> volume's drives.
-		 * </p>
-		 * <p>
-		 * The single-volume base implementation writes to every enabled drive and
-		 * validates completeness by requiring the file to appear on <em>every</em>
-		 * enabled drive ({@link #getSchedulerPendingRequests}). With multiple volumes
-		 * this cross-volume check would wrongly discard a request saved before a volume
-		 * switch. Scoping writes to the active volume makes the consistency boundary
-		 * per-volume instead of server-global.
-		 * </p>
-		 */
-		@Override
-		public void saveScheduler(ServiceRequest request, String queueId) {
-			Check.requireNonNullArgument(request, "request is null");
-			Check.requireNonNullArgument(queueId, "queueId is null");
-			RAIDSixSchedulerHandler handler = new RAIDSixSchedulerHandler(this);
-			handler.saveScheduler(request, queueId);
-		}	
-			/*
-			getLockService().getSchedulerLock().writeLock().lock();
-			try {
-				for (Drive drive : getActiveVolume().getDrives())
-					drive.saveScheduler(request, queueId);
-			} finally {
-				getLockService().getSchedulerLock().writeLock().unlock();
-			}
-			*/
-		
+	/**
+	 * <p>
+	 * RAID 6 multi-volume override: persist scheduler requests only on the
+	 * <em>active</em> volume's drives.
+	 * </p>
+	 * <p>
+	 * The single-volume base implementation writes to every enabled drive and
+	 * validates completeness by requiring the file to appear on <em>every</em>
+	 * enabled drive ({@link #getSchedulerPendingRequests}). With multiple volumes
+	 * this cross-volume check would wrongly discard a request saved before a volume
+	 * switch. Scoping writes to the active volume makes the consistency boundary
+	 * per-volume instead of server-global.
+	 * </p>
+	 */
+	@Override
+	public void saveScheduler(ServiceRequest request, String queueId) {
+		Check.requireNonNullArgument(request, "request is null");
+		Check.requireNonNullArgument(queueId, "queueId is null");
+		RAIDSixSchedulerHandler handler = new RAIDSixSchedulerHandler(this);
+		handler.saveScheduler(request, queueId);
+	}
+	 
+	/**
+	 * <p>
+	 * RAID 6 multi-volume override: remove scheduler requests from <em>all</em>
+	 * enabled drives across all volumes.
+	 * </p>
+	 * <p>
+	 * A request may have been saved on an older volume before the active volume
+	 * switched. Removing from all drives ensures no orphan scheduler files remain.
+	 * </p>
+	 */
+	@Override
+	public void removeScheduler(ServiceRequest request, String queueId) {
+		Check.requireNonNullArgument(request, "request is null");
+		Check.requireNonNullArgument(queueId, "queueId is null");
 
-		/**
-		 * <p>
-		 * RAID 6 multi-volume override: remove scheduler requests from <em>all</em>
-		 * enabled drives across all volumes.
-		 * </p>
-		 * <p>
-		 * A request may have been saved on an older volume before the active volume
-		 * switched. Removing from all drives ensures no orphan scheduler files remain.
-		 * </p>
-		 */
-		@Override
-		public void removeScheduler(ServiceRequest request, String queueId) {
-			Check.requireNonNullArgument(request, "request is null");
-			Check.requireNonNullArgument(queueId, "queueId is null");
-		
-			RAIDSixSchedulerHandler handler = new RAIDSixSchedulerHandler(this);
-			handler.removeScheduler(request, queueId);
-		}
-		
-			/**
-			getLockService().getSchedulerLock().writeLock().lock();
-			try {
-				for (Drive drive : getDrivesEnabled())
-					drive.removeScheduler(request, queueId);
-			} finally {
-				getLockService().getSchedulerLock().writeLock().unlock();
-			}
-		
+		RAIDSixSchedulerHandler handler = new RAIDSixSchedulerHandler(this);
+		handler.removeScheduler(request, queueId);
+	}
 
-		/**
-		 * <p>
-		 * RAID 6 multi-volume override: recover scheduler requests by checking
-		 * consistency <em>per-volume</em> rather than across all drives globally.
-		 * </p>
-		 * <p>
-		 * The base implementation ({@link BaseIODriver#getSchedulerPendingRequests})
-		 * requires every request to appear on <em>all</em> enabled drives. In a
-		 * multi-volume setup a request saved on volume 0 would be absent from volume
-		 * 1's drives and wrongly discarded. This override checks completeness within
-		 * each volume independently and aggregates valid requests from all volumes.
-		 * </p>
-		 */
-		@Override
-		public synchronized List<ServiceRequest> getSchedulerPendingRequests(String queueId) {
-			Check.requireNonNullArgument(queueId, "queueId is null");
+	 
+	 /**
+	 * <p>
+	 * RAID 6 multi-volume override: recover scheduler requests by checking
+	 * consistency <em>per-volume</em> rather than across all drives globally.
+	 * </p>
+	 * <p>
+	 * The base implementation ({@link BaseIODriver#getSchedulerPendingRequests})
+	 * requires every request to appear on <em>all</em> enabled drives. In a
+	 * multi-volume setup a request saved on volume 0 would be absent from volume
+	 * 1's drives and wrongly discarded. This override checks completeness within
+	 * each volume independently and aggregates valid requests from all volumes.
+	 * </p>
+	 */
+	@Override
+	public synchronized List<ServiceRequest> getSchedulerPendingRequests(String queueId) {
+		Check.requireNonNullArgument(queueId, "queueId is null");
 
-			RAIDSixSchedulerHandler handler = new RAIDSixSchedulerHandler(this);
-			return handler.getSchedulerPendingRequests(queueId);
-		}		
-		
-			/**
-			List<ServiceRequest> result = new ArrayList<>();
+		RAIDSixSchedulerHandler handler = new RAIDSixSchedulerHandler(this);
+		return handler.getSchedulerPendingRequests(queueId);
+	}
 
-			getLockService().getSchedulerLock().writeLock().lock();
-			try {
-				for (RAIDSixVolume volume : getVolumeManager().getAllVolumes()) {
 
-					List<Drive> vDrives = volume.getDrives();
-					if (vDrives.isEmpty())
-						continue;
-
-					// Collect scheduler files per drive within this volume
-					Map<Drive, Map<String, File>> driveFiles = new HashMap<>();
-					for (Drive drive : vDrives) {
-						Map<String, File> fileMap = new HashMap<>();
-						for (File file : drive.getSchedulerRequests(queueId))
-							fileMap.put(file.getName(), file);
-						driveFiles.put(drive, fileMap);
-					}
-
-					Drive referenceDrive = vDrives.get(0);
-					Map<String, File> referenceMap = driveFiles.get(referenceDrive);
-					Map<String, File> useful = new HashMap<>();
-					Map<String, File> useless = new HashMap<>();
-
-					// A request is valid iff it exists on ALL drives within this volume
-					referenceMap.forEach((name, file) -> {
-						boolean complete = vDrives.stream().filter(d -> !d.equals(referenceDrive)).allMatch(d -> driveFiles.get(d).containsKey(name));
-						if (complete)
-							useful.put(name, file);
-						else
-							useless.put(name, file);
-					});
-
-					// Deserialize valid requests (skip if already collected from another volume)
-					for (Map.Entry<String, File> entry : useful.entrySet()) {
-						try {
-							AbstractServiceRequest req = getObjectMapper().readValue(entry.getValue(), AbstractServiceRequest.class);
-							boolean alreadyPresent = result.stream().anyMatch(r -> r.getId() != null && r.getId().equals(req.getId()));
-							if (!alreadyPresent)
-								result.add(req);
-						} catch (Exception e) {
-							logger.error("Failed to deserialize ServiceRequest: " + entry.getValue().getAbsolutePath() + " | " + e.getMessage(), SharedConstant.NOT_THROWN);
-						}
-					}
-
-					// Delete incomplete (useless) files from this volume's drives
-					for (Drive drive : vDrives) {
-						driveFiles.get(drive).forEach((name, file) -> {
-							if (!useful.containsKey(name)) {
-								try {
-									Files.delete(file.toPath());
-								} catch (Exception e) {
-									logger.error(e, SharedConstant.NOT_THROWN);
-								}
-							}
-						});
-					}
-				}
-			} finally {
-				getLockService().getSchedulerLock().writeLock().unlock();
-			}
-			return result;
-		}
-		*/
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
 	@Override
 	public void syncObject(ObjectMetadata meta) {
 		Check.requireNonNullArgument(meta, "meta is null");
@@ -563,8 +407,8 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 			try {
 				decodedFile = decoder.decodeHead(metadata, bucket);
 			} catch (Exception e) {
-				// Not enough shards or other decode error: log and return false
-				// (detection-only)
+				// Not enough shards or other decode error:
+				// log and return false (detection-only)
 				logger.error("Integrity check: unable to decode object for integrity verification -> b:" + bucket.getName() + " o:" + objectName + " d:" + (readDrive != null ? readDrive.getName() : "null") + " | " + e.getMessage(),
 						SharedConstant.NOT_THROWN);
 				return false;
@@ -616,10 +460,38 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 				logger.debug("Integrity OK -> b:" + bucket.getName() + " o:" + objectName + " d:" + readDrive.getName() + " sha:" + computedSha);
 				return true;
 			} else {
-				// Structured, grep-friendly warning
-				logger.warn("RE-ENCODE REQUIRED | bucket=" + bucket.getName() + " | object=" + objectName + " | readDrive=" + (readDrive != null ? readDrive.getName() : "null") + " | metaSha=" + metaSha + " | computedSha=" + computedSha
-						+ " | time=" + OffsetDateTime.now().toString());
-				return false;
+				// SHA mismatch detected — the shards on disk are corrupted.
+				// Release both read locks NOW before calling reencodeObject, which
+				// acquires a write lock. ReentrantReadWriteLock does not support
+				// lock upgrade (read → write), so we must release first.
+				logger.warn("SHA mismatch — attempting re-encode | bucket=" + bucket.getName() + " | object=" + objectName + " | readDrive=" + (readDrive != null ? readDrive.getName() : "null") + " | metaSha=" + metaSha + " | computedSha="
+						+ computedSha + " | time=" + OffsetDateTime.now());
+
+				try {
+					if (bucketLock)
+						getLockService().getBucketLock(bucket).readLock().unlock();
+				} catch (Exception e) {
+					logger.error(e, SharedConstant.NOT_THROWN);
+				}
+				bucketLock = false;
+
+				try {
+					if (objectLock)
+						getLockService().getObjectLock(bucket, objectName).readLock().unlock();
+				} catch (Exception e) {
+					logger.error(e, SharedConstant.NOT_THROWN);
+				}
+				objectLock = false;
+
+				// Decode → re-encode → commit (acquires write lock internally)
+				boolean repaired = reencodeObject(bucket, objectName);
+
+				if (repaired)
+					logger.info("RE-ENCODE SUCCESS | bucket=" + bucket.getName() + " | object=" + objectName);
+				else
+					logger.error("RE-ENCODE FAILED (irrecoverable) | bucket=" + bucket.getName() + " | object=" + objectName);
+
+				return repaired;
 			}
 
 		} finally {
@@ -794,18 +666,11 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		Check.requireNonNullArgument(stream, "InpuStream can not null -> b:" + bucket.getName() + " | o:" + objectName);
 		if (exists(bucket, objectName)) {
 			RAIDSixUpdateObjectHandler updateAgent = new RAIDSixUpdateObjectHandler(this, bucket, objectName);
-		
-			updateAgent.update(
-				RAIDSixUpdateObjectHandler.UpdateObjectParams
-					.builder(bucket, objectName, stream)
-					.srcFileName(fileName)
-					.contentType(contentType)
-					.customTags(customTags)
-					.publicAccess(o_public)
-					.build());
-			
+
+			updateAgent.update(RAIDSixUpdateObjectHandler.UpdateObjectParams.builder(bucket, objectName, stream).srcFileName(fileName).contentType(contentType).customTags(customTags).publicAccess(o_public).build());
+
 			getVirtualFileSystemService().getSystemMonitorService().getUpdateObjectCounter().inc();
-			
+
 		} else {
 			RAIDSixCreateObjectHandler createAgent = new RAIDSixCreateObjectHandler(this, bucket, objectName);
 			createAgent.create(stream, fileName, contentType, customTags, o_public);
@@ -1323,7 +1188,23 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		return files;
 	}
 
-	 
-	
+	/**
+	 * Re-encodes (repairs) the RAID-6 shards for the head version of the given
+	 * object by decoding the current payload and writing fresh RS-encoded shards to
+	 * the active volume. Called by {@link #checkIntegrity} when a SHA-256 mismatch
+	 * is detected.
+	 *
+	 * <p>
+	 * The caller must have released all read locks before calling this method.
+	 * {@link RAIDSixReencodeObjectHandler#reencode} acquires its own write lock.
+	 * </p>
+	 *
+	 * @return {@code true} if shards were successfully re-encoded and committed;
+	 *         {@code false} if the object could not be decoded or the commit failed
+	 */
+	public boolean reencodeObject(ServerBucket bucket, String objectName) {
+		RAIDSixReencodeObjectHandler handler = new RAIDSixReencodeObjectHandler(this, bucket, objectName);
+		return handler.reencode(bucket, objectName);
+	}
 
 } // end RAIDSixDriver

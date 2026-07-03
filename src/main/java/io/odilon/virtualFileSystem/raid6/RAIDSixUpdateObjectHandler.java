@@ -216,7 +216,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionObjectHandler 
 
 				/** copy new version as head version */
 				afterHeadVersion = meta.getVersion() + 1;
-				RAIDSixBlocks ei = saveObjectDataFile(bucket, objectName, stream);
+				RAIDSixShards ei = saveObjectDataFile(bucket, objectName, stream);
 				saveObjectMetadata(bucket, objectName, ei, p.getSrcFileName(), p.getContentType(), afterHeadVersion, meta.getCreationDate(), p.getCustomTags(), p.getPublicAccess());
 
 				/** commit */
@@ -536,7 +536,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionObjectHandler 
 		}
 	}
 
-	private void saveObjectMetadata(ServerBucket bucket, String objectName, RAIDSixBlocks ei, String srcFileName, String contentType, int version, OffsetDateTime headCreationDate, Optional<List<String>> customTags,
+	private void saveObjectMetadata(ServerBucket bucket, String objectName, RAIDSixShards ei, String srcFileName, String contentType, int version, OffsetDateTime headCreationDate, Optional<List<String>> customTags,
 			Optional<Boolean> o_public) {
 
 		Check.requireNonNullArgument(bucket, "bucket is null");
@@ -545,7 +545,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionObjectHandler 
 		StringBuilder etag_b = new StringBuilder();
 		final String bucketName = bucket.getName();
 
-		ei.getEncodedBlocks().forEach(item -> {
+		ei.getEncodedShards().forEach(item -> {
 			try {
 				shaBlocks.add(OdilonFileUtils.calculateSHA256String(item));
 			} catch (Exception e) {
@@ -587,7 +587,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionObjectHandler 
 				newMeta.setLength(ei.getFileSize());
 				newMeta.setSourceLength(ei.getSrcFileSize());
 
-				newMeta.setTotalBlocks(ei.getEncodedBlocks().size());
+				newMeta.setTotalBlocks(ei.getEncodedShards().size());
 				newMeta.setSha256Blocks(shaBlocks);
 				newMeta.setEtag(etag);
 				newMeta.setEncrypt(getVirtualFileSystemService().isEncrypt());
@@ -617,7 +617,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionObjectHandler 
 	 * @param stream
 	 * @param srcFileName
 	 */
-	private RAIDSixBlocks saveObjectDataFile(ServerBucket bucket, String objectName, InputStream stream) {
+	private RAIDSixShards saveObjectDataFile(ServerBucket bucket, String objectName, InputStream stream) {
 
 		Check.requireNonNullArgument(bucket, "bucket is null");
 
@@ -630,7 +630,7 @@ public class RAIDSixUpdateObjectHandler extends RAIDSixTransactionObjectHandler 
 				EncryptedResult encryptedResult = getEncryptionService().encryptStream(stream);
 				sourceStream = encryptedResult.getInputStream();
 				RAIDSixEncoder encoder = new RAIDSixEncoder(getDriver());
-				RAIDSixBlocks blocks = encoder.encodeHead(sourceStream, bucket, objectName);
+				RAIDSixShards blocks = encoder.encodeHead(sourceStream, bucket, objectName);
 				long totalBytesRead = encryptedResult.getCountingStream().getCount();
 				blocks.setSrcFileSize(totalBytesRead);
 				return blocks;

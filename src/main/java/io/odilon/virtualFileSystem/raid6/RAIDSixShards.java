@@ -33,10 +33,10 @@ import io.odilon.model.BaseObject;
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
-public class RAIDSixBlocks extends BaseObject {
+public class RAIDSixShards extends BaseObject {
 
 	@JsonIgnore
-	private List<File> encodedBlocks = new ArrayList<File>();
+	private List<File> encodedShards = new ArrayList<File>();
 
 	@JsonProperty("fileSize")
 	private long fileSize;
@@ -44,7 +44,7 @@ public class RAIDSixBlocks extends BaseObject {
 	@JsonProperty("srcFileSize")
 	private long srcFileSize;
 
-	public RAIDSixBlocks() {
+	public RAIDSixShards() {
 	}
 
 	public long getFileSize() {
@@ -55,20 +55,20 @@ public class RAIDSixBlocks extends BaseObject {
 		this.fileSize = fileSize;
 	}
 
-	public List<File> getEncodedBlocks() {
-		return encodedBlocks;
+	public List<File> getEncodedShards() {
+		return encodedShards;
 	}
 
-	public void setEncodedBlocks(List<File> encodedBlocks) {
-		this.encodedBlocks = encodedBlocks;
+	public void setEncodedShards(List<File> encodedBlocks) {
+		this.encodedShards = encodedBlocks;
 	}
 
 	@Override
 	public String toJSON() {
 		StringBuilder str = new StringBuilder();
-		if (getEncodedBlocks() != null) {
+		if (getEncodedShards() != null) {
 			str.append("[");
-			getEncodedBlocks().forEach(f -> str.append("\"" + f.getName() + "\" "));
+			getEncodedShards().forEach(f -> str.append("\"" + f.getName() + "\" "));
 			str.append("]");
 		}
 		str.append("\"fileSize\":" + String.valueOf(getFileSize()));

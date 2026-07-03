@@ -1330,7 +1330,7 @@ public class ServerSettings implements JSONObject {
 	}
 
 	public int getR6BufferSizeMB() {
-		return ServerConstant.MAX_CHUNK_SIZE;
+		return ServerConstant.MAX_STRIPE_SIZE;
 	}
 	
 	private boolean isWindows() {

@@ -79,7 +79,7 @@ public class BufferPoolService extends BaseService {
 		this.serverSettings = serverSettings;
 
 		poolSize = serverSettings.getR6BufferPoolSize();
-		bufferSize = ServerConstant.MAX_CHUNK_SIZE;  
+		bufferSize = ServerConstant.MAX_STRIPE_SIZE;  
 		this.pool = new ArrayBlockingQueue<>(poolSize);
 	}
 

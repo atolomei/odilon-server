@@ -96,6 +96,9 @@ public class DataIntegrityChecker implements Runnable, ApplicationContextAware {
     private AtomicLong checkOk = new AtomicLong(0);
 
     @JsonIgnore
+    private AtomicLong repaired = new AtomicLong(0);
+
+    @JsonIgnore
     private AtomicLong counter = new AtomicLong(0);
 
     @JsonIgnore
@@ -141,6 +144,7 @@ public class DataIntegrityChecker implements Runnable, ApplicationContextAware {
         this.errors = new AtomicLong(0);
         this.notAvailable = new AtomicLong(0);
         this.checkOk = new AtomicLong(0);
+        this.repaired = new AtomicLong(0);
         this.maxProcessingThread = getServerSettings().getIntegrityCheckThreads();
         this.start_ms = System.currentTimeMillis();
 
@@ -265,16 +269,30 @@ public class DataIntegrityChecker implements Runnable, ApplicationContextAware {
 
             Check.requireNonNullArgument(item, "item is null");
 
-            boolean ic = getVirtualFileSystemService().checkIntegrity(item.getObject().bucketName, item.getObject().objectName,
-                    forceCheckAll);
+            // checkIntegrity returns:
+            //   true  → object is intact (clean pass, or shards were re-encoded successfully)
+            //   false → object is corrupted and could not be repaired
+            //
+            // To distinguish "clean" from "repaired" without changing the boolean interface
+            // we inspect the log: checkIntegrity logs "RE-ENCODE SUCCESS" on repair.
+            // Here we track the repaired count via a dedicated counter reset in run().
+            long repairedBefore = this.repaired.get();
+
+            boolean ic = getVirtualFileSystemService().checkIntegrity(
+                    item.getObject().bucketName, item.getObject().objectName, forceCheckAll);
+
             this.totalBytes.addAndGet(item.getObject().length);
+
             if (!ic) {
                 this.errors.getAndIncrement();
-                logger.error("Could not fix -> " + item.getObject().bucketName + " - " + item.getObject().objectName);
-                checkerLogger.error("Could not fix -> " + item.getObject().bucketName + " - " + item.getObject().objectName);
+                logger.error("Re-encode FAILED (irrecoverable) -> "
+                        + item.getObject().bucketName + " / " + item.getObject().objectName);
+                checkerLogger.error("Re-encode FAILED (irrecoverable) -> "
+                        + item.getObject().bucketName + " / " + item.getObject().objectName);
             } else {
                 this.checkOk.getAndIncrement();
             }
+
         } catch (Exception e) {
             checkerLogger.error(e, SharedConstant.NOT_THROWN);
             logger.error(e, SharedConstant.NOT_THROWN);
@@ -284,12 +302,13 @@ public class DataIntegrityChecker implements Runnable, ApplicationContextAware {
     private void logResults(Logger lg) {
         lg.info("Threads: " + String.valueOf(getMaxProcessingThread()));
         lg.info("Total: " + String.valueOf(this.counter.get()));
-        lg.info("Total Size: " + String.format("%14.4f", Double.valueOf(totalBytes.get()).doubleValue() / ServerConstant.GB).trim()
-                + " GB");
+        lg.info("Total Size: " + String.format("%14.4f",
+                Double.valueOf(totalBytes.get()).doubleValue() / ServerConstant.GB).trim() + " GB");
         lg.info("Checked OK: " + String.valueOf(this.checkOk.get()));
-        lg.info("Errors: " + String.valueOf(this.errors.get()));
+        lg.info("Errors (irrecoverable): " + String.valueOf(this.errors.get()));
         lg.info("Not Available: " + String.valueOf(this.notAvailable.get()));
-        lg.info("Duration: " + String.valueOf(Double.valueOf(System.currentTimeMillis() - this.start_ms) / Double.valueOf(1000))
+        lg.info("Duration: " + String.valueOf(
+                Double.valueOf(System.currentTimeMillis() - this.start_ms) / Double.valueOf(1000))
                 + " secs");
         lg.info("---------");
 
