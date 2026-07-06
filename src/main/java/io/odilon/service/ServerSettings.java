@@ -280,6 +280,10 @@ public class ServerSettings implements JSONObject {
 	@Value("${integrityCheckDays:180}")
 	protected int integrityCheckDays;
 
+/**
+ * 
+ * 
+ */
 	@Value("${integrityCheckCronExpression:15 5 5 * * 7}")
 	protected String integrityCheckCronExpression;
 
@@ -388,7 +392,7 @@ public class ServerSettings implements JSONObject {
 	private int ecBuffers;
 
 	/**
-	 * When {@code true} (the default), every ErasureCoding read verifies each
+	 * When {@code true} every ErasureCoding read verifies each
 	 * in-memory RS shard against its stored SHA-256 checksum ({@code sha256Blocks}
 	 * in {@link ObjectMetadata}).  Any shard whose digest does not match is
 	 * treated as an erasure and reconstructed from parity in a single RS call,
@@ -398,9 +402,9 @@ public class ServerSettings implements JSONObject {
 	 * {@code checksum=sha256}, Btrfs) already provides block-level integrity
 	 * guarantees, to avoid redundant CPU work.</p>
 	 *
-	 * <p>Key: {@code ec.shardChecksumVerify} — default {@code true}.</p>
+	 * <p>Key: {@code ec.shardChecksumVerify} — default {@code false}.</p>
 	 */
-	@Value("${ec.shardChecksumVerify:true}")
+	@Value("${ec.shardChecksumVerify:false}")
 	private boolean ecShardChecksumVerify;
 
 	// --------------------------------------------------

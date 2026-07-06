@@ -32,7 +32,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -287,6 +287,9 @@ public class ECDecoder extends ECCoder {
 				&& getVirtualFileSystemService().getServerSettings().isECShardChecksumVerifyEnabled();
 
 		if (hasSha256Blocks) {
+			
+			long startTime = System.nanoTime();
+			
 			for (int localDisk = 0; localDisk < totalShards; localDisk++) {
 				if (!shardPresent[localDisk])
 					continue; // already an erasure — nothing to check
@@ -306,7 +309,13 @@ public class ECDecoder extends ECCoder {
 					shardCount--;
 				}
 			}
+			
+			if (logger.isDebugEnabled()) {
+				long elapsedMs = (System.nanoTime() - startTime) / 1_000_000;
+				logger.debug("SHA-256 shard validation completed in " + elapsedMs + " ms | " + objectInfo(meta));
+			}
 		}
+		
 
 		// Validate quorum
 		if (shardCount < dataShards) {
