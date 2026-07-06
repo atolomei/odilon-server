@@ -28,6 +28,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
@@ -42,7 +45,6 @@ import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
-import io.odilon.monitor.SystemMonitorService;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.DriveStatus;
 import io.odilon.virtualFileSystem.model.LockService;
@@ -62,12 +64,14 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  * RAIDSixDriveSync owns their repair.
  * </p>
  *
+ *
  * <p>
  * <b>Silent-corruption detection and repair (N=6 scope):</b> when every shard
  * file is physically present, the Reed-Solomon {@code decodeMissing()} call
  * short-circuits with a no-op — it never consults the parity shards, so
  * byte-level corruption would pass through silently. To close this gap,
  * {@code decodeChunk} calls {@code isParityCorrect()} after every RS operation.
+ * 
  * If parity fails, {@link #attemptCorruptionRepair} isolates the bad shard(s)
  * in two phases: Phase 1 tries each shard individually (catches 1 corrupt
  * shard), Phase 2 tries every pair (catches 2 simultaneously corrupt shards).
@@ -107,9 +111,9 @@ public class ECDecoder extends ECCoder {
 	}
 
 	/**
-	 * Decodes the head version treating the given shard indices as absent
+	 * <p>Decodes the head version treating the given shard indices as absent
 	 * (erasures) even if the shard files are physically present on disk.
-	 *
+	 * </p>
 	 * <p>
 	 * Use this overload when per-shard SHA-256 comparison has already identified
 	 * which shards hold corrupt bytes. Converting known errors to erasures restores
@@ -267,6 +271,43 @@ public class ECDecoder extends ECCoder {
 			}
 		}
 
+		// ── SHA-256 shard validation fast path ────────────────────────────────────
+		// When sha256Blocks is available (objects written after per-shard checksums
+		// were introduced) we hash each in-memory shard and compare against the stored
+		// value. Corrupt shards are converted to erasures so rs.decodeMissing() can
+		// reconstruct them from parity in a single RS call — no brute-force needed.
+		// Index mapping: sha256Blocks[ chunk * totalShards + localDisk ]
+		//
+		// Disable via ec.shardChecksumVerify=false when the underlying filesystem
+		// (ZFS, Btrfs) already provides block-level integrity — avoids redundant work.
+		List<String> storedSha256 = meta.getSha256Blocks();
+		boolean hasSha256Blocks = storedSha256 != null
+				&& !storedSha256.isEmpty()
+				&& storedSha256.size() % totalShards == 0
+				&& getVirtualFileSystemService().getServerSettings().isECShardChecksumVerifyEnabled();
+
+		if (hasSha256Blocks) {
+			for (int localDisk = 0; localDisk < totalShards; localDisk++) {
+				if (!shardPresent[localDisk])
+					continue; // already an erasure — nothing to check
+				int sha256Idx = chunk * totalShards + localDisk;
+				if (sha256Idx >= storedSha256.size())
+					continue;
+				String expected = storedSha256.get(sha256Idx);
+				if (expected == null || expected.isEmpty())
+					continue;
+				String actual = computeSha256Hex(shards[localDisk]);
+				if (!actual.equalsIgnoreCase(expected)) {
+					logger.warn("Silent corruption detected via SHA-256: shard[" + localDisk
+							+ "] chunk[" + chunk + "] — converting to erasure for RS reconstruction | "
+							+ objectInfo(meta));
+					shardPresent[localDisk] = false;
+					shards[localDisk] = null;
+					shardCount--;
+				}
+			}
+		}
+
 		// Validate quorum
 		if (shardCount < dataShards) {
 			throw new InternalCriticalException("We need at least " + dataShards + " shards to reconstruct | " + objectInfo(meta));
@@ -282,35 +323,6 @@ public class ECDecoder extends ECCoder {
 		// Reconstruct missing shards using volume-local RS parameters
 		ReedSolomon rs = new ReedSolomon(dataShards, volume.getParityDrives());
 		rs.decodeMissing(shards, shardPresent, 0, shardSize);
-
-		// ── Silent-corruption detection ───────────────────────────────────────────
-		// When all shard files are present, decodeMissing() exits immediately with a
-		// no-op — it never consults the parity shards. We call isParityCorrect()
-		// explicitly so that byte-level corruption is caught here rather than served
-		// silently to the caller. On failure, attemptCorruptionRepair() isolates bad
-		// shards via Phase 1 (single shard) and Phase 2 (pair), which is exhaustive for
-		// the supported N=6 ErasureCoding configuration (max 2 simultaneous corrupt
-		// shards). For larger N, detection still fires but repair is capped at 2; if
-		// >2 shards are corrupt an InternalCriticalException is thrown.
-		//
-		// Enabled via ec.readParityCheck=true in odilon.properties (default: false).
-		// The legacy key raid6.readParityCheck is still accepted.
-		if (shardCount == totalShards && getVirtualFileSystemService().getServerSettings().isECReadParityCheckEnabled()) {
-			long startTime = System.currentTimeMillis();
-			boolean pc = rs.isParityCorrect(shards, 0, shardSize);
-			if (logger.isDebugEnabled()) {
-				logger.debug("Parity check time: " + (System.currentTimeMillis() - startTime) + " ms | " + objectInfo(meta));
-			}
-			if (!pc) {
-				if (logger.isDebugEnabled()) {
-					startTime = System.currentTimeMillis();
-				}
-				attemptCorruptionRepair(meta, volume, bucket, chunk, isHead, shards, shardSize, rs, map);
-				if (logger.isDebugEnabled()) {
-					logger.debug("Corruption repair time: " + (System.currentTimeMillis() - startTime) + " ms | " + objectInfo(meta));
-				}
-			}
-		}
 
 		// ── Read-repair ───────────────────────────────────────────────────────────
 		// Write each reconstructed shard back to its ENABLED drive so that future
@@ -386,7 +398,7 @@ public class ECDecoder extends ECCoder {
 	 * in-place and the corrected shard is written to disk (read-repair) on any
 	 * ENABLED drive. On failure an {@link InternalCriticalException} is thrown.
 	 * </p>
-	 */
+	 
 	private void attemptCorruptionRepair(ObjectMetadata meta, ECVolume volume, ServerBucket bucket, int chunk, boolean isHead, byte[][] shards, int shardSize, ReedSolomon rs, Map<Integer, Drive> map) {
 
 		int totalShards = volume.getTotalShards();
@@ -463,7 +475,7 @@ public class ECDecoder extends ECCoder {
 		throw new InternalCriticalException("Parity mismatch: silent corruption repair failed — " + "repair is capped at 2 simultaneous corrupt shards"
 				+ (parityDrives > 2 ? " (this volume has " + parityDrives + " parity drives but repair supports max 2)" : " (exceeds N=6 EC tolerance)") + " | " + objectInfo(meta));
 	}
-
+*/
 	/**
 	 * Writes a single shard byte array to its canonical path on {@code localDisk}.
 	 * Used by both the standard read-repair path (missing shards) and the
@@ -501,7 +513,7 @@ public class ECDecoder extends ECCoder {
 	 * Creates an independent deep copy of a shard array so that isolation-repair
 	 * attempts can zero-out individual entries without disturbing the original
 	 * data.
-	 */
+	
 	private static byte[][] deepCopyShardsArray(byte[][] src, int total, int shardSize) {
 		byte[][] copy = new byte[total][];
 		for (int i = 0; i < total; i++) {
@@ -509,6 +521,24 @@ public class ECDecoder extends ECCoder {
 				copy[i] = Arrays.copyOf(src[i], shardSize);
 		}
 		return copy;
+	}
+	 */
+
+	/**
+	 * Returns the lowercase hex SHA-256 digest of {@code data}.
+	 * A fresh {@link MessageDigest} instance is used each time (not thread-safe).
+	 */
+	private static String computeSha256Hex(byte[] data) {
+		try {
+			MessageDigest md = MessageDigest.getInstance("SHA-256");
+			byte[] digest = md.digest(data);
+			StringBuilder sb = new StringBuilder(64);
+			for (byte b : digest)
+				sb.append(String.format("%02x", b & 0xFF));
+			return sb.toString();
+		} catch (NoSuchAlgorithmException e) {
+			throw new InternalCriticalException(e, "SHA-256 not available");
+		}
 	}
 
 	private static void readFully(InputStream in, byte[] buffer) throws IOException {

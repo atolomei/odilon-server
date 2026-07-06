@@ -388,18 +388,20 @@ public class ServerSettings implements JSONObject {
 	private int ecBuffers;
 
 	/**
-	 * When {@code true}, every ErasureCoding read whose shards are all physically present
-	 * will have their parity checked via {@link ReedSolomon#isParityCorrect} to
-	 * detect silent byte-level corruption.  Repair is attempted for up to 2
-	 * simultaneously corrupt shards (full N=6 tolerance).
-	 * <p>New key: {@code ec.readParityCheck}. The legacy key
-	 * {@code raid6.readParityCheck} is still accepted for backward compatibility.</p>
-	 * <p>Default: {@code false} — the check adds roughly one parity-encode pass
-	 * per chunk of I/O and should only be enabled when active corruption detection
-	 * on the read path is required.</p>
+	 * When {@code true} (the default), every ErasureCoding read verifies each
+	 * in-memory RS shard against its stored SHA-256 checksum ({@code sha256Blocks}
+	 * in {@link ObjectMetadata}).  Any shard whose digest does not match is
+	 * treated as an erasure and reconstructed from parity in a single RS call,
+	 * then written back to disk (read-repair).
+	 *
+	 * <p>Set to {@code false} when the underlying filesystem (e.g. ZFS with
+	 * {@code checksum=sha256}, Btrfs) already provides block-level integrity
+	 * guarantees, to avoid redundant CPU work.</p>
+	 *
+	 * <p>Key: {@code ec.shardChecksumVerify} — default {@code true}.</p>
 	 */
-	@Value("${ec.readParityCheck:${raid6.readParityCheck:false}}")
-	private boolean ecReadParityCheck;
+	@Value("${ec.shardChecksumVerify:true}")
+	private boolean ecShardChecksumVerify;
 
 	// --------------------------------------------------
 
@@ -459,7 +461,7 @@ public class ServerSettings implements JSONObject {
 			str.append(", \"dataDrives\":" + String.format("%3d", getECDataDrives()).trim());
 			str.append(", \"paritytDrives\":" + String.format("%3d", getECParityDrives()).trim());
 			str.append(", \"ecBufferPoolSize\":" + String.format("%4d", this.getECBufferPoolSize()).trim());
-			str.append(", \"ec.readParityCheck\":\"" + (isECReadParityCheckEnabled() ? "true" : "false") + "\"");
+			str.append(", \"ec.shardChecksumVerify\":\"" + (isECShardChecksumVerifyEnabled() ? "true" : "false") + "\"");
 		}
 
 		str.append(", \"dataDirs\":[");
@@ -524,8 +526,8 @@ public class ServerSettings implements JSONObject {
 		return ecParityDrives;
 	}
 
-	public boolean isECReadParityCheckEnabled() {
-		return ecReadParityCheck;
+	public boolean isECShardChecksumVerifyEnabled() {
+		return ecShardChecksumVerify;
 	}
 
 	public int getECDataDrives() {
