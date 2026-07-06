@@ -69,7 +69,7 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
  * <p>
- * <b>RAID 6 / Erasure Coding </b> <br/>
+ * <b>ErasureCoding / Erasure Coding </b> <br/>
  * It is a method of encoding data into blocks that can be distributed across
  * multiple disks or nodes and then reconstructed from a subset of those blocks.
  * </p>
@@ -134,7 +134,7 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  * D:\odilon-data-raid6\drive1\bucket1\TOLOMEI.2.0 <br/>
  * </p>
  * <p>
- * RAID 6. The only configurations supported in v1.x is -><br/>
+ * ErasureCoding. The only configurations supported in v1.x is -><br/>
  * <br/>
  * data shards = 2 + parity shards = 1 -> 3 disks <br/>
  * data shards = 4 + parity shards = 2 -> 6 disks <br/>
@@ -151,9 +151,8 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  * <p>
  * This Class is works as a
  * <a href="https://en.wikipedia.org/wiki/Facade_pattern">Facade pattern</a>
- * that uses {@link RAIDSixCreateObjectHandler},
- * {@link RAIDSixDeleteObjectHandler}, {@link RAIDSixUpdateObjectHandler},
- * {@link RAIDSixSyncObjectHandler} and other
+ * that uses {@link ECCreateObjectHandler}, {@link ECDeleteObjectHandler},
+ * {@link ECUpdateObjectHandler}, {@link ECSyncObjectHandler} and other
  * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
@@ -161,34 +160,34 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 @ThreadSafe
 @Component
 @Scope("prototype")
-public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAware {
+public class ECDriver extends BaseIODriver implements ApplicationContextAware {
 
-	static private Logger logger = Logger.getLogger(RAIDSixDriver.class.getName());
+	static private Logger logger = Logger.getLogger(ECDriver.class.getName());
 
 	@JsonIgnore
 	private ApplicationContext applicationContext;
 
-	public RAIDSixDriver(VirtualFileSystemService vfs, LockService vfsLockService) {
+	public ECDriver(VirtualFileSystemService vfs, LockService vfsLockService) {
 		super(vfs, vfsLockService);
 	}
 
 	@Override
 	public List<VirtualFileSystemOperation> getJournalPending() {
-		RAIDSixJournalHandler handler = new RAIDSixJournalHandler(this);
+		ECJournalHandler handler = new ECJournalHandler(this);
 		return handler.getJournalPending();
 	}
 
 	@Override
 	public void removeJournal(String id) {
 		Check.requireNonNullArgument(id, "id is null");
-		RAIDSixJournalHandler handler = new RAIDSixJournalHandler(this);
+		ECJournalHandler handler = new ECJournalHandler(this);
 		handler.removeJournal(id);
 	}
 
 	@Override
 	public void saveJournal(VirtualFileSystemOperation op) {
 		Check.requireNonNullArgument(op, "operation is null");
-		RAIDSixJournalHandler handler = new RAIDSixJournalHandler(this);
+		ECJournalHandler handler = new ECJournalHandler(this);
 		handler.saveJournal(op);
 	}
 
@@ -197,7 +196,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 
 	/**
 	 * <p>
-	 * RAID 6 multi-volume override: persist scheduler requests only on the
+	 * ErasureCoding multi-volume override: persist scheduler requests only on the
 	 * <em>active</em> volume's drives.
 	 * </p>
 	 * <p>
@@ -213,14 +212,14 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 	public void saveScheduler(ServiceRequest request, String queueId) {
 		Check.requireNonNullArgument(request, "request is null");
 		Check.requireNonNullArgument(queueId, "queueId is null");
-		RAIDSixSchedulerHandler handler = new RAIDSixSchedulerHandler(this);
+		ECSchedulerHandler handler = new ECSchedulerHandler(this);
 		handler.saveScheduler(request, queueId);
 	}
-	 
+
 	/**
 	 * <p>
-	 * RAID 6 multi-volume override: remove scheduler requests from <em>all</em>
-	 * enabled drives across all volumes.
+	 * ErasureCoding multi-volume override: remove scheduler requests from
+	 * <em>all</em> enabled drives across all volumes.
 	 * </p>
 	 * <p>
 	 * A request may have been saved on an older volume before the active volume
@@ -232,14 +231,13 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		Check.requireNonNullArgument(request, "request is null");
 		Check.requireNonNullArgument(queueId, "queueId is null");
 
-		RAIDSixSchedulerHandler handler = new RAIDSixSchedulerHandler(this);
+		ECSchedulerHandler handler = new ECSchedulerHandler(this);
 		handler.removeScheduler(request, queueId);
 	}
 
-	 
-	 /**
+	/**
 	 * <p>
-	 * RAID 6 multi-volume override: recover scheduler requests by checking
+	 * ErasureCoding multi-volume override: recover scheduler requests by checking
 	 * consistency <em>per-volume</em> rather than across all drives globally.
 	 * </p>
 	 * <p>
@@ -254,20 +252,20 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 	public synchronized List<ServiceRequest> getSchedulerPendingRequests(String queueId) {
 		Check.requireNonNullArgument(queueId, "queueId is null");
 
-		RAIDSixSchedulerHandler handler = new RAIDSixSchedulerHandler(this);
+		ECSchedulerHandler handler = new ECSchedulerHandler(this);
 		return handler.getSchedulerPendingRequests(queueId);
 	}
-
 
 	@Override
 	public void syncObject(ObjectMetadata meta) {
 		Check.requireNonNullArgument(meta, "meta is null");
-		RAIDSixSyncObjectHandler handler = new RAIDSixSyncObjectHandler(this);
+		ECSyncObjectHandler handler = new ECSyncObjectHandler(this);
 		handler.sync(meta);
 	}
 
 	@Override
 	public InputStream getInputStream(ServerBucket bucket, String objectName) throws IOException {
+
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
 
@@ -283,7 +281,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 				ObjectMetadata meta = getDriverObjectMetadataInternal(bucket, objectName, true);
 
 				if ((meta != null) && meta.isAccesible()) {
-					RAIDSixDecoder decoder = new RAIDSixDecoder(this);
+					ECDecoder decoder = new ECDecoder(this);
 					return (meta.isEncrypt()) ? getVirtualFileSystemService().getEncryptionService().decryptStream(Files.newInputStream(decoder.decodeHead(meta, bucket).toPath()))
 							: Files.newInputStream(decoder.decodeHead(meta, bucket).toPath());
 				}
@@ -328,10 +326,11 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 				Drive readDrive = verPool.get(Double.valueOf(Math.abs(Math.random() * 1000)).intValue() % verPool.size());
 
 				ObjectMetadata meta = readDrive.getObjectMetadataVersion(bucket, objectName, version);
+
 				if ((meta == null) || (!meta.isAccesible()))
 					throw new OdilonObjectNotFoundException("object version does not exist -> b:" + objectInfo(bucket, objectName) + " | v:" + version);
 
-				RAIDSixDecoder decoder = new RAIDSixDecoder(this);
+				ECDecoder decoder = new ECDecoder(this);
 				File file = decoder.decodeVersion(meta, bucket);
 
 				if (meta.isEncrypt())
@@ -395,78 +394,73 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 			metadata = getDriverObjectMetadataInternal(bucket, objectName, false);
 
 			// --- start of inserted detection-only logic ---
-
 			// If a recent integrityCheck exists (and forceCheck is false) skip
 			if (!forceCheck && metadata.integrityCheck != null && metadata.integrityCheck.isAfter(thresholdDate)) {
 				logger.debug("Integrity check skipped (recent) -> b:" + bucket.getName() + " o:" + objectName);
 				return true;
 			}
 
-			// Reconstruct current head into file cache using RAIDSixDecoder
-			RAIDSixDecoder decoder = new RAIDSixDecoder(this);
-			File decodedFile;
-			try {
-				decodedFile = decoder.decodeHead(metadata, bucket);
-			} catch (Exception e) {
-				// Not enough shards or other decode error:
-				// log and return false (detection-only)
-				logger.error("Integrity check: unable to decode object for integrity verification -> b:" + bucket.getName() + " o:" + objectName + " d:" + (readDrive != null ? readDrive.getName() : "null") + " | " + e.getMessage(),
-						SharedConstant.NOT_THROWN);
-				return false;
-			}
+		// ── Fast path: shard-level SHA-256 check ────────────────────────────────────
+		// When sha256Blocks is present (objects created/updated after per-shard
+		// checksums were introduced) we verify each RS shard in-place without
+		// performing a full Reed–Solomon decode or any decryption.  Shards are
+		// stored in encoded (and, if applicable, encrypted) form; sha256Blocks
+		// was computed from those same bytes at write time, so the comparison is
+		// valid without knowing the encryption key.
+		List<String> storedShardShas = metadata.getSha256Blocks();
+		ECVolume volume = getVolumeForObject(metadata);
+		if (storedShardShas != null && !storedShardShas.isEmpty()
+				&& storedShardShas.size() % volume.getTotalShards() == 0) {
 
-			// Compute SHA-256 of the payload. If the object is encrypted, decodeHead
-			// returns the encrypted cache file,
-			// so we must decrypt the stream before hashing to compare with a SHA computed
-			// from the original payload.
-			String computedSha = null;
-			try (InputStream rawIn = Files.newInputStream(decodedFile.toPath()); InputStream in = (metadata.isEncrypt() ? getVirtualFileSystemService().getEncryptionService().decryptStream(rawIn) : rawIn)) {
+			List<File> shardFiles = getObjectDataFiles(metadata, bucket, Optional.empty());
+			int totalShards = shardFiles.size(); // == storedShardShas.size()
+			int parityDrives = volume.getParityDrives();
+			int missingOrCorrupt = 0;
 
-				java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
-				byte[] buffer = new byte[8192];
-				int read;
-				while ((read = in.read(buffer)) != -1) {
-					md.update(buffer, 0, read);
+			for (int i = 0; i < totalShards; i++) {
+				File shard = shardFiles.get(i);
+				if (!shard.exists()) {
+					logger.warn("Integrity check: shard missing -> " + shard.getAbsolutePath()
+							+ " | b:" + bucket.getName() + " o:" + objectName);
+					missingOrCorrupt++;
+					continue;
 				}
-				byte[] digest = md.digest();
-				// Convert to hex using project's helper
-				computedSha = io.odilon.service.util.ByteToString.byteToHexString(digest);
-
-			} catch (Exception e) {
-				logger.error(e, "Integrity check: error computing SHA-256 for -> b:" + bucket.getName() + " o:" + objectName);
-				return false;
+				String computed;
+				try (InputStream in = Files.newInputStream(shard.toPath())) {
+					java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+					byte[] buf = new byte[8192];
+					int n;
+					while ((n = in.read(buf)) != -1)
+						md.update(buf, 0, n);
+					computed = io.odilon.service.util.ByteToString.byteToHexString(md.digest());
+				} catch (Exception e) {
+					logger.error(e, "Integrity check: error hashing shard[" + i + "] -> "
+							+ shard.getAbsolutePath(), SharedConstant.NOT_THROWN);
+					missingOrCorrupt++;
+					continue;
+				}
+				if (!computed.equalsIgnoreCase(storedShardShas.get(i))) {
+					logger.warn("Integrity check: SHA mismatch on shard[" + i + "] -> "
+							+ shard.getAbsolutePath()
+							+ " | stored=" + storedShardShas.get(i)
+							+ " | computed=" + computed
+							+ " | b:" + bucket.getName() + " o:" + objectName);
+					missingOrCorrupt++;
+				}
 			}
 
-			// Get metadata SHA (may be null)
-			String metaSha = null;
-			try {
-				// metadata.sha256 is used in other code comments; if accessor exists, this will
-				// still work.
-				// Use field access if available; otherwise try getter as fallback.
-				metaSha = (metadata.sha256 != null) ? metadata.sha256 : (metadata.getSha256() != null ? metadata.getSha256() : null);
-			} catch (NoSuchMethodError ignored) {
-				// Fallback to field only; if metadata.getSha256() doesn't exist, above will use
-				// metadata.sha256
-				metaSha = metadata.sha256;
-			}
-
-			// If metadata has no SHA, log info (no write performed — detection-only)
-			if (metaSha == null || metaSha.trim().isEmpty()) {
-				logger.info("Integrity check (detection-only): no metadata SHA stored -> b:" + bucket.getName() + " o:" + objectName + " computedSha:" + computedSha);
+			if (missingOrCorrupt == 0) {
+				// All shards verified — no structural write needed.
+				logger.debug("Integrity OK (shard-level) -> b:" + bucket.getName()
+						+ " o:" + objectName + " | shards=" + totalShards);
 				return true;
 			}
 
-			// Compare (case-insensitive hex)
-			if (metaSha.equalsIgnoreCase(computedSha)) {
-				logger.debug("Integrity OK -> b:" + bucket.getName() + " o:" + objectName + " d:" + readDrive.getName() + " sha:" + computedSha);
-				return true;
-			} else {
-				// SHA mismatch detected — the shards on disk are corrupted.
-				// Release both read locks NOW before calling reencodeObject, which
-				// acquires a write lock. ReentrantReadWriteLock does not support
-				// lock upgrade (read → write), so we must release first.
-				logger.warn("SHA mismatch — attempting re-encode | bucket=" + bucket.getName() + " | object=" + objectName + " | readDrive=" + (readDrive != null ? readDrive.getName() : "null") + " | metaSha=" + metaSha + " | computedSha="
-						+ computedSha + " | time=" + OffsetDateTime.now());
+			// Degraded but within parity tolerance → re-encode to repair.
+			// Must release read locks before reencodeObject acquires the write lock.
+			if (missingOrCorrupt <= parityDrives) {
+				logger.warn("Integrity DEGRADED (" + missingOrCorrupt + " shard(s) bad, parity="
+						+ parityDrives + ") — re-encoding | b:" + bucket.getName() + " o:" + objectName);
 
 				try {
 					if (bucketLock)
@@ -484,16 +478,96 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 				}
 				objectLock = false;
 
-				// Decode → re-encode → commit (acquires write lock internally)
 				boolean repaired = reencodeObject(bucket, objectName);
-
 				if (repaired)
-					logger.info("RE-ENCODE SUCCESS | bucket=" + bucket.getName() + " | object=" + objectName);
+					logger.info("RE-ENCODE SUCCESS (shard-level) | b:" + bucket.getName() + " o:" + objectName);
 				else
-					logger.error("RE-ENCODE FAILED (irrecoverable) | bucket=" + bucket.getName() + " | object=" + objectName);
-
+					logger.error("RE-ENCODE FAILED (irrecoverable) | b:" + bucket.getName() + " o:" + objectName);
 				return repaired;
 			}
+
+			// More corrupt shards than parity allows — irrecoverable.
+			logger.error("Integrity FAILED: " + missingOrCorrupt + " shard(s) corrupt/missing"
+					+ " (parity=" + parityDrives + ", total=" + totalShards + ")"
+					+ " | b:" + bucket.getName() + " o:" + objectName);
+			return false;
+		}
+
+		// ── Legacy fall-back: sha256Blocks absent → full decode + SHA-256 ──────────
+		// Objects written before per-shard checksums were introduced land here.
+		// Reconstruct the full payload via Reed–Solomon and hash the result.
+		ECDecoder decoder = new ECDecoder(this);
+		File decodedFile = null;
+		try {
+			decodedFile = decoder.decodeHead(metadata, bucket);
+		} catch (Exception e) {
+			logger.error(e, "Integrity check: unable to decode object -> b:" + bucket.getName()
+					+ " o:" + objectName + " d:" + (readDrive != null ? readDrive.getName() : "null")
+					+ " | " + e.getMessage(), SharedConstant.NOT_THROWN);
+			return false;
+		}
+
+		// Compute SHA-256 of the payload. If the object is encrypted, decodeHead
+		// returns the encrypted cache file, so we decrypt the stream before hashing.
+		String computedSha = null;
+		try (InputStream rawIn = Files.newInputStream(decodedFile.toPath());
+				InputStream in = (metadata.isEncrypt()
+						? getVirtualFileSystemService().getEncryptionService().decryptStream(rawIn)
+						: rawIn)) {
+			java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+			byte[] buffer = new byte[8192];
+			int read;
+			while ((read = in.read(buffer)) != -1)
+				md.update(buffer, 0, read);
+			computedSha = io.odilon.service.util.ByteToString.byteToHexString(md.digest());
+		} catch (Exception e) {
+			logger.error(e, "Integrity check: error computing SHA-256 -> b:" + bucket.getName() + " o:" + objectName);
+			return false;
+		}
+
+		String metaSha = metadata.sha256;
+
+		if (metaSha == null || metaSha.trim().isEmpty()) {
+			logger.info("Integrity check (detection-only): no metadata SHA stored -> b:" + bucket.getName()
+					+ " o:" + objectName + " | computedSha:" + computedSha);
+			return true;
+		}
+
+		if (metaSha.equalsIgnoreCase(computedSha)) {
+			logger.debug("Integrity OK (legacy) -> b:" + bucket.getName() + " o:" + objectName
+					+ " d:" + (readDrive != null ? readDrive.getName() : "null") + " | sha:" + computedSha);
+			return true;
+		}
+
+		// SHA mismatch — release read locks and attempt re-encode.
+		logger.warn("SHA mismatch (legacy) — attempting re-encode | b=" + bucket.getName()
+				+ " o=" + objectName
+				+ " | readDrive=" + (readDrive != null ? readDrive.getName() : "null")
+				+ " | metaSha=" + metaSha + " | computedSha=" + computedSha
+				+ " | time=" + OffsetDateTime.now());
+
+		try {
+			if (bucketLock)
+				getLockService().getBucketLock(bucket).readLock().unlock();
+		} catch (Exception e) {
+			logger.error(e, SharedConstant.NOT_THROWN);
+		}
+		bucketLock = false;
+
+		try {
+			if (objectLock)
+				getLockService().getObjectLock(bucket, objectName).readLock().unlock();
+		} catch (Exception e) {
+			logger.error(e, SharedConstant.NOT_THROWN);
+		}
+		objectLock = false;
+
+		boolean repaired = reencodeObject(bucket, objectName);
+		if (repaired)
+			logger.info("RE-ENCODE SUCCESS (legacy) | b:" + bucket.getName() + " o:" + objectName);
+		else
+			logger.error("RE-ENCODE FAILED (irrecoverable) | b:" + bucket.getName() + " o:" + objectName);
+		return repaired;
 
 		} finally {
 
@@ -525,32 +599,32 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 
 		switch (operation.getOperationCode()) {
 		case CREATE_OBJECT: {
-			RAIDSixRollbackCreateHandler handler = new RAIDSixRollbackCreateHandler(this, operation, recoveryMode);
+			ECRollbackCreateHandler handler = new ECRollbackCreateHandler(this, operation, recoveryMode);
 			handler.rollback();
 			return;
 		}
 		case UPDATE_OBJECT: {
-			RAIDSixRollbackUpdateHandler handler = new RAIDSixRollbackUpdateHandler(this, operation, recoveryMode);
+			ECRollbackUpdateHandler handler = new ECRollbackUpdateHandler(this, operation, recoveryMode);
 			handler.rollback();
 			return;
 		}
 		case DELETE_OBJECT: {
-			RAIDSixRollbackDeleteHandler handler = new RAIDSixRollbackDeleteHandler(this, operation, recoveryMode);
+			ECRollbackDeleteHandler handler = new ECRollbackDeleteHandler(this, operation, recoveryMode);
 			handler.rollback();
 			return;
 		}
 		case DELETE_OBJECT_PREVIOUS_VERSIONS: {
-			RAIDSixRollbackDeleteHandler handler = new RAIDSixRollbackDeleteHandler(this, operation, recoveryMode);
+			ECRollbackDeleteHandler handler = new ECRollbackDeleteHandler(this, operation, recoveryMode);
 			handler.rollback();
 			return;
 		}
 		case UPDATE_OBJECT_METADATA: {
-			RAIDSixRollbackUpdateHandler handler = new RAIDSixRollbackUpdateHandler(this, operation, recoveryMode);
+			ECRollbackUpdateHandler handler = new ECRollbackUpdateHandler(this, operation, recoveryMode);
 			handler.rollback();
 			return;
 		}
 		case SYNC_OBJECT_NEW_DRIVE: {
-			RAIDSixRollbackSyncHandler handler = new RAIDSixRollbackSyncHandler(this, operation, recoveryMode);
+			ECRollbackSyncHandler handler = new ECRollbackSyncHandler(this, operation, recoveryMode);
 			handler.rollback();
 			return;
 		}
@@ -666,14 +740,14 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		Check.requireNonNullStringArgument(fileName, "fileName is null | b: " + bucket.getName() + " o:" + objectName);
 		Check.requireNonNullArgument(stream, "InpuStream can not null -> b:" + bucket.getName() + " | o:" + objectName);
 		if (exists(bucket, objectName)) {
-			RAIDSixUpdateObjectHandler updateAgent = new RAIDSixUpdateObjectHandler(this, bucket, objectName);
+			ECUpdateObjectHandler updateAgent = new ECUpdateObjectHandler(this, bucket, objectName);
 
-			updateAgent.update(RAIDSixUpdateObjectHandler.UpdateObjectParams.builder(bucket, objectName, stream).srcFileName(fileName).contentType(contentType).customTags(customTags).publicAccess(o_public).build());
+			updateAgent.update(ECUpdateObjectHandler.UpdateObjectParams.builder(bucket, objectName, stream).srcFileName(fileName).contentType(contentType).customTags(customTags).publicAccess(o_public).build());
 
 			getVirtualFileSystemService().getSystemMonitorService().getUpdateObjectCounter().inc();
 
 		} else {
-			RAIDSixCreateObjectHandler createAgent = new RAIDSixCreateObjectHandler(this, bucket, objectName);
+			ECCreateObjectHandler createAgent = new ECCreateObjectHandler(this, bucket, objectName);
 			createAgent.create(stream, fileName, contentType, customTags, o_public);
 			getVirtualFileSystemService().getSystemMonitorService().getCreateObjectCounter().inc();
 		}
@@ -682,7 +756,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 	@Override
 	public void putObjectMetadata(ObjectMetadata meta) {
 		Check.requireNonNullArgument(meta, "meta is null");
-		RAIDSixUpdateObjectHandler updateAgent = new RAIDSixUpdateObjectHandler(this, getBucket(meta.getBucketName()), meta.getObjectName());
+		ECUpdateObjectHandler updateAgent = new ECUpdateObjectHandler(this, getBucket(meta.getBucketName()), meta.getObjectName());
 		updateAgent.updateObjectMetadataHeadVersion(meta);
 		getVirtualFileSystemService().getSystemMonitorService().getUpdateObjectCounter().inc();
 	}
@@ -728,15 +802,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 	 */
 	@Override
 	public void postObjectDeleteTransaction(ObjectMetadata meta, int headVersion) {
-		/**
-		 * Check.requireNonNullArgument(meta, "meta is null"); String bucketName =
-		 * meta.getBucketName(); String objectName = meta.getObjectName();
-		 * Check.requireNonNullArgument(bucketName, "bucketName is null");
-		 * Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" +
-		 * bucketName); RAIDSixDeleteObjectHandler deleteAgent = new
-		 * RAIDSixDeleteObjectHandler(this); deleteAgent.postObjectDelete(meta,
-		 * headVersion);
-		 **/
+
 	}
 
 	/**
@@ -744,15 +810,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 	 */
 	@Override
 	public void postObjectPreviousVersionDeleteAllTransaction(ObjectMetadata meta, int headVersion) {
-		/**
-		 * Check.requireNonNullArgument(meta, "meta is null"); String bucketName =
-		 * meta.getBucketName(); String objectName = meta.getObjectName();
-		 * Check.requireNonNullArgument(bucketName, "bucket is null");
-		 * Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" +
-		 * bucketName); RAIDSixDeleteObjectHandler deleteAgent = new
-		 * RAIDSixDeleteObjectHandler(this);
-		 * deleteAgent.postObjectPreviousVersionDeleteAll(meta, headVersion);
-		 **/
+
 	}
 
 	@Override
@@ -828,7 +886,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 	public void delete(ServerBucket bucket, String objectName) {
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + bucket.getName());
-		RAIDSixDeleteObjectHandler agent = new RAIDSixDeleteObjectHandler(this, bucket, objectName);
+		ECDeleteObjectHandler agent = new ECDeleteObjectHandler(this, bucket, objectName);
 		agent.delete();
 	}
 
@@ -840,7 +898,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 	@Override
 	public ObjectMetadata restorePreviousVersion(ServerBucket bucket, String objectName) {
 		Check.requireNonNullArgument(bucket, "bucket is null");
-		RAIDSixUpdateObjectHandler agent = new RAIDSixUpdateObjectHandler(this, bucket, objectName);
+		ECUpdateObjectHandler agent = new ECUpdateObjectHandler(this, bucket, objectName);
 		return agent.restorePreviousVersion(bucket, objectName);
 	}
 
@@ -849,9 +907,8 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullArgument(bucket, "bucket does not exist ->" + objectInfo(bucket));
 		Check.requireNonNullArgument(objectName, "objectName is null or empty | b:" + objectInfo(bucket));
-		RAIDSixDeleteObjectAllPreviousVersionsHandler agent = new RAIDSixDeleteObjectAllPreviousVersionsHandler(this, bucket, objectName);
+		ECDeleteObjectAllPreviousVersionsHandler agent = new ECDeleteObjectAllPreviousVersionsHandler(this, bucket, objectName);
 		agent.delete();
-
 	}
 
 	@Override
@@ -860,18 +917,17 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		Check.requireNonNullArgument(bucket, "bucket does not exist ->" + objectInfo(bucket));
 		Check.requireTrue(bucket.isAccesible(), "bucket is not Accesible " + objectInfo(bucket));
 		getSchedulerService().enqueue(getVirtualFileSystemService().getApplicationContext().getBean(DeleteBucketObjectPreviousVersionServiceRequest.class, bucket.getName(), bucket.getId()));
-
 	}
 
 	@Override
 	public RedundancyLevel getRedundancyLevel() {
-		return RedundancyLevel.RAID_6;
+		return RedundancyLevel.ERASURE_CODING;
 	}
 
 	@Override
 	public boolean setUpDrives() {
 		logger.debug("Starting async process to set up drives");
-		return getApplicationContext().getBean(RAIDSixDriveSetup.class, this).setup();
+		return getApplicationContext().getBean(ECDriveSetup.class, this).setup();
 	}
 
 	/**
@@ -895,7 +951,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 				walker = walkerService.get(serverAgentId.get());
 
 			if (walker == null) {
-				walker = new RAIDSixBucketIterator(this, bucket, offset, prefix);
+				walker = new ECBucketIterator(this, bucket, offset, prefix);
 				walkerService.register(walker);
 			}
 
@@ -941,7 +997,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 
 	/**
 	 * <p>
-	 * RAID 6 volume-aware metadata read drive selection.
+	 * ErasureCoding volume-aware metadata read drive selection.
 	 * </p>
 	 * <p>
 	 * When the object metadata is in cache its {@code volumeId} is already known —
@@ -976,7 +1032,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 
 	/**
 	 * <p>
-	 * Volume-aware ObjectMetadata lookup for RAID 6.
+	 * Volume-aware ObjectMetadata lookup for ErasureCoding.
 	 * </p>
 	 * <ol>
 	 * <li>Check the object-metadata cache — if found, return immediately (volumeId
@@ -998,55 +1054,51 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		}
 
 		// 2. Cross-volume search: active volume first, then archives newest-to-oldest
-		for (RAIDSixVolume volume : getVolumeManager().getVolumesInSearchOrder()) {
+		for (ECVolume volume : getVolumeManager().getVolumesInSearchOrder()) {
 
 			List<Drive> vDrives = volume.getDrives();
 			// NOTSYNC drives have no metadata yet — only read from ENABLED drives.
-			List<Drive> pool = vDrives.stream()
-					.filter(d -> d.getDriveInfo().getStatus() == DriveStatus.ENABLED)
-					.collect(Collectors.toList());
+			List<Drive> pool = vDrives.stream().filter(d -> d.getDriveInfo().getStatus() == DriveStatus.ENABLED).collect(Collectors.toList());
+
 			if (pool.isEmpty())
 				continue; // entire volume is still mid-sync — skip it
 
 			// Pick a random candidate drive and read its metadata copy.
 			Drive candidate = pool.get(Double.valueOf(Math.abs(Math.random() * 1000)).intValue() % pool.size());
+
 			ObjectMetadata meta = candidate.getObjectMetadata(bucket, objectName);
+
+			logger.debug("Candidate -> " + candidate.getName() + " | v:" + volume.getVolumeId() + " | meta:" + (meta != null ? "found" : "not found") + " | b:" + bucket.getName() + " o:" + objectName);
 
 			if (meta == null)
 				continue; // object not on this volume
 
 			// ── Metadata checksum verification + quorum repair ───────────────────────
 			// If the candidate drive's copy fails its self-checksum, scan the other
-			// ENABLED drives on the same volume for a healthy copy.  When one is found:
-			//   1. Overwrite the corrupt copy on the bad drive (read-repair).
-			//   2. Return the healthy copy to the caller.
+			// ENABLED drives on the same volume for a healthy copy. When one is found:
+			// 1. Overwrite the corrupt copy on the bad drive (read-repair).
+			// 2. Return the healthy copy to the caller.
 			// If ALL copies fail their checksum we still return the candidate's copy
 			// (at least the object is present), log an error, and let the scrubber
 			// deal with a deeper repair on its next pass.
-			if (meta.metaChecksum != null &&
-					!((OdilonDrive) candidate).isMetadataChecksumValid(bucket, objectName)) {
+			if (meta.metaChecksum != null && !((OdilonDrive) candidate).isMetadataChecksumValid(bucket, objectName)) {
 
-				logger.warn("metaChecksum mismatch on candidate drive " + candidate.getName()
-						+ " | b:" + bucket.getName() + " o:" + objectName
-						+ " — attempting quorum repair from peer drives");
+				logger.warn("metaChecksum mismatch on candidate drive " + candidate.getName() + " | b:" + bucket.getName() + " o:" + objectName + " — attempting quorum repair from peer drives");
 
 				boolean repaired = false;
 				for (Drive peer : pool) {
-					if (peer == candidate) continue;
+					if (peer == candidate)
+						continue;
 					ObjectMetadata peerMeta = peer.getObjectMetadata(bucket, objectName);
 					if (peerMeta != null && ((OdilonDrive) peer).isMetadataChecksumValid(bucket, objectName)) {
 						// Healthy copy found — overwrite the corrupt drive
 						try {
 							peerMeta.setDrive(candidate.getName());
 							candidate.saveObjectMetadata(peerMeta);
-							logger.info("metaChecksum quorum repair SUCCESS: restored drive "
-									+ candidate.getName() + " from peer " + peer.getName()
-									+ " | b:" + bucket.getName() + " o:" + objectName);
+							logger.info("metaChecksum quorum repair SUCCESS: restored drive " + candidate.getName() + " from peer " + peer.getName() + " | b:" + bucket.getName() + " o:" + objectName);
 							meta = peerMeta;
 						} catch (Exception e) {
-							logger.error("metaChecksum quorum repair: could not overwrite drive "
-									+ candidate.getName() + " | " + e.getMessage(),
-									SharedConstant.NOT_THROWN);
+							logger.error("metaChecksum quorum repair: could not overwrite drive " + candidate.getName() + " | " + e.getMessage(), SharedConstant.NOT_THROWN);
 						}
 						repaired = true;
 						break;
@@ -1054,9 +1106,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 				}
 
 				if (!repaired) {
-					logger.error("metaChecksum quorum repair FAILED: all copies on volume "
-							+ volume.getVolumeId() + " are corrupt or missing"
-							+ " | b:" + bucket.getName() + " o:" + objectName);
+					logger.error("metaChecksum quorum repair FAILED: all copies on volume " + volume.getVolumeId() + " are corrupt or missing" + " | b:" + bucket.getName() + " o:" + objectName);
 				}
 			}
 			// ── End of checksum guard ─────────────────────────────────────────────────
@@ -1066,7 +1116,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 
 			if (addToCacheIfMiss && getServerSettings().isUseObjectCache())
 				getObjectMetadataCacheService().put(bucket, objectName, meta);
-			
+
 			return meta;
 		}
 
@@ -1129,32 +1179,32 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 	 * @return
 	 */
 	protected boolean isConfigurationValid(int dataShards, int parityShards) {
-		return getVirtualFileSystemService().getServerSettings().isRAID6ConfigurationValid(dataShards, parityShards);
+		return getVirtualFileSystemService().getServerSettings().isECConfigurationValid(dataShards, parityShards);
 	}
 
 	// ─── Volume helpers ────────────────────────────────────────────────────────
 
 	/**
-	 * Returns the {@link OdilonRAIDSixVolumeManager} from the VFS service.
+	 * Returns the {@link OdilonECVolumeManager} from the VFS service.
 	 */
-	public OdilonRAIDSixVolumeManager getVolumeManager() {
+	public OdilonECVolumeManager getVolumeManager() {
 		return getVirtualFileSystemService().getVolumeManager();
 	}
 
 	/**
-	 * Returns the currently active {@link RAIDSixVolume} – the one that receives
+	 * Returns the currently active {@link ECVolume} – the one that receives
 	 * new-object writes.
 	 */
-	public RAIDSixVolume getActiveVolume() {
+	public ECVolume getActiveVolume() {
 		return getVolumeManager().getActiveVolume();
 	}
 
 	/**
-	 * Resolves the {@link RAIDSixVolume} that holds the shards for {@code meta}.
+	 * Resolves the {@link ECVolume} that holds the shards for {@code meta}.
 	 * Defaults to volume 0 when {@code meta.volumeId == 0} (backward compatible
 	 * with objects created before multi-volume support).
 	 */
-	public RAIDSixVolume getVolumeForObject(ObjectMetadata meta) {
+	public ECVolume getVolumeForObject(ObjectMetadata meta) {
 		return getVolumeManager().getVolumeById(meta.getVolumeId());
 	}
 
@@ -1175,7 +1225,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 
 		Check.requireNonNullArgument(meta, "meta is null");
 
-		RAIDSixVolume volume = getVolumeForObject(meta);
+		ECVolume volume = getVolumeForObject(meta);
 		List<Drive> volumeDrives = volume.getDrives();
 
 		Map<Drive, List<String>> map = new HashMap<Drive, List<String>>();
@@ -1214,7 +1264,7 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 		if (meta == null)
 			return files;
 
-		RAIDSixVolume volume = getVolumeForObject(meta);
+		ECVolume volume = getVolumeForObject(meta);
 		List<Drive> volumeDrives = volume.getDrives();
 
 		int totalBlocks = meta.getSha256Blocks().size();
@@ -1246,14 +1296,14 @@ public class RAIDSixDriver extends BaseIODriver implements ApplicationContextAwa
 	 *
 	 * <p>
 	 * The caller must have released all read locks before calling this method.
-	 * {@link RAIDSixReencodeObjectHandler#reencode} acquires its own write lock.
+	 * {@link ECReencodeObjectHandler#reencode} acquires its own write lock.
 	 * </p>
 	 *
 	 * @return {@code true} if shards were successfully re-encoded and committed;
 	 *         {@code false} if the object could not be decoded or the commit failed
 	 */
 	public boolean reencodeObject(ServerBucket bucket, String objectName) {
-		RAIDSixReencodeObjectHandler handler = new RAIDSixReencodeObjectHandler(this, bucket, objectName);
+		ECReencodeObjectHandler handler = new ECReencodeObjectHandler(this, bucket, objectName);
 		return handler.reencode(bucket, objectName);
 	}
 

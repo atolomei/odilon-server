@@ -39,6 +39,7 @@ import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
 import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
+import io.odilon.util.DateTimeUtil;
 import io.odilon.virtualFileSystem.OdilonVirtualFileSystemOperation;
 import io.odilon.virtualFileSystem.model.IODriver;
 import io.odilon.virtualFileSystem.model.LockService;
@@ -283,8 +284,8 @@ public class StandByInitialSync implements Runnable {
 									if (objectSynced) {
 										try {
 											ObjectMetadata meta = item.getObject();
-											meta.dateSynced = OffsetDateTime.now();
-											meta.lastModified = OffsetDateTime.now();
+											meta.dateSynced = DateTimeUtil.now();
+											meta.lastModified = DateTimeUtil.now();
 											getDriver().putObjectMetadata(meta);
 
 										} catch (Exception e) {

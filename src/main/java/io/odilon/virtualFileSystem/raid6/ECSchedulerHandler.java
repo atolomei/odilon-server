@@ -36,14 +36,20 @@ import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.IODriver;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 
-public class RAIDSixSchedulerHandler extends BaseRAIDHandler implements RAIDHandler {
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ * 
+ */
 
-	static private Logger logger = Logger.getLogger(RAIDSixDriver.class.getName());
+public class ECSchedulerHandler extends BaseRAIDHandler implements RAIDHandler {
+
+	static private Logger logger = Logger.getLogger(ECDriver.class.getName());
 
 	@JsonIgnore
-	private final RAIDSixDriver driver;
+	private final ECDriver driver;
 
-	public RAIDSixSchedulerHandler(RAIDSixDriver driver) {
+	public ECSchedulerHandler(ECDriver driver) {
 		this.driver = driver;
 	}
 
@@ -54,7 +60,7 @@ public class RAIDSixSchedulerHandler extends BaseRAIDHandler implements RAIDHand
 
 	/**
 	 * <p>
-	 * RAID 6 multi-volume override: persist scheduler requests only on the
+	 * Erasure Coding multi-volume override: persist scheduler requests only on the
 	 * <em>active</em> volume's drives.
 	 * </p>
 	 * <p>
@@ -79,7 +85,7 @@ public class RAIDSixSchedulerHandler extends BaseRAIDHandler implements RAIDHand
 
 	/**
 	 * <p>
-	 * RAID 6 multi-volume override: remove scheduler requests from <em>all</em>
+	 * Erasure Coding multi-volume override: remove scheduler requests from <em>all</em>
 	 * enabled drives across all volumes.
 	 * </p>
 	 * <p>
@@ -100,7 +106,7 @@ public class RAIDSixSchedulerHandler extends BaseRAIDHandler implements RAIDHand
 
 	/**
 	 * <p>
-	 * RAID 6 multi-volume override: recover scheduler requests by checking
+	 * Erasure Coding multi-volume override: recover scheduler requests by checking
 	 * consistency <em>per-volume</em> rather than across all drives globally.
 	 * </p>
 	 * <p>
@@ -118,7 +124,7 @@ public class RAIDSixSchedulerHandler extends BaseRAIDHandler implements RAIDHand
 
 		getLockService().getSchedulerLock().writeLock().lock();
 		try {
-			for (RAIDSixVolume volume : getRAIDSixDriver().getVolumeManager().getAllVolumes()) {
+			for (ECVolume volume : getRAIDSixDriver().getVolumeManager().getAllVolumes()) {
 
 				List<Drive> vDrives = volume.getDrives();
 				if (vDrives.isEmpty())
@@ -183,7 +189,7 @@ public class RAIDSixSchedulerHandler extends BaseRAIDHandler implements RAIDHand
 		return getRAIDSixDriver().getObjectMetadataReadDrive(bucket, objectName);
 	}
 
-	private RAIDSixDriver getRAIDSixDriver() {
+	private ECDriver getRAIDSixDriver() {
 		return this.driver;
 	}
 

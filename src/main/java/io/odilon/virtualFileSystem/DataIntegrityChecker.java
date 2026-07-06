@@ -68,254 +68,249 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 @Scope("prototype")
 public class DataIntegrityChecker implements Runnable, ApplicationContextAware {
 
-    static private Logger logger = Logger.getLogger(DataIntegrityChecker.class.getName());
-    static private Logger checkerLogger = Logger.getLogger("dataIntegrityCheck");
+	static private Logger logger = Logger.getLogger(DataIntegrityChecker.class.getName());
+	static private Logger checkerLogger = Logger.getLogger("dataIntegrityCheck");
 
-    private boolean forceCheckAll = false;
+	private boolean forceCheckAll = false;
 
-    private int maxProcessingThread = 1;
+	private int maxProcessingThread = 1;
 
-    @JsonIgnore
-    long start_ms = 0;
+	@JsonIgnore
+	long start_ms = 0;
 
-    @JsonIgnore
-    private Thread thread;
+	@JsonIgnore
+	private Thread thread;
 
-    @JsonIgnore
-    private ApplicationContext applicationContext;
+	@JsonIgnore
+	private ApplicationContext applicationContext;
 
-    @JsonIgnore
-    @Autowired
-    VirtualFileSystemService vfs;
+	@JsonIgnore
+	@Autowired
+	VirtualFileSystemService vfs;
 
-    @JsonIgnore
-    @Autowired
-    ServerSettings settings;
+	@JsonIgnore
+	@Autowired
+	ServerSettings settings;
 
-    @JsonIgnore
-    private AtomicLong checkOk = new AtomicLong(0);
+	@JsonIgnore
+	private AtomicLong checkOk = new AtomicLong(0);
 
-    @JsonIgnore
-    private AtomicLong repaired = new AtomicLong(0);
+	@JsonIgnore
+	private AtomicLong repaired = new AtomicLong(0);
 
-    @JsonIgnore
-    private AtomicLong counter = new AtomicLong(0);
+	@JsonIgnore
+	private AtomicLong counter = new AtomicLong(0);
 
-    @JsonIgnore
-    private AtomicLong totalBytes = new AtomicLong(0);
+	@JsonIgnore
+	private AtomicLong totalBytes = new AtomicLong(0);
 
-    @JsonIgnore
-    private AtomicLong errors = new AtomicLong(0);
+	@JsonIgnore
+	private AtomicLong errors = new AtomicLong(0);
 
-    @JsonIgnore
-    private AtomicLong notAvailable = new AtomicLong(0);
+	@JsonIgnore
+	private AtomicLong notAvailable = new AtomicLong(0);
 
-    public DataIntegrityChecker() {
-    }
+	public DataIntegrityChecker() {
+	}
 
-    public DataIntegrityChecker(VirtualFileSystemService vfs, ServerSettings settings) {
-        this.vfs = vfs;
-        this.settings = settings;
-    }
+	public DataIntegrityChecker(VirtualFileSystemService vfs, ServerSettings settings) {
+		this.vfs = vfs;
+		this.settings = settings;
+	}
 
-    public DataIntegrityChecker(boolean forceCheckAll) {
-        this.forceCheckAll = forceCheckAll;
-    }
+	public DataIntegrityChecker(boolean forceCheckAll) {
+		this.forceCheckAll = forceCheckAll;
+	}
 
-    /**
-     *
-     * 
-     */
-    @Override
-    public void run() {
+	/**
+	 *
+	 * 
+	 */
+	@Override
+	public void run() {
 
-        checkerLogger.info("Starting -> " + getClass().getSimpleName());
+		checkerLogger.info("Starting -> " + getClass().getSimpleName());
 
-        if (getVirtualFileSystemService().getStatus() != ServiceStatus.RUNNING)
-            throw new IllegalStateException(this.getVirtualFileSystemService().getClass().getSimpleName() + " is not in status "
-                    + ServiceStatus.RUNNING.getName());
+		if (getVirtualFileSystemService().getStatus() != ServiceStatus.RUNNING)
+			throw new IllegalStateException(this.getVirtualFileSystemService().getClass().getSimpleName() + " is not in status " + ServiceStatus.RUNNING.getName());
 
-        if (getVirtualFileSystemService().getReplicationService().isInitialSync().get()) {
-            checkerLogger.info("Can not run integrity checker while there is a Master - StandBy sync in process");
-            return;
-        }
+		if (getVirtualFileSystemService().getReplicationService().isInitialSync().get()) {
+			checkerLogger.info("Can not run integrity checker while there is a Master - StandBy sync in process");
+			return;
+		}
 
-        this.counter = new AtomicLong(0);
-        this.errors = new AtomicLong(0);
-        this.notAvailable = new AtomicLong(0);
-        this.checkOk = new AtomicLong(0);
-        this.repaired = new AtomicLong(0);
-        this.maxProcessingThread = getServerSettings().getIntegrityCheckThreads();
-        this.start_ms = System.currentTimeMillis();
+		this.counter = new AtomicLong(0);
+		this.errors = new AtomicLong(0);
+		this.notAvailable = new AtomicLong(0);
+		this.checkOk = new AtomicLong(0);
+		this.repaired = new AtomicLong(0);
+		this.maxProcessingThread = getServerSettings().getIntegrityCheckThreads();
+		this.start_ms = System.currentTimeMillis();
 
-        ExecutorService executor = null;
+		ExecutorService executor = null;
 
-        try {
+		try {
 
-            executor = Executors.newFixedThreadPool(getMaxProcessingThread());
+			logger.debug("Starting integrity check with " + getMaxProcessingThread() + " threads");
 
-            for (ServerBucket bucket : getVirtualFileSystemService().listAllBuckets()) {
-            	Long pageSize = Long.valueOf(ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE);
-                Long offset = Long.valueOf(0);
-                String agentId = null;
-                boolean done = false;
-                while (!done) {
-                    DataList<Item<ObjectMetadata>> data = getVirtualFileSystemService().listObjects(bucket.getName(),
-                            Optional.of(offset), Optional.ofNullable(pageSize), Optional.empty(), Optional.ofNullable(agentId));
+			executor = Executors.newFixedThreadPool(getMaxProcessingThread());
 
-                    if (agentId == null)
-                        agentId = data.getAgentId();
+			for (ServerBucket bucket : getVirtualFileSystemService().listAllBuckets()) {
+				Long pageSize = Long.valueOf(ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE);
+				Long offset = Long.valueOf(0);
+				String agentId = null;
+				boolean done = false;
+				while (!done) {
+					DataList<Item<ObjectMetadata>> data = getVirtualFileSystemService().listObjects(bucket.getName(), Optional.of(offset), Optional.ofNullable(pageSize), Optional.empty(), Optional.ofNullable(agentId));
 
-                    List<Callable<Object>> tasks = new ArrayList<>(data.getList().size());
+					if (agentId == null)
+						agentId = data.getAgentId();
 
-                    for (Item<ObjectMetadata> item : data.getList()) {
+					List<Callable<Object>> tasks = new ArrayList<>(data.getList().size());
 
-                        tasks.add(() -> {
+					for (Item<ObjectMetadata> item : data.getList()) {
 
-                            try {
-                                this.counter.getAndIncrement();
-                                if (item.isOk())
-                                    check(item);
-                                else
-                                    this.notAvailable.getAndIncrement();
+						tasks.add(() -> {
 
-                            } catch (Exception e) {
-                                logger.error(e, SharedConstant.NOT_THROWN);
-                                checkerLogger.error(e, SharedConstant.NOT_THROWN);
-                            }
-                            return null;
-                        });
-                    }
+							try {
+								this.counter.getAndIncrement();
+								if (item.isOk())
+									check(item);
+								else
+									this.notAvailable.getAndIncrement();
 
-                    try {
-                        executor.invokeAll(tasks, 20, TimeUnit.MINUTES);
-                    } catch (InterruptedException e) {
-                        logger.error(e, SharedConstant.NOT_THROWN);
-                        checkerLogger.error(e, SharedConstant.NOT_THROWN);
-                    }
-                    offset += Long.valueOf(Integer.valueOf(data.getList().size()).longValue());
-                    done = data.isEOD();
-                }
-            }
+							} catch (Exception e) {
+								logger.error(e, SharedConstant.NOT_THROWN);
+								checkerLogger.error(e, SharedConstant.NOT_THROWN);
+							}
+							return null;
+						});
+					}
 
-            try {
-                executor.shutdown();
-                executor.awaitTermination(15, TimeUnit.MINUTES);
+					try {
+						executor.invokeAll(tasks, 20, TimeUnit.MINUTES);
+					} catch (InterruptedException e) {
+						logger.error(e, SharedConstant.NOT_THROWN);
+						checkerLogger.error(e, SharedConstant.NOT_THROWN);
+					}
+					offset += Long.valueOf(Integer.valueOf(data.getList().size()).longValue());
+					done = data.isEOD();
+				}
+			}
 
-            } catch (InterruptedException e) {
-            }
+			try {
+				executor.shutdown();
+				executor.awaitTermination(15, TimeUnit.MINUTES);
 
-        } finally {
-            logResults(checkerLogger);
-            logResults(logger);
-        }
-    }
+			} catch (InterruptedException e) {
+			}
 
-    /**
-     * 
-     * 
-     */
-    @PostConstruct
-    public void onInitialize() {
-        this.thread = new Thread(this);
-        this.thread.setDaemon(true);
-        this.thread.setName(this.getClass().getSimpleName());
-        this.thread.start();
-    }
+		} finally {
+			logResults(checkerLogger);
+			logResults(logger);
+		}
+	}
 
-    @Override
-    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-        this.applicationContext = applicationContext;
-    }
+	/**
+	 * 
+	 * 
+	 */
+	@PostConstruct
+	public void onInitialize() {
+		this.thread = new Thread(this);
+		this.thread.setDaemon(true);
+		this.thread.setName(this.getClass().getSimpleName());
+		this.thread.start();
+	}
 
-    @Override
-    public String toString() {
-        StringBuilder str = new StringBuilder();
-        str.append(this.getClass().getSimpleName() + "{");
-        str.append(toJSON());
-        str.append("}");
-        return str.toString();
-    }
+	@Override
+	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+		this.applicationContext = applicationContext;
+	}
 
-    public String toJSON() {
-        try {
-            StringBuilder str = new StringBuilder();
-            str.append("\"name\":" + (Optional.ofNullable(thread).isPresent() ? thread.getName() : "null"));
-            return str.toString();
-        } catch (Exception e) {
-            logger.error(e, SharedConstant.NOT_THROWN);
-            return "\"error\":\"" + e.getClass().getName() + " | " + e.getMessage() + "\"";
-        }
-    }
+	@Override
+	public String toString() {
+		StringBuilder str = new StringBuilder();
+		str.append(this.getClass().getSimpleName() + "{");
+		str.append(toJSON());
+		str.append("}");
+		return str.toString();
+	}
 
-    public VirtualFileSystemService getVirtualFileSystemService() {
-        return this.vfs;
-    }
+	public String toJSON() {
+		try {
+			StringBuilder str = new StringBuilder();
+			str.append("\"name\":" + (Optional.ofNullable(thread).isPresent() ? thread.getName() : "null"));
+			return str.toString();
+		} catch (Exception e) {
+			logger.error(e, SharedConstant.NOT_THROWN);
+			return "\"error\":\"" + e.getClass().getName() + " | " + e.getMessage() + "\"";
+		}
+	}
 
-    public ApplicationContext getApplicationContext() {
-        return this.applicationContext;
-    }
+	public VirtualFileSystemService getVirtualFileSystemService() {
+		return this.vfs;
+	}
 
-    public int getMaxProcessingThread() {
-        return maxProcessingThread;
-    }
+	public ApplicationContext getApplicationContext() {
+		return this.applicationContext;
+	}
 
-    public void setMaxProcessingThread(int maxProcessingThread) {
-        this.maxProcessingThread = maxProcessingThread;
-    }
+	public int getMaxProcessingThread() {
+		return maxProcessingThread;
+	}
 
-    private void check(Item<ObjectMetadata> item) {
-        try {
+	public void setMaxProcessingThread(int maxProcessingThread) {
+		this.maxProcessingThread = maxProcessingThread;
+	}
 
-            Check.requireNonNullArgument(item, "item is null");
+	private void check(Item<ObjectMetadata> item) {
+		try {
 
-            // checkIntegrity returns:
-            //   true  → object is intact (clean pass, or shards were re-encoded successfully)
-            //   false → object is corrupted and could not be repaired
-            //
-            // To distinguish "clean" from "repaired" without changing the boolean interface
-            // we inspect the log: checkIntegrity logs "RE-ENCODE SUCCESS" on repair.
-            // Here we track the repaired count via a dedicated counter reset in run().
-            long repairedBefore = this.repaired.get();
+			Check.requireNonNullArgument(item, "item is null");
 
-            boolean ic = getVirtualFileSystemService().checkIntegrity(
-                    item.getObject().bucketName, item.getObject().objectName, forceCheckAll);
+			// checkIntegrity returns:
+			// true → object is intact (clean pass, or shards were re-encoded successfully)
+			// false → object is corrupted and could not be repaired
+			//
+			// To distinguish "clean" from "repaired" without changing the boolean interface
+			// we inspect the log: checkIntegrity logs "RE-ENCODE SUCCESS" on repair.
+			// Here we track the repaired count via a dedicated counter reset in run().
+			// long repairedBefore = this.repaired.get();
 
-            this.totalBytes.addAndGet(item.getObject().length);
+			boolean ic = getVirtualFileSystemService().checkIntegrity(item.getObject().bucketName, item.getObject().objectName, forceCheckAll);
 
-            if (!ic) {
-                this.errors.getAndIncrement();
-                logger.error("Re-encode FAILED (irrecoverable) -> "
-                        + item.getObject().bucketName + " / " + item.getObject().objectName);
-                checkerLogger.error("Re-encode FAILED (irrecoverable) -> "
-                        + item.getObject().bucketName + " / " + item.getObject().objectName);
-            } else {
-                this.checkOk.getAndIncrement();
-            }
+			this.totalBytes.addAndGet(item.getObject().length);
 
-        } catch (Exception e) {
-            checkerLogger.error(e, SharedConstant.NOT_THROWN);
-            logger.error(e, SharedConstant.NOT_THROWN);
-        }
-    }
+			if (!ic) {
+				this.errors.getAndIncrement();
+				logger.error("Re-encode FAILED (irrecoverable) -> " + item.getObject().bucketName + " / " + item.getObject().objectName);
+				checkerLogger.error("Re-encode FAILED (irrecoverable) -> " + item.getObject().bucketName + " / " + item.getObject().objectName);
+			} else {
 
-    private void logResults(Logger lg) {
-        lg.info("Threads: " + String.valueOf(getMaxProcessingThread()));
-        lg.info("Total: " + String.valueOf(this.counter.get()));
-        lg.info("Total Size: " + String.format("%14.4f",
-                Double.valueOf(totalBytes.get()).doubleValue() / ServerConstant.GB).trim() + " GB");
-        lg.info("Checked OK: " + String.valueOf(this.checkOk.get()));
-        lg.info("Errors (irrecoverable): " + String.valueOf(this.errors.get()));
-        lg.info("Not Available: " + String.valueOf(this.notAvailable.get()));
-        lg.info("Duration: " + String.valueOf(
-                Double.valueOf(System.currentTimeMillis() - this.start_ms) / Double.valueOf(1000))
-                + " secs");
-        lg.info("---------");
+				this.checkOk.getAndIncrement();
+			}
 
-    }
+		} catch (Exception e) {
+			checkerLogger.error(e, SharedConstant.NOT_THROWN);
+			logger.error(e, SharedConstant.NOT_THROWN);
+		}
+	}
 
-    private ServerSettings getServerSettings() {
-        return settings;
-    }
+	private void logResults(Logger lg) {
+		lg.info("Threads: " + String.valueOf(getMaxProcessingThread()));
+		lg.info("Total: " + String.valueOf(this.counter.get()));
+		lg.info("Total Size: " + String.format("%14.4f", Double.valueOf(totalBytes.get()).doubleValue() / ServerConstant.GB).trim() + " GB");
+		lg.info("Checked OK: " + String.valueOf(this.checkOk.get()));
+		lg.info("Errors (irrecoverable): " + String.valueOf(this.errors.get()));
+		lg.info("Not Available: " + String.valueOf(this.notAvailable.get()));
+		lg.info("Duration: " + String.valueOf(Double.valueOf(System.currentTimeMillis() - this.start_ms) / Double.valueOf(1000)) + " secs");
+		lg.info("---------");
+
+	}
+
+	private ServerSettings getServerSettings() {
+		return settings;
+	}
 
 }

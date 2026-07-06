@@ -42,7 +42,7 @@ import io.odilon.virtualFileSystem.model.SimpleDrive;
  * RAID 0 {@link RAIDZeroDriver} <br/>
  * RAID 1 {@link RAIDOneDriver}. <br/>
  * <br/>
- * This class is not used by RAID 6 {@link RAIDSixDriver}
+ * This class is not used by RAID 6 {@link ECDriver}
  * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)

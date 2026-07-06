@@ -27,13 +27,13 @@ import io.odilon.log.Logger;
 
 /**
  * <p>
- * Manages the set of {@link RAIDSixVolume}s that compose the server's RAID 6
+ * Manages the set of {@link ECVolume}s that compose the server's EC
  * storage layer.
  * </p>
  *
  * <h3>Capacity expansion</h3>
  * <p>
- * A "volume" is an independent RAID 6 disk group.  When the active volume fills
+ * A "volume" is an independent EC disk group.  When the active volume fills
  * up the administrator:
  * </p>
  * <ol>
@@ -56,25 +56,25 @@ import io.odilon.log.Logger;
  * </p>
  *
  * @author atolomei@novamens.com (Alejandro Tolomei)
- * @see RAIDSixVolume
+ * @see ECVolume
  * @see VolumeStatus
  */
-public class OdilonRAIDSixVolumeManager {
+public class OdilonECVolumeManager {
 
-    static private Logger logger = Logger.getLogger(OdilonRAIDSixVolumeManager.class.getName());
+    static private Logger logger = Logger.getLogger(OdilonECVolumeManager.class.getName());
 
     /**
-     * Ordered list of all volumes.  Index == {@link RAIDSixVolume#getVolumeId()}.
+     * Ordered list of all volumes.  Index == {@link ECVolume#getVolumeId()}.
      */
-    private final CopyOnWriteArrayList<RAIDSixVolume> volumes = new CopyOnWriteArrayList<>();
+    private final CopyOnWriteArrayList<ECVolume> volumes = new CopyOnWriteArrayList<>();
 
     /** Which volume receives new-object writes. */
     private volatile int activeVolumeId = 0;
 
-    private volatile List<RAIDSixVolume> raidSixVolume;
+    private volatile List<ECVolume> ecVolume;
 
     
-    public OdilonRAIDSixVolumeManager() {}
+    public OdilonECVolumeManager() {}
 
     // ─── Mutation ──────────────────────────────────────────────────────────────
 
@@ -84,7 +84,7 @@ public class OdilonRAIDSixVolumeManager {
      *
      * @throws InternalCriticalException if the expected volumeId is not sequential.
      */
-    public synchronized void addVolume(RAIDSixVolume volume) {
+    public synchronized void addVolume(ECVolume volume) {
         int expected = volumes.size();
         if (volume.getVolumeId() != expected)
             throw new InternalCriticalException(
@@ -101,7 +101,7 @@ public class OdilonRAIDSixVolumeManager {
      *         {@link VolumeStatus#ACTIVE} (i.e., not writable).
      */
     public synchronized void setActiveVolumeId(int volumeId) {
-        RAIDSixVolume target = getVolumeById(volumeId);
+        ECVolume target = getVolumeById(volumeId);
         if (!target.isActive())
             throw new InternalCriticalException(
                     "Cannot set volume " + volumeId + " as active: status is " + target.getStatus());
@@ -114,7 +114,7 @@ public class OdilonRAIDSixVolumeManager {
     /**
      * Returns the volume that currently accepts new-object writes.
      */
-    public RAIDSixVolume getActiveVolume() {
+    public ECVolume getActiveVolume() {
         return getVolumeById(activeVolumeId);
     }
 
@@ -123,7 +123,7 @@ public class OdilonRAIDSixVolumeManager {
      *
      * @throws InternalCriticalException if no volume with that id exists.
      */
-    public RAIDSixVolume getVolumeById(int volumeId) {
+    public ECVolume getVolumeById(int volumeId) {
         if (volumeId < 0 || volumeId >= volumes.size())
             throw new InternalCriticalException(
                     "No volume found for volumeId=" + volumeId
@@ -132,7 +132,7 @@ public class OdilonRAIDSixVolumeManager {
     }
 
     /** Returns an unmodifiable snapshot of all registered volumes. */
-    public List<RAIDSixVolume> getAllVolumes() {
+    public List<ECVolume> getAllVolumes() {
         return Collections.unmodifiableList(new ArrayList<>(volumes));
     }
 
@@ -151,27 +151,27 @@ public class OdilonRAIDSixVolumeManager {
     
     
      
-    public List<RAIDSixVolume> getVolumesInSearchOrder() {
+    public List<ECVolume> getVolumesInSearchOrder() {
     	
-    	if (raidSixVolume != null)
-    		return this.raidSixVolume;
+    	if (ecVolume != null)
+    		return this.ecVolume;
     	
     	synchronized (this) {
     		// Inner null-check: required for correct DCL — another thread may have
     		// computed the list between the outer check and acquiring the monitor.
-    		if (raidSixVolume != null)
-    			return this.raidSixVolume;
+    		if (ecVolume != null)
+    			return this.ecVolume;
 
-	    	List<RAIDSixVolume> order = new ArrayList<>();
-	        RAIDSixVolume active = getActiveVolume();
+	    	List<ECVolume> order = new ArrayList<>();
+	        ECVolume active = getActiveVolume();
 	        order.add(active);
 	        new ArrayList<>(volumes).stream()
 	                .filter(v -> v.getVolumeId() != activeVolumeId)
-	                .sorted(Comparator.comparingInt(RAIDSixVolume::getVolumeId).reversed())
+	                .sorted(Comparator.comparingInt(ECVolume::getVolumeId).reversed())
 	                .forEach(order::add);
-	        this.raidSixVolume = Collections.unmodifiableList(order);
+	        this.ecVolume = Collections.unmodifiableList(order);
     	}
-    	return this.raidSixVolume;
+    	return this.ecVolume;
     }
         
 

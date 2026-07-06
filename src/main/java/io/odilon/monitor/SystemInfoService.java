@@ -178,15 +178,15 @@ public class SystemInfoService extends BaseService implements SystemService {
 		info.freeMemory = Runtime.getRuntime().freeMemory();
 		info.redundancyLevel = serverSettings.getRedundancyLevel();
 
-		if (serverSettings.getRedundancyLevel() == RedundancyLevel.RAID_6) {
-			info.redundancyLevelDetail = "[data:" + String.valueOf(serverSettings.getRAID6DataDrives()) + ", parity:" + String.valueOf(serverSettings.getRAID6ParityDrives()) + "] ";
+		if (serverSettings.getRedundancyLevel() == RedundancyLevel.ERASURE_CODING) {
+			info.redundancyLevelDetail = "[data:" + String.valueOf(serverSettings.getECDataDrives()) + ", parity:" + String.valueOf(serverSettings.getECParityDrives()) + "] ";
 		}
 
 	
 		info.rootDirs = new ArrayList<String>();
 		virtualFileSystemService.getMapDrivesEnabled().forEach((k, v) -> info.rootDirs.add(v.getName() + ": " + v.getRootDirPath()));
 	
-		if (virtualFileSystemService.getRedundancyLevel()==RedundancyLevel.RAID_6) {
+		if (virtualFileSystemService.getRedundancyLevel()==RedundancyLevel.ERASURE_CODING) {
 				info.raidSixVolumes=	new ArrayList<String>();
 				virtualFileSystemService.getVolumeManager().getVolumesInSearchOrder().forEach(v ->  {
 				StringBuilder sb = new StringBuilder();
@@ -221,7 +221,7 @@ public class SystemInfoService extends BaseService implements SystemService {
 			this.virtualFileSystemService.getMapDrivesEnabled().values().forEach(item -> available.add(Long.valueOf(item.getAvailableSpace())));
 			Long min = available.stream().map(d -> d).reduce((available.size() > 0 ? available.get(0) : 0), (a, b) -> (a < b ? a : b));
 			info.availableDisk = min;
-		} else if (serverSettings.getRedundancyLevel() == RedundancyLevel.RAID_6) {
+		} else if (serverSettings.getRedundancyLevel() == RedundancyLevel.ERASURE_CODING) {
 			/**
 			 * RAID 6 TBA
 			 * 

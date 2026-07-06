@@ -26,6 +26,7 @@ import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.SharedConstant;
 import io.odilon.scheduler.AfterDeleteObjectServiceRequest;
+import io.odilon.util.DateTimeUtil;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
@@ -78,7 +79,7 @@ public class RAIDZeroDeleteObjectAllPreviousVersionsHandler extends RAIDZeroTran
 					FileUtils.deleteQuietly(getObjectPath().metadataFileVersionPath(version).toFile());
 
 				meta.addSystemTag("delete versions");
-				meta.setLastModified(OffsetDateTime.now());
+				meta.setLastModified(DateTimeUtil.now());
 				Files.writeString(getObjectPath().metadataFilePath(), getObjectMapper().writeValueAsString(meta));
 
 				/** commit */

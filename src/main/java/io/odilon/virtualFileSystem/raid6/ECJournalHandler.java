@@ -40,16 +40,21 @@ import io.odilon.virtualFileSystem.model.IODriver;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
+/**
+ * 
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ * 
+ */
 @ThreadSafe
-public class RAIDSixJournalHandler extends BaseRAIDHandler implements RAIDHandler {
+public class ECJournalHandler extends BaseRAIDHandler implements RAIDHandler {
 
-	static private Logger logger = Logger.getLogger(RAIDSixDriver.class.getName());
+	static private Logger logger = Logger.getLogger(ECDriver.class.getName());
 	static private Logger std_logger = Logger.getLogger("StartupLogger");
 
 	@JsonIgnore
-	private final RAIDSixDriver driver;
+	private final ECDriver driver;
 
-	public RAIDSixJournalHandler(RAIDSixDriver driver) {
+	public ECJournalHandler(ECDriver driver) {
 		this.driver = driver;
 	}
 
@@ -58,10 +63,9 @@ public class RAIDSixJournalHandler extends BaseRAIDHandler implements RAIDHandle
 		return driver;
 	}
 
-
 	/**
 	 * <p>
-	 * RAID 6 multi-volume override: write journal entries only to the
+	 * Erasure Coding multi-volume override: write journal entries only to the
 	 * <em>active</em> volume's drives.
 	 * </p>
 	 * <p>
@@ -82,12 +86,11 @@ public class RAIDSixJournalHandler extends BaseRAIDHandler implements RAIDHandle
 			getLockService().getJournalLock().writeLock().unlock();
 		}
 	}
-	
 
 	/**
 	 * <p>
-	 * RAID 6 multi-volume override: remove journal entries from <em>all</em>
-	 * enabled drives across all volumes.
+	 * Erasure Coding multi-volume override: remove journal entries from
+	 * <em>all</em> enabled drives across all volumes.
 	 * </p>
 	 * <p>
 	 * On a server restart the active volume may differ from the one that was active
@@ -123,8 +126,7 @@ public class RAIDSixJournalHandler extends BaseRAIDHandler implements RAIDHandle
 			getLockService().getJournalLock().writeLock().unlock();
 		}
 	}
-	
-	
+
 	public List<VirtualFileSystemOperation> getJournalPending() {
 
 		List<VirtualFileSystemOperation> list = new ArrayList<VirtualFileSystemOperation>();
@@ -134,7 +136,8 @@ public class RAIDSixJournalHandler extends BaseRAIDHandler implements RAIDHandle
 			for (Drive drive : getDriver().getDrivesEnabled()) {
 				File dir = new File(drive.getJournalDirPath());
 				if (!dir.exists()) {
-					// In multi-volume RAID 6, saveJournal writes only to the active volume's
+					// In multi-volume Erasure Coding, saveJournal writes only to the active
+					// volume's
 					// drives, so earlier volumes' journal directories may legitimately be empty;
 					// after a filesystem issue any drive's directory may be temporarily gone.
 					// `return list` here would silently drop every entry from all subsequent
@@ -186,16 +189,13 @@ public class RAIDSixJournalHandler extends BaseRAIDHandler implements RAIDHandle
 			getLockService().getJournalLock().writeLock().unlock();
 		}
 	}
-	
-	
+
 	@Override
 	protected Drive getObjectMetadataReadDrive(ServerBucket bucket, String objectName) {
-		return  getRAIDSixDriver().getObjectMetadataReadDrive(bucket, objectName);
+		return getRAIDSixDriver().getObjectMetadataReadDrive(bucket, objectName);
 	}
 
-	
-	
-	private RAIDSixDriver getRAIDSixDriver() {
+	private ECDriver getRAIDSixDriver() {
 		return this.driver;
 	}
 

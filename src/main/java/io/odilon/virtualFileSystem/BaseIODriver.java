@@ -22,7 +22,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
- 
+
 import java.nio.file.attribute.PosixFileAttributeView;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
@@ -87,10 +87,10 @@ import tools.jackson.databind.ObjectMapper;
  * Base class for VirtualFileSystemDrivers ({@link IODriver}): <br/>
  * RAID 0: {@link RAIDZeroDriver}, <br/>
  * RAID 1: {@link RAIDOneDriver}, <br/>
- * RAID 6: {@link RAIDSixDriver} <br/>
+ * RAID 6: {@link ECDriver} <br/>
  * </p>
  *
- * @see {@link RAIDZeroDriver} {@link RAIDOneDriver} {@link RAIDSixDriver}
+ * @see {@link RAIDZeroDriver} {@link RAIDOneDriver} {@link ECDriver}
  *
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */

@@ -31,14 +31,17 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
  * 
+ * 
+ * <p>Erasure Coding. Rollback Delete Object handler</p>
+ * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  * 
  */
-public class RAIDSixRollbackDeleteHandler extends RAIDSixRollbackHandler {
+public class ECRollbackDeleteHandler extends ECRollbackHandler {
 
-	private static Logger logger = Logger.getLogger(RAIDSixRollbackDeleteHandler.class.getName());
+	private static Logger logger = Logger.getLogger(ECRollbackDeleteHandler.class.getName());
 
-	public RAIDSixRollbackDeleteHandler(RAIDSixDriver driver, VirtualFileSystemOperation operation, boolean recovery) {
+	public ECRollbackDeleteHandler(ECDriver driver, VirtualFileSystemOperation operation, boolean recovery) {
 		super(driver, operation, recovery);
 	}
 
@@ -55,8 +58,10 @@ public class RAIDSixRollbackDeleteHandler extends RAIDSixRollbackHandler {
 			else
 				logger.error(e, opInfo(getOperation()), SharedConstant.NOT_THROWN);
 		} catch (Exception e) {
-			if (!isRecovery())
+			if (!isRecovery()) {
+				logger.error(e, SharedConstant.THROWN_WRAPPED);
 				throw new InternalCriticalException(e);
+			}
 			else
 				logger.error(e, opInfo(getOperation()), SharedConstant.NOT_THROWN);
 		} finally {
@@ -84,7 +89,7 @@ public class RAIDSixRollbackDeleteHandler extends RAIDSixRollbackHandler {
 		// ─────────────────────────────────────────────────────────────────────────────
 		List<Drive> drives = null;
 		outer:
-		for (RAIDSixVolume vol : getDriver().getVolumeManager().getVolumesInSearchOrder()) {
+		for (ECVolume vol : getDriver().getVolumeManager().getVolumesInSearchOrder()) {
 			for (Drive d : vol.getDrives()) {
 				String backupPath = d.getBucketWorkDirPath(bucket) + File.separator + objectName;
 				if (new File(backupPath).exists()) {
@@ -103,6 +108,7 @@ public class RAIDSixRollbackDeleteHandler extends RAIDSixRollbackHandler {
 				if ((new File(objectMetadataBackupDirPath)).exists())
 					FileUtils.copyDirectory(new File(objectMetadataBackupDirPath), new File(objectMetadataDirPath));
 			} catch (IOException e) {
+				logger.error(e, SharedConstant.THROWN_WRAPPED);
 				throw new InternalCriticalException(e, objectInfo(bucket, objectName));
 			}
 		}

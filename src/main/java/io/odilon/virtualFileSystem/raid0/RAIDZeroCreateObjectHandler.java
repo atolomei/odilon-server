@@ -26,6 +26,7 @@ import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.SharedConstant;
 import io.odilon.virtualFileSystem.model.ServerBucket;
+import io.odilon.virtualFileSystem.RData;
 import io.odilon.virtualFileSystem.model.OperationCode;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
@@ -125,8 +126,8 @@ public class RAIDZeroCreateObjectHandler extends RAIDZeroTransactionObjectHandle
 	}
 
 	private void save(InputStream stream, String srcFileName, String contentType, Optional<List<String>> customTags, Optional<Boolean> o_public) {
-		long bytesSaved = saveData(getBucket(), getObjectName(), stream, srcFileName);
-		saveMetadata(getBucket(), getObjectName(), srcFileName, bytesSaved, contentType, VERSION_ZERO, customTags, o_public);
+		RData rdata = saveData(getBucket(), getObjectName(), stream, srcFileName);
+		saveMetadata(getBucket(), getObjectName(), srcFileName, rdata, contentType, VERSION_ZERO, customTags, o_public);
 	}
 
 }

@@ -377,7 +377,7 @@ public class SystemMonitorService extends BaseService implements SystemService {
 		map.put("cacheObjectMissCounter", String.valueOf(this.cacheObjectMissCounter.getCount()));
 		map.put("cacheObjectSize", String.valueOf(this.objectCacheService.size()));
 
-		if (serverSettings.getRedundancyLevel() == RedundancyLevel.RAID_6) {
+		if (serverSettings.getRedundancyLevel() == RedundancyLevel.ERASURE_CODING) {
 			map.put("cacheFileHitCounter", String.valueOf(this.cacheFileHitCounter.getCount()));
 			map.put("cacheFileMissCounter", String.valueOf(this.cacheFileMissCounter.getCount()));
 			map.put("cacheFileSize", String.valueOf(this.fileCacheService.size()));

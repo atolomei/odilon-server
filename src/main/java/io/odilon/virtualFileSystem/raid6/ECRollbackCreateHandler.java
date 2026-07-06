@@ -32,13 +32,15 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
  * 
+ * <p>Erasure Coding. Rollback Create Object handler</p>
+ * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
-public class RAIDSixRollbackCreateHandler extends RAIDSixRollbackHandler {
+public class ECRollbackCreateHandler extends ECRollbackHandler {
 
-	private static Logger logger = Logger.getLogger(RAIDSixRollbackCreateHandler.class.getName());
+	private static Logger logger = Logger.getLogger(ECRollbackCreateHandler.class.getName());
 
-	public RAIDSixRollbackCreateHandler(RAIDSixDriver driver, VirtualFileSystemOperation operation, boolean recovery) {
+	public ECRollbackCreateHandler(ECDriver driver, VirtualFileSystemOperation operation, boolean recovery) {
 		super(driver, operation, recovery);
 	}
 
@@ -73,7 +75,7 @@ public class RAIDSixRollbackCreateHandler extends RAIDSixRollbackHandler {
 
 			List<Drive> targetDrives = null;
 			outer:
-			for (RAIDSixVolume vol : getDriver().getVolumeManager().getVolumesInSearchOrder()) {
+			for (ECVolume vol : getDriver().getVolumeManager().getVolumesInSearchOrder()) {
 				for (Drive candidate : vol.getDrives()) {
 					File f_meta = candidate.getObjectMetadataFile(bucket, getOperation().getObjectName());
 					if (f_meta != null && f_meta.exists()) {
@@ -104,7 +106,7 @@ public class RAIDSixRollbackCreateHandler extends RAIDSixRollbackHandler {
 				// head shard file whose name starts with "<objectName>." and has no ".v"
 				// version suffix.
 				final String prefix = getOperation().getObjectName() + ".";
-				for (RAIDSixVolume vol : getDriver().getVolumeManager().getAllVolumes()) {
+				for (ECVolume vol : getDriver().getVolumeManager().getAllVolumes()) {
 					for (Drive drive : vol.getDrives()) {
 						try {
 							java.io.File dataDir = new java.io.File(drive.getBucketObjectDataDirPath(bucket));

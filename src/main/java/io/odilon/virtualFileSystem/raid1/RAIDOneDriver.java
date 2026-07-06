@@ -22,6 +22,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -52,7 +53,9 @@ import io.odilon.query.BucketIteratorService;
 import io.odilon.scheduler.AbstractServiceRequest;
 import io.odilon.scheduler.DeleteBucketObjectPreviousVersionServiceRequest;
 import io.odilon.scheduler.ServiceRequest;
+import io.odilon.service.util.ByteToString;
 import io.odilon.util.Check;
+import io.odilon.util.DateTimeUtil;
 import io.odilon.util.OdilonFileUtils;
 import io.odilon.virtualFileSystem.Action;
 import io.odilon.virtualFileSystem.BaseIODriver;
@@ -781,8 +784,20 @@ public class RAIDOneDriver extends BaseIODriver {
 					ObjectPath path = new ObjectPath(drive, bucket, objectName);
 					File file = path.dataFilePath().toFile();
 
-					try {
-						sha256 = OdilonFileUtils.calculateSHA256String(file);
+					try (InputStream rawIn = Files.newInputStream(file.toPath());
+				
+							InputStream in = meta.isEncrypt()
+										? getEncryptionService().decryptStream(rawIn)
+										: rawIn) {
+
+								MessageDigest md = MessageDigest.getInstance("SHA-256");
+								byte[] buffer = new byte[8192];
+								int read;
+								while ((read = in.read(buffer)) != -1)
+									md.update(buffer, 0, read);
+								sha256 = ByteToString.byteToHexString(md.digest());
+							
+						
 						if (originalSha256 == null) {
 							meta.setSha256(sha256);
 							originalSha256 = sha256;
@@ -791,7 +806,7 @@ public class RAIDOneDriver extends BaseIODriver {
 						if (originalSha256.equals(sha256)) {
 							if (goodDrive == null)
 								goodDrive = drive;
-							meta.setIntegrityCheck(OffsetDateTime.now());
+							meta.setIntegrityCheck(DateTimeUtil.now());
 							drive.saveObjectMetadata(meta);
 							iCheck[n] = Boolean.valueOf(true);
 						} else {

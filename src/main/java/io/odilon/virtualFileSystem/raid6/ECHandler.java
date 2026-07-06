@@ -44,30 +44,30 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
  * <p>
- * Base class for all RAID 6 hadler
+ * Base class for all ErasureCoding hadler
  * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  * 
- * @see {@link RAIDSixCreateObjectHandler}
- * @see {@link RAIDSixUpdateObjectHandler}
- * @see {@link RAIDSixDeleteObjectHandler}
+ * @see {@link ECCreateObjectHandler}
+ * @see {@link ECUpdateObjectHandler}
+ * @see {@link ECDeleteObjectHandler}
  * 
  */
 @ThreadSafe
-public abstract class RAIDSixHandler extends BaseRAIDHandler implements RAIDHandler {
+public abstract class ECHandler extends BaseRAIDHandler implements RAIDHandler {
 
-	private static Logger logger = Logger.getLogger(RAIDSixHandler.class.getName());
+	private static Logger logger = Logger.getLogger(ECHandler.class.getName());
 
 	@JsonIgnore
-	private final RAIDSixDriver driver;
+	private final ECDriver driver;
 
-	public RAIDSixHandler(RAIDSixDriver driver) {
+	public ECHandler(ECDriver driver) {
 		this.driver = driver;
 	}
 
 	@Override
-	public RAIDSixDriver getDriver() {
+	public ECDriver getDriver() {
 		return this.driver;
 	}
 
@@ -106,7 +106,7 @@ public abstract class RAIDSixHandler extends BaseRAIDHandler implements RAIDHand
 	/**
 	 * Returns a random drive from the active volume (used only when the owning
 	 * volume is not yet known). The authoritative lookup is done inside
-	 * {@link RAIDSixDriver#getDriverObjectMetadataInternal}.
+	 * {@link ECDriver#getDriverObjectMetadataInternal}.
 	 */
 	@Override
 	protected Drive getObjectMetadataReadDrive(ServerBucket bucket, String objectName) {
@@ -118,17 +118,18 @@ public abstract class RAIDSixHandler extends BaseRAIDHandler implements RAIDHand
 	 * <p>
 	 * {@link BaseRAIDHandler#getMetadata} calls
 	 * {@code getObjectMetadataReadDrive()} for both the cache-disabled path and the
-	 * cache-miss path. For RAID 6 that method returns a random drive from the
-	 * <em>active</em> volume on a cache-miss. Objects stored on an older (READONLY)
-	 * volume have no metadata on those drives → {@code drive.getObjectMetadata()}
-	 * returns {@code null} → the caller receives {@code null} even though the
-	 * object exists → NPE / OdilonObjectNotFoundException on the very next line.
+	 * cache-miss path. For ErasureCoding that method returns a random drive from
+	 * the <em>active</em> volume on a cache-miss. Objects stored on an older
+	 * (READONLY) volume have no metadata on those drives →
+	 * {@code drive.getObjectMetadata()} returns {@code null} → the caller receives
+	 * {@code null} even though the object exists → NPE /
+	 * OdilonObjectNotFoundException on the very next line.
 	 * </p>
 	 * <p>
-	 * This override delegates to
-	 * {@link RAIDSixDriver#getDriverObjectMetadataInternal} which searches
-	 * <em>all</em> volumes (active first, then archives newest-to-oldest) and
-	 * caches the result according to {@code addToCacheIfMiss}.
+	 * This override delegates to {@link ECDriver#getDriverObjectMetadataInternal}
+	 * which searches <em>all</em> volumes (active first, then archives
+	 * newest-to-oldest) and caches the result according to
+	 * {@code addToCacheIfMiss}.
 	 * </p>
 	 */
 	@Override
@@ -194,7 +195,7 @@ public abstract class RAIDSixHandler extends BaseRAIDHandler implements RAIDHand
 					throw new InternalCriticalException(ObjectMetadata.class.getSimpleName());
 			}
 
-			logger.debug("RAID 6 | save metadata to disk | drives: " + String.valueOf(size) + " | head: " + String.valueOf(isHead));
+			logger.debug("ErasureCoding | save metadata to disk | drives: " + String.valueOf(size) + " | head: " + String.valueOf(isHead));
 
 		} catch (InterruptedException | ExecutionException e) {
 			throw new InternalCriticalException(e, ObjectMetadata.class.getSimpleName());

@@ -31,6 +31,7 @@ import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.SharedConstant;
 import io.odilon.scheduler.AfterDeleteObjectServiceRequest;
+import io.odilon.util.DateTimeUtil;
 import io.odilon.virtualFileSystem.model.Drive;
 
 import io.odilon.virtualFileSystem.model.ServerBucket;
@@ -39,11 +40,11 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 /**
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
-public class RAIDSixDeleteObjectAllPreviousVersionsHandler extends RAIDSixTransactionObjectHandler {
+public class ECDeleteObjectAllPreviousVersionsHandler extends ECTransactionObjectHandler {
 
-	private static Logger logger = Logger.getLogger(RAIDSixDeleteObjectAllPreviousVersionsHandler.class.getName());
+	private static Logger logger = Logger.getLogger(ECDeleteObjectAllPreviousVersionsHandler.class.getName());
 
-	public RAIDSixDeleteObjectAllPreviousVersionsHandler(RAIDSixDriver driver, ServerBucket bucket, String objectName) {
+	public ECDeleteObjectAllPreviousVersionsHandler(ECDriver driver, ServerBucket bucket, String objectName) {
 		super(driver, bucket, objectName);
 	}
 
@@ -83,7 +84,7 @@ public class RAIDSixDeleteObjectAllPreviousVersionsHandler extends RAIDSixTransa
 				}
 
 				meta.addSystemTag("delete versions");
-				meta.setLastModified(OffsetDateTime.now());
+				meta.setLastModified(DateTimeUtil.now());
 
 				// Write updated head metadata only to the object's owning volume drives
 				final List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();

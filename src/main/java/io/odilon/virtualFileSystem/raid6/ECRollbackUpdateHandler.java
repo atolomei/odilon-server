@@ -41,11 +41,11 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  * @author atolomei@novamens.com (Alejandro Tolomei)
  * 
  */
-public class RAIDSixRollbackUpdateHandler extends RAIDSixRollbackHandler {
+public class ECRollbackUpdateHandler extends ECRollbackHandler {
 
-	private static Logger logger = Logger.getLogger(RAIDSixRollbackUpdateHandler.class.getName());
+	private static Logger logger = Logger.getLogger(ECRollbackUpdateHandler.class.getName());
 
-	public RAIDSixRollbackUpdateHandler(RAIDSixDriver driver, VirtualFileSystemOperation operation, boolean recovery) {
+	public ECRollbackUpdateHandler(ECDriver driver, VirtualFileSystemOperation operation, boolean recovery) {
 		super(driver, operation, recovery);
 	}
 
@@ -109,8 +109,10 @@ public class RAIDSixRollbackUpdateHandler extends RAIDSixRollbackHandler {
 				logger.error(e, opInfo(getOperation()), SharedConstant.NOT_THROWN);
 
 		} catch (Exception e) {
-			if (!isRecovery())
+			if (!isRecovery()) {
+				logger.error(e, SharedConstant.THROWN_WRAPPED);
 				throw new InternalCriticalException(e, opInfo(getOperation()));
+			}
 			else
 				logger.error(e, opInfo(getOperation()), SharedConstant.NOT_THROWN);
 		} finally {
@@ -144,7 +146,7 @@ public class RAIDSixRollbackUpdateHandler extends RAIDSixRollbackHandler {
 	 * to the <em>active</em> volume's drives. When an object lives on an older
 	 * (READONLY) volume, a cross-volume update writes new metadata to the active
 	 * volume and new shards there too. If the operation is rolled back,
-	 * {@link RAIDSixDriver#getDriverObjectMetadataInternal} (which searches the
+	 * {@link ECDriver#getDriverObjectMetadataInternal} (which searches the
 	 * active volume first) will find the stale new-version metadata and serve it
 	 * instead of the correctly restored old-version metadata on the original volume.
 	 * </p>
@@ -169,7 +171,7 @@ public class RAIDSixRollbackUpdateHandler extends RAIDSixRollbackHandler {
 
 		int owningVolumeId = (restoredMeta != null) ? restoredMeta.getVolumeId() : -1;
 
-		for (RAIDSixVolume vol : getDriver().getVolumeManager().getAllVolumes()) {
+		for (ECVolume vol : getDriver().getVolumeManager().getAllVolumes()) {
 			if (vol.getVolumeId() == owningVolumeId)
 				continue; // correct volume — leave it intact
 
@@ -220,6 +222,7 @@ public class RAIDSixRollbackUpdateHandler extends RAIDSixRollbackHandler {
 		} catch (InternalCriticalException e) {
 			throw e;
 		} catch (Exception e) {
+			logger.error(e, SharedConstant.THROWN_WRAPPED);
 			throw new InternalCriticalException(e, opInfo(getOperation()));
 		}
 	}
@@ -249,6 +252,7 @@ public class RAIDSixRollbackUpdateHandler extends RAIDSixRollbackHandler {
 			throw e;
 
 		} catch (Exception e) {
+			logger.error(e, SharedConstant.THROWN_WRAPPED);
 			throw new InternalCriticalException(e, opInfo(getOperation()));
 		}
 	}

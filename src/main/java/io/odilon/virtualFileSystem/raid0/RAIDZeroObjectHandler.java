@@ -20,7 +20,8 @@ package io.odilon.virtualFileSystem.raid0;
 import java.io.BufferedOutputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
-
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -39,10 +40,13 @@ import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ObjectStatus;
 import io.odilon.model.ServerConstant;
+import io.odilon.service.util.ByteToString;
+import io.odilon.util.DateTimeUtil;
 import io.odilon.util.OdilonFileUtils;
 import io.odilon.virtualFileSystem.BaseRAIDHandler;
 import io.odilon.virtualFileSystem.ObjectPath;
 import io.odilon.virtualFileSystem.RAIDHandler;
+import io.odilon.virtualFileSystem.RData;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 
@@ -90,31 +94,48 @@ public abstract class RAIDZeroObjectHandler extends BaseRAIDHandler implements R
 	 * @param stream      can not be null
 	 * @param srcFileName can not be null
 	 */
-	protected long saveData(ServerBucket bucket, String objectName, InputStream stream, String srcFileName) {
+	protected RData saveData(ServerBucket bucket, String objectName, InputStream stream, String srcFileName) {
 
 		byte[] buf = new byte[ServerConstant.BUFFER_SIZE];
+
+		RData ret = new RData();
 
 		long totalBytesRead = 0;
 
 		if (isEncrypt()) {
 
-			EncryptedResult encryptedResult = getEncryptionService().encryptStream(stream);
+			try {
 
-			try (InputStream sourceStream = encryptedResult.getInputStream()) {
+				// Wrap the PLAINTEXT stream before encryption so the digest matches
+				// checkIntegrity (which decrypts before hashing).
+				MessageDigest md = MessageDigest.getInstance("SHA-256");
+				DigestInputStream digestStream = new DigestInputStream(stream, md);
 
-				ObjectPath path = new ObjectPath(getWriteDrive(bucket, objectName), bucket, objectName);
-				try (BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(path.dataFilePath().toFile()), ServerConstant.BUFFER_SIZE)) {
-					int bytesRead;
-					while ((bytesRead = sourceStream.read(buf, 0, buf.length)) >= 0) {
-						out.write(buf, 0, bytesRead);
+				EncryptedResult encryptedResult = getEncryptionService().encryptStream(digestStream);
+
+				try (InputStream sourceStream = encryptedResult.getInputStream()) {
+
+					ObjectPath path = new ObjectPath(getWriteDrive(bucket, objectName), bucket, objectName);
+					try (BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(path.dataFilePath().toFile()), ServerConstant.BUFFER_SIZE)) {
+						int bytesRead;
+						while ((bytesRead = sourceStream.read(buf, 0, buf.length)) >= 0) {
+							out.write(buf, 0, bytesRead);
+						}
 					}
+
+					totalBytesRead = encryptedResult.getCountingStream().getCount();
+					logger.debug("b: " + bucket.getName() + " o: " + objectName + " f: " + srcFileName + " | bytes read: " + totalBytesRead + " | encrypted file -> " + path.dataFilePath().toFile().length() + " bytes ");
+
+					ret.setFileSize(totalBytesRead);
+					ret.setEncodedFile(path.dataFilePath().toFile());
+					ret.setSrcFileSize(totalBytesRead);
+					ret.setSrcSha256(ByteToString.byteToHexString(md.digest()));
+					
+					return ret;
+
+				} catch (Exception e) {
+					throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
 				}
-
-				totalBytesRead = encryptedResult.getCountingStream().getCount();
-				logger.debug("b: " + bucket.getName() + " o: " + objectName + " f: " + srcFileName + " | bytes read: " + totalBytesRead + " | encrypted file -> " + path.dataFilePath().toFile().length() + " bytes ");
-
-				return totalBytesRead;
-
 			} catch (Exception e) {
 				throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
 			}
@@ -122,21 +143,36 @@ public abstract class RAIDZeroObjectHandler extends BaseRAIDHandler implements R
 		}
 
 		else {
-			try (stream) {
-				ObjectPath path = new ObjectPath(getWriteDrive(bucket, objectName), bucket, objectName);
-				try (BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(path.dataFilePath().toFile()), ServerConstant.BUFFER_SIZE)) {
-					int bytesRead;
-					while ((bytesRead = stream.read(buf, 0, buf.length)) >= 0) {
-						out.write(buf, 0, bytesRead);
-						totalBytesRead += bytesRead;
-					}
-				}
-				return totalBytesRead;
-			} catch (Exception e) {
-				throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
-			}
-		}
+			 
+				try (stream) {
 
+					// Wrap the PLAINTEXT stream before encryption so the digest matches
+					// checkIntegrity (which decrypts before hashing).
+					MessageDigest md = MessageDigest.getInstance("SHA-256");
+					DigestInputStream digestStream = new DigestInputStream(stream, md);
+					 
+					ObjectPath path = new ObjectPath(getWriteDrive(bucket, objectName), bucket, objectName);
+		
+					try (BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(path.dataFilePath().toFile()), ServerConstant.BUFFER_SIZE)) {
+							int bytesRead;
+							while ((bytesRead = digestStream.read(buf, 0, buf.length)) >= 0) {
+								out.write(buf, 0, bytesRead);
+								totalBytesRead += bytesRead;
+							}
+						}
+						
+						ret.setFileSize(totalBytesRead);
+						ret.setEncodedFile(path.dataFilePath().toFile());
+						ret.setSrcFileSize(totalBytesRead);
+						ret.setSrcSha256(ByteToString.byteToHexString(md.digest()));
+						
+						return ret;
+					} catch (Exception e) {
+						throw new InternalCriticalException(e, objectInfo(bucket, objectName, srcFileName));
+					}
+				
+			 
+		}
 	}
 
 	/**
@@ -154,13 +190,14 @@ public abstract class RAIDZeroObjectHandler extends BaseRAIDHandler implements R
 	 * @param srcFileName can not be null
 	 * @param customTags
 	 */
-	protected void saveMetadata(ServerBucket bucket, String objectName, String srcFileName, long totalBytesRead, String contentType, int version, Optional<List<String>> customTags, Optional<Boolean> o_public) {
+	protected void saveMetadata(ServerBucket bucket, String objectName, String srcFileName, RData rdata, String contentType, int version, Optional<List<String>> customTags, Optional<Boolean> o_public) {
 
-		OffsetDateTime now = OffsetDateTime.now();
+		OffsetDateTime now = DateTimeUtil.now();
 		Drive drive = getWriteDrive(bucket, objectName);
 		ObjectPath path = new ObjectPath(drive, bucket, objectName);
 
 		try {
+			
 			String sha256 = OdilonFileUtils.calculateSHA256String(path.dataFilePath().toFile());
 			ObjectMetadata meta = new ObjectMetadata(bucket.getId(), objectName);
 			meta.setFileName(srcFileName);
@@ -172,11 +209,16 @@ public abstract class RAIDZeroObjectHandler extends BaseRAIDHandler implements R
 			meta.setLastModified(now);
 			meta.setVersioncreationDate(now);
 			meta.setVersion(version);
-			meta.setSourceLength(totalBytesRead);
+			meta.setSourceLength(rdata.getSrcFileSize());
+			
+			// SHA 256 of the source (unencrypted) file
+			// used for integrity check
+			meta.setSha256(rdata.getSrcSha256());
+			
 			meta.setLength(path.dataFilePath().toFile().length());
 			meta.setEtag(sha256);
 			meta.setIntegrityCheck(now);
-			meta.setSha256(sha256);
+			
 			meta.setPublicAccess(o_public.orElse(Boolean.FALSE));
 			meta.setStatus(ObjectStatus.ENABLED);
 			meta.setDrive(drive.getName());

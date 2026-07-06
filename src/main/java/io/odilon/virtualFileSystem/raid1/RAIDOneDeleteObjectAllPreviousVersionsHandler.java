@@ -28,7 +28,7 @@ import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.SharedConstant;
 import io.odilon.scheduler.AfterDeleteObjectServiceRequest;
-
+import io.odilon.util.DateTimeUtil;
 import io.odilon.virtualFileSystem.ObjectPath;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
@@ -82,7 +82,7 @@ public class RAIDOneDeleteObjectAllPreviousVersionsHandler extends RAIDOneTransa
 				}
 				/** update head metadata with the tag */
 				meta.addSystemTag("delete versions");
-				meta.lastModified = OffsetDateTime.now();
+				meta.lastModified = DateTimeUtil.now();
 				for (Drive drive : getDriver().getDrivesAll()) {
 					ObjectMetadata metaDrive = drive.getObjectMetadata(getBucket(), getObjectName());
 					meta.drive = drive.getName();

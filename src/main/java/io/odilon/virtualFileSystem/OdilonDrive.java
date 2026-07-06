@@ -17,7 +17,7 @@
 package io.odilon.virtualFileSystem;
 
 import java.io.BufferedInputStream;
- 
+
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -47,8 +47,6 @@ import java.util.stream.Stream;
 
 import jakarta.annotation.PostConstruct;
 
- 
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -64,6 +62,7 @@ import io.odilon.model.ServerConstant;
 
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ObjectStatus;
+import io.odilon.model.RedundancyLevel;
 import io.odilon.model.ServiceStatus;
 import io.odilon.model.SharedConstant;
 import io.odilon.scheduler.ServiceRequest;
@@ -79,7 +78,6 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 import org.apache.commons.io.FileUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Scope;
 
 /**
  * <p>
@@ -114,11 +112,15 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 	@JsonIgnore
 	private ReadWriteLock drive_lock = new ReentrantReadWriteLock();
 
-	/** Injected lazily by the VirtualFileSystemService after Spring context is ready */
+	/**
+	 * Injected lazily by the VirtualFileSystemService after Spring context is ready
+	 */
 	@JsonIgnore
 	private EncryptionService encryptionService;
 
-	/** Injected lazily by the VirtualFileSystemService after Spring context is ready */
+	/**
+	 * Injected lazily by the VirtualFileSystemService after Spring context is ready
+	 */
 	@JsonIgnore
 	private ServerSettings serverSettings;
 
@@ -300,7 +302,7 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 			// Make createBucket() idempotent: if the metadata directory already exists the
 			// bucket was previously (partially) created — skip re-creating the metadata dir
 			// and re-saving its metadata, but still ensure every data / work / cache
-			// directory is present.  This covers the case where a prior sync run created
+			// directory is present. This covers the case where a prior sync run created
 			// the metadata dir but then crashed before finishing the data dir.
 			final boolean isNewBucket = !metadata_dir.exists() || !metadata_dir.isDirectory();
 
@@ -483,8 +485,6 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 		return name;
 	}
 
-	/**
-	 */
 	@JsonIgnore
 	@Override
 	public String getRootDirPath() {
@@ -540,10 +540,10 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 	 */
 	/**
 	 * Returns {@code true} if the {@code metaChecksum} stored in this drive's copy
-	 * of the object's head metadata is valid (or absent — legacy).
-	 * Returns {@code false} if the checksum is present but does not match the
-	 * recomputed value, indicating this drive's copy may be corrupt.
-	 * Called by the RAID driver during quorum repair.
+	 * of the object's head metadata is valid (or absent — legacy). Returns
+	 * {@code false} if the checksum is present but does not match the recomputed
+	 * value, indicating this drive's copy may be corrupt. Called by the RAID driver
+	 * during quorum repair.
 	 */
 	public boolean isMetadataChecksumValid(ServerBucket bucket, String objectName) {
 		try {
@@ -610,17 +610,18 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 	 *
 	 * <p>
 	 * <b>Concurrency contract:</b> this method is <em>not</em> thread-safe on its
-	 * own. Callers <strong>must</strong> hold the per-object <em>write</em> lock for
-	 * {@code (meta.bucketId, meta.objectName)} before calling this method, and must
-	 * not release it until any related data file has also been written. The
-	 * {@link io.odilon.virtualFileSystem.raid0.RAIDZeroObjectHandler} family of classes
-	 * (and their RAID 1 / RAID 6 counterparts) enforce this invariant by acquiring
-	 * the object write-lock at the top of each transaction handler.
+	 * own. Callers <strong>must</strong> hold the per-object <em>write</em> lock
+	 * for {@code (meta.bucketId, meta.objectName)} before calling this method, and
+	 * must not release it until any related data file has also been written. The
+	 * {@link io.odilon.virtualFileSystem.raid0.RAIDZeroObjectHandler} family of
+	 * classes (and their RAID 1 / RAID 6 counterparts) enforce this invariant by
+	 * acquiring the object write-lock at the top of each transaction handler.
 	 * </p>
 	 *
 	 * @param meta   the metadata to persist; must not be {@code null}
-	 * @param isHead {@code true}  → write as head version ({@code objectName.json[.enc]})
-	 *               {@code false} → write as numbered version
+	 * @param isHead {@code true} → write as head version
+	 *               ({@code objectName.json[.enc]}) {@code false} → write as
+	 *               numbered version
 	 */
 	protected void saveObjectMetadata(ObjectMetadata meta, boolean isHead) {
 
@@ -636,21 +637,21 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 			if (!dir.exists())
 				FileUtils.forceMkdir(dir);
 
-			meta.setLastModified(OffsetDateTime.now());
-
 			// Stamp the self-checksum BEFORE serializing.
 			// ObjectMetadataChecksum.compute() temporarily nulls meta.metaChecksum,
 			// hashes the resulting JSON bytes, then restores the value — so the
-			// checksum covers every field except itself.  The write lock held by
+			// checksum covers every field except itself. The write lock held by
 			// the calling transaction handler makes this mutation window safe.
 			try {
+
+				logger.debug("saveObjectMetadata: computing metaChecksum for " + meta.getBucketId() + "/" + meta.getObjectName() + "metaChecksum:" + ObjectMetadataChecksum.compute(meta, getObjectMapper()));
+
 				meta.setMetaChecksum(ObjectMetadataChecksum.compute(meta, getObjectMapper()));
+
 			} catch (Exception e) {
 				// Checksum computation failure is non-fatal: log and continue without it.
 				// The record is still written; it will be treated as "unverified" on read.
-				logger.error("saveObjectMetadata: failed to compute metaChecksum for "
-						+ meta.getBucketId() + "/" + meta.getObjectName()
-						+ " | " + e.getMessage(), SharedConstant.NOT_THROWN);
+				logger.error("saveObjectMetadata: failed to compute metaChecksum for " + meta.getBucketId() + "/" + meta.getObjectName() + " | " + e.getMessage(), SharedConstant.NOT_THROWN);
 				meta.setMetaChecksum(null);
 			}
 
@@ -658,17 +659,13 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 
 			ObjectPath path = new ObjectPath(this, meta.getBucketId(), meta.getObjectName());
 
-			boolean shouldEncrypt = meta.isEncrypt()
-					&& (serverSettings != null) && serverSettings.isEncryptMetadata()
-					&& (encryptionService != null);
+			boolean shouldEncrypt = meta.isEncrypt() && (serverSettings != null) && serverSettings.isEncryptMetadata() && (encryptionService != null);
 
 			if (shouldEncrypt) {
 				/* write encrypted file and remove any stale plain file */
 				byte[] jsonBytes = jsonString.getBytes(StandardCharsets.UTF_8);
 				InputStream encryptedStream = encryptionService.encryptStream(new ByteArrayInputStream(jsonBytes)).getInputStream();
-				Path encPath = isHead
-						? path.metadataFileEncPath()
-						: path.metadataFileVersionEncPath(version.get());
+				Path encPath = isHead ? path.metadataFileEncPath() : path.metadataFileVersionEncPath(version.get());
 				transferTo(encryptedStream, encPath.toString());
 				/* remove stale plain file if it exists */
 				Path plainPath = isHead ? path.metadataFilePath() : path.metadataFileVersionPath(version.get());
@@ -715,8 +712,8 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 
 			String jsonString = getObjectMapper().writeValueAsString(serviceRequest);
 
-			logger.debug("Save Scheduler -> " + jsonString );
-			
+			logger.debug("Save Scheduler -> " + jsonString);
+
 			File dir = new File(getSchedulerDirPath() + File.separator + queueId);
 			if (!dir.exists() || !dir.isDirectory()) {
 				try {
@@ -774,7 +771,8 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 			// In multi-volume RAID 6, saveJournal() writes only to the active volume's
 			// drives. removeJournal() is called for ALL enabled drives across all volumes,
 			// so drives on non-active volumes never had the file. Files.delete() was
-			// throwing NoSuchFileException here, which propagated as InternalCriticalException
+			// throwing NoSuchFileException here, which propagated as
+			// InternalCriticalException
 			// and aborted the RAIDSixDriver.removeJournal() loop before it reached the
 			// drives that actually hold the journal file — leaving it on disk and causing
 			// an infinite rollback-replay on every subsequent restart.
@@ -846,22 +844,6 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 	public boolean isEmpty(ServerBucket bucket) {
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		return isEmpty(bucket.getId());
-	}
-
-	private boolean isEmpty(Long bucketId) {
-		Check.requireNonNullArgument(bucketId, "bucketId is null");
-		File file = new File(this.getBucketMetadataDirPathById(bucketId));
-		Path path = file.toPath();
-
-		// TBA -> ver metadata ObjectStatus
-		if (Files.isDirectory(path)) {
-			try (Stream<Path> entries = Files.list(path)) {
-				return !entries.filter(pa -> pa.toFile().isDirectory()).findFirst().isPresent();
-			} catch (IOException e) {
-				throw new InternalCriticalException(e, "b:" + bucketId.toString());
-			}
-		}
-		return true;
 	}
 
 	public void setStatus(ServiceStatus status) {
@@ -971,7 +953,6 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 		}
 	}
 
-	
 	@Override
 	public void updateBucket(BucketMetadata meta) throws IOException {
 		Check.requireNonNullArgument(meta, "meta is null");
@@ -1017,6 +998,7 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 			this.driveBuckets.put(meta.id, new DriveBucket(this, meta));
 
 		} catch (Exception e) {
+			logger.error(e, SharedConstant.THROWN_WRAPPED);
 			throw new InternalCriticalException(e, "b:" + meta.bucketName + ", d:" + getName());
 		}
 	}
@@ -1044,6 +1026,7 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 			}
 
 		} catch (IOException e) {
+			logger.error(e, SharedConstant.THROWN_WRAPPED);
 			throw new InternalCriticalException(e, "Can not create Bucket Data Directory -> d:" + getName() + " b:" + (Optional.ofNullable(bucketId.toString()).orElse("null")));
 		} finally {
 			this.drive_lock.writeLock().unlock();
@@ -1060,6 +1043,7 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 			io.odilon.util.OdilonFileUtils.forceMkdir(new File(getRootDirPath()));
 
 		} catch (IOException e) {
+			logger.error(e, SharedConstant.THROWN_WRAPPED);
 			throw new InternalCriticalException(e, "Can not create root Directory -> dir:" + rootDir + "  | d:" + name);
 		}
 	}
@@ -1075,7 +1059,6 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 		}
 	}
 
-	
 	/**
 	 * @param stream
 	 * @param destFileName
@@ -1164,12 +1147,7 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 			DriveInfo info = readDriveMetadata();
 
 			if (readDriveMetadata() == null) {
-				info = new DriveInfo(getName(), 
-						randomString(12), 
-						OffsetDateTime.now(), 
-						DriveStatus.NOTSYNC, getConfigOrder(), 
-						this.raidSetup, 
-						this.raidDrives==null?0:this.raidDrives.intValue());
+				info = new DriveInfo(getName(), randomString(12), OffsetDateTime.now(), DriveStatus.NOTSYNC, getConfigOrder(), this.raidSetup, this.raidDrives == null ? 0 : this.raidDrives.intValue());
 				saveDriveMetadata(info);
 			}
 
@@ -1181,7 +1159,7 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 
 		} catch (Exception e) {
 			setStatus(ServiceStatus.STOPPED);
-			logger.error(e, SharedConstant.NOT_THROWN);
+			logger.error(e, SharedConstant.THROWN_WRAPPED);
 			throw new InternalCriticalException(e, "Drive Startup | d:" + getName());
 		}
 
@@ -1191,9 +1169,6 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 		}
 	}
 
-	/**
-	 * 
-	 */
 	protected void deleteBucketInternal(ServerBucket bucket) {
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireTrue(isEmpty(bucket), "bucket is not empty -> " + objectInfo(bucket));
@@ -1244,7 +1219,6 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 		}
 	}
 
-	
 	private void createWorkDirectory() {
 		try {
 
@@ -1253,8 +1227,9 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 
 		} catch (IOException e) {
 			String msg = "Can not create work Directory ->  dir:" + getWorkDirPath() + "  d:" + name;
-			logger.error(e, msg, SharedConstant.NOT_THROWN);
+			logger.error(e, msg, SharedConstant.THROWN_WRAPPED);
 			throw new InternalCriticalException(e, msg);
+
 		}
 	}
 
@@ -1266,8 +1241,9 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 
 		} catch (IOException e) {
 			String msg = "Can not create cache Directory ->  dir:" + getCacheDirPath() + "  d:" + name;
-			logger.error(e, msg, SharedConstant.NOT_THROWN);
+			logger.error(e, msg, SharedConstant.THROWN_WRAPPED);
 			throw new InternalCriticalException(e, msg);
+
 		}
 	}
 
@@ -1278,8 +1254,9 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 
 		} catch (IOException e) {
 			String msg = "Can not create scheduler Directory ->  dir:" + getSchedulerDirPath() + "  d:" + name;
-			logger.error(e, msg, SharedConstant.NOT_THROWN);
+			logger.error(e, msg, SharedConstant.THROWN_WRAPPED);
 			throw new InternalCriticalException(e, msg);
+
 		}
 	}
 
@@ -1290,7 +1267,7 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 
 		} catch (IOException e) {
 			String msg = "Can not create Buckets Metadata Directory ->  dir:" + getBucketsDirPath() + "  d:" + name;
-			logger.error(e, msg, SharedConstant.NOT_THROWN);
+			logger.error(e, msg, SharedConstant.THROWN_WRAPPED);
 			throw new InternalCriticalException(e, msg);
 		}
 	}
@@ -1303,7 +1280,7 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 
 		} catch (IOException e) {
 			String msg = "Can not create Journal Directory ->  dir:" + getJournalDirPath() + "  d:" + name;
-			logger.error(e, msg, SharedConstant.NOT_THROWN);
+			logger.error(e, msg, SharedConstant.THROWN_WRAPPED);
 			throw new InternalCriticalException(e, msg);
 
 		}
@@ -1316,7 +1293,7 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 
 		} catch (IOException e) {
 			String msg = "Can not create temp Directory ->  dir:" + getTempDirPath() + "  d:" + name;
-			logger.error(e, msg, SharedConstant.NOT_THROWN);
+			logger.error(e, msg, SharedConstant.THROWN_WRAPPED);
 			throw new InternalCriticalException(e, msg);
 		}
 	}
@@ -1328,7 +1305,7 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 		try {
 			stream = Files.walk(start, 1).skip(1).filter(file -> Files.isDirectory(file));
 		} catch (IOException e) {
-			logger.error(e, SharedConstant.NOT_THROWN);
+			logger.error(e, SharedConstant.THROWN_WRAPPED);
 			throw new InternalCriticalException(e, "checkWorkBucketDirs");
 		}
 
@@ -1348,6 +1325,7 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 					try {
 						io.odilon.util.OdilonFileUtils.forceMkdir(workDir);
 					} catch (IOException e) {
+						logger.error(e, SharedConstant.THROWN_WRAPPED);
 						throw new InternalCriticalException(e, "Can not create -> " + workDir.getName());
 					}
 				}
@@ -1359,7 +1337,7 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 					try {
 						io.odilon.util.OdilonFileUtils.forceMkdir(cacheDir);
 					} catch (IOException e) {
-						logger.error(e, SharedConstant.NOT_THROWN);
+						logger.error(e, SharedConstant.THROWN_WRAPPED);
 						throw new InternalCriticalException(e, "Can not create -> " + cacheDir.getName());
 					}
 				}
@@ -1391,7 +1369,7 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 					try {
 						io.odilon.util.OdilonFileUtils.forceMkdir(new File(version));
 					} catch (IOException e) {
-						logger.error(e, SharedConstant.NOT_THROWN);
+						logger.error(e, SharedConstant.THROWN_WRAPPED);
 						throw new InternalCriticalException(e, "Can not create -> " + version);
 					}
 				}
@@ -1420,11 +1398,12 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 					try {
 						driveBuckets.put(Long.valueOf(item.toFile().getName()), new DriveBucket(OdilonDrive.this, getBucketMetadataById(Long.valueOf(item.toFile().getName()))));
 					} catch (IOException e) {
+						logger.error(e, SharedConstant.THROWN_WRAPPED);
 						throw new InternalCriticalException(e, "loadbuckets");
 					}
 				});
 			} catch (IOException e) {
-				logger.error(e, SharedConstant.NOT_THROWN);
+				logger.error(e, SharedConstant.THROWN_WRAPPED);
 				throw new InternalCriticalException(e, "loadbuckets");
 			}
 		} finally {
@@ -1440,12 +1419,6 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 		return this.getWorkDirPath() + File.separator + id.toString();
 	}
 
-	//private File getObjectMetadataFileById(Long bucketId, String objectName) {
-	//	ObjectPath path = new ObjectPath(this, bucketId, objectName);
-	//	return path.existingMetadataFilePath().toFile();
-	//}
-
-	
 	private String getBucketMetadataDirPathById(Long id) {
 		return this.getBucketsDirPath() + File.separator + id.toString();
 	}
@@ -1455,9 +1428,9 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 	}
 
 	/**
-	 * Dual-probe: try .json.enc first, fall back to .json.
-	 * Verifies {@code metaChecksum} after loading; logs WARN on mismatch so the
-	 * calling RAID driver layer can perform cross-drive quorum repair.
+	 * Dual-probe: try .json.enc first, fall back to .json. Verifies
+	 * {@code metaChecksum} after loading; logs WARN on mismatch so the calling RAID
+	 * driver layer can perform cross-drive quorum repair.
 	 */
 	private ObjectMetadata getObjectMetadataById(Long bucketId, String objectName) {
 		try {
@@ -1472,50 +1445,46 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 			else
 				meta = getObjectMapper().readValue(path.metadataFilePath().toFile(), ObjectMetadata.class);
 
+			// for RAID 0 there is no point in verifying the checksum,
+			// as there is no redundancy to recover from a corrupt metadata file
+			if (this.serverSettings.getRedundancyLevel() == RedundancyLevel.RAID_0)
+				return meta;
+
 			// Verify self-checksum.
-			// Null checksum = legacy object written before this feature existed → unverified, not corrupt.
+			// Null checksum = legacy object written before this feature existed →
+			// unverified, not corrupt.
 			// A mismatch is a strong indicator of bit-rot or a partial write on this drive;
-			// we log it at WARN so the RAID driver can attempt quorum repair from a peer drive.
+			// we log it at WARN so the RAID driver can attempt quorum repair from a peer
+			// drive.
 			if (meta != null && !ObjectMetadataChecksum.verify(meta, getObjectMapper())) {
-				logger.warn("metaChecksum mismatch on drive " + getName()
-						+ " | b:" + bucketId + " o:" + objectName
-						+ " | stored=" + meta.metaChecksum
-						+ " — metadata may be corrupt on this drive");
+				logger.warn("metaChecksum mismatch on drive " + getName() + " | b:" + bucketId + " o:" + objectName + " | stored=" + meta.metaChecksum + " — metadata may be corrupt on this drive");
 			}
 
 			return meta;
 
 		} catch (Exception e) {
-			logger.error(e, SharedConstant.NOT_THROWN);
+			logger.error(e, SharedConstant.THROWN_WRAPPED);
 			throw new InternalCriticalException(e);
 		}
 	}
 
 	/**
 	 * Reads ObjectMetadata from a file, decrypting it if the file has the
-	 * {@link ServerConstant#JSON_ENC} extension and the encryptionService is available.
+	 * {@link ServerConstant#JSON_ENC} extension and the encryptionService is
+	 * available.
 	 */
 	private ObjectMetadata readObjectMetadataFromFile(File file) throws Exception {
 		if (file.getName().endsWith(ServerConstant.JSON_ENC) && encryptionService != null) {
-			try (InputStream raw = new BufferedInputStream(new FileInputStream(file));
-				 InputStream plain = encryptionService.decryptStream(raw)) {
+			try (InputStream raw = new BufferedInputStream(new FileInputStream(file)); InputStream plain = encryptionService.decryptStream(raw)) {
 				return getObjectMapper().readValue(plain, ObjectMetadata.class);
 			}
 		}
 		return getObjectMapper().readValue(file, ObjectMetadata.class);
 	}
 
-	//private String getObjectMetadataFilePathById(Long bucketId, String objectName) {
-	//	return getObjectMetadataDirPathById(bucketId, objectName) + File.separator + objectName + ServerConstant.JSON;
-	//}
-
 	private String getObjectMetadataVersionFilePath(ServerBucket bucket, String objectName, int version) {
 		return getObjectMetadataDirPath(bucket, objectName) + File.separator + objectName + VirtualFileSystemService.VERSION_EXTENSION + String.valueOf(version) + ServerConstant.JSON;
 	}
-
-	//private String getObjectMetadataVersionFilePathById(Long bucketId, String objectName, int version) {
-	//	return getObjectMetadataDirPathById(bucketId, objectName) + File.separator + objectName + VirtualFileSystemService.VERSION_EXTENSION + String.valueOf(version) + ServerConstant.JSON;
-	//}
 
 	/**
 	 * @param bucketName
@@ -1534,7 +1503,7 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 		try {
 			transferTo(stream, this.getBucketMetadataDirPath(bucket) + File.separator + objectName + File.separator + objectName + ServerConstant.JSON);
 		} catch (Exception e) {
-			logger.error(e, SharedConstant.NOT_THROWN);
+			logger.error(e, SharedConstant.THROWN_WRAPPED);
 			throw new InternalCriticalException(e, objectInfo(bucket, objectName));
 		}
 	}
@@ -1548,7 +1517,7 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 			Files.writeString(Paths.get(getSysDirPath() + File.separator + VirtualFileSystemService.DRIVE_INFO), jsonString);
 
 		} catch (Exception e) {
-			logger.error(e, SharedConstant.NOT_THROWN);
+			logger.error(e, SharedConstant.THROWN_WRAPPED);
 			throw new InternalCriticalException(e, "json:" + (Optional.ofNullable(jsonString).isPresent() ? jsonString : "null"));
 		}
 	}
@@ -1563,14 +1532,29 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 				return null;
 
 			String str = Files.readString(file.toPath());
-			DriveInfo d = getObjectMapper().readValue(str, DriveInfo.class);
-			return d;
-			// return getObjectMapper().readValue(file, DriveInfo.class);
+			DriveInfo info = getObjectMapper().readValue(str, DriveInfo.class);
+			return info;
 
 		} catch (Exception e) {
-			logger.error(e, SharedConstant.NOT_THROWN);
+			logger.error(e, SharedConstant.THROWN_WRAPPED);
 			throw new InternalCriticalException(e, "f:" + (Optional.ofNullable(file).isPresent() ? file.getName() : "null"));
 		}
+	}
+
+	private boolean isEmpty(Long bucketId) {
+		Check.requireNonNullArgument(bucketId, "bucketId is null");
+		File file = new File(this.getBucketMetadataDirPathById(bucketId));
+		Path path = file.toPath();
+
+		// TBA -> ver metadata ObjectStatus
+		if (Files.isDirectory(path)) {
+			try (Stream<Path> entries = Files.list(path)) {
+				return !entries.filter(pa -> pa.toFile().isDirectory()).findFirst().isPresent();
+			} catch (IOException e) {
+				throw new InternalCriticalException(e, "b:" + bucketId.toString());
+			}
+		}
+		return true;
 	}
 
 }

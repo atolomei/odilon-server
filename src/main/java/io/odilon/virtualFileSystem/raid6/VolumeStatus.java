@@ -18,7 +18,7 @@ package io.odilon.virtualFileSystem.raid6;
 
 /**
  * <p>
- * Lifecycle status of a {@link RAIDSixVolume}.
+ * Lifecycle status of a {@link ECVolume}.
  * </p>
  *
  * <ul>

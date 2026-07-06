@@ -86,9 +86,9 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  */
 @Component
 @Scope("prototype")
-public class RAIDSixDriveSync implements Runnable {
+public class ECDriveSync implements Runnable {
 
-	static private Logger logger = Logger.getLogger(RAIDSixDriveSync.class.getName());
+	static private Logger logger = Logger.getLogger(ECDriveSync.class.getName());
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 
 	@JsonIgnore
@@ -119,7 +119,7 @@ public class RAIDSixDriveSync implements Runnable {
 	private AtomicLong notAvailable = new AtomicLong(0);
 
 	@JsonIgnore
-	private RAIDSixDriver driver;
+	private ECDriver driver;
 
 	@JsonIgnore
 	private Thread thread;
@@ -132,7 +132,7 @@ public class RAIDSixDriveSync implements Runnable {
 
 	private OffsetDateTime dateConnected;
 
-	public RAIDSixDriveSync(RAIDSixDriver driver) {
+	public ECDriveSync(ECDriver driver) {
 		this.driver = driver;
 		this.vfsLockService = this.driver.getLockService();
 	}
@@ -195,8 +195,7 @@ public class RAIDSixDriveSync implements Runnable {
 		this.thread.start();
 	}
 
-	
-	protected RAIDSixDriver getDriver() {
+	protected ECDriver getDriver() {
 		return this.driver;
 	}
 
@@ -207,7 +206,7 @@ public class RAIDSixDriveSync implements Runnable {
 	protected List<Drive> getDrives() {
 		return drives;
 	}
-	
+
 	/**
 	 * 
 	 */
@@ -215,12 +214,12 @@ public class RAIDSixDriveSync implements Runnable {
 
 		logger.debug("Starting Drive init: ");
 		getDriver().getDrivesAll().stream().filter(d -> d.getDriveInfo().getStatus() == DriveStatus.NOTSYNC).forEach(
-				
+
 				v -> {
-					
-					logger.debug			("d:" + v.getName() + "  dir:" + v.getRootDirPath());
-					startuplogger.debug		("d:" + v.getName() + "  dir:" + v.getRootDirPath());
-				
+
+					logger.debug("d:" + v.getName() + "  dir:" + v.getRootDirPath());
+					startuplogger.debug("d:" + v.getName() + "  dir:" + v.getRootDirPath());
+
 				});
 
 		long start_ms = System.currentTimeMillis();
@@ -240,8 +239,7 @@ public class RAIDSixDriveSync implements Runnable {
 			}
 		});
 
-		this.dateConnected = getDriver().getVirtualFileSystemService().getMapDrivesAll().values().stream().filter(d -> d.getDriveInfo().getStatus() == DriveStatus.NOTSYNC)
-				.map(v -> v.getDriveInfo().getDateConnected())
+		this.dateConnected = getDriver().getVirtualFileSystemService().getMapDrivesAll().values().stream().filter(d -> d.getDriveInfo().getStatus() == DriveStatus.NOTSYNC).map(v -> v.getDriveInfo().getDateConnected())
 				.reduce(OffsetDateTime.MIN, (a, b) -> a.isAfter(b) ? a : b);
 
 		ExecutorService executor = null;
@@ -262,8 +260,7 @@ public class RAIDSixDriveSync implements Runnable {
 
 				while (!done) {
 
-					DataList<Item<ObjectMetadata>> data = getDriver().getVirtualFileSystemService().listObjects(bucket.getName(), 
-							Optional.of(offset), Optional.ofNullable(pageSize), Optional.empty(), Optional.ofNullable(agentId));
+					DataList<Item<ObjectMetadata>> data = getDriver().getVirtualFileSystemService().listObjects(bucket.getName(), Optional.of(offset), Optional.ofNullable(pageSize), Optional.empty(), Optional.ofNullable(agentId));
 
 					if (agentId == null)
 						agentId = data.getAgentId();
@@ -305,13 +302,13 @@ public class RAIDSixDriveSync implements Runnable {
 
 					offset += Long.valueOf(Integer.valueOf(data.getList().size()).longValue());
 
-				// Only stop pagination when we reach the end of the data set or errors > 100.
-				// Errors / unavailable-objects are counted and will prevent updateDrives()
-				// from promoting the new drive to ENABLED (see the check in run()), but
-				// they must NOT abort the loop early: doing so leaves every object on
-				// every page after the first error un-synced, which is worse than
-				// finishing the full scan with some individual failures.
-				done = data.isEOD() || this.errors.get() > 100;
+					// Only stop pagination when we reach the end of the data set or errors > 100.
+					// Errors / unavailable-objects are counted and will prevent updateDrives()
+					// from promoting the new drive to ENABLED (see the check in run()), but
+					// they must NOT abort the loop early: doing so leaves every object on
+					// every page after the first error un-synced, which is worse than
+					// finishing the full scan with some individual failures.
+					done = data.isEOD() || this.errors.get() > 100;
 				}
 			}
 
@@ -342,8 +339,6 @@ public class RAIDSixDriveSync implements Runnable {
 		}
 	}
 
-
-
 	private void updateDrives() {
 		for (Drive drive : getDriver().getDrivesAll()) {
 			if (drive.getDriveInfo().getStatus() == DriveStatus.NOTSYNC) {
@@ -369,18 +364,13 @@ public class RAIDSixDriveSync implements Runnable {
 		// creationDate is stable across all updates; lastModified is not.
 		OffsetDateTime ref = (meta.creationDate != null) ? meta.creationDate : meta.lastModified;
 		boolean needed = ref != null && ref.isBefore(dateConnected);
-	
-		// These are objects created before the drive was connected but updated after it —
-		// exactly the ones whose previous-version RS blocks were missing on the new drive.
-		if (needed
-				&& meta.creationDate != null
-				&& meta.lastModified != null
-				&& !meta.lastModified.isBefore(dateConnected)) {
-			logger.debug("requireSync: previous-version RS blocks missing on replacement drive"
-					+ " | b:" + meta.bucketName
-					+ " | o:" + meta.objectName
-					+ " | creationDate:" + meta.creationDate
-					+ " | lastModified:" + meta.lastModified
+
+		// These are objects created before the drive was connected but updated after it
+		// —
+		// exactly the ones whose previous-version RS blocks were missing on the new
+		// drive.
+		if (needed && meta.creationDate != null && meta.lastModified != null && !meta.lastModified.isBefore(dateConnected)) {
+			logger.debug("requireSync: previous-version RS blocks missing on replacement drive" + " | b:" + meta.bucketName + " | o:" + meta.objectName + " | creationDate:" + meta.creationDate + " | lastModified:" + meta.lastModified
 					+ " | dateConnected:" + dateConnected);
 		}
 

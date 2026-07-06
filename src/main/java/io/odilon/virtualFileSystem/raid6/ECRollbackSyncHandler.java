@@ -33,11 +33,11 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
  * @author atolomei@novamens.com (Alejandro Tolomei)
  * 
  */
-public class RAIDSixRollbackSyncHandler extends RAIDSixRollbackHandler {
+public class ECRollbackSyncHandler extends ECRollbackHandler {
 
-	private static Logger logger = Logger.getLogger(RAIDSixRollbackSyncHandler.class.getName());
+	private static Logger logger = Logger.getLogger(ECRollbackSyncHandler.class.getName());
 
-	public RAIDSixRollbackSyncHandler(RAIDSixDriver driver, VirtualFileSystemOperation operation, boolean recovery) {
+	public ECRollbackSyncHandler(ECDriver driver, VirtualFileSystemOperation operation, boolean recovery) {
 		super(driver, operation, recovery);
 	}
 
@@ -71,7 +71,7 @@ public class RAIDSixRollbackSyncHandler extends RAIDSixRollbackHandler {
 		try {
 			for (Drive drive : getDriver().getDrivesEnabled()) {
 				File dest = new File(drive.getObjectMetadataDirPath(bucket, objectName));
-				File src  = new File(drive.getBucketWorkDirPath(bucket) + File.separator + objectName);
+				File src = new File(drive.getBucketWorkDirPath(bucket) + File.separator + objectName);
 				if (src.exists()) {
 					FileUtils.copyDirectory(src, dest);
 				} else {
@@ -85,9 +85,7 @@ public class RAIDSixRollbackSyncHandler extends RAIDSixRollbackHandler {
 					// If dest exists but src is missing, backup was expected but lost → log
 					// an error but do not throw so that the rollback can still complete.
 					if (dest.exists()) {
-						logger.error("rollback: work-dir backup missing but metadata dir present on drive "
-								+ drive.getName() + " -> " + objectInfo(bucket, objectName)
-								+ " | backup:" + src.getAbsolutePath());
+						logger.error("rollback: work-dir backup missing but metadata dir present on drive " + drive.getName() + " -> " + objectInfo(bucket, objectName) + " | backup:" + src.getAbsolutePath());
 					}
 					// else: different-volume drive with no object data here — skip silently
 				}

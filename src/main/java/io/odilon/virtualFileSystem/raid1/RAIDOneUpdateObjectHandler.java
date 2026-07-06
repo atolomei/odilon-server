@@ -21,6 +21,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -46,14 +48,17 @@ import io.odilon.model.ObjectStatus;
 import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
+import io.odilon.util.DateTimeUtil;
 import io.odilon.util.OdilonFileUtils;
 import io.odilon.virtualFileSystem.ObjectPath;
+import io.odilon.virtualFileSystem.RData;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.SimpleDrive;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 import io.odilon.model.VersionControl;
+import io.odilon.service.util.ByteToString;
 
 /**
  * <p>
@@ -122,8 +127,8 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
 				operation = updateObject(bucket, objectName, beforeHeadVersion);
 
 				/** copy new version as head version */
-				saveObjectDataFile(bucket, objectName, stream, srcFileName, afterHeadVersion);
-				saveObjectMetadata(bucket, objectName, srcFileName, contentType, afterHeadVersion, customTags, o_public);
+				RData ret = saveObjectDataFile(bucket, objectName, stream, srcFileName, afterHeadVersion);
+				saveObjectMetadata(bucket, objectName, ret, srcFileName, contentType, afterHeadVersion, customTags, o_public);
 
 				/** commit */
 				commitOK = operation.commit();
@@ -385,178 +390,120 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
 		}
 	}
 
-	/**
-	 * private void saveObjectDataFile(ServerBucket bucket, String objectName,
-	 * InputStream stream, String srcFileName, int newVersion) {
-	 * 
-	 * int total_drives = getDriver().getDrivesAll().size(); byte[] buf = new
-	 * byte[ServerConstant.BUFFER_SIZE];
-	 * 
-	 * BufferedOutputStream out[] = new BufferedOutputStream[total_drives];
-	 * InputStream sourceStream = null;
-	 * 
-	 * boolean isMainException = false;
-	 * 
-	 * try {
-	 * 
-	 * sourceStream = isEncrypt() ?
-	 * getVirtualFileSystemService().getEncryptionService().encryptStream(stream) :
-	 * stream;
-	 * 
-	 * int n_d = 0; for (Drive drive : getDriver().getDrivesAll()) {
-	 * 
-	 * ObjectPath path = new ObjectPath(drive, bucket.getId(), objectName); String
-	 * sPath = path.dataFilePath().toString(); out[n_d++] = new
-	 * BufferedOutputStream(new FileOutputStream(sPath),
-	 * ServerConstant.BUFFER_SIZE); } int bytes_read = 0;
-	 * 
-	 * if (getDriver().getDrivesAll().size() < 2) {
-	 * 
-	 * while ((bytes_read = sourceStream.read(buf, 0, buf.length)) >= 0) for (int
-	 * bytes = 0; bytes < total_drives; bytes++) { out[bytes].write(buf, 0,
-	 * bytes_read); } } else {
-	 * 
-	 * final int size = getDriver().getDrivesAll().size(); ExecutorService executor
-	 * = getVirtualFileSystemService().getExecutorService();
-	 * 
-	 * while ((bytes_read = sourceStream.read(buf, 0, buf.length)) >= 0) {
-	 * 
-	 * List<Callable<Boolean>> tasks = new ArrayList<Callable<Boolean>>(size);
-	 * 
-	 * for (int index = 0; index < total_drives; index++) {
-	 * 
-	 * final int t_index = index; final int t_bytes_read = bytes_read;
-	 * 
-	 * tasks.add(() -> { try { out[t_index].write(buf, 0, t_bytes_read); return
-	 * Boolean.valueOf(true); } catch (Exception e) { logger.error(e,
-	 * SharedConstant.NOT_THROWN); return Boolean.valueOf(false); } }); }
-	 * 
-	 * try { List<Future<Boolean>> future = executor.invokeAll(tasks, 5,
-	 * TimeUnit.MINUTES); Iterator<Future<Boolean>> it = future.iterator(); while
-	 * (it.hasNext()) { if (!it.next().get()) throw new
-	 * InternalCriticalException(getDriver().objectInfo(bucket, objectName,
-	 * srcFileName)); } } catch (InterruptedException | ExecutionException e) {
-	 * throw new InternalCriticalException(e); }
-	 * 
-	 * }
-	 * 
-	 * } // else
-	 * 
-	 * } catch (Exception e) { isMainException = true; throw new
-	 * InternalCriticalException(e, getDriver().objectInfo(bucket, objectName,
-	 * srcFileName));
-	 * 
-	 * } finally { IOException secEx = null;
-	 * 
-	 * if (out != null) { try { for (int n = 0; n < total_drives; n++) { if (out[n]
-	 * != null) out[n].close(); } } catch (IOException e) { logger.error(e,
-	 * getDriver().objectInfo(bucket, objectName, srcFileName) + (isMainException ?
-	 * SharedConstant.NOT_THROWN : "")); secEx = e; } }
-	 * 
-	 * try { if (sourceStream != null) sourceStream.close(); } catch (IOException e)
-	 * { logger.error(e, getDriver().objectInfo(bucket, objectName, srcFileName) +
-	 * (isMainException ? SharedConstant.NOT_THROWN : "")); secEx = e; } if
-	 * (!isMainException && (secEx != null)) throw new
-	 * InternalCriticalException(secEx); } }
-	 */
-
-	private long saveObjectDataFile(ServerBucket bucket, String objectName, InputStream stream, String srcFileName, int newVersion) {
+	private RData saveObjectDataFile(ServerBucket bucket, String objectName, InputStream stream, String srcFileName, int newVersion) {
 
 		int total_drives = getDriver().getDrivesAll().size();
-		// byte[] buf = new byte[ServerConstant.BUFFER_SIZE];
 
 		BufferedOutputStream out[] = new BufferedOutputStream[total_drives];
+		RData ret = new RData();
 
+		
 		boolean isMainException = false;
 
 		if (isEncrypt()) {
 
-			EncryptedResult encryptedResult = getEncryptionService().encryptStream(stream);
+			try {
+				// Wrap the PLAINTEXT stream before encryption so the digest matches
+				// checkIntegrity (which decrypts before hashing).
+				MessageDigest md = MessageDigest.getInstance("SHA-256");
+				DigestInputStream digestStream = new DigestInputStream(stream, md);
 
-			try (InputStream sourceStream = encryptedResult.getInputStream()) {
+				EncryptedResult encryptedResult = getEncryptionService().encryptStream(digestStream);
 
-				int n_d = 0;
+				try (InputStream sourceStream = encryptedResult.getInputStream()) {
 
-				for (Drive drive : getDriver().getDrivesAll()) {
+					int n_d = 0;
 
-					ObjectPath path = new ObjectPath(drive, bucket.getId(), objectName);
-					String sPath = path.dataFilePath().toString();
-					out[n_d++] = new BufferedOutputStream(new FileOutputStream(sPath), ServerConstant.BUFFER_SIZE);
-				}
-				int bytes_read = 0;
+					for (Drive drive : getDriver().getDrivesAll()) {
 
-				byte[] buf = new byte[ServerConstant.BUFFER_SIZE];
+						ObjectPath path = new ObjectPath(drive, bucket.getId(), objectName);
+						String sPath = path.dataFilePath().toString();
+						out[n_d++] = new BufferedOutputStream(new FileOutputStream(sPath), ServerConstant.BUFFER_SIZE);
+					}
+					int bytes_read = 0;
 
-				if (getDriver().getDrivesAll().size() < 2) {
+					byte[] buf = new byte[ServerConstant.BUFFER_SIZE];
 
-					while ((bytes_read = sourceStream.read(buf, 0, buf.length)) >= 0)
-						for (int bytes = 0; bytes < total_drives; bytes++) {
-							out[bytes].write(buf, 0, bytes_read);
-						}
-				} else {
+					if (getDriver().getDrivesAll().size() < 2) {
 
-					final int size = getDriver().getDrivesAll().size();
-					ExecutorService executor = getVirtualFileSystemService().getExecutorService();
-
-					while ((bytes_read = sourceStream.read(buf, 0, buf.length)) >= 0) {
-
-						List<Callable<Boolean>> tasks = new ArrayList<Callable<Boolean>>(size);
-
-						for (int index = 0; index < total_drives; index++) {
-
-							final int t_index = index;
-							final int t_bytes_read = bytes_read;
-
-							tasks.add(() -> {
-								try {
-									out[t_index].write(buf, 0, t_bytes_read);
-									return Boolean.valueOf(true);
-								} catch (Exception e) {
-									logger.error(e, SharedConstant.NOT_THROWN);
-									return Boolean.valueOf(false);
-								}
-							});
-						}
-
-						try {
-							List<Future<Boolean>> future = executor.invokeAll(tasks, 5, TimeUnit.MINUTES);
-							Iterator<Future<Boolean>> it = future.iterator();
-							while (it.hasNext()) {
-								if (!it.next().get())
-									throw new InternalCriticalException(getDriver().objectInfo(bucket, objectName, srcFileName));
+						while ((bytes_read = sourceStream.read(buf, 0, buf.length)) >= 0)
+							for (int bytes = 0; bytes < total_drives; bytes++) {
+								out[bytes].write(buf, 0, bytes_read);
 							}
-						} catch (InterruptedException | ExecutionException e) {
-							throw new InternalCriticalException(e);
+					} else {
+
+						final int size = getDriver().getDrivesAll().size();
+						ExecutorService executor = getVirtualFileSystemService().getExecutorService();
+
+						while ((bytes_read = sourceStream.read(buf, 0, buf.length)) >= 0) {
+
+							List<Callable<Boolean>> tasks = new ArrayList<Callable<Boolean>>(size);
+
+							for (int index = 0; index < total_drives; index++) {
+
+								final int t_index = index;
+								final int t_bytes_read = bytes_read;
+
+								tasks.add(() -> {
+									try {
+										out[t_index].write(buf, 0, t_bytes_read);
+										return Boolean.valueOf(true);
+									} catch (Exception e) {
+										logger.error(e, SharedConstant.NOT_THROWN);
+										return Boolean.valueOf(false);
+									}
+								});
+							}
+
+							try {
+								List<Future<Boolean>> future = executor.invokeAll(tasks, 5, TimeUnit.MINUTES);
+								Iterator<Future<Boolean>> it = future.iterator();
+								while (it.hasNext()) {
+									if (!it.next().get())
+										throw new InternalCriticalException(getDriver().objectInfo(bucket, objectName, srcFileName));
+								}
+							} catch (InterruptedException | ExecutionException e) {
+								throw new InternalCriticalException(e);
+							}
+
 						}
 
+					} // else < 2
+
+					long totalBytesRead = encryptedResult.getCountingStream().getCount();
+					
+					ret.setFileSize(totalBytesRead);
+					ret.setSrcFileSize(totalBytesRead);
+					ret.setSrcSha256(ByteToString.byteToHexString(md.digest()));
+
+					return ret;
+					
+					
+				} catch (Exception e) {
+					isMainException = true;
+					throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName, srcFileName));
+
+				} finally {
+					IOException secEx = null;
+
+					if (out != null) {
+						try {
+							for (int n = 0; n < total_drives; n++) {
+								if (out[n] != null)
+									out[n].close();
+							}
+						} catch (IOException e) {
+							logger.error(e, getDriver().objectInfo(bucket, objectName, srcFileName) + (isMainException ? SharedConstant.NOT_THROWN : ""));
+							secEx = e;
+						}
 					}
 
-				} // else < 2
-
-				long totalBytesRead = encryptedResult.getCountingStream().getCount();
-				return totalBytesRead;
+					if (!isMainException && (secEx != null))
+						throw new InternalCriticalException(secEx);
+				}
 
 			} catch (Exception e) {
-				isMainException = true;
-				throw new InternalCriticalException(e, getDriver().objectInfo(bucket, objectName, srcFileName));
-
-			} finally {
-				IOException secEx = null;
-
-				if (out != null) {
-					try {
-						for (int n = 0; n < total_drives; n++) {
-							if (out[n] != null)
-								out[n].close();
-						}
-					} catch (IOException e) {
-						logger.error(e, getDriver().objectInfo(bucket, objectName, srcFileName) + (isMainException ? SharedConstant.NOT_THROWN : ""));
-						secEx = e;
-					}
-				}
-
-				if (!isMainException && (secEx != null))
-					throw new InternalCriticalException(secEx);
+				throw new InternalCriticalException(e);
 			}
 
 		}
@@ -566,10 +513,16 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
 		else {
 
 			InputStream sourceStream = null;
-
+			DigestInputStream digestStream = null;
+			
 			try {
 
-				sourceStream = stream;
+				// Wrap the PLAINTEXT stream before encryption so the digest matches
+				// checkIntegrity (which decrypts before hashing).
+				MessageDigest md = MessageDigest.getInstance("SHA-256");
+				digestStream = new DigestInputStream(stream, md);
+				
+				sourceStream =  digestStream;
 
 				long totalBytesRead = 0;
 
@@ -632,7 +585,11 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
 
 				} // else
 
-				return totalBytesRead;
+				ret.setFileSize(totalBytesRead);
+				ret.setSrcFileSize(totalBytesRead);
+				ret.setSrcSha256(ByteToString.byteToHexString(md.digest()));
+
+				return ret;
 
 			} catch (Exception e) {
 				isMainException = true;
@@ -640,6 +597,15 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
 
 			} finally {
 
+				
+				if (digestStream != null) {
+					try {
+						digestStream.close();
+					} catch (IOException e) {
+						logger.error(e, getDriver().objectInfo(bucket, objectName, srcFileName) + (isMainException ? SharedConstant.NOT_THROWN : ""));
+					}
+				}
+				
 				IOException secEx = null;
 
 				if (out != null) {
@@ -681,11 +647,11 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
 	 * @param stream
 	 * @param srcFileName
 	 */
-	private void saveObjectMetadata(ServerBucket bucket, String objectName, String srcFileName, String contentType, int version, Optional<List<String>> customTags, Optional<Boolean> o_public) {
+	private void saveObjectMetadata(ServerBucket bucket, String objectName, RData rdata, String srcFileName, String contentType, int version, Optional<List<String>> customTags, Optional<Boolean> o_public) {
 
 		Check.requireNonNullArgument(bucket, "bucket is null");
 
-		OffsetDateTime now = OffsetDateTime.now();
+		OffsetDateTime now = DateTimeUtil.now();
 		String sha = null;
 		String basedrive = null;
 
@@ -698,14 +664,14 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
 			File file = path.dataFilePath().toFile();
 
 			try {
-				String sha256 = OdilonFileUtils.calculateSHA256String(file);
+				String storedSha256 = OdilonFileUtils.calculateSHA256String(file);
 
 				if (sha == null) {
-					sha = sha256;
+					sha = storedSha256;
 					basedrive = drive.getName();
 				} else {
-					if (!sha256.equals(sha))
-						throw new InternalCriticalException("SHA 256 are not equal for drives -> " + basedrive + ":" + sha + " vs " + drive.getName() + ":" + sha256);
+					if (!storedSha256.equals(sha))
+						throw new InternalCriticalException("SHA 256 are not equal for drives -> " + basedrive + ":" + sha + " vs " + drive.getName() + ":" + storedSha256);
 				}
 
 				ObjectMetadata meta = new ObjectMetadata(bucket.getId(), objectName);
@@ -715,12 +681,16 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
 				meta.encrypt = getVirtualFileSystemService().isEncrypt();
 				meta.vault = getVirtualFileSystemService().isUseVaultNewFiles();
 				meta.creationDate = now;
+				meta.setLastModified(now);
 				meta.version = version;
 				meta.versioncreationDate = meta.creationDate;
 				meta.length = file.length();
-				meta.etag = sha256; /** sha256 is calculated on the encrypted file */
+				meta.setSourceLength(rdata.getSrcFileSize());
+				
+				meta.etag = storedSha256; /** storedSha256 is calculated on the encrypted file */
 				meta.integrityCheck = now;
-				meta.sha256 = sha256;
+				
+				meta.sha256 = rdata.getSrcSha256();
 				meta.status = ObjectStatus.ENABLED;
 				meta.drive = drive.getName();
 				meta.setPublicAccess(o_public.orElse(Boolean.FALSE));
@@ -840,7 +810,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
 
 		try {
 			Check.requireNonNullArgument(bucket, "meta is null");
-			if (getVersionControl()==VersionControl.DISABLED) {
+			if (getVersionControl() == VersionControl.DISABLED) {
 				for (Drive drive : getDriver().getDrivesAll()) {
 					FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(bucket, objectName, previousVersion));
 					ObjectPath path = new ObjectPath(drive, bucket, objectName);

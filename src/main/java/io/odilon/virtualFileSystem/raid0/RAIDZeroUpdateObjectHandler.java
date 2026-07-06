@@ -32,6 +32,7 @@ import io.odilon.model.ObjectMetadata;
 import io.odilon.model.SharedConstant;
 import io.odilon.model.VersionControl;
 import io.odilon.virtualFileSystem.ObjectPath;
+import io.odilon.virtualFileSystem.RData;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.SimpleDrive;
@@ -139,8 +140,8 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionObjectHandle
 	}
 
 	private void save(InputStream stream, String srcFileName, String contentType, int afterHeadVersion, Optional<List<String>> customTags, Optional<Boolean> o_public) {
-		long bytesRead = saveData(getBucket(), getObjectName(), stream, srcFileName);
-		saveMetadata(getBucket(), getObjectName(), srcFileName, bytesRead, contentType, afterHeadVersion, customTags, o_public);
+		RData rdata = saveData(getBucket(), getObjectName(), stream, srcFileName);
+		saveMetadata(getBucket(), getObjectName(), srcFileName, rdata, contentType, afterHeadVersion, customTags, o_public);
 	}
 
 	/**

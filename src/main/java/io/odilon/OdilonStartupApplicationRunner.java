@@ -49,7 +49,7 @@ import io.odilon.service.ObjectStorageService;
 import io.odilon.service.ServerSettings;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
-import io.odilon.virtualFileSystem.raid6.RAIDSixVolume;
+import io.odilon.virtualFileSystem.raid6.ECVolume;
 
 /**
  * <p>
@@ -194,12 +194,12 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 		startupLogger.info("Version Control -> " + String.valueOf(settingsService.getVersionControl().getName()));
 		startupLogger.info("Data Storage mode -> " + settingsService.getDataStorage().getName());
 
-		if (settingsService.getRedundancyLevel() == RedundancyLevel.RAID_6) {
-			startupLogger.info("Data Storage redundancy level -> " + settingsService.getRedundancyLevel().getName() + " [data:" + String.valueOf(settingsService.getRAID6DataDrives()) + ", parity:"
-					+ String.valueOf(settingsService.getRAID6ParityDrives()) + "]");
+		if (settingsService.getRedundancyLevel() == RedundancyLevel.ERASURE_CODING) {
+			startupLogger.info("Data Storage redundancy level -> " + settingsService.getRedundancyLevel().getName() + " [data:" + String.valueOf(settingsService.getECDataDrives()) + ", parity:"
+					+ String.valueOf(settingsService.getECParityDrives()) + "]");
 
-			List<RAIDSixVolume> vols = getAppContext().getBean(VirtualFileSystemService.class).getVolumeManager().getAllVolumes();
-			for (RAIDSixVolume vol : vols) {
+			List<ECVolume> vols = getAppContext().getBean(VirtualFileSystemService.class).getVolumeManager().getAllVolumes();
+			for (ECVolume vol : vols) {
 				//startupLogger.info("Volume: " + String.valueOf(vol.getVolumeId()) + " | " + (vol.isActive() ? "active" : "read-only"));
 				for (Drive d : vol.getDrives()) {
 					startupLogger.info("Volume: " + String.valueOf(vol.getVolumeId())+ (vol.isActive() ? ". active" : ". read-only")  + " | Drive: " + d.getName() + " | rootDir: " + d.getRootDirPath());

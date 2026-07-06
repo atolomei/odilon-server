@@ -34,16 +34,16 @@ import org.springframework.context.annotation.Scope;
 @JsonInclude(Include.NON_NULL)
 @Component
 @Scope("prototype")
-public class OdilonRaidSixDrive extends OdilonDrive {
+public class OdilonECDrive extends OdilonDrive {
 
 	@SuppressWarnings("unused")
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 	@SuppressWarnings("unused")
-	static private Logger logger = Logger.getLogger(OdilonRaidSixDrive.class.getName());
+	static private Logger logger = Logger.getLogger(OdilonECDrive.class.getName());
 
 	
 	@Autowired
-	protected OdilonRaidSixDrive(String rootDir) {
+	protected OdilonECDrive(String rootDir) {
 				super(rootDir);
 	}
 
@@ -56,9 +56,9 @@ public class OdilonRaidSixDrive extends OdilonDrive {
 	 * @param name
 	 * @param rootDir
 	 */
-	protected OdilonRaidSixDrive(String name, String rootDir, int configOrder, String raidSetup, int raidDrives) {
+	protected OdilonECDrive(String name, String rootDir, int configOrder, String raidSetup, int raidDrives) {
 		super(name, rootDir, configOrder, raidSetup, raidDrives);
-		Check.requireTrue(raidSetup.equals(RedundancyLevel.RAID_6.getName()),"raidSetup must be " + RedundancyLevel.RAID_6.getName() + " and it is -> " + raidSetup);
+		Check.requireTrue(raidSetup.equals(RedundancyLevel.ERASURE_CODING.getName()),"raidSetup must be " + RedundancyLevel.ERASURE_CODING.getName() + " and it is -> " + raidSetup);
 	}
 
 }

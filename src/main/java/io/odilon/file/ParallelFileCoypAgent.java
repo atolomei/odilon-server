@@ -44,7 +44,7 @@ import io.odilon.util.DateTimeUtil;
 /**
  * 
  * <p>
- * Used by {@link RAIDSixEncoder}
+ * Used by {@link ECEncoder}
  * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)

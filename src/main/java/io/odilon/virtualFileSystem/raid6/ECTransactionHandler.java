@@ -20,12 +20,14 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
  * 
+ * <p>Erasure Coding Transaction Handler</p>
+ * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  * 
  */
-public class RAIDSixTransactionHandler extends RAIDSixHandler {
+public class ECTransactionHandler extends ECHandler {
 
-	public RAIDSixTransactionHandler(RAIDSixDriver driver) {
+	public ECTransactionHandler(ECDriver driver) {
 		super(driver);
 	}
 

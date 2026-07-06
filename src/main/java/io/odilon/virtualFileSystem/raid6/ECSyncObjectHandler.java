@@ -22,7 +22,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.time.OffsetDateTime;
+ 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -37,6 +37,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
+import io.odilon.util.DateTimeUtil;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.DriveStatus;
 import io.odilon.virtualFileSystem.model.ServerBucket;
@@ -44,16 +45,16 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
  * <p>
- * RAID 6. Sync Object. This class regenerates the object's chunks when a new
+ * ErasureCoding. Sync Object. This class regenerates the object's chunks when a new
  * disk is added
  * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @ThreadSafe
-public class RAIDSixSyncObjectHandler extends RAIDSixTransactionHandler {
+public class ECSyncObjectHandler extends ECTransactionHandler {
 
-	private static Logger logger = Logger.getLogger(RAIDSixSyncObjectHandler.class.getName());
+	private static Logger logger = Logger.getLogger(ECSyncObjectHandler.class.getName());
 
 	@JsonIgnore
 	private List<Drive> drives;
@@ -72,7 +73,7 @@ public class RAIDSixSyncObjectHandler extends RAIDSixTransactionHandler {
 	/**
 	 * @param driver can not be null
 	 */
-	protected RAIDSixSyncObjectHandler(RAIDSixDriver driver) {
+	protected ECSyncObjectHandler(ECDriver driver) {
 		super(driver);
 	}
 
@@ -212,21 +213,27 @@ public class RAIDSixSyncObjectHandler extends RAIDSixTransactionHandler {
 
 		{
 			/** Data (head) */
-			RAIDSixDecoder decoder = new RAIDSixDecoder(getDriver());
+			ECDecoder decoder = new ECDecoder(getDriver());
 			File file = decoder.decodeHead(meta, bucket);
 
-			RAIDSixSDriveSyncEncoder driveInitEncoder = new RAIDSixSDriveSyncEncoder(getDriver(), getDrives());
+			ECDriveSyncEncoder driveInitEncoder = new ECDriveSyncEncoder(getDriver(), getDrives());
 
 			try (InputStream in = new BufferedInputStream(new FileInputStream(file.getAbsolutePath()))) {
-				driveInitEncoder.encodeHead(in, bucket, meta.getObjectName());
+			
+				@SuppressWarnings("unused")
+				ECShards shards = driveInitEncoder.encodeHead(in, bucket, meta.getObjectName());
+			
+				/** MetaData (head) */
+				meta.setDateSynced(DateTimeUtil.now());
+				logger.debug("Synced -> b:" + meta.getBucketName()+ " o:" + meta.getObjectName() + "  sha 256:" +  meta.getSha256()  );
+
+				
 			} catch (FileNotFoundException e) {
 				throw new InternalCriticalException(e, objectInfo(meta));
 			} catch (IOException e) {
 				throw new InternalCriticalException(e, objectInfo(meta));
 			}
 			
-			/** MetaData (head) */
-			meta.setDateSynced(OffsetDateTime.now());
 			
 			List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
 			getDrivesToSync().forEach(d -> list.add(meta));
@@ -269,26 +276,34 @@ public class RAIDSixSyncObjectHandler extends RAIDSixTransactionHandler {
 				if (versionMeta != null) {
 
 					/** Data (version) */
-					RAIDSixDecoder decoder = new RAIDSixDecoder(getDriver());
-					RAIDSixSDriveSyncEncoder driveEncoder = new RAIDSixSDriveSyncEncoder(getDriver(), getDrives());
+					ECDecoder decoder = new ECDecoder(getDriver());
+					ECDriveSyncEncoder driveEncoder = new ECDriveSyncEncoder(getDriver(), getDrives());
+					
+					
 					try (InputStream in = new BufferedInputStream(new FileInputStream(decoder.decodeVersion(versionMeta, bucket).getAbsolutePath()))) {
 						/**
 						 * encodes version without saving existing blocks, only the ones that go to the
 						 * new drive/s
 						 */
-						driveEncoder.encodeVersion(in, bucket, meta.getObjectName(), versionMeta.getVersion());
+						ECShards shards = driveEncoder.encodeVersion(in, bucket, meta.getObjectName(), versionMeta.getVersion());
+						
+					 
+						
+						/** Metadata (version) */
+						/**
+						 * changes the date of sync in order to prevent this object's sync if the
+						 * process is re run
+						 */
+						versionMeta.setDateSynced(DateTimeUtil.now());
+						meta.setSha256( shards.getSrcSha256());
+						
+
+						
 					} catch (FileNotFoundException e) {
 						throw new InternalCriticalException(e, objectInfo(meta));
 					} catch (IOException e) {
 						throw new InternalCriticalException(e, objectInfo(meta));
 					}
-
-					/** Metadata (version) */
-					/**
-					 * changes the date of sync in order to prevent this object's sync if the
-					 * process is re run
-					 */
-					versionMeta.setDateSynced(OffsetDateTime.now());
 
 				// syncHead() already scopes its save to getDrivesToSync(). Without this fix
 				// version metadata is written to all drives (getDrives()), overwriting

@@ -29,23 +29,23 @@ import io.odilon.virtualFileSystem.model.ServerBucket;
  * RS Encoder for drive Sync process.
  * </p>
  * <p>
- * The difference between this class and the standard {@link RAIDSixEncoder} is
- * that this one only saves the RS Blocks that go to the newly added disks (ie.
+ * The difference between this class and the standard {@link ECEncoder} is that
+ * this one only saves the RS Blocks that go to the newly added disks (ie.
  * blocks on enabled Drives are <b>not</b> touched).
  * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
-public class RAIDSixSDriveSyncEncoder extends RAIDSixEncoder {
+public class ECDriveSyncEncoder extends ECEncoder {
 
 	/**
 	 * @param driver can not be null
 	 */
-	protected RAIDSixSDriveSyncEncoder(RAIDSixDriver driver) {
+	protected ECDriveSyncEncoder(ECDriver driver) {
 		super(driver);
 	}
 
-	protected RAIDSixSDriveSyncEncoder(RAIDSixDriver driver, List<Drive> zDrives) {
+	protected ECDriveSyncEncoder(ECDriver driver, List<Drive> zDrives) {
 		super(driver, zDrives);
 	}
 
@@ -57,7 +57,7 @@ public class RAIDSixSDriveSyncEncoder extends RAIDSixEncoder {
 	 * - create ObjectMetadata <br/>
 	 * </p>
 	 */
-	public RAIDSixShards encodeHead(InputStream is, ServerBucket bucket, String objectName) {
+	public ECShards encodeHead(InputStream is, ServerBucket bucket, String objectName) {
 		return super.encodeHead(is, bucket, objectName);
 	}
 
@@ -70,7 +70,7 @@ public class RAIDSixSDriveSyncEncoder extends RAIDSixEncoder {
 	 * </p>
 	 */
 
-	public RAIDSixShards encodeVersion(InputStream is, ServerBucket bucket, String objectName, int version) {
+	public ECShards encodeVersion(InputStream is, ServerBucket bucket, String objectName, int version) {
 		return super.encodeVersion(is, bucket, objectName, version);
 	}
 

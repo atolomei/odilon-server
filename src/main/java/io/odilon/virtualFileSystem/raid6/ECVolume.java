@@ -30,7 +30,7 @@ import io.odilon.virtualFileSystem.model.Drive;
 
 /**
  * <p>
- * A {@code RAIDSixVolume} is an independent RAID 6 / Erasure-Coding storage
+ * A {@code ECVolume} is an independent Erasure-Coding storage
  * unit composed of a <em>fixed-size</em> set of drives.
  * </p>
  *
@@ -57,10 +57,10 @@ import io.odilon.virtualFileSystem.model.Drive;
  * </pre>
  *
  * @author atolomei@novamens.com (Alejandro Tolomei)
- * @see OdilonRAIDSixVolumeManager
+ * @see OdilonECVolumeManager
  * @see VolumeStatus
  */
-public class RAIDSixVolume {
+public class ECVolume {
 
     /** 0-based identifier, persisted in {@link io.odilon.model.ObjectMetadata#volumeId}. */
     @JsonProperty("volumeId")
@@ -92,7 +92,7 @@ public class RAIDSixVolume {
     /**
      * Map: volume-local disk index → Drive.
      * Built from {@link #drives} at construction time; used by
-     * {@link RAIDSixDecoder} to locate shards without iterating the full list.
+     * {@link ECDecoder} to locate shards without iterating the full list.
      */
     @JsonIgnore
     private final Map<Integer, Drive> drivesRSDecode;
@@ -103,11 +103,11 @@ public class RAIDSixVolume {
      * Convenience constructor – status defaults to {@link VolumeStatus#ACTIVE} and
      * {@code created} is set to "now".
      */
-    public RAIDSixVolume(int volumeId, int dataDrives, int parityDrives, List<Drive> orderedDrives) {
+    public ECVolume(int volumeId, int dataDrives, int parityDrives, List<Drive> orderedDrives) {
         this(volumeId, dataDrives, parityDrives, orderedDrives, VolumeStatus.ACTIVE, OffsetDateTime.now());
     }
 
-    public RAIDSixVolume(int volumeId, int dataDrives, int parityDrives,
+    public ECVolume(int volumeId, int dataDrives, int parityDrives,
                          List<Drive> orderedDrives, VolumeStatus status, OffsetDateTime created) {
         this.volumeId     = volumeId;
         this.dataDrives   = dataDrives;
@@ -170,7 +170,7 @@ public class RAIDSixVolume {
 
     @Override
     public String toString() {
-        return "RAIDSixVolume{id=" + volumeId
+        return this.getClass().getSimpleName()+"{id=" + volumeId
                 + ", status=" + status
                 + ", data=" + dataDrives
                 + ", parity=" + parityDrives

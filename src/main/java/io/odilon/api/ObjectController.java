@@ -169,7 +169,8 @@ public class ObjectController extends BaseApiController {
 	 * 
 	 */
 	@RequestMapping(value = "/set/publicaccess/{bucketName}/{objectName}", method = RequestMethod.GET)
-	public ResponseEntity<ObjectMetadata> setPublicAccess(@PathVariable("bucketName") String bucketName, @PathVariable("objectName") String objectName, @RequestParam("publicAccess") Boolean publicAccess) {
+	public ResponseEntity<ObjectMetadata> setPublicAccess(@PathVariable("bucketName") String bucketName, @PathVariable("objectName") String objectName,
+			@RequestParam("publicAccess") Boolean publicAccess) {
 
 		TrafficPass pass = null;
 

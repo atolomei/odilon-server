@@ -33,23 +33,23 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  * Base class to encode and decode using Reed Solomon codes
  * </p>
  * 
- * @see RAIDSixDecoder
- * @see RAIDSixEncoder
+ * @see ECDecoder
+ * @see ECEncoder
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @ThreadSafe
-public class RAIDSixCoder extends BaseObject {
+public class ECCoder extends BaseObject {
 
 	@JsonIgnore
-	private final RAIDSixDriver driver;
+	private final ECDriver driver;
 
-	protected RAIDSixCoder(RAIDSixDriver driver) {
+	protected ECCoder(ECDriver driver) {
 		Check.requireNonNull(driver);
 		this.driver = driver;
 	}
 
-	public RAIDSixDriver getDriver() {
+	public ECDriver getDriver() {
 		return this.driver;
 	}
 

@@ -27,7 +27,7 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
-public abstract class RAIDSixRollbackHandler extends RAIDSixHandler {
+public abstract class ECRollbackHandler extends ECHandler {
 
 	@JsonProperty("operation")
 	final private VirtualFileSystemOperation operation;
@@ -35,7 +35,7 @@ public abstract class RAIDSixRollbackHandler extends RAIDSixHandler {
 	@JsonProperty("recovery")
 	final private boolean recovery;
 
-	public RAIDSixRollbackHandler(RAIDSixDriver driver, VirtualFileSystemOperation operation, boolean recovery) {
+	public ECRollbackHandler(ECDriver driver, VirtualFileSystemOperation operation, boolean recovery) {
 		super(driver);
 		this.operation = operation;
 		this.recovery = recovery;

@@ -37,8 +37,8 @@ import io.odilon.service.ServerSettings;
 
 /**
  * <p>
- * The pool buffers are used only by RAID 6 ({@link RAIDSixEncoder} and
- * {@link RAIDSixDecoder}).
+ * The pool buffers are used only by RAID 6 ({@link ECEncoder} and
+ * {@link ECDecoder}).
  * </p>
  * <p>
  * <p>
@@ -78,8 +78,8 @@ public class BufferPoolService extends BaseService {
 	public BufferPoolService(ServerSettings serverSettings) {
 		this.serverSettings = serverSettings;
 
-		poolSize = serverSettings.getR6BufferPoolSize();
-		bufferSize = ServerConstant.MAX_STRIPE_SIZE;  
+		poolSize = serverSettings.getECBufferPoolSize();
+		bufferSize = ServerConstant.MAX_STRIPE_SIZE;
 		this.pool = new ArrayBlockingQueue<>(poolSize);
 	}
 
@@ -90,7 +90,7 @@ public class BufferPoolService extends BaseService {
 
 		startuplogger.debug("Started -> " + BufferPoolService.class.getSimpleName());
 
-		if (this.serverSettings.getRedundancyLevel() != RedundancyLevel.RAID_6) {
+		if (this.serverSettings.getRedundancyLevel() != RedundancyLevel.ERASURE_CODING) {
 			startuplogger.debug("Buffers are not required for " + this.serverSettings.getRedundancyLevel().getName() + " and will not be initialized.");
 		} else {
 			initialize();

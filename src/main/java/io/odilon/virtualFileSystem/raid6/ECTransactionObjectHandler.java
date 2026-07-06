@@ -24,7 +24,7 @@ import io.odilon.virtualFileSystem.model.ServerBucket;
 /**
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
-public class RAIDSixTransactionObjectHandler extends RAIDSixTransactionHandler {
+public class ECTransactionObjectHandler extends ECTransactionHandler {
 
 	@JsonProperty("bucket")
 	private final ServerBucket bucket;
@@ -32,7 +32,7 @@ public class RAIDSixTransactionObjectHandler extends RAIDSixTransactionHandler {
 	@JsonProperty("objectName")
 	private final String objectName;
 
-	public RAIDSixTransactionObjectHandler(RAIDSixDriver driver, ServerBucket bucket, String objectName) {
+	public ECTransactionObjectHandler(ECDriver driver, ServerBucket bucket, String objectName) {
 		super(driver);
 		this.bucket = bucket;
 		this.objectName = objectName;

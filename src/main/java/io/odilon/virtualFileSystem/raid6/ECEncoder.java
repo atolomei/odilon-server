@@ -37,21 +37,21 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
  * <p>
- * RAID 6 Reed Solomon encoder
+ * ErasureCoding Reed Solomon encoder
  * </p>
  * <p>
  * Encodes {@link InputStream} into multiple block files in the File System
- * using {@link https://en.wikipedia.org/wiki/Erasure_code}.
- * A chunk/stripe is a portion of the file that is encoded into multiple shards (data and parity). 
+ * using {@link https://en.wikipedia.org/wiki/Erasure_code}. A chunk/stripe is a
+ * portion of the file that is encoded into multiple shards (data and parity).
  * Each shard is stored in a different disk.
  * 
  * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
-public class RAIDSixEncoder extends RAIDSixCoder {
+public class ECEncoder extends ECCoder {
 
-	private static Logger logger = Logger.getLogger(RAIDSixEncoder.class.getName());
+	private static Logger logger = Logger.getLogger(ECEncoder.class.getName());
 
 	@JsonIgnore
 	private long fileSize = 0;
@@ -69,7 +69,7 @@ public class RAIDSixEncoder extends RAIDSixCoder {
 	private final int total_shards;
 
 	@JsonIgnore
-	private RAIDSixShards encodedInfo;
+	private ECShards encodedInfo;
 
 	@JsonIgnore
 	private List<Drive> r6Drives;
@@ -83,7 +83,7 @@ public class RAIDSixEncoder extends RAIDSixCoder {
 	 * </p>
 	 */
 
-	protected RAIDSixEncoder(RAIDSixDriver driver) {
+	protected ECEncoder(ECDriver driver) {
 		this(driver, null);
 	}
 
@@ -91,14 +91,14 @@ public class RAIDSixEncoder extends RAIDSixCoder {
 	 * <p>
 	 * We use drivesAll to encode, assuming that drives that are in state
 	 * {@link DriveStatys.NOT_SYNC} are in the process of becoming enabled (via an
-	 * async process in {@link RAIDSixDriveSync}.
+	 * async process in {@link ECDriveSync}.
 	 * </p>
 	 * 
 	 * <p>
 	 * Used by {@link RAIDSixDrive}, can not be created directly.
 	 * </p>
 	 */
-	protected RAIDSixEncoder(RAIDSixDriver driver, List<Drive> udrives) {
+	protected ECEncoder(ECDriver driver, List<Drive> udrives) {
 		super(driver);
 		// When no explicit drive list is given, use the active volume's drive list
 		// so that new objects are always written to the currently-active volume.
@@ -108,15 +108,15 @@ public class RAIDSixEncoder extends RAIDSixCoder {
 			this.r6Drives = udrives;
 		} else {
 			try {
-				RAIDSixVolume activeVolume = driver.getActiveVolume();
+				ECVolume activeVolume = driver.getActiveVolume();
 				this.r6Drives = activeVolume.getDrives();
 			} catch (Exception e) {
 				// fallback: volume manager not yet initialized (e.g. drive sync bootstrap)
 				this.r6Drives = driver.getDrivesAll();
 			}
 		}
-		this.data_shards = getVirtualFileSystemService().getServerSettings().getRAID6DataDrives();
-		this.partiy_shards = getVirtualFileSystemService().getServerSettings().getRAID6ParityDrives();
+		this.data_shards = getVirtualFileSystemService().getServerSettings().getECDataDrives();
+		this.partiy_shards = getVirtualFileSystemService().getServerSettings().getECParityDrives();
 		this.total_shards = data_shards + partiy_shards;
 		this.reedSolomon = new ReedSolomon(getDataShards(), getPartityShards());
 	}
@@ -148,30 +148,30 @@ public class RAIDSixEncoder extends RAIDSixCoder {
 	 *         every shard multiple of 4)
 	 */
 
-	public RAIDSixShards encodeHead(InputStream is, ServerBucket bucket, String objectName) {
+	public ECShards encodeHead(InputStream is, ServerBucket bucket, String objectName) {
 		return encode(is, bucket, objectName, Optional.empty());
 	}
 
-	public RAIDSixShards encodeVersion(InputStream is, ServerBucket bucket, String objectName, int version) {
+	public ECShards encodeVersion(InputStream is, ServerBucket bucket, String objectName, int version) {
 		return encode(is, bucket, objectName, Optional.of(version));
 
 	}
 
-	protected RAIDSixShards encode(InputStream is, ServerBucket bucket, String objectName, Optional<Integer> version) {
+	protected ECShards encode(InputStream is, ServerBucket bucket, String objectName, Optional<Integer> version) {
 
 		Check.requireNonNull(is);
 		Check.requireNonNull(objectName);
 		Check.requireNonNull(bucket);
 
 		if (!getDriver().isConfigurationValid(data_shards, partiy_shards))
-			throw new InternalCriticalException("Incorrect configuration for RAID 6 -> data: " + String.valueOf(data_shards) + " | parity:" + String.valueOf(partiy_shards));
+			throw new InternalCriticalException("Incorrect configuration for ErasureCoding -> data: " + String.valueOf(data_shards) + " | parity:" + String.valueOf(partiy_shards));
 
 		if (getDrives().size() < getTotalShards())
-			throw new InternalCriticalException("There are not enough drives to encode the file in RAID 6 -> drives: " + String.valueOf(getDrives().size()) + " | required: " + String.valueOf(total_shards));
+			throw new InternalCriticalException("There are not enough drives to encode the file in ErasureCoding -> drives: " + String.valueOf(getDrives().size()) + " | required: " + String.valueOf(total_shards));
 
 		this.fileSize = 0;
 		this.stripe = 0;
-		this.encodedInfo = new RAIDSixShards();
+		this.encodedInfo = new ECShards();
 
 		boolean done = false;
 
@@ -286,9 +286,9 @@ public class RAIDSixEncoder extends RAIDSixCoder {
 
 	/**
 	 * For normal encoding all disk must be written with RS blocks. However, this
-	 * method is overriden by {@link RAIDSixSDriveSyncEncoder} the class that syncs
-	 * new disks, which just writes blocks on the newly installed disks,
-	 * leaving existing blocks untouched.
+	 * method is overriden by {@link ECDriveSyncEncoder} the class that syncs new
+	 * disks, which just writes blocks on the newly installed disks, leaving
+	 * existing blocks untouched.
 	 * 
 	 * @param diskOrder
 	 * @return

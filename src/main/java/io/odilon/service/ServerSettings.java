@@ -19,7 +19,7 @@ package io.odilon.service;
 import java.io.File;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
-import java.util.Arrays;
+ 
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -188,7 +188,7 @@ public class ServerSettings implements JSONObject {
 
 	/**
 	 * Legacy flat drive list.  Used by RAID 0, RAID 1 and as a backward-compatible
-	 * fallback for RAID 6.  For new RAID 6 deployments use
+	 * fallback for EC.  For new EC deployments use
 	 * {@code dataStorage.volume.N=} instead.
 	 * Default is empty so the property is optional when the per-volume syntax is used.
 	 */
@@ -205,18 +205,19 @@ public class ServerSettings implements JSONObject {
 	/**
 	 * Data shards per volume — derived from {@link RAID6Config}, never user-configured.
 	 */
-	protected int raid6DataDrives = -1;
+	protected int ecDataDrives = -1;
 
 	/**
 	 * Parity shards per volume — derived from {@link RAID6Config}, never user-configured.
 	 */
-	protected int raid6ParityDrives = -1;
+	protected int ecParityDrives = -1;
 
 	/**
-	 * Number of volumes — derived from the number of {@code dataStorage.volume.*}
-	 * keys (new style) or from the legacy {@code raid6.volumes} property.
+	 * Number of ErasureCoding volumes — derived from the number of
+	 * {@code dataStorage.volume.*} keys (new style) or from the legacy
+	 * {@code dataStorage=} property (single volume).
 	 */
-	protected int raid6Volumes = 1;
+	protected int ecVolumes = 1;
 
 	@Autowired
 	private Environment environment;
@@ -227,7 +228,7 @@ public class ServerSettings implements JSONObject {
 
 	/**
 	 * <p>
-	 * The 0-based id of the RAID 6 volume that receives new-object writes.
+	 * The 0-based id of the EC volume that receives new-object writes.
 	 * </p>
 	 * <p>
 	 * Controlled by the {@code volume.active} property in
@@ -273,13 +274,13 @@ public class ServerSettings implements JSONObject {
 	@Value("${integrityCheck:true}")
 	protected boolean integrityCheck;
 
-	@Value("${integrityCheckThreads:0}")
+	@Value("${integrityCheckThreads:4}")
 	protected int integrityCheckThreads;
 
 	@Value("${integrityCheckDays:180}")
 	protected int integrityCheckDays;
 
-	@Value("${integrityCheckCronExpression:15 15 5 * * *}")
+	@Value("${integrityCheckCronExpression:15 5 5 * * 7}")
 	protected String integrityCheckCronExpression;
 
 	// VAULT -------------------------------------------
@@ -364,7 +365,7 @@ public class ServerSettings implements JSONObject {
 	@Value("${objectMetadataCache.expireDays:15}")
 	protected long objectExpireDays;
 
-	// FILE CACHE (USED BY RAID 6) -----------------------
+	// FILE CACHE (USED BY ErasureCoding) -----------------------
 
 	@Value("${fileCache.maxCapacity:100000}")
 	protected long fileCacheMaxCapacity;
@@ -375,24 +376,30 @@ public class ServerSettings implements JSONObject {
 	@Value("${fileCache.initialCapacity:10000}")
 	protected int fileCacheIntialCapacity;
 
-	// RAID 6 BUFFERS (USED BY RAID 6) -----------------------
-
-	@Value("${raid6.buffers:null}")
-	private String raidSixBuffersStr;
-
-	private int raidSixBuffers;
+	// ErasureCoding BUFFERS -----------------------
 
 	/**
-	 * When {@code true}, every RAID-6 read whose shards are all physically present
+	 * New key: {@code ec.buffers}. The legacy key {@code raid6.buffers} is still
+	 * accepted for backward compatibility with existing deployments.
+	 */
+	@Value("${ec.buffers:${raid6.buffers:null}}")
+	private String ecBuffersStr;
+
+	private int ecBuffers;
+
+	/**
+	 * When {@code true}, every ErasureCoding read whose shards are all physically present
 	 * will have their parity checked via {@link ReedSolomon#isParityCorrect} to
 	 * detect silent byte-level corruption.  Repair is attempted for up to 2
 	 * simultaneously corrupt shards (full N=6 tolerance).
+	 * <p>New key: {@code ec.readParityCheck}. The legacy key
+	 * {@code raid6.readParityCheck} is still accepted for backward compatibility.</p>
 	 * <p>Default: {@code false} — the check adds roughly one parity-encode pass
 	 * per chunk of I/O and should only be enabled when active corruption detection
 	 * on the read path is required.</p>
 	 */
-	@Value("${raid6.readParityCheck:false}")
-	private boolean raid6ReadParityCheck;
+	@Value("${ec.readParityCheck:${raid6.readParityCheck:false}}")
+	private boolean ecReadParityCheck;
 
 	// --------------------------------------------------
 
@@ -448,11 +455,11 @@ public class ServerSettings implements JSONObject {
 
 		str.append(", \"redundancyLevel\":" + (Optional.ofNullable(redundancyLevel).isPresent() ? ("\"" + redundancyLevel.getName() + "\"") : "null"));
 
-		if (redundancyLevel == RedundancyLevel.RAID_6) {
-			str.append(", \"dataDrives\":" + String.format("%3d", getRAID6DataDrives()).trim());
-			str.append(", \"paritytDrives\":" + String.format("%3d", getRAID6ParityDrives()).trim());
-			str.append(", \"R6BufferPoolSize\":" + String.format("%4d", this.getR6BufferPoolSize()).trim());
-			str.append(", \"raid6.readParityCheck\":\"" + (isRAID6ReadParityCheckEnabled() ? "true" : "false") + "\"");
+		if (redundancyLevel == RedundancyLevel.ERASURE_CODING) {
+			str.append(", \"dataDrives\":" + String.format("%3d", getECDataDrives()).trim());
+			str.append(", \"paritytDrives\":" + String.format("%3d", getECParityDrives()).trim());
+			str.append(", \"ecBufferPoolSize\":" + String.format("%4d", this.getECBufferPoolSize()).trim());
+			str.append(", \"ec.readParityCheck\":\"" + (isECReadParityCheckEnabled() ? "true" : "false") + "\"");
 		}
 
 		str.append(", \"dataDirs\":[");
@@ -513,24 +520,25 @@ public class ServerSettings implements JSONObject {
 		return str.toString();
 	}
 
-	public int getRAID6ParityDrives() {
-		return raid6ParityDrives;
+	public int getECParityDrives() {
+		return ecParityDrives;
 	}
 
-	public boolean isRAID6ReadParityCheckEnabled() {
-		return raid6ReadParityCheck;
+	public boolean isECReadParityCheckEnabled() {
+		return ecReadParityCheck;
 	}
-	public int getRAID6DataDrives() {
-		return raid6DataDrives;
+
+	public int getECDataDrives() {
+		return ecDataDrives;
 	}
 
 	/**
-	 * Returns the number of RAID 6 volumes, derived at startup from the number of
-	 * {@code dataStorage.volume.N} keys (new style) or {@code 1} for legacy
-	 * {@code dataStorage=} deployments.
+	 * Returns the number of ErasureCoding volumes, derived at startup from the
+	 * number of {@code dataStorage.volume.N} keys (new style) or {@code 1} for
+	 * legacy {@code dataStorage=} deployments.
 	 */
-	public int getRAID6Volumes() {
-		return raid6Volumes;
+	public int getECVolumes() {
+		return ecVolumes;
 	}
 
 	/**
@@ -552,8 +560,8 @@ public class ServerSettings implements JSONObject {
 	}
 
 	/**
-	 * Returns the 0-based id of the RAID 6 volume that currently receives new
-	 * object writes. Controlled by {@code volume.active} in
+	 * Returns the 0-based id of the ErasureCoding volume that currently receives
+	 * new object writes. Controlled by {@code volume.active} in
 	 * {@code odilon.properties} (default: {@code 0}).
 	 */
 	public int getActiveVolumeId() {
@@ -625,8 +633,9 @@ public class ServerSettings implements JSONObject {
 			this.presignedSalt = this.presignedSalt.substring(0, 20);
 
 		if (this.rootDirs == null || this.rootDirs.size() < 1) {
-			startuplogger.error("No rootDirs are defined. \n" + "for RAID 0. at least 1 dataDir must be defined in file -> odilon.properties \n" + "for RAID 1. at least 1 dataDir must be defined in file -> odilon.properties \n"
-					+ "for RAID 6. 3, 6, 12, 24 or 48 dataDirs must be defined in file -> odilon.properties \n" + "using default values ");
+			startuplogger.error("No rootDirs are defined. \n" + "for RAID 0. at least 1 dataDir must be defined in file -> odilon.properties \n" + 
+						"for RAID 1. at least 2 dataDirs must be defined in file -> odilon.properties \n"
+					+ 	"for ErasureCoding. 3, 6, 12, 24 or 48 dataDirs must be defined in file -> odilon.properties \n" + "using default values ");
 
 			getDefaultRootDirs().forEach(o -> startuplogger.error(o));
 			this.rootDirs = getDefaultRootDirs();
@@ -739,7 +748,7 @@ public class ServerSettings implements JSONObject {
 		}
 
 		if (this.redundancyLevelStr == null || this.redundancyLevelStr.toLowerCase().trim().equals("null")) {
-			exit("redundancyLevel can not be null | Supported values are: RAID 0, RAID 1 or RAID 6 | example -> redundancyLevel=RAID 0");
+			exit("redundancyLevel can not be null | Supported values: RAID 0, RAID 1, ErasureCoding (legacy: RAID 6) | example -> redundancyLevel=ErasureCoding");
 		}
 
 		this.redundancyLevel = RedundancyLevel.get(redundancyLevelStr);
@@ -747,7 +756,7 @@ public class ServerSettings implements JSONObject {
 		// Normalise flat rootDirs for RAID 0, RAID 1 and legacy RAID 6.
 		// For new-style RAID 6 (dataStorage.volume.N=) rootDirs starts empty;
 		// the RAID 6 block below will build it from volumeRootDirs.
-		boolean isNewStyleRAID6 = (this.redundancyLevel == RedundancyLevel.RAID_6)
+		boolean isNewStyleRAID6 = (this.redundancyLevel == RedundancyLevel.ERASURE_CODING)
 				&& environment.containsProperty("dataStorage.volume.0");
 
 		if (!isNewStyleRAID6) {
@@ -779,7 +788,7 @@ public class ServerSettings implements JSONObject {
 			if (this.rootDirs.size() < 2)
 				exit("DataStorage must have at least 2 entries for -> " + redundancyLevel.getName() + " | dataStorage=" + rootDirs.toString() + " | you must use " + RedundancyLevel.RAID_0.getName() + " for only one mount directory");
 
-		} else if (this.redundancyLevel == RedundancyLevel.RAID_6) {
+		} else if (this.redundancyLevel == RedundancyLevel.ERASURE_CODING) {
 
 			// ── Detect configuration style ────────────────────────────────────────────
 			//
@@ -825,14 +834,14 @@ public class ServerSettings implements JSONObject {
 					exit("No dataStorage.volume.N entries found despite dataStorage.volume.0 being present.");
 
 				int drivesPerVol = this.volumeRootDirs.get(0).size();
-				this.raid6Volumes = this.volumeRootDirs.size();
+				this.ecVolumes = this.volumeRootDirs.size();
 
 				// Derive data/parity from drive count — no user config needed
 				try {
 					RAID6Config cfg = RAID6Config.fromDriveCount(drivesPerVol);
-					this.raid6DataDrives   = cfg.dataDrives;
-					this.raid6ParityDrives = cfg.parityDrives;
-					startuplogger.info("RAID 6: " + this.raid6Volumes + " volume(s), "
+					this.ecDataDrives   = cfg.dataDrives;
+					this.ecParityDrives = cfg.parityDrives;
+					startuplogger.info("ErasureCoding: " + this.ecVolumes + " volume(s), "
 							+ drivesPerVol + " drives/volume -> " + cfg);
 				} catch (IllegalArgumentException e) {
 					exit("dataStorage.volume.0 has " + drivesPerVol + " drives. "
@@ -861,15 +870,15 @@ public class ServerSettings implements JSONObject {
 						.collect(Collectors.toList());
 
 				if (this.rootDirs.isEmpty())
-					exit("redundancyLevel=RAID 6 requires at least one drive in 'dataStorage' or 'dataStorage.volume.0'.");
+					exit("redundancyLevel=ErasureCoding requires at least one drive in 'dataStorage' or 'dataStorage.volume.0'.");
 
 				int drivesPerVol = this.rootDirs.size();
-				this.raid6Volumes = 1;
+				this.ecVolumes = 1;
 
 				try {
 					RAID6Config cfg = RAID6Config.fromDriveCount(drivesPerVol);
-					this.raid6DataDrives   = cfg.dataDrives;
-					this.raid6ParityDrives = cfg.parityDrives;
+					this.ecDataDrives   = cfg.dataDrives;
+					this.ecParityDrives = cfg.parityDrives;
 				} catch (IllegalArgumentException e) {
 					exit("dataStorage has " + drivesPerVol + " drives. "
 							+ "Supported drives per volume: " + RAID6Config.supportedCounts() + ".");
@@ -883,10 +892,10 @@ public class ServerSettings implements JSONObject {
 			// ── Validate volume.active is in range ────────────────────────────────────
 			// By design, only ONE volume can be active at a time (activeVolumeId is a single integer).
 			// This validation ensures the configured active volume ID is within the valid range.
-			if (this.activeVolumeId < 0 || this.activeVolumeId >= this.raid6Volumes) {
+			if (this.activeVolumeId < 0 || this.activeVolumeId >= this.ecVolumes) {
 				exit("volume.active=" + this.activeVolumeId
-						+ " is out of range. Total volumes=" + this.raid6Volumes
-						+ " (valid range: 0.." + (this.raid6Volumes - 1) + ")");
+						+ " is out of range. Total volumes=" + this.ecVolumes
+						+ " (valid range: 0.." + (this.ecVolumes - 1) + ")");
 			}
 		}
 		try {
@@ -933,26 +942,33 @@ public class ServerSettings implements JSONObject {
 
 		this.totalDisks = getRootDirs().size();
 
-		if (this.redundancyLevel == RedundancyLevel.RAID_6) {
+		if (this.redundancyLevel == RedundancyLevel.ERASURE_CODING) {
+
+			// Deprecation warnings for legacy property names
+			if (environment.containsProperty("raid6.buffers"))
+				startuplogger.warn("Property 'raid6.buffers' is deprecated. Rename it to 'ec.buffers' in odilon.properties.");
+			if (environment.containsProperty("raid6.readParityCheck"))
+				startuplogger.warn("Property 'raid6.readParityCheck' is deprecated. Rename it to 'ec.readParityCheck' in odilon.properties.");
+
 			try {
-				if (raidSixBuffersStr != null && raidSixBuffersStr.equals("null")) {
-					raidSixBuffers = ServerConstant.R6_BUFFERS;
-					if (raidSixBuffers < this.rootDirs.size())
-						raidSixBuffers = this.rootDirs.size();
+				if (ecBuffersStr != null && ecBuffersStr.equals("null")) {
+					ecBuffers = ServerConstant.R6_BUFFERS;
+					if (ecBuffers < this.rootDirs.size())
+						ecBuffers = this.rootDirs.size();
 				} else {
-					raidSixBuffers = Integer.valueOf(raidSixBuffersStr).intValue();
+					ecBuffers = Integer.valueOf(ecBuffersStr).intValue();
 				}
 			} catch (Exception e) {
-				raidSixBuffers = ServerConstant.R6_BUFFERS;
+				ecBuffers = ServerConstant.R6_BUFFERS;
 			}
 
-			if (this.raidSixBuffers < this.rootDirs.size()) {
-				startuplogger.info(" buffers is set to " + this.raidSixBuffers + "but they must be at least " + this.rootDirs.size() + ". We will use corrected the value to this value.");
-				this.raidSixBuffers = this.rootDirs.size();
+			if (this.ecBuffers < this.rootDirs.size()) {
+				startuplogger.info(" buffers is set to " + this.ecBuffers + "but they must be at least " + this.rootDirs.size() + ". We will use corrected the value to this value.");
+				this.ecBuffers = this.rootDirs.size();
 			}
 
 		} else {
-			raidSixBuffers = ServerConstant.R6_BUFFERS;
+			ecBuffers = ServerConstant.R6_BUFFERS;
 		}
 
 		this.encryptMetadata = (isEncrypt && (encryptMetadataStr == null || encryptMetadataStr.trim().toLowerCase().equals("null") || encryptMetadataStr.trim().toLowerCase().equals("true"))) ? true : false;
@@ -1032,7 +1048,7 @@ public class ServerSettings implements JSONObject {
 				return list;
 			}
 
-			/** for RAID 6 default is 3,1 */
+			/** for EC default is 3,1 */
 			list.add("c:" + File.separator + "odilon-data" + File.separator + "drive0");
 			list.add("c:" + File.separator + "odilon-data" + File.separator + "drive1");
 			list.add("c:" + File.separator + "odilon-data" + File.separator + "drive2");
@@ -1297,7 +1313,7 @@ public class ServerSettings implements JSONObject {
 		return this.fileCacheDurationDays;
 	}
 
-	public boolean isRAID6ConfigurationValid(int dataShards, int parityShards) {
+	public boolean isECConfigurationValid(int dataShards, int parityShards) {
 		return (dataShards == 32 && parityShards == 16) || (dataShards == 16 && parityShards == 8) || (dataShards == 8 && parityShards == 4) || (dataShards == 4 && parityShards == 2) || (dataShards == 2 && parityShards == 1);
 	}
 
@@ -1325,11 +1341,11 @@ public class ServerSettings implements JSONObject {
 		return this.presignedSalt;
 	}
 
-	public int getR6BufferPoolSize() {
-		return raidSixBuffers;
+	public int getECBufferPoolSize() {
+		return ecBuffers;
 	}
 
-	public int getR6BufferSizeMB() {
+	public int getECBufferSizeMB() {
 		return ServerConstant.MAX_STRIPE_SIZE;
 	}
 	

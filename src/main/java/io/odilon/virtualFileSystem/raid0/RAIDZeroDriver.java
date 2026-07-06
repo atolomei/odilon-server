@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -59,7 +60,9 @@ import io.odilon.query.BucketIteratorService;
 import io.odilon.scheduler.DeleteBucketObjectPreviousVersionServiceRequest;
 import io.odilon.scheduler.ServiceRequest;
 import io.odilon.util.Check;
+import io.odilon.util.DateTimeUtil;
 import io.odilon.util.OdilonFileUtils;
+import io.odilon.service.util.ByteToString;
 import io.odilon.virtualFileSystem.Action;
 import io.odilon.virtualFileSystem.BaseIODriver;
 import io.odilon.virtualFileSystem.ObjectPath;
@@ -939,7 +942,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 				return true;
 			}
 
-			OffsetDateTime now = OffsetDateTime.now();
+			OffsetDateTime now = DateTimeUtil.now();
 
 			String originalSha256 = metadata.getSha256();
 
@@ -961,8 +964,17 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 			File file = path.dataFilePath().toFile();
 			String sha256 = null;
 
-			try {
-				sha256 = OdilonFileUtils.calculateSHA256String(file);
+			try (InputStream rawIn = Files.newInputStream(file.toPath());
+				 InputStream in = metadata.isEncrypt()
+						? getEncryptionService().decryptStream(rawIn)
+						: rawIn) {
+
+				MessageDigest md = MessageDigest.getInstance("SHA-256");
+				byte[] buffer = new byte[8192];
+				int read;
+				while ((read = in.read(buffer)) != -1)
+					md.update(buffer, 0, read);
+				sha256 = ByteToString.byteToHexString(md.digest());
 
 			} catch (NoSuchAlgorithmException | IOException e) {
 				logger.error(e, SharedConstant.NOT_THROWN);

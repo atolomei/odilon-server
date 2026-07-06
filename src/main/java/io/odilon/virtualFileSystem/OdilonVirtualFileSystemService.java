@@ -87,6 +87,7 @@ import io.odilon.service.BaseService;
 import io.odilon.service.ServerSettings;
 import io.odilon.service.util.ByteToString;
 import io.odilon.util.Check;
+import io.odilon.util.DateTimeUtil;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.DriveBucket;
 import io.odilon.virtualFileSystem.model.DriveStatus;
@@ -101,9 +102,9 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 import io.odilon.virtualFileSystem.raid0.RAIDZeroDriver;
 import io.odilon.virtualFileSystem.raid1.RAIDOneDriver;
 import io.odilon.virtualFileSystem.raid6.BufferPoolService;
-import io.odilon.virtualFileSystem.raid6.OdilonRAIDSixVolumeManager;
-import io.odilon.virtualFileSystem.raid6.RAIDSixDriver;
-import io.odilon.virtualFileSystem.raid6.RAIDSixVolume;
+import io.odilon.virtualFileSystem.raid6.OdilonECVolumeManager;
+import io.odilon.virtualFileSystem.raid6.ECDriver;
+import io.odilon.virtualFileSystem.raid6.ECVolume;
 import io.odilon.virtualFileSystem.raid6.VolumeStatus;
 
 /**
@@ -114,7 +115,7 @@ import io.odilon.virtualFileSystem.raid6.VolumeStatus;
  * <ul>
  * <li><b>RAID 0</b> {@link RAIDZeroDriver}</li>
  * <li><b>RAID 1</b> {@link RAIDOneDriver}</li>
- * <li><b>RAID 6 / Erasure Coding</b>{@link RAIDSixDriver}</li>
+ * <li><b>RAID 6 / Erasure Coding</b>{@link ECDriver}</li>
  * </ul>
  * 
  * <p>
@@ -272,12 +273,12 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 	 * volume for reads, deletes and rollbacks.
 	 * </p>
 	 * <p>
-	 * Only used when {@link RedundancyLevel#RAID_6} is active. {@code null} for
+	 * Only used when {@link RedundancyLevel#ERASURE_CODING} is active. {@code null} for
 	 * other modes.
 	 * </p>
 	 */
 	@JsonIgnore
-	private OdilonRAIDSixVolumeManager volumeManager;
+	private OdilonECVolumeManager volumeManager;
 
 	@JsonIgnore
 	private ApplicationContext applicationContext;
@@ -577,7 +578,7 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 		if (getDataStorage() == DataStorage.WORM)
 			throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Data Storage is in WORM mode");
 
-		meta.setLastModified(OffsetDateTime.now());
+		meta.setLastModified(DateTimeUtil.now());
 
 		createVFSIODriver().putObjectMetadata(meta);
 		return meta;
@@ -834,8 +835,8 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 			return getApplicationContext().getBean(RAIDZeroDriver.class, this, getLockService());
 		if (this.raid == RedundancyLevel.RAID_1)
 			return getApplicationContext().getBean(RAIDOneDriver.class, this, getLockService());
-		if (this.raid == RedundancyLevel.RAID_6)
-			return getApplicationContext().getBean(RAIDSixDriver.class, this, getLockService());
+		if (this.raid == RedundancyLevel.ERASURE_CODING)
+			return getApplicationContext().getBean(ECDriver.class, this, getLockService());
 		throw new IllegalStateException("RAID not supported -> " + this.raid.toString());
 	}
 
@@ -939,11 +940,11 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 	}
 
 	/**
-	 * Returns the {@link OdilonRAIDSixVolumeManager} for RAID 6 deployments.
+	 * Returns the {@link OdilonECVolumeManager} for RAID 6 deployments.
 	 * Returns {@code null} for RAID 0 and RAID 1.
 	 */
 	@Override
-	public OdilonRAIDSixVolumeManager getVolumeManager() {
+	public OdilonECVolumeManager getVolumeManager() {
 		return volumeManager;
 	}
 
@@ -1136,14 +1137,14 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 		this.drivesEnabled.clear();
 		this.drivesRSDecode.clear();
 
-		if (getRedundancyLevel() == RedundancyLevel.RAID_6) {
+		if (getRedundancyLevel() == RedundancyLevel.ERASURE_CODING) {
 			// ── RAID 6: iterate per-volume, preserving volume-local ordering ──────────
 			// configOrder is the global drive index (used for drive naming / journal).
 			// Within each volume the position in the list == volume-local shard index.
 			int configOrder = 0;
 			for (List<String> vDirs : getServerSettings().getVolumeRootDirs()) {
 				for (String dir : vDirs) {
-					Drive drive = new OdilonRaidSixDrive(
+					Drive drive = new OdilonECDrive(
 							String.valueOf(configOrder), dir, configOrder,
 							getRedundancyLevel().getName(),
 							getServerSettings().getTotalDisks());
@@ -1199,7 +1200,7 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 		this.drivesEnabled.values().forEach(drive -> this.drivesRSDecode.put(Integer.valueOf(drive.getDriveInfo().getOrder()), drive));
 
 		/** initialize volume manager for RAID 6 */
-		if (getRedundancyLevel() == RedundancyLevel.RAID_6) {
+		if (getRedundancyLevel() == RedundancyLevel.ERASURE_CODING) {
 			initializeVolumeManager(baselist);
 		}
 		
@@ -1207,7 +1208,7 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 		
 		/** initialize FileServiceCache drives  */
 		
-		if (getRedundancyLevel() == RedundancyLevel.RAID_6) {
+		if (getRedundancyLevel() == RedundancyLevel.ERASURE_CODING) {
 			this.getVolumeManager().getActiveVolume().getDrives().forEach(drive -> this.drivesFileCache.put(Integer.valueOf(drive.getDriveInfo().getOrder()), drive));
 		}
 		else {
@@ -1228,9 +1229,9 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 	/**
 	 * <p>
 	 * Partitions the ordered {@code baselist} of RAID 6 drives into
-	 * {@link RAIDSixVolume}s, one volume per contiguous block of
+	 * {@link ECVolume}s, one volume per contiguous block of
 	 * {@code (dataDrives + parityDrives)} drives, then wires up the
-	 * {@link OdilonRAIDSixVolumeManager} and marks the configured active volume.
+	 * {@link OdilonECVolumeManager} and marks the configured active volume.
 	 * </p>
 	 * <p>
 	 * Drive positions inside the list are the <em>volume-local disk indices</em> (0
@@ -1244,28 +1245,28 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 	 *                 {@code odilon.properties}.
 	 */
 	private void initializeVolumeManager(List<Drive> baselist) {
-		int data         = getServerSettings().getRAID6DataDrives();
-		int parity       = getServerSettings().getRAID6ParityDrives();
+		int data         = getServerSettings().getECDataDrives();
+		int parity       = getServerSettings().getECParityDrives();
 		int drivesPerVol = data + parity;
 
-		// Use the explicit raid6.volumes value — never infer silently.
-		// ServerSettings.afterPropertiesSet() has already validated that
-		// raid6.volumes × drivesPerVol == totalDirs, so the assertion below
+		// Use the resolved ecVolumes value — never infer silently.
+		// ServerSettings.onInitialize() has already validated that
+		// ecVolumes × drivesPerVol == totalDirs, so the assertion below
 		// is a cheap safety net against future code changes.
-		int numVolumes       = getServerSettings().getRAID6Volumes();
+		int numVolumes       = getServerSettings().getECVolumes();
 		int configuredActive = getServerSettings().getActiveVolumeId();
 
 		if (baselist.size() != numVolumes * drivesPerVol)
 			throw new IllegalStateException(
-					"RAID 6 internal consistency failure: baselist.size()=" + baselist.size()
-					+ " != raid6.volumes=" + numVolumes + " × drivesPerVol=" + drivesPerVol
+					"ErasureCoding internal consistency failure: baselist.size()=" + baselist.size()
+					+ " != ecVolumes=" + numVolumes + " × drivesPerVol=" + drivesPerVol
 					+ ". This should have been caught by ServerSettings validation.");
 
-		this.volumeManager = new OdilonRAIDSixVolumeManager();
+		this.volumeManager = new OdilonECVolumeManager();
 
 		for (int v = 0; v < numVolumes; v++) {
 			List<Drive> vDrives = new ArrayList<>(baselist.subList(v * drivesPerVol, (v + 1) * drivesPerVol));
-			RAIDSixVolume volume = new RAIDSixVolume(v, data, parity, vDrives);
+			ECVolume volume = new ECVolume(v, data, parity, vDrives);
 			this.volumeManager.addVolume(volume);
 		}
 
@@ -1273,7 +1274,7 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 		this.volumeManager.setActiveVolumeId(configuredActive);
 
 		// Mark every other volume as READONLY (readable, no new writes).
-		for (RAIDSixVolume vol : this.volumeManager.getAllVolumes()) {
+		for (ECVolume vol : this.volumeManager.getAllVolumes()) {
 			if (vol.getVolumeId() != configuredActive)
 				vol.setStatus(VolumeStatus.READONLY);
 		}

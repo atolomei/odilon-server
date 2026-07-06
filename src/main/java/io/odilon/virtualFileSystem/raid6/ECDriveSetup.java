@@ -43,14 +43,14 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
  * <p>
- * RAID 6. Drive setup for new drives
+ * ErasureCoding. Drive setup for new drives
  * </p>
  * <p>
  * Set up a new <b>Drive</b> added to the odilon.properties file
  * </p>
  * <p>
- * For RAID 6 this object starts an Async process {@link RAIDSixDriveSync} that
- * runs in background
+ * For ErasureCoding this object starts an Async process {@link ECDriveSync}
+ * that runs in background
  * </p>
  * 
  * @see {@link RaidSixDriveSync}
@@ -60,13 +60,13 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 @Component
 @Scope("prototype")
-public class RAIDSixDriveSetup implements IODriveSetup, ApplicationContextAware {
+public class ECDriveSetup implements IODriveSetup, ApplicationContextAware {
 
-	static private Logger logger = Logger.getLogger(RAIDSixDriveSetup.class.getName());
+	static private Logger logger = Logger.getLogger(ECDriveSetup.class.getName());
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 
 	@JsonIgnore
-	private RAIDSixDriver driver;
+	private ECDriver driver;
 
 	@JsonIgnore
 	private AtomicLong checkOk = new AtomicLong(0);
@@ -116,14 +116,14 @@ public class RAIDSixDriveSetup implements IODriveSetup, ApplicationContextAware 
 	/**
 	 * @param driver
 	 */
-	public RAIDSixDriveSetup(RAIDSixDriver driver) {
+	public ECDriveSetup(ECDriver driver) {
 		this.driver = driver;
 	}
 
 	@Override
 	public boolean setup() {
 
-		startuplogger.info("This process is async for RAID 6");
+		startuplogger.info("This process is async for ErasureCoding");
 		startuplogger.info("It will start a background process to setup the new drives.");
 		startuplogger.info("The background process will copy all objects into the newly added drives");
 
@@ -183,9 +183,8 @@ public class RAIDSixDriveSetup implements IODriveSetup, ApplicationContextAware 
 			return false;
 		}
 
-		startuplogger.info("4. Starting Async process -> " + RAIDSixDriveSync.class.getSimpleName());
+		startuplogger.info("4. Starting Async process -> " + ECDriveSync.class.getSimpleName());
 
-		 
 		// When every NOTSYNC drive belongs to a brand-new volume (no existing objects
 		// to re-encode), launching the async RAIDSixDriveSync is unnecessary. Mark the
 		// new drives ENABLED directly and return immediately.
@@ -196,10 +195,10 @@ public class RAIDSixDriveSetup implements IODriveSetup, ApplicationContextAware 
 			startuplogger.info("done");
 			return true;
 		}
-		 
+
 		/** The rest of the process is async */
 		@SuppressWarnings("unused")
-		RAIDSixDriveSync checker = getApplicationContext().getBean(RAIDSixDriveSync.class, getDriver());
+		ECDriveSync checker = getApplicationContext().getBean(ECDriveSync.class, getDriver());
 
 		startuplogger.info("async process started");
 
@@ -256,13 +255,13 @@ public class RAIDSixDriveSetup implements IODriveSetup, ApplicationContextAware 
 	 * <em>all</em> drives are NOTSYNC (i.e. a brand-new volume is being added).
 	 * Returns {@code false} when at least one volume has a mix of ENABLED and
 	 * NOTSYNC drives — that is a drive-replacement scenario that requires
-	 * re-encoding of existing objects via {@link RAIDSixDriveSync}.
+	 * re-encoding of existing objects via {@link ECDriveSync}.
 	 */
 	private boolean isNewVolumeExpansion() {
-		OdilonRAIDSixVolumeManager vm = getDriver().getVolumeManager();
+		OdilonECVolumeManager vm = getDriver().getVolumeManager();
 		if (vm == null)
 			return false; // safety: volume manager not initialised (non-RAID-6 path)
-		for (RAIDSixVolume volume : vm.getAllVolumes()) {
+		for (ECVolume volume : vm.getAllVolumes()) {
 			List<Drive> vDrives = volume.getDrives();
 			boolean anyEnabled = vDrives.stream().anyMatch(d -> d.getDriveInfo().getStatus() == DriveStatus.ENABLED);
 			boolean anyNotSync = vDrives.stream().anyMatch(d -> d.getDriveInfo().getStatus() == DriveStatus.NOTSYNC);
@@ -273,9 +272,9 @@ public class RAIDSixDriveSetup implements IODriveSetup, ApplicationContextAware 
 	}
 
 	/**
-	 * Marks every NOTSYNC drive as ENABLED without launching re-encoding.
-	 * Used only from the new-volume-expansion fast path
-	 * (see {@link #isNewVolumeExpansion()}).
+	 * Marks every NOTSYNC drive as ENABLED without launching re-encoding. Used only
+	 * from the new-volume-expansion fast path (see
+	 * {@link #isNewVolumeExpansion()}).
 	 */
 	private void markNewVolumeDrivesEnabled() {
 		for (Drive drive : getDriver().getDrivesAll()) {
@@ -293,7 +292,7 @@ public class RAIDSixDriveSetup implements IODriveSetup, ApplicationContextAware 
 	/**
 	 * 
 	 */
-	private RAIDSixDriver getDriver() {
+	private ECDriver getDriver() {
 		return this.driver;
 	}
 

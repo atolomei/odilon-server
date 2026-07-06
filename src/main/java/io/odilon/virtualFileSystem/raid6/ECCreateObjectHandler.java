@@ -18,6 +18,8 @@ package io.odilon.virtualFileSystem.raid6;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -34,13 +36,15 @@ import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ObjectStatus;
 import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
+import io.odilon.util.DateTimeUtil;
 import io.odilon.util.OdilonFileUtils;
+import io.odilon.service.util.ByteToString;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
- * <b>RAID 6 Object creation</b>
+ * <b>Erasure Coding Object creation</b>
  * <p>
  * Auxiliary class used by {@link RaidSixHandler}
  * </p>
@@ -49,18 +53,18 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
  */
 
 @ThreadSafe
-public class RAIDSixCreateObjectHandler extends RAIDSixTransactionObjectHandler {
+public class ECCreateObjectHandler extends ECTransactionObjectHandler {
 
-	private static Logger logger = Logger.getLogger(RAIDSixCreateObjectHandler.class.getName());
+	private static Logger logger = Logger.getLogger(ECCreateObjectHandler.class.getName());
 
 	/**
 	 * <p>
-	 * Instances of this class are used internally by {@link RAIDSixDriver}
+	 * Instances of this class are used internally by {@link ECDriver}
 	 * <p>
 	 * 
 	 * @param driver
 	 */
-	protected RAIDSixCreateObjectHandler(RAIDSixDriver driver, ServerBucket bucket, String objectName) {
+	protected ECCreateObjectHandler(ECDriver driver, ServerBucket bucket, String objectName) {
 		super(driver, bucket, objectName);
 	}
 
@@ -83,11 +87,13 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionObjectHandler 
 				operation = createObject();
 
 				/** save data and metadata */
-				RAIDSixShards blocks = saveData(stream);
+				ECShards blocks = saveData(stream);
 				saveMetadata(blocks, srcFileName, contentType, customTags, o_public);
 
 				/** commit */
 				commitOK = operation.commit();
+				logger.debug("Object created -> " + info(srcFileName) + " commitOK=" + commitOK);
+				
 
 			} catch (InternalCriticalException e) {
 				isMainException = true;
@@ -126,7 +132,7 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionObjectHandler 
 	 * @param stream
 	 * @param srcFileName
 	 */
-	private RAIDSixShards saveData(InputStream stream) {
+	private ECShards saveData(InputStream stream) {
 
 		Check.requireNonNullArgument(stream, "stream is null");
 
@@ -134,12 +140,18 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionObjectHandler 
 			boolean isMainException = false;
 			InputStream sourceStream = null;
 			try {
-				EncryptedResult encryptedResult = getEncryptionService().encryptStream(stream);
+				// Wrap the PLAINTEXT stream before encryption so the digest matches
+				// checkIntegrity (which decrypts before hashing).
+				MessageDigest md = MessageDigest.getInstance("SHA-256");
+				DigestInputStream digestStream = new DigestInputStream(stream, md);
+
+				EncryptedResult encryptedResult = getEncryptionService().encryptStream(digestStream);
 				sourceStream = encryptedResult.getInputStream();
-				RAIDSixEncoder encoder = new RAIDSixEncoder(getDriver());
-				RAIDSixShards blocks = encoder.encodeHead(sourceStream, getBucket(), getObjectName());
+				ECEncoder encoder = new ECEncoder(getDriver());
+				ECShards blocks = encoder.encodeHead(sourceStream, getBucket(), getObjectName());
 				long totalBytesRead = encryptedResult.getCountingStream().getCount();
 				blocks.setSrcFileSize(totalBytesRead);
+				blocks.setSrcSha256(ByteToString.byteToHexString(md.digest()));
 				return blocks;
 
 			} catch (InternalCriticalException e) {
@@ -169,11 +181,13 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionObjectHandler 
 			boolean isMainException = false;
 			InputStream sourceStream = null;
 			try {
-				sourceStream = stream;
-				RAIDSixEncoder encoder = new RAIDSixEncoder(getDriver());
-				RAIDSixShards blocks = encoder.encodeHead(sourceStream, getBucket(), getObjectName());
+				MessageDigest md = MessageDigest.getInstance("SHA-256");
+				sourceStream = new DigestInputStream(stream, md);
+				ECEncoder encoder = new ECEncoder(getDriver());
+				ECShards blocks = encoder.encodeHead(sourceStream, getBucket(), getObjectName());
 				long totalBytesRead = blocks.getFileSize();
 				blocks.setSrcFileSize(totalBytesRead);
+				blocks.setSrcSha256(ByteToString.byteToHexString(md.digest()));
 				return blocks;
 
 			} catch (InternalCriticalException e) {
@@ -207,8 +221,13 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionObjectHandler 
 	 * @param stream
 	 * @param srcFileName
 	 */
-	private void saveMetadata(RAIDSixShards ei, String srcFileName, String contentType, Optional<List<String>> customTags, Optional<Boolean> o_public) {
+	private void saveMetadata(	ECShards ei, 
+								String srcFileName, 
+								String contentType, 
+								Optional<List<String>> customTags, 
+								Optional<Boolean> o_public) {
 
+		
 		List<String> shaBlocks = new ArrayList<String>();
 		StringBuilder etag_b = new StringBuilder();
 
@@ -230,13 +249,13 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionObjectHandler 
 			throw new InternalCriticalException(e, info(srcFileName));
 		}
 
-		OffsetDateTime creationDate = OffsetDateTime.now();
+		OffsetDateTime creationDate = DateTimeUtil.now();
 
 		// ── Write ObjectMetadata ONLY to the active volume's drives ──────────────────
 		// Drives on other (older) volumes must NOT receive new object metadata files.
 		// The active volume id is stamped into every ObjectMetadata so that reads
 		// can route to the correct volume later.
-		final RAIDSixVolume activeVolume = getDriver().getActiveVolume();
+		final ECVolume activeVolume = getDriver().getActiveVolume();
 		final List<Drive> drives = activeVolume.getDrives();
 		final int activeVolumeId = activeVolume.getVolumeId();
 		final List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
@@ -247,7 +266,10 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionObjectHandler 
 				meta.setFileName(srcFileName);
 				meta.setAppVersion(OdilonVersion.VERSION);
 				meta.setContentType(contentType);
+
 				meta.setCreationDate(creationDate);
+				meta.setLastModified(creationDate);
+
 				meta.setVersion(VERSION_ZERO);
 				meta.setVersioncreationDate(meta.getCreationDate());
 				meta.setSourceLength(ei.getSrcFileSize());
@@ -264,7 +286,12 @@ public class RAIDSixCreateObjectHandler extends RAIDSixTransactionObjectHandler 
 				meta.setRaidDrives(activeVolume.getTotalShards());
 				// Permanent pointer to the volume that holds this object's shards.
 				meta.setVolumeId(activeVolumeId);
+				// SHA-256 of the plaintext payload — used by checkIntegrity.
+				meta.setSha256(ei.getSrcSha256());
 
+				
+				
+				
 				if (customTags.isPresent())
 					meta.setCustomTags(customTags.get());
 				list.add(meta);

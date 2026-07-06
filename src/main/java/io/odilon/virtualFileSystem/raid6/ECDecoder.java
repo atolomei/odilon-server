@@ -51,7 +51,7 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
  * <p>
- * Reed Solomon Erasure Coding decoder for {@link RAIDSixDriver}.<br/>
+ * Reed Solomon Erasure Coding decoder for {@link ECDriver}.<br/>
  * Files decoded are stored in {@link FileCacheService}. <br/>
  * If the server uses encryption, the cache contains encrypted files.
  * </p>
@@ -82,20 +82,20 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
-public class RAIDSixDecoder extends RAIDSixCoder {
+public class ECDecoder extends ECCoder {
 
-	static private Logger logger = Logger.getLogger(RAIDSixEncoder.class.getName());
+	static private Logger logger = Logger.getLogger(ECEncoder.class.getName());
 
 	@JsonIgnore
 	static final private DateTimeFormatter formatter = DateTimeFormatter.RFC_1123_DATE_TIME;
 
-	protected RAIDSixDecoder(RAIDSixDriver driver) {
+	protected ECDecoder(ECDriver driver) {
 		super(driver);
 		// Validate that the default volume's RS configuration is sane at startup.
-		int d = getVirtualFileSystemService().getServerSettings().getRAID6DataDrives();
-		int p = getVirtualFileSystemService().getServerSettings().getRAID6ParityDrives();
+		int d = getVirtualFileSystemService().getServerSettings().getECDataDrives();
+		int p = getVirtualFileSystemService().getServerSettings().getECParityDrives();
 		if (!driver.isConfigurationValid(d, p))
-			throw new InternalCriticalException("Invalid RAID 6 configuration -> data=" + d + " parity=" + p);
+			throw new InternalCriticalException("Invalid ErasureCoding configuration -> data=" + d + " parity=" + p);
 	}
 
 	public BufferPoolService getBullferPoolService() {
@@ -107,22 +107,23 @@ public class RAIDSixDecoder extends RAIDSixCoder {
 	}
 
 	/**
-	 * Decodes the head version treating the given shard indices as absent (erasures)
-	 * even if the shard files are physically present on disk.
+	 * Decodes the head version treating the given shard indices as absent
+	 * (erasures) even if the shard files are physically present on disk.
 	 *
 	 * <p>
 	 * Use this overload when per-shard SHA-256 comparison has already identified
-	 * which shards hold corrupt bytes.  Converting known errors to erasures restores
+	 * which shards hold corrupt bytes. Converting known errors to erasures restores
 	 * the full RS parity-shard recovery capacity:
 	 * <ul>
-	 *   <li>N=3  (P=1): up to 1 erasure</li>
-	 *   <li>N=6  (P=2): up to 2 erasures</li>
-	 *   <li>N=12 (P=4): up to 4 erasures</li>
+	 * <li>N=3 (P=1): up to 1 erasure</li>
+	 * <li>N=6 (P=2): up to 2 erasures</li>
+	 * <li>N=12 (P=4): up to 4 erasures</li>
 	 * </ul>
 	 * </p>
 	 *
-	 * @param erasureIndices volume-local shard indices (0-based) to treat as absent;
-	 *                       must contain at most {@code parityShards} entries
+	 * @param erasureIndices volume-local shard indices (0-based) to treat as
+	 *                       absent; must contain at most {@code parityShards}
+	 *                       entries
 	 */
 	public File decodeHead(ObjectMetadata meta, ServerBucket bucket, List<Integer> erasureIndices) {
 		return decode(meta, bucket, true, erasureIndices);
@@ -146,24 +147,20 @@ public class RAIDSixDecoder extends RAIDSixCoder {
 		// For single-volume deployments (volumeId == 0) this is identical to the
 		// previous behaviour; for multi-volume deployments it selects the correct
 		// group.
-		RAIDSixVolume volume = getDriver().getVolumeForObject(meta);
+		ECVolume volume = getDriver().getVolumeForObject(meta);
 		int volumeTotalShards = volume.getTotalShards();
 
 		int totalChunks = meta.getTotalBlocks() / volumeTotalShards;
 
 		if ((meta.getRaidDrives() > 0) && (meta.getRaidDrives() != volumeTotalShards)) {
-			
-			String errStr = "b: " + meta.getBucketName() + " o: " + meta.getObjectName() + 
-					" | was stored on " + formatter.format(meta.getLastModified()) + 
-					" | with  " + 
-					String.valueOf(meta.getRaidDrives()) + " drives | Volume "
-					+ volume.getVolumeId() + 
-					" has -> " + String.valueOf(volumeTotalShards) + " drives";
+
+			String errStr = "b: " + meta.getBucketName() + " o: " + meta.getObjectName() + " | was stored on " + formatter.format(meta.getLastModified()) + " | with  " + String.valueOf(meta.getRaidDrives()) + " drives | Volume "
+					+ volume.getVolumeId() + " has -> " + String.valueOf(volumeTotalShards) + " drives";
 
 			logger.error(errStr);
 			logger.error("Volume " + volume.getVolumeId() + " drives:");
 			volume.getDrives().forEach(s -> logger.error(s.getRootDirPath()));
-			
+
 			throw new InternalCriticalException(errStr);
 		}
 
@@ -173,9 +170,9 @@ public class RAIDSixDecoder extends RAIDSixCoder {
 		File file = getFileCacheService().get(bucket.getId(), objectName, ver);
 
 		/** if the file is in cache, return this file */
-		if ((file != null) && file.exists()) 
+		if ((file != null) && file.exists())
 			return file;
-	
+
 		getLockService().getFileCacheLock(bucket.getId(), objectName, ver).writeLock().lock();
 		try {
 
@@ -213,7 +210,7 @@ public class RAIDSixDecoder extends RAIDSixCoder {
 	 * {@link Drive#getConfigOrder()}.
 	 * </p>
 	 */
-	private boolean decodeChunk(ObjectMetadata meta, RAIDSixVolume volume, ServerBucket bucket, int chunk, OutputStream out, boolean isHead, List<Integer> erasureIndices) {
+	private boolean decodeChunk(ObjectMetadata meta, ECVolume volume, ServerBucket bucket, int chunk, OutputStream out, boolean isHead, List<Integer> erasureIndices) {
 
 		// Use the volume-local drive map (key = volume-local index 0..totalShards-1)
 		Map<Integer, Drive> map = volume.getDrivesRSDecode();
@@ -292,15 +289,13 @@ public class RAIDSixDecoder extends RAIDSixCoder {
 		// explicitly so that byte-level corruption is caught here rather than served
 		// silently to the caller. On failure, attemptCorruptionRepair() isolates bad
 		// shards via Phase 1 (single shard) and Phase 2 (pair), which is exhaustive for
-		// the supported N=6 RAID-6 configuration (max 2 simultaneous corrupt shards).
-		// For larger N, detection still fires but repair is capped at 2; if >2 shards
-		// are corrupt an InternalCriticalException is thrown.
+		// the supported N=6 ErasureCoding configuration (max 2 simultaneous corrupt
+		// shards). For larger N, detection still fires but repair is capped at 2; if
+		// >2 shards are corrupt an InternalCriticalException is thrown.
 		//
-		// Enabled via raid6.readParityCheck=true in odilon.properties (default: false).
-		// The check costs roughly one parity-encode pass per chunk (~8 GF ops/byte for
-		// N=6) and should only be turned on when active read-path corruption detection
-		// is required.
-		if (shardCount == totalShards && getVirtualFileSystemService().getServerSettings().isRAID6ReadParityCheckEnabled()) {
+		// Enabled via ec.readParityCheck=true in odilon.properties (default: false).
+		// The legacy key raid6.readParityCheck is still accepted.
+		if (shardCount == totalShards && getVirtualFileSystemService().getServerSettings().isECReadParityCheckEnabled()) {
 			long startTime = System.currentTimeMillis();
 			boolean pc = rs.isParityCorrect(shards, 0, shardSize);
 			if (logger.isDebugEnabled()) {
@@ -392,7 +387,7 @@ public class RAIDSixDecoder extends RAIDSixCoder {
 	 * ENABLED drive. On failure an {@link InternalCriticalException} is thrown.
 	 * </p>
 	 */
-	private void attemptCorruptionRepair(ObjectMetadata meta, RAIDSixVolume volume, ServerBucket bucket, int chunk, boolean isHead, byte[][] shards, int shardSize, ReedSolomon rs, Map<Integer, Drive> map) {
+	private void attemptCorruptionRepair(ObjectMetadata meta, ECVolume volume, ServerBucket bucket, int chunk, boolean isHead, byte[][] shards, int shardSize, ReedSolomon rs, Map<Integer, Drive> map) {
 
 		int totalShards = volume.getTotalShards();
 		int parityDrives = volume.getParityDrives();
@@ -466,7 +461,7 @@ public class RAIDSixDecoder extends RAIDSixCoder {
 		// For N=12/24/48 (p>2) repair of 3+ simultaneous corrupt shards is not
 		// implemented — detection fires but recovery does not.
 		throw new InternalCriticalException("Parity mismatch: silent corruption repair failed — " + "repair is capped at 2 simultaneous corrupt shards"
-				+ (parityDrives > 2 ? " (this volume has " + parityDrives + " parity drives but repair supports max 2)" : " (exceeds N=6 RAID-6 tolerance)") + " | " + objectInfo(meta));
+				+ (parityDrives > 2 ? " (this volume has " + parityDrives + " parity drives but repair supports max 2)" : " (exceeds N=6 EC tolerance)") + " | " + objectInfo(meta));
 	}
 
 	/**
@@ -476,7 +471,7 @@ public class RAIDSixDecoder extends RAIDSixCoder {
 	 * (but does not propagate) I/O errors so that a repair failure never aborts an
 	 * otherwise successful read.
 	 */
-	private void writeRepairedShard(ObjectMetadata meta, RAIDSixVolume volume, ServerBucket bucket, int chunk, boolean isHead, int localDisk, byte[] data, Map<Integer, Drive> map) {
+	private void writeRepairedShard(ObjectMetadata meta, ECVolume volume, ServerBucket bucket, int chunk, boolean isHead, int localDisk, byte[] data, Map<Integer, Drive> map) {
 
 		Drive repairDrive = map.get(localDisk);
 		if (repairDrive == null)
@@ -530,9 +525,9 @@ public class RAIDSixDecoder extends RAIDSixCoder {
 		}
 	}
 
-	private SystemMonitorService getSystemMonitorService() {
-		return getDriver().getVirtualFileSystemService().getSystemMonitorService();
-	}
+	// private SystemMonitorService getSystemMonitorService() {
+	// return getDriver().getVirtualFileSystemService().getSystemMonitorService();
+	// }
 
 	private String objectInfo(String bucketName, String objectName, String tempPath) {
 		return getDriver().objectInfo(bucketName, objectName, tempPath);

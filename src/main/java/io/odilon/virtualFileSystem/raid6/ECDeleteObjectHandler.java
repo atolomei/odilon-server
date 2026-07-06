@@ -36,7 +36,7 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
  * <p>
- * RAID 6. Delete Object handler
+ * Erasure Coding. Delete Object handler
  * </p>
  * <p>
  * Auxiliary class used by {@link RaidSixHandler}
@@ -45,18 +45,18 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @ThreadSafe
-public class RAIDSixDeleteObjectHandler extends RAIDSixTransactionObjectHandler {
+public class ECDeleteObjectHandler extends ECTransactionObjectHandler {
 
-	private static Logger logger = Logger.getLogger(RAIDSixDeleteObjectHandler.class.getName());
+	private static Logger logger = Logger.getLogger(ECDeleteObjectHandler.class.getName());
 
 	/**
 	 * <p>
-	 * Instances of this class are used internally by {@link RAIDSixDriver}
+	 * Instances of this class are used internally by {@link ECDriver}
 	 * </p>
 	 * 
 	 * @param driver
 	 */
-	protected RAIDSixDeleteObjectHandler(RAIDSixDriver driver, ServerBucket bucket, String objectName) {
+	protected ECDeleteObjectHandler(ECDriver driver, ServerBucket bucket, String objectName) {
 		super(driver, bucket, objectName);
 	}
 
@@ -107,9 +107,10 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixTransactionObjectHandler 
 						try {
 							rollback(operation);
 						} catch (Exception e) {
-							if (!isMainException)
+							if (!isMainException) {
+								logger.error(e, SharedConstant.THROWN_WRAPPED);
 								throw new InternalCriticalException(e, info());
-							else
+							} else
 								logger.error(e, info(), SharedConstant.NOT_THROWN);
 						}
 					} else if (commitOK) {
@@ -190,6 +191,7 @@ public class RAIDSixDeleteObjectHandler extends RAIDSixTransactionObjectHandler 
 					FileUtils.copyDirectory(src, new File(objectMetadataBackupDirPath));
 			}
 		} catch (IOException e) {
+			logger.error(e, SharedConstant.THROWN_WRAPPED);
 			throw new InternalCriticalException(e, objectInfo(meta));
 		}
 	}

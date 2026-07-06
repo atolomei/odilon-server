@@ -57,7 +57,7 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  * Set up a new <b>Drive</b> added to the <b>odilon.properties</b> config file.
  * For RAID 0 this process is <b>Sync</b> when the server starts up (for RAID 1
  * and RAID 6 the process is Async and runs in background).<br/>
- * Unlike {@link RAIDSixDriver}, this setup does not need the
+ * Unlike {@link ECDriver}, this setup does not need the
  * {@link VirtualFileSystemService} to be in state {@link ServiceStatus.RUNNING}
  * </p>
  * 

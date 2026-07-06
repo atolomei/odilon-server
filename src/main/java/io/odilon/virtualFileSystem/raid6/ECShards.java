@@ -27,13 +27,15 @@ import io.odilon.model.BaseObject;
 
 /**
  * <p>
- * List of encoded blocks stored in File System. See the coding convention here
- * {@link RAIDSixDriver}
+ * List of encoded blocks stored in File System. 
+ * See the coding convention here
+ * 
+ * {@link ECDriver}
  * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
-public class RAIDSixShards extends BaseObject {
+public class ECShards extends BaseObject {
 
 	@JsonIgnore
 	private List<File> encodedShards = new ArrayList<File>();
@@ -44,7 +46,10 @@ public class RAIDSixShards extends BaseObject {
 	@JsonProperty("srcFileSize")
 	private long srcFileSize;
 
-	public RAIDSixShards() {
+	@JsonProperty("srcSha256")
+	private String srcSha256;
+
+	public ECShards() {
 	}
 
 	public long getFileSize() {
@@ -89,5 +94,13 @@ public class RAIDSixShards extends BaseObject {
 
 	public void setSrcFileSize(long srcFileSize) {
 		this.srcFileSize = srcFileSize;
+	}
+
+	public String getSrcSha256() {
+		return srcSha256;
+	}
+
+	public void setSrcSha256(String srcSha256) {
+		this.srcSha256 = srcSha256;
 	}
 }

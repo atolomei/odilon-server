@@ -63,11 +63,11 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  * <p>
  * Odilon contains two cache services: {@link ObjectMetadataCacheService} for
  * {@link ObjectMetadata} and {@link FileCacheService} used by RAID 6
- * ({@link RAIDSixDriver}) to store decoded (but encrypted) files.
+ * ({@link ECDriver}) to store decoded (but encrypted) files.
  * </p>
  * 
  * <p>
- * {@link File} cache used by {@link RAIDSixDriver} (the other RAID
+ * {@link File} cache used by {@link ECDriver} (the other RAID
  * configurations do not need it).
  * </p>
  * <p>

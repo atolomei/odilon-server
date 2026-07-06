@@ -49,7 +49,7 @@ import io.odilon.virtualFileSystem.model.OperationCode;
  * <p>
  * Odilon contains two cache services: {@link ObjectMetadataCacheService} (this
  * class) for {@link ObjectMetadata} and {@link FileCacheService} used by RAID 6
- * ({@link RAIDSixDriver}) to store decoded (but encrypted) files.
+ * ({@link ECDriver}) to store decoded (but encrypted) files.
  * </p>
  * <p>
  * {@link ObjectMetadata} Cache. It only stores ObjectMetadata's <b>head
