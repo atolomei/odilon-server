@@ -1,0 +1,47 @@
+# =============================================================================
+#  odilon.service — REFERENCE TEMPLATE ONLY
+#
+#  This file is NOT installed directly. The installer generates a real
+#  per-instance unit at /etc/systemd/system/<name>.service with the correct
+#  paths, user, and instance name embedded.
+#
+#  To see the generated unit for a running instance:
+#    cat /etc/systemd/system/odilon.service
+#    cat /etc/systemd/system/odilon-prod.service
+#
+#  To reinstall / refresh the unit after a manual path change, re-run:
+#    sudo ./install-odilon.sh --name <instance-name>
+# =============================================================================
+
+[Unit]
+Description=Odilon Object Storage Server (<INSTANCE_NAME>)
+Documentation=https://odilon.io
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=<ODILON_USER>
+Group=<ODILON_USER>
+WorkingDirectory=<INSTALL_DIR>
+
+# Paths injected by the installer — read by every script in bin/
+Environment="ODILON_HOME=<INSTALL_DIR>"
+Environment="ODILON_CONF=<CONF_DIR>"
+Environment="ODILON_LOGS=<LOG_DIR>"
+Environment="INSTANCE_NAME=<INSTANCE_NAME>"
+
+ExecStart=<INSTALL_DIR>/bin/start-service.sh
+
+Restart=on-success
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=<INSTANCE_NAME>
+
+LimitNOFILE=65536
+TimeoutStopSec=60
+KillSignal=SIGTERM
+SendSIGKILL=no
+SuccessExitStatus=0
+
+[Install]
+WantedBy=multi-user.target
