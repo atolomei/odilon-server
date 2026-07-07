@@ -262,7 +262,6 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 	@JsonIgnore
 	private Map<Integer, Drive> drivesFileCache = new ConcurrentHashMap<Integer, Drive>();
 
-	
 	/**
 	 * <p>
 	 * Manages all RAID 6 volumes. Each volume is an independent RAID 6 disk group
@@ -273,8 +272,8 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 	 * volume for reads, deletes and rollbacks.
 	 * </p>
 	 * <p>
-	 * Only used when {@link RedundancyLevel#ERASURE_CODING} is active. {@code null} for
-	 * other modes.
+	 * Only used when {@link RedundancyLevel#ERASURE_CODING} is active. {@code null}
+	 * for other modes.
 	 * </p>
 	 */
 	@JsonIgnore
@@ -415,10 +414,6 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 			throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Version Control is protected, can not delete previous versions");
 
 		driver.deleteBucketAllPreviousVersions(driver.getBucket(bucketName));
-	}
-
-	public DataStorage getDataStorage() {
-		return this.getServerSettings().getDataStorage();
 	}
 
 	@Override
@@ -582,7 +577,7 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 
 		createVFSIODriver().putObjectMetadata(meta);
 		return meta;
-		
+
 	}
 
 	@Override
@@ -769,9 +764,7 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 	public Map<Integer, Drive> getMapDrivesFileCache() {
 		return this.drivesFileCache;
 	}
-	
-	
-	
+
 	@Override
 	public Map<Integer, Drive> getMapDrivesRSDecode() {
 		return this.drivesRSDecode;
@@ -940,8 +933,8 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 	}
 
 	/**
-	 * Returns the {@link OdilonECVolumeManager} for RAID 6 deployments.
-	 * Returns {@code null} for RAID 0 and RAID 1.
+	 * Returns the {@link OdilonECVolumeManager} for RAID 6 deployments. Returns
+	 * {@code null} for RAID 0 and RAID 1.
 	 */
 	@Override
 	public OdilonECVolumeManager getVolumeManager() {
@@ -1006,6 +999,10 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 			getBucketCache().remove(bucket);
 			return;
 		}
+	}
+
+	public DataStorage getDataStorage() {
+		return this.getServerSettings().getDataStorage();
 	}
 
 	public VersionControl getVersionControl() {
@@ -1144,10 +1141,7 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 			int configOrder = 0;
 			for (List<String> vDirs : getServerSettings().getVolumeRootDirs()) {
 				for (String dir : vDirs) {
-					Drive drive = new OdilonECDrive(
-							String.valueOf(configOrder), dir, configOrder,
-							getRedundancyLevel().getName(),
-							getServerSettings().getTotalDisks());
+					Drive drive = new OdilonECDrive(String.valueOf(configOrder), dir, configOrder, getRedundancyLevel().getName(), getServerSettings().getTotalDisks());
 					((OdilonDrive) drive).setEncryptionService(this.encrpytionService);
 					((OdilonDrive) drive).setServerSettings(this.serverSettings);
 					baselist.add(drive);
@@ -1161,10 +1155,7 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 			// ── RAID 0 / RAID 1: flat list ────────────────────────────────────────────
 			int configOrder = 0;
 			for (String dir : getServerSettings().getRootDirs()) {
-				Drive drive = new OdilonRaidZeroRaidOneDrive(
-						String.valueOf(configOrder), dir, configOrder,
-						getRedundancyLevel().getName(),
-						getServerSettings().getTotalDisks());
+				Drive drive = new OdilonRaidZeroRaidOneDrive(String.valueOf(configOrder), dir, configOrder, getRedundancyLevel().getName(), getServerSettings().getTotalDisks());
 				((OdilonDrive) drive).setEncryptionService(this.encrpytionService);
 				((OdilonDrive) drive).setServerSettings(this.serverSettings);
 				baselist.add(drive);
@@ -1203,15 +1194,12 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 		if (getRedundancyLevel() == RedundancyLevel.ERASURE_CODING) {
 			initializeVolumeManager(baselist);
 		}
-		
-		
-		
-		/** initialize FileServiceCache drives  */
-		
+
+		/** initialize FileServiceCache drives */
+
 		if (getRedundancyLevel() == RedundancyLevel.ERASURE_CODING) {
 			this.getVolumeManager().getActiveVolume().getDrives().forEach(drive -> this.drivesFileCache.put(Integer.valueOf(drive.getDriveInfo().getOrder()), drive));
-		}
-		else {
+		} else {
 			this.drivesEnabled.values().forEach(drive -> this.drivesFileCache.put(Integer.valueOf(drive.getDriveInfo().getOrder()), drive));
 		}
 
@@ -1245,22 +1233,20 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 	 *                 {@code odilon.properties}.
 	 */
 	private void initializeVolumeManager(List<Drive> baselist) {
-		int data         = getServerSettings().getECDataDrives();
-		int parity       = getServerSettings().getECParityDrives();
+		int data = getServerSettings().getECDataDrives();
+		int parity = getServerSettings().getECParityDrives();
 		int drivesPerVol = data + parity;
 
 		// Use the resolved ecVolumes value — never infer silently.
 		// ServerSettings.onInitialize() has already validated that
 		// ecVolumes × drivesPerVol == totalDirs, so the assertion below
 		// is a cheap safety net against future code changes.
-		int numVolumes       = getServerSettings().getECVolumes();
+		int numVolumes = getServerSettings().getECVolumes();
 		int configuredActive = getServerSettings().getActiveVolumeId();
 
 		if (baselist.size() != numVolumes * drivesPerVol)
 			throw new IllegalStateException(
-					"ErasureCoding internal consistency failure: baselist.size()=" + baselist.size()
-					+ " != ecVolumes=" + numVolumes + " × drivesPerVol=" + drivesPerVol
-					+ ". This should have been caught by ServerSettings validation.");
+					"ErasureCoding internal consistency failure: baselist.size()=" + baselist.size() + " != ecVolumes=" + numVolumes + " × drivesPerVol=" + drivesPerVol + ". This should have been caught by ServerSettings validation.");
 
 		this.volumeManager = new OdilonECVolumeManager();
 
@@ -1279,10 +1265,7 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 				vol.setStatus(VolumeStatus.READONLY);
 		}
 
-		startuplogger.info("RAID 6 volume manager initialized: "
-				+ numVolumes + " volume(s), "
-				+ drivesPerVol + " drives/volume (" + data + " data + " + parity + " parity), "
-				+ "active=" + configuredActive);
+		startuplogger.info("RAID 6 volume manager initialized: " + numVolumes + " volume(s), " + drivesPerVol + " drives/volume (" + data + " data + " + parity + " parity), " + "active=" + configuredActive);
 		this.volumeManager.getAllVolumes().forEach(v -> startuplogger.info("  " + v));
 	}
 

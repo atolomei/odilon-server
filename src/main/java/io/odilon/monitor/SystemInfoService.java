@@ -187,13 +187,13 @@ public class SystemInfoService extends BaseService implements SystemService {
 		virtualFileSystemService.getMapDrivesEnabled().forEach((k, v) -> info.rootDirs.add(v.getName() + ": " + v.getRootDirPath()));
 	
 		if (virtualFileSystemService.getRedundancyLevel()==RedundancyLevel.ERASURE_CODING) {
-				info.raidSixVolumes=	new ArrayList<String>();
+				info.ecVolumes=	new ArrayList<String>();
 				virtualFileSystemService.getVolumeManager().getVolumesInSearchOrder().forEach(v ->  {
 				StringBuilder sb = new StringBuilder();
 				for (Drive d : v.getDrives()) {
 					sb.append( (sb.length()>0?" - " : "" ) + d.getRootDirPath());
 				}
-				info.raidSixVolumes.add("volume: " + v.getVolumeId() + " (" + (v.isActive()?"active":"read-only") + ") - " + sb.toString());
+				info.ecVolumes.add("volume: " + v.getVolumeId() + " (" + (v.isActive()?"active":"read-only") + ") - " + sb.toString());
 			} ); 
 			
 			}

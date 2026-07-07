@@ -46,7 +46,7 @@ fi
 
 
 lib_files="$ODILON_HOME/app/:$ODILON_HOME/lib/*"
-config_path="$ODILON_HOME/config"
+config_path="$ODILON_CONF"
 
 echo "Changing current directory to $ODILON_HOME"
 cd "$ODILON_HOME"
@@ -61,9 +61,4 @@ else
 fi
 
 
-"$JAVA_CMD" $DEBUG_PROP $MEM_PROPS -cp "$config_path:$lib_files" $ODILON_PROPS -jar $APP --initializeEncryption="true" --DmasterKey = $KEY$
-
-
-
-
- 
+"$JAVA_CMD" $DEBUG_PROP $MEM_PROPS -cp "$config_path:$lib_files" $ODILON_PROPS -jar $APP --initializeEncryption="true" --DmasterKey="$KEY"

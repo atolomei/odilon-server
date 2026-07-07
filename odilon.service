@@ -1,18 +1,20 @@
 [Unit]
-Description=Odilon
-Documentation=http://odilon.io
+Description=Odilon Object Storage Server
+Documentation=https://odilon.io
 Wants=network-online.target
 After=network-online.target
 
 [Service]
 Environment="ODILON_HOME=/opt/odilon"
+Environment="ODILON_CONF=/etc/odilon"
+Environment="ODILON_LOGS=/var/log/odilon"
 WorkingDirectory=/opt/odilon
 User=odilon
 Group=odilon
 PermissionsStartOnly=true
 ExecStart=/opt/odilon/bin/start-service.sh
 
-# Let systemd restart this service only if it has ended with the clean exit code or signal.
+# Restart the service only when it exits cleanly
 Restart=on-success
 
 StandardOutput=journal
@@ -31,4 +33,3 @@ SuccessExitStatus=0
 
 [Install]
 WantedBy=multi-user.target
-

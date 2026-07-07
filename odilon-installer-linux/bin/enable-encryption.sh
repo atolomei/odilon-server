@@ -9,7 +9,9 @@ source $ODILON_HOME/bin/config.sh
 
 echo "Odilon Home ->" $ODILON_HOME
 
-pid=$(ps aux | grep -E ".*[j]ava.*odilon" | awk '{print $2}')
+#pid=$(ps aux | grep -E ".*[j]ava.*odilon" | awk '{print $2}')
+pid=$(ps aux | grep -E ".*[j]ava.*odilon-server"  | grep   $OID  | awk '{print $2}')
+
 
 if [[ ! -z "$pid" ]]
 then
@@ -26,7 +28,7 @@ fi
 
 
 lib_files="$ODILON_HOME/app/:$ODILON_HOME/lib/*"
-config_path="$ODILON_HOME/config"
+config_path="$ODILON_CONF"
 
 echo "Changing current directory to $ODILON_HOME"
 
@@ -47,4 +49,3 @@ fi
 
 
 
- 

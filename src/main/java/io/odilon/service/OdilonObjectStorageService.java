@@ -39,16 +39,21 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.odilon.encryption.EncryptionService;
 import io.odilon.error.OdilonInternalErrorException;
+import io.odilon.error.OdilonServerAPIException;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
+import io.odilon.model.DataStorage;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.OdilonServerInfo;
 import io.odilon.model.ServiceStatus;
 import io.odilon.model.SharedConstant;
 import io.odilon.model.SystemInfo;
+import io.odilon.model.VersionControl;
 import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
 import io.odilon.monitor.SystemInfoService;
+import io.odilon.net.ErrorCode;
+import io.odilon.net.ODHttpStatus;
 import io.odilon.util.Check;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemObject;
@@ -103,6 +108,41 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
 	@JsonIgnore
 	private OdilonServerInfo odilonServer;
 
+	public DataStorage getDataStorage() {
+		return this.getServerSettings().getDataStorage();
+	}
+
+
+	public VersionControl getVersionControl() {
+		return getServerSettings().getVersionControl();
+	}
+	
+	
+	private void checkNotReadOnly() {
+		if (getDataStorage() == DataStorage.READONLY)
+			throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Data Storage is in read only mode, invalid operation");
+	}
+	
+	private void checkNotReadOnlyNotWORM() {
+
+		if (getDataStorage() == DataStorage.READONLY)
+			throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Data Storage is in read only mode, invalid operation");
+
+		if (getDataStorage() == DataStorage.WORM)
+			throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Data Storage is in WORM mode, invalid operation");
+	}
+
+	
+	private void checkValidWORMOperation() {
+		
+		if (getDataStorage() != DataStorage.WORM)
+			return;
+		
+		throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Data Storage is in WORM mode, invalid operation");
+		
+	}
+	
+	
 	/**
 	 * Services provided by Spring
 	 * 
@@ -120,13 +160,28 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
 
 	@Override
 	public void wipeAllPreviousVersions() {
+
 		Check.requireTrue(isVirtualFileSystemServiceEnabled(), invalidStateMsg());
+
+		checkNotReadOnlyNotWORM();
+		
+		if (getServerSettings().getVersionControl()==VersionControl.PROTECTED)
+			throw new IllegalStateException(versionControlMsg(null));
+
+		
 		getVirtualFileSystemService().wipeAllPreviousVersions();
 	}
 
 	@Override
 	public void deleteBucketAllPreviousVersions(String bucketName) {
 		Check.requireTrue(isVirtualFileSystemServiceEnabled(), invalidStateMsg());
+
+		checkNotReadOnlyNotWORM();
+		
+		if (getServerSettings().getVersionControl()==VersionControl.PROTECTED)
+			throw new IllegalStateException(versionControlMsg(null));
+
+		
 		getVirtualFileSystemService().deleteBucketAllPreviousVersions(bucketName);
 	}
 
@@ -156,13 +211,24 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
 
 	@Override
 	public ObjectMetadata restorePreviousVersion(String bucketName, String objectName) {
+	
 		Check.requireTrue(isVirtualFileSystemServiceEnabled(), invalidStateMsg());
+
+		checkNotReadOnly();
+		
 		return getVirtualFileSystemService().restorePreviousVersion(bucketName, objectName);
 	}
 
 	@Override
 	public void deleteObjectAllPreviousVersions(String bucketName, String objectName) {
 		Check.requireTrue(isVirtualFileSystemServiceEnabled(), invalidStateMsg());
+		
+		checkNotReadOnlyNotWORM();
+		
+		if (getServerSettings().getVersionControl()==VersionControl.PROTECTED)
+			throw new IllegalStateException(versionControlMsg(null));
+		
+		
 		getVirtualFileSystemService().deleteObjectAllPreviousVersions(bucketName, objectName);
 	}
 
@@ -187,8 +253,13 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
 	@Override
 	public void deleteObject(String bucketName, String objectName) {
 		Check.requireTrue(isVirtualFileSystemServiceEnabled(), invalidStateMsg());
-		if (getServerSettings().isReadOnly() || getServerSettings().isWORM())
-			throw new IllegalStateException(dataStorageModeMsg(bucketName, objectName));
+		
+		checkNotReadOnlyNotWORM();
+		
+		
+		if (getServerSettings().getVersionControl()==VersionControl.PROTECTED)
+			throw new IllegalStateException(versionControlMsg(null));
+		
 		getVirtualFileSystemService().deleteObject(getVirtualFileSystemService().getBucketByName(bucketName), objectName);
 	}
 
@@ -203,13 +274,13 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
 		Check.requireTrue(isVirtualFileSystemServiceEnabled(), invalidStateMsg());
 		Check.requireNonNullArgument(meta, "meta can not be null or empty");
 
-		if (getServerSettings().isReadOnly())
-			throw new IllegalStateException(dataStorageModeMsg(meta.bucketName, meta.objectName));
-
+		checkNotReadOnly();
+	
 		if (getServerSettings().isWORM()) {
 			if (existsObject(meta.bucketName, meta.objectName))
 				throw new IllegalStateException(dataStorageModeMsg(meta.bucketName, meta.objectName));
 		}
+		
 		return getVirtualFileSystemService().updateObjectMetadata(meta);
 	}
 
@@ -220,9 +291,8 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
 		Check.requireNonNullStringArgument(objectName, "objectName can not be null or empty | b:" + bucketName);
 		Check.requireNonNullArgument(file, "file is null | b: " + bucketName + " o: " + objectName);
 
-		if (getServerSettings().isReadOnly())
-			throw new IllegalStateException(dataStorageModeMsg(bucketName, objectName));
-
+		checkNotReadOnlyNotWORM();
+		
 		if (getServerSettings().isWORM()) {
 			if (existsObject(bucketName, objectName))
 				throw new IllegalStateException(dataStorageModeMsg(bucketName, objectName));
@@ -262,8 +332,7 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
 		Check.requireNonNullStringArgument(fileName, "file is null | b: " + bucketName + " o:" + objectName);
 		Check.requireNonNullArgument(is, "InpuStream can not null -> b:" + bucketName + " | o:" + objectName);
 
-		if (getServerSettings().isReadOnly())
-			throw new IllegalStateException(dataStorageModeMsg(bucketName, objectName));
+		checkNotReadOnly();
 
 		if (getServerSettings().isWORM()) {
 			if (existsObject(bucketName, objectName))
@@ -334,14 +403,13 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
 		Check.requireTrue(isVirtualFileSystemServiceEnabled(), invalidStateMsg());
 		Check.requireNonNullStringArgument(bucketName, "bucketName can not be null or empty");
 
-		if (getServerSettings().isReadOnly())
-			throw new IllegalStateException(dataStorageModeMsg(bucketName));
-
+		checkNotReadOnly();
+		
 		if (getServerSettings().isWORM()) {
 			if (existsBucket(bucketName))
 				throw new IllegalStateException(dataStorageModeMsg(bucketName));
 		}
-
+		
 		if (bucketName.length() < 1 || bucketName.length() > SharedConstant.MAX_BUCKET_CHARS)
 			throw new IllegalArgumentException(
 					"bucketName must be >0 and <" + String.valueOf(SharedConstant.MAX_BUCKET_CHARS) + " and must contain just lowercase letters and numbers, java regex = '" + SharedConstant.bucket_valid_regex + "' | b:" + bucketName);
@@ -363,11 +431,12 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
 		Check.requireNonNullArgument(bucket, "bucket can not be null or empty");
 		Check.requireNonNullStringArgument(newBucketName, "newbucketName can not be null or empty");
 
-		if (getServerSettings().isReadOnly())
-			throw new IllegalStateException(dataStorageModeMsg(bucket.getName()));
-		if (getServerSettings().isWORM())
-			throw new IllegalStateException(dataStorageModeMsg(bucket.getName()));
+		 checkNotReadOnlyNotWORM();
+		 
+		if (getServerSettings().getVersionControl()==VersionControl.PROTECTED)
+			throw new IllegalStateException(versionControlMsg(bucket.getName()));
 
+		
 		if (newBucketName.length() < 1 || newBucketName.length() > SharedConstant.MAX_BUCKET_CHARS)
 			throw new IllegalArgumentException(
 					"bucketName must be >0 and <" + String.valueOf(SharedConstant.MAX_BUCKET_CHARS) + " and must contain just lowercase letters and numbers, java regex = '" + SharedConstant.bucket_valid_regex + "' | b:" + newBucketName);
@@ -380,8 +449,10 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
 			throw new IllegalArgumentException("bucketName already used " + newBucketName);
 
 		try {
+			
 			logger.debug("update bucket name: " + bucket.getName() + " to -> " + newBucketName);
 			return getVirtualFileSystemService().renameBucketName(bucket.getName(), newBucketName);
+			
 		} catch (Exception e) {
 			logger.error(e, "b: " + bucket.getName() + " new: " + newBucketName, SharedConstant.THROWN_WRAPPED);
 			throw (new OdilonInternalErrorException(e));
@@ -392,9 +463,10 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
 	 * delete all DriveBuckets
 	 */
 	public void deleteBucketByName(String bucketName) {
+
 		Check.requireTrue(isVirtualFileSystemServiceEnabled(), invalidStateMsg());
-		if (getServerSettings().isReadOnly())
-			throw new IllegalStateException(dataStorageModeMsg(bucketName));
+		
+		checkNotReadOnly();
 
 		if (getServerSettings().isWORM()) {
 			if (existsBucket(bucketName))
@@ -402,20 +474,29 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
 			else
 				return;
 		}
+		
+		if (getServerSettings().getVersionControl()==VersionControl.PROTECTED)
+			throw new IllegalStateException(versionControlMsg(bucketName));
+		
 		getVirtualFileSystemService().removeBucket(bucketName);
 	}
 
 	@Override
 	public void forceDeleteBucket(String bucketName) {
 		Check.requireTrue(isVirtualFileSystemServiceEnabled(), invalidStateMsg());
-		if (getServerSettings().isReadOnly())
-			throw new IllegalStateException(dataStorageModeMsg(bucketName));
+
+		checkNotReadOnly();
+		
 		if (getServerSettings().isWORM()) {
 			if (existsBucket(bucketName))
 				throw new IllegalStateException(dataStorageModeMsg(bucketName));
 			else
 				return;
 		}
+		
+		if (getServerSettings().getVersionControl()==VersionControl.PROTECTED)
+			throw new IllegalStateException(versionControlMsg(bucketName));
+		
 		getVirtualFileSystemService().forceRemoveBucket(bucketName);
 	}
 
@@ -487,13 +568,25 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
 	}
 
 	private String dataStorageModeMsg(String bucketName) {
-		return "Illegal operation for Data Storage Mode -> " + getServerSettings().getDataStorage().getName() + " | b: " + bucketName;
+		if (bucketName==null || bucketName.isEmpty())
+			return "Illegal operation for Data Storage Mode -> " + getServerSettings().getDataStorage().getName();
+		else
+			return "Illegal operation for Data Storage Mode -> " + getServerSettings().getDataStorage().getName() + " | b: " + bucketName;
 	}
 
 	private String dataStorageModeMsg(String bucketName, String objectName) {
 		return "Illegal operation for Data Storage Mode -> " + getServerSettings().getDataStorage().getName() + " | b: " + bucketName + " o: " + objectName;
 	}
 
+	private String versionControlMsg(String bucketName) {
+		if (bucketName==null || bucketName.isEmpty())
+			return "Illegal operation for Version control -> " + getServerSettings().getVersionControl().getName();
+		else
+		return "Illegal operation for Version control -> " + getServerSettings().getVersionControl().getName() + " | b: " + bucketName;
+	}
+
+	
+	
 	@Override
 	public Map<String, String> getSystemLibrariesInfo() {
 		return systemInfoService.getSystemLibrariesInfo();

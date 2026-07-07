@@ -1,20 +1,37 @@
 #!/bin/bash
 
-RED="\e[31m"
-GREEN="\e[32m"
-ENDCOLOR="\e[0m"
+# Colores (macOS usa BSD echo, que no interpreta -e por defecto)
+RED="\033[31m"
+GREEN="\033[32m"
+ENDCOLOR="\033[0m"
 
-export ODILON_HOME=$(cd "$(dirname $(readlink -f "$0"))/..";pwd; cd)
+# readlink -f no existe en macOS, usamos una alternativa con perl o cd + pwd
+resolve_path() {
+  TARGET="$1"
+  cd "$(dirname "$TARGET")" || exit 1
+  TARGET=$(basename "$TARGET")
 
+  while [ -L "$TARGET" ]; do
+    TARGET=$(readlink "$TARGET")
+    cd "$(dirname "$TARGET")" || exit 1
+    TARGET=$(basename "$TARGET")
+  done
 
-source $ODILON_HOME/bin/config.sh
+  DIR=$(pwd -P)
+  echo "$DIR/$TARGET"
+}
 
-pid=$(ps aux | grep -E ".*[j]ava.*odilon" | awk '{print $2}')
+export ODILON_HOME=$(cd "$(dirname "$(resolve_path "$0")")/.." && pwd)
 
-if [[ ! -z "$pid" ]]
-then
-                echo -e "Odilon running on pid ${GREEN}$pid${ENDCOLOR}"
+# Cargar configuración
+source "$ODILON_HOME/bin/config.sh"
+
+# Buscar proceso
+pid=$(ps aux | grep -E ".*[j]ava.*odilon-server"  | grep   $OID  | awk '{print $2}')
+
+# Mostrar estado
+if [[ -n "$pid" ]]; then
+    printf "Odilon running on pid ${GREEN}%s${ENDCOLOR}\n" "$pid"
 else
-                echo -e "Odilon ${RED}not running${ENDCOLOR}"
+    printf "Odilon ${RED}not running${ENDCOLOR}\n"
 fi
-

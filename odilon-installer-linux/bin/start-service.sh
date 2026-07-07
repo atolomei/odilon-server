@@ -3,11 +3,7 @@
 
 source $ODILON_HOME/bin/config.sh
 
-rm -f $ODILON_HOME/logs/startup.log  2> /dev/null
-
-# lib_files="$ODILON_HOME/app/"
-# config_path="$ODILON_HOME/config"
-
+rm -f $ODILON_LOGS/startup.log  2> /dev/null
 
 cd "$ODILON_HOME"
 
@@ -23,4 +19,3 @@ fi
 # "$JAVA_CMD" $DEBUG_PROP $MEM_PROPS -cp "$config_path:$lib_files" $ODILON_PROPS -jar $APP
 
 "$JAVA_CMD" $DEBUG_PROP $MEM_PROPS $ODILON_PROPS -jar $APP
-	

@@ -1,15 +1,11 @@
 #!/bin/bash
 
 
-
-
 export ODILON_HOME=$(cd "$(dirname $(readlink -f "$0"))/..";pwd;cd )
 
 source $ODILON_HOME/bin/config.sh
 
-
-
-pid=$(ps aux | grep -E ".*[j]ava.*odilon" | awk '{print $2}')
+pid=$(ps aux | grep -E ".*[j]ava.*odilon-server" | grep $OID | awk '{print $2}')
 
 if [[ ! -z "$pid" ]]
 then
@@ -26,7 +22,7 @@ fi
 
 
 lib_files="$ODILON_HOME/app/:$ODILON_HOME/lib/*"
-config_path="$ODILON_HOME/config"
+config_path="$ODILON_CONF"
 
 
 echo
@@ -53,4 +49,3 @@ echo
 
 
 
- 

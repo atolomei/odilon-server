@@ -1,10 +1,12 @@
 #!/bin/bash
 
+
+ 
 export ODILON_HOME=$(cd "$(dirname $(readlink -f "$0"))/..";pwd;cd )
 source $ODILON_HOME/bin/config.sh
 
 
-pid=$(ps aux | grep -E ".*[j]ava.*odilon" | awk '{print $2}')
+pid=$(ps aux | grep -E ".*[j]ava.*odilon-server" | grep $OID |  awk '{print $2}')
 
 if [[ ! -z "$pid" ]]
 then
@@ -18,21 +20,23 @@ then
         exit 1
 fi
 
-rm -f $ODILON_HOME/logs/startup.log  2> /dev/null
+echo "This script starts up -> $APP"
+
+rm -f $ODILON_LOGS/startup.log  2> /dev/null
 nohup $ODILON_HOME/bin/start-cmd.sh < /dev/null > /dev/null 2>&1 &
 
 
 #nohup ./start-cmd.sh < /dev/null &
 
-echo "Background process launched."
+echo "Odilon background process launched."
 
 if ! [ "$1" = "noTail" ]; then
 	echo "Appending 100 lines of startup.log to standard output, pressing ctrl+c to stop printing"
-	echo "If no output is generated after 1 minute, try start-cmd.sh"
+	echo "If no output is generated after 1 minute, try start-cmd.sh to start the server in foreground and check the errors on the console"
 
-	sleep 3
+	sleep 4
 
-	while [ ! -f $ODILON_HOME/logs/startup.log ]
+	while [ ! -f $ODILON_LOGS/startup.log ]
 	do
 	  echo "waiting for startup.log file to be created."
 	  sleep 2
@@ -48,7 +52,7 @@ if ! [ "$1" = "noTail" ]; then
 
 	# tail -F $ODILON_HOME/logs/startup.log
 
-	 cat $ODILON_HOME/logs/startup.log
+	 cat $ODILON_LOGS/startup.log
 
 
 
