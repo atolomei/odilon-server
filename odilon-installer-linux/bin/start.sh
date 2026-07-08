@@ -2,7 +2,7 @@
 
 
  
-export ODILON_HOME=$(cd "$(dirname $(readlink -f "$0"))/..";pwd;cd )
+export ODILON_HOME=$(cd "$(dirname "$0")/.." && pwd -P)
 source $ODILON_HOME/bin/config.sh
 
 

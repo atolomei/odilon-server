@@ -9,7 +9,7 @@ cd "$ODILON_HOME"
 
 if [ -z "$JAVA_HOME" ]; then
         JAVA_CMD="java"
-		javaPath=$(readlink -nf $(which java) | xargs dirname | xargs dirname | xargs dirname)
+		javaPath=$(command -v java 2>/dev/null)
 		echo "JAVA_HOME not set. Using default java installation ($javaPath)"
 	else
 		JAVA_CMD="$JAVA_HOME"

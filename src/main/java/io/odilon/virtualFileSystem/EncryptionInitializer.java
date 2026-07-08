@@ -243,7 +243,9 @@ public class EncryptionInitializer extends BaseObject {
                     + "config" + File.separator + srcFile.getName());
             startuplogger.info("");
         } catch (Exception e) {
-            logger.error(e, "Backup encrypted key to -> " + System.getProperty("user.dir") + File.separator + "config");
+            logger.debug(e, "Backup encrypted key to -> " + System.getProperty("user.dir") + File.separator + "config");
+            logger.info("could not backup encrypted key to -> " + System.getProperty("user.dir") + File.separator + "config");
+
         }
 
         startuplogger.info("");
@@ -345,7 +347,8 @@ public class EncryptionInitializer extends BaseObject {
                     + "config" + File.separator + srcFile.getName());
             startuplogger.info("");
         } catch (Exception e) {
-            logger.error(e, "Backup encrypted key to -> " + System.getProperty("user.dir") + File.separator + "config");
+            logger.debug(e, "Backup encrypted key to -> " + System.getProperty("user.dir") + File.separator + "config");
+        	logger.info("could not backup encrypted key to -> " + System.getProperty("user.dir") + File.separator + "config");
         }
         shutDown(0);
     }

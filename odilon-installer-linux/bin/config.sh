@@ -3,21 +3,31 @@
 #  bin/config.sh — environment bootstrap for all Odilon shell scripts
 #
 #  Variable resolution order (first non-empty value wins):
-#    1. Already set in the environment  ← systemd sets these via Environment=
+#    1. Already set in the environment  ← systemd / launchd sets these
 #    2. Derived from this script's own location on disk
 #    3. FHS defaults based on INSTANCE_NAME
 #
-#  This means every script works correctly whether invoked:
-#    • by systemd  (ODILON_HOME / ODILON_CONF / ODILON_LOGS pre-set)
-#    • manually    (all paths auto-derived from the install directory)
-#    • in a multi-instance setup — each bin/ self-orients to its own instance
+#  Compatible with Linux (systemd) and macOS (launchd).
 # =============================================================================
 
+# ── portable resolve_path (readlink -f is GNU-only; not on macOS stock bash) ─
+_resolve_path() {
+    if command -v realpath &>/dev/null; then
+        realpath "$1"
+    elif command -v greadlink &>/dev/null; then
+        greadlink -f "$1"
+    else
+        local t="$1"
+        local d
+        d="$(cd "$(dirname "$t")" 2>/dev/null && pwd -P)" || d="$(dirname "$t")"
+        echo "${d}/$(basename "$t")"
+    fi
+}
+
 # ── locate home directory from the script's own path ─────────────────────────
-# Works whether called directly or sourced. readlink -f resolves symlinks.
 if [[ -z "${ODILON_HOME:-}" ]]; then
     export ODILON_HOME
-    ODILON_HOME="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
+    ODILON_HOME="$(cd "$(dirname "$(_resolve_path "${BASH_SOURCE[0]}")")/.." && pwd)"
 fi
 
 # ── derive instance name from the install directory basename ──────────────────
@@ -33,7 +43,7 @@ export ODILON_LOGS="${ODILON_LOGS:-/var/log/${INSTANCE_NAME}}"
 # ── java ──────────────────────────────────────────────────────────────────────
 if [[ -z "${JAVA_HOME:-}" ]]; then
     export JAVA_HOME
-    JAVA_HOME="$(readlink -f "$(which java)")"
+    JAVA_HOME="$(_resolve_path "$(which java)")"
 fi
 
 # ── app user ──────────────────────────────────────────────────────────────────
