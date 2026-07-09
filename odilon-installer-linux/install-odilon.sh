@@ -8,7 +8,7 @@
 #  -------------------------------------------------------
 #    /opt/<name>                  Binaries, scripts, resources   (ODILON_HOME)
 #    /etc/<name>                  Configuration, keystore        (ODILON_CONF)
-#    /opt/<name>/logs             Log files                       (ODILON_LOGS)
+#    <prefix>/logs                Log files                       (ODILON_LOGS)
 #    /opt/<name>-data             Default data directory
 #    /opt/odilon-backups/<name>   Timestamped rollback snapshots
 #    /var/lib/<user>              Service user home  ← NOT inside INSTALL_DIR
@@ -147,7 +147,7 @@ Usage: sudo $(basename "$0") [OPTIONS]
   --name   NAME   Instance / service name       [default: odilon]
   --prefix DIR    Binary installation root      [default: /opt/<name>]
   --conf   DIR    Configuration directory       [default: /etc/<name>]
-  --logs   DIR    Log directory                 [default: /opt/<name>/logs]
+  --logs   DIR    Log directory                 [default: <prefix>/logs]
   --user   USER   System user to run as         [default: odilon]
   --port   PORT   HTTP listener port            [default: 9234]
   --dry-run       Preview actions, no changes
@@ -222,7 +222,7 @@ load_meta() {
 
 # First pass (need CONF_DIR to locate metadata)
 apply_paths
-[[ -d "$CONF_DIR" ]] && load_meta
+if [[ -d "$CONF_DIR" ]]; then load_meta; fi
 # Second pass (CLI flags win over saved values)
 apply_paths
 
@@ -241,7 +241,7 @@ else
     ok "Java ${JAVA_VER} found at ${JAVA_BIN}"
 fi
 
-JAR="$(find "$SCRIPT_DIR/app" -maxdepth 1 -type f -name "odilon-server*.jar" 2>/dev/null | head -n1)"
+JAR="$(find "$SCRIPT_DIR/app" -maxdepth 1 -type f -name "odilon-server*.jar" 2>/dev/null | head -n1)" || true
 [[ -n "$JAR" ]] || die "odilon-server*.jar not found in $SCRIPT_DIR/app — is the tarball complete?"
 JAR_NAME="$(basename "$JAR")"
 VERSION="${JAR_NAME#odilon-server-}"; VERSION="${VERSION%.jar}"
@@ -251,7 +251,9 @@ LEGACY_CONF_DIR="${INSTALL_DIR}/config"
 
 # An existing JAR at INSTALL_DIR/app/ means a live installation is present
 # even if the config was already manually moved elsewhere.
-EXISTING_JAR="$(find "${INSTALL_DIR}/app" -maxdepth 1 -name "odilon-server*.jar" 2>/dev/null | head -n1)"
+# || true: find exits non-zero when the path does not exist yet (fresh install);
+# with pipefail that would kill the script without || true.
+EXISTING_JAR="$(find "${INSTALL_DIR}/app" -maxdepth 1 -name "odilon-server*.jar" 2>/dev/null | head -n1)" || true
 
 if [[ -d "$CONF_DIR" ]]; then
     # /etc/<name>/ exists → modern layout — normal upgrade
@@ -288,7 +290,7 @@ fi
 info "Logs              : ${LOG_DIR}"
 info "Port              : ${PORT}"
 info "Rollback snapshots: ${BACKUP_ROOT}"
-$DRY_RUN && warn "DRY RUN — no changes will be made."
+if $DRY_RUN; then warn "DRY RUN — no changes will be made."; fi
 echo
 
 # =============================================================================
@@ -302,7 +304,7 @@ prune_snapshots() {
     local snaps=()
     while IFS= read -r line; do
         snaps+=("$line")
-    done < <(find "$dir" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort)
+    done < <(find "$dir" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort || true)
     local excess=$(( ${#snaps[@]} - keep ))
     if (( excess > 0 )); then
         for snap in "${snaps[@]:0:$excess}"; do
@@ -678,14 +680,12 @@ if [[ "$MODE" == "upgrade" ]]; then
     ROLLBACK_DIR="${BACKUP_ROOT}/${TIMESTAMP}"
     run mkdir -p "${ROLLBACK_DIR}"
     for sub in app bin resources; do
-        [[ -d "${INSTALL_DIR}/${sub}" ]] && run cp -a "${INSTALL_DIR}/${sub}" "${ROLLBACK_DIR}/"
+        if [[ -d "${INSTALL_DIR}/${sub}" ]]; then run cp -a "${INSTALL_DIR}/${sub}" "${ROLLBACK_DIR}/"; fi
     done
     ok "Snapshot saved → ${ROLLBACK_DIR}"
 
     # Prune oldest snapshots, keep N most recent
-    $DRY_RUN || prune_snapshots "${BACKUP_ROOT}" "${MAX_ROLLBACK_SNAPSHOTS}"
-
-    # ── 3. Replace binaries — never touch CONF_DIR ───────────────────────────
+    if ! $DRY_RUN; then prune_snapshots "${BACKUP_ROOT}" "${MAX_ROLLBACK_SNAPSHOTS}"; fi
     info "Replacing binaries (${CONF_DIR} untouched) ..."
 
     run mkdir -p "${INSTALL_DIR}/app"
@@ -805,13 +805,11 @@ if [[ "$MODE" == "migrate" ]]; then
     ROLLBACK_DIR="${BACKUP_ROOT}/${TIMESTAMP}"
     run mkdir -p "${ROLLBACK_DIR}"
     for sub in app bin resources config; do
-        [[ -d "${INSTALL_DIR}/${sub}" ]] && run cp -a "${INSTALL_DIR}/${sub}" "${ROLLBACK_DIR}/"
+        if [[ -d "${INSTALL_DIR}/${sub}" ]]; then run cp -a "${INSTALL_DIR}/${sub}" "${ROLLBACK_DIR}/"; fi
     done
     ok "Full snapshot saved → ${ROLLBACK_DIR}"
 
-    $DRY_RUN || prune_snapshots "${BACKUP_ROOT}" "${MAX_ROLLBACK_SNAPSHOTS}"
-
-    # ── 3. Migrate config — copy first, rename old dir (never delete) ─────────
+    if ! $DRY_RUN; then prune_snapshots "${BACKUP_ROOT}" "${MAX_ROLLBACK_SNAPSHOTS}"; fi
     info "Migrating config files → ${CONF_DIR} ..."
     run mkdir -p "${CONF_DIR}"
     if ! $DRY_RUN; then
@@ -945,7 +943,7 @@ info "Installing configuration → ${CONF_DIR} ..."
 # Copy all non-template config files (e.g. log4j2.xml) directly
 if ! $DRY_RUN; then
     for f in "${SCRIPT_DIR}"/config/*; do
-        [[ "$f" == *.template ]] && continue
+        if [[ "$f" == *.template ]]; then continue; fi
         cp "$f" "${CONF_DIR}/"
     done
 else

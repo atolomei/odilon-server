@@ -14,10 +14,14 @@ then
                 exit 1
 fi
 
-if [ ! $APP_USER == $(whoami) ]
-then
-        echo "Odilon must be run with user '$APP_USER'"
+if [ "$(whoami)" != "$APP_USER" ]; then
+    if sudo -n -u "$APP_USER" true 2>/dev/null; then
+        exec sudo -u "$APP_USER" "$0" "$@"
+    else
+        echo "This script must run as '$APP_USER'."
+        echo "Try: sudo -u $APP_USER $0"
         exit 1
+    fi
 fi
 
 echo "This script starts up -> $APP"

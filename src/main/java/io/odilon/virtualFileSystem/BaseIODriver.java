@@ -460,9 +460,18 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 			}
 			if (operation.getOperationCode() == OperationCode.CREATE_SERVER_MASTERKEY) {
 				for (Drive drive : getDrivesAll()) {
-					File file = drive.getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE);
-					if ((file != null) && file.exists())
-						FileUtils.forceDelete(file);
+					File bak     = drive.getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE + ".bak");
+					File current = drive.getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE);
+					if (bak != null && bak.exists()) {
+						/** rekey rollback: restore the previous working key */
+						if (current != null)
+							FileUtils.copyFile(bak, current);
+						FileUtils.deleteQuietly(bak);
+					} else {
+						/** initial encryption rollback: no previous key — delete the partial write */
+						if (current != null && current.exists())
+							FileUtils.forceDelete(current);
+					}
 				}
 				return true;
 			} else if (operation.getOperationCode() == OperationCode.CREATE_SERVER_METADATA) {
@@ -711,15 +720,24 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 
 		getLockService().getServerLock().writeLock().lock();
 		try {
-			/** backup */
+			/**
+			 * Backup existing key.enc → key.enc.bak on every drive BEFORE writing.
+			 * Required for rekey rollback: without this, a failed rekey would delete
+			 * key.enc (the only copy of the working key) making all stored data
+			 * permanently inaccessible.
+			 * For initial encryption key.enc does not exist yet, so nothing is backed up
+			 * and rollback will simply delete the partially-written file.
+			 */
 			for (Drive drive : getDrivesAll()) {
 				try {
-					// drive.putSysFile(ServerConstant.ODILON_SERVER_METADATA_FILE, jsonString);
-					// backup
+					File current = drive.getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE);
+					if (current != null && current.exists()) {
+						File bak = drive.getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE + ".bak");
+						FileUtils.copyFile(current, bak);
+					}
 				} catch (Exception e) {
-					// isError = true;
 					reqRestoreBackup = false;
-					throw new InternalCriticalException(e, "Drive -> " + drive.getName());
+					throw new InternalCriticalException(e, "backup key.enc on drive -> " + drive.getName());
 				}
 			}
 
@@ -767,13 +785,17 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 
 		} finally {
 			try {
-				if (!done) {
+				if (done) {
+					/** clean up .bak files after successful commit */
+					for (Drive drive : getDrivesAll()) {
+						FileUtils.deleteQuietly(drive.getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE + ".bak"));
+					}
+				} else {
 					if (!reqRestoreBackup)
 						op.cancel();
 					else
 						rollback(op);
 				}
-
 			} catch (Exception e) {
 				logger.error(e, SharedConstant.NOT_THROWN);
 			} finally {
@@ -1453,7 +1475,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 	 * on Windows where POSIX views are unavailable.
 	 * </p>
 	 */
-	private void setOwnerReadWriteOnly(Path path) {
+	protected void setOwnerReadWriteOnly(Path path) {
 		try {
 			PosixFileAttributeView view = Files.getFileAttributeView(path, PosixFileAttributeView.class);
 			if (view == null)

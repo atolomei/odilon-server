@@ -823,15 +823,21 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 		getLockService().getServerLock().writeLock().lock();
 
 		try {
-			/** backup */
+			/**
+			 * Backup existing key.enc → key.enc.bak before writing.
+			 * Required for rekey rollback — without this a failed rekey deletes the only
+			 * copy of the working key, making all stored data permanently inaccessible.
+			 */
 			for (Drive drive : getDrivesAll()) {
 				try {
-					// drive.putSysFile(ServerConstant.ODILON_SERVER_METADATA_FILE, jsonString);
-					// backup
+					File current = drive.getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE);
+					if (current != null && current.exists()) {
+						File bak = drive.getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE + ".bak");
+						FileUtils.copyFile(current, bak);
+					}
 				} catch (Exception e) {
-					// isError = true;
 					reqRestoreBackup = false;
-					throw new InternalCriticalException(e, "Drive -> " + drive.getName());
+					throw new InternalCriticalException(e, "backup key.enc on drive -> " + drive.getName());
 				}
 			}
 
@@ -856,6 +862,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 				try {
 					File file = drive.getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE);
 					FileUtils.writeByteArrayToFile(file, dataEnc);
+					setOwnerReadWriteOnly(file.toPath());
 				} catch (Exception e) {
 					eThrow = new InternalCriticalException(e, "Drive -> " + drive.getName());
 					break;
@@ -877,13 +884,17 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 
 		} finally {
 			try {
-				if (!done) {
+				if (done) {
+					/** clean up .bak files after successful commit */
+					for (Drive drive : getDrivesAll()) {
+						FileUtils.deleteQuietly(drive.getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE + ".bak"));
+					}
+				} else {
 					if (!reqRestoreBackup)
 						op.cancel();
 					else
 						rollback(op);
 				}
-
 			} catch (Exception e) {
 				logger.error(e, SharedConstant.NOT_THROWN);
 			} finally {

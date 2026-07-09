@@ -59,7 +59,8 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  * 
  */
 @Configuration
-@PropertySource("classpath:odilon.properties")
+@PropertySource(value = "file:${odilon.conf}/odilon.properties", ignoreResourceNotFound = true)
+@PropertySource(value = "classpath:odilon.properties", ignoreResourceNotFound = true)
 public class ServerSettings implements JSONObject {
 
 	static private Logger logger = Logger.getLogger(ServerSettings.class.getName());
@@ -1336,10 +1337,12 @@ public class ServerSettings implements JSONObject {
 	}
 
 	private void exit(String msg) {
+		String confPath = System.getProperty("odilon.conf", "." + File.separator + "config");
 		logger.error(ServerConstant.SEPARATOR);
-		logger.error(msg);
-		logger.error("check file ." + File.separator + "config" + File.separator + "odilon.properties");
-		logger.error(ServerConstant.SEPARATOR);
+		logger.error("exit | ---------------------------------");
+		logger.error("exit | " + msg);
+		logger.error("exit | check file " + confPath + File.separator + "odilon.properties");
+		logger.error("exit | ---------------------------------");
 		System.exit(1);
 	}
 

@@ -30,13 +30,40 @@ if [[ -z "${ODILON_HOME:-}" ]]; then
     ODILON_HOME="$(cd "$(dirname "$(_resolve_path "${BASH_SOURCE[0]}")")/.." && pwd)"
 fi
 
-# ── derive instance name from the install directory basename ──────────────────
-#   /opt/odilon        → odilon
-#   /opt/odilon-prod   → odilon-prod
-#   /opt/odilon-dev    → odilon-dev
-export INSTANCE_NAME="${INSTANCE_NAME:-$(basename "${ODILON_HOME}")}"
+# ── derive instance name ──────────────────────────────────────────────────────
+#   Resolution order:
+#   1. INSTANCE_NAME already in environment  ← set by systemd/launchd service unit
+#   2. /etc/odilon*/.odilon-instance scan    ← written by install-odilon.sh;
+#      matches the entry whose INSTALL_DIR resolves to ODILON_HOME
+#   3. basename of ODILON_HOME               ← last resort for custom layouts
+if [[ -z "${INSTANCE_NAME:-}" ]]; then
+    _found_meta=""
+    for _meta in /etc/odilon*/.odilon-instance; do
+        [[ -f "$_meta" ]] || continue
+        _inst_dir="$(grep -E '^INSTALL_DIR=' "$_meta" 2>/dev/null | cut -d= -f2-)"
+        _inst_dir_real="$(cd "$_inst_dir" 2>/dev/null && pwd -P)" || continue
+        if [[ "$_inst_dir_real" == "$ODILON_HOME" ]]; then
+            _found_meta="$_meta"
+            break
+        fi
+    done
+
+    if [[ -n "$_found_meta" ]]; then
+        export INSTANCE_NAME="$(grep -E '^INSTANCE_NAME=' "$_found_meta" | cut -d= -f2-)"
+        # Load LOG_DIR from metadata if not already overridden
+        if [[ -z "${ODILON_LOGS:-}" ]]; then
+            _meta_logs="$(grep -E '^LOG_DIR=' "$_found_meta" | cut -d= -f2-)"
+            [[ -n "$_meta_logs" ]] && export ODILON_LOGS="$_meta_logs"
+        fi
+    else
+        export INSTANCE_NAME="$(basename "${ODILON_HOME}")"
+    fi
+fi
 
 # ── configuration and log directories ────────────────────────────────────────
+#   Always /etc/<INSTANCE_NAME>  — written by install-odilon.sh.
+#   Never fall back to ODILON_HOME/config (that is the legacy layout that
+#   install-odilon.sh migrates away from).
 export ODILON_CONF="${ODILON_CONF:-/etc/${INSTANCE_NAME}}"
 export ODILON_LOGS="${ODILON_LOGS:-/var/log/${INSTANCE_NAME}}"
 
@@ -63,18 +90,20 @@ export APP="$_jar"
 export JETTY_STOP_PWD="OdilonShutd0wn"
 
 export ODILON_PROPS="
--Xbootclasspath/a:${ODILON_HOME}/resources:${ODILON_CONF}
 -Xms1G
 -Xmx4G
 -XX:+UseG1GC
 -XX:G1HeapRegionSize=16m
 -Dwork=${ODILON_HOME}/tmp/
 -Dlog-path=${ODILON_LOGS}
--Dlog4j.configurationFile=log4j2.xml
+-Dlog4j.configurationFile=${ODILON_CONF}/log4j2.xml
+-Dlogging.config=${ODILON_CONF}/log4j2.xml
 -DLog4jContextSelector=org.apache.logging.log4j.core.async.AsyncLoggerContextSelector
 -Djava.net.preferIPv4Stack=true
 -Dfile.encoding=UTF-8
 -DOID=${OID}
--Dsun.jnu.encoding=UTF-8"
+-Dsun.jnu.encoding=UTF-8
+-Dodilon.conf=${ODILON_CONF}"
 
 export DEBUG_PROP=""
+export MEM_PROPS=""

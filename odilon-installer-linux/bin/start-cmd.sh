@@ -14,10 +14,14 @@ then
 fi
 
 
-if [ ! $APP_USER == $(whoami) ]
-then
-        echo "Application must be run with user '$APP_USER'"
+if [ "$(whoami)" != "$APP_USER" ]; then
+    if sudo -n -u "$APP_USER" true 2>/dev/null; then
+        exec sudo -u "$APP_USER" "$0" "$@"
+    else
+        echo "This script must run as '$APP_USER'."
+        echo "Try: sudo -u $APP_USER $0"
         exit 1
+    fi
 fi
 
 
@@ -45,7 +49,7 @@ fi
 echo Starting the server... to shutdown the server press CRTL-C
 echo
 
-"$JAVA_CMD" $DEBUG_PROP $MEM_PROPS -cp "$config_path:$lib_files" $ODILON_PROPS -jar $APP
+"$JAVA_CMD" $DEBUG_PROP $MEM_PROPS $ODILON_PROPS -cp "$config_path:$APP" org.springframework.boot.loader.launch.JarLauncher
 
 
 

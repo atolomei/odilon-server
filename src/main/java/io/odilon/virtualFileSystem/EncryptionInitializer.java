@@ -230,26 +230,22 @@ public class EncryptionInitializer extends BaseObject {
         startuplogger.info("");
 
         
-        /** try to copy kbee.enc -> /config */
-
+        /** backup key.enc → $ODILON_CONF (i.e. /etc/<instance-name>/) */
         try {
-            File srcFile = driver.getDrivesEnabled().get(0).getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE);
-            File destFile = new File(
-                    System.getProperty("user.dir") + File.separator + "config" + File.separator + srcFile.getName());
-            Files.copy(srcFile, destFile);
-            setOwnerReadWriteOnly(destFile.toPath());
-            startuplogger.info("");
-            startuplogger.info("Odilon made a backup of the encrypted key to -> " + System.getProperty("user.dir") + File.separator
-                    + "config" + File.separator + srcFile.getName());
-            startuplogger.info("");
+            String confDir = System.getProperty("odilon.conf");
+            if (confDir != null) {
+                File srcFile  = driver.getDrivesEnabled().get(0).getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE);
+                File destFile = new File(confDir + File.separator + srcFile.getName());
+                Files.copy(srcFile, destFile);
+                setOwnerReadWriteOnly(destFile.toPath());
+                startuplogger.info("Backup of encrypted key written to -> " + destFile.getAbsolutePath());
+                startuplogger.info("");
+            }
         } catch (Exception e) {
-            logger.debug(e, "Backup encrypted key to -> " + System.getProperty("user.dir") + File.separator + "config");
-            logger.info("could not backup encrypted key to -> " + System.getProperty("user.dir") + File.separator + "config");
-
+            logger.warn("Could not write key.enc backup to odilon.conf dir: " + e.getMessage());
         }
 
         startuplogger.info("");
-
         shutDown(0);
     }
 
@@ -329,27 +325,25 @@ public class EncryptionInitializer extends BaseObject {
         driver.setServerInfo(info);
 
         startuplogger.info("encryption.key = " + ByteToString.byteToHexString(encKeyIV));
-        startuplogger.info("The encrytion key must replice the previous value of encryption.key in 'odilon.properties'.");
-        startuplogger.info("");
+        startuplogger.info("The encryption key must replace the previous value of 'encryption.key' in 'odilon.properties'.");
         startuplogger.info("");
         startuplogger.info("process completed.");
 
-        /** try to copy kbee.enc -> /config */
-
+        /** backup key.enc → $ODILON_CONF (i.e. /etc/<instance-name>/) */
         try {
-            File srcFile = driver.getDrivesEnabled().get(0).getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE);
-            File destFile = new File(
-                    System.getProperty("user.dir") + File.separator + "config" + File.separator + srcFile.getName());
-            Files.copy(srcFile, destFile);
-            setOwnerReadWriteOnly(destFile.toPath());
-            startuplogger.info("");
-            startuplogger.info("Odilon made a backup of the encrypted key to -> " + System.getProperty("user.dir") + File.separator
-                    + "config" + File.separator + srcFile.getName());
-            startuplogger.info("");
+            String confDir = System.getProperty("odilon.conf");
+            if (confDir != null) {
+                File srcFile  = driver.getDrivesEnabled().get(0).getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE);
+                File destFile = new File(confDir + File.separator + srcFile.getName());
+                Files.copy(srcFile, destFile);
+                setOwnerReadWriteOnly(destFile.toPath());
+                startuplogger.info("Backup of new encrypted key written to -> " + destFile.getAbsolutePath());
+                startuplogger.info("");
+            }
         } catch (Exception e) {
-            logger.debug(e, "Backup encrypted key to -> " + System.getProperty("user.dir") + File.separator + "config");
-        	logger.info("could not backup encrypted key to -> " + System.getProperty("user.dir") + File.separator + "config");
+            logger.warn("Could not write key.enc backup to odilon.conf dir: " + e.getMessage());
         }
+
         shutDown(0);
     }
 

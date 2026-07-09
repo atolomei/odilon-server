@@ -1555,7 +1555,7 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 			if (ns.equals("-dinitializeencryption=true") || ns.equals("--initializeencryption=true")) {
 				isInitializeEnc = true;
 			}
-			if (ns.startsWith("-dmasterkey=") || ns.equals("--masterkey=")) {
+			if (ns.startsWith("-dmasterkey=") || ns.startsWith("--masterkey=")) {
 				String k = s.trim();
 				String separator = s.trim().startsWith("-DmasterKey=") ? "-DmasterKey=" : "--masterKey=";
 				String arr[] = k.split(separator);
@@ -1654,9 +1654,9 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 		}
 
 		// 2. odilon.properties in the standard deployment location
-		Path propsFile = Paths.get(System.getProperty("user.dir"), "config", "odilon.properties");
-		if (propsFile.toFile().exists())
-			warnIfInsecure(propsFile, insecurePermissions);
+		//Path propsFile = Paths.get(System.getProperty("user.dir"), "config", "odilon.properties");
+		//if (propsFile.toFile().exists())
+		//	warnIfInsecure(propsFile, insecurePermissions);
 	}
 
 	private void warnIfInsecure(Path path, Set<PosixFilePermission> insecurePermissions) {
@@ -1668,11 +1668,11 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 			Set<PosixFilePermission> found = EnumSet.copyOf(insecurePermissions);
 			found.retainAll(perms);
 			if (!found.isEmpty()) {
-				startuplogger.error(ServerConstant.SEPARATOR);
-				startuplogger.error("SECURITY WARNING: sensitive file has insecure permissions -> " + path.toAbsolutePath());
-				startuplogger.error("Current permissions : " + perms);
-				startuplogger.error("Recommended fix    : chmod 600 " + path.toAbsolutePath());
-				startuplogger.error(ServerConstant.SEPARATOR);
+				startuplogger.warn(ServerConstant.SEPARATOR);
+				startuplogger.warn("SECURITY WARNING: sensitive file has insecure permissions -> " + path.toAbsolutePath());
+				startuplogger.warn("Current permissions : " + perms);
+				startuplogger.warn("Recommended fix    : chmod 600 " + path.toAbsolutePath());
+				startuplogger.warn(ServerConstant.SEPARATOR);
 			}
 		} catch (IOException e) {
 			logger.error(e, "checkKeyFileSecurity: could not read permissions for -> " + path.toAbsolutePath());

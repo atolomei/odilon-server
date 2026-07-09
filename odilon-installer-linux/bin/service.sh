@@ -153,10 +153,18 @@ do_status() {
             if [[ -n "$_ak" ]]; then ACCESS_KEY="$_ak"; fi
             if [[ -n "$_sk" ]]; then SECRET_KEY="$_sk"; fi
         fi
-        curl --silent --max-time 5 -u "${ACCESS_KEY}:${SECRET_KEY}" \
-            "http://localhost:${PORT}/info" 2>/dev/null \
-            && echo \
-            || warn "API not responding yet on port ${PORT} — server may still be starting."
+        _ping_ok=false
+        for _i in $(seq 1 10); do
+            if curl --silent --max-time 3 -u "${ACCESS_KEY}:${SECRET_KEY}" \
+                    "http://localhost:${PORT}/info" 2>/dev/null; then
+                echo
+                _ping_ok=true
+                break
+            fi
+            info "API not ready yet, retrying in 3s (${_i}/10)..."
+            sleep 3
+        done
+        $_ping_ok || warn "API did not respond on port ${PORT} after 30s — check logs in ${ODILON_LOGS}"
     fi
     hr
 }
