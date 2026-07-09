@@ -2,13 +2,16 @@
 # =============================================================================
 #  install-odilon.sh — Odilon Object Storage Server installer / upgrader
 #
+#  Compatible with: Linux (systemd) and macOS (launchd)
+#
 #  Filesystem layout (defaults, all overridable via flags)
 #  -------------------------------------------------------
 #    /opt/<name>                  Binaries, scripts, resources   (ODILON_HOME)
 #    /etc/<name>                  Configuration, keystore        (ODILON_CONF)
-#    /var/log/<name>              Log files                       (ODILON_LOGS)
+#    /opt/<name>/logs             Log files                       (ODILON_LOGS)
 #    /opt/<name>-data             Default data directory
 #    /opt/odilon-backups/<name>   Timestamped rollback snapshots
+#    /var/lib/<user>              Service user home  ← NOT inside INSTALL_DIR
 #
 #  Configuration template
 #  ----------------------
@@ -30,35 +33,52 @@
 #      sudo ./install-odilon.sh --name odilon-dev  --port 9235
 #
 #    Each instance gets its own:
-#      /opt/<name>   /etc/<name>   /var/log/<name>   systemctl start <name>
+#      /opt/<name>   /etc/<name>   /opt/<name>/logs   systemctl/launchctl <name>
 #
-#  Mode detection (automatic)
-#  --------------------------
-#    /etc/<name> exists                  → upgrade  (binaries replaced, config untouched)
-#    /opt/<name>/config/odilon.properties exists → migrate  (legacy layout → FHS layout)
-#    neither                             → fresh install
+#  Mode detection (automatic, four-way)
+#  -------------------------------------
+#    /etc/<name> exists                    → upgrade  (binaries replaced, config untouched)
+#    /opt/<name>/config/odilon.properties  → migrate  (classic pre-2.x layout → FHS layout)
+#    /opt/<name>/app/odilon-server*.jar    → migrate  (binary present, config already moved)
+#    none of the above                     → fresh install
 #
 #  Upgrade (auto-detected when <conf-dir> already exists)
 #  -------------------------------------------------------
 #    1. Stops the running service (up to 30 s).
-#    2. Snapshots app/ + bin/ + resources/ → /opt/odilon-backups/<name>/<ts>/
+#    2. Fixes service user home if wrongly set to INSTALL_DIR (legacy issue).
+#    3. Snapshots app/ + bin/ + resources/ → /opt/odilon-backups/<name>/<ts>/
 #       Keeps the 3 most recent; oldest pruned automatically.
-#    3. Replaces ONLY app/, bin/, resources/.  <conf-dir> is NEVER touched.
-#    4. Refreshes the systemd unit and restarts.
+#    4. Replaces ONLY app/, bin/, resources/.  <conf-dir> is NEVER touched.
+#    5. Re-applies log dir ownership.
+#    6. Refreshes service unit and restarts.
 #
 #  Migrate — legacy layout (config inside /opt/<name>/config/)
 #  ------------------------------------------------------------
 #    1. Stops the running service (up to 30 s).
-#    2. Full snapshot of /opt/<name>/ including config/ → /opt/odilon-backups/<name>/<ts>/
-#    3. Copies config files to /etc/<name>/  (nothing deleted yet).
-#    4. Renames old config/ → config.migrated.<ts>/  (kept as safety net).
-#    5. Replaces binaries, generates new systemd unit, restarts.
+#    2. Fixes service user home if wrongly set to INSTALL_DIR.
+#    3. Full snapshot including config/ → /opt/odilon-backups/<name>/<ts>/
+#    4. Copies config files to /etc/<name>/  (nothing deleted yet).
+#    5. Renames old config/ → config.migrated.<ts>/  (kept as safety net).
+#    6. Replaces binaries.
+#    7. Fixes log dir ownership.
+#    8. Writes new service unit, restarts.
+#
+#  Service user
+#  ------------
+#    A dedicated system user (<user>, default: odilon) is created.
+#    Home directory: /var/lib/<user>  (same on Linux and macOS)
+#    Setting the home to INSTALL_DIR caused macOS to create Library/ inside
+#    /opt/odilon — the installer detects and corrects this automatically.
 #
 #  Rollback
 #  --------
-#    sudo systemctl stop <name>
+#    Linux:  sudo systemctl stop <name>
+#    macOS:  sudo launchctl bootout system/io.odilon.<name>
+#
 #    sudo cp -a /opt/odilon-backups/<name>/<timestamp>/. /opt/<name>/
-#    sudo systemctl start <name>
+#
+#    Linux:  sudo systemctl start <name>
+#    macOS:  sudo launchctl bootstrap system /Library/LaunchDaemons/io.odilon.<name>.plist
 # =============================================================================
 
 set -euo pipefail
@@ -127,7 +147,7 @@ Usage: sudo $(basename "$0") [OPTIONS]
   --name   NAME   Instance / service name       [default: odilon]
   --prefix DIR    Binary installation root      [default: /opt/<name>]
   --conf   DIR    Configuration directory       [default: /etc/<name>]
-  --logs   DIR    Log directory                 [default: /var/log/<name>]
+  --logs   DIR    Log directory                 [default: /opt/<name>/logs]
   --user   USER   System user to run as         [default: odilon]
   --port   PORT   HTTP listener port            [default: 9234]
   --dry-run       Preview actions, no changes
@@ -164,7 +184,7 @@ run() {
 apply_paths() {
     INSTALL_DIR="${OPT_PREFIX:-/opt/${INSTANCE_NAME}}"
     CONF_DIR="${OPT_CONF:-/etc/${INSTANCE_NAME}}"
-    LOG_DIR="${OPT_LOGS:-/var/log/${INSTANCE_NAME}}"
+    LOG_DIR="${OPT_LOGS:-${OPT_PREFIX:-/opt/${INSTANCE_NAME}}/logs}"
     ODILON_USER="${OPT_USER:-odilon}"
     ODILON_GROUP="${ODILON_USER}"
     PORT="${OPT_PORT:-9234}"
@@ -323,16 +343,26 @@ resolve_odilon_group() {
 }
 
 # ── OS-abstracted user creation ───────────────────────────────────────────────
+# The service user home is intentionally NOT set to INSTALL_DIR:
+#   Linux  → /var/lib/<user>  (standard FHS location for service state)
+#   macOS  → /var/lib/<user>  (same path — keeps Linux/macOS consistent;
+#                               a real writable dir avoids macOS creating
+#                               Library/ inside the binary install directory)
+# Using INSTALL_DIR as home caused macOS to place Library/ inside /opt/odilon.
 os_create_user() {
-    local user="$1" home="$2"
+    local user="$1"
+    local svc_home="/var/lib/${user}"
     if [[ "$OS_TYPE" == "linux" ]]; then
+        run mkdir -p "$svc_home"
         run useradd \
             --system \
             --no-create-home \
             --shell /sbin/nologin \
-            --home-dir "$home" \
+            --home-dir "$svc_home" \
             --comment "Odilon Object Storage Server" \
             "$user"
+        run chown "${user}:${user}" "$svc_home"
+        run chmod 700 "$svc_home"
     elif [[ "$OS_TYPE" == "macos" ]]; then
         # Find next available UID in macOS system-user range (200+)
         local next_uid
@@ -350,13 +380,18 @@ os_create_user() {
             run dscl . -create "/Groups/${user}" gid             "$next_gid"
             run dscl . -create "/Groups/${user}" GroupMembership "$user"
         fi
-        # Create the service user
+        # Create the service user with /var/lib/<user> as home.
+        # Using a real directory (not /var/empty or INSTALL_DIR) prevents macOS
+        # from creating Library/ inside the binary install directory.
+        run mkdir -p "$svc_home"
         run dscl . -create "/Users/${user}"
         run dscl . -create "/Users/${user}" UserShell        /usr/bin/false
         run dscl . -create "/Users/${user}" RealName         "Odilon Object Storage Server"
         run dscl . -create "/Users/${user}" UniqueID         "$next_uid"
         run dscl . -create "/Users/${user}" PrimaryGroupID   "$next_gid"
-        run dscl . -create "/Users/${user}" NFSHomeDirectory "$home"
+        run dscl . -create "/Users/${user}" NFSHomeDirectory "$svc_home"
+        run chown "${user}:${next_gid}" "$svc_home"
+        run chmod 700 "$svc_home"
         # Flush directory services cache so BSD tools (chown, id) see the new
         # group immediately without requiring a reboot or logout.
         dscacheutil -flushcache 2>/dev/null || true
@@ -523,6 +558,54 @@ EOF
     fi
 }
 
+# ── fix service user home if it was wrongly set to INSTALL_DIR ───────────────
+# Early installations set NFSHomeDirectory/--home-dir to INSTALL_DIR, causing
+# macOS to create Library/ inside /opt/odilon.  This function detects and
+# corrects that without touching anything else about the user.
+fix_user_home() {
+    if ! id "${ODILON_USER}" &>/dev/null; then return; fi
+
+    if [[ "$OS_TYPE" == "linux" ]]; then
+        local current_home
+        current_home="$(getent passwd "${ODILON_USER}" 2>/dev/null | cut -d: -f6)" || true
+        if [[ "$current_home" == "${INSTALL_DIR}" ]]; then
+            local safe_home="/var/lib/${ODILON_USER}"
+            warn "User '${ODILON_USER}' home is set to ${INSTALL_DIR} — fixing to ${safe_home}"
+            run mkdir -p "$safe_home"
+            run usermod --home "$safe_home" "${ODILON_USER}" 2>/dev/null || true
+            run chown "${ODILON_USER}:${ODILON_GROUP}" "$safe_home"
+            run chmod 700 "$safe_home"
+            ok "Home directory fixed → ${safe_home}"
+        fi
+    elif [[ "$OS_TYPE" == "macos" ]]; then
+        local current_home
+        current_home="$(dscl . -read "/Users/${ODILON_USER}" NFSHomeDirectory 2>/dev/null \
+            | awk '{print $2}')" || true
+        if [[ "$current_home" == "${INSTALL_DIR}" || "$current_home" == "/var/empty" ]]; then
+            local safe_home="/var/lib/${ODILON_USER}"
+            warn "User '${ODILON_USER}' home is set to ${current_home} — fixing to ${safe_home}"
+            if ! $DRY_RUN; then
+                mkdir -p "$safe_home"
+                dscl . -change "/Users/${ODILON_USER}" NFSHomeDirectory \
+                    "${current_home}" "${safe_home}" 2>/dev/null || \
+                dscl . -create "/Users/${ODILON_USER}" NFSHomeDirectory "${safe_home}"
+                chown "${ODILON_USER}:${ODILON_GROUP}" "$safe_home"
+                chmod 700 "$safe_home"
+                dscacheutil -flushcache 2>/dev/null || true
+                dsmemberutil flushcache 2>/dev/null || true
+            else
+                printf "  ${C_GREY}[dry-run]${C_RESET}  would set NFSHomeDirectory → %s\n" "$safe_home"
+            fi
+            ok "Home directory fixed → ${safe_home}"
+            if [[ "$current_home" == "${INSTALL_DIR}" ]]; then
+                warn "The Library/ directory inside ${INSTALL_DIR} was created by macOS"
+                warn "when the home was wrong. Remove it manually once the service is stopped:"
+                echo "    sudo rm -rf ${INSTALL_DIR}/Library"
+            fi
+        fi
+    fi
+}
+
 # ── persist installation parameters for future upgrades ──────────────────────
 save_meta() {
     if $DRY_RUN; then
@@ -544,6 +627,24 @@ EOF
     ok "Instance metadata saved → ${CONF_DIR}/.odilon-instance"
 }
 
+# ── safe recursive ownership — target only Odilon-owned subdirectories ────────
+# chown -R on INSTALL_DIR itself is unsafe: on macOS, macOS system directories
+# (Library/, .DS_Store, etc.) can appear at the same level and a recursive chown
+# walks into them and hits "Operation not permitted" on system-protected paths.
+# This function chowns INSTALL_DIR itself (the directory node) and then only the
+# specific subdirectories the installer deploys, skipping everything else.
+chown_install_dir() {
+    # Directory node itself
+    run chown "${ODILON_USER}:${ODILON_GROUP}" "${INSTALL_DIR}"
+    run chmod 750 "${INSTALL_DIR}"
+    # Only the subdirs we own
+    for _sub in app bin resources tmp; do
+        if [[ -d "${INSTALL_DIR}/${_sub}" ]]; then
+            run chown -R "${ODILON_USER}:${ODILON_GROUP}" "${INSTALL_DIR}/${_sub}"
+        fi
+    done
+}
+
 # =============================================================================
 #  UPGRADE
 # =============================================================================
@@ -552,6 +653,8 @@ if [[ "$MODE" == "upgrade" ]]; then
     info "Existing installation detected — starting upgrade."
     # Resolve group to numeric GID on macOS (BSD chown requires it for dscl groups)
     resolve_odilon_group
+    # Fix service user home if it was wrongly set to INSTALL_DIR
+    fix_user_home
 
     # ── 1. Stop service ───────────────────────────────────────────────────────
     if os_service_is_active "${SERVICE_NAME}"; then
@@ -600,9 +703,9 @@ if [[ "$MODE" == "upgrade" ]]; then
         ok "Resources → ${INSTALL_DIR}/resources/"
     fi
 
-    # Rechown the entire install tree — covers parent dir, new JAR, scripts, resources
-    run chown -R "${ODILON_USER}:${ODILON_GROUP}" "${INSTALL_DIR}"
-    run chmod 750 "${INSTALL_DIR}"
+    # Rechown only the known Odilon subdirectories — never the full tree
+    # (avoids hitting macOS Library/ or other stray system paths under INSTALL_DIR)
+    chown_install_dir
     ok "Ownership set → ${INSTALL_DIR}"
 
     # ── 3b. Log directory — always ensure odilon user can write logs ──────────
@@ -646,6 +749,8 @@ if [[ "$MODE" == "migrate" ]]; then
 
     # Resolve group to numeric GID on macOS before any chown calls
     resolve_odilon_group
+    # Fix service user home if it was wrongly set to INSTALL_DIR
+    fix_user_home
 
     # ── Try to recover the existing log directory from the old service unit ───
     # The log path is NOT in odilon.properties — it is injected as an
@@ -744,9 +849,8 @@ if [[ "$MODE" == "migrate" ]]; then
         ok "Resources → ${INSTALL_DIR}/resources/"
     fi
 
-    # Rechown the entire install tree — covers parent dir, new JAR, scripts, resources
-    run chown -R "${ODILON_USER}:${ODILON_GROUP}" "${INSTALL_DIR}"
-    run chmod 750 "${INSTALL_DIR}"
+    # Rechown only the known Odilon subdirectories — never the full tree
+    chown_install_dir
     ok "Ownership set → ${INSTALL_DIR}"
 
     # ── 4b. Log directory — always ensure odilon user can write logs ──────────
@@ -794,7 +898,7 @@ fi
 # ── 1. System user ────────────────────────────────────────────────────────────
 if ! id "${ODILON_USER}" &>/dev/null; then
     info "Creating system user '${ODILON_USER}' ..."
-    os_create_user "${ODILON_USER}" "${INSTALL_DIR}"
+    os_create_user "${ODILON_USER}"
     ok "User '${ODILON_USER}' created."
 else
     ok "System user '${ODILON_USER}' already exists."
@@ -869,9 +973,12 @@ save_meta
 # ── 5. Permissions ────────────────────────────────────────────────────────────
 info "Setting ownership and permissions ..."
 
-run chown -R "${ODILON_USER}:${ODILON_GROUP}" "${INSTALL_DIR}"
-run chmod 750 "${INSTALL_DIR}"
-run chmod 750 "${INSTALL_DIR}/app" "${INSTALL_DIR}/resources" "${INSTALL_DIR}/tmp"
+# Only chown known Odilon subdirs — never the full INSTALL_DIR tree
+# (avoids walking into macOS Library/ or other stray system paths)
+chown_install_dir
+run chmod 750 "${INSTALL_DIR}/app"
+if [[ -d "${INSTALL_DIR}/resources" ]]; then run chmod 750 "${INSTALL_DIR}/resources"; fi
+if [[ -d "${INSTALL_DIR}/tmp" ]]; then run chmod 750 "${INSTALL_DIR}/tmp"; fi
 run chmod 750 "${INSTALL_DIR}/bin"
 run chmod 750 "${INSTALL_DIR}"/bin/*.sh
 
