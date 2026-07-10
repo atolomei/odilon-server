@@ -111,7 +111,8 @@ public class ECDecoder extends ECCoder {
 	}
 
 	/**
-	 * <p>Decodes the head version treating the given shard indices as absent
+	 * <p>
+	 * Decodes the head version treating the given shard indices as absent
 	 * (erasures) even if the shard files are physically present on disk.
 	 * </p>
 	 * <p>
@@ -281,15 +282,12 @@ public class ECDecoder extends ECCoder {
 		// Disable via ec.shardChecksumVerify=false when the underlying filesystem
 		// (ZFS, Btrfs) already provides block-level integrity — avoids redundant work.
 		List<String> storedSha256 = meta.getSha256Blocks();
-		boolean hasSha256Blocks = storedSha256 != null
-				&& !storedSha256.isEmpty()
-				&& storedSha256.size() % totalShards == 0
-				&& getVirtualFileSystemService().getServerSettings().isECShardChecksumVerifyEnabled();
+		boolean hasSha256Blocks = storedSha256 != null && !storedSha256.isEmpty() && storedSha256.size() % totalShards == 0 && getVirtualFileSystemService().getServerSettings().isECShardChecksumVerifyEnabled();
 
 		if (hasSha256Blocks) {
-			
+
 			long startTime = System.nanoTime();
-			
+
 			for (int localDisk = 0; localDisk < totalShards; localDisk++) {
 				if (!shardPresent[localDisk])
 					continue; // already an erasure — nothing to check
@@ -301,21 +299,18 @@ public class ECDecoder extends ECCoder {
 					continue;
 				String actual = computeSha256Hex(shards[localDisk]);
 				if (!actual.equalsIgnoreCase(expected)) {
-					logger.warn("Silent corruption detected via SHA-256: shard[" + localDisk
-							+ "] chunk[" + chunk + "] — converting to erasure for RS reconstruction | "
-							+ objectInfo(meta));
+					logger.warn("Silent corruption detected via SHA-256: shard[" + localDisk + "] chunk[" + chunk + "] — converting to erasure for RS reconstruction | " + objectInfo(meta));
 					shardPresent[localDisk] = false;
 					shards[localDisk] = null;
 					shardCount--;
 				}
 			}
-			
+
 			if (logger.isDebugEnabled()) {
 				long elapsedMs = (System.nanoTime() - startTime) / 1_000_000;
 				logger.debug("SHA-256 shard validation completed in " + elapsedMs + " ms | " + objectInfo(meta));
 			}
 		}
-		
 
 		// Validate quorum
 		if (shardCount < dataShards) {
@@ -375,117 +370,6 @@ public class ECDecoder extends ECCoder {
 	}
 
 	/**
-	 * Identifies and repairs corrupt shard(s) when
-	 * {@link ReedSolomon#isParityCorrect} has already confirmed that at least one
-	 * shard is corrupt (despite all shards being physically present on disk).
-	 *
-	 * <p>
-	 * <b>Phase 1 – single-shard isolation</b> (all N): for each shard index
-	 * {@code bad}, mark it absent, let RS reconstruct it from the remaining shards,
-	 * then verify parity on the result. If parity passes, {@code bad} was the sole
-	 * corrupt shard.
-	 * </p>
-	 *
-	 * <p>
-	 * <b>Phase 2 – two-shard-pair isolation</b> (N≥6 only, i.e.
-	 * {@code parityDrives≥2}): if Phase 1 finds nothing, iterate every
-	 * C(totalShards,2) pair and apply the same logic. Phase 2 is <em>skipped
-	 * entirely</em> for N=3 ({@code parityDrives=1}) because removing any two
-	 * shards leaves fewer than {@code dataShards} shards, making reconstruction
-	 * mathematically impossible.
-	 * </p>
-	 *
-	 * <p>
-	 * <b>Scope:</b> repair is intentionally capped at <b>2 simultaneously corrupt
-	 * shards</b>. For N=3 (1 parity) the cap is effectively 1. For N=12/24/48
-	 * ({@code parityDrives>2}), detection still fires but repair beyond 2 shards is
-	 * not attempted; a warn-level log is emitted to make this limitation visible.
-	 * </p>
-	 *
-	 * <p>
-	 * On success the repaired bytes are copied back into {@code shards[bad]}
-	 * in-place and the corrected shard is written to disk (read-repair) on any
-	 * ENABLED drive. On failure an {@link InternalCriticalException} is thrown.
-	 * </p>
-	 
-	private void attemptCorruptionRepair(ObjectMetadata meta, ECVolume volume, ServerBucket bucket, int chunk, boolean isHead, byte[][] shards, int shardSize, ReedSolomon rs, Map<Integer, Drive> map) {
-
-		int totalShards = volume.getTotalShards();
-		int parityDrives = volume.getParityDrives();
-
-		// Warn operators that this volume's tolerance exceeds our repair cap.
-		if (parityDrives > 2) {
-			logger.warn("Silent-corruption repair is capped at 2 shards; this volume has " + parityDrives + " parity drives — if more than 2 shards are corrupt " + "the repair will fail | " + objectInfo(meta));
-		}
-
-		// All shards were present when this method is called
-		boolean[] allPresent = new boolean[totalShards];
-		Arrays.fill(allPresent, true);
-
-		// ── Phase 1: single corrupt shard ────────────────────────────────────────
-		for (int bad = 0; bad < totalShards; bad++) {
-			byte[][] candidate = deepCopyShardsArray(shards, totalShards, shardSize);
-			boolean[] candPresent = Arrays.copyOf(allPresent, totalShards);
-			candPresent[bad] = false;
-			candidate[bad] = new byte[shardSize]; // zeroed buffer for reconstruction
-
-			try {
-				rs.decodeMissing(candidate, candPresent, 0, shardSize);
-			} catch (Exception e) {
-				continue; // shouldn't happen — we always have totalShards-1 shards
-			}
-
-			if (rs.isParityCorrect(candidate, 0, shardSize)) {
-				logger.warn("Read-repair: silent corruption repaired — shard index " + bad + " | " + objectInfo(meta));
-				// Patch the live shards array in-place so the caller assembles clean data
-				System.arraycopy(candidate[bad], 0, shards[bad], 0, shardSize);
-				writeRepairedShard(meta, volume, bucket, chunk, isHead, bad, shards[bad], map);
-				return;
-			}
-		}
-
-		// ── Phase 2: two simultaneously corrupt shards (N≥6 only) ───────────────
-		// For N=3 (parityDrives=1), removing any two shards leaves only 1 shard,
-		// which is fewer than dataShards=2 — RS reconstruction is impossible.
-		// Attempting it would only produce IllegalArgumentExceptions that get swallowed
-		// by the catch below, wasting cycles before reaching the final throw.
-		if (parityDrives >= 2) {
-			for (int bad1 = 0; bad1 < totalShards - 1; bad1++) {
-				for (int bad2 = bad1 + 1; bad2 < totalShards; bad2++) {
-					byte[][] candidate = deepCopyShardsArray(shards, totalShards, shardSize);
-					boolean[] candPresent = Arrays.copyOf(allPresent, totalShards);
-					candPresent[bad1] = false;
-					candPresent[bad2] = false;
-					candidate[bad1] = new byte[shardSize];
-					candidate[bad2] = new byte[shardSize];
-
-					try {
-						rs.decodeMissing(candidate, candPresent, 0, shardSize);
-					} catch (Exception e) {
-						continue;
-					}
-
-					if (rs.isParityCorrect(candidate, 0, shardSize)) {
-						logger.warn("Read-repair: silent corruption repaired — shard indices " + bad1 + " and " + bad2 + " | " + objectInfo(meta));
-						System.arraycopy(candidate[bad1], 0, shards[bad1], 0, shardSize);
-						System.arraycopy(candidate[bad2], 0, shards[bad2], 0, shardSize);
-						writeRepairedShard(meta, volume, bucket, chunk, isHead, bad1, shards[bad1], map);
-						writeRepairedShard(meta, volume, bucket, chunk, isHead, bad2, shards[bad2], map);
-						return;
-					}
-				}
-			}
-		}
-
-		// Corruption exceeds the 2-shard repair cap (Phase 1 and Phase 2 exhausted).
-		// For N=6 (p=2) this means truly unrecoverable corruption.
-		// For N=12/24/48 (p>2) repair of 3+ simultaneous corrupt shards is not
-		// implemented — detection fires but recovery does not.
-		throw new InternalCriticalException("Parity mismatch: silent corruption repair failed — " + "repair is capped at 2 simultaneous corrupt shards"
-				+ (parityDrives > 2 ? " (this volume has " + parityDrives + " parity drives but repair supports max 2)" : " (exceeds N=6 EC tolerance)") + " | " + objectInfo(meta));
-	}
-*/
-	/**
 	 * Writes a single shard byte array to its canonical path on {@code localDisk}.
 	 * Used by both the standard read-repair path (missing shards) and the
 	 * silent-corruption repair path. Silently skips non-ENABLED drives and logs
@@ -522,20 +406,16 @@ public class ECDecoder extends ECCoder {
 	 * Creates an independent deep copy of a shard array so that isolation-repair
 	 * attempts can zero-out individual entries without disturbing the original
 	 * data.
-	
-	private static byte[][] deepCopyShardsArray(byte[][] src, int total, int shardSize) {
-		byte[][] copy = new byte[total][];
-		for (int i = 0; i < total; i++) {
-			if (src[i] != null)
-				copy[i] = Arrays.copyOf(src[i], shardSize);
-		}
-		return copy;
-	}
+	 * 
+	 * private static byte[][] deepCopyShardsArray(byte[][] src, int total, int
+	 * shardSize) { byte[][] copy = new byte[total][]; for (int i = 0; i < total;
+	 * i++) { if (src[i] != null) copy[i] = Arrays.copyOf(src[i], shardSize); }
+	 * return copy; }
 	 */
 
 	/**
-	 * Returns the lowercase hex SHA-256 digest of {@code data}.
-	 * A fresh {@link MessageDigest} instance is used each time (not thread-safe).
+	 * Returns the lowercase hex SHA-256 digest of {@code data}. A fresh
+	 * {@link MessageDigest} instance is used each time (not thread-safe).
 	 */
 	private static String computeSha256Hex(byte[] data) {
 		try {
@@ -563,10 +443,6 @@ public class ECDecoder extends ECCoder {
 			remaining -= read;
 		}
 	}
-
-	// private SystemMonitorService getSystemMonitorService() {
-	// return getDriver().getVirtualFileSystemService().getSystemMonitorService();
-	// }
 
 	private String objectInfo(String bucketName, String objectName, String tempPath) {
 		return getDriver().objectInfo(bucketName, objectName, tempPath);
