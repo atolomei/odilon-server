@@ -38,7 +38,7 @@ import io.odilon.util.Check;
 public abstract class Timer implements Runnable {
 
 	static public Logger logger = Logger.getLogger(Timer.class.getName());
-	
+
 	private AtomicBoolean exit = new AtomicBoolean(false);
 	private Thread thread;
 
@@ -63,8 +63,7 @@ public abstract class Timer implements Runnable {
 
 	@Override
 	public void run() {
-		Check.checkTrue(getSleepTimeMillis() > 100,
-				"sleep time must be > 100 milisecs -> " + String.valueOf(getSleepTimeMillis()));
+		Check.checkTrue(getSleepTimeMillis() > 100, "sleep time must be > 100 milisecs -> " + String.valueOf(getSleepTimeMillis()));
 		this.thread = Thread.currentThread();
 		synchronized (this) {
 			while (!exit()) {

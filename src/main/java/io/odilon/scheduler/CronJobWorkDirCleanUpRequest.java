@@ -50,95 +50,95 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 @JsonTypeName("workDirCleanUp")
 public class CronJobWorkDirCleanUpRequest extends CronJobRequest {
 
-    static private Logger logger = io.odilon.log.Logger.getLogger(CronJobWorkDirCleanUpRequest.class.getName());
+	static private Logger logger = io.odilon.log.Logger.getLogger(CronJobWorkDirCleanUpRequest.class.getName());
 
-    private static final long serialVersionUID = 1L;
-    private static final int LAPSE_HOURS = 3;
+	private static final long serialVersionUID = 1L;
+	private static final int LAPSE_HOURS = 3;
 
-    @JsonIgnore
-    private boolean isSuccess = false;
+	@JsonIgnore
+	private boolean isSuccess = false;
 
-    @JsonIgnore
-    private AtomicBoolean stop = new AtomicBoolean(false);
+	@JsonIgnore
+	private AtomicBoolean stop = new AtomicBoolean(false);
 
-    protected CronJobWorkDirCleanUpRequest() {
-    }
+	protected CronJobWorkDirCleanUpRequest() {
+	}
 
-    public CronJobWorkDirCleanUpRequest(String exp) {
-        super(exp);
-    }
+	public CronJobWorkDirCleanUpRequest(String exp) {
+		super(exp);
+	}
 
-    @Override
-    public void execute() {
+	@Override
+	public void execute() {
 
-        try {
+		try {
 
-            setStatus(ServiceRequestStatus.RUNNING);
+			setStatus(ServiceRequestStatus.RUNNING);
 
-            setSuccess(false);
+			setSuccess(false);
 
-            VirtualFileSystemService virtualFileSystemService = getApplicationContext().getBean(VirtualFileSystemService.class);
+			VirtualFileSystemService virtualFileSystemService = getApplicationContext().getBean(VirtualFileSystemService.class);
 
-            OffsetDateTime now = OffsetDateTime.now();
+			OffsetDateTime now = OffsetDateTime.now();
 
-            List<File> list = new ArrayList<File>();
+			List<File> list = new ArrayList<File>();
 
-            for (Drive drive : virtualFileSystemService.getMapDrivesAll().values()) {
-                for (ServerBucket bucket : virtualFileSystemService.listAllBuckets()) {
-                    File bucketDir = new File(drive.getBucketWorkDirPath(bucket));
-                    if (bucketDir.exists()) {
-                        File files[] = bucketDir.listFiles();
+			for (Drive drive : virtualFileSystemService.getMapDrivesAll().values()) {
+				for (ServerBucket bucket : virtualFileSystemService.listAllBuckets()) {
+					File bucketDir = new File(drive.getBucketWorkDirPath(bucket));
+					if (bucketDir.exists()) {
+						File files[] = bucketDir.listFiles();
 
-                        for (File fi : files) {
-                            if (isStop())
-                                return;
-                            Instant instant = Instant.ofEpochMilli(fi.lastModified());
-                            OffsetDateTime modified = OffsetDateTime.ofInstant(instant, ZoneId.systemDefault());
-                            if (modified.plusHours(LAPSE_HOURS).isBefore(now)) {
-                                list.add(fi);
-                            }
-                        }
-                    }
-                }
-            }
+						for (File fi : files) {
+							if (isStop())
+								return;
+							Instant instant = Instant.ofEpochMilli(fi.lastModified());
+							OffsetDateTime modified = OffsetDateTime.ofInstant(instant, ZoneId.systemDefault());
+							if (modified.plusHours(LAPSE_HOURS).isBefore(now)) {
+								list.add(fi);
+							}
+						}
+					}
+				}
+			}
 
-            if (isStop())
-                return;
+			if (isStop())
+				return;
 
-            if (list.size() > 0) {
-                logger.debug("Removing from work dir -> " + String.valueOf(list.size()));
-                list.forEach(item -> FileUtils.deleteQuietly(item));
-            }
+			if (list.size() > 0) {
+				logger.debug("Removing from work dir -> " + String.valueOf(list.size()));
+				list.forEach(item -> FileUtils.deleteQuietly(item));
+			}
 
-            setSuccess(true);
+			setSuccess(true);
 
-        } catch (Exception e) {
-            logger.error(e, SharedConstant.NOT_THROWN);
-        } finally {
-            setStatus(ServiceRequestStatus.COMPLETED);
-        }
-    }
+		} catch (Exception e) {
+			logger.error(e, SharedConstant.NOT_THROWN);
+		} finally {
+			setStatus(ServiceRequestStatus.COMPLETED);
+		}
+	}
 
-    private void setSuccess(boolean b) {
-        this.isSuccess = b;
-    }
+	private void setSuccess(boolean b) {
+		this.isSuccess = b;
+	}
 
-    @Override
-    public boolean isSuccess() {
-        return isSuccess;
-    }
+	@Override
+	public boolean isSuccess() {
+		return isSuccess;
+	}
 
-    @Override
-    public void stop() {
-        stop.set(true);
-    }
+	@Override
+	public void stop() {
+		stop.set(true);
+	}
 
-    @Override
-    public String getUUID() {
-        return "s" + getId().toString();
-    }
+	@Override
+	public String getUUID() {
+		return "s" + getId().toString();
+	}
 
-    private boolean isStop() {
-        return stop.get();
-    }
+	private boolean isStop() {
+		return stop.get();
+	}
 }

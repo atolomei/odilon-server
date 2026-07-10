@@ -66,7 +66,7 @@ import io.odilon.model.ServerConstant;
  * System. Odilon uses the underlying File System to store objects as encrypted
  * files, or in some configurations to break objects into chunks. It implements
  * software RAID, which depending on the configuration can be RAID 0, RAID 1,
- * RAID 6/Erasure Coding. Odilon uses Reed Solomon encoding for Erasure Codes.
+ * Erasure Coding. Odilon uses Reed Solomon encoding for Erasure Codes.
  * it uses RAID drivers for I/O on the underlying {@code Drive}
  * </p>
  * </li>

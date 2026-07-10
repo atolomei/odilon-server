@@ -114,9 +114,9 @@ public abstract class RAIDOneHandler extends BaseRAIDHandler implements RAIDHand
 		}
 
 		final int size = drives.size();
-		
+
 		// 1 Drive ---------------------------------------
-		
+
 		if (size == 1) {
 			try {
 				ObjectMetadata meta = list.get(0);
@@ -131,9 +131,9 @@ public abstract class RAIDOneHandler extends BaseRAIDHandler implements RAIDHand
 			}
 			return;
 		}
-		
+
 		// N Drives ---------------------------------------
-		
+
 		ExecutorService executor = getVirtualFileSystemService().getExecutorService();
 
 		List<Callable<Boolean>> tasks = new ArrayList<Callable<Boolean>>(size);

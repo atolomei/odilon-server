@@ -200,7 +200,6 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 
 			List<ECVolume> vols = getAppContext().getBean(VirtualFileSystemService.class).getVolumeManager().getAllVolumes();
 			for (ECVolume vol : vols) {
-				//startupLogger.info("Volume: " + String.valueOf(vol.getVolumeId()) + " | " + (vol.isActive() ? "active" : "read-only"));
 				for (Drive d : vol.getDrives()) {
 					startupLogger.info("Volume: " + String.valueOf(vol.getVolumeId())+ (vol.isActive() ? ". active" : ". read-only")  + " | Drive: " + d.getName() + " | rootDir: " + d.getRootDirPath());
 				}

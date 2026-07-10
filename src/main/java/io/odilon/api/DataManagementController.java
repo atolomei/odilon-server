@@ -53,51 +53,48 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 @RestController
 public class DataManagementController extends BaseApiController {
 
-    static private Logger logger = Logger.getLogger(DataIntegrityChecker.class.getName());
-    
+	static private Logger logger = Logger.getLogger(DataIntegrityChecker.class.getName());
+
 	static private Logger checkerLogger = Logger.getLogger("dataIntegrityCheck");
-    
-    @Autowired
-    public DataManagementController(ObjectStorageService objectStorageService, VirtualFileSystemService virtualFileSystemService,
-            SystemMonitorService monitoringService, TrafficControlService trafficControlService) {
 
-        super(objectStorageService, virtualFileSystemService, monitoringService, trafficControlService);
-    }
+	@Autowired
+	public DataManagementController(ObjectStorageService objectStorageService, VirtualFileSystemService virtualFileSystemService, SystemMonitorService monitoringService, TrafficControlService trafficControlService) {
 
-    /**
-     * <p>
-     * Wipe all previous versions for all Buckets. This command is Async, returns
-     * after adding a ServiceRequest to the Scheduler
-     * </p>
-     */
-    @RequestMapping(value = "/checkintegrity", produces = "application/json", method = RequestMethod.GET)
-    public ResponseEntity<String> checkIntegrity(@RequestParam("forceAll") Optional<Boolean> forceAll) {
+		super(objectStorageService, virtualFileSystemService, monitoringService, trafficControlService);
+	}
 
-        TrafficPass pass = null;
-        try {
-            pass =  getTrafficControlService().getPass(this.getClass().getSimpleName());
+	/**
+	 * <p>
+	 * Wipe all previous versions for all Buckets. This command is Async, returns
+	 * after adding a ServiceRequest to the Scheduler
+	 * </p>
+	 */
+	@RequestMapping(value = "/checkintegrity", produces = "application/json", method = RequestMethod.GET)
+	public ResponseEntity<String> checkIntegrity(@RequestParam("forceAll") Optional<Boolean> forceAll) {
 
-            Boolean forceCheckAll = forceAll.orElse(false);
-            	
-            checkerLogger.info("API call for data integrity check, forceAll=" + forceCheckAll);
-            
-            DataIntegrityChecker checker = getApplicationContext().getBean(DataIntegrityChecker.class,
-					Boolean.valueOf(forceCheckAll));
-            
-            logger.debug("Started -> " + checker.toString());
-            StringBuilder str = new StringBuilder();
-            str.append("{\"status\":\"running\", \"forceAll\":").append(forceCheckAll).append("}");
-            return new ResponseEntity<String>(str.toString(), HttpStatus.OK);
-            
-            
-        } catch (OdilonServerAPIException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));
-        } finally {
-            getTrafficControlService().release(pass);
-            mark();
-        }
-    }
+		TrafficPass pass = null;
+		try {
+			pass = getTrafficControlService().getPass(this.getClass().getSimpleName());
+
+			Boolean forceCheckAll = forceAll.orElse(false);
+
+			checkerLogger.info("API call for data integrity check, forceAll=" + forceCheckAll);
+
+			DataIntegrityChecker checker = getApplicationContext().getBean(DataIntegrityChecker.class, Boolean.valueOf(forceCheckAll));
+
+			logger.debug("Started -> " + checker.toString());
+			StringBuilder str = new StringBuilder();
+			str.append("{\"status\":\"running\", \"forceAll\":").append(forceCheckAll).append("}");
+			return new ResponseEntity<String>(str.toString(), HttpStatus.OK);
+
+		} catch (OdilonServerAPIException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new OdilonServerAPIException(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, getMessage(e));
+		} finally {
+			getTrafficControlService().release(pass);
+			mark();
+		}
+	}
 
 }

@@ -50,7 +50,6 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 @Scope("prototype")
 public class ServiceRequestQueue extends BaseService implements Queue<ServiceRequest> {
 
-	@SuppressWarnings("unused")
 	static private Logger logger = Logger.getLogger(ServiceRequestQueue.class.getName());
 
 	private String id;

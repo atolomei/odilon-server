@@ -614,7 +614,7 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 	 * for {@code (meta.bucketId, meta.objectName)} before calling this method, and
 	 * must not release it until any related data file has also been written. The
 	 * {@link io.odilon.virtualFileSystem.raid0.RAIDZeroObjectHandler} family of
-	 * classes (and their RAID 1 / RAID 6 counterparts) enforce this invariant by
+	 * classes (and their RAID 1 / ErasureCoding counterparts) enforce this invariant by
 	 * acquiring the object write-lock at the top of each transaction handler.
 	 * </p>
 	 *
@@ -768,7 +768,7 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 		Check.requireNonNullArgument(id, "id is null");
 		try {
 			// deleteIfExists() rather than delete():
-			// In multi-volume RAID 6, saveJournal() writes only to the active volume's
+			// In multi-volume rasureCoding, saveJournal() writes only to the active volume's
 			// drives. removeJournal() is called for ALL enabled drives across all volumes,
 			// so drives on non-active volumes never had the file. Files.delete() was
 			// throwing NoSuchFileException here, which propagated as

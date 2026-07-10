@@ -60,10 +60,8 @@ public class AuthToken extends BaseObject implements Serializable {
 	@JsonProperty("objectCacheDurationSecs")
 	public int objectCacheDurationSecs = 0;
 
-	
 	private static final DateTimeFormatter HTTP_DATE = DateTimeFormatter.RFC_1123_DATE_TIME;
 
-	  
 	public AuthToken() {
 	}
 
@@ -72,8 +70,7 @@ public class AuthToken extends BaseObject implements Serializable {
 	}
 
 	public AuthToken(String bucketName, String objectName, int durationSeconds) {
-		this(bucketName, objectName, (durationSeconds > 0) ? OffsetDateTime.now().plusSeconds(durationSeconds)
-				: OffsetDateTime.now().plusSeconds(ServerConstant.DEFAULT_EXPIRY_TIME), VERSION, 0);
+		this(bucketName, objectName, (durationSeconds > 0) ? OffsetDateTime.now().plusSeconds(durationSeconds) : OffsetDateTime.now().plusSeconds(ServerConstant.DEFAULT_EXPIRY_TIME), VERSION, 0);
 	}
 
 	public AuthToken(String bucketName, String objectName, OffsetDateTime expirationDate, int keyVersion, int objectCacheDurationSecs) {
@@ -81,7 +78,7 @@ public class AuthToken extends BaseObject implements Serializable {
 		this.objectName = objectName;
 		this.expirationDate = expirationDate;
 		this.keyVersion = keyVersion;
-		this.objectCacheDurationSecs=objectCacheDurationSecs;
+		this.objectCacheDurationSecs = objectCacheDurationSecs;
 	}
 
 	/**
@@ -101,10 +98,9 @@ public class AuthToken extends BaseObject implements Serializable {
 	public String name() {
 		return objectName;
 	}
- 
 
 	public boolean isValid() {
-		if (getExpirationDate()==null)
+		if (getExpirationDate() == null)
 			return true;
 		return getExpirationDate().isAfter(OffsetDateTime.now());
 	}
@@ -140,16 +136,16 @@ public class AuthToken extends BaseObject implements Serializable {
 	public void setKeyVersion(int keyVersion) {
 		this.keyVersion = keyVersion;
 	}
-	
+
 	@JsonProperty("expirationDateString")
 	public String expirationDateString() {
-		if (this.getExpirationDate()==null)
+		if (this.getExpirationDate() == null)
 			return null;
 		return HTTP_DATE.format(getExpirationDate());
 	}
-	
+
 	public int getObjectCacheDurationSecs() {
-		 return objectCacheDurationSecs;
+		return objectCacheDurationSecs;
 	}
 
 	public void setObjectCacheDurationSecs(int objectCacheDurationSecs) {
@@ -158,11 +154,10 @@ public class AuthToken extends BaseObject implements Serializable {
 
 	@Override
 	public String toString() {
-	        StringBuilder str = new StringBuilder();
-	        str.append(this.getClass().getSimpleName());
-	        str.append(toJSON());
-	        return str.toString();
+		StringBuilder str = new StringBuilder();
+		str.append(this.getClass().getSimpleName());
+		str.append(toJSON());
+		return str.toString();
 	}
-
 
 }

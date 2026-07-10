@@ -62,13 +62,13 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  *
  * <p>
  * Odilon contains two cache services: {@link ObjectMetadataCacheService} for
- * {@link ObjectMetadata} and {@link FileCacheService} used by RAID 6
+ * {@link ObjectMetadata} and {@link FileCacheService} used by RErasureCoding
  * ({@link ECDriver}) to store decoded (but encrypted) files.
  * </p>
  * 
  * <p>
- * {@link File} cache used by {@link ECDriver} (the other RAID
- * configurations do not need it).
+ * {@link File} cache used by {@link ECDriver} (the other RAID configurations do
+ * not need it).
  * </p>
  * <p>
  * It Uses {@link Caffeine} to keep references to entries in memory. On eviction
@@ -103,13 +103,11 @@ public class FileCacheService extends BaseService implements ApplicationContextA
 	@JsonIgnore
 	private VirtualFileSystemService vfs;
 
-	
-   /** drives to be used by FileServiceCache
-     * RAID 0. all drivesEnabled
-     * RAID 1. all drivesEnabled
-     * RAID 6. all drivesEnabled from active Volume
-     * 
-     * */ 
+	/**
+	 * drives to be used by FileServiceCache RAID 0. all drivesEnabled RAID 1. all
+	 * drivesEnabled ErasureCoding. all drivesEnabled from active Volume
+	 * 
+	 */
 	@JsonIgnore
 	private List<Drive> listDrives;
 
@@ -118,11 +116,10 @@ public class FileCacheService extends BaseService implements ApplicationContextA
 
 	@JsonIgnore
 	private ApplicationContext applicationContext;
-	
+
 	@JsonIgnore
 	private SystemMonitorService systemMonitorService;
-	
-	
+
 	/**
 	 * <p>
 	 * This File cache uses a {@link Caffeine} based cache of references in memory
@@ -133,8 +130,7 @@ public class FileCacheService extends BaseService implements ApplicationContextA
 		this.serverSettings = serverSettings;
 		this.vfsLockService = vfsLockService;
 	}
-	
-	
+
 	public ApplicationContext getApplicationContext() {
 		return this.applicationContext;
 	}
@@ -143,7 +139,7 @@ public class FileCacheService extends BaseService implements ApplicationContextA
 	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
 		this.applicationContext = applicationContext;
 	}
-	
+
 	private SystemMonitorService getSystemMonitorService() {
 
 		if (this.systemMonitorService == null) {
@@ -218,7 +214,7 @@ public class FileCacheService extends BaseService implements ApplicationContextA
 		try {
 			getCache().put(getKey(bucketId, objectName, version), file);
 			this.cacheSizeBytes.getAndAdd(file.length());
-		
+
 		} finally {
 			if (lockRequired)
 				getLockService().getFileCacheLock(bucketId, objectName, version).writeLock().unlock();
@@ -323,7 +319,7 @@ public class FileCacheService extends BaseService implements ApplicationContextA
 		}
 		if (event.getOperation().getOperationCode() == OperationCode.DELETE_OBJECT_PREVIOUS_VERSIONS) {
 			remove(event.getOperation().getBucketId(), event.getOperation().getObjectName(), Optional.empty());
-			if (getVirtualFileSystemService().getServerSettings().getVersionControl()!=VersionControl.DISABLED) {
+			if (getVirtualFileSystemService().getServerSettings().getVersionControl() != VersionControl.DISABLED) {
 				for (int version = 0; version < event.getOperation().getVersion(); version++)
 					remove(event.getOperation().getBucketId(), event.getOperation().getObjectName(), Optional.of(version));
 			}

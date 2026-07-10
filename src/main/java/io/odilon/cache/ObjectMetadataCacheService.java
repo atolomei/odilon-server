@@ -48,7 +48,7 @@ import io.odilon.virtualFileSystem.model.OperationCode;
  * </p>
  * <p>
  * Odilon contains two cache services: {@link ObjectMetadataCacheService} (this
- * class) for {@link ObjectMetadata} and {@link FileCacheService} used by RAID 6
+ * class) for {@link ObjectMetadata} and {@link FileCacheService} used by ErasureCoding
  * ({@link ECDriver}) to store decoded (but encrypted) files.
  * </p>
  * <p>
@@ -96,7 +96,7 @@ public class ObjectMetadataCacheService extends BaseService implements Applicati
 		if (contains)
 			getSystemMonitorService().getCacheObjectHitCounter().inc();
 		else
-			getSystemMonitorService().getCacheObjectMissCounter().inc();	
+			getSystemMonitorService().getCacheObjectMissCounter().inc();
 		return contains;
 	}
 
@@ -105,8 +105,8 @@ public class ObjectMetadataCacheService extends BaseService implements Applicati
 		if (meta != null)
 			getSystemMonitorService().getCacheObjectHitCounter().inc();
 		else
-			getSystemMonitorService().getCacheObjectMissCounter().inc();	
-			
+			getSystemMonitorService().getCacheObjectMissCounter().inc();
+
 		return meta;
 	}
 
@@ -183,7 +183,6 @@ public class ObjectMetadataCacheService extends BaseService implements Applicati
 		this.applicationContext = applicationContext;
 	}
 
-	
 	private SystemMonitorService getSystemMonitorService() {
 
 		if (this.systemMonitorService == null) {
@@ -195,7 +194,6 @@ public class ObjectMetadataCacheService extends BaseService implements Applicati
 		}
 		return this.systemMonitorService;
 	}
-
 
 	private String getKey(Long bucketId, String objectName) {
 		// NOTE. We use File.separator because it is not a valid bucket or object name

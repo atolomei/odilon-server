@@ -25,8 +25,8 @@ import io.odilon.service.SystemService;
  */
 public interface TokenService extends SystemService {
 
-    public String encrypt(AuthToken token);
+	public String encrypt(AuthToken token);
 
-    public AuthToken decrypt(String enc);
+	public AuthToken decrypt(String enc);
 
 }

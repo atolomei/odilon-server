@@ -28,6 +28,6 @@ import io.odilon.model.ServiceStatus;
  */
 public interface SystemService extends OdilonService {
 
-    public ServiceStatus getStatus();
+	public ServiceStatus getStatus();
 
 }

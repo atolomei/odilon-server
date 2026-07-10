@@ -54,7 +54,7 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  * Object integrity in parallel.
  * </p>
  * <p>
- * Used by all RAID configurations (RAID 0, RAID 1, RAID 6) Called by the
+ * Used by all RAID configurations (RAID 0, RAID 1, ErasureCoding) Called by the
  * {@link io.odilon.scheduler.CronJobDataIntegrityCheckRequest}
  * </p>
  *

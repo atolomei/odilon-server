@@ -29,9 +29,9 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
  * <b>{@code cancel}</b> and listened by:
  * </p>
  * <ul>
- * <li>{@link FileCacheService} to invalidate File cache (used by RAID 6)</li>
+ * <li>{@link FileCacheService} to invalidate File cache (used by ErasureCoding)</li>
  * <li>{@link ObjectMetadataCacheService} to invalidate {@link ObjectMetadata}
- * cache (used by RAID 0, RAID 1, RAID 6).</li>
+ * cache (used by RAID 0, RAID 1, ErasureCoding).</li>
  * </ul>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)

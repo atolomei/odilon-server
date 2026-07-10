@@ -115,7 +115,7 @@ import io.odilon.virtualFileSystem.raid6.VolumeStatus;
  * <ul>
  * <li><b>RAID 0</b> {@link RAIDZeroDriver}</li>
  * <li><b>RAID 1</b> {@link RAIDOneDriver}</li>
- * <li><b>RAID 6 / Erasure Coding</b>{@link ECDriver}</li>
+ * <li><b>Erasure Coding</b>{@link ECDriver}</li>
  * </ul>
  * 
  * <p>
@@ -212,8 +212,8 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 	/**
 	 * <p>
 	 * File System cache of decoded {@link File} in File System, used only in
-	 * <b>RAID 6</b> If the server has encryption.enabled the Files in cache are
-	 * decoded but still encrypted.
+	 * <b>ErasureCoding</b> If the server has encryption.enabled the Files in cache
+	 * are decoded but still encrypted.
 	 * </p>
 	 */
 	@JsonIgnore
@@ -255,7 +255,9 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 	@JsonIgnore
 	private Map<String, Drive> drivesEnabled = new ConcurrentHashMap<String, Drive>();
 
-	/** Drives available to be used to decode by {@RAIDSixDecoder} in RAID 6 */
+	/**
+	 * Drives available to be used to decode by {@RAIDSixDecoder} in ErasureCoding
+	 */
 	@JsonIgnore
 	private final Map<Integer, Drive> drivesRSDecode = new ConcurrentHashMap<Integer, Drive>();
 
@@ -264,12 +266,12 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 
 	/**
 	 * <p>
-	 * Manages all RAID 6 volumes. Each volume is an independent RAID 6 disk group
-	 * (data + parity drives). When the active volume is full the administrator can
-	 * declare a new volume and set {@code volume.active} to it so all new objects
-	 * land there. Existing objects remain on their original volume;
-	 * {@link io.odilon.model.ObjectMetadata#volumeId} always identifies the right
-	 * volume for reads, deletes and rollbacks.
+	 * Manages all ErasureCoding volumes. Each volume is an independent
+	 * ErasureCoding disk group (data + parity drives). When the active volume is
+	 * full the administrator can declare a new volume and set {@code volume.active}
+	 * to it so all new objects land there. Existing objects remain on their
+	 * original volume; {@link io.odilon.model.ObjectMetadata#volumeId} always
+	 * identifies the right volume for reads, deletes and rollbacks.
 	 * </p>
 	 * <p>
 	 * Only used when {@link RedundancyLevel#ERASURE_CODING} is active. {@code null}
@@ -933,7 +935,7 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 	}
 
 	/**
-	 * Returns the {@link OdilonECVolumeManager} for RAID 6 deployments. Returns
+	 * Returns the {@link OdilonECVolumeManager} for ErasureCoding deployments. Returns
 	 * {@code null} for RAID 0 and RAID 1.
 	 */
 	@Override
@@ -1190,7 +1192,7 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 		/** set up drives for RS Decoding */
 		this.drivesEnabled.values().forEach(drive -> this.drivesRSDecode.put(Integer.valueOf(drive.getDriveInfo().getOrder()), drive));
 
-		/** initialize volume manager for RAID 6 */
+		/** initialize volume manager for ErasureCoding */
 		if (getRedundancyLevel() == RedundancyLevel.ERASURE_CODING) {
 			initializeVolumeManager(baselist);
 		}
@@ -1216,7 +1218,7 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 
 	/**
 	 * <p>
-	 * Partitions the ordered {@code baselist} of RAID 6 drives into
+	 * Partitions the ordered {@code baselist} of ErasureCoding drives into
 	 * {@link ECVolume}s, one volume per contiguous block of
 	 * {@code (dataDrives + parityDrives)} drives, then wires up the
 	 * {@link OdilonECVolumeManager} and marks the configured active volume.
@@ -1228,7 +1230,7 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 	 * / rollback code that addresses drives by name still works.
 	 * </p>
 	 *
-	 * @param baselist ordered list of all RAID 6 drives (all volumes combined), in
+	 * @param baselist ordered list of all ErasureCoding drives (all volumes combined), in
 	 *                 the same order as {@code dataStorage} entries in
 	 *                 {@code odilon.properties}.
 	 */
@@ -1265,7 +1267,7 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 				vol.setStatus(VolumeStatus.READONLY);
 		}
 
-		startuplogger.info("RAID 6 volume manager initialized: " + numVolumes + " volume(s), " + drivesPerVol + " drives/volume (" + data + " data + " + parity + " parity), " + "active=" + configuredActive);
+		startuplogger.info("ErasureCoding volume manager initialized: " + numVolumes + " volume(s), " + drivesPerVol + " drives/volume (" + data + " data + " + parity + " parity), " + "active=" + configuredActive);
 		this.volumeManager.getAllVolumes().forEach(v -> startuplogger.info("  " + v));
 	}
 
@@ -1654,9 +1656,10 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 		}
 
 		// 2. odilon.properties in the standard deployment location
-		//Path propsFile = Paths.get(System.getProperty("user.dir"), "config", "odilon.properties");
-		//if (propsFile.toFile().exists())
-		//	warnIfInsecure(propsFile, insecurePermissions);
+		// Path propsFile = Paths.get(System.getProperty("user.dir"), "config",
+		// "odilon.properties");
+		// if (propsFile.toFile().exists())
+		// warnIfInsecure(propsFile, insecurePermissions);
 	}
 
 	private void warnIfInsecure(Path path, Set<PosixFilePermission> insecurePermissions) {

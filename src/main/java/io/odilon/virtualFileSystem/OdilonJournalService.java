@@ -297,7 +297,7 @@ public class OdilonJournalService extends BaseService implements JournalService 
 				// Mirrors commit() ordering exactly. If publishEvent(ROLLBACK) throws first,
 				// the journal survives on every volume's drives and getJournalPending() on the
 				// next restart replays the rollback against state that is already (partially)
-				// rolled back. In RAID 6 multi-volume, removeJournal() fans out across ALL
+				// rolled back. In ErasureCoding multi-volume, removeJournal() fans out across ALL
 				// enabled drives on ALL volumes, so the entry is guaranteed gone everywhere
 				// before any listener observes the ROLLBACK event.
 				try {

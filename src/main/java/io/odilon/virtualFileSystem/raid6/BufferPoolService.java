@@ -37,13 +37,13 @@ import io.odilon.service.ServerSettings;
 
 /**
  * <p>
- * The pool buffers are used only by RAID 6 ({@link ECEncoder} and
+ * The pool buffers are used only by ErasureCoding ({@link ECEncoder} and
  * {@link ECDecoder}).
  * </p>
  * <p>
  * <p>
  * The pool requires a minimum of one 32 MB buffer for each disk used by the
- * RAID 6 configuration (ie. 3, 6, 12, 24, 48). Default value is 20 buffers or
+ * ErasureCoding configuration (ie. 3, 6, 12, 24, 48). Default value is 20 buffers or
  * the number of disks, whatever value is larger. The total buffers can be set
  * in odilon.properties (parameter -> <i>raid6.buffers</i>)
  * </p>

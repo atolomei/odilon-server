@@ -87,7 +87,7 @@ import tools.jackson.databind.ObjectMapper;
  * Base class for VirtualFileSystemDrivers ({@link IODriver}): <br/>
  * RAID 0: {@link RAIDZeroDriver}, <br/>
  * RAID 1: {@link RAIDOneDriver}, <br/>
- * RAID 6: {@link ECDriver} <br/>
+ * ErasureCoding: {@link ECDriver} <br/>
  * </p>
  *
  * @see {@link RAIDZeroDriver} {@link RAIDOneDriver} {@link ECDriver}
@@ -703,7 +703,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 
 	/**
 	 * <p>
-	 * Shared by RAID 1 and RAID 6
+	 * Shared by RAID 1 and ErasureCoding
 	 * </p>
 	 */
 

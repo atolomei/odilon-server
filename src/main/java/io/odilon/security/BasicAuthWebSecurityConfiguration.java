@@ -52,8 +52,7 @@ public class BasicAuthWebSecurityConfiguration {
 	private final ServerSettings serverSettings;
 
 	@Autowired
-	public BasicAuthWebSecurityConfiguration(ServerSettings serverSettings,
-			BasicAuthenticationEntryPoint authenticationEntryPoint) {
+	public BasicAuthWebSecurityConfiguration(ServerSettings serverSettings, BasicAuthenticationEntryPoint authenticationEntryPoint) {
 
 		this.serverSettings = serverSettings;
 		this.authenticationEntryPoint = authenticationEntryPoint;
@@ -64,26 +63,14 @@ public class BasicAuthWebSecurityConfiguration {
 
 		// http.requiresChannel(channel -> channel.anyRequest().requiresSecure())
 
-		http.authorizeHttpRequests(
-				(authorize) ->
-				authorize
-						// Existing public surfaces
-						.requestMatchers("/presigned/", "/presigned/object", "/public/*/*/*", "/static/", "/static/object").permitAll()
-						// Swagger UI and OpenAPI spec — accessible without credentials so the
-						// docs can be browsed from a browser without a Basic-auth prompt.
-						// The spec itself contains no sensitive data.
-						.requestMatchers(
-								"/swagger-ui.html",
-								"/swagger-ui/**",
-								"/swagger-ui/index.html",
-								"/v3/api-docs",
-								"/v3/api-docs/**",
-								"/v3/api-docs.yaml",
-								"/webjars/swagger-ui/**"
-						).permitAll())
-				.authorizeHttpRequests(authorizeRequests -> authorizeRequests.anyRequest().authenticated())
-				.httpBasic(Customizer.withDefaults()).formLogin(Customizer.withDefaults())
-				.csrf(AbstractHttpConfigurer::disable);
+		http.authorizeHttpRequests((authorize) -> authorize
+				// Existing public surfaces
+				.requestMatchers("/presigned/", "/presigned/object", "/public/*/*/*", "/static/", "/static/object").permitAll()
+				// Swagger UI and OpenAPI spec — accessible without credentials so the
+				// docs can be browsed from a browser without a Basic-auth prompt.
+				// The spec itself contains no sensitive data.
+				.requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/swagger-ui/index.html", "/v3/api-docs", "/v3/api-docs/**", "/v3/api-docs.yaml", "/webjars/swagger-ui/**").permitAll())
+				.authorizeHttpRequests(authorizeRequests -> authorizeRequests.anyRequest().authenticated()).httpBasic(Customizer.withDefaults()).formLogin(Customizer.withDefaults()).csrf(AbstractHttpConfigurer::disable);
 
 		return http.build();
 	}
@@ -91,11 +78,9 @@ public class BasicAuthWebSecurityConfiguration {
 	@Bean
 	public InMemoryUserDetailsManager userDetailsService() {
 
-		UserDetails user = User.withUsername(this.getServerSettings().getAccessKey())
-				.password(passwordEncoder().encode(this.getServerSettings().getSecretKey())).roles("USER").build();
+		UserDetails user = User.withUsername(this.getServerSettings().getAccessKey()).password(passwordEncoder().encode(this.getServerSettings().getSecretKey())).roles("USER").build();
 		return new InMemoryUserDetailsManager(user);
 	}
-
 
 	@Bean
 	public PasswordEncoder passwordEncoder() {

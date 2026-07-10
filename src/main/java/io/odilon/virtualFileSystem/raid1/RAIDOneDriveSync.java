@@ -176,9 +176,8 @@ public class RAIDOneDriveSync implements Runnable {
 	private void copy() {
 
 		long start_ms = System.currentTimeMillis();
-		
+
 		logger.debug("Starting copy process...");
-		
 
 		final int maxProcessingThread = Double.valueOf(Double.valueOf(Runtime.getRuntime().availableProcessors() - 1) / 2.0).intValue() + 1;
 
@@ -190,13 +189,11 @@ public class RAIDOneDriveSync implements Runnable {
 
 			final Drive enabledDrive = getDriver().getDrivesEnabled().get(0);
 
-			
 			executor = Executors.newFixedThreadPool(maxProcessingThread);
 
 			logger.debug("Enabled drive -> " + enabledDrive.getRootDirPath());
 			logger.debug("Threads for copy process -> " + maxProcessingThread);
-			
-			
+
 			for (ServerBucket bucket : this.getDriver().getVirtualFileSystemService().listAllBuckets()) {
 
 				Long pageSize = Long.valueOf(ServerConstant.DEFAULT_COMMANDS_PAGE_SIZE);
@@ -207,8 +204,7 @@ public class RAIDOneDriveSync implements Runnable {
 
 				while (!done) {
 
-					DataList<Item<ObjectMetadata>> data = this.driver.getVirtualFileSystemService().listObjects(bucket.getName(), Optional.of(offset), 
-							Optional.ofNullable(pageSize), Optional.empty(), Optional.ofNullable(agentId));
+					DataList<Item<ObjectMetadata>> data = this.driver.getVirtualFileSystemService().listObjects(bucket.getName(), Optional.of(offset), Optional.ofNullable(pageSize), Optional.empty(), Optional.ofNullable(agentId));
 
 					if (agentId == null)
 						agentId = data.getAgentId();
@@ -238,9 +234,9 @@ public class RAIDOneDriveSync implements Runnable {
 													getLockService().getBucketLock(bucket).readLock().lock();
 
 													{
-														
+
 														logger.debug("Syncing object -> " + item.getObject().bucketId + "/" + item.getObject().objectName + " to -> " + drive.getRootDirPath());
-												
+
 														/**
 														 * HEAD VERSION ---------------------------------------------------------
 														 */
@@ -251,15 +247,15 @@ public class RAIDOneDriveSync implements Runnable {
 														if (!newmeta.exists()) {
 
 															ObjectPath path = new ObjectPath(drive, bucket, item.getObject().getObjectName());
-															
-															ObjectPath srcPath = new ObjectPath( enabledDrive, bucket, item.getObject().getObjectName());
+
+															ObjectPath srcPath = new ObjectPath(enabledDrive, bucket, item.getObject().getObjectName());
 															File dataFile = srcPath.dataFilePath().toFile();
 
 															try (InputStream is = new BufferedInputStream(new FileInputStream(dataFile))) {
 
 																String sPath = path.dataFilePath().toString();
 
-																byte[] buf = new byte[ ServerConstant.BUFFER_SIZE ];
+																byte[] buf = new byte[ServerConstant.BUFFER_SIZE];
 
 																try (BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(sPath), ServerConstant.BUFFER_SIZE)) {
 																	int bytesRead;
@@ -281,20 +277,20 @@ public class RAIDOneDriveSync implements Runnable {
 													 * PREVIOUS VERSIONS ---------------------------------------------------------
 													 */
 
-													if (getVersionControl()!=VersionControl.DISABLED) {
+													if (getVersionControl() != VersionControl.DISABLED) {
 
 														for (int version = 0; version < item.getObject().version; version++) {
-															
+
 															// copy Meta Version
 															File meta_version_n = enabledDrive.getObjectMetadataVersionFile(bucket, item.getObject().objectName, version);
 															if (meta_version_n.exists()) {
 																drive.putObjectMetadataVersionFile(bucket, item.getObject().objectName, version, meta_version_n);
 															}
-															
+
 															// copy Data Version
 															ObjectPath path = new ObjectPath(enabledDrive, item.getObject().bucketId, item.getObject().objectName);
 															File version_n = path.dataFileVersionPath(version).toFile();
-														
+
 															if (version_n.exists()) {
 																((SimpleDrive) drive).putObjectDataVersionFile(item.getObject().bucketId, item.getObject().objectName, version, version_n);
 															}
@@ -375,11 +371,10 @@ public class RAIDOneDriveSync implements Runnable {
 		return this.vfsLockService;
 	}
 
-	 
 	protected VersionControl getVersionControl() {
 		return getDriver().getVirtualFileSystemService().getVersionControl();
 	}
-	
+
 	private void updateDrives() {
 		for (Drive drive : getDriver().getDrivesAll()) {
 			if (drive.getDriveInfo().getStatus() == DriveStatus.NOTSYNC) {

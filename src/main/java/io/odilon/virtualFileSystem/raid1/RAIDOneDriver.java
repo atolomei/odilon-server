@@ -44,7 +44,6 @@ import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
 import io.odilon.model.ServerConstant;
 import io.odilon.model.SharedConstant;
-import io.odilon.model.VersionControl;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.RedundancyLevel;
 import io.odilon.model.list.DataList;
@@ -56,7 +55,6 @@ import io.odilon.scheduler.ServiceRequest;
 import io.odilon.service.util.ByteToString;
 import io.odilon.util.Check;
 import io.odilon.util.DateTimeUtil;
-import io.odilon.util.OdilonFileUtils;
 import io.odilon.virtualFileSystem.Action;
 import io.odilon.virtualFileSystem.BaseIODriver;
 import io.odilon.virtualFileSystem.ObjectPath;
@@ -64,7 +62,6 @@ import io.odilon.virtualFileSystem.OdilonObject;
 import io.odilon.virtualFileSystem.OdilonVirtualFileSystemOperation;
 import io.odilon.virtualFileSystem.model.BucketIterator;
 import io.odilon.virtualFileSystem.model.Drive;
-import io.odilon.virtualFileSystem.model.JournalService;
 import io.odilon.virtualFileSystem.model.LockService;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.SimpleDrive;
@@ -213,7 +210,7 @@ public class RAIDOneDriver extends BaseIODriver {
 			for (Drive drive : getDrivesEnabled()) {
 				File dir = new File(drive.getJournalDirPath());
 				if (!dir.exists()) {
-					// In multi-volume RAID 6, saveJournal writes only to the active volume's
+					// In multi-volume ErasureCoding, saveJournal writes only to the active volume's
 					// drives, so earlier volumes' journal directories may legitimately be empty;
 					// after a filesystem issue any drive's directory may be temporarily gone.
 					// `return list` here would silently drop every entry from all subsequent
@@ -785,19 +782,16 @@ public class RAIDOneDriver extends BaseIODriver {
 					File file = path.dataFilePath().toFile();
 
 					try (InputStream rawIn = Files.newInputStream(file.toPath());
-				
-							InputStream in = meta.isEncrypt()
-										? getEncryptionService().decryptStream(rawIn)
-										: rawIn) {
 
-								MessageDigest md = MessageDigest.getInstance("SHA-256");
-								byte[] buffer = new byte[8192];
-								int read;
-								while ((read = in.read(buffer)) != -1)
-									md.update(buffer, 0, read);
-								sha256 = ByteToString.byteToHexString(md.digest());
-							
-						
+							InputStream in = meta.isEncrypt() ? getEncryptionService().decryptStream(rawIn) : rawIn) {
+
+						MessageDigest md = MessageDigest.getInstance("SHA-256");
+						byte[] buffer = new byte[8192];
+						int read;
+						while ((read = in.read(buffer)) != -1)
+							md.update(buffer, 0, read);
+						sha256 = ByteToString.byteToHexString(md.digest());
+
 						if (originalSha256 == null) {
 							meta.setSha256(sha256);
 							originalSha256 = sha256;

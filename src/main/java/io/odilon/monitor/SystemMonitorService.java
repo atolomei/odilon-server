@@ -57,7 +57,7 @@ import io.odilon.service.SystemService;
 @Service
 public class SystemMonitorService extends BaseService implements SystemService {
 
-	@SuppressWarnings("unused")
+	 
 	static private Logger logger = Logger.getLogger(SystemMonitorService.class.getName());
 
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");

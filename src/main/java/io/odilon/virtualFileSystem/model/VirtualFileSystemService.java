@@ -128,7 +128,7 @@ public interface VirtualFileSystemService extends SystemService {
     /** drives to be used by FileServiceCache
      * RAID 0. drivesEnabled
      * RAID 1. drivesEnabled
-     * RAID 6. drivesEnabled from active Volume
+     *ErasureCoding. drivesEnabled from active Volume
      * 
      * */ 
     public Map<Integer, Drive> getMapDrivesFileCache();
@@ -301,7 +301,7 @@ public interface VirtualFileSystemService extends SystemService {
 	public BufferPoolService getBufferPoolService();
 
 	/**
-	 * Returns the RAID 6 volume manager, or {@code null} when the server
+	 * Returns the ErasureCoding volume manager, or {@code null} when the server
 	 * is running in RAID 0 or RAID 1 mode.
 	 */
 	public OdilonECVolumeManager getVolumeManager();

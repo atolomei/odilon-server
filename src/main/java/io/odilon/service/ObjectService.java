@@ -24,6 +24,6 @@ package io.odilon.service;
 
 public interface ObjectService extends OdilonService {
 
-    public Object getObject();
+	public Object getObject();
 
 }

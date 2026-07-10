@@ -25,17 +25,17 @@ import io.odilon.model.SharedConstant;
  */
 public class BucketNameValidator {
 
-    private String name;
+	private String name;
 
-    public BucketNameValidator(String name) {
-        this.name = name;
-    }
+	public BucketNameValidator(String name) {
+		this.name = name;
+	}
 
-    /**
-     * 
-     */
-    public boolean isValid() {
-        return name.matches(SharedConstant.bucket_valid_regex);
-    }
+	/**
+	 * 
+	 */
+	public boolean isValid() {
+		return name.matches(SharedConstant.bucket_valid_regex);
+	}
 
 }

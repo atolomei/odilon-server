@@ -22,20 +22,10 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.deser.std.StdDeserializer;
 
 /**
-import tools.jackson.core.JacksonException;
-import tools.jackson.core.JsonParser;
-import tools.jackson.databind.DeserializationContext;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.deser.std.StdDeserializer;
-**/
-
-/**
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public class CronExpressionDeserializer extends StdDeserializer<CronExpressionJ8> {
-
-	 
 
 	public CronExpressionDeserializer() {
 		this(null);
@@ -50,7 +40,7 @@ public class CronExpressionDeserializer extends StdDeserializer<CronExpressionJ8
 
 		JsonNode node = ctx.readTree(parser);
 
-		 String expr = node.path("expr").asString();
+		String expr = node.path("expr").asString();
 
 		return new CronExpressionJ8(expr, true);
 	}

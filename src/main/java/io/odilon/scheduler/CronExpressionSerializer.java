@@ -20,17 +20,13 @@ import tools.jackson.core.JsonGenerator;
 import tools.jackson.databind.SerializationContext;
 import tools.jackson.databind.ser.std.StdSerializer;
 
-//import tools.jackson.core.JsonGenerator;
-//import tools.jackson.databind.SerializerProvider;
-//import tools.jackson.databind.ser.std.StdSerializer;
-
 /**
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public class CronExpressionSerializer extends StdSerializer<CronExpressionJ8> {
 
-	//private static final long serialVersionUID = 1L;
+	// private static final long serialVersionUID = 1L;
 
 	public CronExpressionSerializer() {
 		super(CronExpressionJ8.class);

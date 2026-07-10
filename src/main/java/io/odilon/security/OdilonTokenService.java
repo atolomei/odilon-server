@@ -54,9 +54,8 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
  * <p>
- * This service is used to generate tokens for presigned urls. 
- * Presigned urls are valid until their expiration date, even if 
- * the server is restarted.
+ * This service is used to generate tokens for presigned urls. Presigned urls
+ * are valid until their expiration date, even if the server is restarted.
  * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
@@ -66,11 +65,11 @@ public class OdilonTokenService extends BaseService implements TokenService, App
 
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 
-	//static private String salt = randomString(20);
+	// static private String salt = randomString(20);
 
 	@JsonIgnore
 	private String s_salt;
-	
+
 	@JsonIgnore
 	@Autowired
 	private final ServerSettings serverSettings;
@@ -105,8 +104,7 @@ public class OdilonTokenService extends BaseService implements TokenService, App
 	@JsonIgnore
 	private String secretKey;
 
-	public OdilonTokenService(ServerSettings serverSettings, SystemMonitorService montoringService,
-			EncryptionService encrpytionService, VirtualFileSystemService vfs) {
+	public OdilonTokenService(ServerSettings serverSettings, SystemMonitorService montoringService, EncryptionService encrpytionService, VirtualFileSystemService vfs) {
 
 		this.serverSettings = serverSettings;
 		this.monitoringService = montoringService;
@@ -122,9 +120,7 @@ public class OdilonTokenService extends BaseService implements TokenService, App
 			encCipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, ivspec);
 			return Base64.getEncoder().encodeToString(encCipher.doFinal(token.toJSON().getBytes("UTF-8")));
 
-		} catch (IllegalBlockSizeException | BadPaddingException | UnsupportedEncodingException
-				| NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException
-				| InvalidAlgorithmParameterException e) {
+		} catch (IllegalBlockSizeException | BadPaddingException | UnsupportedEncodingException | NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | InvalidAlgorithmParameterException e) {
 			throw new InternalCriticalException(e, "encrypt");
 		}
 
@@ -142,8 +138,7 @@ public class OdilonTokenService extends BaseService implements TokenService, App
 
 			str = new String(decCipher.doFinal(Base64.getDecoder().decode(enc)));
 
-		} catch (IllegalBlockSizeException | BadPaddingException | NoSuchAlgorithmException | NoSuchPaddingException
-				| InvalidKeyException | InvalidAlgorithmParameterException e1) {
+		} catch (IllegalBlockSizeException | BadPaddingException | NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | InvalidAlgorithmParameterException e1) {
 			throw new InternalCriticalException(e1, "decrypt");
 		}
 
@@ -173,9 +168,9 @@ public class OdilonTokenService extends BaseService implements TokenService, App
 		synchronized (this) {
 			try {
 				setStatus(ServiceStatus.STARTING);
-				
+
 				this.s_salt = this.serverSettings.getPresignedSalt();
-				
+
 				String str = this.serverSettings.getSecretKey();
 
 				if (str.length() < 8) {
@@ -184,21 +179,21 @@ public class OdilonTokenService extends BaseService implements TokenService, App
 						sb.append("0");
 					str = str + sb.toString();
 				}
-				
+
 				this.secretKey = str.substring(0, 8);
 
 				// Key has to be of length 8
 				if (secretKey == null || secretKey.length() != 8)
-					throw new RuntimeException("Invalid key length - 8 bytes key needed -> "
-							+ Optional.ofNullable(secretKey).orElse("null"));
+					throw new RuntimeException("Invalid key length - 8 bytes key needed -> " + Optional.ofNullable(secretKey).orElse("null"));
 
 				byte[] iv = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 				this.ivspec = new IvParameterSpec(iv);
 				this.factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
-				
-				//this.spec = new PBEKeySpec(this.secretKey.toCharArray(), salt.getBytes(), 65536, 256);
+
+				// this.spec = new PBEKeySpec(this.secretKey.toCharArray(), salt.getBytes(),
+				// 65536, 256);
 				this.spec = new PBEKeySpec(this.secretKey.toCharArray(), s_salt.getBytes(), 65536, 256);
-				
+
 				this.secretKeySpec = new SecretKeySpec(factory.generateSecret(this.spec).getEncoded(), "AES");
 
 				startuplogger.debug("Started -> " + TokenService.class.getSimpleName());

@@ -260,8 +260,8 @@ public class StandByInitialSync implements Runnable {
 												logger.debug(item.getObject().getBucketId().toString() + "-" + item.getObject().getObjectName());
 
 												VirtualFileSystemOperation op = new OdilonVirtualFileSystemOperation(getDriver().getVirtualFileSystemService().getJournalService().newOperationId(), OperationCode.CREATE_OBJECT,
-														Optional.of(item.getObject().getBucketId()), Optional.of(item.getObject().getBucketName()),
-														Optional.of(item.getObject().getObjectName()), Optional.of(Integer.valueOf(item.getObject().getVersion())), getDriver().getVirtualFileSystemService().getRedundancyLevel(),
+														Optional.of(item.getObject().getBucketId()), Optional.of(item.getObject().getBucketName()), Optional.of(item.getObject().getObjectName()),
+														Optional.of(Integer.valueOf(item.getObject().getVersion())), getDriver().getVirtualFileSystemService().getRedundancyLevel(),
 														getDriver().getVirtualFileSystemService().getJournalService());
 
 												getReplicationService().replicate(op);
@@ -335,8 +335,7 @@ public class StandByInitialSync implements Runnable {
 				} else {
 					logger.info(ServerConstant.SEPARATOR);
 					// Issue 6 — include the configured threshold in the message
-					logger.error("The initial Sync process can not be completed (errors=" + this.errors.get()
-							+ " threshold=" + maxErrors + "). Please correct the issues and restart the Odilon Server.");
+					logger.error("The initial Sync process can not be completed (errors=" + this.errors.get() + " threshold=" + maxErrors + "). Please correct the issues and restart the Odilon Server.");
 					intialSynclogger.error("Initial Sync can not be completed");
 					startuplogger.error("Initial Sync can not be completed");
 				}

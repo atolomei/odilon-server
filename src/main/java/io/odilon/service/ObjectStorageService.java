@@ -37,96 +37,92 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemObject;
  */
 public interface ObjectStorageService extends SystemService {
 
-    /**
-     * ------------------- Bucket -------------------
-     */
-    public ServerBucket findBucketName(String bucketName);
+	/**
+	 * ------------------- Bucket -------------------
+	 */
+	public ServerBucket findBucketName(String bucketName);
 
-    public void deleteBucketByName(String bucketName);
+	public void deleteBucketByName(String bucketName);
 
-    public List<ServerBucket> findAllBuckets();
+	public List<ServerBucket> findAllBuckets();
 
-    public ServerBucket createBucket(String bucketName);
+	public ServerBucket createBucket(String bucketName);
 
-    public ServerBucket updateBucketName(ServerBucket bucket, String newBucketName);
+	public ServerBucket updateBucketName(ServerBucket bucket, String newBucketName);
 
-    public boolean existsBucket(String bucketName);
+	public boolean existsBucket(String bucketName);
 
-    public void forceDeleteBucket(String bucketName);
+	public void forceDeleteBucket(String bucketName);
 
-    public boolean isEmptyBucket(String bucketName);
+	public boolean isEmptyBucket(String bucketName);
 
-    /** Object version - delete (normally to free disk) */
-    public void deleteBucketAllPreviousVersions(String bucketName);
+	/** Object version - delete (normally to free disk) */
+	public void deleteBucketAllPreviousVersions(String bucketName);
 
-    /**
-     * ------------------- Object -------------------
-     */
-    public void putObject(String bucketName, String objectName, File file);
+	/**
+	 * ------------------- Object -------------------
+	 */
+	public void putObject(String bucketName, String objectName, File file);
 
-    public void putObject(String bucketName, String objectName, InputStream stream, String fileName, String contentType);
+	public void putObject(String bucketName, String objectName, InputStream stream, String fileName, String contentType);
 
-    public void putObject(String bucketName, String objectName, InputStream stream, String fileName, String contentType, Optional<List<String>> customTags);
+	public void putObject(String bucketName, String objectName, InputStream stream, String fileName, String contentType, Optional<List<String>> customTags);
 
-    public void putObject(String bucketName, String objectName, InputStream stream, String fileName, String contentType, Optional<List<String>> customTags, Optional<Boolean> o_public);
+	public void putObject(String bucketName, String objectName, InputStream stream, String fileName, String contentType, Optional<List<String>> customTags, Optional<Boolean> o_public);
 
-    public ObjectMetadata updateObjectMetadata(ObjectMetadata meta);
-    
-    public VirtualFileSystemObject getObject(String bucketName, String objectName);
+	public ObjectMetadata updateObjectMetadata(ObjectMetadata meta);
 
-    public ObjectMetadata getObjectMetadata(String bucketName, String objectName);
+	public VirtualFileSystemObject getObject(String bucketName, String objectName);
 
-    /** Object version - get */
+	public ObjectMetadata getObjectMetadata(String bucketName, String objectName);
 
-    public ObjectMetadata getObjectMetadataPreviousVersion(String bucketName, String objectName);
+	/** Object version - get */
 
-    public ObjectMetadata getObjectMetadataPreviousVersion(String bucketName, String objectName, int version);
+	public ObjectMetadata getObjectMetadataPreviousVersion(String bucketName, String objectName);
 
-    public List<ObjectMetadata> getObjectMetadataAllPreviousVersions(String bucketName, String objectName);
+	public ObjectMetadata getObjectMetadataPreviousVersion(String bucketName, String objectName, int version);
 
-    public InputStream getObjectPreviousVersionStream(String bucketName, String ObjectName, int version);
+	public List<ObjectMetadata> getObjectMetadataAllPreviousVersions(String bucketName, String objectName);
 
-    public InputStream getObjectStream(String bucketName, String objectName);
+	public InputStream getObjectPreviousVersionStream(String bucketName, String ObjectName, int version);
 
-    /** Object version - delete/restore */
+	public InputStream getObjectStream(String bucketName, String objectName);
 
-    public void deleteObjectAllPreviousVersions(String bucketName, String objectName);
-    
-    public ObjectMetadata restorePreviousVersion(String bucketName, String objectName);
+	/** Object version - delete/restore */
 
-    /**
-     * ------------------- Query -------------------
-     */
-    public DataList<Item<ObjectMetadata>> listObjects(String bucketName, Optional<Long> offset, Optional<Long> pageSize,
-            Optional<String> prefix, Optional<String> serverAgentId);
+	public void deleteObjectAllPreviousVersions(String bucketName, String objectName);
 
-    public boolean existsObject(String bucketName, String objectName);
+	public ObjectMetadata restorePreviousVersion(String bucketName, String objectName);
 
-    public void deleteObject(String bucketName, String objectName);
+	/**
+	 * ------------------- Query -------------------
+	 */
+	public DataList<Item<ObjectMetadata>> listObjects(String bucketName, Optional<Long> offset, Optional<Long> pageSize, Optional<String> prefix, Optional<String> serverAgentId);
 
-    /**
-     * ------------------- System -------------------
-     */
-    public void wipeAllPreviousVersions();
+	public boolean existsObject(String bucketName, String objectName);
 
-    /**
-     * ------------------- Settings -------------------
-     */
-    public ServerSettings getServerSettings();
+	public void deleteObject(String bucketName, String objectName);
 
-    public EncryptionService getEncryptionService();
+	/**
+	 * ------------------- System -------------------
+	 */
+	public void wipeAllPreviousVersions();
 
-    public String ping();
+	/**
+	 * ------------------- Settings -------------------
+	 */
+	public ServerSettings getServerSettings();
 
-    public boolean isEncrypt();
+	public EncryptionService getEncryptionService();
 
-    public SystemInfo getSystemInfo();
+	public String ping();
 
-    public boolean hasVersions(String bucketName, String objectName);
+	public boolean isEncrypt();
+
+	public SystemInfo getSystemInfo();
+
+	public boolean hasVersions(String bucketName, String objectName);
 
 	public Map<String, String> getSystemLibrariesInfo();
-
-	
-    
 
 }

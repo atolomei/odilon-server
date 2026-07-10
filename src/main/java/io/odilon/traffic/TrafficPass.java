@@ -33,12 +33,13 @@ import java.util.Optional;
  */
 
 public interface TrafficPass extends Serializable {
-	
-	  public void setCaller( String caller );
-	  
-	  public void setStarted( OffsetDateTime date);
-	  public OffsetDateTime getStarted();
-	  
-	  public Optional<String> getCaller();
-	  
+
+	public void setCaller(String caller);
+
+	public void setStarted(OffsetDateTime date);
+
+	public OffsetDateTime getStarted();
+
+	public Optional<String> getCaller();
+
 }

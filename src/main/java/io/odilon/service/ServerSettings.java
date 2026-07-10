@@ -19,7 +19,7 @@ package io.odilon.service;
 import java.io.File;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
- 
+
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -123,22 +123,19 @@ public class ServerSettings implements JSONObject {
 	@Value("${server.mode:master}") /** server.mode = master | standby */
 	protected String serverMode;
 
-	
 	/** Version Control. by default disabled **/
 	@Deprecated
 	@Value("${server.versionControl:null}")
 	protected String serverVersionControlStr;
 	// protected boolean versionControl;
 
-	
-	/** Version Control. by default disabled  **/
+	/** Version Control. by default disabled **/
 	@Value("${version.control:null}")
 	protected String versionControlStr;
 	// protected boolean versionControl;
 
 	protected VersionControl versionControlModel;
 
-	
 	@Value("${recovery:false}")
 	protected boolean recovery = false;
 
@@ -155,12 +152,14 @@ public class ServerSettings implements JSONObject {
 	@Value("${encryption.enabled:false}")
 	protected boolean isEncrypt;
 
-	/** When true, ObjectMetadata JSON files are encrypted on disk. by default this field mirrors data encryption setting,
-	 * if encryption.enabled=true and encrypt.metadata will be true by default
-	 * if encryption.enabled=false, then metadata encryption is disabled regardless of the value of encrypt.metadata 
-	 * */
-	
-   /*  Requires encryption.enabled=true to have any effect. */
+	/**
+	 * When true, ObjectMetadata JSON files are encrypted on disk. by default this
+	 * field mirrors data encryption setting, if encryption.enabled=true and
+	 * encrypt.metadata will be true by default if encryption.enabled=false, then
+	 * metadata encryption is disabled regardless of the value of encrypt.metadata
+	 */
+
+	/* Requires encryption.enabled=true to have any effect. */
 	@Value("${encrypt.metadata:null}")
 	protected String encryptMetadataStr;
 
@@ -188,10 +187,10 @@ public class ServerSettings implements JSONObject {
 	protected String redundancyLevelStr;
 
 	/**
-	 * Legacy flat drive list.  Used by RAID 0, RAID 1 and as a backward-compatible
-	 * fallback for EC.  For new EC deployments use
-	 * {@code dataStorage.volume.N=} instead.
-	 * Default is empty so the property is optional when the per-volume syntax is used.
+	 * Legacy flat drive list. Used by RAID 0, RAID 1 and as a backward-compatible
+	 * fallback for EC. For new EC deployments use {@code dataStorage.volume.N=}
+	 * instead. Default is empty so the property is optional when the per-volume
+	 * syntax is used.
 	 */
 	@Value("#{'${dataStorage:}'.split(',')}")
 	private List<String> rootDirs;
@@ -204,12 +203,14 @@ public class ServerSettings implements JSONObject {
 	private List<List<String>> volumeRootDirs = new ArrayList<>();
 
 	/**
-	 * Data shards per volume — derived from {@link RAID6Config}, never user-configured.
+	 * Data shards per volume — derived from {@link RAID6Config}, never
+	 * user-configured.
 	 */
 	protected int ecDataDrives = -1;
 
 	/**
-	 * Parity shards per volume — derived from {@link RAID6Config}, never user-configured.
+	 * Parity shards per volume — derived from {@link RAID6Config}, never
+	 * user-configured.
 	 */
 	protected int ecParityDrives = -1;
 
@@ -232,8 +233,8 @@ public class ServerSettings implements JSONObject {
 	 * The 0-based id of the EC volume that receives new-object writes.
 	 * </p>
 	 * <p>
-	 * Controlled by the {@code volume.active} property in
-	 * {@code odilon.properties} (default: {@code 0}).
+	 * Controlled by the {@code volume.active} property in {@code odilon.properties}
+	 * (default: {@code 0}).
 	 * </p>
 	 */
 	@Value("${volume.active:0}")
@@ -252,11 +253,10 @@ public class ServerSettings implements JSONObject {
 	//
 	@Value("${scheduler.standard.threads:0}")
 	protected int schedulerThreads;
-	
-	
+
 	@Value("${scheduler.standByReplica.threads:2}")
 	protected int schedulerStandByReplicaThreads;
-	
+
 	public int getStandByReplicaDispatcherPoolSize() {
 		return schedulerStandByReplicaThreads;
 	}
@@ -281,10 +281,10 @@ public class ServerSettings implements JSONObject {
 	@Value("${integrityCheckDays:180}")
 	protected int integrityCheckDays;
 
-/**
- * 
- * 
- */
+	/**
+	 * 
+	 * 
+	 */
 	@Value("${integrityCheckCronExpression:15 5 5 * * 7}")
 	protected String integrityCheckCronExpression;
 
@@ -321,19 +321,31 @@ public class ServerSettings implements JSONObject {
 	@Value("${standby.sync.threads:-1}")
 	protected int standbySyncThreads = -1;
 
-	/** Maximum number of pending replica queue entries before new writes are rejected (Issue 1) */
+	/**
+	 * Maximum number of pending replica queue entries before new writes are
+	 * rejected (Issue 1)
+	 */
 	@Value("${standby.replicaQueueMax:10000}")
 	protected int standbyReplicaQueueMax;
 
-	/** Milliseconds replicate() will wait for the journal commit to complete before timing out (Issue 2) */
+	/**
+	 * Milliseconds replicate() will wait for the journal commit to complete before
+	 * timing out (Issue 2)
+	 */
 	@Value("${standby.journalWaitMs:15000}")
 	protected int standbyJournalWaitMs;
 
-	/** Maximum consecutive errors before initial sync aborts and requires a restart (Issue 6) */
+	/**
+	 * Maximum consecutive errors before initial sync aborts and requires a restart
+	 * (Issue 6)
+	 */
 	@Value("${standby.sync.maxErrors:10}")
 	protected int standbySyncMaxErrors;
 
-	/** When true, initial sync propagates all object versions; when false (default) head only (Issue 5) */
+	/**
+	 * When true, initial sync propagates all object versions; when false (default)
+	 * head only (Issue 5)
+	 */
 	@Value("${standby.syncVersions:false}")
 	protected boolean standbySyncVersions;
 
@@ -393,17 +405,21 @@ public class ServerSettings implements JSONObject {
 	private int ecBuffers;
 
 	/**
-	 * When {@code true} every ErasureCoding read verifies each
-	 * in-memory RS shard against its stored SHA-256 checksum ({@code sha256Blocks}
-	 * in {@link ObjectMetadata}).  Any shard whose digest does not match is
-	 * treated as an erasure and reconstructed from parity in a single RS call,
-	 * then written back to disk (read-repair).
+	 * When {@code true} every ErasureCoding read verifies each in-memory RS shard
+	 * against its stored SHA-256 checksum ({@code sha256Blocks} in
+	 * {@link ObjectMetadata}). Any shard whose digest does not match is treated as
+	 * an erasure and reconstructed from parity in a single RS call, then written
+	 * back to disk (read-repair).
 	 *
-	 * <p>Set to {@code false} when the underlying filesystem (e.g. ZFS with
+	 * <p>
+	 * Set to {@code false} when the underlying filesystem (e.g. ZFS with
 	 * {@code checksum=sha256}, Btrfs) already provides block-level integrity
-	 * guarantees, to avoid redundant CPU work.</p>
+	 * guarantees, to avoid redundant CPU work.
+	 * </p>
 	 *
-	 * <p>Key: {@code ec.shardChecksumVerify} — default {@code false}.</p>
+	 * <p>
+	 * Key: {@code ec.shardChecksumVerify} — default {@code false}.
+	 * </p>
 	 */
 	@Value("${ec.shardChecksumVerify:false}")
 	private boolean ecShardChecksumVerify;
@@ -473,9 +489,6 @@ public class ServerSettings implements JSONObject {
 		if (rootDirs != null && rootDirs.size() > 0)
 			str.append(rootDirs.stream().map((s) -> "\"" + s + "\"").collect(Collectors.joining(", ")));
 		str.append("]");
-		
-		
-		
 
 		// STAND BY --------------
 
@@ -492,7 +505,7 @@ public class ServerSettings implements JSONObject {
 
 		str.append(", \"encrypt\":\"" + "\"" + (isEncryptionEnabled() ? "true" : "false") + "\"");
 
-		str.append(", \"encryptMetadata\":\"" + "\"" + ( this.encryptMetadata ? "true" : "false") + "\"");
+		str.append(", \"encryptMetadata\":\"" + "\"" + (this.encryptMetadata ? "true" : "false") + "\"");
 
 		str.append(", \"keyAlgorithm\":" + (Optional.ofNullable(keyAlgorithm).isPresent() ? ("\"" + keyAlgorithm + "\"") : "null"));
 
@@ -513,9 +526,8 @@ public class ServerSettings implements JSONObject {
 		str.append(", \"timeZone\":\"" + getTimeZone() + "\"");
 
 		str.append(", \"trafficTokens\":" + String.valueOf(t_tokens) + "");
-		str.append(", \"versionControl\":\"" + 	versionControlModel.getName() + "\"");
-		
-		
+		str.append(", \"versionControl\":\"" + versionControlModel.getName() + "\"");
+
 		str.append("\"objectMetadataCache.maxCapacity\":\"" + String.valueOf(objectCacheMaxCapacity) + "\"");
 		str.append("\"objectMetadataCache.durationDays\":\"" + String.valueOf(objectExpireDays) + "\"");
 
@@ -553,9 +565,10 @@ public class ServerSettings implements JSONObject {
 	 * Returns the ordered per-volume drive-directory lists.
 	 * </p>
 	 * <p>
-	 * {@code get(v)} is the ordered list of root-directory paths for volume {@code v},
-	 * matching the order in {@code dataStorage.volume.v=}. The position inside the
-	 * list equals the <em>volume-local shard index</em> used in RS-encoded file names.
+	 * {@code get(v)} is the ordered list of root-directory paths for volume
+	 * {@code v}, matching the order in {@code dataStorage.volume.v=}. The position
+	 * inside the list equals the <em>volume-local shard index</em> used in
+	 * RS-encoded file names.
 	 * </p>
 	 * <p>
 	 * For legacy {@code dataStorage=} deployments this returns a single-entry list
@@ -632,7 +645,7 @@ public class ServerSettings implements JSONObject {
 		if (this.secretKey == null) {
 			exit("secretKey can not be null");
 		}
-		
+
 		if (this.presignedSalt.length() < 20)
 			exit("presignedSalt must be at least 20 characters (it has " + String.valueOf(this.presignedSalt.length()) + ")");
 
@@ -640,58 +653,50 @@ public class ServerSettings implements JSONObject {
 			this.presignedSalt = this.presignedSalt.substring(0, 20);
 
 		if (this.rootDirs == null || this.rootDirs.size() < 1) {
-			startuplogger.error("No rootDirs are defined. \n" + "for RAID 0. at least 1 dataDir must be defined in file -> odilon.properties \n" + 
-						"for RAID 1. at least 2 dataDirs must be defined in file -> odilon.properties \n"
-					+ 	"for ErasureCoding. 3, 6, 12, 24 or 48 dataDirs must be defined in file -> odilon.properties \n" + "using default values ");
+			startuplogger.error("No rootDirs are defined. \n" + "for RAID 0. at least 1 dataDir must be defined in file -> odilon.properties \n" + "for RAID 1. at least 2 dataDirs must be defined in file -> odilon.properties \n"
+					+ "for ErasureCoding. 3, 6, 12, 24 or 48 dataDirs must be defined in file -> odilon.properties \n" + "using default values ");
 
 			getDefaultRootDirs().forEach(o -> startuplogger.error(o));
 			this.rootDirs = getDefaultRootDirs();
 		}
 
-		
-		
-			
-		if (this.versionControlStr==null || this.versionControlStr.toLowerCase().trim().equals("null")) {
-			if (this.serverVersionControlStr!=null && !this.serverVersionControlStr.toLowerCase().trim().equals("null")) {
+		if (this.versionControlStr == null || this.versionControlStr.toLowerCase().trim().equals("null")) {
+			if (this.serverVersionControlStr != null && !this.serverVersionControlStr.toLowerCase().trim().equals("null")) {
 				this.versionControlStr = this.serverVersionControlStr.toLowerCase().trim();
-			}
-			else
+			} else
 				this.versionControlStr = "disabled";
 		}
-		
-		
-		if (this.versionControlStr==null)
-				this.versionControlStr = "disabled";
-		
+
+		if (this.versionControlStr == null)
+			this.versionControlStr = "disabled";
+
 		this.versionControlStr = this.versionControlStr.trim().toLowerCase();
-				
+
 		if (this.versionControlStr.equals("disabled") || this.versionControlStr.equals("false"))
 			this.versionControlModel = VersionControl.DISABLED;
-		
-		else if (this.versionControlStr.equals("standard")|| this.versionControlStr.equals("true"))
+
+		else if (this.versionControlStr.equals("standard") || this.versionControlStr.equals("true"))
 			this.versionControlModel = VersionControl.STANDARD;
-		
+
 		else if (this.versionControlStr.equals("protected"))
 			this.versionControlModel = VersionControl.PROTECTED;
 		else
 			throw new IllegalArgumentException("versionControl must be one of {disabled, standard, protected} -> provided value -> " + versionControlStr);
-		
-		
+
 		if (this.encryptionKeyIV != null) {
 			this.encryptionKeyIV = encryptionKeyIV.trim();
 
 			// Legacy 128-bit key: 32 hex (key) + 24 hex (IV) = 56 chars
-			// New     256-bit key: 64 hex (key) + 24 hex (IV) = 88 chars
-			final int ivHexLen   = 2 * EncryptionService.AES_IV_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE; // always 24
-			final int key128Len  = 2 * 128 / VirtualFileSystemService.BITS_PER_BYTE; // 32
-			final int key256Len  = 2 * 256 / VirtualFileSystemService.BITS_PER_BYTE; // 64
-			final int total128   = key128Len + ivHexLen; // 56
-			final int total256   = key256Len + ivHexLen; // 88
+			// New 256-bit key: 64 hex (key) + 24 hex (IV) = 88 chars
+			final int ivHexLen = 2 * EncryptionService.AES_IV_SIZE_BITS / VirtualFileSystemService.BITS_PER_BYTE; // always 24
+			final int key128Len = 2 * 128 / VirtualFileSystemService.BITS_PER_BYTE; // 32
+			final int key256Len = 2 * 256 / VirtualFileSystemService.BITS_PER_BYTE; // 64
+			final int total128 = key128Len + ivHexLen; // 56
+			final int total256 = key256Len + ivHexLen; // 88
 
 			int totalLen = this.encryptionKeyIV.length();
 			if (totalLen != total128 && totalLen != total256)
-				exit("encryption.key length must be " + total128 + " hex chars (128-bit key) or "
-						+ total256 + " hex chars (256-bit key) -> provided length: " + totalLen);
+				exit("encryption.key length must be " + total128 + " hex chars (128-bit key) or " + total256 + " hex chars (256-bit key) -> provided length: " + totalLen);
 			try {
 				@SuppressWarnings("unused")
 				byte[] be = ByteToString.hexStringToByte(encryptionKeyIV);
@@ -701,7 +706,7 @@ public class ServerSettings implements JSONObject {
 
 			int keyHexLen = totalLen - ivHexLen;
 			this.encryptionKey = encryptionKeyIV.substring(0, keyHexLen);
-			this.encryptionIV  = encryptionKeyIV.substring(keyHexLen);
+			this.encryptionIV = encryptionKeyIV.substring(keyHexLen);
 		}
 
 		if ((this.masterKey == null) && (this.masterkey_lowercase != null)) {
@@ -713,8 +718,7 @@ public class ServerSettings implements JSONObject {
 			final int masterKey128Len = 2 * 128 / VirtualFileSystemService.BITS_PER_BYTE; // 32 hex chars
 			final int masterKey256Len = 2 * 256 / VirtualFileSystemService.BITS_PER_BYTE; // 64 hex chars
 			if (masterKey.length() != masterKey128Len && masterKey.length() != masterKey256Len)
-				exit("masterKey length must be " + masterKey128Len + " hex chars (128-bit) or "
-						+ masterKey256Len + " hex chars (256-bit) -> provided length: " + masterKey.length());
+				exit("masterKey length must be " + masterKey128Len + " hex chars (128-bit) or " + masterKey256Len + " hex chars (256-bit) -> provided length: " + masterKey.length());
 			try {
 				@SuppressWarnings("unused")
 				byte[] be = ByteToString.hexStringToByte(masterKey);
@@ -763,16 +767,11 @@ public class ServerSettings implements JSONObject {
 		// Normalise flat rootDirs for RAID 0, RAID 1 and legacy RAID 6.
 		// For new-style RAID 6 (dataStorage.volume.N=) rootDirs starts empty;
 		// the RAID 6 block below will build it from volumeRootDirs.
-		boolean isNewStyleRAID6 = (this.redundancyLevel == RedundancyLevel.ERASURE_CODING)
-				&& environment.containsProperty("dataStorage.volume.0");
+		boolean isNewStyleRAID6 = (this.redundancyLevel == RedundancyLevel.ERASURE_CODING) && environment.containsProperty("dataStorage.volume.0");
 
 		if (!isNewStyleRAID6) {
 			List<String> dirs = new ArrayList<String>();
-			this.rootDirs.forEach(item -> dirs.add(
-					item.replace("/", File.separator)
-					    .replace("\\", File.separator)
-					    .replaceAll("[?;<>|]", "")
-					    .trim()));
+			this.rootDirs.forEach(item -> dirs.add(item.replace("/", File.separator).replace("\\", File.separator).replaceAll("[?;<>|]", "").trim()));
 			List<String> unique = dirs.stream().filter(s -> !s.isEmpty()).distinct().collect(Collectors.toList());
 			if (unique.size() != dirs.stream().filter(s -> !s.isEmpty()).count())
 				exit("DataStorage can not have duplicate entries -> " + dirs.toString());
@@ -799,13 +798,13 @@ public class ServerSettings implements JSONObject {
 
 			// ── Detect configuration style ────────────────────────────────────────────
 			//
-			// NEW style:  dataStorage.volume.0=dir1,dir2,dir3
-			//             dataStorage.volume.1=dir4,dir5,dir6
-			//             volume.active=1
-			//             (raid6.dataDrives and raid6.parityDrives are NOT needed)
+			// NEW style: dataStorage.volume.0=dir1,dir2,dir3
+			// dataStorage.volume.1=dir4,dir5,dir6
+			// volume.active=1
+			// (raid6.dataDrives and raid6.parityDrives are NOT needed)
 			//
-			// LEGACY fallback:  dataStorage=dir1,dir2,...,dirN
-			//                   (single volume, backward compatible)
+			// LEGACY fallback: dataStorage=dir1,dir2,...,dirN
+			// (single volume, backward compatible)
 
 			boolean newStyle = environment.containsProperty("dataStorage.volume.0");
 
@@ -817,10 +816,7 @@ public class ServerSettings implements JSONObject {
 					String raw = environment.getProperty("dataStorage.volume." + v, "");
 					List<String> vDirs = new ArrayList<>();
 					for (String d : raw.split(",")) {
-						String trimmed = d.replace("/", File.separator)
-								          .replace("\\", File.separator)
-								          .replaceAll("[?;<>|]", "")
-								          .trim();
+						String trimmed = d.replace("/", File.separator).replace("\\", File.separator).replaceAll("[?;<>|]", "").trim();
 						if (!trimmed.isEmpty())
 							vDirs.add(trimmed);
 					}
@@ -829,9 +825,7 @@ public class ServerSettings implements JSONObject {
 
 					// All volumes must have the same drive count
 					if (v > 0 && vDirs.size() != this.volumeRootDirs.get(0).size())
-						exit("dataStorage.volume." + v + " has " + vDirs.size()
-								+ " drives but volume 0 has " + this.volumeRootDirs.get(0).size()
-								+ ". All volumes must have the same number of drives.");
+						exit("dataStorage.volume." + v + " has " + vDirs.size() + " drives but volume 0 has " + this.volumeRootDirs.get(0).size() + ". All volumes must have the same number of drives.");
 
 					this.volumeRootDirs.add(vDirs);
 					v++;
@@ -846,13 +840,11 @@ public class ServerSettings implements JSONObject {
 				// Derive data/parity from drive count — no user config needed
 				try {
 					RAID6Config cfg = RAID6Config.fromDriveCount(drivesPerVol);
-					this.ecDataDrives   = cfg.dataDrives;
+					this.ecDataDrives = cfg.dataDrives;
 					this.ecParityDrives = cfg.parityDrives;
-					startuplogger.info("ErasureCoding: " + this.ecVolumes + " volume(s), "
-							+ drivesPerVol + " drives/volume -> " + cfg);
+					startuplogger.info("ErasureCoding: " + this.ecVolumes + " volume(s), " + drivesPerVol + " drives/volume -> " + cfg);
 				} catch (IllegalArgumentException e) {
-					exit("dataStorage.volume.0 has " + drivesPerVol + " drives. "
-							+ "Supported drives per volume: " + RAID6Config.supportedCounts() + ".");
+					exit("dataStorage.volume.0 has " + drivesPerVol + " drives. " + "Supported drives per volume: " + RAID6Config.supportedCounts() + ".");
 				}
 
 				// Build flat rootDirs from the per-volume lists (used by loadDrives)
@@ -862,19 +854,11 @@ public class ServerSettings implements JSONObject {
 
 			} else {
 				// ── Legacy flat dataStorage style ─────────────────────────────────────
-				// Single volume only.  Emit a deprecation warning.
-				startuplogger.warn("RAID 6: using legacy 'dataStorage=' syntax (single volume). "
-						+ "For multi-volume deployments use 'dataStorage.volume.N=' instead.");
+				// Single volume only. Emit a deprecation warning.
+				startuplogger.warn("RAID 6: using legacy 'dataStorage=' syntax (single volume). " + "For multi-volume deployments use 'dataStorage.volume.N=' instead.");
 
 				// Remove empty entries that result from the default empty split
-				this.rootDirs = this.rootDirs.stream()
-						.map(s -> s.replace("/", File.separator)
-								   .replace("\\", File.separator)
-								   .replaceAll("[?;<>|]", "")
-								   .trim())
-						.filter(s -> !s.isEmpty())
-						.distinct()
-						.collect(Collectors.toList());
+				this.rootDirs = this.rootDirs.stream().map(s -> s.replace("/", File.separator).replace("\\", File.separator).replaceAll("[?;<>|]", "").trim()).filter(s -> !s.isEmpty()).distinct().collect(Collectors.toList());
 
 				if (this.rootDirs.isEmpty())
 					exit("redundancyLevel=ErasureCoding requires at least one drive in 'dataStorage' or 'dataStorage.volume.0'.");
@@ -884,11 +868,10 @@ public class ServerSettings implements JSONObject {
 
 				try {
 					RAID6Config cfg = RAID6Config.fromDriveCount(drivesPerVol);
-					this.ecDataDrives   = cfg.dataDrives;
+					this.ecDataDrives = cfg.dataDrives;
 					this.ecParityDrives = cfg.parityDrives;
 				} catch (IllegalArgumentException e) {
-					exit("dataStorage has " + drivesPerVol + " drives. "
-							+ "Supported drives per volume: " + RAID6Config.supportedCounts() + ".");
+					exit("dataStorage has " + drivesPerVol + " drives. " + "Supported drives per volume: " + RAID6Config.supportedCounts() + ".");
 				}
 
 				// Wrap in single-volume list for uniform access
@@ -897,12 +880,12 @@ public class ServerSettings implements JSONObject {
 			}
 
 			// ── Validate volume.active is in range ────────────────────────────────────
-			// By design, only ONE volume can be active at a time (activeVolumeId is a single integer).
-			// This validation ensures the configured active volume ID is within the valid range.
+			// By design, only ONE volume can be active at a time (activeVolumeId is a
+			// single integer).
+			// This validation ensures the configured active volume ID is within the valid
+			// range.
 			if (this.activeVolumeId < 0 || this.activeVolumeId >= this.ecVolumes) {
-				exit("volume.active=" + this.activeVolumeId
-						+ " is out of range. Total volumes=" + this.ecVolumes
-						+ " (valid range: 0.." + (this.ecVolumes - 1) + ")");
+				exit("volume.active=" + this.activeVolumeId + " is out of range. Total volumes=" + this.ecVolumes + " (valid range: 0.." + (this.ecVolumes - 1) + ")");
 			}
 		}
 		try {
@@ -980,8 +963,6 @@ public class ServerSettings implements JSONObject {
 
 		this.encryptMetadata = (isEncrypt && (encryptMetadataStr == null || encryptMetadataStr.trim().toLowerCase().equals("null") || encryptMetadataStr.trim().toLowerCase().equals("true"))) ? true : false;
 
-		
-		
 		startuplogger.debug("Started -> " + ServerSettings.class.getSimpleName());
 
 	}
@@ -1071,11 +1052,11 @@ public class ServerSettings implements JSONObject {
 				list.add(File.separator + "var" + File.separator + "lib" + File.separator + "odilon-data" + File.separator + "drive0");
 				return list;
 			}
-			
+
 			list.add(File.separator + "opt" + File.separator + "odilon-data" + File.separator + "drive0");
 			list.add(File.separator + "opt" + File.separator + "odilon-data" + File.separator + "drive1");
 			list.add(File.separator + "opt" + File.separator + "odilon-data" + File.separator + "drive2");
-			
+
 			return list;
 		}
 	}
@@ -1277,19 +1258,16 @@ public class ServerSettings implements JSONObject {
 		si.setCreationDate(now);
 		si.setName(ServerConstant.applicationName);
 
-		
 		// ----
 		// TODO VER
 		// si.setVersionControl(isVersionControl());
 		// --
-		
-		
+
 		si.setEncryptionIntialized(false);
 
-		if (getVersionControl()!=VersionControl.DISABLED)
+		if (getVersionControl() != VersionControl.DISABLED)
 			si.setVersionControlDate(now);
 
-		
 		si.setServerMode(getServerMode());
 		si.setId(randomString(16));
 		si.setStandByEnabled(isStandByEnabled());
@@ -1357,12 +1335,11 @@ public class ServerSettings implements JSONObject {
 	public int getECBufferSizeMB() {
 		return ServerConstant.MAX_STRIPE_SIZE;
 	}
-	
+
 	private boolean isWindows() {
 		if ((System.getenv("OS") != null) && System.getenv("OS").toLowerCase().contains("windows"))
 			return true;
 		return false;
 	}
 
-	
 }

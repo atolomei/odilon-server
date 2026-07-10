@@ -34,52 +34,52 @@ import io.odilon.model.SharedConstant;
  */
 public class ServiceRequestExecutor implements Runnable {
 
-    static private Logger logger = Logger.getLogger(ServiceRequestExecutor.class.getName());
+	static private Logger logger = Logger.getLogger(ServiceRequestExecutor.class.getName());
 
-    private ServiceRequest request;
-    private SchedulerWorker schedulerWorker;
+	private ServiceRequest request;
+	private SchedulerWorker schedulerWorker;
 
-    private boolean success = false;
+	private boolean success = false;
 
-    public ServiceRequestExecutor(ServiceRequest rqt, SchedulerWorker schedulerWorker) {
-        this.request = rqt;
-        this.schedulerWorker = schedulerWorker;
-    }
+	public ServiceRequestExecutor(ServiceRequest rqt, SchedulerWorker schedulerWorker) {
+		this.request = rqt;
+		this.schedulerWorker = schedulerWorker;
+	}
 
-    @Override
-    public void run() {
-        try {
+	@Override
+	public void run() {
+		try {
 
-            this.request.setStart(OffsetDateTime.now());
-            this.request.setStatus(ServiceRequestStatus.RUNNING);
-            this.request.execute();
-            this.success = this.request.isSuccess();
-        } catch (Throwable e) {
-            logger.error(e, SharedConstant.NOT_THROWN);
-            this.request.setStatus(ServiceRequestStatus.ERROR);
-            this.success = false;
-        } finally {
-            try {
-                this.request.setEnd(OffsetDateTime.now());
+			this.request.setStart(OffsetDateTime.now());
+			this.request.setStatus(ServiceRequestStatus.RUNNING);
+			this.request.execute();
+			this.success = this.request.isSuccess();
+		} catch (Throwable e) {
+			logger.error(e, SharedConstant.NOT_THROWN);
+			this.request.setStatus(ServiceRequestStatus.ERROR);
+			this.success = false;
+		} finally {
+			try {
+				this.request.setEnd(OffsetDateTime.now());
 
-                if (this.success)
-                    this.schedulerWorker.close(this.request);
-                else
-                    this.schedulerWorker.fail(this.request);
+				if (this.success)
+					this.schedulerWorker.close(this.request);
+				else
+					this.schedulerWorker.fail(this.request);
 
-            } catch (Throwable e) {
-                logger.error(e, SharedConstant.NOT_THROWN);
-                try {
-                    this.request.setStatus(ServiceRequestStatus.ERROR);
-                    this.schedulerWorker.fail(this.request);
-                } catch (Exception e1) {
-                    logger.error(e1, SharedConstant.NOT_THROWN);
-                }
-            }
-        }
-    }
+			} catch (Throwable e) {
+				logger.error(e, SharedConstant.NOT_THROWN);
+				try {
+					this.request.setStatus(ServiceRequestStatus.ERROR);
+					this.schedulerWorker.fail(this.request);
+				} catch (Exception e1) {
+					logger.error(e1, SharedConstant.NOT_THROWN);
+				}
+			}
+		}
+	}
 
-    public void setSchedulerService(SchedulerWorker schedulerWorker) {
-        this.schedulerWorker = schedulerWorker;
-    }
+	public void setSchedulerService(SchedulerWorker schedulerWorker) {
+		this.schedulerWorker = schedulerWorker;
+	}
 }

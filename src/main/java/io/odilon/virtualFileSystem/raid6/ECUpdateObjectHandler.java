@@ -55,7 +55,7 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
  * <p>
- * RAID 6 Update Object handler
+ * ErasureCoding Update Object handler
  * </p>
  * <p>
  * Auxiliary class used by {@link RaidSixHandler}
@@ -171,7 +171,7 @@ public class ECUpdateObjectHandler extends ECTransactionObjectHandler {
 	 * <p>
 	 * Delegating to {@link ECDriver#getDriverObjectMetadataInternal} (which
 	 * searches the active volume first, then all older volumes) fixes the problem
-	 * and is consistent with every other existence check in the RAID 6 layer.
+	 * and is consistent with every other existence check in the ErasureCoding layer.
 	 * </p>
 	 */
 	protected boolean existsObjectMetadata(ServerBucket bucket, String objectName) {
