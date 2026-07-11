@@ -62,8 +62,8 @@
 <p>Odilon integrates with the KMS Open Source <a href="https://www.vaultproject.io/" target="_blank">Hashicorp Vault</a>.</p>
  
 <h2>Data Replication</h2>
-Odilon can be configured to use software RAID for data replication.  
- 
+Odilon can be configured to use software RAID and Erasure Codes for data replication.  
+ <br/>
 <ul>
 <li><b>RAID 0.</b> Two or more disks are combined to form a volume, which appears as a single virtual drive.
 It is not a configuration with data replication, its function is to provide greater storage and performance by allowing access to the disks in parallel.<br/><br/>
