@@ -248,7 +248,7 @@ Current version of Odilon Server is <b>2.1</b>.
 <p>
 <ul>
 <li><a href="https://odilon.io/development.html" target="_blank">Java Application Development with Odilon</a></li>	
-<li><a href="https://odilon.io/javadoc/1.14/index.html" target="_blank">Odilon SDK Javadoc</a></li>	
+<li><a href="https://odilon.io/javadoc/2.0/index.html" target="_blank">Odilon SDK Javadoc</a></li>	
 <li class="list-item"><a href="https://github.com/atolomei/odilon-client" target="_blank">odilon-client GitHub project</a></li>
 <li class="list-item"><a href="https://github.com/atolomei/odilon-model" target="_blank">odilon-model GitHub project</a></li>
 </ul>
