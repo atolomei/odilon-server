@@ -72,11 +72,10 @@ It is not a configuration with data replication, its function is to provide grea
 </li>
 <li><b>Erasure Coding.</b>
 	It is a method of encoding data into blocks that can be distributed across multiple disks or nodes and then reconstructed from a subset of those blocks. It has great flexibility since you can adjust the number and size of the blocks and the minimum required for recovery. It uses less disk space than RAID 1 and can withstand multiple full disk failures.<br/> <br/>  
-	
-	Odilon implements this architecture using <a href="https://en.wikipedia.org/wiki/Reed%E2%80%93Solomon_error_correction" target="_blank"> Reed Solomon</a> error-correction codes.<br/> <br/> 
-	Reed Solomon codes are widely used, from the Voyager probes exploring the solar system, to the James Webb telescope, to the QR codes on mobile phones.<br/> <br/> 
-	Odilon's Erasure Coding architecture is designed to recover data automatically after one or more disk failures.<br/> <br/>  	
-	It can also detect and repair silent data corruption caused by bad sectors, bit flips, or other storage errors. It has a background data scrubber that periodically walks every object in storage and verifies its integrity, and also an optional read-repair functionality that checks the integrity of each shard on every read operation.<br/>  <br/>  
+Odilon implements this architecture using <a href="https://en.wikipedia.org/wiki/Reed%E2%80%93Solomon_error_correction" target="_blank"> Reed Solomon</a> error-correction codes.<br/> <br/> 
+Reed Solomon codes are widely used, from the Voyager probes exploring the solar system, to the James Webb telescope, to the QR codes on mobile phones.<br/> <br/> 
+Odilon's Erasure Coding architecture is designed to recover data automatically after one or more disk failures.<br/> <br/>  	
+It can also detect and repair silent data corruption caused by bad sectors, bit flips, or other storage errors. It has a background data scrubber that periodically walks every object in storage and verifies its integrity, and also an optional read-repair functionality that checks the integrity of each shard on every read operation.<br/>  <br/>  
 The configurations are: <br/> <br/> 
 <b>3 disks</b> (2 data 1 parity, supports 1 full disk failure), <br/>  
 <b>6 disks</b> (4 data 2 parity, supports up to 2 full disks failures) <br/>
@@ -157,7 +156,7 @@ Plus the extra meta file and shards for erasure coding.
 </li>
 </ul>
 
-<h2>Who is using Odilon</h2>
+<h2>Powered by Odilon</h2>
 
 <p>To be included in this list please send email to info@novamens.com</p>
 
