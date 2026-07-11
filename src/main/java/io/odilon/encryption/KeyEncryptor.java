@@ -50,8 +50,8 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY, getterVisibility = JsonAutoDetect.Visibility.NONE)
 public interface KeyEncryptor {
 
-    byte[] encryptKey(byte[] key, byte[] iv);
+	byte[] encryptKey(byte[] key, byte[] iv);
 
-    byte[] decryptKey(byte[] key, byte[] iv);
+	byte[] decryptKey(byte[] key, byte[] iv);
 
 }

@@ -95,8 +95,7 @@ public class OdilonEncryptionService extends BaseService implements EncryptionSe
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 
 	static private Logger logger = Logger.getLogger(OdilonEncryptionService.class.getName());
-	
-	
+
 	public final class EncryptionSizeCalculator {
 		private static final int GCM_SIV_TAG_LENGTH = 16; // bytes
 
@@ -159,76 +158,54 @@ public class OdilonEncryptionService extends BaseService implements EncryptionSe
 		}
 	}
 
-
 	/**
-	JsonFactory f = JsonMapper.builder()
-	        .disable(StreamReadFeature.AUTO_CLOSE_SOURCE)
-	        .build()
-	        .tokenStreamFactory();
-	**/
-	
-	
+	 * JsonFactory f = JsonMapper.builder()
+	 * .disable(StreamReadFeature.AUTO_CLOSE_SOURCE) .build() .tokenStreamFactory();
+	 **/
+
 	@Override
 	public InputStream decryptStream(InputStream inputStream) {
 
-	    try {
+		try {
 
-	    	// Jackson 3.x: parsers MUST be created via ObjectMapper (not JsonFactory directly).
-	    	// JsonFactory.createParser() sets ObjectReadContext.Base as context — a stub that
-	    	// throws UnsupportedOperationException on readValueAs(). ObjectMapper sets itself
-	    	// as the ObjectReadContext, which is fully functional.
-	        JsonMapper mapper = JsonMapper.builder()
-	                .disable(StreamReadFeature.AUTO_CLOSE_SOURCE)
-	                .build();
+			// Jackson 3.x: parsers MUST be created via ObjectMapper (not JsonFactory
+			// directly).
+			// JsonFactory.createParser() sets ObjectReadContext.Base as context — a stub
+			// that
+			// throws UnsupportedOperationException on readValueAs(). ObjectMapper sets
+			// itself
+			// as the ObjectReadContext, which is fully functional.
+			JsonMapper mapper = JsonMapper.builder().disable(StreamReadFeature.AUTO_CLOSE_SOURCE).build();
 
-	        JsonParser parser = mapper.createParser(inputStream);
+			JsonParser parser = mapper.createParser(inputStream);
 
-	        JsonNode node = parser.readValueAs(JsonNode.class);
+			JsonNode node = parser.readValueAs(JsonNode.class);
 
-	        StreamEncryptorInfo streamEncryptionInfo =
-	                mapper.treeToValue(node, StreamEncryptorInfo.class);
+			StreamEncryptorInfo streamEncryptionInfo = mapper.treeToValue(node, StreamEncryptorInfo.class);
 
-	        String key = streamEncryptionInfo.getEncryptedKey();
-	        String iv = streamEncryptionInfo.getIV();
+			String key = streamEncryptionInfo.getEncryptedKey();
+			String iv = streamEncryptionInfo.getIV();
 
-	        StreamEncryptor streamEncryption =
-	                streamEncryptionInfo.getStreamEncryption();
+			StreamEncryptor streamEncryption = streamEncryptionInfo.getStreamEncryption();
 
-	        ByteArrayOutputStream remainderOutputStream =
-	                new ByteArrayOutputStream();
+			ByteArrayOutputStream remainderOutputStream = new ByteArrayOutputStream();
 
-	        parser.releaseBuffered(remainderOutputStream);
+			parser.releaseBuffered(remainderOutputStream);
 
-	        ByteArrayInputStream remainderInputStream =
-	                new ByteArrayInputStream(
-	                        remainderOutputStream.toByteArray()
-	                );
+			ByteArrayInputStream remainderInputStream = new ByteArrayInputStream(remainderOutputStream.toByteArray());
 
-	        InputStream encryptedStream =
-	                new SequenceInputStream(
-	                        remainderInputStream,
-	                        inputStream
-	                );
+			InputStream encryptedStream = new SequenceInputStream(remainderInputStream, inputStream);
 
-	        getSystemMonitorService()
-	                .getDecryptFileMeter()
-	                .mark();
+			getSystemMonitorService().getDecryptFileMeter().mark();
 
-	        return streamEncryption.decrypt(
-	                encryptedStream,
-	                key,
-	                iv
-	        );
+			return streamEncryption.decrypt(encryptedStream, key, iv);
 
-	    } catch (Exception e) {
-	    	
-	    	logger.error(e, "Error decrypting stream");
+		} catch (Exception e) {
 
-	        throw new InternalCriticalException(
-	                e,
-	                "decryptStream"
-	        );
-	    }
+			logger.error(e, "Error decrypting stream");
+
+			throw new InternalCriticalException(e, "decryptStream");
+		}
 	}
 
 	public SystemMonitorService getSystemMonitorService() {

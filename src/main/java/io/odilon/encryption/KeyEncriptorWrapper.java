@@ -40,75 +40,75 @@ import io.odilon.service.ServerSettings;
 @Component
 public class KeyEncriptorWrapper implements KeyEncryptor, ApplicationContextAware {
 
-    @JsonIgnore
-    private static Logger logger = Logger.getLogger(KeyEncriptorWrapper.class.getName());
+	@JsonIgnore
+	private static Logger logger = Logger.getLogger(KeyEncriptorWrapper.class.getName());
 
-    @JsonIgnore
-    private static ApplicationContext applicationContext;
+	@JsonIgnore
+	private static ApplicationContext applicationContext;
 
-    @JsonIgnore
-    private static VaultKeyEncryptorService vaultKeyEncryptor;
+	@JsonIgnore
+	private static VaultKeyEncryptorService vaultKeyEncryptor;
 
-    @JsonIgnore
-    private static OdilonKeyEncryptorService odilonKeyEncryptor;
+	@JsonIgnore
+	private static OdilonKeyEncryptorService odilonKeyEncryptor;
 
-    @JsonIgnore
-    private Optional<String> vaultUrl;
+	@JsonIgnore
+	private Optional<String> vaultUrl;
 
-    public KeyEncriptorWrapper() {
-    }
+	public KeyEncriptorWrapper() {
+	}
 
-    @Override
-    public byte[] encryptKey(byte[] key, byte[] iv) {
-        if ((getApplicationContext().getBean(ServerSettings.class).isUseVaultNewFiles()) && (this.vaultUrl.isPresent())) {
-            return (getVaultKeyEncryptor()).encryptKey(key, iv);
-        } else {
-            return (getOdilonKeyEncryptor()).encryptKey(key, iv);
-        }
-    }
+	@Override
+	public byte[] encryptKey(byte[] key, byte[] iv) {
+		if ((getApplicationContext().getBean(ServerSettings.class).isUseVaultNewFiles()) && (this.vaultUrl.isPresent())) {
+			return (getVaultKeyEncryptor()).encryptKey(key, iv);
+		} else {
+			return (getOdilonKeyEncryptor()).encryptKey(key, iv);
+		}
+	}
 
-    @Override
-    public byte[] decryptKey(byte[] key, byte[] iv) {
-        boolean useVault = (new String(key)).startsWith("vault:");
-        if (useVault)
-            return (getVaultKeyEncryptor()).decryptKey(key, iv);
-        else
-            return getOdilonKeyEncryptor().decryptKey(key, iv);
-    }
+	@Override
+	public byte[] decryptKey(byte[] key, byte[] iv) {
+		boolean useVault = (new String(key)).startsWith("vault:");
+		if (useVault)
+			return (getVaultKeyEncryptor()).decryptKey(key, iv);
+		else
+			return getOdilonKeyEncryptor().decryptKey(key, iv);
+	}
 
-    public VaultKeyEncryptorService getVaultKeyEncryptor() {
-        return vaultKeyEncryptor;
-    }
+	public VaultKeyEncryptorService getVaultKeyEncryptor() {
+		return vaultKeyEncryptor;
+	}
 
-    public OdilonKeyEncryptorService getOdilonKeyEncryptor() {
-        return odilonKeyEncryptor;
-    }
+	public OdilonKeyEncryptorService getOdilonKeyEncryptor() {
+		return odilonKeyEncryptor;
+	}
 
-    @JsonIgnore
-    private boolean vault() {
-        return this.vaultUrl.isPresent();
-    }
+	@JsonIgnore
+	private boolean vault() {
+		return this.vaultUrl.isPresent();
+	}
 
-    @PostConstruct
-    protected void onInitialize() {
+	@PostConstruct
+	protected void onInitialize() {
 
-        this.vaultUrl = applicationContext.getBean(ServerSettings.class).getVaultUrl();
+		this.vaultUrl = applicationContext.getBean(ServerSettings.class).getVaultUrl();
 
-        if (vaultKeyEncryptor == null)
-            vaultKeyEncryptor = getApplicationContext().getBean(VaultKeyEncryptorService.class);
+		if (vaultKeyEncryptor == null)
+			vaultKeyEncryptor = getApplicationContext().getBean(VaultKeyEncryptorService.class);
 
-        if (odilonKeyEncryptor == null)
-            odilonKeyEncryptor = getApplicationContext().getBean(OdilonKeyEncryptorService.class);
-    }
+		if (odilonKeyEncryptor == null)
+			odilonKeyEncryptor = getApplicationContext().getBean(OdilonKeyEncryptorService.class);
+	}
 
-    public ApplicationContext getApplicationContext() {
-        return applicationContext;
-    }
+	public ApplicationContext getApplicationContext() {
+		return applicationContext;
+	}
 
-    @Override
-    public void setApplicationContext(ApplicationContext appContext) throws BeansException {
-        if (applicationContext == null)
-            applicationContext = appContext;
-    }
+	@Override
+	public void setApplicationContext(ApplicationContext appContext) throws BeansException {
+		if (applicationContext == null)
+			applicationContext = appContext;
+	}
 
 }

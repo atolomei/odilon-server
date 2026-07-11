@@ -25,21 +25,21 @@ import io.odilon.net.ODHttpStatus;
  */
 public class OdilonInternalErrorException extends OdilonServerAPIException {
 
-    /**
-     * 
-     */
-    private static final long serialVersionUID = 1L;
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 
-    public OdilonInternalErrorException() {
-        super();
-    }
+	public OdilonInternalErrorException() {
+		super();
+	}
 
-    public OdilonInternalErrorException(String message) {
-        super(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, message);
-    }
+	public OdilonInternalErrorException(String message) {
+		super(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, message);
+	}
 
-    public OdilonInternalErrorException(Exception e) {
-        super(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, e);
-    }
+	public OdilonInternalErrorException(Exception e) {
+		super(ODHttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, e);
+	}
 
 }

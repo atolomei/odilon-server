@@ -16,8 +16,6 @@
  */
 package io.odilon;
 
-import java.io.File;
-
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -201,7 +199,7 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 			List<ECVolume> vols = getAppContext().getBean(VirtualFileSystemService.class).getVolumeManager().getAllVolumes();
 			for (ECVolume vol : vols) {
 				for (Drive d : vol.getDrives()) {
-					startupLogger.info("Volume: " + String.valueOf(vol.getVolumeId())+ (vol.isActive() ? ". active" : ". read-only")  + " | Drive: " + d.getName() + " | rootDir: " + d.getRootDirPath());
+					startupLogger.info("Volume: " + String.valueOf(vol.getVolumeId()) + (vol.isActive() ? ". active" : ". read-only") + " | Drive: " + d.getName() + " | rootDir: " + d.getRootDirPath());
 				}
 			}
 
@@ -239,7 +237,7 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 			}
 			if (!isOk) {
 				startupLogger.error("The system can not run without a Vault operational");
-				startupLogger.error("Check variable 'vault.url' and 'vault' in -> ." + File.separator + "config" + File.separator + "odilon.properties");
+				startupLogger.error("Check variable 'vault.url' and 'vault' in -> odilon.properties");
 				startupLogger.error("Current value for vault.enabled = " + settingsService.isVaultEnabled());
 				startupLogger.error("Current value for vault.newfiles = " + settingsService.isUseVaultNewFiles());
 				startupLogger.error("Current value for vault.url -> " + settingsService.getVaultUrl().get());
@@ -274,7 +272,7 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 		ServerSettings settingsService = getAppContext().getBean(ServerSettings.class);
 		if (settingsService.getAccessKey().equals("odilon") && settingsService.getSecretKey().equals("odilon")) {
 			startupLogger.info("Odilon is running with default vaules for AccessKey and SecretKey (ie. odilon/odilon)");
-			startupLogger.info("It is recommended to change their values in file -> ." + File.separator + "config" + File.separator + "odilon.properties");
+			startupLogger.info("It is recommended to change their values in file -> odilon.properties");
 			return true;
 		}
 		return false;
@@ -310,7 +308,7 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 				} else {
 					startupLogger.error("Standby connection  error -> " + ping);
 					startupLogger.error("The server is set up to use a standby connection that is not available");
-					startupLogger.error("You must check the connection or disable standby replica in file -> ." + File.separator + "config" + File.separator + "odilon.properties");
+					startupLogger.error("You must check the connection or disable standby replica in file -> odilon.properties");
 					startupLogger.error("Current value for standby.enabled -> " + settingsService.isStandByEnabled());
 					startupLogger.error("Exiting");
 					startupLogger.error(ServerConstant.SEPARATOR);
@@ -333,7 +331,7 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 					}
 
 					logger.error("You will have to check the standby server to enable replication");
-					logger.error("Meanwhile we recommend to startup the server without it " + " in ./config/odilon.properties -> standby.enabled=false ");
+					logger.error("Meanwhile we recommend to startup the server without it " + " in odilon.properties -> standby.enabled=false ");
 					System.exit(1);
 				}
 			}

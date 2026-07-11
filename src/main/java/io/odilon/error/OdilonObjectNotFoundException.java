@@ -25,22 +25,22 @@ import io.odilon.net.ODHttpStatus;
  */
 public class OdilonObjectNotFoundException extends OdilonServerAPIException {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    public OdilonObjectNotFoundException() {
-        super();
-    }
+	public OdilonObjectNotFoundException() {
+		super();
+	}
 
-    public OdilonObjectNotFoundException(OdilonErrorProxy proxy) {
-        super(proxy);
-    }
+	public OdilonObjectNotFoundException(OdilonErrorProxy proxy) {
+		super(proxy);
+	}
 
-    public OdilonObjectNotFoundException(ErrorCode errorCode, String message) {
-        super(ODHttpStatus.NOT_FOUND, errorCode, message);
-    }
+	public OdilonObjectNotFoundException(ErrorCode errorCode, String message) {
+		super(ODHttpStatus.NOT_FOUND, errorCode, message);
+	}
 
-    public OdilonObjectNotFoundException(String message) {
-        super(ODHttpStatus.NOT_FOUND, ErrorCode.OBJECT_NOT_FOUND, message);
-    }
+	public OdilonObjectNotFoundException(String message) {
+		super(ODHttpStatus.NOT_FOUND, ErrorCode.OBJECT_NOT_FOUND, message);
+	}
 
 }

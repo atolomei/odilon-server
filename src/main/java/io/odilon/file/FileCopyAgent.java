@@ -24,11 +24,11 @@ import io.odilon.model.BaseObject;
  */
 public abstract class FileCopyAgent extends BaseObject {
 
-    public FileCopyAgent() {
-    }
+	public FileCopyAgent() {
+	}
 
-    public abstract long durationMillisecs();
+	public abstract long durationMillisecs();
 
-    public abstract boolean execute();
+	public abstract boolean execute();
 
 }

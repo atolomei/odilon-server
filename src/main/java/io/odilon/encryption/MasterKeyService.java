@@ -89,84 +89,84 @@ import io.odilon.service.util.ByteToString;
 @Service
 public class MasterKeyService extends BaseService {
 
-    static private Logger startuplogger = Logger.getLogger("StartupLogger");
+	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 
-    @JsonIgnore
-    @Autowired
-    private final ServerSettings serverSettings;
+	@JsonIgnore
+	@Autowired
+	private final ServerSettings serverSettings;
 
-    @JsonIgnore
-    private byte[] keyToEncryptMasterKey;
-    /** encrpytion key from odilon.properties */
+	@JsonIgnore
+	private byte[] keyToEncryptMasterKey;
+	/** encrpytion key from odilon.properties */
 
-    @JsonIgnore
-    private byte[] iv;
+	@JsonIgnore
+	private byte[] iv;
 
-    /** encrpytion IV from odilon.properties */
+	/** encrpytion IV from odilon.properties */
 
-    public MasterKeyService(ServerSettings serverSettings) {
-        this.serverSettings = serverSettings;
-    }
+	public MasterKeyService(ServerSettings serverSettings) {
+		this.serverSettings = serverSettings;
+	}
 
-    /**
-     * 
-     */
-    public byte[] encryptKey(byte[] keyWithSalt, byte[] iv) {
-        try {
+	/**
+	 * 
+	 */
+	public byte[] encryptKey(byte[] keyWithSalt, byte[] iv) {
+		try {
 
-            SecretKeySpec secretKeySpec = new SecretKeySpec(keyToEncryptMasterKey, EncryptionService.ENCRYPTION_ALGORITHM);
-            Cipher enc = Cipher.getInstance(EncryptionService.ENCRYPTION_ALGORITHM_METHOD);
-            enc.init(Cipher.ENCRYPT_MODE, secretKeySpec, new GCMParameterSpec(EncryptionService.IV_LENGTH_BIT, iv));
-            return enc.doFinal(keyWithSalt);
+			SecretKeySpec secretKeySpec = new SecretKeySpec(keyToEncryptMasterKey, EncryptionService.ENCRYPTION_ALGORITHM);
+			Cipher enc = Cipher.getInstance(EncryptionService.ENCRYPTION_ALGORITHM_METHOD);
+			enc.init(Cipher.ENCRYPT_MODE, secretKeySpec, new GCMParameterSpec(EncryptionService.IV_LENGTH_BIT, iv));
+			return enc.doFinal(keyWithSalt);
 
-        } catch (Exception e) {
-            throw new InternalCriticalException(e, "encryptKey");
-        }
-    }
+		} catch (Exception e) {
+			throw new InternalCriticalException(e, "encryptKey");
+		}
+	}
 
-    public byte[] decryptKey(byte[] keyWithSalt) {
-        return decryptKey(keyWithSalt, this.iv);
-    }
+	public byte[] decryptKey(byte[] keyWithSalt) {
+		return decryptKey(keyWithSalt, this.iv);
+	}
 
-    /**
-     * @param encKey
-     */
-    public synchronized void setKeyToEncryptMasterKey(byte[] encKey, byte[] iv) {
-        this.iv = iv;
-        this.keyToEncryptMasterKey = encKey;
-    }
+	/**
+	 * @param encKey
+	 */
+	public synchronized void setKeyToEncryptMasterKey(byte[] encKey, byte[] iv) {
+		this.iv = iv;
+		this.keyToEncryptMasterKey = encKey;
+	}
 
-    public ServerSettings getServerSettings() {
-        return this.serverSettings;
-    }
+	public ServerSettings getServerSettings() {
+		return this.serverSettings;
+	}
 
-    @PostConstruct
-    protected void onInitialize() {
+	@PostConstruct
+	protected void onInitialize() {
 
-        synchronized (this) {
-            setStatus(ServiceStatus.STARTING);
-            if (getServerSettings().getEncryptionKey() != null) {
-                String s_key = getServerSettings().getEncryptionKey();
-                String s_iv = getServerSettings().getEncryptionIV();
-                byte a_encKey[] = ByteToString.hexStringToByte(s_key);
-                byte a_iv[] = ByteToString.hexStringToByte(s_iv);
-                setKeyToEncryptMasterKey(a_encKey, a_iv);
-            }
-            startuplogger.debug("Started -> " + this.getClass().getSimpleName());
-            setStatus(ServiceStatus.RUNNING);
-        }
-    }
+		synchronized (this) {
+			setStatus(ServiceStatus.STARTING);
+			if (getServerSettings().getEncryptionKey() != null) {
+				String s_key = getServerSettings().getEncryptionKey();
+				String s_iv = getServerSettings().getEncryptionIV();
+				byte a_encKey[] = ByteToString.hexStringToByte(s_key);
+				byte a_iv[] = ByteToString.hexStringToByte(s_iv);
+				setKeyToEncryptMasterKey(a_encKey, a_iv);
+			}
+			startuplogger.debug("Started -> " + this.getClass().getSimpleName());
+			setStatus(ServiceStatus.RUNNING);
+		}
+	}
 
-    private byte[] decryptKey(byte[] keyWithSalt, byte[] iv) {
-        try {
-            SecretKeySpec secretKeySpec = new SecretKeySpec(keyToEncryptMasterKey, EncryptionService.ENCRYPTION_ALGORITHM);
-            Cipher dec = Cipher.getInstance(EncryptionService.ENCRYPTION_ALGORITHM_METHOD);
-            dec.init(Cipher.DECRYPT_MODE, secretKeySpec, new GCMParameterSpec(EncryptionService.IV_LENGTH_BIT, iv));
-            return dec.doFinal(keyWithSalt);
+	private byte[] decryptKey(byte[] keyWithSalt, byte[] iv) {
+		try {
+			SecretKeySpec secretKeySpec = new SecretKeySpec(keyToEncryptMasterKey, EncryptionService.ENCRYPTION_ALGORITHM);
+			Cipher dec = Cipher.getInstance(EncryptionService.ENCRYPTION_ALGORITHM_METHOD);
+			dec.init(Cipher.DECRYPT_MODE, secretKeySpec, new GCMParameterSpec(EncryptionService.IV_LENGTH_BIT, iv));
+			return dec.doFinal(keyWithSalt);
 
-        } catch (Exception e) {
-            throw new InternalCriticalException(e, "decryptKey");
-        }
-    }
+		} catch (Exception e) {
+			throw new InternalCriticalException(e, "decryptKey");
+		}
+	}
 
 }

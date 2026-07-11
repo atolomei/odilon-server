@@ -33,8 +33,8 @@ import org.springframework.stereotype.Service;
 
 /**
  * <p>
- * Encrypts key for each file using the Master Key.
- * This service is used when there is no Key Management Service 
+ * Encrypts key for each file using the Master Key. This service is used when
+ * there is no Key Management Service
  * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)

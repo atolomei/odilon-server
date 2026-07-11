@@ -24,13 +24,13 @@ import java.io.InputStream;
  */
 public interface StreamEncryptor {
 
-    public EncryptedInputStream encrypt(InputStream inputStream, String key, String iv);
+	public EncryptedInputStream encrypt(InputStream inputStream, String key, String iv);
 
-    public InputStream decrypt(InputStream inputStream, String encryptedKey, String iv);
+	public InputStream decrypt(InputStream inputStream, String encryptedKey, String iv);
 
-    public String getNewKey();
+	public String getNewKey();
 
-    public String getIV();
+	public String getIV();
 
-    public StreamEncryptorInfo getStreamEncryptionInfo(String key, String ivStr);
+	public StreamEncryptorInfo getStreamEncryptionInfo(String key, String ivStr);
 }

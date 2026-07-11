@@ -37,7 +37,7 @@ import org.springframework.core.env.Environment;
 
 import io.odilon.OdilonVersion;
 import io.odilon.encryption.EncryptionService;
-import io.odilon.model.RAID6Config;
+import io.odilon.model.ECConfig;
 import io.odilon.log.Logger;
 import io.odilon.model.JSONObject;
 import io.odilon.model.DataStorage;
@@ -203,13 +203,13 @@ public class ServerSettings implements JSONObject {
 	private List<List<String>> volumeRootDirs = new ArrayList<>();
 
 	/**
-	 * Data shards per volume — derived from {@link RAID6Config}, never
+	 * Data shards per volume — derived from {@link ECConfig}, never
 	 * user-configured.
 	 */
 	protected int ecDataDrives = -1;
 
 	/**
-	 * Parity shards per volume — derived from {@link RAID6Config}, never
+	 * Parity shards per volume — derived from {@link ECConfig}, never
 	 * user-configured.
 	 */
 	protected int ecParityDrives = -1;
@@ -839,12 +839,12 @@ public class ServerSettings implements JSONObject {
 
 				// Derive data/parity from drive count — no user config needed
 				try {
-					RAID6Config cfg = RAID6Config.fromDriveCount(drivesPerVol);
+					ECConfig cfg = ECConfig.fromDriveCount(drivesPerVol);
 					this.ecDataDrives = cfg.dataDrives;
 					this.ecParityDrives = cfg.parityDrives;
 					startuplogger.info("ErasureCoding: " + this.ecVolumes + " volume(s), " + drivesPerVol + " drives/volume -> " + cfg);
 				} catch (IllegalArgumentException e) {
-					exit("dataStorage.volume.0 has " + drivesPerVol + " drives. " + "Supported drives per volume: " + RAID6Config.supportedCounts() + ".");
+					exit("dataStorage.volume.0 has " + drivesPerVol + " drives. " + "Supported drives per volume: " + ECConfig.supportedCounts() + ".");
 				}
 
 				// Build flat rootDirs from the per-volume lists (used by loadDrives)
@@ -867,11 +867,11 @@ public class ServerSettings implements JSONObject {
 				this.ecVolumes = 1;
 
 				try {
-					RAID6Config cfg = RAID6Config.fromDriveCount(drivesPerVol);
+					ECConfig cfg = ECConfig.fromDriveCount(drivesPerVol);
 					this.ecDataDrives = cfg.dataDrives;
 					this.ecParityDrives = cfg.parityDrives;
 				} catch (IllegalArgumentException e) {
-					exit("dataStorage has " + drivesPerVol + " drives. " + "Supported drives per volume: " + RAID6Config.supportedCounts() + ".");
+					exit("dataStorage has " + drivesPerVol + " drives. " + "Supported drives per volume: " + ECConfig.supportedCounts() + ".");
 				}
 
 				// Wrap in single-volume list for uniform access

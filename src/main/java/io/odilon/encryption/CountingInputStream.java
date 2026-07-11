@@ -24,11 +24,12 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * <p>
- * CountingInputStream is a wrapper around an InputStream that counts the number of bytes read from the stream.
+ * CountingInputStream is a wrapper around an InputStream that counts the number
+ * of bytes read from the stream.
  * </p>
  * 
- * @author atolomei@novamens.com (Alejandro Tolomei) 
- * */
+ * @author atolomei@novamens.com (Alejandro Tolomei)
+ */
 public final class CountingInputStream extends FilterInputStream {
 
 	private final AtomicLong count = new AtomicLong(0);

@@ -48,8 +48,8 @@ import io.odilon.virtualFileSystem.model.OperationCode;
  * </p>
  * <p>
  * Odilon contains two cache services: {@link ObjectMetadataCacheService} (this
- * class) for {@link ObjectMetadata} and {@link FileCacheService} used by ErasureCoding
- * ({@link ECDriver}) to store decoded (but encrypted) files.
+ * class) for {@link ObjectMetadata} and {@link FileCacheService} used by
+ * ErasureCoding ({@link ECDriver}) to store decoded (but encrypted) files.
  * </p>
  * <p>
  * {@link ObjectMetadata} Cache. It only stores ObjectMetadata's <b>head

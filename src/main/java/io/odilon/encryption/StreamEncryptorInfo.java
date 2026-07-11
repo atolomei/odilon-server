@@ -27,9 +27,9 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY, getterVisibility = JsonAutoDetect.Visibility.NONE)
 public interface StreamEncryptorInfo {
 
-    StreamEncryptor getStreamEncryption();
+	StreamEncryptor getStreamEncryption();
 
-    String getEncryptedKey();
+	String getEncryptedKey();
 
-    String getIV();
+	String getIV();
 }
