@@ -63,12 +63,12 @@
  
 <h2>Data Replication</h2>
 Odilon can be configured to use software RAID and Erasure Codes for data replication.  <br/><br/>
- <br/>
+  
 <ul>
 <li><b>RAID 0.</b> Two or more disks are combined to form a volume, which appears as a single virtual drive.
 It is not a configuration with data replication, its function is to provide greater storage and performance by allowing access to the disks in parallel.<br/><br/>
 </li>
-<li><b>RAID 1.</b>For each object, 1 or more exact copies (or mirrors) are created on two or more disks. This provides redundancy in case of disk failure. At least 2 disks are required, Odilon also supports 3 or more for greater redundancy.<br/><br/>
+<li><b>RAID 1.</b> For each object, 1 or more exact copies (or mirrors) are created on two or more disks. This provides redundancy in case of disk failure. At least 2 disks are required, Odilon also supports 3 or more for greater redundancy.<br/><br/>
 </li>
 <li><b>Erasure Coding.</b>
 	It is a method of encoding data into blocks that can be distributed across multiple disks or nodes and then reconstructed from a subset of those blocks. It has great flexibility since you can adjust the number and size of the blocks and the minimum required for recovery. It uses less disk space than RAID 1 and can withstand multiple full disk failures.<br/> <br/>  
