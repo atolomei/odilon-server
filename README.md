@@ -62,7 +62,7 @@
 <p>Odilon integrates with the KMS Open Source <a href="https://www.vaultproject.io/" target="_blank">Hashicorp Vault</a>.</p>
  
 <h2>Data Replication</h2>
-Odilon can be configured to use software RAID for data replication. The supported configurations are
+Odilon can be configured to use software RAID for data replication.  
  
 <ul>
 <li><b>RAID 0.</b> Two or more disks are combined to form a volume, which appears as a single virtual drive.
@@ -76,7 +76,7 @@ Odilon implements this architecture using <a href="https://en.wikipedia.org/wiki
 Reed Solomon codes are widely used, from the Voyager probes exploring the solar system, to the James Webb telescope, to the QR codes on mobile phones.<br/> <br/> 
 Odilon's Erasure Coding architecture is designed to recover data automatically after one or more disk failures.<br/> <br/>  	
 It can also detect and repair silent data corruption caused by bad sectors, bit flips, or other storage errors. It has a background data scrubber that periodically walks every object in storage and verifies its integrity, and also an optional read-repair functionality that checks the integrity of each shard on every read operation.<br/>  <br/>  
-The configurations are: <br/> <br/> 
+The supported configurations are: <br/> <br/> 
 <b>3 disks</b> (2 data 1 parity, supports 1 full disk failure), <br/>  
 <b>6 disks</b> (4 data 2 parity, supports up to 2 full disks failures) <br/>
 <b>12 disks</b> (8 data 4 parity, supports up to 4 full disks failures) <br/>
