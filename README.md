@@ -1,6 +1,6 @@
 ![spring-gaede65182_1280](https://github.com/atolomei/odilon-server/assets/29349757/f1c6f491-9d1f-4e4d-af87-f7e57713542a)
 
-<p><b>NEWS</b>: Odilon Server 2.0 available (18 May 2026). Odilon client SDK 2.0 available (18 May 2026)</p>
+<p><b>NEWS</b>: Odilon Server 2.1 available (18 May 2026). Odilon client SDK 2.0 available (18 May 2026)</p>
 
 <h1>Odilon Object Storage</h2>
 
@@ -62,29 +62,34 @@
 <p>Odilon integrates with the KMS Open Source <a href="https://www.vaultproject.io/" target="_blank">Hashicorp Vault</a>.</p>
  
 <h2>Data Replication</h2>
-<p>Odilon can be configured to use software RAID for data replication. The supported configurations are</p>
-<p>
+Odilon can be configured to use software RAID for data replication. The supported configurations are
+ 
 <ul>
 <li><b>RAID 0.</b> Two or more disks are combined to form a volume, which appears as a single virtual drive.
 It is not a configuration with data replication, its function is to provide greater storage and performance by allowing access to the disks in parallel.<br/><br/>
 </li>
 <li><b>RAID 1.</b>For each object, 1 or more exact copies (or mirrors) are created on two or more disks. This provides redundancy in case of disk failure. At least 2 disks are required, Odilon also supports 3 or more for greater redundancy.<br/><br/>
 </li>
-<li>
-<b>RAID 6 / Erasure Coding.</b>
-It is a method of encoding data into blocks that can be distributed across multiple disks or nodes and then reconstructed from a subset of those blocks. It has great flexibility since you can adjust the number and size of the blocks and the minimum required for recovery. It uses less disk space than RAID 1 and can withstand multiple full disk failures. Odilon implements this architecture using 
-	<a href="https://en.wikipedia.org/wiki/Reed%E2%80%93Solomon_error_correction" target="_blank"> Reed Solomon</a> error-correction codes.<br/><br/> 
-	Reed Solomon codes are widely used, from the Voyager probes exploring the solar system, to the James Webb telescope, to the QR codes on mobile phones.<br/><br/>
-	The configurations are: <br/> <br/> 
-	<b>3 disks</b> (2 data 1 parity, supports 1 full disk failure), <br/>  
-	<b>6 disks</b> (4 data 2 parity, supports up to 2 full disks failures) <br/>
-	<b>12 disks</b> (8 data 4 parity, supports up to 4 full disks failures) <br/>
-	<b>24 disks</b> (16 data 8 parity, supports up to 8 full disks failures)<br/>
-	<b>48 disks</b> (32 data 16 parity, supports up to 16 full disks failures)<br/>
-</li> <br/>
+<li><b>Erasure Coding.</b>
+	It is a method of encoding data into blocks that can be distributed across multiple disks or nodes and then reconstructed from a subset of those blocks. It has great flexibility since you can adjust the number and size of the blocks and the minimum required for recovery. It uses less disk space than RAID 1 and can withstand multiple full disk failures.<br/> <br/>  
 	
+	Odilon implements this architecture using <a href="https://en.wikipedia.org/wiki/Reed%E2%80%93Solomon_error_correction" target="_blank"> Reed Solomon</a> error-correction codes.<br/> <br/> 
+	Reed Solomon codes are widely used, from the Voyager probes exploring the solar system, to the James Webb telescope, to the QR codes on mobile phones.<br/> <br/> 
+	Odilon's Erasure Coding architecture is designed to recover data automatically after one or more disk failures.<br/> <br/>  	
+	It can also detect and repair silent data corruption caused by bad sectors, bit flips, or other storage errors. It has a background data scrubber that periodically walks every object in storage and verifies its integrity, and also an optional read-repair functionality that checks the integrity of each shard on every read operation.<br/>  <br/>  
+The configurations are: <br/> <br/> 
+<b>3 disks</b> (2 data 1 parity, supports 1 full disk failure), <br/>  
+<b>6 disks</b> (4 data 2 parity, supports up to 2 full disks failures) <br/>
+<b>12 disks</b> (8 data 4 parity, supports up to 4 full disks failures) <br/>
+<b>24 disks</b> (16 data 8 parity, supports up to 8 full disks failures)<br/>
+<b>48 disks</b> (32 data 16 parity, supports up to 16 full disks failures)<br/>
+</li> <br/>
+
 </ul>
-</p>
+
+
+
+
 
 
 <h2>Version Control</h2>
@@ -214,7 +219,7 @@ More info on the Odilon website <br/>
 
 <h2>Download</h2>
 <p>
-Current version of Odilon Server is <b>2.0</b>.
+Current version of Odilon Server is <b>2.1</b>.
 <ul>
 <li><a href="https://odilon.io#download" target="_blank">Odilon Server</a></li>	
 <li><a href="https://odilon.io#download" target="_blank">Odilon Java SDK</a></li>
@@ -226,8 +231,16 @@ Current version of Odilon Server is <b>2.0</b>.
 <p>
 <ul>
 <li><a href="https://odilon.io/configuration-linux.html" target="_blank">Installation, Configuration and Operation on Linux</a></li>	
+<li><a href="https://odilon.io/configuration-mac.html" target="_blank">Installation, Configuration and Operation on Mac</a></li>	
 <li><a href="https://odilon.io/configuration-windows.html" target="_blank">Installation, Configuration and Operation on Windows</a></li>
-<li><a href="https://odilon.io/configuration-advanced.html" target="_blank">Advanced configuration (encryption, master-standby, version control)</a></li>		
+
+
+
+
+<li><a href="https://odilon.io/configuration-data-replication.html" target="_blank">Data Replication</a></li>
+<li><a href="https://odilon.io/configuration-encryption.html" target="_blank">Encryption</a></li>
+<li><a href="https://odilon.io/configuration-version-control.html" target="_blank">Version Control</a></li>
+<li><a href="https://odilon.io/configuration-replication.html" target="_blank">Master-Standby replication</a></li>
 <li><a href="https://odilon.io/configuration-https.html" target="_blank">Configuring HTTPS</a></li>		
 </ul>
 </p>
