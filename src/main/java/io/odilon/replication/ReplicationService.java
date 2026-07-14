@@ -21,7 +21,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
- 
+
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -113,9 +113,9 @@ public class ReplicationService extends BaseService implements ApplicationContex
 	private AtomicBoolean initialSync = new AtomicBoolean(false);
 
 	/**
-	 * Timestamp (epoch ms) of the oldest replica operation currently sitting in
-	 * the scheduler queue. Zero when the queue is empty. Used to compute
-	 * replication lag (Issue 8).
+	 * Timestamp (epoch ms) of the oldest replica operation currently sitting in the
+	 * scheduler queue. Zero when the queue is empty. Used to compute replication
+	 * lag (Issue 8).
 	 */
 	@JsonIgnore
 	private volatile long oldestEnqueuedMs = 0L;
@@ -265,9 +265,9 @@ public class ReplicationService extends BaseService implements ApplicationContex
 	 * Enqueues a committed operation for async propagation to the standby.
 	 *
 	 * Issue 1: rejects new entries when the queue exceeds
-	 * {@code standby.replicaQueueMax} to prevent unbounded growth.
-	 * Issue 8: records the timestamp of the oldest queued entry so that
-	 * the replication-lag gauge stays current.
+	 * {@code standby.replicaQueueMax} to prevent unbounded growth. Issue 8: records
+	 * the timestamp of the oldest queued entry so that the replication-lag gauge
+	 * stays current.
 	 *
 	 * @param opx committed operation to propagate
 	 */
@@ -288,12 +288,11 @@ public class ReplicationService extends BaseService implements ApplicationContex
 
 			// Issue 1 — queue bound
 			int queueSize = getSchedulerService().getReplicaQueueSize();
-			int queueMax  = getServerSettings().getStandbyReplicaQueueMax();
-			int warnAt    = (int) (queueMax * 0.8);
+			int queueMax = getServerSettings().getStandbyReplicaQueueMax();
+			int warnAt = (int) (queueMax * 0.8);
 
 			if (queueSize >= queueMax) {
-				String msg = "Replica queue full (" + queueSize + "/" + queueMax
-						+ ") — dropping: " + opx.getOperationCode() + " | " + opx.toString();
+				String msg = "Replica queue full (" + queueSize + "/" + queueMax + ") — dropping: " + opx.getOperationCode() + " | " + opx.toString();
 				logger.error(msg);
 				throw new InternalCriticalException(msg);
 			}
@@ -303,8 +302,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 			// Issue 8 — lag metric: stamp the moment the queue first becomes non-empty
 			if (queueSize == 0)
 				this.oldestEnqueuedMs = System.currentTimeMillis();
-			getMonitoringService().setReplicationLagMs(
-					this.oldestEnqueuedMs == 0 ? 0L : System.currentTimeMillis() - this.oldestEnqueuedMs);
+			getMonitoringService().setReplicationLagMs(this.oldestEnqueuedMs == 0 ? 0L : System.currentTimeMillis() - this.oldestEnqueuedMs);
 
 			this.getSchedulerService().enqueue(getApplicationContext().getBean(StandByReplicaServiceRequest.class, opx));
 			break;
@@ -336,12 +334,12 @@ public class ReplicationService extends BaseService implements ApplicationContex
 	/**
 	 * Propagates a committed operation to the standby server.
 	 *
-	 * Issue 2: uses configurable {@code standby.journalWaitMs} timeout; on
-	 * timeout the operation is re-enqueued so the scheduler can retry it
-	 * instead of throwing InternalCriticalException permanently.
-	 * Issue 7: catches ODClientException from the dispatch methods and
-	 * attempts a single reconnect before re-throwing.
-	 * Issue 8: clears the lag metric when the queue becomes empty again.
+	 * Issue 2: uses configurable {@code standby.journalWaitMs} timeout; on timeout
+	 * the operation is re-enqueued so the scheduler can retry it instead of
+	 * throwing InternalCriticalException permanently. Issue 7: catches
+	 * ODClientException from the dispatch methods and attempts a single reconnect
+	 * before re-throwing. Issue 8: clears the lag metric when the queue becomes
+	 * empty again.
 	 *
 	 * @param opx committed operation to propagate
 	 */
@@ -360,8 +358,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 		try {
 			odj.awaitCommit(opx.getId()).get(maxWaitMs, TimeUnit.MILLISECONDS);
 		} catch (TimeoutException e) {
-			logger.warn(JournalService.class.getSimpleName() + " commit timed out after "
-					+ maxWaitMs + " ms — re-enqueueing for retry: " + opx.toString());
+			logger.warn(JournalService.class.getSimpleName() + " commit timed out after " + maxWaitMs + " ms — re-enqueueing for retry: " + opx.toString());
 			enqueue(opx);
 			return;
 		} catch (ExecutionException e) {
@@ -373,26 +370,47 @@ public class ReplicationService extends BaseService implements ApplicationContex
 			return;
 		}
 
-		logger.debug(opx.getOperationCode().getName()
-				+ ((opx.getBucketId()   != null) ? (" b:"  + opx.getBucketId())   : "")
-				+ ((opx.getBucketName() != null) ? (" bn:" + opx.getBucketName()) : "")
-				+ ((opx.getObjectName() != null) ? (" o:"  + opx.getObjectName()) : ""));
+		logger.debug(opx.getOperationCode().getName() + ((opx.getBucketId() != null) ? (" b:" + opx.getBucketId()) : "") + ((opx.getBucketName() != null) ? (" bn:" + opx.getBucketName()) : "")
+				+ ((opx.getObjectName() != null) ? (" o:" + opx.getObjectName()) : ""));
 
 		try {
 			switch (opx.getOperationCode()) {
 
-			case CREATE_BUCKET:             replicateCreateBucket(opx);                   break;
-			case UPDATE_BUCKET:             replicateRenameBucket(opx);                   break;
-			case DELETE_BUCKET:             replicateDeleteBucket(opx);                   break;
-			case CREATE_OBJECT:             replicateCreateObject(opx);                   break;
-			case UPDATE_OBJECT:             replicateUpdateObject(opx);                   break;
-			case DELETE_OBJECT:             replicateDeleteObject(opx);                   break;
-			case RESTORE_OBJECT_PREVIOUS_VERSION:   replicateRestoreObjectPreviousVersion(opx);  break;
-			case DELETE_OBJECT_PREVIOUS_VERSIONS:   replicateDeleteObjectPreviousVersion(opx);   break;
-			case CREATE_SERVER_METADATA:    logger.debug("server metadata not replicated"); break;
-			case UPDATE_OBJECT_METADATA:    logger.debug("object metadata not replicated"); break;
-			case UPDATE_SERVER_METADATA:    logger.debug("server metadata not replicated"); break;
-			default: logger.error(opx.getOperationCode().toString() + " -> not recognized");
+			case CREATE_BUCKET:
+				replicateCreateBucket(opx);
+				break;
+			case UPDATE_BUCKET:
+				replicateRenameBucket(opx);
+				break;
+			case DELETE_BUCKET:
+				replicateDeleteBucket(opx);
+				break;
+			case CREATE_OBJECT:
+				replicateCreateObject(opx);
+				break;
+			case UPDATE_OBJECT:
+				replicateUpdateObject(opx);
+				break;
+			case DELETE_OBJECT:
+				replicateDeleteObject(opx);
+				break;
+			case RESTORE_OBJECT_PREVIOUS_VERSION:
+				replicateRestoreObjectPreviousVersion(opx);
+				break;
+			case DELETE_OBJECT_PREVIOUS_VERSIONS:
+				replicateDeleteObjectPreviousVersion(opx);
+				break;
+			case CREATE_SERVER_METADATA:
+				logger.debug("server metadata not replicated");
+				break;
+			case UPDATE_OBJECT_METADATA:
+				logger.debug("object metadata not replicated");
+				break;
+			case UPDATE_SERVER_METADATA:
+				logger.debug("server metadata not replicated");
+				break;
+			default:
+				logger.error(opx.getOperationCode().toString() + " -> not recognized");
 			}
 
 		} catch (InternalCriticalException ice) {
@@ -409,8 +427,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 			this.oldestEnqueuedMs = 0L;
 			getMonitoringService().setReplicationLagMs(0L);
 		} else {
-			getMonitoringService().setReplicationLagMs(
-					this.oldestEnqueuedMs == 0 ? 0L : System.currentTimeMillis() - this.oldestEnqueuedMs);
+			getMonitoringService().setReplicationLagMs(this.oldestEnqueuedMs == 0 ? 0L : System.currentTimeMillis() - this.oldestEnqueuedMs);
 		}
 	}
 
@@ -501,7 +518,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 			}
 		}
 	}
-	
+
 	/**
 	 * Issue 7 — Replaces the stale {@link OdilonClient} with a fresh connection.
 	 * Synchronized so that only one thread reconnects at a time; concurrent callers
@@ -560,8 +577,8 @@ public class ReplicationService extends BaseService implements ApplicationContex
 				ObjectMetadata meta = getVirtualFileSystemService().getObjectMetadata(bucket, opx.getObjectName());
 				try {
 
-					logger.debug("Replicating -> " + meta.toString() );
-					
+					logger.debug("Replicating -> " + meta.toString());
+
 					InputStream is = getVirtualFileSystemService().getObjectStream(bucket.getName(), opx.getObjectName());
 					((ODClient) getClient()).putReplicateObjectStream(bucket.getName(), opx.getObjectName(), is, Optional.ofNullable(meta.getFileName()), Optional.empty(), Optional.empty(), Optional.ofNullable(meta.getCustomTags()));
 
@@ -570,9 +587,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 					// standby wrote a different version.
 					ObjectMetadata standbyMeta = getClient().getObjectMetadata(bucket.getName(), opx.getObjectName());
 					if (standbyMeta != null && meta.getEtag() != null && !meta.getEtag().equals(standbyMeta.getEtag())) {
-						logger.error("Transit integrity failure (CREATE) — etag mismatch for "
-								+ bucket.getName() + "/" + opx.getObjectName()
-								+ " | local=" + meta.getEtag() + " standby=" + standbyMeta.getEtag());
+						logger.error("Transit integrity failure (CREATE) — etag mismatch for " + bucket.getName() + "/" + opx.getObjectName() + " | local=" + meta.getEtag() + " standby=" + standbyMeta.getEtag());
 						throw new InternalCriticalException("Transit etag mismatch on CREATE_OBJECT -> " + opx.toString());
 					}
 
@@ -587,11 +602,11 @@ public class ReplicationService extends BaseService implements ApplicationContex
 			} catch (ODClientException e) {
 				logger.debug(e, opx.toString());
 				throw new InternalCriticalException(e, opx.toString());
-				
+
 			} catch (InternalCriticalException e) {
 				logger.debug(e, opx.toString());
 				throw e;
-			
+
 			} finally {
 				getLockService().getBucketLock(opx.getBucketId()).readLock().unlock();
 			}
@@ -633,9 +648,7 @@ public class ReplicationService extends BaseService implements ApplicationContex
 						// Issue 4 — transit integrity check
 						ObjectMetadata standbyMeta = getClient().getObjectMetadata(bucket.getName(), opx.getObjectName());
 						if (standbyMeta != null && meta.getEtag() != null && !meta.getEtag().equals(standbyMeta.getEtag())) {
-							logger.error("Transit integrity failure (UPDATE) — etag mismatch for "
-									+ bucket.getName() + "/" + opx.getObjectName()
-									+ " | local=" + meta.getEtag() + " standby=" + standbyMeta.getEtag());
+							logger.error("Transit integrity failure (UPDATE) — etag mismatch for " + bucket.getName() + "/" + opx.getObjectName() + " | local=" + meta.getEtag() + " standby=" + standbyMeta.getEtag());
 							throw new InternalCriticalException("Transit etag mismatch on UPDATE_OBJECT -> " + opx.toString());
 						}
 
@@ -793,7 +806,8 @@ public class ReplicationService extends BaseService implements ApplicationContex
 		try {
 			// Guard: if the bucket does not exist on the standby it is already in the
 			// desired end-state — treat as success (idempotent delete).
-			// Without this check a 404 from the standby becomes an InternalCriticalException
+			// Without this check a 404 from the standby becomes an
+			// InternalCriticalException
 			// that permanently blocks the replica queue.
 			if (!getClient().existsBucket(opx.getBucketName())) {
 				logger.debug("delete b: " + opx.getBucketName() + " -> bucket does not exist on standby, skipping");
@@ -822,8 +836,6 @@ public class ReplicationService extends BaseService implements ApplicationContex
 			throw new InternalCriticalException(e, opx.toString());
 		}
 	}
-
-	
 
 	/**
 	 * 

@@ -136,7 +136,7 @@ public class ReplicationCheckService extends BaseService {
 		{
 			// Iterate the standby's object list exactly once — ResultSet is already
 			// a self-contained iterator; no outer pagination loop is needed.
-			
+
 			try {
 				ResultSet<Item<ObjectMetadata>> data = getReplicationService().getClient().listObjects(bucket.getName());
 				while (data.hasNext()) {

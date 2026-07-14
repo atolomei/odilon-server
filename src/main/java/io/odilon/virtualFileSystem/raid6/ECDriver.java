@@ -400,174 +400,153 @@ public class ECDriver extends BaseIODriver implements ApplicationContextAware {
 				return true;
 			}
 
-		// ── Fast path: shard-level SHA-256 check ────────────────────────────────────
-		// When sha256Blocks is present (objects created/updated after per-shard
-		// checksums were introduced) we verify each RS shard in-place without
-		// performing a full Reed–Solomon decode or any decryption.  Shards are
-		// stored in encoded (and, if applicable, encrypted) form; sha256Blocks
-		// was computed from those same bytes at write time, so the comparison is
-		// valid without knowing the encryption key.
-		List<String> storedShardShas = metadata.getSha256Blocks();
-		ECVolume volume = getVolumeForObject(metadata);
-		if (storedShardShas != null && !storedShardShas.isEmpty()
-				&& storedShardShas.size() % volume.getTotalShards() == 0) {
+			// ── Fast path: shard-level SHA-256 check ────────────────────────────────────
+			// When sha256Blocks is present (objects created/updated after per-shard
+			// checksums were introduced) we verify each RS shard in-place without
+			// performing a full Reed–Solomon decode or any decryption. Shards are
+			// stored in encoded (and, if applicable, encrypted) form; sha256Blocks
+			// was computed from those same bytes at write time, so the comparison is
+			// valid without knowing the encryption key.
+			List<String> storedShardShas = metadata.getSha256Blocks();
+			ECVolume volume = getVolumeForObject(metadata);
+			if (storedShardShas != null && !storedShardShas.isEmpty() && storedShardShas.size() % volume.getTotalShards() == 0) {
 
-			List<File> shardFiles = getObjectDataFiles(metadata, bucket, Optional.empty());
-			int totalShards = shardFiles.size(); // == storedShardShas.size()
-			int parityDrives = volume.getParityDrives();
-			int missingOrCorrupt = 0;
+				List<File> shardFiles = getObjectDataFiles(metadata, bucket, Optional.empty());
+				int totalShards = shardFiles.size(); // == storedShardShas.size()
+				int parityDrives = volume.getParityDrives();
+				int missingOrCorrupt = 0;
 
-			for (int i = 0; i < totalShards; i++) {
-				File shard = shardFiles.get(i);
-				if (!shard.exists()) {
-					logger.warn("Integrity check: shard missing -> " + shard.getAbsolutePath()
-							+ " | b:" + bucket.getName() + " o:" + objectName);
-					missingOrCorrupt++;
-					continue;
+				for (int i = 0; i < totalShards; i++) {
+					File shard = shardFiles.get(i);
+					if (!shard.exists()) {
+						logger.warn("Integrity check: shard missing -> " + shard.getAbsolutePath() + " | b:" + bucket.getName() + " o:" + objectName);
+						missingOrCorrupt++;
+						continue;
+					}
+					String computed;
+					try (InputStream in = Files.newInputStream(shard.toPath())) {
+						java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+						byte[] buf = new byte[8192];
+						int n;
+						while ((n = in.read(buf)) != -1)
+							md.update(buf, 0, n);
+						computed = io.odilon.service.util.ByteToString.byteToHexString(md.digest());
+					} catch (Exception e) {
+						logger.error(e, "Integrity check: error hashing shard[" + i + "] -> " + shard.getAbsolutePath(), SharedConstant.NOT_THROWN);
+						missingOrCorrupt++;
+						continue;
+					}
+					if (!computed.equalsIgnoreCase(storedShardShas.get(i))) {
+						logger.warn("Integrity check: SHA mismatch on shard[" + i + "] -> " + shard.getAbsolutePath() + " | stored=" + storedShardShas.get(i) + " | computed=" + computed + " | b:" + bucket.getName() + " o:" + objectName);
+						missingOrCorrupt++;
+					}
 				}
-				String computed;
-				try (InputStream in = Files.newInputStream(shard.toPath())) {
-					java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
-					byte[] buf = new byte[8192];
-					int n;
-					while ((n = in.read(buf)) != -1)
-						md.update(buf, 0, n);
-					computed = io.odilon.service.util.ByteToString.byteToHexString(md.digest());
-				} catch (Exception e) {
-					logger.error(e, "Integrity check: error hashing shard[" + i + "] -> "
-							+ shard.getAbsolutePath(), SharedConstant.NOT_THROWN);
-					missingOrCorrupt++;
-					continue;
+
+				if (missingOrCorrupt == 0) {
+					// All shards verified — no structural write needed.
+					logger.debug("Integrity OK (shard-level) -> b:" + bucket.getName() + " o:" + objectName + " | shards=" + totalShards);
+					return true;
 				}
-				if (!computed.equalsIgnoreCase(storedShardShas.get(i))) {
-					logger.warn("Integrity check: SHA mismatch on shard[" + i + "] -> "
-							+ shard.getAbsolutePath()
-							+ " | stored=" + storedShardShas.get(i)
-							+ " | computed=" + computed
-							+ " | b:" + bucket.getName() + " o:" + objectName);
-					missingOrCorrupt++;
+
+				// Degraded but within parity tolerance → re-encode to repair.
+				// Must release read locks before reencodeObject acquires the write lock.
+				if (missingOrCorrupt <= parityDrives) {
+					logger.warn("Integrity DEGRADED (" + missingOrCorrupt + " shard(s) bad, parity=" + parityDrives + ") — re-encoding | b:" + bucket.getName() + " o:" + objectName);
+
+					try {
+						if (bucketLock)
+							getLockService().getBucketLock(bucket).readLock().unlock();
+					} catch (Exception e) {
+						logger.error(e, SharedConstant.NOT_THROWN);
+					}
+					bucketLock = false;
+
+					try {
+						if (objectLock)
+							getLockService().getObjectLock(bucket, objectName).readLock().unlock();
+					} catch (Exception e) {
+						logger.error(e, SharedConstant.NOT_THROWN);
+					}
+					objectLock = false;
+
+					boolean repaired = reencodeObject(bucket, objectName);
+					if (repaired)
+						logger.info("RE-ENCODE SUCCESS (shard-level) | b:" + bucket.getName() + " o:" + objectName);
+					else
+						logger.error("RE-ENCODE FAILED (irrecoverable) | b:" + bucket.getName() + " o:" + objectName);
+					return repaired;
 				}
+
+				// More corrupt shards than parity allows — irrecoverable.
+				logger.error("Integrity FAILED: " + missingOrCorrupt + " shard(s) corrupt/missing" + " (parity=" + parityDrives + ", total=" + totalShards + ")" + " | b:" + bucket.getName() + " o:" + objectName);
+				return false;
 			}
 
-			if (missingOrCorrupt == 0) {
-				// All shards verified — no structural write needed.
-				logger.debug("Integrity OK (shard-level) -> b:" + bucket.getName()
-						+ " o:" + objectName + " | shards=" + totalShards);
+			// ── Legacy fall-back: sha256Blocks absent → full decode + SHA-256 ──────────
+			// Objects written before per-shard checksums were introduced land here.
+			// Reconstruct the full payload via Reed–Solomon and hash the result.
+			ECDecoder decoder = new ECDecoder(this);
+			File decodedFile = null;
+			try {
+				decodedFile = decoder.decodeHead(metadata, bucket);
+			} catch (Exception e) {
+				logger.error(e, "Integrity check: unable to decode object -> b:" + bucket.getName() + " o:" + objectName + " d:" + (readDrive != null ? readDrive.getName() : "null") + " | " + e.getMessage(), SharedConstant.NOT_THROWN);
+				return false;
+			}
+
+			// Compute SHA-256 of the payload. If the object is encrypted, decodeHead
+			// returns the encrypted cache file, so we decrypt the stream before hashing.
+			String computedSha = null;
+			try (InputStream rawIn = Files.newInputStream(decodedFile.toPath()); InputStream in = (metadata.isEncrypt() ? getVirtualFileSystemService().getEncryptionService().decryptStream(rawIn) : rawIn)) {
+				java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+				byte[] buffer = new byte[8192];
+				int read;
+				while ((read = in.read(buffer)) != -1)
+					md.update(buffer, 0, read);
+				computedSha = io.odilon.service.util.ByteToString.byteToHexString(md.digest());
+			} catch (Exception e) {
+				logger.error(e, "Integrity check: error computing SHA-256 -> b:" + bucket.getName() + " o:" + objectName);
+				return false;
+			}
+
+			String metaSha = metadata.sha256;
+
+			if (metaSha == null || metaSha.trim().isEmpty()) {
+				logger.info("Integrity check (detection-only): no metadata SHA stored -> b:" + bucket.getName() + " o:" + objectName + " | computedSha:" + computedSha);
 				return true;
 			}
 
-			// Degraded but within parity tolerance → re-encode to repair.
-			// Must release read locks before reencodeObject acquires the write lock.
-			if (missingOrCorrupt <= parityDrives) {
-				logger.warn("Integrity DEGRADED (" + missingOrCorrupt + " shard(s) bad, parity="
-						+ parityDrives + ") — re-encoding | b:" + bucket.getName() + " o:" + objectName);
-
-				try {
-					if (bucketLock)
-						getLockService().getBucketLock(bucket).readLock().unlock();
-				} catch (Exception e) {
-					logger.error(e, SharedConstant.NOT_THROWN);
-				}
-				bucketLock = false;
-
-				try {
-					if (objectLock)
-						getLockService().getObjectLock(bucket, objectName).readLock().unlock();
-				} catch (Exception e) {
-					logger.error(e, SharedConstant.NOT_THROWN);
-				}
-				objectLock = false;
-
-				boolean repaired = reencodeObject(bucket, objectName);
-				if (repaired)
-					logger.info("RE-ENCODE SUCCESS (shard-level) | b:" + bucket.getName() + " o:" + objectName);
-				else
-					logger.error("RE-ENCODE FAILED (irrecoverable) | b:" + bucket.getName() + " o:" + objectName);
-				return repaired;
+			if (metaSha.equalsIgnoreCase(computedSha)) {
+				logger.debug("Integrity OK (legacy) -> b:" + bucket.getName() + " o:" + objectName + " d:" + (readDrive != null ? readDrive.getName() : "null") + " | sha:" + computedSha);
+				return true;
 			}
 
-			// More corrupt shards than parity allows — irrecoverable.
-			logger.error("Integrity FAILED: " + missingOrCorrupt + " shard(s) corrupt/missing"
-					+ " (parity=" + parityDrives + ", total=" + totalShards + ")"
-					+ " | b:" + bucket.getName() + " o:" + objectName);
-			return false;
-		}
+			// SHA mismatch — release read locks and attempt re-encode.
+			logger.warn("SHA mismatch (legacy) — attempting re-encode | b=" + bucket.getName() + " o=" + objectName + " | readDrive=" + (readDrive != null ? readDrive.getName() : "null") + " | metaSha=" + metaSha + " | computedSha="
+					+ computedSha + " | time=" + OffsetDateTime.now());
 
-		// ── Legacy fall-back: sha256Blocks absent → full decode + SHA-256 ──────────
-		// Objects written before per-shard checksums were introduced land here.
-		// Reconstruct the full payload via Reed–Solomon and hash the result.
-		ECDecoder decoder = new ECDecoder(this);
-		File decodedFile = null;
-		try {
-			decodedFile = decoder.decodeHead(metadata, bucket);
-		} catch (Exception e) {
-			logger.error(e, "Integrity check: unable to decode object -> b:" + bucket.getName()
-					+ " o:" + objectName + " d:" + (readDrive != null ? readDrive.getName() : "null")
-					+ " | " + e.getMessage(), SharedConstant.NOT_THROWN);
-			return false;
-		}
+			try {
+				if (bucketLock)
+					getLockService().getBucketLock(bucket).readLock().unlock();
+			} catch (Exception e) {
+				logger.error(e, SharedConstant.NOT_THROWN);
+			}
+			bucketLock = false;
 
-		// Compute SHA-256 of the payload. If the object is encrypted, decodeHead
-		// returns the encrypted cache file, so we decrypt the stream before hashing.
-		String computedSha = null;
-		try (InputStream rawIn = Files.newInputStream(decodedFile.toPath());
-				InputStream in = (metadata.isEncrypt()
-						? getVirtualFileSystemService().getEncryptionService().decryptStream(rawIn)
-						: rawIn)) {
-			java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
-			byte[] buffer = new byte[8192];
-			int read;
-			while ((read = in.read(buffer)) != -1)
-				md.update(buffer, 0, read);
-			computedSha = io.odilon.service.util.ByteToString.byteToHexString(md.digest());
-		} catch (Exception e) {
-			logger.error(e, "Integrity check: error computing SHA-256 -> b:" + bucket.getName() + " o:" + objectName);
-			return false;
-		}
+			try {
+				if (objectLock)
+					getLockService().getObjectLock(bucket, objectName).readLock().unlock();
+			} catch (Exception e) {
+				logger.error(e, SharedConstant.NOT_THROWN);
+			}
+			objectLock = false;
 
-		String metaSha = metadata.sha256;
-
-		if (metaSha == null || metaSha.trim().isEmpty()) {
-			logger.info("Integrity check (detection-only): no metadata SHA stored -> b:" + bucket.getName()
-					+ " o:" + objectName + " | computedSha:" + computedSha);
-			return true;
-		}
-
-		if (metaSha.equalsIgnoreCase(computedSha)) {
-			logger.debug("Integrity OK (legacy) -> b:" + bucket.getName() + " o:" + objectName
-					+ " d:" + (readDrive != null ? readDrive.getName() : "null") + " | sha:" + computedSha);
-			return true;
-		}
-
-		// SHA mismatch — release read locks and attempt re-encode.
-		logger.warn("SHA mismatch (legacy) — attempting re-encode | b=" + bucket.getName()
-				+ " o=" + objectName
-				+ " | readDrive=" + (readDrive != null ? readDrive.getName() : "null")
-				+ " | metaSha=" + metaSha + " | computedSha=" + computedSha
-				+ " | time=" + OffsetDateTime.now());
-
-		try {
-			if (bucketLock)
-				getLockService().getBucketLock(bucket).readLock().unlock();
-		} catch (Exception e) {
-			logger.error(e, SharedConstant.NOT_THROWN);
-		}
-		bucketLock = false;
-
-		try {
-			if (objectLock)
-				getLockService().getObjectLock(bucket, objectName).readLock().unlock();
-		} catch (Exception e) {
-			logger.error(e, SharedConstant.NOT_THROWN);
-		}
-		objectLock = false;
-
-		boolean repaired = reencodeObject(bucket, objectName);
-		if (repaired)
-			logger.info("RE-ENCODE SUCCESS (legacy) | b:" + bucket.getName() + " o:" + objectName);
-		else
-			logger.error("RE-ENCODE FAILED (irrecoverable) | b:" + bucket.getName() + " o:" + objectName);
-		return repaired;
+			boolean repaired = reencodeObject(bucket, objectName);
+			if (repaired)
+				logger.info("RE-ENCODE SUCCESS (legacy) | b:" + bucket.getName() + " o:" + objectName);
+			else
+				logger.error("RE-ENCODE FAILED (irrecoverable) | b:" + bucket.getName() + " o:" + objectName);
+			return repaired;
 
 		} finally {
 

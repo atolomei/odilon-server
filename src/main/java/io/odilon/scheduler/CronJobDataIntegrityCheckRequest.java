@@ -37,56 +37,55 @@ import io.odilon.virtualFileSystem.DataIntegrityChecker;
 @JsonTypeName("dataIntegrity")
 public class CronJobDataIntegrityCheckRequest extends CronJobRequest {
 
-    static private Logger logger = Logger.getLogger(CronJobDataIntegrityCheckRequest.class.getName());
+	static private Logger logger = Logger.getLogger(CronJobDataIntegrityCheckRequest.class.getName());
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * 
-     */
-    public CronJobDataIntegrityCheckRequest() {
-        super();
-    }
+	/**
+	 * 
+	 */
+	public CronJobDataIntegrityCheckRequest() {
+		super();
+	}
 
-    /**
-     * 
-     */
-    public CronJobDataIntegrityCheckRequest(String exp) {
-        super(exp);
-    }
+	/**
+	 * 
+	 */
+	public CronJobDataIntegrityCheckRequest(String exp) {
+		super(exp);
+	}
 
-    /**
-     * <p>
-     * boolean value can be set to true to force scan all files
-     * </p>
-     */
-    @Override
-    public void execute() {
+	/**
+	 * <p>
+	 * boolean value can be set to true to force scan all files
+	 * </p>
+	 */
+	@Override
+	public void execute() {
 
-        try {
-            setStatus(ServiceRequestStatus.RUNNING);
-            boolean forceCheckAll = false;
-            DataIntegrityChecker checker = getApplicationContext().getBean(DataIntegrityChecker.class,
-                    Boolean.valueOf(forceCheckAll));
-            logger.debug("Started -> " + checker.toString());
+		try {
+			setStatus(ServiceRequestStatus.RUNNING);
+			boolean forceCheckAll = false;
+			DataIntegrityChecker checker = getApplicationContext().getBean(DataIntegrityChecker.class, Boolean.valueOf(forceCheckAll));
+			logger.debug("Started -> " + checker.toString());
 
-        } catch (Exception e) {
-            logger.error(e, SharedConstant.NOT_THROWN);
+		} catch (Exception e) {
+			logger.error(e, SharedConstant.NOT_THROWN);
 
-        } finally {
-            setStatus(ServiceRequestStatus.COMPLETED);
-            logger.debug("done");
-        }
-    }
+		} finally {
+			setStatus(ServiceRequestStatus.COMPLETED);
+			logger.debug("done");
+		}
+	}
 
-    @Override
-    public boolean isSuccess() {
-        return true;
-    }
+	@Override
+	public boolean isSuccess() {
+		return true;
+	}
 
-    @Override
-    public String getUUID() {
-        return "s" + getId().toString();
-    }
+	@Override
+	public String getUUID() {
+		return "s" + getId().toString();
+	}
 
 }

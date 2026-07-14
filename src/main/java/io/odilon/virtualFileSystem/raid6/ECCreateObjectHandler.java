@@ -93,7 +93,6 @@ public class ECCreateObjectHandler extends ECTransactionObjectHandler {
 				/** commit */
 				commitOK = operation.commit();
 				logger.debug("Object created -> " + info(srcFileName) + " commitOK=" + commitOK);
-				
 
 			} catch (InternalCriticalException e) {
 				isMainException = true;
@@ -221,13 +220,8 @@ public class ECCreateObjectHandler extends ECTransactionObjectHandler {
 	 * @param stream
 	 * @param srcFileName
 	 */
-	private void saveMetadata(	ECShards ei, 
-								String srcFileName, 
-								String contentType, 
-								Optional<List<String>> customTags, 
-								Optional<Boolean> o_public) {
+	private void saveMetadata(ECShards ei, String srcFileName, String contentType, Optional<List<String>> customTags, Optional<Boolean> o_public) {
 
-		
 		List<String> shaBlocks = new ArrayList<String>();
 		StringBuilder etag_b = new StringBuilder();
 
@@ -289,9 +283,6 @@ public class ECCreateObjectHandler extends ECTransactionObjectHandler {
 				// SHA-256 of the plaintext payload — used by checkIntegrity.
 				meta.setSha256(ei.getSrcSha256());
 
-				
-				
-				
 				if (customTags.isPresent())
 					meta.setCustomTags(customTags.get());
 				list.add(meta);
