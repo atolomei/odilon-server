@@ -1,6 +1,6 @@
 ![spring-gaede65182_1280](https://github.com/atolomei/odilon-server/assets/29349757/f1c6f491-9d1f-4e4d-af87-f7e57713542a)
 
-<p><b>NEWS</b>: Odilon Server 2.1 available (18 May 2026). Odilon client SDK 2.0 available (18 May 2026)</p>
+<p><b>NEWS</b>: Odilon Server 2.1 available (10 Jul 2026). Odilon client SDK 2.0 available (18 May 2026)</p>
 
 <h1>Odilon Object Storage</h2>
 
@@ -25,25 +25,27 @@
 				<ul>
 				<li> Scalable Object Storage on commodity disks</li>
 				<li>Single binary, does not need a database or other external software</li>
-    				<li>It has a simple single-level folder structure similar to the Bucket/Object model of <a href="https://aws.amazon.com/s3 /" target="_blank">Amazon S3</a></li>					
+    			<li>It has a simple single-level folder structure similar to the Bucket/Object model of <a href="https://aws.amazon.com/s3 /" target="_blank">Amazon S3</a></li>					
 				<li> Runs on Linux, Mac and Windows</li>				
 				<li> SDK Java 11+ for client applications</li >
 				<li> HTTP/S for client server communication</li>
 				<li>License <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank">Open Source Apache 2</a>. It can be used for Open Source and commercial projects </li>
+				<li>Data replication using <a href="https://en.wikipedia.org/wiki/Erasure_code" target="_blank">Erasure Coding</a> and <a href="https://en.wikipedia.org/wiki/RAID" target="_blank">software RAID</a>. Tolerates full disk failures</li>
 				<li>Encryption <i>at rest</i> (<a href="https://es.wikipedia.org/wiki/Advanced_Encryption_Standard" target="_blank">AES GCM-SIV</a>) </li>
 				<li>Simple operation. Adding new disks requires one line in the config file, and an <i>async process</i> sets up disks and replicata data in background</li>
-				<li>Data replication using <a href="https://en.wikipedia.org/wiki/Erasure_code" target="_blank">Erasure Coding</a> and <a href="https://en.wikipedia.org/wiki/RAID" target="_blank">software RAID</a>. Tolerates full disk failures</li>
 				<li>Data immutability. Odilon supports two storage modes that protect data from deletion, whether accidental or intentional: Read Only and <a href="https://en.wikipedia.org/wiki/Write_once_read_many" target="_blank">WORM</a> (Write Once Read Many)
 				<li>Master - Standby architecture with async replication over the web, for disaster recovery, high availability, archival, ransomware recovery</li>
 				<li>Version Control</b>. Odilon supports two modes: standard and protected version control, designed for compliance and ransomware protection, where previous versions can not be deleted</li>
+				<li>Journaled atomic object updates. Each update is recorded in the journal before any changes are applied, allowing automatic rollback after a failure.</li>
 				<li>Integration with Key Management Server <a href="https://www.vaultproject.io/" target="_blank">Hashicorp Vault</a> </li>
-				<li>Disk monitoring for silent and slow data degradation detection (<a href="https://en.wikipedia.org/wiki/Data_degradation" target="_blank" >bit rot detection</a>)</li>
+                <li>Background data scrubber that periodically walks every object in storage and verifies its integrity (bit rot detection).</li>
+				<li>Optional Read repair strategy to detect and repair silent data corruption</li>
 				<li> Developed in Java, the server requires Java 17+ (uses <a href="https://spring.io/projects/spring-boot">Spring Boot</a>, <a href="https://square.github.io/okhttp/">OkHttp</a>, <a href="https://github.com/FasterXML/jackson">Jackson</a>, <a href="https://github.com/ben-manes/caffeine">Caffeine</a>, <a href="https://metrics.dropwizard.io/4.2.0/">Metrics</a>, among others) </li>
 				</ul>
 				</p>
 
 <h2>Security</h2>
-<p>Odilon keeps objects encrypted (<i>Encryption at Rest</i>) using <a href="https://es.wikipedia.org/wiki/Advanced_Encryption_Standard" target="_blank">AES GCM-SIV</a> wwith keys size of 256 bits (v2.1+) or 128 bits (v2.0 or older). 
+<p>Odilon keeps objects encrypted (<i>Encryption at Rest</i>) using <a href="https://es.wikipedia.org/wiki/Advanced_Encryption_Standard" target="_blank">AES GCM-SIV</a> wwith keys size of 256 bits. 
 	
 </p>
 	<p>Encryption has the following benefits: <br/>	
@@ -62,13 +64,13 @@
 <p>Odilon integrates with the KMS Open Source <a href="https://www.vaultproject.io/" target="_blank">Hashicorp Vault</a>.</p>
  
 <h2>Data Replication</h2>
-Odilon can be configured to use software RAID for data replication. The supported configurations are
- 
+Odilon can be configured to use software RAID and Erasure Codes for data replication.  <br/><br/>
+  
 <ul>
 <li><b>RAID 0.</b> Two or more disks are combined to form a volume, which appears as a single virtual drive.
 It is not a configuration with data replication, its function is to provide greater storage and performance by allowing access to the disks in parallel.<br/><br/>
 </li>
-<li><b>RAID 1.</b>For each object, 1 or more exact copies (or mirrors) are created on two or more disks. This provides redundancy in case of disk failure. At least 2 disks are required, Odilon also supports 3 or more for greater redundancy.<br/><br/>
+<li><b>RAID 1.</b> For each object, 1 or more exact copies (or mirrors) are created on two or more disks. This provides redundancy in case of disk failure. At least 2 disks are required, Odilon also supports 3 or more for greater redundancy.<br/><br/>
 </li>
 <li><b>Erasure Coding.</b>
 	It is a method of encoding data into blocks that can be distributed across multiple disks or nodes and then reconstructed from a subset of those blocks. It has great flexibility since you can adjust the number and size of the blocks and the minimum required for recovery. It uses less disk space than RAID 1 and can withstand multiple full disk failures.<br/> <br/>  
@@ -76,7 +78,7 @@ Odilon implements this architecture using <a href="https://en.wikipedia.org/wiki
 Reed Solomon codes are widely used, from the Voyager probes exploring the solar system, to the James Webb telescope, to the QR codes on mobile phones.<br/> <br/> 
 Odilon's Erasure Coding architecture is designed to recover data automatically after one or more disk failures.<br/> <br/>  	
 It can also detect and repair silent data corruption caused by bad sectors, bit flips, or other storage errors. It has a background data scrubber that periodically walks every object in storage and verifies its integrity, and also an optional read-repair functionality that checks the integrity of each shard on every read operation.<br/>  <br/>  
-The configurations are: <br/> <br/> 
+The supported configurations are: <br/> <br/> 
 <b>3 disks</b> (2 data 1 parity, supports 1 full disk failure), <br/>  
 <b>6 disks</b> (4 data 2 parity, supports up to 2 full disks failures) <br/>
 <b>12 disks</b> (8 data 4 parity, supports up to 4 full disks failures) <br/>
@@ -248,7 +250,7 @@ Current version of Odilon Server is <b>2.1</b>.
 <p>
 <ul>
 <li><a href="https://odilon.io/development.html" target="_blank">Java Application Development with Odilon</a></li>	
-<li><a href="https://odilon.io/javadoc/1.14/index.html" target="_blank">Odilon SDK Javadoc</a></li>	
+<li><a href="https://odilon.io/javadoc/2.0/index.html" target="_blank">Odilon SDK Javadoc</a></li>	
 <li class="list-item"><a href="https://github.com/atolomei/odilon-client" target="_blank">odilon-client GitHub project</a></li>
 <li class="list-item"><a href="https://github.com/atolomei/odilon-model" target="_blank">odilon-model GitHub project</a></li>
 </ul>
