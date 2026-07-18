@@ -36,40 +36,40 @@ import io.odilon.model.RedundancyLevel;
  */
 public interface VirtualFileSystemOperation {
 
-    public OperationCode getOperationCode();
+	public OperationCode getOperationCode();
 
-    public boolean commit();
+	public boolean commit();
 
-    public boolean commit(Object payload);
+	public boolean commit(Object payload);
 
-    public void cancel();
+	public void cancel();
 
-    public void cancel(Object payload);
+	public void cancel(Object payload);
 
-    public boolean isReplicates();
+	public boolean isReplicates();
 
-    public String getId();
+	public String getId();
 
-    public String toJSON();
+	public String toJSON();
 
-    public OffsetDateTime getTimestamp();
+	public OffsetDateTime getTimestamp();
 
-    public RedundancyLevel getRedundancyLevel();
+	public RedundancyLevel getRedundancyLevel();
 
-    public String getObjectName();
+	public String getObjectName();
 
-    public String getBucketName();
+	public String getBucketName();
 
-    public Long getBucketId();
+	public Long getBucketId();
 
-    public int getVersion();
+	public int getVersion();
 
-    public String getUUID();
+	public String getUUID();
 
-    public void setOperationCode(OperationCode code);
+	public void setOperationCode(OperationCode code);
 
-    public void setBucketId(Long bucketId);
+	public void setBucketId(Long bucketId);
 
-    public void setObjectName(String name);
+	public void setObjectName(String name);
 
 }

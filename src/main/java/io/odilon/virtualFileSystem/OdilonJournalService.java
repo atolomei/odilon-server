@@ -93,19 +93,19 @@ public class OdilonJournalService extends BaseService implements JournalService 
 	/**
 	 * One entry per in-flight operation that a {@link ReplicationService#replicate}
 	 * call is waiting on. Completed normally when the journal commit finishes;
-	 * completed exceptionally (CancellationException) when the operation is
-	 * aborted or cancelled. Entries are created lazily by {@link #awaitCommit} and
-	 * removed in the {@code finally} blocks of {@link #commit} and {@link #cancel}.
+	 * completed exceptionally (CancellationException) when the operation is aborted
+	 * or cancelled. Entries are created lazily by {@link #awaitCommit} and removed
+	 * in the {@code finally} blocks of {@link #commit} and {@link #cancel}.
 	 */
 	@JsonIgnore
 	private final Map<String, CompletableFuture<Void>> commitSignals = new ConcurrentHashMap<>();
 
 	/**
-	 * Monotonically increasing operation ID counter.
-	 * Seeded from System.nanoTime() at construction time so IDs remain unique
-	 * across JVM restarts (journal files from a previous run will never collide
-	 * with new ones), and incremented atomically to guarantee uniqueness within a
-	 * single JVM session regardless of clock resolution.
+	 * Monotonically increasing operation ID counter. Seeded from System.nanoTime()
+	 * at construction time so IDs remain unique across JVM restarts (journal files
+	 * from a previous run will never collide with new ones), and incremented
+	 * atomically to guarantee uniqueness within a single JVM session regardless of
+	 * clock resolution.
 	 */
 	@JsonIgnore
 	private final AtomicLong opIdGenerator = new AtomicLong(System.nanoTime());
@@ -252,14 +252,14 @@ public class OdilonJournalService extends BaseService implements JournalService 
 
 			} catch (Exception e) {
 				logger.error(e, "commit: could not remove journal entry for op:" + operation.getId());
-		
+
 				if (isStandBy()) {
 					getOpsAborted().put(operation.getId(), operation.getId());
 					getReplicationService().cancel(operation);
 				}
-				
+
 				throw e;
-			
+
 			} finally {
 				// Always clean up the in-memory map regardless of whether event publication
 				// throws. Previously this sat between the two steps above: if publishEvent()
@@ -297,7 +297,8 @@ public class OdilonJournalService extends BaseService implements JournalService 
 				// Mirrors commit() ordering exactly. If publishEvent(ROLLBACK) throws first,
 				// the journal survives on every volume's drives and getJournalPending() on the
 				// next restart replays the rollback against state that is already (partially)
-				// rolled back. In ErasureCoding multi-volume, removeJournal() fans out across ALL
+				// rolled back. In ErasureCoding multi-volume, removeJournal() fans out across
+				// ALL
 				// enabled drives on ALL volumes, so the entry is guaranteed gone everywhere
 				// before any listener observes the ROLLBACK event.
 				try {
@@ -343,12 +344,12 @@ public class OdilonJournalService extends BaseService implements JournalService 
 	 * The method is safe against the race between the caller creating the future
 	 * and {@link #commit} / {@link #cancel} completing it:
 	 * <ol>
-	 *   <li>{@code computeIfAbsent} creates the future first — before the
-	 *       operations map is checked.</li>
-	 *   <li>If commit's {@code finally} block already removed the operation from
-	 *       the map before we get here, we complete the future ourselves right
-	 *       away. If both sides race to call {@code complete()}, the second call
-	 *       is a no-op — {@code CompletableFuture.complete()} is idempotent.</li>
+	 * <li>{@code computeIfAbsent} creates the future first — before the operations
+	 * map is checked.</li>
+	 * <li>If commit's {@code finally} block already removed the operation from the
+	 * map before we get here, we complete the future ourselves right away. If both
+	 * sides race to call {@code complete()}, the second call is a no-op —
+	 * {@code CompletableFuture.complete()} is idempotent.</li>
 	 * </ol>
 	 * </p>
 	 *

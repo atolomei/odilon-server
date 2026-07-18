@@ -17,7 +17,7 @@
 package io.odilon.virtualFileSystem;
 
 import java.io.File;
-import java.util.ArrayList;
+
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -35,10 +35,9 @@ import io.odilon.model.BaseObject;
  */
 public class RData extends BaseObject {
 
-	
 	@JsonIgnore
 	private List<File> encodedFiles;
-	
+
 	@JsonIgnore
 	private File encodedFile;
 
@@ -76,11 +75,11 @@ public class RData extends BaseObject {
 	public String toJSON() {
 		StringBuilder str = new StringBuilder();
 
-		//if (getEncodedFile() != null) {
-		//	str.append("encodedFile ");
-		//	getEncodedShards().forEach(f -> str.append("\"" + f.getName() + "\" "));
-		//	str.append("]");
-		//}
+		// if (getEncodedFile() != null) {
+		// str.append("encodedFile ");
+		// getEncodedShards().forEach(f -> str.append("\"" + f.getName() + "\" "));
+		// str.append("]");
+		// }
 		str.append("\"fileSize\":" + String.valueOf(getFileSize()));
 		return str.toString();
 	}

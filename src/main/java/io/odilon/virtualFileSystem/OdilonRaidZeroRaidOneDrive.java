@@ -76,11 +76,10 @@ public class OdilonRaidZeroRaidOneDrive extends OdilonDrive implements SimpleDri
 	 */
 	protected OdilonRaidZeroRaidOneDrive(String driveName, String rootDir, int configOrder, String raidSetup, int raidDrives) {
 		super(driveName, rootDir, configOrder, raidSetup, raidDrives);
-		
-		Check.requireTrue(	raidSetup.equals(RedundancyLevel.RAID_0.getName()) || 
-							raidSetup.equals(RedundancyLevel.RAID_1.getName()) ,"raidSetup must be " + RedundancyLevel.RAID_0.getName() + " or " + RedundancyLevel.RAID_1.getName() + " and it is -> " + raidSetup);
 
-		
+		Check.requireTrue(raidSetup.equals(RedundancyLevel.RAID_0.getName()) || raidSetup.equals(RedundancyLevel.RAID_1.getName()),
+				"raidSetup must be " + RedundancyLevel.RAID_0.getName() + " or " + RedundancyLevel.RAID_1.getName() + " and it is -> " + raidSetup);
+
 	}
 
 	/**

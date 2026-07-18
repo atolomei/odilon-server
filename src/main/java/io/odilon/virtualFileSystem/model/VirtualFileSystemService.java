@@ -77,238 +77,228 @@ import io.odilon.virtualFileSystem.raid6.OdilonECVolumeManager;
  */
 public interface VirtualFileSystemService extends SystemService {
 
-    public static final int BUFFER_SIZE = 8192;
+	public static final int BUFFER_SIZE = 8192;
 
-    /**
-     * sys / buckets sys / config sys / tmp
-     */
-    public static final String DATA = "data";
-    public static final String METADATA = "metadata";
+	/**
+	 * sys / buckets sys / config sys / tmp
+	 */
+	public static final String DATA = "data";
+	public static final String METADATA = "metadata";
 
-    public static final String DRIVE_INFO = "driveInfo.json";
-    public static final String SERVER_METADATA_FILE = "odilon.json";
-    public static final String ENCRYPTION_KEY_FILE = "key.enc";
+	public static final String DRIVE_INFO = "driveInfo.json";
+	public static final String SERVER_METADATA_FILE = "odilon.json";
+	public static final String ENCRYPTION_KEY_FILE = "key.enc";
 
-    public static final String SYS = ".odilon.sys";
-    public static final String BUCKETS = "buckets";
-    public static final String WORK = "work";
+	public static final String SYS = ".odilon.sys";
+	public static final String BUCKETS = "buckets";
+	public static final String WORK = "work";
 
-    public static final String CACHE = "cache";
+	public static final String CACHE = "cache";
 
-    public static final String SCHEDULER = "scheduler";
-    public static final String JOURNAL = "journal";
-    public static final String TEMP = "tmp";
-    public static final String VERSION_DIR = "version";
+	public static final String SCHEDULER = "scheduler";
+	public static final String JOURNAL = "journal";
+	public static final String TEMP = "tmp";
+	public static final String VERSION_DIR = "version";
 
-    static final public String VERSION_EXTENSION = ".v";
+	static final public String VERSION_EXTENSION = ".v";
 
-    static final public int BITS_PER_BYTE = 8;
+	static final public int BITS_PER_BYTE = 8;
 
-    /**
-     * Create RAID driver
-     */
-    public IODriver createVFSIODriver();
+	/**
+	 * Create RAID driver
+	 */
+	public IODriver createVFSIODriver();
 
-    /**
-     * Odilon Server info
-     */
-    public OdilonServerInfo getOdilonServerInfo();
+	/**
+	 * Odilon Server info
+	 */
+	public OdilonServerInfo getOdilonServerInfo();
 
-    public void setOdilonServerInfo(OdilonServerInfo serverInfo);
+	public void setOdilonServerInfo(OdilonServerInfo serverInfo);
 
-    /**
-     * Drives and VFS Buckets
-     */
-    public Map<String, Drive> getMapDrivesAll();
+	/**
+	 * Drives and VFS Buckets
+	 */
+	public Map<String, Drive> getMapDrivesAll();
 
-    public Map<String, Drive> getMapDrivesEnabled();
+	public Map<String, Drive> getMapDrivesEnabled();
 
-    public Map<Integer, Drive> getMapDrivesRSDecode();
+	public Map<Integer, Drive> getMapDrivesRSDecode();
 
-    /** drives to be used by FileServiceCache
-     * RAID 0. drivesEnabled
-     * RAID 1. drivesEnabled
-     *ErasureCoding. drivesEnabled from active Volume
-     * 
-     * */ 
-    public Map<Integer, Drive> getMapDrivesFileCache();
-    
-    
+	/**
+	 * drives to be used by FileServiceCache RAID 0. drivesEnabled RAID 1.
+	 * drivesEnabled ErasureCoding. drivesEnabled from active Volume
+	 * 
+	 */
+	public Map<Integer, Drive> getMapDrivesFileCache();
 
-    /** used to add a new disk enabled after a Drive sync process */
-    public void updateDriveStatus(Drive drive);
+	/** used to add a new disk enabled after a Drive sync process */
+	public void updateDriveStatus(Drive drive);
 
-    public List<ServerBucket> listAllBuckets();
+	public List<ServerBucket> listAllBuckets();
 
-    /**
-     * Bucket
-     */
-    public ServerBucket createBucket(String bucketName) throws IOException;
+	/**
+	 * Bucket
+	 */
+	public ServerBucket createBucket(String bucketName) throws IOException;
 
-    public void removeBucket(String bucketName);
+	public void removeBucket(String bucketName);
 
-    public ServerBucket renameBucketName(String currentBucketName, String newBucketName);
+	public ServerBucket renameBucketName(String currentBucketName, String newBucketName);
 
-    public ServerBucket getBucketByName(String bucketName);
+	public ServerBucket getBucketByName(String bucketName);
 
-    public boolean existsBucket(String bucketName);
+	public boolean existsBucket(String bucketName);
 
-    public boolean isEmpty(ServerBucket bucket);
+	public boolean isEmpty(ServerBucket bucket);
 
-    public void forceRemoveBucket(String bucketName);
+	public void forceRemoveBucket(String bucketName);
 
-    public Long getNextBucketId();
+	public Long getNextBucketId();
 
-    public String ping();
+	public String ping();
 
-    /**
-     * Objects
-     */
-    public void putObject(ServerBucket bucket, String objectName, File file);
+	/**
+	 * Objects
+	 */
+	public void putObject(ServerBucket bucket, String objectName, File file);
 
-    public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName, String contentType);
+	public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName, String contentType);
 
-    public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName, String contentType,
-            Optional<List<String>> customTags);
+	public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName, String contentType, Optional<List<String>> customTags);
 
-    public void putObject(String bucketName, String objectName, InputStream is, String fileName, String contentType,
-            Optional<List<String>> customTags);
+	public void putObject(String bucketName, String objectName, InputStream is, String fileName, String contentType, Optional<List<String>> customTags);
 
-    public void putObject(String bucketName, String objectName, InputStream is, String fileName, String contentType,  Optional<List<String>> customTags, Optional<Boolean> o_public);
+	public void putObject(String bucketName, String objectName, InputStream is, String fileName, String contentType, Optional<List<String>> customTags, Optional<Boolean> o_public);
 
-    public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName, String contentType, Optional<List<String>> customTags, Optional<Boolean> o_public);
-    
-    
-    public VirtualFileSystemObject getObject(ServerBucket bucket, String objectName);
+	public void putObject(ServerBucket bucket, String objectName, InputStream stream, String fileName, String contentType, Optional<List<String>> customTags, Optional<Boolean> o_public);
 
-    public VirtualFileSystemObject getObject(String bucketName, String objectName);
+	public VirtualFileSystemObject getObject(ServerBucket bucket, String objectName);
 
-    public ObjectMetadata getObjectMetadata(ServerBucket bucket, String objectName);
+	public VirtualFileSystemObject getObject(String bucketName, String objectName);
 
-    public boolean existsObject(ServerBucket bucket, String objectName);
+	public ObjectMetadata getObjectMetadata(ServerBucket bucket, String objectName);
 
-    public boolean existsObject(String bucketName, String objectName);
+	public boolean existsObject(ServerBucket bucket, String objectName);
 
-    public void deleteObject(ServerBucket bucket, String objectName);
-    
+	public boolean existsObject(String bucketName, String objectName);
+
+	public void deleteObject(ServerBucket bucket, String objectName);
+
 	public ObjectMetadata updateObjectMetadata(ObjectMetadata meta);
 
-    public InputStream getObjectStream(ServerBucket bucket, String objectName) throws IOException;
+	public InputStream getObjectStream(ServerBucket bucket, String objectName) throws IOException;
 
-    public InputStream getObjectStream(String bucketName, String objectName) throws IOException;
+	public InputStream getObjectStream(String bucketName, String objectName) throws IOException;
 
-    /**
-     * Object Version
-     */
-    public boolean hasVersions(String bucketName, String objectName);
+	/**
+	 * Object Version
+	 */
+	public boolean hasVersions(String bucketName, String objectName);
 
-    public List<ObjectMetadata> getObjectMetadataAllVersions(String bucketName, String objectName);
+	public List<ObjectMetadata> getObjectMetadataAllVersions(String bucketName, String objectName);
 
-    public ObjectMetadata getObjectMetadataVersion(String bucketName, String objectName, int version);
+	public ObjectMetadata getObjectMetadataVersion(String bucketName, String objectName, int version);
 
-    public ObjectMetadata getObjectMetadataPreviousVersion(String bucketName, String objectName);
+	public ObjectMetadata getObjectMetadataPreviousVersion(String bucketName, String objectName);
 
-    public InputStream getObjectVersion(String bucketName, String ObjectName, int version);
+	public InputStream getObjectVersion(String bucketName, String ObjectName, int version);
 
-    public ObjectMetadata restorePreviousVersion(String bucketName, String objectName);
+	public ObjectMetadata restorePreviousVersion(String bucketName, String objectName);
 
-    public void deleteObjectAllPreviousVersions(String bucketName, String objectName);
+	public void deleteObjectAllPreviousVersions(String bucketName, String objectName);
 
-    public void deleteBucketAllPreviousVersions(String bucketName);
+	public void deleteBucketAllPreviousVersions(String bucketName);
 
-    public void wipeAllPreviousVersions();
+	public void wipeAllPreviousVersions();
 
-    /**
-     * Query
-     */
-    public DataList<Item<ObjectMetadata>> listObjects(String bucketName, Optional<Long> offset, Optional<Long> pageSize,
-            Optional<String> prefix, Optional<String> serverAgentId);
+	/**
+	 * Query
+	 */
+	public DataList<Item<ObjectMetadata>> listObjects(String bucketName, Optional<Long> offset, Optional<Long> pageSize, Optional<String> prefix, Optional<String> serverAgentId);
 
-    public DataList<Item<ObjectMetadata>> listObjects(String bucketName);
+	public DataList<Item<ObjectMetadata>> listObjects(String bucketName);
 
-    /**
-     * Journal
-     */
-    public void saveJournal(VirtualFileSystemOperation op);
+	/**
+	 * Journal
+	 */
+	public void saveJournal(VirtualFileSystemOperation op);
 
-    public void removeJournal(String id);
+	public void removeJournal(String id);
 
-    public List<VirtualFileSystemOperation> getJournalPendingOperations();
+	public List<VirtualFileSystemOperation> getJournalPendingOperations();
 
-    /**
-     * Scheduler
-     */
-    public void saveScheduler(ServiceRequest request, String queueId);
+	/**
+	 * Scheduler
+	 */
+	public void saveScheduler(ServiceRequest request, String queueId);
 
-    public void removeScheduler(ServiceRequest request, String queueId);
+	public void removeScheduler(ServiceRequest request, String queueId);
 
-    public List<ServiceRequest> getSchedulerPendingRequests(String queueId);
+	public List<ServiceRequest> getSchedulerPendingRequests(String queueId);
 
-    /**
-     * Status Info
-     */
-    public boolean isEncrypt();
+	/**
+	 * Status Info
+	 */
+	public boolean isEncrypt();
 
-    public boolean isUseVaultNewFiles();
+	public boolean isUseVaultNewFiles();
 
-    public OffsetDateTime getStarted();
+	public OffsetDateTime getStarted();
 
-    public EncryptionService getEncryptionService();
+	public EncryptionService getEncryptionService();
 
-    public JournalService getJournalService();
+	public JournalService getJournalService();
 
-    public SchedulerService getSchedulerService();
+	public SchedulerService getSchedulerService();
 
-    public ServerSettings getServerSettings();
+	public ServerSettings getServerSettings();
 
-    public RedundancyLevel getRedundancyLevel();
+	public RedundancyLevel getRedundancyLevel();
 
-    public boolean isEmptyBucket(String bucketName);
+	public boolean isEmptyBucket(String bucketName);
 
-    public BucketIteratorService getBucketIteratorService();
+	public BucketIteratorService getBucketIteratorService();
 
-    public boolean checkIntegrity(String bucketName, String objectName, boolean forceCheck);
+	public boolean checkIntegrity(String bucketName, String objectName, boolean forceCheck);
 
-    /**
-     * Query
-     */
+	/**
+	 * Query
+	 */
 
-    public ReplicationService getReplicationService();
+	public ReplicationService getReplicationService();
 
-    public ObjectMetadataCacheService getObjectMetadataCacheService();
+	public ObjectMetadataCacheService getObjectMetadataCacheService();
 
-    public FileCacheService getFileCacheService();
+	public FileCacheService getFileCacheService();
 
-    public SystemMonitorService getSystemMonitorService();
+	public SystemMonitorService getSystemMonitorService();
 
-    public LockService getLockService();
+	public LockService getLockService();
 
-    /**
-     * Security
-     **/
-    public MasterKeyService getMasterKeyEncryptorService();
+	/**
+	 * Security
+	 **/
+	public MasterKeyService getMasterKeyEncryptorService();
 
-    public byte[] HMAC(byte[] data, byte[] key) throws NoSuchAlgorithmException, InvalidKeyException;
+	public byte[] HMAC(byte[] data, byte[] key) throws NoSuchAlgorithmException, InvalidKeyException;
 
-    public ApplicationContext getApplicationContext();
+	public ApplicationContext getApplicationContext();
 
-    public BucketCache getBucketCache();
+	public BucketCache getBucketCache();
 
-    public ApplicationEventPublisher getApplicationEventPublisher();
+	public ApplicationEventPublisher getApplicationEventPublisher();
 
-    public ExecutorService getExecutorService();
+	public ExecutorService getExecutorService();
 
 	public BufferPoolService getBufferPoolService();
 
 	/**
-	 * Returns the ErasureCoding volume manager, or {@code null} when the server
-	 * is running in RAID 0 or RAID 1 mode.
+	 * Returns the ErasureCoding volume manager, or {@code null} when the server is
+	 * running in RAID 0 or RAID 1 mode.
 	 */
 	public OdilonECVolumeManager getVolumeManager();
 
 	public VersionControl getVersionControl();
-
-	
-
 
 }

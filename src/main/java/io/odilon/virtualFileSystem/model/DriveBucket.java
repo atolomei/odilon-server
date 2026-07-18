@@ -35,11 +35,6 @@ public class DriveBucket {
 
 	@SuppressWarnings("unused")
 	static private Logger logger = Logger.getLogger(DriveBucket.class.getName());
-//	static private ObjectMapper objectMapper = new ObjectMapper();
-//	static {
-//		objectMapper.registerModule(new JavaTimeModule());
-//		objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-//	}
 
 	private BucketMetadata meta;
 

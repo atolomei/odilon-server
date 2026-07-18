@@ -27,12 +27,12 @@ import io.odilon.model.ObjectMetadata;
  */
 public interface VirtualFileSystemObject {
 
-    public String getObjectName();
+	public String getObjectName();
 
-    public ServerBucket getBucket();
+	public ServerBucket getBucket();
 
-    public ObjectMetadata getObjectMetadata();
+	public ObjectMetadata getObjectMetadata();
 
-    public InputStream getInputStream() throws IOException;
+	public InputStream getInputStream() throws IOException;
 
 }

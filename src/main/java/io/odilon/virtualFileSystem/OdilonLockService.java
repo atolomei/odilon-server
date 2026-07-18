@@ -81,7 +81,6 @@ public class OdilonLockService extends BaseService implements LockService {
 	@JsonIgnore
 	ReentrantReadWriteLock journalLock = new ReentrantReadWriteLock();
 
-	
 	@JsonIgnore
 	private ConcurrentMap<String, ReentrantReadWriteLock> objectLocks = new ConcurrentHashMap<>(1000);
 
@@ -171,20 +170,17 @@ public class OdilonLockService extends BaseService implements LockService {
 	public ReadWriteLock getServerLock() {
 		return this.serverLock;
 	}
-	
-	
+
 	@Override
 	public ReadWriteLock getSchedulerLock() {
-			return this.schedulerLock;
-	 }
-	 
+		return this.schedulerLock;
+	}
+
 	@Override
 	public ReadWriteLock getJournalLock() {
-			return this.journalLock;
-	 }
+		return this.journalLock;
+	}
 
-	
-	
 	public ConcurrentMap<String, ReentrantReadWriteLock> getObjectLocks() {
 		return objectLocks;
 	}

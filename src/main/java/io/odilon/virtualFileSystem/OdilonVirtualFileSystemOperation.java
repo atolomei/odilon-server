@@ -24,7 +24,6 @@ import java.util.Optional;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-
 import io.odilon.json.OdilonObjectMapper;
 import io.odilon.log.Logger;
 import io.odilon.model.RedundancyLevel;
@@ -43,7 +42,6 @@ public class OdilonVirtualFileSystemOperation implements VirtualFileSystemOperat
 
 	@JsonIgnore
 	static private OdilonObjectMapper mapper = new OdilonObjectMapper();
-	 
 
 	@JsonIgnore
 	static final private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.XXX-z", Locale.ENGLISH);
@@ -184,12 +182,9 @@ public class OdilonVirtualFileSystemOperation implements VirtualFileSystemOperat
 
 	@Override
 	public String toString() {
-	    return getClass().getSimpleName()
-	        + "[id=" + id
-	        + ", operation=" + operationCode
-	        + "]";
+		return getClass().getSimpleName() + "[id=" + id + ", operation=" + operationCode + "]";
 	}
-	
+
 	@Override
 	public OffsetDateTime getTimestamp() {
 		return timestamp;

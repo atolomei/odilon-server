@@ -41,10 +41,9 @@ public class OdilonECDrive extends OdilonDrive {
 	@SuppressWarnings("unused")
 	static private Logger logger = Logger.getLogger(OdilonECDrive.class.getName());
 
-	
 	@Autowired
 	protected OdilonECDrive(String rootDir) {
-				super(rootDir);
+		super(rootDir);
 	}
 
 	/**
@@ -58,7 +57,7 @@ public class OdilonECDrive extends OdilonDrive {
 	 */
 	protected OdilonECDrive(String name, String rootDir, int configOrder, String raidSetup, int raidDrives) {
 		super(name, rootDir, configOrder, raidSetup, raidDrives);
-		Check.requireTrue(raidSetup.equals(RedundancyLevel.ERASURE_CODING.getName()),"raidSetup must be " + RedundancyLevel.ERASURE_CODING.getName() + " and it is -> " + raidSetup);
+		Check.requireTrue(raidSetup.equals(RedundancyLevel.ERASURE_CODING.getName()), "raidSetup must be " + RedundancyLevel.ERASURE_CODING.getName() + " and it is -> " + raidSetup);
 	}
 
 }

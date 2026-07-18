@@ -21,7 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
+
 import java.nio.file.attribute.PosixFileAttributeView;
 import java.nio.file.attribute.PosixFilePermission;
 import java.security.InvalidKeyException;
@@ -289,10 +289,11 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 	private BucketCache bucketCache = new BucketCache();
 
 	/**
-	 * Completed with {@code null} when the VFS reaches {@link ServiceStatus#RUNNING};
-	 * completed exceptionally if startup fails. {@link ECDriveSync} (and any other
-	 * component that needs to wait for the VFS to be ready) calls
-	 * {@link #awaitRunning()} instead of polling {@link #getStatus()}.
+	 * Completed with {@code null} when the VFS reaches
+	 * {@link ServiceStatus#RUNNING}; completed exceptionally if startup fails.
+	 * {@link ECDriveSync} (and any other component that needs to wait for the VFS
+	 * to be ready) calls {@link #awaitRunning()} instead of polling
+	 * {@link #getStatus()}.
 	 */
 	@JsonIgnore
 	private final CompletableFuture<Void> vfsRunning = new CompletableFuture<>();
@@ -945,8 +946,8 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 	}
 
 	/**
-	 * Returns the {@link OdilonECVolumeManager} for ErasureCoding deployments. Returns
-	 * {@code null} for RAID 0 and RAID 1.
+	 * Returns the {@link OdilonECVolumeManager} for ErasureCoding deployments.
+	 * Returns {@code null} for RAID 0 and RAID 1.
 	 */
 	@Override
 	public OdilonECVolumeManager getVolumeManager() {
@@ -1264,9 +1265,9 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 	 * / rollback code that addresses drives by name still works.
 	 * </p>
 	 *
-	 * @param baselist ordered list of all ErasureCoding drives (all volumes combined), in
-	 *                 the same order as {@code dataStorage} entries in
-	 *                 {@code odilon.properties}.
+	 * @param baselist ordered list of all ErasureCoding drives (all volumes
+	 *                 combined), in the same order as {@code dataStorage} entries
+	 *                 in {@code odilon.properties}.
 	 */
 	private void initializeVolumeManager(List<Drive> baselist) {
 		int data = getServerSettings().getECDataDrives();

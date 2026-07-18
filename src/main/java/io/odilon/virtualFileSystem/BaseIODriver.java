@@ -460,7 +460,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 			}
 			if (operation.getOperationCode() == OperationCode.CREATE_SERVER_MASTERKEY) {
 				for (Drive drive : getDrivesAll()) {
-					File bak     = drive.getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE + ".bak");
+					File bak = drive.getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE + ".bak");
 					File current = drive.getSysFile(VirtualFileSystemService.ENCRYPTION_KEY_FILE);
 					if (bak != null && bak.exists()) {
 						/** rekey rollback: restore the previous working key */
@@ -721,12 +721,11 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		getLockService().getServerLock().writeLock().lock();
 		try {
 			/**
-			 * Backup existing key.enc → key.enc.bak on every drive BEFORE writing.
-			 * Required for rekey rollback: without this, a failed rekey would delete
-			 * key.enc (the only copy of the working key) making all stored data
-			 * permanently inaccessible.
-			 * For initial encryption key.enc does not exist yet, so nothing is backed up
-			 * and rollback will simply delete the partially-written file.
+			 * Backup existing key.enc → key.enc.bak on every drive BEFORE writing. Required
+			 * for rekey rollback: without this, a failed rekey would delete key.enc (the
+			 * only copy of the working key) making all stored data permanently
+			 * inaccessible. For initial encryption key.enc does not exist yet, so nothing
+			 * is backed up and rollback will simply delete the partially-written file.
 			 */
 			for (Drive drive : getDrivesAll()) {
 				try {

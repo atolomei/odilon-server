@@ -22,6 +22,6 @@ package io.odilon.virtualFileSystem;
  */
 public interface RAIDHandler {
 
-    static final boolean HEAD_TRUE = true;
-    static final int VERSION_ZERO = 0;
+	static final boolean HEAD_TRUE = true;
+	static final int VERSION_ZERO = 0;
 }

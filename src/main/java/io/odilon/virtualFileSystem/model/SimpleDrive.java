@@ -20,14 +20,15 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 
-
 /**
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 public interface SimpleDrive extends Drive {
 	public File putObjectStream(Long bucketId, String objectName, InputStream stream) throws IOException;
+
 	public void putObjectDataFile(Long bucketId, String objectName, File objectFile) throws IOException;
+
 	public void putObjectDataVersionFile(Long bucketId, String objectName, int version, File objectFile) throws IOException;
+
 	public void deleteObjectMetadata(ServerBucket bucket, String objectName);
 }
-
