@@ -26,6 +26,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -49,6 +51,7 @@ import io.odilon.model.list.DataList;
 import io.odilon.model.list.Item;
 import io.odilon.virtualFileSystem.DriveInfo;
 import io.odilon.virtualFileSystem.ObjectPath;
+import io.odilon.virtualFileSystem.OdilonVirtualFileSystemService;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.DriveStatus;
 import io.odilon.virtualFileSystem.model.LockService;
@@ -143,19 +146,17 @@ public class RAIDOneDriveSync implements Runnable {
 
 		logger.info("Starting -> " + this.getClass().getSimpleName());
 
-		long start = System.currentTimeMillis();
-
 		try {
-			Thread.sleep(1000 * 2);
+		    CompletableFuture<Void> ready = ((OdilonVirtualFileSystemService) getDriver()
+		        .getVirtualFileSystemService()).awaitRunning();
+		    ready.get();
 		} catch (InterruptedException e) {
-		}
-
-		while (getDriver().getVirtualFileSystemService().getStatus() != ServiceStatus.RUNNING) {
-			startuplogger.info("waiting for " + VirtualFileSystemService.class.getSimpleName() + " to startup (" + String.valueOf(Double.valueOf(System.currentTimeMillis() - start) / Double.valueOf(1000.0)) + " secs)");
-			try {
-				Thread.sleep(1000 * 2);
-			} catch (InterruptedException e) {
-			}
+		    Thread.currentThread().interrupt();
+		    logger.error("RAIDOneDriveSync interrupted while waiting for VFS to start", SharedConstant.NOT_THROWN);
+		    return;
+		} catch (ExecutionException e) {
+		    logger.error(e.getCause(), "VFS failed to start — aborting RAIDOneDriveSync", SharedConstant.NOT_THROWN);
+		    return;
 		}
 
 		copy();

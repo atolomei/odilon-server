@@ -36,6 +36,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
@@ -286,6 +287,15 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 
 	@JsonIgnore
 	private BucketCache bucketCache = new BucketCache();
+
+	/**
+	 * Completed with {@code null} when the VFS reaches {@link ServiceStatus#RUNNING};
+	 * completed exceptionally if startup fails. {@link ECDriveSync} (and any other
+	 * component that needs to wait for the VFS to be ready) calls
+	 * {@link #awaitRunning()} instead of polling {@link #getStatus()}.
+	 */
+	@JsonIgnore
+	private final CompletableFuture<Void> vfsRunning = new CompletableFuture<>();
 
 	/**
 	 * @param serverSettings
@@ -1062,6 +1072,28 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 		return this.bucketCache;
 	}
 
+	/**
+	 * Returns a {@link CompletableFuture} that completes with {@code null} once the
+	 * VFS reaches {@link ServiceStatus#RUNNING}, or completes exceptionally if
+	 * startup fails.
+	 *
+	 * <p>
+	 * Callers (e.g. {@link io.odilon.virtualFileSystem.raid6.ECDriveSync}) should
+	 * call {@code awaitRunning().join()} (or {@code .get()}) at the top of their
+	 * background thread instead of polling {@link #getStatus()} in a sleep loop.
+	 * The future is already completed by the time any external code can obtain a
+	 * reference to the VFS bean, so this is purely a safe signal mechanism — it
+	 * never blocks indefinitely in normal operation.
+	 * </p>
+	 *
+	 * @return a future that resolves to {@code null} on successful startup, or
+	 *         completes exceptionally with the startup {@link Exception} if the VFS
+	 *         failed to start
+	 */
+	public CompletableFuture<Void> awaitRunning() {
+		return vfsRunning;
+	}
+
 	@PostConstruct
 	protected void onInitialize() {
 
@@ -1111,9 +1143,11 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 			}
 
 			setStatus(ServiceStatus.RUNNING);
+			vfsRunning.complete(null);
 
 		} catch (Exception e) {
 			setStatus(ServiceStatus.STOPPED);
+			vfsRunning.completeExceptionally(e);
 
 			startuplogger.error(ServerConstant.SEPARATOR);
 			startuplogger.error("OdilonServer failed to start");

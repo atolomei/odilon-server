@@ -76,31 +76,51 @@ public class ECUpdateObjectHandler extends ECTransactionObjectHandler {
 	 */
 	public static final class UpdateObjectParams {
 
-		private final ServerBucket           bucket;
-		private final String                 objectName;
-		private final InputStream            stream;
-		private final String                 srcFileName;
-		private final String                 contentType;
+		private final ServerBucket bucket;
+		private final String objectName;
+		private final InputStream stream;
+		private final String srcFileName;
+		private final String contentType;
 		private final Optional<List<String>> customTags;
-		private final Optional<Boolean>      publicAccess;
+		private final Optional<Boolean> publicAccess;
 
 		private UpdateObjectParams(Builder b) {
-			this.bucket      = b.bucket;
-			this.objectName  = b.objectName;
-			this.stream      = b.stream;
+			this.bucket = b.bucket;
+			this.objectName = b.objectName;
+			this.stream = b.stream;
 			this.srcFileName = b.srcFileName;
 			this.contentType = b.contentType;
-			this.customTags  = b.customTags;
+			this.customTags = b.customTags;
 			this.publicAccess = b.publicAccess;
 		}
 
-		public ServerBucket           getBucket()      { return bucket;      }
-		public String                 getObjectName()  { return objectName;  }
-		public InputStream            getStream()      { return stream;      }
-		public String                 getSrcFileName() { return srcFileName; }
-		public String                 getContentType() { return contentType; }
-		public Optional<List<String>> getCustomTags()  { return customTags;  }
-		public Optional<Boolean>      getPublicAccess(){ return publicAccess; }
+		public ServerBucket getBucket() {
+			return bucket;
+		}
+
+		public String getObjectName() {
+			return objectName;
+		}
+
+		public InputStream getStream() {
+			return stream;
+		}
+
+		public String getSrcFileName() {
+			return srcFileName;
+		}
+
+		public String getContentType() {
+			return contentType;
+		}
+
+		public Optional<List<String>> getCustomTags() {
+			return customTags;
+		}
+
+		public Optional<Boolean> getPublicAccess() {
+			return publicAccess;
+		}
 
 		public static Builder builder(ServerBucket bucket, String objectName, InputStream stream) {
 			return new Builder(bucket, objectName, stream);
@@ -109,26 +129,41 @@ public class ECUpdateObjectHandler extends ECTransactionObjectHandler {
 		public static final class Builder {
 
 			// required
-			private final ServerBucket  bucket;
-			private final String        objectName;
-			private final InputStream   stream;
+			private final ServerBucket bucket;
+			private final String objectName;
+			private final InputStream stream;
 
 			// optional – safe defaults
-			private String                 srcFileName  = "";
-			private String                 contentType  = "";
-			private Optional<List<String>> customTags   = Optional.empty();
-			private Optional<Boolean>      publicAccess = Optional.empty();
+			private String srcFileName = "";
+			private String contentType = "";
+			private Optional<List<String>> customTags = Optional.empty();
+			private Optional<Boolean> publicAccess = Optional.empty();
 
 			private Builder(ServerBucket bucket, String objectName, InputStream stream) {
-				this.bucket     = Objects.requireNonNull(bucket,     "bucket is null");
+				this.bucket = Objects.requireNonNull(bucket, "bucket is null");
 				this.objectName = Objects.requireNonNull(objectName, "objectName is null");
-				this.stream     = Objects.requireNonNull(stream,     "stream is null");
+				this.stream = Objects.requireNonNull(stream, "stream is null");
 			}
 
-			public Builder srcFileName(String v)                { this.srcFileName  = v; return this; }
-			public Builder contentType(String v)                { this.contentType  = v; return this; }
-			public Builder customTags(Optional<List<String>> v) { this.customTags   = v; return this; }
-			public Builder publicAccess(Optional<Boolean> v)    { this.publicAccess = v; return this; }
+			public Builder srcFileName(String v) {
+				this.srcFileName = v;
+				return this;
+			}
+
+			public Builder contentType(String v) {
+				this.contentType = v;
+				return this;
+			}
+
+			public Builder customTags(Optional<List<String>> v) {
+				this.customTags = v;
+				return this;
+			}
+
+			public Builder publicAccess(Optional<Boolean> v) {
+				this.publicAccess = v;
+				return this;
+			}
 
 			public UpdateObjectParams build() {
 				return new UpdateObjectParams(this);
@@ -161,17 +196,18 @@ public class ECUpdateObjectHandler extends ECTransactionObjectHandler {
 	 * Volume-aware existence check (Bug U1 fix).
 	 * </p>
 	 * <p>
-	 * The original implementation called {@code getObjectMetadataReadDrive()} which,
-	 * on a cache-miss, returns a random drive from the <em>active</em> volume. Objects
-	 * stored on an older (READONLY) volume have no metadata on that drive → the method
-	 * returned {@code false} → {@code checkExistObject} threw
+	 * The original implementation called {@code getObjectMetadataReadDrive()}
+	 * which, on a cache-miss, returns a random drive from the <em>active</em>
+	 * volume. Objects stored on an older (READONLY) volume have no metadata on that
+	 * drive → the method returned {@code false} → {@code checkExistObject} threw
 	 * {@link OdilonObjectNotFoundException} → every {@code update()} on an object
 	 * created before the last volume switch failed.
 	 * </p>
 	 * <p>
 	 * Delegating to {@link ECDriver#getDriverObjectMetadataInternal} (which
 	 * searches the active volume first, then all older volumes) fixes the problem
-	 * and is consistent with every other existence check in the ErasureCoding layer.
+	 * and is consistent with every other existence check in the ErasureCoding
+	 * layer.
 	 * </p>
 	 */
 	protected boolean existsObjectMetadata(ServerBucket bucket, String objectName) {
@@ -182,13 +218,13 @@ public class ECUpdateObjectHandler extends ECTransactionObjectHandler {
 	}
 
 	/**
-	 * @param p  all update parameters, built via {@link UpdateObjectParams#builder}
+	 * @param p all update parameters, built via {@link UpdateObjectParams#builder}
 	 */
 	protected void update(UpdateObjectParams p) {
 
-		final ServerBucket bucket     = p.getBucket();
-		final String       objectName = p.getObjectName();
-		final String       bucketName = bucket.getName();
+		final ServerBucket bucket = p.getBucket();
+		final String objectName = p.getObjectName();
+		final String bucketName = bucket.getName();
 
 		VirtualFileSystemOperation operation = null;
 		boolean commitOK = false;
@@ -307,13 +343,12 @@ public class ECUpdateObjectHandler extends ECTransactionObjectHandler {
 						} catch (Exception e) {
 							throw new InternalCriticalException(e, objectInfo(meta));
 						}
-				} else {
-					/**
-					 * Sync by the moment. 
-					 * TODO see how to make it Async
-					 */
-					cleanUpBackupMetadataDir(bucket, meta);
-				}
+					} else {
+						/**
+						 * Sync by the moment. TODO see how to make it Async
+						 */
+						cleanUpBackupMetadataDir(bucket, meta);
+					}
 				} finally {
 					getLockService().getBucketLock(meta.getBucketId()).readLock().unlock();
 				}
@@ -494,9 +529,7 @@ public class ECUpdateObjectHandler extends ECTransactionObjectHandler {
 		try {
 			// Resolve the owning volume via cross-volume search (object exists on disk)
 			ObjectMetadata currentMeta = getDriver().getDriverObjectMetadataInternal(bucket, objectName, false);
-			List<Drive> drives = (currentMeta != null)
-					? getDriver().getVolumeForObject(currentMeta).getDrives()
-					: getDriver().getActiveVolume().getDrives();
+			List<Drive> drives = (currentMeta != null) ? getDriver().getVolumeForObject(currentMeta).getDrives() : getDriver().getActiveVolume().getDrives();
 			for (Drive drive : drives) {
 				if (drive.getObjectMetadataFile(bucket, objectName).exists()) {
 					ObjectMetadata meta = drive.getObjectMetadata(bucket, objectName);
@@ -540,8 +573,7 @@ public class ECUpdateObjectHandler extends ECTransactionObjectHandler {
 		}
 	}
 
-	private void saveObjectMetadata(ServerBucket bucket, String objectName, ECShards ei, String srcFileName, String contentType, int version, OffsetDateTime headCreationDate, Optional<List<String>> customTags,
-			Optional<Boolean> o_public) {
+	private void saveObjectMetadata(ServerBucket bucket, String objectName, ECShards ei, String srcFileName, String contentType, int version, OffsetDateTime headCreationDate, Optional<List<String>> customTags, Optional<Boolean> o_public) {
 
 		Check.requireNonNullArgument(bucket, "bucket is null");
 
@@ -605,12 +637,12 @@ public class ECUpdateObjectHandler extends ECTransactionObjectHandler {
 				newMeta.setVolumeId(activeVolume.getVolumeId());
 				if (customTags.isPresent())
 					newMeta.setCustomTags(customTags.get());
-			
+
 				newMeta.setLastModified(DateTimeUtil.now());
 
 				// SHA-256 of the plaintext payload — used by checkIntegrity.
 				newMeta.setSha256(ei.getSrcSha256());
-				
+
 				list.add(newMeta);
 
 			} catch (Exception e) {
@@ -637,12 +669,12 @@ public class ECUpdateObjectHandler extends ECTransactionObjectHandler {
 		if (isEncrypt()) {
 
 			try {
-				
+
 				// Wrap the PLAINTEXT stream before encryption so the digest matches
 				// checkIntegrity (which decrypts before hashing).
 				MessageDigest md = MessageDigest.getInstance("SHA-256");
 				DigestInputStream digestStream = new DigestInputStream(stream, md);
-				
+
 				EncryptedResult encryptedResult = getEncryptionService().encryptStream(digestStream);
 				sourceStream = encryptedResult.getInputStream();
 				ECEncoder encoder = new ECEncoder(getDriver());
@@ -724,10 +756,10 @@ public class ECUpdateObjectHandler extends ECTransactionObjectHandler {
 
 	/**
 	 * <p>
-	 * delete backup Metadata
-	 * Deletes the work-dir backup created by {@link #backup(ObjectMetadata, ServerBucket)}.
+	 * delete backup Metadata Deletes the work-dir backup created by
+	 * {@link #backup(ObjectMetadata, ServerBucket)}.
 	 * </p>
-	
+	 * 
 	 * @param bucketName
 	 * @param objectName
 	 */
@@ -745,12 +777,13 @@ public class ECUpdateObjectHandler extends ECTransactionObjectHandler {
 		if (meta == null)
 			return;
 		try {
-			if (getVersionControl()==VersionControl.DISABLED) {
+			if (getVersionControl() == VersionControl.DISABLED) {
 				// Remove previous-version metadata from each drive on the owning volume
 				for (Drive drive : getDriver().getVolumeForObject(meta).getDrives()) {
 					FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(bucket, meta.getObjectName(), previousVersion));
 				}
-				// getObjectDataFiles returns files across ALL drives — call once outside the loop
+				// getObjectDataFiles returns files across ALL drives — call once outside the
+				// loop
 				List<File> files = getDriver().getObjectDataFiles(meta, bucket, Optional.of(previousVersion));
 				files.forEach(file -> FileUtils.deleteQuietly(file));
 			}

@@ -20,7 +20,9 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
  * 
- * <p>Erasure Coding Transaction Handler</p>
+ * <p>
+ * Erasure Coding Transaction Handler
+ * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  * 

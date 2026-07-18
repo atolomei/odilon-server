@@ -27,8 +27,7 @@ import io.odilon.model.BaseObject;
 
 /**
  * <p>
- * List of encoded blocks stored in File System. 
- * See the coding convention here
+ * List of encoded blocks stored in File System. See the coding convention here
  * 
  * {@link ECDriver}
  * </p>

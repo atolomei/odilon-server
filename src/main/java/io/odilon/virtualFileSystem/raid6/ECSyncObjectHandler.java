@@ -22,7 +22,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
- 
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -45,8 +45,8 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
 /**
  * <p>
- * ErasureCoding. Sync Object. This class regenerates the object's chunks when a new
- * disk is added
+ * ErasureCoding. Sync Object. This class regenerates the object's chunks when a
+ * new disk is added
  * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
@@ -63,9 +63,9 @@ public class ECSyncObjectHandler extends ECTransactionHandler {
 	private List<Drive> drivesToSync;
 
 	/**
-	 * Metadata of the object currently being synced.
-	 * Set as the first statement of {@link #sync} so that {@link #getDrives()} and
-	 * {@link #getDrivesToSync()} can scope their results to the correct volume.
+	 * Metadata of the object currently being synced. Set as the first statement of
+	 * {@link #sync} so that {@link #getDrives()} and {@link #getDrivesToSync()} can
+	 * scope their results to the correct volume.
 	 */
 	@JsonIgnore
 	private ObjectMetadata syncMeta;
@@ -100,13 +100,13 @@ public class ECSyncObjectHandler extends ECTransactionHandler {
 
 				bucket = getBucketCache().get(meta.getBucketId());
 
-		 		// If this object's volume has no NOTSYNC drives there is nothing to
+				// If this object's volume has no NOTSYNC drives there is nothing to
 				// re-encode. This is the normal case when a brand-new volume is added:
 				// existing objects live on an older volume whose drives are all ENABLED;
 				// the NOTSYNC drives belong to the new, still-empty volume.
 				if (getDrivesToSync().isEmpty())
 					return;
- 
+
 				/**
 				 * backup metadata, there is no need to backup data because existing data files
 				 * are not touched.
@@ -219,37 +219,34 @@ public class ECSyncObjectHandler extends ECTransactionHandler {
 			ECDriveSyncEncoder driveInitEncoder = new ECDriveSyncEncoder(getDriver(), getDrives());
 
 			try (InputStream in = new BufferedInputStream(new FileInputStream(file.getAbsolutePath()))) {
-			
+
 				@SuppressWarnings("unused")
 				ECShards shards = driveInitEncoder.encodeHead(in, bucket, meta.getObjectName());
-			
+
 				/** MetaData (head) */
 				meta.setDateSynced(DateTimeUtil.now());
-				logger.debug("Synced -> b:" + meta.getBucketName()+ " o:" + meta.getObjectName() + "  sha 256:" +  meta.getSha256()  );
+				logger.debug("Synced -> b:" + meta.getBucketName() + " o:" + meta.getObjectName() + "  sha 256:" + meta.getSha256());
 
-				
 			} catch (FileNotFoundException e) {
 				throw new InternalCriticalException(e, objectInfo(meta));
 			} catch (IOException e) {
 				throw new InternalCriticalException(e, objectInfo(meta));
 			}
-			
-			
+
 			List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
 			getDrivesToSync().forEach(d -> list.add(meta));
 			saveRAIDSixObjectMetadataToDisk(getDrivesToSync(), list, true);
 
 			logger.debug("Synced -> " + objectInfo(meta) + "  head version:" + String.valueOf(meta.getVersion()));
-		
+
 		}
 	}
 
 	private void syncVersions(ObjectMetadata meta, ServerBucket bucket) {
 
-		
-		// The correct guard is meta.getVersion() > 0.  The version field in the head
+		// The correct guard is meta.getVersion() > 0. The version field in the head
 		// metadata is the source of truth for how many previous-version files were
-		// written to disk.  The VersionControl setting governs whether NEW updates
+		// written to disk. The VersionControl setting governs whether NEW updates
 		// create new versions; it must NOT suppress replication of already-existing
 		// versions to a replacement drive.
 		//
@@ -262,13 +259,11 @@ public class ECSyncObjectHandler extends ECTransactionHandler {
 
 				// NOTSYNC drive could be chosen as the metadata source.
 				// The original code picked a random drive from the full volume drive list,
-				// which includes the NOTSYNC replacement drive.  That drive has no version
+				// which includes the NOTSYNC replacement drive. That drive has no version
 				// metadata yet; picking it returns null → the version is skipped silently.
 				// Restrict the pool to ENABLED drives only so the source is always valid.
 				List<Drive> vDrives = getDriver().getVolumeForObject(meta).getDrives();
-				List<Drive> enabledVDrives = vDrives.stream()
-						.filter(d -> d.getDriveInfo().getStatus() == DriveStatus.ENABLED)
-						.collect(Collectors.toList());
+				List<Drive> enabledVDrives = vDrives.stream().filter(d -> d.getDriveInfo().getStatus() == DriveStatus.ENABLED).collect(Collectors.toList());
 				List<Drive> readPool = enabledVDrives.isEmpty() ? vDrives : enabledVDrives;
 				Drive vReadDrive = readPool.get(Double.valueOf(Math.abs(Math.random() * 1000)).intValue() % readPool.size());
 				ObjectMetadata versionMeta = vReadDrive.getObjectMetadataVersion(bucket, meta.getObjectName(), version);
@@ -278,40 +273,35 @@ public class ECSyncObjectHandler extends ECTransactionHandler {
 					/** Data (version) */
 					ECDecoder decoder = new ECDecoder(getDriver());
 					ECDriveSyncEncoder driveEncoder = new ECDriveSyncEncoder(getDriver(), getDrives());
-					
-					
+
 					try (InputStream in = new BufferedInputStream(new FileInputStream(decoder.decodeVersion(versionMeta, bucket).getAbsolutePath()))) {
 						/**
 						 * encodes version without saving existing blocks, only the ones that go to the
 						 * new drive/s
 						 */
 						ECShards shards = driveEncoder.encodeVersion(in, bucket, meta.getObjectName(), versionMeta.getVersion());
-						
-					 
-						
+
 						/** Metadata (version) */
 						/**
 						 * changes the date of sync in order to prevent this object's sync if the
 						 * process is re run
 						 */
 						versionMeta.setDateSynced(DateTimeUtil.now());
-						meta.setSha256( shards.getSrcSha256());
-						
+						meta.setSha256(shards.getSrcSha256());
 
-						
 					} catch (FileNotFoundException e) {
 						throw new InternalCriticalException(e, objectInfo(meta));
 					} catch (IOException e) {
 						throw new InternalCriticalException(e, objectInfo(meta));
 					}
 
-				// syncHead() already scopes its save to getDrivesToSync(). Without this fix
-				// version metadata is written to all drives (getDrives()), overwriting
-				// existing metadata on ENABLED drives and causing a list/drives size mismatch
-				// when multiple volumes are present.
-				List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
-				getDrivesToSync().forEach(d -> list.add(versionMeta));
-				saveRAIDSixObjectMetadataToDisk(getDrivesToSync(), list, false);
+					// syncHead() already scopes its save to getDrivesToSync(). Without this fix
+					// version metadata is written to all drives (getDrives()), overwriting
+					// existing metadata on ENABLED drives and causing a list/drives size mismatch
+					// when multiple volumes are present.
+					List<ObjectMetadata> list = new ArrayList<ObjectMetadata>();
+					getDrivesToSync().forEach(d -> list.add(versionMeta));
+					saveRAIDSixObjectMetadataToDisk(getDrivesToSync(), list, false);
 
 				} else {
 					logger.warn("previous version was deleted for Object -> " + String.valueOf(version) + " |  head " + objectInfo(meta) + "  head version:" + String.valueOf(meta.getVersion()));
