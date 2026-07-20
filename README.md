@@ -7,7 +7,7 @@
 
 <h2>Enterprise-class storage made simple</h2>
 <p>Odilon is a simple, secure, fully Open Source object storage server that runs on standard hardware.
-	(<a href="https://odilon.io" target="_blank">Odilon project website</a>).
+	(<a href="https://odilon.io" target="_blank">Odilon website</a>).
 </p>
 
 <p>Designed for small and medium-scale deployments (up to roughly 100 TB), it provides reliable storage for documents, images, audio, video, and other large files without the complexity of distributed systems.
