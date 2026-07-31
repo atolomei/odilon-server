@@ -158,7 +158,7 @@ Plus the extra meta file and shards for erasure coding.
 </li>
 </ul>
 
-<h2>Powered by Odilon</h2>
+<h2>Used by</h2>
 
 <p>To be included in this list please send email to info@novamens.com</p>
 
