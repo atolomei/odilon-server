@@ -264,6 +264,78 @@ public class ServerSettings implements JSONObject {
 	@Value("${scheduler.cron.threads:0}")
 	protected int cronSchedulerThreads;
 
+	// SEARCH (Apache Lucene) -------------------------------------------
+	//
+	/** Embedded Lucene search index. Enabled by default. */
+	@Value("${search.enabled:true}")
+	protected boolean searchEnabled;
+
+	/**
+	 * Directory where Lucene indexes are stored. Not part of the data directories,
+	 * not redundant, fully rebuildable. Default: {user.dir}/search-index
+	 */
+	@Value("${search.index.dir:#{null}}")
+	protected String searchIndexDir;
+
+	/** Max size of the search index queue — when full, new entries are dropped
+	 * (reconciliation repairs the drift later) */
+	@Value("${search.queue.max:100000}")
+	protected int searchQueueMax;
+
+	@Value("${scheduler.search.threads:1}")
+	protected int schedulerSearchThreads;
+
+	/**
+	 * Optional comma-separated whitelist of custom metadata/tag keys to index
+	 * (format {@code key:value} inside customTags). Empty -> index all.
+	 */
+	@Value("${search.metadata.keys:}")
+	protected String searchMetadataKeys;
+
+	/** index <-> storage reconciliation. Default: every day at 04:10 */
+	@Value("${search.reconciliationCronExpression:0 10 4 * * *}")
+	protected String searchReconciliationCronExpression;
+
+	/** seconds the cached ObjectsUploaded stats are kept before re-counting */
+	@Value("${monitor.objectsUploadedRefreshSecs:60}")
+	protected int objectsUploadedRefreshSecs;
+
+	public int getObjectsUploadedRefreshSecs() {
+		return this.objectsUploadedRefreshSecs;
+	}
+
+	public String getSearchReconciliationCronExpression() {
+		return this.searchReconciliationCronExpression;
+	}
+
+	public boolean isSearchEnabled() {
+		return this.searchEnabled;
+	}
+
+	public String getSearchIndexDir() {
+		if (this.searchIndexDir == null || this.searchIndexDir.trim().isEmpty())
+			return System.getProperty("user.dir") + File.separator + "search-index";
+		return this.searchIndexDir.trim();
+	}
+
+	public int getSearchQueueMax() {
+		return this.searchQueueMax;
+	}
+
+	public int getSearchDispatcherPoolSize() {
+		return this.schedulerSearchThreads;
+	}
+
+	public List<String> getSearchMetadataKeys() {
+		if (this.searchMetadataKeys == null || this.searchMetadataKeys.trim().isEmpty())
+			return new ArrayList<String>();
+		List<String> list = new ArrayList<String>();
+		for (String s : this.searchMetadataKeys.split(","))
+			if (!s.trim().isEmpty())
+				list.add(s.trim());
+		return list;
+	}
+
 	@Value("${scheduler.siestaSecs:20}")
 	protected long schedulerSiestaSecs;
 

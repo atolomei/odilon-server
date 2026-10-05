@@ -41,6 +41,7 @@ import io.odilon.model.ServiceStatus;
 import io.odilon.model.SharedConstant;
 import io.odilon.replication.ReplicationService;
 import io.odilon.scheduler.SchedulerService;
+import io.odilon.search.SearchIndexService;
 import io.odilon.service.BaseService;
 import io.odilon.service.ServerSettings;
 import io.odilon.util.Check;
@@ -116,6 +117,10 @@ public class OdilonJournalService extends BaseService implements JournalService 
 	@JsonIgnore
 	@Autowired
 	private ReplicationService replicationService;
+
+	@JsonIgnore
+	@Autowired
+	private SearchIndexService searchIndexService;
 
 	@JsonIgnore
 	@Autowired
@@ -238,6 +243,15 @@ public class OdilonJournalService extends BaseService implements JournalService 
 				if (isStandBy())
 					getReplicationService().enqueue(operation);
 
+				/**
+				 * Search index: the ServiceRequest is created (and durably enqueued) as part
+				 * of the atomic transaction — indexing itself runs async on the
+				 * SearchSchedulerWorker. Must never fail the commit: when the queue is full
+				 * the facade drops the entry and reconciliation repairs the drift.
+				 */
+				if (getSearchIndexService().isEnabled())
+					getSearchIndexService().enqueue(operation);
+
 				// Step 1: durably remove the journal entry first.
 				getVirtualFileSystemService().removeJournal(operation.getId());
 
@@ -257,6 +271,9 @@ public class OdilonJournalService extends BaseService implements JournalService 
 					getOpsAborted().put(operation.getId(), operation.getId());
 					getReplicationService().cancel(operation);
 				}
+
+				if (getSearchIndexService().isEnabled())
+					getSearchIndexService().cancel(operation);
 
 				throw e;
 
@@ -311,6 +328,10 @@ public class OdilonJournalService extends BaseService implements JournalService 
 
 				// Step 2: notify cache and bucket listeners only after journal is gone.
 				getApplicationEventPublisher().publishEvent(new CacheEvent(operation, Action.ROLLBACK));
+
+				/** remove any pending search index request for this operation */
+				if (getSearchIndexService().isEnabled())
+					getSearchIndexService().cancel(operation);
 
 				if (payload instanceof ServerBucket)
 					getApplicationEventPublisher().publishEvent(new BucketEvent(operation, Action.ROLLBACK, (ServerBucket) payload));
@@ -400,6 +421,10 @@ public class OdilonJournalService extends BaseService implements JournalService 
 
 	public ReplicationService getReplicationService() {
 		return this.replicationService;
+	}
+
+	public SearchIndexService getSearchIndexService() {
+		return this.searchIndexService;
 	}
 
 	@PostConstruct

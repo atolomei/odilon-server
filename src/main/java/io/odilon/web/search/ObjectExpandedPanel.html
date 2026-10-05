@@ -1,0 +1,32 @@
+<wicket:panel>
+
+	<div class="w-100">
+
+		<!-- object title -->
+		<!-- div class="fw-bold fs-6 mb-1"><span wicket:id="title">[title]</span></div -->
+
+		<!-- file name with a link to open it -->
+		<!-- div class="mb-2">
+			<a wicket:id="link" target="_blank" class="text-decoration-none"><i class="fa-light fa-file me-1"></i><span wicket:id="filename">[filename]</span></a>
+		</div-->
+
+		<!-- metadata -->
+		
+		<div class="table-responsive">
+		<table class="table table-bordered round  mb-2">
+			<tbody>
+				<tr wicket:id="metadata"> 
+					<td class="text-muted" style="width: 30%;" wicket:id="key">[key]</td>
+					<td wicket:id="value">[value]</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+
+
+		<!-- versions (InvisiblePanel when the object has no previous versions) -->
+		<div wicket:id="versions"></div>
+
+	</div>
+
+</wicket:panel>

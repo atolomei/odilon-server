@@ -1,0 +1,48 @@
+<wicket:panel>
+
+	<div class="row">
+		<div class="col-12 ps-0 pe-0 pt-2 pb-2">
+			<div class="border rounded bg-light ps-4 pe-4 pt-3 pb-3">
+				<form wicket:id="searchForm">
+					<fieldset>
+						<div class="row g-3">
+
+							<div class="col-12 col-md-3">
+								<label class="form-label small text-uppercase fw-bold"><wicket:message key="bucket" /></label>
+								<select wicket:id="bucket" class="form-select form-select-sm"></select>
+							</div>
+
+							<div class="col-12 col-md-3">
+								<label class="form-label small text-uppercase fw-bold"><wicket:message key="objectName" /></label>
+								<input type="text" wicket:id="objectName" class="form-control form-control-sm" />
+							</div>
+
+							<div class="col-12 col-md-2">
+								<label class="form-label small text-uppercase fw-bold"><wicket:message key="fileName" /></label>
+								<input type="text" wicket:id="fileName" class="form-control form-control-sm" />
+							</div>
+
+							<div class="col-6 col-md-2">
+								<label class="form-label small text-uppercase fw-bold"><wicket:message key="modifiedFrom" /></label>
+								<input type="date" wicket:id="modifiedFrom" class="form-control form-control-sm" />
+							</div>
+
+							<div class="col-6 col-md-2">
+								<label class="form-label small text-uppercase fw-bold"><wicket:message key="modifiedTo" /></label>
+								<input type="date" wicket:id="modifiedTo" class="form-control form-control-sm" />
+							</div>
+
+						</div>
+
+						<div class="row mt-3">
+							<div class="col-12">
+								<button type="submit" wicket:id="search" class="btn btn-primary btn-sm float-end"><wicket:message key="search" /></button>
+							</div>
+						</div>
+					</fieldset>
+				</form>
+			</div>
+		</div>
+	</div>
+
+</wicket:panel>

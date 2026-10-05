@@ -16,12 +16,18 @@
  */
 package io.odilon.monitor;
 
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import jakarta.annotation.PostConstruct;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
 //import com.codahale.metrics.Counter;
@@ -38,6 +44,8 @@ import io.odilon.log.Logger;
 import io.odilon.model.MetricsValues;
 import io.odilon.model.RedundancyLevel;
 import io.odilon.model.ServiceStatus;
+import io.odilon.search.SearchQuery;
+import io.odilon.search.SearchService;
 import io.odilon.service.BaseService;
 import io.odilon.service.ServerSettings;
 import io.odilon.service.SystemService;
@@ -184,6 +192,20 @@ public class SystemMonitorService extends BaseService implements SystemService {
 	@Autowired
 	private final FileCacheService fileCacheService;
 
+	/** used to count objects uploaded (see {@link #getObjectsUploaded()}) */
+	@JsonIgnore
+	@Autowired
+	@Lazy
+	private SearchService searchService;
+
+	/** cached stats; refreshed at most every N secs (monitor.objectsUploadedRefreshSecs) */
+	@JsonIgnore
+	private volatile ObjectsUploaded objectsUploaded;
+
+	/** guards that only one background re-count runs at a time */
+	@JsonIgnore
+	private final AtomicBoolean objectsUploadedRefreshing = new AtomicBoolean(false);
+
 	public SystemMonitorService(ServerSettings serverSettings, ObjectMetadataCacheService cacheService, FileCacheService fileCacheService) {
 		this.objectCacheService = cacheService;
 		this.serverSettings = serverSettings;
@@ -325,6 +347,104 @@ public class SystemMonitorService extends BaseService implements SystemService {
 
 	public long getFileCacheHadrDiskUsage() {
 		return this.fileCacheService.hardDiskUsage();
+	}
+
+	/**
+	 * <p>
+	 * Objects uploaded per bucket, counted from the search index. The value is
+	 * <b>not</b> real time: it is cached and re-counted only after N seconds
+	 * ({@link ServerSettings#getObjectsUploadedRefreshSecs()}).
+	 * </p>
+	 * <p>
+	 * Never counts on the caller's thread: when the snapshot is stale (or missing)
+	 * it triggers one background re-count and returns immediately — the stale
+	 * snapshot, or an empty placeholder with {@code measured == null} when no
+	 * count has completed yet (a per-bucket count with a date range iterates the
+	 * postings intersection, which can take seconds with millions of objects).
+	 * </p>
+	 */
+	public ObjectsUploaded getObjectsUploaded() {
+
+		ObjectsUploaded current = this.objectsUploaded;
+
+		/** still fresh */
+		if (current != null && current.getMeasured().plusSeconds(this.serverSettings.getObjectsUploadedRefreshSecs()).isAfter(OffsetDateTime.now()))
+			return current;
+
+		/** stale or missing -> trigger one background refresh */
+		if (this.objectsUploadedRefreshing.compareAndSet(false, true)) {
+			Thread t = new Thread(() -> {
+				try {
+					this.objectsUploaded = countObjectsUploaded();
+				} catch (Exception e) {
+					logger.error(e);
+				} finally {
+					this.objectsUploadedRefreshing.set(false);
+				}
+			}, "objects-uploaded-refresh");
+			t.setDaemon(true);
+			t.start();
+		}
+
+		/** no snapshot yet -> empty placeholder (panel displays "collecting") */
+		return (current != null) ? current : new ObjectsUploaded(null);
+	}
+
+	/**
+	 * Warms up the ObjectsUploaded cache in background once the server is fully up
+	 * (all services initialized, including the Lucene index), so the first visit
+	 * to the dashboard normally finds the snapshot already computed.
+	 */
+	@EventListener(ApplicationReadyEvent.class)
+	public void warmUpObjectsUploaded() {
+		getObjectsUploaded();
+	}
+
+	/** counts the objects uploaded (all buckets + per bucket) using the SearchService */
+	private ObjectsUploaded countObjectsUploaded() {
+
+		ObjectsUploaded result = new ObjectsUploaded(OffsetDateTime.now());
+
+		try {
+			if (this.searchService == null || !this.searchService.isEnabled())
+				return result;
+
+			result.put(ObjectsUploaded.ALL, count(null));
+
+			for (String bucketName : this.searchService.getIndexedBuckets())
+				result.put(bucketName, count(bucketName));
+
+		} catch (Exception e) {
+			logger.error(e);
+		}
+		return result;
+	}
+
+	/** counts for one bucket (null -> all buckets) */
+	private ObjectsUploaded.Counts count(String bucketName) {
+
+		OffsetDateTime now = OffsetDateTime.now();
+		OffsetDateTime startToday = now.toLocalDate().atStartOfDay(ZoneId.systemDefault()).toOffsetDateTime();
+
+		ObjectsUploaded.Counts counts = new ObjectsUploaded.Counts();
+
+		counts.lastMinute = count(bucketName, now.minusMinutes(1), null);
+		counts.lastHour = count(bucketName, now.minusHours(1), null);
+		counts.today = count(bucketName, startToday, null);
+		counts.yesterday = count(bucketName, startToday.minusDays(1), startToday);
+		counts.last30Days = count(bucketName, now.minusDays(30), null);
+		counts.last12Months = count(bucketName, now.minusMonths(12), null);
+		counts.allTime = count(bucketName, null, null);
+
+		return counts;
+	}
+
+	private long count(String bucketName, OffsetDateTime from, OffsetDateTime to) {
+		SearchQuery query = new SearchQuery();
+		query.bucketName = bucketName;
+		query.lastModifiedFrom = from;
+		query.lastModifiedTo = to;
+		return this.searchService.count(query);
 	}
 
 	public MetricsValues getMetricsValues() {

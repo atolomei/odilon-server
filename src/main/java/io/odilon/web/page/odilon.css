@@ -1,0 +1,74 @@
+
+body {margin:0; padding:0; font-family: Montserrat, Arial, sans serif; font-size:15px; }
+
+
+h1 {font-size: 2.2em; font-weight: bold; }
+
+
+
+h4 {font-size: 0.95em; font-weight: bold; text-transform: uppercase;}
+
+
+.quote {color: #a90000; font-style: italic;;}
+
+.btn {font-size:0.95em;}
+
+
+.subtitle {margin-top: 0.5em; font-size: 0.92em;}
+
+
+.mode-title .listItemLink,
+.mode-title .list-group-item a.title-link {
+    text-decoration: none;
+    color: inherit;
+    font-size: 1em;
+    font-weight: normal;
+    padding: 0;
+}
+
+
+
+.navbar-brand,
+.global-toolbar {font-size: 1em;}
+
+ 
+
+.mainMenu {padding: 1em 0.45em !important;}
+.mainMenu i {font-size: 1.6em;}
+
+
+
+.user {font-size: 0.9em;  line-height: 1.2em; text-align:right;}
+
+.user .title {margin:0; font-size:0.9em; text-transform: uppercase; font-weight: bold;}
+
+.user .subtitle {margin:0; 
+    text-transform: none;
+    line-height: 1.2em;
+    color: #cdcecf;}
+
+    
+.user .dropdown-toggle::after {display:none;}
+
+
+
+.dropdown-menu {    min-width: 20rem;}
+.dropdown-menu .dropdown-item {    float: left;    width: 100%;    font-size: 0.9em;}
+.dropdown-item a {    color: var(--bs-navbar-active-color);  text-decoration: none; padding: 0.3em 0.5em; width:100%; float:left;}
+
+
+form .form-control {font-size: 0.92em;}
+form .form-control:disabled {background-color: transparent;}
+
+
+.alert {margin-bottom:0;}
+
+
+:root,
+[data-bs-theme=light]
+{ --bs-primary-bg-subtle:#e5efff; /* Set your light primary background color */
+}
+ 
+
+.analysis ol li {margin-bottom:1em;}
+.analysis p {margin:0 0 1em, 0;}

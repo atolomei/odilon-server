@@ -1,0 +1,40 @@
+<wicket:panel>
+
+	<section id="global-toolbar" class="container-fluid text-bg-dark text-light">
+		<div class="container-fluid">
+			<nav class="navbar global-toolbar pt-3 pb-3">
+
+				<div class="mr-auto navbar-brand pt-0 pb-0">
+
+					<span class="me-3" style="float: left;"> <wicket:container wicket:id="mainMenu" /></span>
+
+					<div class="ps-4 titleSubtitleContainer" style="font-size: 0.9em;">
+						<a href="/ui" class="text-decoration-none text-light">
+
+							<div class="d-none d-sm-block"
+								style="position: relative; overflow: hidden; border-radius: 8px; height: 48px; width: 48px; float: left; margin-right: 1em;">
+								<img wicket:id="logo" class="centered" style="float: left; height: 48px; width: auto;">
+							</div>
+
+							<div class="titleContainer"
+								style="text-align: left; font-weight: bold; text-transform: uppercase; line-height: 1.4em; color: #ffffff; float: left; margin-top: 5px;">
+								<div class="title">Odilon</div>
+							</div>
+							<div class="subtitleContainer" style="font-size: 1em; text-transform: none; line-height: 1.2em; color: #cdcecf; float: left;">
+								<div class="subtitle d-none d-lg-inline d-xl-inline d-xxl-inline">
+									<wicket:message key="app-name" />
+								</div>
+							</div>
+						</a>
+					</div>
+				</div>
+
+				<div class="mr-0">
+					<div wicket:id="userGlobalTopPanel" class="pt-0 pb-0 ps-2 pe-2" style="float: left; margin-top: -1px;" />
+				</div>
+
+			</nav>
+		</div>
+	</section>
+
+</wicket:panel>

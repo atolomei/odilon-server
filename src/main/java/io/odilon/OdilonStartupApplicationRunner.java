@@ -39,10 +39,13 @@ import io.odilon.model.SharedConstant;
 
 import io.odilon.replication.ReplicationService;
 import io.odilon.scheduler.CronJobDataIntegrityCheckRequest;
+import io.odilon.scheduler.CronJobSearchIndexReconciliationRequest;
 import io.odilon.scheduler.CronJobWorkDirCleanUpRequest;
 import io.odilon.scheduler.PingCronJobRequest;
 import io.odilon.scheduler.SchedulerService;
 import io.odilon.security.VaultService;
+import io.odilon.search.IndexStatus;
+import io.odilon.search.SearchService;
 import io.odilon.service.ObjectStorageService;
 import io.odilon.service.ServerSettings;
 import io.odilon.virtualFileSystem.model.Drive;
@@ -112,8 +115,40 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 		if (iStandby)
 			startupLogger.info(ServerConstant.SEPARATOR);
 
+		boolean iSearch = initSearch();
+		if (iSearch)
+			startupLogger.info(ServerConstant.SEPARATOR);
+
 		startupLogger.info("Startup at -> " + DateTimeFormatter.RFC_1123_DATE_TIME.format(OffsetDateTime.now()));
 
+	}
+
+	/**
+	 * <p>
+	 * Prints the embedded Lucene search index status block
+	 * </p>
+	 */
+	private boolean initSearch() {
+
+		ServerSettings settingsService = getAppContext().getBean(ServerSettings.class);
+
+		if (!settingsService.isSearchEnabled()) {
+		
+			logger.debug("Search index -> disabled");
+			return false;
+		}
+
+		try {
+			SearchService searchService = getAppContext().getBean(SearchService.class);
+			IndexStatus status = searchService.getIndexStatus();
+			status.pending = getSchedulerService().getSearchQueueSize();
+			for (String line : status.console().split(System.lineSeparator()))
+				startupLogger.info(line);
+			startupLogger.info("Index dir -> " + settingsService.getSearchIndexDir());
+		} catch (Exception e) {
+			startupLogger.error(e, SharedConstant.NOT_THROWN);
+		}
+		return true;
 	}
 
 	public SchedulerService getSchedulerService() {
@@ -151,6 +186,14 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 			PingCronJobRequest ping = getAppContext().getBean(PingCronJobRequest.class, cronJobPing);
 			getSchedulerService().enqueue(ping);
 			startupLogger.debug("Ping -> " + "CronExpression: " + cronJobPing);
+		}
+
+		/** Search index reconciliation **/
+		if (settingsService.isSearchEnabled()) {
+			String cronJobSearch = settingsService.getSearchReconciliationCronExpression();
+			CronJobSearchIndexReconciliationRequest reconciliation = getAppContext().getBean(CronJobSearchIndexReconciliationRequest.class, cronJobSearch);
+			getSchedulerService().enqueue(reconciliation);
+			startupLogger.debug("Search index reconciliation -> " + "CronExpression: " + cronJobSearch);
 		}
 	}
 
@@ -207,9 +250,17 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 			startupLogger.info("Data Storage redundancy level -> " + settingsService.getRedundancyLevel().getName());
 			getAppContext().getBean(VirtualFileSystemService.class).getMapDrivesEnabled().forEach((k, v) -> startupLogger.info("Drive: " + k + " | rootDir: " + v.getRootDirPath()));
 		}
+
+	
+		startupLogger.info("Search index -> " + (settingsService.isSearchEnabled() ? "true" : "false" ));
+		
+		
 		return true;
 	}
 
+	
+ 
+	
 	private boolean initVault() {
 
 		ServerSettings settingsService = getAppContext().getBean(ServerSettings.class);

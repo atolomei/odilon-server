@@ -1,0 +1,33 @@
+<wicket:panel>
+
+	<div class="fw-bold small text-uppercase mb-1"><wicket:message key="versions" /></div>
+
+	<table class="table table-sm table-striped mb-0">
+		<thead>
+			<tr>
+				<th style="width: 10%;"><wicket:message key="version" /></th>
+				<th style="width: 20%;"><wicket:message key="lastModified" /></th>
+				<th><wicket:message key="file" /></th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr wicket:id="rows">
+				<!-- col 1. version number -->
+				<td><span wicket:id="version">[version]</span></td>
+
+				<!-- col 2. last modified date -->
+				<td><span wicket:id="lastmodified">[lastmodified]</span></td>
+
+				<!-- col 3. link (filename in bold) + metadata, one field per line -->
+				<td>
+					<a wicket:id="link-head" target="_blank" class="text-decoration-none"><b><span wicket:id="filename">[filename]</span></b></a>
+					<a wicket:id="link-version" class="text-decoration-none"><b><span wicket:id="filename">[filename]</span></b></a>
+					<ul class="small text-muted mb-0 mt-1">
+						<li wicket:id="fields"><span wicket:id="field">[field]</span></li>
+					</ul>
+				</td>
+			</tr>
+		</tbody>
+	</table>
+
+</wicket:panel>

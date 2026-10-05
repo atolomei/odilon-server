@@ -126,6 +126,13 @@ public class SchedulerService extends BaseService implements SystemService, Appl
 	@JsonIgnore
 	private StandByReplicaSchedulerWorker replicaWorker;
 
+	/**
+	 * non blocking semantics. Dedicated queue for async Lucene index updates. It
+	 * will not be started if search is disabled.
+	 */
+	@JsonIgnore
+	private SearchSchedulerWorker searchWorker;
+
 	public SchedulerService(ServerSettings serverSettings, SystemMonitorService montoringService) {
 		this.serverSettings = serverSettings;
 		this.monitoringService = montoringService;
@@ -151,6 +158,11 @@ public class SchedulerService extends BaseService implements SystemService, Appl
 			getReplicaWorker().add(request);
 			synchronized (getReplicaWorker()) {
 				getReplicaWorker().notify();
+			}
+		} else if (request instanceof SearchServiceRequest) {
+			getSearchWorker().add(request);
+			synchronized (getSearchWorker()) {
+				getSearchWorker().notify();
 			}
 		} else if (request instanceof StandardServiceRequest) {
 			getStandardSchedulerWorker().add(request);
@@ -184,11 +196,18 @@ public class SchedulerService extends BaseService implements SystemService, Appl
 			this.standardSchedulerWorker = new StandardSchedulerWorker("standard", getVirtualFileSystemService());
 			this.standardSchedulerWorker.setApplicationContext(getApplicationContext());
 
+			/** Search. It will not be started if search is disabled */
+			this.searchWorker = new SearchSchedulerWorker("search", getVirtualFileSystemService());
+			this.searchWorker.setApplicationContext(getApplicationContext());
+
 			getCronjobsWorker().start();
 			getStandardSchedulerWorker().start();
 
 			if (getServerSettings().isStandByEnabled())
 				getReplicaWorker().start();
+
+			if (getServerSettings().isSearchEnabled())
+				getSearchWorker().start();
 
 			setStatus(ServiceStatus.RUNNING);
 			startuplogger.debug("Started -> " + this.getClass().getSimpleName());
@@ -202,6 +221,8 @@ public class SchedulerService extends BaseService implements SystemService, Appl
 		Check.requireNonNullArgument(request, "request is null");
 		if (request instanceof StandByReplicaServiceRequest)
 			getReplicaWorker().close(request);
+		else if (request instanceof SearchServiceRequest)
+			getSearchWorker().close(request);
 		else if (request instanceof StandardServiceRequest)
 			this.getStandardSchedulerWorker().close(request);
 		else {
@@ -218,6 +239,15 @@ public class SchedulerService extends BaseService implements SystemService, Appl
 		Check.requireNonNullArgument(request, "request is null");
 		if (request instanceof StandByReplicaServiceRequest)
 			getReplicaWorker().fail(request);
+		else if (request instanceof SearchServiceRequest)
+			getSearchWorker().fail(request);
+	}
+
+	/** remove any pending search index request for a rolled-back operation */
+	public void cancelSearch(VirtualFileSystemOperation opx) {
+		Check.requireNonNullArgument(opx, "opx is null");
+		if (getSearchWorker() != null)
+			getSearchWorker().cancel(opx);
 	}
 
 	public void cancel(VirtualFileSystemOperation opx) {
@@ -273,6 +303,16 @@ public class SchedulerService extends BaseService implements SystemService, Appl
 
 	public int getStandardQueueSize() {
 		return getStandardSchedulerWorker().getServiceRequestQueue().size();
+	}
+
+	public int getSearchQueueSize() {
+		if (getSearchWorker() == null || getSearchWorker().getServiceRequestQueue() == null)
+			return 0;
+		return getSearchWorker().getServiceRequestQueue().size();
+	}
+
+	protected SearchSchedulerWorker getSearchWorker() {
+		return this.searchWorker;
 	}
 
 	protected SchedulerWorker getCronjobsWorker() {

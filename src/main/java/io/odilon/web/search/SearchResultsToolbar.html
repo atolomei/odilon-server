@@ -1,0 +1,24 @@
+<wicket:panel>
+
+	<div wicket:id="container" class="w-100 border rounded bg-body-tertiary float-start pt-1 pb-1 ps-3 pe-3 mb-2">
+
+		<!-- left: sort selector -->
+		<div class="pt-1 pb-1 d-inline-block float-start">
+			<span class="small text-uppercase fw-bold me-2"><wicket:message key="order" /></span>
+			<select wicket:id="order" class="form-select form-select-sm d-inline-block w-auto"></select>
+		</div>
+
+		<!-- right: page navigator and total -->
+		<div class="pt-1 pb-1 d-inline-block float-end">
+			<div wicket:id="navigator" class="navigator d-inline-block me-3"></div>
+			<div class="ps-2 pe-2 d-inline-block">
+				<span class="small d-inline-block"><wicket:message key="total" />:</span>
+				<b><span wicket:id="total" class="d-inline-block"></span></b>
+			</div>
+			<a wicket:id="searchLink" class="nav-link d-inline-block" href="#"><i class="fa-light fa-magnifying-glass"></i></a>
+			<div wicket:id="settings" class="ps-1 pe-1 d-inline-block"></div>
+		</div>
+
+	</div>
+
+</wicket:panel>

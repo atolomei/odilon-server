@@ -42,7 +42,8 @@ import tools.jackson.databind.ObjectMapper;
 @JsonSubTypes({ @JsonSubTypes.Type(value = CronJobDataIntegrityCheckRequest.class, name = "dataIntegrity"), @JsonSubTypes.Type(value = PingCronJobRequest.class, name = "ping"),
 		@JsonSubTypes.Type(value = CronJobWorkDirCleanUpRequest.class, name = "workDirCleanUp"), @JsonSubTypes.Type(value = StandByReplicaServiceRequest.class, name = "standByReplica"),
 		@JsonSubTypes.Type(value = AfterUpdateObjectServiceRequest.class, name = "afterUpdateObject"), @JsonSubTypes.Type(value = AfterDeleteObjectServiceRequest.class, name = "afterDeleteObject"),
-		@JsonSubTypes.Type(value = AfterDeleteObjectServiceRequest.class, name = "deleteBucketObjectPreviousVersion"), @JsonSubTypes.Type(value = TestServiceRequest.class, name = "test") })
+		@JsonSubTypes.Type(value = AfterDeleteObjectServiceRequest.class, name = "deleteBucketObjectPreviousVersion"), @JsonSubTypes.Type(value = SearchServiceRequest.class, name = "searchIndex"),
+		@JsonSubTypes.Type(value = CronJobSearchIndexReconciliationRequest.class, name = "searchIndexReconciliation"), @JsonSubTypes.Type(value = TestServiceRequest.class, name = "test") })
 
 /**
  * <p>
