@@ -705,9 +705,14 @@ public class ECUpdateObjectHandler extends ECTransactionObjectHandler {
 		} else {
 
 			try {
-				sourceStream = stream;
+				MessageDigest md = MessageDigest.getInstance("SHA-256");
+				sourceStream = new DigestInputStream(stream, md);
 				ECEncoder encoder = new ECEncoder(getDriver());
-				return encoder.encodeHead(sourceStream, bucket, objectName);
+				ECShards blocks = encoder.encodeHead(sourceStream, bucket, objectName);
+				long totalBytesRead = blocks.getFileSize();
+				blocks.setSrcFileSize(totalBytesRead);
+				blocks.setSrcSha256(ByteToString.byteToHexString(md.digest()));
+				return blocks;
 
 			} catch (Exception e) {
 				isMainException = true;

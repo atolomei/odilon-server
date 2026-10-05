@@ -168,12 +168,14 @@ public class ObjectVersionsPanel extends ModelPanel<SearchResult> {
 
 		List<String> fields = new ArrayList<String>();
 
-		fields.add("contentType: " + (meta.contentType != null ? meta.contentType : "-"));
-		fields.add("length: " + String.format("%,d bytes", meta.length));
-		fields.add("creationDate: " + (meta.creationDate != null ? FMT.format(meta.creationDate) : "-"));
-		fields.add("lastModified: " + (meta.lastModified != null ? FMT.format(meta.lastModified) : "-"));
-		fields.add("etag: " + (meta.etag != null ? meta.etag : "-"));
-		fields.add("status: " + (meta.status != null ? meta.status.getName() : "-"));
+		fields.add("contentType. " + (meta.contentType != null ? meta.contentType : "-"));
+		fields.add("length. " + String.format("%,d bytes", meta.length));
+		fields.add("length-src. " + String.format("%,d bytes", meta.sourceLength));
+		fields.add("creationDate. " + (meta.creationDate != null ? FMT.format(meta.creationDate) : "-"));
+		fields.add("versionCreationDate. " + (meta.versioncreationDate != null ? FMT.format(meta.versioncreationDate) : "-"));
+		fields.add("lastModified. " + (meta.lastModified != null ? FMT.format(meta.lastModified) : "-"));
+		fields.add("etag. " + (meta.etag != null ? meta.etag : "-"));
+		fields.add("status. " + (meta.status != null ? meta.status.getName() : "-"));
 
 		return fields;
 	}
