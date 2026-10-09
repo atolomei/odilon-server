@@ -66,6 +66,8 @@ public class BasicAuthWebSecurityConfiguration {
 		http.authorizeHttpRequests((authorize) -> authorize
 				// Existing public surfaces
 				.requestMatchers("/presigned/", "/presigned/object", "/public/*/*/*", "/static/", "/static/object").permitAll()
+				// browser's automatic favicon request — static resource, no credentials needed
+				.requestMatchers("/favicon.ico").permitAll()
 				// Swagger UI and OpenAPI spec — accessible without credentials so the
 				// docs can be browsed from a browser without a Basic-auth prompt.
 				// The spec itself contains no sensitive data.

@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import io.odilon.encryption.EncryptionProcessStatus;
 import io.odilon.encryption.EncryptionService;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.SystemInfo;
@@ -107,6 +108,22 @@ public interface ObjectStorageService extends SystemService {
 	 * ------------------- System -------------------
 	 */
 	public void wipeAllPreviousVersions();
+
+	/**
+	 * ------------------- Encryption -------------------
+	 */
+
+	/**
+	 * Starts the async process that re-stores encrypted all Objects that are
+	 * stored unencrypted (see {@link io.odilon.encryption.ObjectEncryptionProcess})
+	 * 
+	 * @param bucketName optional, restrict the process to this bucket
+	 */
+	public void startObjectEncryption(Optional<String> bucketName);
+
+	public boolean isObjectEncryptionRunning();
+
+	public EncryptionProcessStatus getObjectEncryptionStatus();
 
 	/**
 	 * ------------------- Settings -------------------

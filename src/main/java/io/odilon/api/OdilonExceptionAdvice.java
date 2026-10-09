@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import io.odilon.error.OdilonServerAPIException;
 import io.odilon.errors.OdilonErrorProxy;
 import io.odilon.log.Logger;
@@ -43,6 +44,18 @@ public class OdilonExceptionAdvice {
 
 		ResponseEntity<OdilonErrorProxy> response = new ResponseEntity<OdilonErrorProxy>(new OdilonErrorProxy(ex.getHttpsStatus(), ex.getErrorCode(), ex.getErrorMessage()), HttpStatus.valueOf(ex.getHttpsStatus()));
 		return response;
+	}
+
+	/**
+	 * <p>
+	 * Unknown URL / static resource (e.g. the browser's automatic
+	 * {@code /favicon.ico} request). Not a server error: answer 404 without
+	 * logging.
+	 * </p>
+	 */
+	@ExceptionHandler(NoResourceFoundException.class)
+	public ResponseEntity<Void> noResourceFound(NoResourceFoundException ex) {
+		return new ResponseEntity<Void>(HttpStatus.NOT_FOUND);
 	}
 
 	@ExceptionHandler(Exception.class)

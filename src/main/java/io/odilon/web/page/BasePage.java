@@ -35,6 +35,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import io.odilon.log.Logger;
+import io.odilon.model.SharedConstant;
 import io.odilon.monitor.SystemInfoService;
 import io.odilon.monitor.SystemMonitorService;
 import io.odilon.search.SearchService;
@@ -60,7 +61,6 @@ public abstract class BasePage extends WebPage {
 
 	private static final long serialVersionUID = 1L;
 
-	@SuppressWarnings("unused")
 	static private Logger logger = Logger.getLogger(BasePage.class.getName());
 
 	private static final ResourceReference BOOTSTRAP_CSS = Bootstrap.getCssResourceReference();
@@ -88,6 +88,7 @@ public abstract class BasePage extends WebPage {
 		try {
 			add(new GlobalTopPanel("top-panel", Model.of(getUsername().orElse(""))));
 		} catch (Exception e) {
+			logger.error(e, "GlobalTopPanel could not be created", SharedConstant.NOT_THROWN);
 			addOrReplace(new ErrorPanel("top-panel", e));
 		}
 	}

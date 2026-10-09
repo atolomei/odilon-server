@@ -37,8 +37,11 @@ import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import io.odilon.encryption.EncryptionProcessStatus;
 import io.odilon.encryption.EncryptionService;
+import io.odilon.encryption.ObjectEncryptionProcess;
 import io.odilon.error.OdilonInternalErrorException;
+import io.odilon.error.OdilonObjectNotFoundException;
 import io.odilon.error.OdilonServerAPIException;
 import io.odilon.errors.InternalCriticalException;
 import io.odilon.log.Logger;
@@ -89,6 +92,10 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
 	@JsonIgnore
 	@Autowired
 	private VirtualFileSystemService virtualFileSystemService;
+
+	@JsonIgnore
+	@Autowired
+	private ObjectEncryptionProcess objectEncryptionProcess;
 
 	@JsonIgnore
 	private ApplicationContext applicationContext;
@@ -409,6 +416,7 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
 		if (!bucketName.matches(SharedConstant.bucket_valid_regex))
 			throw new IllegalArgumentException(
 					"bucketName must be >0 and <" + String.valueOf(SharedConstant.MAX_BUCKET_CHARS) + " and must contain just lowercase letters and numbers, java regex = '" + SharedConstant.bucket_valid_regex + "' | b:" + bucketName);
+
 		try {
 			return getVirtualFileSystemService().createBucket(bucketName);
 
@@ -522,6 +530,53 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
 	@Override
 	public boolean isEncrypt() {
 		return getServerSettings().isEncryptionEnabled();
+	}
+
+	/**
+	 * <p>
+	 * Policy gate for the async object encryption process: VFS running, storage
+	 * writable (not READONLY / WORM), encryption enabled and initialized, bucket
+	 * exists. The worker itself only guards against concurrent runs.
+	 * </p>
+	 */
+	@Override
+	public void startObjectEncryption(Optional<String> bucketName) {
+
+		Check.requireTrue(isVirtualFileSystemServiceEnabled(), invalidStateMsg());
+
+		checkNotReadOnlyNotWORM();
+
+		if (!isEncrypt())
+			throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "encryption is not enabled");
+
+		OdilonServerInfo info = getVirtualFileSystemService().getOdilonServerInfo();
+		if (info == null || !info.isEncryptionIntialized())
+			throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "encryption is not initialized");
+
+		Optional<String> filter = Optional.empty();
+
+		if (bucketName.isPresent() && !bucketName.get().isBlank()) {
+			String name = bucketName.get().trim();
+			if (!existsBucket(name))
+				throw new OdilonObjectNotFoundException(ErrorCode.BUCKET_NOT_EXISTS, String.format("bucket does not exist -> %s", name));
+			filter = Optional.of(name);
+		}
+
+		getObjectEncryptionProcess().start(filter);
+	}
+
+	@Override
+	public boolean isObjectEncryptionRunning() {
+		return getObjectEncryptionProcess().isRunning();
+	}
+
+	@Override
+	public EncryptionProcessStatus getObjectEncryptionStatus() {
+		return getObjectEncryptionProcess().getStatus();
+	}
+
+	public ObjectEncryptionProcess getObjectEncryptionProcess() {
+		return this.objectEncryptionProcess;
 	}
 
 	@Override

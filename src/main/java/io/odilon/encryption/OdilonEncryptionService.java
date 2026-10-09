@@ -25,7 +25,6 @@ import java.nio.charset.StandardCharsets;
 import jakarta.annotation.PostConstruct;
 import tools.jackson.core.JsonParser;
 import tools.jackson.core.StreamReadFeature;
-import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -179,9 +178,13 @@ public class OdilonEncryptionService extends BaseService implements EncryptionSe
 
 			JsonParser parser = mapper.createParser(inputStream);
 
-			JsonNode node = parser.readValueAs(JsonNode.class);
-
-			StreamEncryptorInfo streamEncryptionInfo = mapper.treeToValue(node, StreamEncryptorInfo.class);
+			/**
+			 * Read the header POJO directly from the parser. Do NOT go through JsonNode +
+			 * mapper.treeToValue(): its parameter type changed between Jackson 3.0
+			 * (TreeNode) and 3.1 (JsonNode) and produces a NoSuchMethodError when the
+			 * compile-time and runtime jars differ.
+			 */
+			StreamEncryptorInfo streamEncryptionInfo = parser.readValueAs(StreamEncryptorInfo.class);
 
 			String key = streamEncryptionInfo.getEncryptedKey();
 			String iv = streamEncryptionInfo.getIV();
