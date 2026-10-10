@@ -23,10 +23,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.wicket.markup.html.list.ListItem;
-import org.apache.wicket.markup.html.list.ListView;
-import org.apache.wicket.markup.html.basic.Label;
-import org.apache.wicket.markup.html.link.ExternalLink;
 import org.apache.wicket.model.IModel;
 import org.apache.wicket.model.LoadableDetachableModel;
 import org.apache.wicket.model.Model;
@@ -78,26 +74,19 @@ public class HomePage extends BasePage {
 		super.onInitialize();
 
 		/**
-		try {
-			add(new ListView<SearchResult>("recent", getRecentModel()) {
-				private static final long serialVersionUID = 1L;
-
-				@Override
-				protected void populateItem(ListItem<SearchResult> item) {
-					SearchResult r = item.getModelObject();
-					ExternalLink link = new ExternalLink("link", presignedUrl(r.bucketName, r.objectName));
-					link.add(new Label("name", r.bucketName + " / " + r.objectName));
-					item.add(link);
-					item.add(new Label("fileName", r.fileName));
-					item.add(new Label("lastModified", r.lastModified != null ? FMT.format(r.lastModified) : "-"));
-				}
-			});
-		} catch (Exception e) {
-			logger.error(e);
-			addOrReplace(new ErrorPanel("recent", e));
-		}
+		 * try { add(new ListView<SearchResult>("recent", getRecentModel()) { private
+		 * static final long serialVersionUID = 1L;
+		 * 
+		 * @Override protected void populateItem(ListItem<SearchResult> item) {
+		 *           SearchResult r = item.getModelObject(); ExternalLink link = new
+		 *           ExternalLink("link", presignedUrl(r.bucketName, r.objectName));
+		 *           link.add(new Label("name", r.bucketName + " / " + r.objectName));
+		 *           item.add(link); item.add(new Label("fileName", r.fileName));
+		 *           item.add(new Label("lastModified", r.lastModified != null ?
+		 *           FMT.format(r.lastModified) : "-")); } }); } catch (Exception e) {
+		 *           logger.error(e); addOrReplace(new ErrorPanel("recent", e)); }
 		 **/
-		
+
 		/** Main configuration */
 		add(new KeyValuePanel("mainconfig", getLabel("main-configuration"), new LoadableDetachableModel<List<KeyValuePanel.Row>>() {
 			private static final long serialVersionUID = 1L;
@@ -147,8 +136,6 @@ public class HomePage extends BasePage {
 			}
 		}));
 
-
- 
 		add(new KeyValuePanel("info", getLabel("system-info"), new LoadableDetachableModel<List<KeyValuePanel.Row>>() {
 			private static final long serialVersionUID = 1L;
 
@@ -163,8 +150,6 @@ public class HomePage extends BasePage {
 			}
 		}));
 
-		
-		
 		/** Search status */
 		add(new KeyValuePanel("searchstatus", getLabel("search-status"), new LoadableDetachableModel<List<KeyValuePanel.Row>>() {
 			private static final long serialVersionUID = 1L;

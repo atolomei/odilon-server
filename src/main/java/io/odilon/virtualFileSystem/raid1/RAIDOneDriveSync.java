@@ -44,7 +44,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.ServerConstant;
-import io.odilon.model.ServiceStatus;
+
 import io.odilon.model.SharedConstant;
 import io.odilon.model.VersionControl;
 import io.odilon.model.list.DataList;
@@ -57,7 +57,6 @@ import io.odilon.virtualFileSystem.model.DriveStatus;
 import io.odilon.virtualFileSystem.model.LockService;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.SimpleDrive;
-import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
  * <p>
@@ -147,16 +146,15 @@ public class RAIDOneDriveSync implements Runnable {
 		logger.info("Starting -> " + this.getClass().getSimpleName());
 
 		try {
-		    CompletableFuture<Void> ready = ((OdilonVirtualFileSystemService) getDriver()
-		        .getVirtualFileSystemService()).awaitRunning();
-		    ready.get();
+			CompletableFuture<Void> ready = ((OdilonVirtualFileSystemService) getDriver().getVirtualFileSystemService()).awaitRunning();
+			ready.get();
 		} catch (InterruptedException e) {
-		    Thread.currentThread().interrupt();
-		    logger.error("RAIDOneDriveSync interrupted while waiting for VFS to start", SharedConstant.NOT_THROWN);
-		    return;
+			Thread.currentThread().interrupt();
+			logger.error("RAIDOneDriveSync interrupted while waiting for VFS to start", SharedConstant.NOT_THROWN);
+			return;
 		} catch (ExecutionException e) {
-		    logger.error(e.getCause(), "VFS failed to start — aborting RAIDOneDriveSync", SharedConstant.NOT_THROWN);
-		    return;
+			logger.error(e.getCause(), "VFS failed to start — aborting RAIDOneDriveSync", SharedConstant.NOT_THROWN);
+			return;
 		}
 
 		copy();

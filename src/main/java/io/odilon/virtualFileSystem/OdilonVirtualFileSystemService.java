@@ -298,6 +298,10 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 	@JsonIgnore
 	private final CompletableFuture<Void> vfsRunning = new CompletableFuture<>();
 
+	/** Completed when the Spring ApplicationContext has been refreshed */
+	@JsonIgnore
+	private final CompletableFuture<Void> contextReady = new CompletableFuture<>();
+
 	/**
 	 * @param serverSettings
 	 * @param montoringService
@@ -1092,7 +1096,17 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 	 *         failed to start
 	 */
 	public CompletableFuture<Void> awaitRunning() {
-		return vfsRunning;
+		/** also wait for the Spring context to be fully refreshed, otherwise getBean() fails */
+		return vfsRunning.thenCombine(contextReady, (a, b) -> (Void) null);
+	}
+
+	/**
+	 * Spring ApplicationContext is only usable for getBean() after refresh completes
+	 * (the @PostConstruct of this bean runs before that).
+	 */
+	@org.springframework.context.event.EventListener(org.springframework.context.event.ContextRefreshedEvent.class)
+	public void onContextRefreshed() {
+		contextReady.complete(null);
 	}
 
 	@PostConstruct
