@@ -67,6 +67,7 @@ public class OdilonKeyEncryptorService extends BaseService implements KeyEncrypt
 
 	@Override
 	public byte[] encryptKey(byte[] key, byte[] iv) {
+		checkMasterKey("encryptKey");
 		try {
 			SecretKeySpec secretKeySpec = new SecretKeySpec(masterKey, EncryptionService.ENCRYPTION_ALGORITHM);
 			Cipher enc = Cipher.getInstance(EncryptionService.ENCRYPTION_ALGORITHM_METHOD);
@@ -79,6 +80,7 @@ public class OdilonKeyEncryptorService extends BaseService implements KeyEncrypt
 
 	@Override
 	public byte[] decryptKey(byte[] key, byte[] iv) {
+		checkMasterKey("decryptKey");
 		try {
 			SecretKeySpec secretKeySpec = new SecretKeySpec(masterKey, EncryptionService.ENCRYPTION_ALGORITHM);
 			Cipher dec = Cipher.getInstance(EncryptionService.ENCRYPTION_ALGORITHM_METHOD);
@@ -89,6 +91,11 @@ public class OdilonKeyEncryptorService extends BaseService implements KeyEncrypt
 		} catch (Exception e) {
 			throw new InternalCriticalException(e, "decryptKey");
 		}
+	}
+
+	private void checkMasterKey(String op) {
+		if (masterKey == null)
+			throw new InternalCriticalException(op + " | Master key not loaded. Encrypted objects require 'encryption.key' in odilon.properties");
 	}
 
 	@PostConstruct

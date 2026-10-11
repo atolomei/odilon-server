@@ -736,12 +736,13 @@ public class ServerSettings implements JSONObject {
 			if (this.serverVersionControlStr != null && !this.serverVersionControlStr.toLowerCase().trim().equals("null")) {
 				this.versionControlStr = this.serverVersionControlStr.toLowerCase().trim();
 			} else
-				this.versionControlStr = "disabled";
+				this.versionControlStr = "standard";
 		}
 
 		if (this.versionControlStr == null)
-			this.versionControlStr = "disabled";
+			this.versionControlStr = "standard";
 
+		
 		this.versionControlStr = this.versionControlStr.trim().toLowerCase();
 
 		if (this.versionControlStr.equals("disabled") || this.versionControlStr.equals("false"))

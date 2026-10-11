@@ -1610,8 +1610,10 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 				String k = s.trim();
 				String separator = s.trim().startsWith("-DmasterKey=") ? "-DmasterKey=" : "--masterKey=";
 				String arr[] = k.split(separator);
-				if (arr.length > 1)
-					this.providedMasterKey = Optional.of(arr[1]);
+				if (arr.length > 1 && arr[1] != null && !arr[1].trim().isEmpty()) {
+					this.providedMasterKey = Optional.of(arr[1].trim());
+					isInitializeEnc = true;
+				}
 			}
 		}
 
@@ -1625,9 +1627,30 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 			return;
 		}
 
-		/** no encryption -> nothing to do */
-		if (!getServerSettings().isEncryptionEnabled())
+		/**
+		 * Encryption disabled for new files: the master key must still be loaded (if
+		 * available) to read objects that were stored encrypted before.
+		 */
+		if (!getServerSettings().isEncryptionEnabled()) {
+			if (getServerSettings().getEncryptionKey() == null)
+				return;
+			try {
+				if (getServerSettings().getInternalMasterKeyEncryptor() != null) {
+					getKeyEncryptorService().setMasterKey(ByteToString.hexStringToByte(getServerSettings().getInternalMasterKeyEncryptor()));
+					return;
+				}
+				IODriver d = createVFSIODriver();
+				OdilonServerInfo i = d.getServerInfo();
+				if (i == null || !i.isEncryptionIntialized())
+					return;
+				byte[] mk = d.getServerMasterKey();
+				if (mk != null)
+					getKeyEncryptorService().setMasterKey(mk);
+			} catch (Exception e) {
+				logger.error("Could not load master key (encryption disabled) | " + e.getClass().getName() + " | " + e.getMessage(), SharedConstant.NOT_THROWN);
+			}
 			return;
+		}
 
 		/** Check permissions of key files before reading them */
 		checkKeyFileSecurity();
