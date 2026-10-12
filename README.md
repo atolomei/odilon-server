@@ -101,7 +101,7 @@ The supported configurations are: <br/> <br/>
 <p>These three version control configurations (disabled, standard, protected) are complementary to the three Data Storage modes: rw(normal read-write), Read Only for immutable servers, and WORM (Write Once Read Many) where objects can be created and accessed but cannot be updated or deleted.</p>
 
 
-<h2>We console</h2>
+<h2>Web management console</h2>
 
 <p>The server contains a simple web application for viewing the server status and searching the repository. Odilon uses <a href="https://lucene.apache.org/" target="_blank">Apache Lucene</a> for indexing and searching.
 You can access the management console (by default http://localhost:9234) using a web browser and the accesskey / secretkey defined in odilon.properties.</p>
