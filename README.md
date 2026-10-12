@@ -1,9 +1,8 @@
 ![spring-gaede65182_1280](https://github.com/atolomei/odilon-server/assets/29349757/f1c6f491-9d1f-4e4d-af87-f7e57713542a)
 
-<p><b>NEWS</b>: Odilon Server 2.1 available (10 Jul 2026). Odilon client SDK 2.0 available (18 May 2026)</p>
+<p><b>NEWS</b>: Odilon Server 2.2 available (12 Oct 2026). Odilon client SDK 2.0 available (18 May 2026)</p>
 
 <h1>Odilon Object Storage</h2>
-
 
 <h2>Enterprise-class storage made simple</h2>
 <p>Odilon is a simple, secure, fully Open Source object storage server that runs on standard hardware.
@@ -91,8 +90,6 @@ The supported configurations are: <br/> <br/>
 
 
 
-
-
 <h2>Version Control</h2>
 
 <p>Odilon supports two version control modes: standard and protected (see manual page how to configure version control).</p>
@@ -101,9 +98,13 @@ The supported configurations are: <br/> <br/>
 
 <p>The protected mode is designed for compliance or ransomware protection; client applications can create new versions of an object but cannot delete previous versions, nor can they delete stored objects.</p>
 
-<p>These three version control configurations (disabled, standard, protected) are complementary to the three Data Storage modes: rw(normal read-write), Read Only for immutable servers, and WORM (Write Once Read Many) where objects can be created and accessed but cannot be updated or deleted..</p>
+<p>These three version control configurations (disabled, standard, protected) are complementary to the three Data Storage modes: rw(normal read-write), Read Only for immutable servers, and WORM (Write Once Read Many) where objects can be created and accessed but cannot be updated or deleted.</p>
 
 
+<h2>We console</h2>
+
+<p>The server contains a simple web application for viewing the server status and searching the repository. Odilon uses <a href="https://lucene.apache.org/" target="_blank">Apache Lucene</a> for indexing and searching.
+You can access the management console (by default http://localhost:9234) using a web browser and the accesskey / secretkey defined in odilon.properties.</p>
 
 
 <h2>Master Standby Architecture</h2>
@@ -220,7 +221,7 @@ More info on the Odilon website <br/>
 
 <h2>Download</h2>
 <p>
-Current version of Odilon Server is <b>2.1</b>.
+Current version of Odilon Server is <b>2.2</b>.
 <ul>
 <li><a href="https://odilon.io#download" target="_blank">Odilon Server</a></li>	
 <li><a href="https://odilon.io#download" target="_blank">Odilon Java SDK</a></li>
