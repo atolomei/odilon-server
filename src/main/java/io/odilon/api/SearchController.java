@@ -64,11 +64,11 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  
  
  
- # Index status (documents, pending queue, lastIndexed, lastRebuild, state)
-curl -u odilon:odilon "http://localhost:9600/search/status"
-
-# Trigger a full index rebuild (returns 202; 409 if already running)
-curl -X POST -u odilon:odilon "http://localhost:9600/search/rebuild"
+	 # Index status (documents, pending queue, lastIndexed, lastRebuild, state)
+	curl -u odilon:odilon "http://localhost:9600/search/status"
+	
+	# Trigger a full index rebuild (returns 202; 409 if already running)
+	curl -X POST -u odilon:odilon "http://localhost:9600/search/rebuild"
 
 # Full-text search on the _all field (object key, filename, tags, metadata values)
 curl -u odilon:odilon "http://localhost:9600/search?q=invoice"
