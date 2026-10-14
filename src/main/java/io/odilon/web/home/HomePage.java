@@ -31,8 +31,11 @@ import org.wicketstuff.annotation.mount.MountPath;
 
 import com.giffing.wicket.spring.boot.context.scan.WicketHomePage;
 
+import io.odilon.OdilonApplication;
+import io.odilon.OdilonVersion;
 import io.odilon.log.Logger;
 import io.odilon.model.RedundancyLevel;
+import io.odilon.model.ServerConstant;
 import io.odilon.search.IndexStatus;
 import io.odilon.search.SearchQuery;
 import io.odilon.search.SearchResult;
@@ -57,7 +60,7 @@ public class HomePage extends BasePage {
 
 	static private Logger logger = Logger.getLogger(HomePage.class.getName());
 
-	private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+	private static final DateTimeFormatter fmt = DateTimeFormatter.ofPattern( ServerConstant.DEFAULT_DATE_TIME_FORMAT);
 
 	private static final int RECENT = 30;
 
@@ -108,8 +111,13 @@ public class HomePage extends BasePage {
 					map.put("Data immutability", settings.getDataStorage() != null ? settings.getDataStorage().getName() : "-");
 					map.put("Master standby", settings.isStandByEnabled() ? "enabled" : "disabled");
 					map.put("Server mode", settings.getServerMode());
-					map.put("HTTPS", settings.isHTTPS() ? "yes" : "no");
+					map.put("HTTPS", settings.isHTTPS() ? "true" : "false");
 
+					map.put("Started", fmt.format(OdilonApplication.STARTED) );
+					map.put("Version", OdilonVersion.VERSION);
+					
+					
+					
 					return KeyValuePanel.rows(map);
 				} catch (Exception e) {
 					logger.error(e);
@@ -161,8 +169,8 @@ public class HomePage extends BasePage {
 					Map<String, String> map = new LinkedHashMap<String, String>();
 					map.put("Status", status.status);
 					map.put("Documents", String.format("%,d", status.documents));
-					map.put("Last indexed", status.lastIndexed != null ? FMT.format(status.lastIndexed) : "-");
-					map.put("Last rebuild", status.lastRebuild != null ? FMT.format(status.lastRebuild) : "-");
+					map.put("Last indexed", status.lastIndexed != null ? fmt.format(status.lastIndexed) : "-");
+					map.put("Last rebuild", status.lastRebuild != null ? fmt.format(status.lastRebuild) : "-");
 					map.put("Pending", String.format("%,d", status.pending));
 					map.put("Errors", String.format("%,d", status.errors));
 					return KeyValuePanel.rows(map);

@@ -85,8 +85,8 @@ public class ECSchedulerHandler extends BaseRAIDHandler implements RAIDHandler {
 
 	/**
 	 * <p>
-	 * Erasure Coding multi-volume override: remove scheduler requests from <em>all</em>
-	 * enabled drives across all volumes.
+	 * Erasure Coding multi-volume override: remove scheduler requests from
+	 * <em>all</em> enabled drives across all volumes.
 	 * </p>
 	 * <p>
 	 * A request may have been saved on an older volume before the active volume

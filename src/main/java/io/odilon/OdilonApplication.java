@@ -19,6 +19,8 @@ package io.odilon;
 
 import jakarta.annotation.PostConstruct;
 
+import java.time.OffsetDateTime;
+
 import org.springframework.boot.Banner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -89,6 +91,8 @@ public class OdilonApplication {
 
 	static public String[] cmdArgs = null;
 
+	static final public OffsetDateTime STARTED = OffsetDateTime.now();
+	
 	public static void main(String[] args) {
 		SpringApplication application = new SpringApplication(OdilonApplication.class);
 		application.setBannerMode(Banner.Mode.OFF);

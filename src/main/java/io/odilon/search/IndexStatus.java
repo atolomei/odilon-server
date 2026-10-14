@@ -22,6 +22,8 @@ import java.time.format.DateTimeFormatter;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import io.odilon.model.ServerConstant;
+
 /**
  * <p>
  * Status snapshot of the embedded Lucene search index. Durable facts
@@ -40,6 +42,9 @@ public class IndexStatus implements Serializable {
 	public static final String DEGRADED = "DEGRADED";
 	public static final String DISABLED = "DISABLED";
 
+	static DateTimeFormatter fmt = DateTimeFormatter.ofPattern(ServerConstant.DEFAULT_DATE_TIME_FORMAT);
+	
+	
 	@JsonProperty("status")
 	public String status = DISABLED;
 
@@ -63,7 +68,7 @@ public class IndexStatus implements Serializable {
 
 	/** formatted multi-line block for the startup console */
 	public String console() {
-		DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+		
 		StringBuilder str = new StringBuilder();
 		str.append("Index Status").append(System.lineSeparator());
 		str.append(String.format("Status:        %s%n", status));

@@ -62,7 +62,7 @@ public class ObjectVersionsPanel extends ModelPanel<SearchResult> {
 
 	static private Logger logger = Logger.getLogger(ObjectVersionsPanel.class.getName());
 
-	private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+	private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss Z");
 
 	public ObjectVersionsPanel(String id, IModel<SearchResult> model) {
 		super(id, model);
@@ -168,14 +168,16 @@ public class ObjectVersionsPanel extends ModelPanel<SearchResult> {
 
 		List<String> fields = new ArrayList<String>();
 
+
 		fields.add("contentType. " + (meta.contentType != null ? meta.contentType : "-"));
+		fields.add("creationDate. " + (meta.creationDate != null ? FMT.format(meta.creationDate) : "-"));
+		fields.add("encryption. " + (meta.encrypt ? "true" : "false"));
+		fields.add("etag. " + (meta.etag != null ? meta.etag : "-"));
+		fields.add("lastModified. " + (meta.lastModified != null ? FMT.format(meta.lastModified) : "-"));
 		fields.add("length. " + String.format("%,d bytes", meta.length));
 		fields.add("length-src. " + String.format("%,d bytes", meta.sourceLength));
-		fields.add("creationDate. " + (meta.creationDate != null ? FMT.format(meta.creationDate) : "-"));
-		fields.add("versionCreationDate. " + (meta.versioncreationDate != null ? FMT.format(meta.versioncreationDate) : "-"));
-		fields.add("lastModified. " + (meta.lastModified != null ? FMT.format(meta.lastModified) : "-"));
-		fields.add("etag. " + (meta.etag != null ? meta.etag : "-"));
 		fields.add("status. " + (meta.status != null ? meta.status.getName() : "-"));
+		fields.add("versionCreationDate. " + (meta.versioncreationDate != null ? FMT.format(meta.versioncreationDate) : "-"));
 
 		return fields;
 	}

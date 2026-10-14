@@ -70,8 +70,7 @@ public class RAIDZeroSchedulerHandler extends BaseRAIDHandler implements RAIDHan
 			} catch (Exception e) {
 				// Log the error but DO NOT delete the file — deleting would permanently lose
 				// pending replication/scheduler work that should be retried on next startup
-				logger.error(	"Failed to deserialize ServiceRequest from file -> " + file.getAbsolutePath() + " | " + 
-								e.getClass().getName() + " | " + e.getMessage(), SharedConstant.NOT_THROWN);
+				logger.error("Failed to deserialize ServiceRequest from file -> " + file.getAbsolutePath() + " | " + e.getClass().getName() + " | " + e.getMessage(), SharedConstant.NOT_THROWN);
 			}
 		}
 		return list;

@@ -112,8 +112,7 @@ public class ECRollbackUpdateHandler extends ECRollbackHandler {
 			if (!isRecovery()) {
 				logger.error(e, SharedConstant.THROWN_WRAPPED);
 				throw new InternalCriticalException(e, opInfo(getOperation()));
-			}
-			else
+			} else
 				logger.error(e, opInfo(getOperation()), SharedConstant.NOT_THROWN);
 		} finally {
 			if (done || isRecovery()) {
@@ -146,9 +145,9 @@ public class ECRollbackUpdateHandler extends ECRollbackHandler {
 	 * to the <em>active</em> volume's drives. When an object lives on an older
 	 * (READONLY) volume, a cross-volume update writes new metadata to the active
 	 * volume and new shards there too. If the operation is rolled back,
-	 * {@link ECDriver#getDriverObjectMetadataInternal} (which searches the
-	 * active volume first) will find the stale new-version metadata and serve it
-	 * instead of the correctly restored old-version metadata on the original volume.
+	 * {@link ECDriver#getDriverObjectMetadataInternal} (which searches the active
+	 * volume first) will find the stale new-version metadata and serve it instead
+	 * of the correctly restored old-version metadata on the original volume.
 	 * </p>
 	 *
 	 * @param bucket     the bucket containing the object
@@ -183,8 +182,7 @@ public class ECRollbackUpdateHandler extends ECRollbackHandler {
 					if (metaFile != null)
 						FileUtils.deleteQuietly(metaFile);
 				} catch (Exception e) {
-					logger.error(e, "U4 purge: metadata delete | drive=" + drive.getName()
-							+ " | " + opInfo(getOperation()), SharedConstant.NOT_THROWN);
+					logger.error(e, "U4 purge: metadata delete | drive=" + drive.getName() + " | " + opInfo(getOperation()), SharedConstant.NOT_THROWN);
 				}
 
 				// Delete stale head shard files (pattern: objectName.<chunk>.<disk>,
@@ -192,15 +190,13 @@ public class ECRollbackUpdateHandler extends ECRollbackHandler {
 				try {
 					File dataDir = new File(drive.getBucketObjectDataDirPath(bucket));
 					if (dataDir.exists() && dataDir.isDirectory()) {
-						File[] orphans = dataDir.listFiles((dir, name) ->
-								name.startsWith(objectName + ".") && !name.contains(".v"));
+						File[] orphans = dataDir.listFiles((dir, name) -> name.startsWith(objectName + ".") && !name.contains(".v"));
 						if (orphans != null)
 							for (File orphan : orphans)
 								FileUtils.deleteQuietly(orphan);
 					}
 				} catch (Exception e) {
-					logger.error(e, "U4 purge: shard delete | drive=" + drive.getName()
-							+ " | " + opInfo(getOperation()), SharedConstant.NOT_THROWN);
+					logger.error(e, "U4 purge: shard delete | drive=" + drive.getName() + " | " + opInfo(getOperation()), SharedConstant.NOT_THROWN);
 				}
 			}
 		}

@@ -82,4 +82,6 @@ public class ServerConstant {
 
 	public static final int TIME_OUT_PASS_MIN = 3;
 
+	public static final String DEFAULT_DATE_TIME_FORMAT = "yyyy-MM-dd HH:mm:ss Z";
+	
 }

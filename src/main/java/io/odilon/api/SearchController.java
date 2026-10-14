@@ -60,95 +60,98 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  * </ul>
  * 
  * curl -X POST http://localhost:9600/search/rebuild -u odilon:odilon
- 
- 
- 
- 
-	 # Index status (documents, pending queue, lastIndexed, lastRebuild, state)
-	curl -u odilon:odilon "http://localhost:9600/search/status"
-	
-	# Trigger a full index rebuild (returns 202; 409 if already running)
-	curl -X POST -u odilon:odilon "http://localhost:9600/search/rebuild"
-
-# Full-text search on the _all field (object key, filename, tags, metadata values)
-curl -u odilon:odilon "http://localhost:9600/search?q=invoice"
-
-# Search by custom metadata key "title" (exact match on meta.title)
-curl -u odilon:odilon "http://localhost:9600/search?meta.title=Annual%20Report%202024"
-
-# Full-text on title content (analyzed field, if "title" is whitelisted)
-curl -u odilon:odilon "http://localhost:9600/search?q=annual+report"
-
-# Restrict to a bucket
-curl -u odilon:odilon "http://localhost:9600/search?bucket=documents&q=contract"
-
-# Combine bucket + metadata filters
-curl -u odilon:odilon "http://localhost:9600/search?bucket=photos&meta.author=alejandro&meta.year=2024"
-
-# Metadata filter + free text together
-curl -u odilon:odilon "http://localhost:9600/search?q=budget&meta.department=finance"
-
-# Pagination
-curl -u odilon:odilon "http://localhost:9600/search?q=pdf&offset=100&maxResults=50"
-
-# Max results cap test (server caps at 1000)
-curl -u odilon:odilon "http://localhost:9600/search?q=*&maxResults=5000"
-
-
- 
- 
- # Matches any object whose file name contains the token "tolomei" (any case)
-curl -u odilon:odilon "http://localhost:9600/search?q=tolomei"
- 
- # "tolomei" in the file name only (any case)
-curl -u odilon:odilon "http://localhost:9600/search?fileName=tolomei"
-
-# "tolomei" in the object key only
-curl -u odilon:odilon "http://localhost:9600/search?objectName=tolomei"
-
-# objects modified in September 2026
-curl -u odilon:odilon "http://localhost:9600/search?lastModifiedFrom=2026-09-01&lastModifiedTo=2026-09-30"
-
-# precise timestamps
-curl -u odilon:odilon "http://localhost:9600/search?lastModifiedFrom=2026-09-30T12:00:00Z"
-
-# combined: filename + date range + bucket + metadata
-curl -u odilon:odilon "http://localhost:9600/search?bucket=docs&fileName=tolomei&lastModifiedFrom=2026-01-01&meta.department=legal"
-
- 
- 
- -------
- 
- curl examples (remember %2A = *, %22 = ")
- 
- # token match — tolomei-report.pdf, Tolomei_2024.docx
-curl -u odilon:odilon "http://localhost:9600/search?fileName=tolomei"
-
-# partial match anywhere, any case — atolomei.pdf, XTOLOMEIx.doc
-curl -u odilon:odilon "http://localhost:9600/search?fileName=%2Atolomei%2A"
-
-# prefix match (faster — no leading wildcard)
-curl -u odilon:odilon "http://localhost:9600/search?fileName=tolomei%2A"
-
-# exact name, case-insensitive — matches Tolomei-Report.pdf, TOLOMEI-REPORT.PDF
-curl -u odilon:odilon "http://localhost:9600/search?fileName=%22tolomei-report.pdf%22"
-
-# exact object key
-curl -u odilon:odilon "http://localhost:9600/search?objectName=%22reports/2026/tolomei.pdf%22"
-
-
-# single-char wildcard
-In a URL, a literal ? marks the start of the query string, so when ? is part of a parameter value it must be percent-encoded as %3F. In the example:
-the server receives fileName=tolomei-v?.pdf, where ? is the Lucene single-character wildcard — matching e.g. tolomei-v1.pdf, tolomei-vX.pdf.
-
-
-curl -u odilon:odilon "http://localhost:9600/search?fileName=tolomei-v%3F.pdf"
-
-
-
-
- 
- 
+ * 
+ * 
+ * # Index status (documents, pending queue, lastIndexed, lastRebuild, state)
+ * curl -u odilon:odilon "http://localhost:9600/search/status"
+ * 
+ * # Trigger a full index rebuild (returns 202; 409 if already running) curl -X
+ * POST -u odilon:odilon "http://localhost:9600/search/rebuild"
+ * 
+ * # Full-text search on the _all field (object key, filename, tags, metadata
+ * values) curl -u odilon:odilon "http://localhost:9600/search?q=invoice"
+ * 
+ * # Search by custom metadata key "title" (exact match on meta.title) curl -u
+ * odilon:odilon
+ * "http://localhost:9600/search?meta.title=Annual%20Report%202024"
+ * 
+ * # Full-text on title content (analyzed field, if "title" is whitelisted) curl
+ * -u odilon:odilon "http://localhost:9600/search?q=annual+report"
+ * 
+ * # Restrict to a bucket curl -u odilon:odilon
+ * "http://localhost:9600/search?bucket=documents&q=contract"
+ * 
+ * # Combine bucket + metadata filters curl -u odilon:odilon
+ * "http://localhost:9600/search?bucket=photos&meta.author=alejandro&meta.year=2024"
+ * 
+ * # Metadata filter + free text together curl -u odilon:odilon
+ * "http://localhost:9600/search?q=budget&meta.department=finance"
+ * 
+ * # Pagination curl -u odilon:odilon
+ * "http://localhost:9600/search?q=pdf&offset=100&maxResults=50"
+ * 
+ * # Max results cap test (server caps at 1000) curl -u odilon:odilon
+ * "http://localhost:9600/search?q=*&maxResults=5000"
+ * 
+ * 
+ * 
+ * 
+ * # Matches any object whose file name contains the token "tolomei" (any case)
+ * curl -u odilon:odilon "http://localhost:9600/search?q=tolomei"
+ * 
+ * # "tolomei" in the file name only (any case) curl -u odilon:odilon
+ * "http://localhost:9600/search?fileName=tolomei"
+ * 
+ * # "tolomei" in the object key only curl -u odilon:odilon
+ * "http://localhost:9600/search?objectName=tolomei"
+ * 
+ * # objects modified in September 2026 curl -u odilon:odilon
+ * "http://localhost:9600/search?lastModifiedFrom=2026-09-01&lastModifiedTo=2026-09-30"
+ * 
+ * # precise timestamps curl -u odilon:odilon
+ * "http://localhost:9600/search?lastModifiedFrom=2026-09-30T12:00:00Z"
+ * 
+ * # combined: filename + date range + bucket + metadata curl -u odilon:odilon
+ * "http://localhost:9600/search?bucket=docs&fileName=tolomei&lastModifiedFrom=2026-01-01&meta.department=legal"
+ * 
+ * 
+ * 
+ * -------
+ * 
+ * curl examples (remember %2A = *, %22 = ")
+ * 
+ * # token match — tolomei-report.pdf, Tolomei_2024.docx curl -u odilon:odilon
+ * "http://localhost:9600/search?fileName=tolomei"
+ * 
+ * # partial match anywhere, any case — atolomei.pdf, XTOLOMEIx.doc curl -u
+ * odilon:odilon "http://localhost:9600/search?fileName=%2Atolomei%2A"
+ * 
+ * # prefix match (faster — no leading wildcard) curl -u odilon:odilon
+ * "http://localhost:9600/search?fileName=tolomei%2A"
+ * 
+ * # exact name, case-insensitive — matches Tolomei-Report.pdf,
+ * TOLOMEI-REPORT.PDF curl -u odilon:odilon
+ * "http://localhost:9600/search?fileName=%22tolomei-report.pdf%22"
+ * 
+ * # exact object key curl -u odilon:odilon
+ * "http://localhost:9600/search?objectName=%22reports/2026/tolomei.pdf%22"
+ * 
+ * 
+ * # single-char wildcard In a URL, a literal ? marks the start of the query
+ * string, so when ? is part of a parameter value it must be percent-encoded as
+ * %3F. In the example: the server receives fileName=tolomei-v?.pdf, where ? is
+ * the Lucene single-character wildcard — matching e.g. tolomei-v1.pdf,
+ * tolomei-vX.pdf.
+ * 
+ * 
+ * curl -u odilon:odilon
+ * "http://localhost:9600/search?fileName=tolomei-v%3F.pdf"
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @RestController
@@ -163,8 +166,8 @@ public class SearchController extends BaseApiController {
 	private final SearchIndexReconciler searchIndexReconciler;
 
 	@Autowired
-	public SearchController(ObjectStorageService objectStorageService, VirtualFileSystemService virtualFileSystemService, SystemMonitorService monitoringService, TrafficControlService trafficControlService,
-			SearchService searchService, SchedulerService schedulerService, SearchIndexReconciler searchIndexReconciler) {
+	public SearchController(ObjectStorageService objectStorageService, VirtualFileSystemService virtualFileSystemService, SystemMonitorService monitoringService, TrafficControlService trafficControlService, SearchService searchService,
+			SchedulerService schedulerService, SearchIndexReconciler searchIndexReconciler) {
 		super(objectStorageService, virtualFileSystemService, monitoringService, trafficControlService);
 		this.searchService = searchService;
 		this.schedulerService = schedulerService;
@@ -174,19 +177,20 @@ public class SearchController extends BaseApiController {
 	/**
 	 * <ul>
 	 * <li>{@code q} — free text over the catch-all field</li>
-	 * <li>{@code objectName} — case-insensitive tokenized match on the object key only</li>
-	 * <li>{@code fileName} — case-insensitive tokenized match on the file name only</li>
+	 * <li>{@code objectName} — case-insensitive tokenized match on the object key
+	 * only</li>
+	 * <li>{@code fileName} — case-insensitive tokenized match on the file name
+	 * only</li>
 	 * <li>{@code lastModifiedFrom} / {@code lastModifiedTo} — ISO-8601 (e.g.
-	 * {@code 2026-01-01T00:00:00Z} or {@code 2026-01-01} for date-only), inclusive</li>
+	 * {@code 2026-01-01T00:00:00Z} or {@code 2026-01-01} for date-only),
+	 * inclusive</li>
 	 * <li>{@code meta.<key>=<value>} — exact-match metadata filters</li>
 	 * </ul>
 	 */
 	@RequestMapping(value = "/search", produces = "application/json", method = RequestMethod.GET)
-	public ResponseEntity<List<SearchResult>> search(@RequestParam(required = false) String bucket, @RequestParam(required = false) String q,
-			@RequestParam(required = false) String objectName, @RequestParam(required = false) String fileName,
-			@RequestParam(required = false) String lastModifiedFrom, @RequestParam(required = false) String lastModifiedTo,
-			@RequestParam(required = false, defaultValue = "0") int offset, @RequestParam(required = false, defaultValue = "" + DEFAULT_MAX_RESULTS) int maxResults,
-			@RequestParam Map<String, String> allParams) {
+	public ResponseEntity<List<SearchResult>> search(@RequestParam(required = false) String bucket, @RequestParam(required = false) String q, @RequestParam(required = false) String objectName,
+			@RequestParam(required = false) String fileName, @RequestParam(required = false) String lastModifiedFrom, @RequestParam(required = false) String lastModifiedTo, @RequestParam(required = false, defaultValue = "0") int offset,
+			@RequestParam(required = false, defaultValue = "" + DEFAULT_MAX_RESULTS) int maxResults, @RequestParam Map<String, String> allParams) {
 
 		TrafficPass pass = null;
 
@@ -260,10 +264,10 @@ public class SearchController extends BaseApiController {
 
 	/**
 	 * <p>
-	 * Admin trigger for a full index rebuild (re-indexes every object regardless
-	 * of etag and removes orphans). Runs on a background thread — the endpoint
-	 * returns immediately; progress can be followed via {@code /search/status}
-	 * (status REBUILDING).
+	 * Admin trigger for a full index rebuild (re-indexes every object regardless of
+	 * etag and removes orphans). Runs on a background thread — the endpoint returns
+	 * immediately; progress can be followed via {@code /search/status} (status
+	 * REBUILDING).
 	 * </p>
 	 */
 	@RequestMapping(value = "/search/rebuild", produces = "application/json", method = RequestMethod.POST)

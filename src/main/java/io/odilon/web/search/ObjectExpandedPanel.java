@@ -31,6 +31,7 @@ import org.apache.wicket.model.LoadableDetachableModel;
 
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
+import io.odilon.model.ServerConstant;
 import io.odilon.search.SearchResult;
 import io.odilon.service.ObjectStorageService;
 import io.odilon.web.ServiceLocator;
@@ -54,8 +55,9 @@ public class ObjectExpandedPanel extends ModelPanel<SearchResult> {
 
 	static private Logger logger = Logger.getLogger(ObjectExpandedPanel.class.getName());
 
-	private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+	static DateTimeFormatter fmt = DateTimeFormatter.ofPattern(ServerConstant.DEFAULT_DATE_TIME_FORMAT);
 
+	
 	public ObjectExpandedPanel(String id, IModel<SearchResult> model) {
 		super(id, model);
 		setOutputMarkupId(true);
@@ -135,8 +137,8 @@ public class ObjectExpandedPanel extends ModelPanel<SearchResult> {
 			map.put("encrypt", (meta.isEncrypt()? "true" : "false")	);
 			
 			map.put("version", String.valueOf(meta.version));
-			map.put("creationDate", meta.creationDate != null ? FMT.format(meta.creationDate) : "-");
-			map.put("lastModified", meta.lastModified != null ? FMT.format(meta.lastModified) : "-");
+			map.put("creationDate", meta.creationDate != null ? fmt.format(meta.creationDate) : "-");
+			map.put("lastModified", meta.lastModified != null ? fmt.format(meta.lastModified) : "-");
 			map.put("etag", meta.etag);
 			map.put("status", meta.status != null ? meta.status.getName() : "-");
 			map.put("raid", meta.raid);

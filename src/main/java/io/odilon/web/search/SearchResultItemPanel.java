@@ -23,6 +23,7 @@ import org.apache.wicket.markup.html.link.ExternalLink;
 import org.apache.wicket.model.IModel;
 import org.apache.wicket.model.Model;
 
+import io.odilon.model.ServerConstant;
 import io.odilon.search.SearchResult;
 import io.odilon.web.page.BasePage;
 import wktui.base.ModelPanel;
@@ -40,7 +41,7 @@ public class SearchResultItemPanel extends ModelPanel<SearchResult> {
 
 	private static final long serialVersionUID = 1L;
 
-	private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss Z");
+	private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern( ServerConstant.DEFAULT_DATE_TIME_FORMAT );
 
 	private final boolean allBuckets;
 
