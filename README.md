@@ -1,6 +1,6 @@
 ![spring-gaede65182_1280](https://github.com/atolomei/odilon-server/assets/29349757/f1c6f491-9d1f-4e4d-af87-f7e57713542a)
 
-<p><b>NEWS</b>: Odilon Server 2.2 available (12 Oct 2026). Odilon client SDK 2.0 available (18 May 2026)</p>
+<p><b>NEWS</b>: Odilon Server 2.2.1 available (19 Oct 2026). Odilon client SDK 2.0 available (18 May 2026)</p>
 
 <h1>Odilon Object Storage</h2>
 
@@ -221,7 +221,7 @@ More info on the Odilon website <br/>
 
 <h2>Download</h2>
 <p>
-Current version of Odilon Server is <b>2.2</b>.
+Current version of Odilon Server is <b>2.2.1</b>.
 <ul>
 <li><a href="https://odilon.io#download" target="_blank">Odilon Server</a></li>	
 <li><a href="https://odilon.io#download" target="_blank">Odilon Java SDK</a></li>
