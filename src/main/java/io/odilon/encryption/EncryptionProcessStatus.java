@@ -39,6 +39,9 @@ public class EncryptionProcessStatus implements Serializable {
 	public static final String IDLE = "IDLE";
 	public static final String RUNNING = "RUNNING";
 	public static final String COMPLETED = "COMPLETED";
+	/** the walk finished, but some objects could not be processed (see log) */
+	public static final String COMPLETED_WITH_ERRORS = "COMPLETED_WITH_ERRORS";
+	/** the process aborted (exception / interrupted) */
 	public static final String FAILED = "FAILED";
 
 	@JsonProperty("status")

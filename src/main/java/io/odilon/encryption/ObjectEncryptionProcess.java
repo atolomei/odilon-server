@@ -33,6 +33,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
 
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
@@ -315,9 +316,11 @@ public class ObjectEncryptionProcess implements ApplicationContextAware {
 				}
 			}
 
-			this.status = (this.errors.get() > 0) ? EncryptionProcessStatus.FAILED : EncryptionProcessStatus.COMPLETED;
-			if (this.errors.get() > 0)
-				this.message = "completed with errors";
+			if (this.errors.get() > 0) {
+				this.status = EncryptionProcessStatus.COMPLETED_WITH_ERRORS;
+				this.message = "completed with " + this.errors.get() + " error(s), see log. The process is idempotent, re-run it to retry";
+			} else
+				this.status = EncryptionProcessStatus.COMPLETED;
 
 		} finally {
 
@@ -383,7 +386,12 @@ public class ObjectEncryptionProcess implements ApplicationContextAware {
 				return;
 			}
 
-			encryptObject(bucket, listed.getObjectName());
+			/** counted only after all locks were released successfully */
+			long bytes = encryptObject(bucket, listed.getObjectName());
+			if (bytes >= 0) {
+				this.encrypted.incrementAndGet();
+				this.totalBytes.addAndGet(bytes);
+			}
 
 		} catch (Exception e) {
 			this.errors.incrementAndGet();
@@ -399,21 +407,25 @@ public class ObjectEncryptionProcess implements ApplicationContextAware {
 	 * concurrent client updates (already encrypted) are never overwritten.
 	 * </p>
 	 */
-	private void encryptObject(ServerBucket bucket, String objectName) throws Exception {
+	private long encryptObject(ServerBucket bucket, String objectName) throws Exception {
 
 		VirtualFileSystemService vfs = getVirtualFileSystemService();
 
-		getLockService().getObjectLock(bucket, objectName).writeLock().lock();
+		/** keep the references: unlock exactly the instances that were locked */
+		final Lock objectLock = getLockService().getObjectLock(bucket, objectName).writeLock();
+		final Lock bucketLock = getLockService().getBucketLock(bucket).readLock();
+
+		objectLock.lock();
 
 		try {
 
-			getLockService().getBucketLock(bucket).readLock().lock();
+			bucketLock.lock();
 
 			try {
 
 				if (!vfs.existsObject(bucket, objectName)) {
 					this.notAvailable.incrementAndGet();
-					return;
+					return -1;
 				}
 
 				/** authoritative re-read */
@@ -421,12 +433,12 @@ public class ObjectEncryptionProcess implements ApplicationContextAware {
 
 				if (meta == null) {
 					this.notAvailable.incrementAndGet();
-					return;
+					return -1;
 				}
 
 				if (meta.isEncrypt()) {
 					this.skipped.incrementAndGet();
-					return;
+					return -1;
 				}
 
 				/**
@@ -456,13 +468,11 @@ public class ObjectEncryptionProcess implements ApplicationContextAware {
 
 					if (bytes > getMaxEncryptableSize()) {
 						this.tooLarge.incrementAndGet();
-						return;
+						return -1;
 					}
 
-					this.encrypted.incrementAndGet();
-					this.totalBytes.addAndGet(bytes);
-
 					logger.debug("encrypted -> b:" + bucket.getName() + " o:" + objectName + " | " + bytes + " bytes");
+					return bytes;
 
 				} finally {
 					try {
@@ -473,11 +483,11 @@ public class ObjectEncryptionProcess implements ApplicationContextAware {
 				}
 
 			} finally {
-				getLockService().getBucketLock(bucket).readLock().unlock();
+				bucketLock.unlock();
 			}
 
 		} finally {
-			getLockService().getObjectLock(bucket, objectName).writeLock().unlock();
+			objectLock.unlock();
 		}
 	}
 
@@ -493,9 +503,12 @@ public class ObjectEncryptionProcess implements ApplicationContextAware {
 
 		VirtualFileSystemService vfs = getVirtualFileSystemService();
 
-		getLockService().getObjectLock(bucket, objectName).writeLock().lock();
+		final Lock objectLock = getLockService().getObjectLock(bucket, objectName).writeLock();
+		final Lock bucketLock = getLockService().getBucketLock(bucket).readLock();
+
+		objectLock.lock();
 		try {
-			getLockService().getBucketLock(bucket).readLock().lock();
+			bucketLock.lock();
 			try {
 				if (!vfs.existsObject(bucket, objectName)) {
 					this.notAvailable.incrementAndGet();
@@ -521,10 +534,10 @@ public class ObjectEncryptionProcess implements ApplicationContextAware {
 				logger.warn("too large to encrypt (> " + getMaxEncryptableSize() + " bytes) -> b:" + bucket.getName() + " o:" + objectName + " | size:" + meta.getLength());
 
 			} finally {
-				getLockService().getBucketLock(bucket).readLock().unlock();
+				bucketLock.unlock();
 			}
 		} finally {
-			getLockService().getObjectLock(bucket, objectName).writeLock().unlock();
+			objectLock.unlock();
 		}
 	}
 

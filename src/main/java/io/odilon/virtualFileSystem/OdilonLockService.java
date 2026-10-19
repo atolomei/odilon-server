@@ -65,7 +65,7 @@ public class OdilonLockService extends BaseService implements LockService {
 	static private final DecimalFormat formatter = new DecimalFormat("###,###,###");
 
 	private static final long minTimeToSleepMillisec = 1000 * 5; // 5 secs
-	private static final long maxTimeToSleepMillisec = minTimeToSleepMillisec * 24; // 2 minutes
+	private static final long maxTimeToSleepMillisec = minTimeToSleepMillisec * 36; // 5 min
 	private static final long deltaTimeToSleep = maxTimeToSleepMillisec - minTimeToSleepMillisec;
 
 	/** 2000 lock/sec */
@@ -128,23 +128,34 @@ public class OdilonLockService extends BaseService implements LockService {
 		return getBucketLocks().computeIfAbsent(getVirtualFileSystemService().getBucketCache().get(id).getName(), key -> new ReentrantReadWriteLock());
 	}
 
+	/**
+	 * <p>
+	 * Returns a {@link KeyedReadWriteLock} handle. The handle resolves the
+	 * underlying {@link ReentrantReadWriteLock} on every lock / unlock and
+	 * validates, after acquiring it, that the lock is still the one registered in
+	 * the map (the cleaner may have evicted it while the caller was waiting). If
+	 * not, it releases it and retries. Once a lock is held and registered the
+	 * cleaner can not evict it (its {@code tryLock()} fails), so {@code unlock()}
+	 * always resolves to the same instance.
+	 * </p>
+	 */
 	@Override
 	public ReadWriteLock getObjectLock(ServerBucket bucket, String objectName) {
 		Check.requireNonNullArgument(bucket, "bucket is null");
 		Check.requireNonNullArgument(objectName, "objectName is null");
-		return getObjectLocks().computeIfAbsent(getKey(bucket.getId(), objectName), key -> new ReentrantReadWriteLock());
+		return new KeyedReadWriteLock(getObjectLocks(), getKey(bucket.getId(), objectName));
 	}
 
 	@Override
 	public ReadWriteLock getObjectLock(Long bucketId, String objectName) {
 		Check.requireNonNullArgument(bucketId, "bucketId is null");
 		Check.requireNonNullArgument(objectName, "objectName is null");
-		return getObjectLocks().computeIfAbsent(getKey(bucketId, objectName), key -> new ReentrantReadWriteLock());
+		return new KeyedReadWriteLock(getObjectLocks(), getKey(bucketId, objectName));
 	}
 
 	@Override
 	public ReadWriteLock getFileCacheLock(Long bucketId, String objectName, Optional<Integer> version) {
-		return getFileCacheLocks().computeIfAbsent(getFileKey(bucketId, objectName, version), key -> new ReentrantReadWriteLock());
+		return new KeyedReadWriteLock(getFileCacheLocks(), getFileKey(bucketId, objectName, version));
 	}
 
 	public boolean isLocked(ServerBucket bucket) {
@@ -267,8 +278,10 @@ public class OdilonLockService extends BaseService implements LockService {
 						}
 					}
 
-					// Stage 2: remove all collected keys from the map first
-					toEvict.forEach(key -> getObjectLocks().remove(key));
+					// Stage 2: remove collected entries (only if still mapped to the same lock).
+					// Threads blocked on an evicted lock detect it and retry (KeyedReadWriteLock)
+					for (int n = 0; n < toEvict.size(); n++)
+						getObjectLocks().remove(toEvict.get(n), toUnlock.get(n));
 
 					// Stage 3: unlock — lock is no longer reachable via the map
 					toUnlock.forEach(lock -> lock.writeLock().unlock());
@@ -291,8 +304,9 @@ public class OdilonLockService extends BaseService implements LockService {
 						}
 					}
 
-					// Stage 2: remove all collected keys from the map first
-					toEvict.forEach(key -> getFileCacheLocks().remove(key));
+					// Stage 2: remove collected entries (only if still mapped to the same lock)
+					for (int n = 0; n < toEvict.size(); n++)
+						getFileCacheLocks().remove(toEvict.get(n), toUnlock.get(n));
 
 					// Stage 3: unlock — lock is no longer reachable via the map
 					toUnlock.forEach(lock -> lock.writeLock().unlock());

@@ -187,7 +187,7 @@ public class ObjectController extends BaseApiController {
 			if (meta == null || meta.getStatus() == ObjectStatus.DELETED || meta.getStatus() == ObjectStatus.DRAFT)
 				throw new OdilonObjectNotFoundException(String.format("object not found -> b: %s | o:%s", Optional.ofNullable(bucketName).orElse("null"), Optional.ofNullable(objectName).orElse("null")));
 
-			if (meta.isPublicAccess() != publicAccess.booleanValue()) {
+ 			if (meta.isPublicAccess() != publicAccess.booleanValue()) {
 				meta.setPublicAccess(publicAccess.booleanValue());
 				meta = getObjectStorageService().updateObjectMetadata(meta);
 				getSystemMonitorService().getGetObjectMeter().mark();
