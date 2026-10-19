@@ -19,6 +19,7 @@ package io.odilon.virtualFileSystem.raid1;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.OffsetDateTime;
 
 import org.apache.commons.io.FileUtils;
 
@@ -79,14 +80,17 @@ public class RAIDOneDeleteObjectAllPreviousVersionsHandler extends RAIDOneTransa
 						FileUtils.deleteQuietly(drive.getObjectMetadataVersionFile(getBucket(), getObjectName(), version));
 					}
 				}
-				/** update head metadata with the tag */
-				meta.addSystemTag("delete versions");
-				meta.lastModified = DateTimeUtil.now();
+				/** update head metadata with the tag (on each drive's own copy) */
+				OffsetDateTime now = DateTimeUtil.now();
 				for (Drive drive : getDriver().getDrivesAll()) {
 					ObjectMetadata metaDrive = drive.getObjectMetadata(getBucket(), getObjectName());
-					meta.drive = drive.getName();
+					metaDrive.addSystemTag("delete versions");
+					metaDrive.setLastModified(now);
+					metaDrive.setDrive(drive.getName());
 					drive.saveObjectMetadata(metaDrive);
 				}
+				meta.addSystemTag("delete versions");
+				meta.setLastModified(now);
 
 				/** commit */
 				commitOK = operation.commit();

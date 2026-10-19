@@ -16,7 +16,6 @@
  */
 package io.odilon.virtualFileSystem.raid0;
 
-import java.nio.file.Files;
 import java.time.OffsetDateTime;
 
 import org.apache.commons.io.FileUtils;
@@ -27,6 +26,7 @@ import io.odilon.model.ObjectMetadata;
 import io.odilon.model.SharedConstant;
 import io.odilon.scheduler.AfterDeleteObjectServiceRequest;
 import io.odilon.util.DateTimeUtil;
+import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
 
@@ -74,13 +74,18 @@ public class RAIDZeroDeleteObjectAllPreviousVersionsHandler extends RAIDZeroTran
 				/** start operation */
 				operation = deleteObjectPreviousVersions(meta.getVersion());
 
-				/** delete versions (metadata) */
-				for (int version = 0; version < meta.getVersion(); version++)
+				Drive drive = getDriver().getWriteDrive(getBucket(), getObjectName());
+
+				/** delete versions (metadata) - plain (.json) and encrypted (.json.enc) */
+				for (int version = 0; version < meta.getVersion(); version++) {
 					FileUtils.deleteQuietly(getObjectPath().metadataFileVersionPath(version).toFile());
+					FileUtils.deleteQuietly(getObjectPath().metadataFileVersionEncPath(version).toFile());
+				}
 
 				meta.addSystemTag("delete versions");
 				meta.setLastModified(DateTimeUtil.now());
-				Files.writeString(getObjectPath().metadataFilePath(), getObjectMapper().writeValueAsString(meta));
+				/** save through the Drive so encryption-at-rest is honored */
+				drive.saveObjectMetadata(meta);
 
 				/** commit */
 				commitOK = operation.commit();
@@ -116,7 +121,7 @@ public class RAIDZeroDeleteObjectAllPreviousVersionsHandler extends RAIDZeroTran
 								FileUtils.deleteQuietly(getObjectPath().dataFileVersionPath(version).toFile());
 
 							/** delete backup metadata */
-							FileUtils.deleteQuietly(getObjectPath().metadataWorkFilePath().toFile());
+							FileUtils.deleteQuietly(getObjectPath().metadataBackupDirPath().toFile());
 
 							/**
 							 * async job that sweeps away temporary files (not doing anything by the moment)

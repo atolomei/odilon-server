@@ -16,8 +16,6 @@
  */
 package io.odilon.virtualFileSystem.raid0;
 
-import java.nio.file.Files;
-
 import org.apache.commons.io.FileUtils;
 
 import io.odilon.errors.InternalCriticalException;
@@ -59,8 +57,14 @@ public class RAIDZeroUpdateObjectMetadataHandler extends RAIDZeroTransactionObje
 				/** start operation */
 				operation = updateObjectMetadata(meta.getVersion());
 
-				/** save metadata */
-				Files.writeString(getObjectPath().metadataFilePath(), getObjectMapper().writeValueAsString(meta));
+				/**
+				 * save metadata. Must go through Drive.saveObjectMetadata so that
+				 * encryption-at-rest (.json.enc), metaChecksum and stale file removal
+				 * are handled consistently
+				 */
+				meta.setBucketId(getBucket().getId());
+				meta.setObjectName(getObjectName());
+				getDriver().getWriteDrive(getBucket(), getObjectName()).saveObjectMetadata(meta);
 
 				/** commit */
 				commitOK = operation.commit();

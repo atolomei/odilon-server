@@ -264,17 +264,63 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 
 	@Override
 	public void putObjectMetadataVersionFile(ServerBucket bucket, String objectName, int version, File metaFile) throws IOException {
+		Check.requireNonNullArgument(bucket, "bucket is null");
+		Check.requireNonNullArgument(metaFile, "metaFile is null");
+
+		/**
+		 * The source file may be plain (.json) or encrypted (.json.enc). The bytes are
+		 * copied as-is, so the destination must keep the same extension, and the stale
+		 * counterpart must be removed (reads probe .json.enc first).
+		 */
+		ObjectPath path = new ObjectPath(this, bucket, objectName);
+		boolean isEnc = metaFile.getName().endsWith(ServerConstant.JSON_ENC);
+		Path target = isEnc ? path.metadataFileVersionEncPath(version) : path.metadataFileVersionPath(version);
+		Path stale = isEnc ? path.metadataFileVersionPath(version) : path.metadataFileVersionEncPath(version);
+
+		if (metaFile.toPath().toAbsolutePath().normalize().equals(target.toAbsolutePath().normalize()))
+			return;
+
 		try (InputStream is = new BufferedInputStream(new FileInputStream(metaFile))) {
-			putObjectMetadataVersionStream(bucket, objectName, version, is);
+			transferTo(is, target.toString());
+		} catch (IOException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new InternalCriticalException(e, objectInfo(bucket, objectName) + ", version:" + String.valueOf(version) + ", d:" + getName());
 		}
+		Files.deleteIfExists(stale);
 	}
 
 	@Override
 	public void putObjectMetadataFile(ServerBucket bucket, String objectName, File metaFile) throws IOException {
 		Check.requireNonNullArgument(bucket, "bucket is null");
+		Check.requireNonNullStringArgument(objectName, "objectName is null " + objectInfo(bucket));
+		Check.requireNonNullArgument(metaFile, "metaFile is null");
+
+		if (!existBucketMetadataDir(bucket))
+			throw new IllegalArgumentException("Bucket Metadata Directory must exist -> d:" + getName() + " | b:" + objectInfo(bucket));
+
+		/**
+		 * The source file may be plain (.json) or encrypted (.json.enc). The bytes are
+		 * copied as-is, so the destination head file must keep the same extension, and
+		 * the stale counterpart must be removed (reads probe .json.enc first).
+		 */
+		ObjectPath path = new ObjectPath(this, bucket, objectName);
+		boolean isEnc = metaFile.getName().endsWith(ServerConstant.JSON_ENC);
+		Path target = isEnc ? path.metadataFileEncPath() : path.metadataFilePath();
+		Path stale = isEnc ? path.metadataFilePath() : path.metadataFileEncPath();
+
+		if (metaFile.toPath().toAbsolutePath().normalize().equals(target.toAbsolutePath().normalize()))
+			return;
+
 		try (InputStream is = new BufferedInputStream(new FileInputStream(metaFile))) {
-			putObjectMetadataStream(bucket, objectName, is);
+			transferTo(is, target.toString());
+		} catch (IOException e) {
+			throw e;
+		} catch (Exception e) {
+			logger.error(e, SharedConstant.THROWN_WRAPPED);
+			throw new InternalCriticalException(e, objectInfo(bucket, objectName));
 		}
+		Files.deleteIfExists(stale);
 	}
 
 	/**
@@ -790,21 +836,6 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 		return path.existingMetadataFileVersionPath(version).toFile();
 	}
 
-	/**
-	 * @param bucketName
-	 * @param objectName
-	 * @param version
-	 * @param stream
-	 */
-	private void putObjectMetadataVersionStream(ServerBucket bucket, String objectName, int version, InputStream stream) {
-		Check.requireNonNullArgument(bucket, "bucket is null");
-		Check.requireNonNullArgument(stream, "stream is null");
-		try {
-			transferTo(stream, this.getObjectMetadataVersionFilePath(bucket, objectName, version));
-		} catch (Exception e) {
-			throw new InternalCriticalException(e, objectInfo(bucket, objectName) + ", version:" + String.valueOf(version) + ", d:" + getName());
-		}
-	}
 
 	/**
 	 * 
@@ -1482,31 +1513,6 @@ public abstract class OdilonDrive extends BaseObject implements Drive {
 		return getObjectMapper().readValue(file, ObjectMetadata.class);
 	}
 
-	private String getObjectMetadataVersionFilePath(ServerBucket bucket, String objectName, int version) {
-		return getObjectMetadataDirPath(bucket, objectName) + File.separator + objectName + VirtualFileSystemService.VERSION_EXTENSION + String.valueOf(version) + ServerConstant.JSON;
-	}
-
-	/**
-	 * @param bucketName
-	 * @param objectName
-	 * @param version
-	 * @param stream
-	 */
-	private void putObjectMetadataStream(ServerBucket bucket, String objectName, InputStream stream) {
-
-		Check.requireNonNullArgument(bucket, "bucket is null");
-		Check.requireNonNullStringArgument(objectName, "objectName is null " + objectInfo(bucket));
-		Check.requireNonNullArgument(stream, "stream is null");
-
-		if (!existBucketMetadataDir(bucket))
-			throw new IllegalArgumentException("Bucket Metadata Directory must exist -> d:" + getName() + " | b:" + objectInfo(bucket));
-		try {
-			transferTo(stream, this.getBucketMetadataDirPath(bucket) + File.separator + objectName + File.separator + objectName + ServerConstant.JSON);
-		} catch (Exception e) {
-			logger.error(e, SharedConstant.THROWN_WRAPPED);
-			throw new InternalCriticalException(e, objectInfo(bucket, objectName));
-		}
-	}
 
 	private synchronized void saveDriveMetadata(DriveInfo info) {
 		Check.requireNonNullArgument(info, "info is null");

@@ -95,7 +95,15 @@ public class RAIDZeroRollbackUpdateHandler extends RAIDZeroRollbackObjectHandler
 	private void rollbackUpdateMetadata() {
 		boolean done = false;
 		try {
-			FileUtils.copyDirectory(getObjectPath().metadataBackupDirPath().toFile(), getObjectPath().metadataDirPath().toFile());
+			java.io.File backupDir = getObjectPath().metadataBackupDirPath().toFile();
+			java.io.File metadataDir = getObjectPath().metadataDirPath().toFile();
+			/**
+			 * clean the metadata dir before restoring, otherwise a stray .json or .json.enc
+			 * written by the failed operation could shadow the restored file
+			 */
+			if (backupDir.exists() && metadataDir.exists())
+				FileUtils.cleanDirectory(metadataDir);
+			FileUtils.copyDirectory(backupDir, metadataDir);
 			done = true;
 		} catch (InternalCriticalException e) {
 			if (!isRecovery())

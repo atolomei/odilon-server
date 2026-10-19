@@ -640,8 +640,11 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
 
 	private void saveObjectMetadata(ObjectMetadata meta) {
 		Check.requireNonNullArgument(meta, "meta is null");
+		/** each drive gets its own copy stamped with its own drive name */
 		for (Drive drive : getDriver().getDrivesAll()) {
-			drive.saveObjectMetadata(meta);
+			ObjectMetadata copy = meta.copy();
+			copy.setDrive(drive.getName());
+			drive.saveObjectMetadata(copy);
 		}
 	}
 

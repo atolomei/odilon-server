@@ -124,6 +124,7 @@ public class RAIDZeroUpdateObjectHandler extends RAIDZeroTransactionObjectHandle
 						try {
 							if (( getVersionControl()==VersionControl.DISABLED) && (beforeHeadVersion >= 0)) {
 								FileUtils.deleteQuietly(getObjectPath().metadataFileVersionPath(beforeHeadVersion).toFile());
+								FileUtils.deleteQuietly(getObjectPath().metadataFileVersionEncPath(beforeHeadVersion).toFile());
 								FileUtils.deleteQuietly(getObjectPath().dataFileVersionPath(beforeHeadVersion).toFile());
 							}
 						} catch (Exception e) {
