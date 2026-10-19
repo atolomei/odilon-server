@@ -62,6 +62,7 @@ import io.odilon.service.ObjectStorageService;
 import io.odilon.service.ServerSettings;
 import io.odilon.traffic.TrafficControlService;
 import io.odilon.traffic.TrafficPass;
+import io.odilon.util.KnownSizeInputStream;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
@@ -971,7 +972,12 @@ public class ObjectController extends BaseApiController {
 
 			if (version.isEmpty()) {
 				long start = System.currentTimeMillis();
-				getObjectStorageService().putObject(bucketName, objectName, file.getInputStream(), fileName, contentType, o_list, o_isPublic);
+				/**
+				 * the multipart is fully received before this method is called, so its size is
+				 * known: it is passed down so that the RAID handlers can decide whether the
+				 * Object can be encrypted (see encryption.maxObjectSize)
+				 */
+				getObjectStorageService().putObject(bucketName, objectName, new KnownSizeInputStream(file.getInputStream(), file.getSize()), fileName, contentType, o_list, o_isPublic);
 				long end = System.currentTimeMillis();
 				meta = getObjectStorageService().getObjectMetadata(bucketName, objectName);
 				logger.debug("putObject done -> " + "b: " + bucketName + " | o: " + objectName + " | " + String.valueOf(end - start) + " ms" + " | " + " length: " + String.valueOf(meta.getSourceLength() / 1000) + " KB");

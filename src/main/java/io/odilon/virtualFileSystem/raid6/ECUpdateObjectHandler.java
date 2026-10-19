@@ -626,7 +626,7 @@ public class ECUpdateObjectHandler extends ECTransactionObjectHandler {
 				newMeta.setTotalBlocks(ei.getEncodedShards().size());
 				newMeta.setSha256Blocks(shaBlocks);
 				newMeta.setEtag(etag);
-				newMeta.setEncrypt(getVirtualFileSystemService().isEncrypt());
+				setEncryptionMetadata(newMeta, ei.isEncrypted());
 				newMeta.setIntegrityCheck(newMeta.getCreationDate());
 				newMeta.setStatus(ObjectStatus.ENABLED);
 				newMeta.setDrive(drive.getName());
@@ -666,7 +666,7 @@ public class ECUpdateObjectHandler extends ECTransactionObjectHandler {
 		InputStream sourceStream = null;
 		boolean isMainException = false;
 
-		if (isEncrypt()) {
+		if (isEncrypt(stream)) {
 
 			try {
 
@@ -682,6 +682,7 @@ public class ECUpdateObjectHandler extends ECTransactionObjectHandler {
 				long totalBytesRead = encryptedResult.getCountingStream().getCount();
 				blocks.setSrcFileSize(totalBytesRead);
 				blocks.setSrcSha256(ByteToString.byteToHexString(md.digest()));
+				blocks.setEncrypted(true);
 				return blocks;
 
 			} catch (Exception e) {
@@ -712,6 +713,7 @@ public class ECUpdateObjectHandler extends ECTransactionObjectHandler {
 				long totalBytesRead = blocks.getFileSize();
 				blocks.setSrcFileSize(totalBytesRead);
 				blocks.setSrcSha256(ByteToString.byteToHexString(md.digest()));
+				blocks.setEncrypted(false);
 				return blocks;
 
 			} catch (Exception e) {

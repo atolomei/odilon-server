@@ -21,6 +21,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
  
 import java.util.ArrayList;
@@ -42,6 +44,7 @@ import io.odilon.model.IntegrityStatus;
 import io.odilon.model.ObjectMetadata;
 import io.odilon.model.SharedConstant;
 import io.odilon.model.VersionControl;
+import io.odilon.service.util.ByteToString;
 import io.odilon.util.DateTimeUtil;
 import io.odilon.util.OdilonFileUtils;
 import io.odilon.virtualFileSystem.model.Drive;
@@ -198,6 +201,17 @@ public class ECReencodeObjectHandler extends ECTransactionObjectHandler {
 					throw new InternalCriticalException(e, "Re-encode: encoder failed -> " + objectInfo(bucket, objectName));
 				}
 
+				// ── 4b. Verify the reconstructed plaintext against the stored hash ────────
+				// Never commit a reconstruction whose plaintext differs from the original:
+				// that would silently replace the object with corrupt data. On mismatch
+				// commitOK stays false → rollback in finally restores the original shards.
+				String storedSha256 = meta.getSha256();
+				if (storedSha256 != null && !storedSha256.equals(shards.getSrcSha256())) {
+					logger.error("Re-encode: reconstructed payload SHA-256 does not match stored sha256 -> " + objectInfo(bucket, objectName) + " | stored: " + storedSha256 + " | reconstructed: " + shards.getSrcSha256(), SharedConstant.NOT_THROWN);
+					checkerLogger.error("Re-encode: reconstructed payload SHA-256 does not match stored sha256 -> " + objectInfo(bucket, objectName));
+					return false;
+				}
+
 				// ── 5. Save updated metadata (same version, new hashes) ────────────────
 				saveReencodedMetadata(bucket, objectName, meta, shards);
 
@@ -249,21 +263,44 @@ public class ECReencodeObjectHandler extends ECTransactionObjectHandler {
 
 		ECEncoder encoder = new ECEncoder(getDriver());
 
-		if (isEncrypt()) {
+		/**
+		 * must follow the object's own flag, not the global setting: objects stored
+		 * unencrypted (uploaded before encryption was enabled, or too large to
+		 * encrypt) coexist with encrypted ones. The re-encoded object keeps its
+		 * original encryption state (meta.encrypt is preserved by
+		 * saveReencodedMetadata).
+		 */
+		if (meta.isEncrypt()) {
 			// decodedFile contains the encrypted bytes; decrypt → re-encrypt → encode
 			try (InputStream rawIn = Files.newInputStream(decodedFile.toPath())) {
-				InputStream decryptedIn = getEncryptionService().decryptStream(rawIn);
+				MessageDigest md = newSha256();
+				// digest the PLAINTEXT (same convention as create/update and checkIntegrity)
+				InputStream decryptedIn = new DigestInputStream(getEncryptionService().decryptStream(rawIn), md);
 				EncryptedResult er = getEncryptionService().encryptStream(decryptedIn);
 				ECShards shards = encoder.encodeHead(er.getInputStream(), bucket, objectName);
 				shards.setSrcFileSize(er.getCountingStream().getCount());
+				shards.setSrcSha256(ByteToString.byteToHexString(md.digest()));
+				shards.setEncrypted(true);
 				return shards;
 			}
 		} else {
-			try (InputStream in = Files.newInputStream(decodedFile.toPath())) {
+			try (InputStream rawIn = Files.newInputStream(decodedFile.toPath())) {
+				MessageDigest md = newSha256();
+				InputStream in = new DigestInputStream(rawIn, md);
 				ECShards shards = encoder.encodeHead(in, bucket, objectName);
 				shards.setSrcFileSize(shards.getFileSize());
+				shards.setSrcSha256(ByteToString.byteToHexString(md.digest()));
+				shards.setEncrypted(false);
 				return shards;
 			}
+		}
+	}
+
+	private static MessageDigest newSha256() throws IOException {
+		try {
+			return MessageDigest.getInstance("SHA-256");
+		} catch (NoSuchAlgorithmException e) {
+			throw new IOException(e);
 		}
 	}
 
@@ -316,7 +353,9 @@ public class ECReencodeObjectHandler extends ECTransactionObjectHandler {
 			repaired.setRaidDrives(activeVolume.getTotalShards());
 			// Shards now live on the active volume.
 			repaired.setVolumeId(activeVolume.getVolumeId());
-			repaired.setSha256(shards.getSrcSha256());
+			// SHA-256 of the plaintext computed during re-encode (verified against the
+			// stored value in reencode()). Fall back to the original if absent.
+			repaired.setSha256(shards.getSrcSha256() != null ? shards.getSrcSha256() : originalMeta.getSha256());
 			
 			list.add(repaired);
 		}

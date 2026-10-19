@@ -19,6 +19,7 @@ package io.odilon.scheduler;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
@@ -54,6 +55,17 @@ public class StandByReplicaServiceRequest extends AbstractServiceRequest {
 	@JsonProperty("operation")
 	private OdilonVirtualFileSystemOperation operation;
 
+	/**
+	 * <p>
+	 * Explicitly marked as the deserialization creator — see
+	 * {@link SearchServiceRequest#SearchServiceRequest()} for why this is
+	 * required: without it, Jackson can implicitly pick the
+	 * {@link #StandByReplicaServiceRequest(VirtualFileSystemOperation)}
+	 * constructor (parameter name "operation" matches the JSON property), whose
+	 * parameter type is the abstract interface and fails to deserialize.
+	 * </p>
+	 */
+	@JsonCreator
 	protected StandByReplicaServiceRequest() {
 	}
 

@@ -400,7 +400,11 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
 		
 		boolean isMainException = false;
 
-		if (isEncrypt()) {
+		/** per-object decision: large objects are stored unencrypted */
+		final boolean encrypt = isEncrypt(stream);
+		ret.setEncrypted(encrypt);
+
+		if (encrypt) {
 
 			try {
 				// Wrap the PLAINTEXT stream before encryption so the digest matches
@@ -678,7 +682,7 @@ public class RAIDOneUpdateObjectHandler extends RAIDOneTransactionHandler {
 				meta.fileName = srcFileName;
 				meta.appVersion = OdilonVersion.VERSION;
 				meta.contentType = contentType;
-				meta.encrypt = getVirtualFileSystemService().isEncrypt();
+				setEncryptionMetadata(meta, rdata.isEncrypted());
 				meta.vault = getVirtualFileSystemService().isUseVaultNewFiles();
 				meta.creationDate = now;
 				meta.setLastModified(now);

@@ -22,6 +22,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
@@ -65,6 +68,9 @@ public class SearchIndexReconciler implements ApplicationContextAware {
 
 	static final long PAGE_SIZE = 500;
 
+	/** commit the Lucene writer every N buffered changes instead of per document */
+	static final int COMMIT_BATCH_SIZE = 500;
+
 	@JsonIgnore
 	private final SearchService searchService;
 
@@ -73,6 +79,22 @@ public class SearchIndexReconciler implements ApplicationContextAware {
 
 	@JsonIgnore
 	private final AtomicBoolean running = new AtomicBoolean(false);
+
+	/** progress counters — valid while {@link #isRunning()} is true, reset at the start of each run */
+	@JsonIgnore
+	private final AtomicInteger totalBuckets = new AtomicInteger(0);
+	@JsonIgnore
+	private final AtomicInteger processedBuckets = new AtomicInteger(0);
+	@JsonIgnore
+	private final AtomicReference<String> currentBucket = new AtomicReference<String>(null);
+	@JsonIgnore
+	private final AtomicLong processedObjects = new AtomicLong(0);
+	@JsonIgnore
+	private final AtomicLong indexedCount = new AtomicLong(0);
+	@JsonIgnore
+	private final AtomicLong removedCount = new AtomicLong(0);
+	@JsonIgnore
+	private volatile long startedAt = 0L;
 
 	public SearchIndexReconciler(SearchService searchService) {
 		this.searchService = searchService;
@@ -101,15 +123,28 @@ public class SearchIndexReconciler implements ApplicationContextAware {
 		long indexed = 0;
 		long removed = 0;
 
+		/** reset progress counters for this run */
+		this.startedAt = start;
+		this.processedBuckets.set(0);
+		this.processedObjects.set(0);
+		this.indexedCount.set(0);
+		this.removedCount.set(0);
+		this.currentBucket.set(null);
+
 		getSearchService().setRebuilding(true);
 
 		try {
 			Set<String> liveBuckets = new HashSet<String>();
+			int uncommitted = 0;
 
-			for (ServerBucket bucket : getVirtualFileSystemService().listAllBuckets()) {
+			List<ServerBucket> buckets = getVirtualFileSystemService().listAllBuckets();
+			this.totalBuckets.set(buckets.size());
+
+			for (ServerBucket bucket : buckets) {
 
 				String bucketName = bucket.getName();
 				liveBuckets.add(bucketName);
+				this.currentBucket.set(bucketName);
 
 				Map<String, String> indexedEtags = getSearchService().getIndexedEtags(bucketName);
 				Set<String> seen = new HashSet<String>();
@@ -124,6 +159,7 @@ public class SearchIndexReconciler implements ApplicationContextAware {
 					agentId = page.getAgentId();
 
 					for (Item<ObjectMetadata> item : page.getList()) {
+						this.processedObjects.incrementAndGet();
 						if (!item.isOk())
 							continue;
 						ObjectMetadata meta = item.getObject();
@@ -131,8 +167,13 @@ public class SearchIndexReconciler implements ApplicationContextAware {
 
 						String indexedEtag = indexedEtags.get(meta.objectName);
 						if (fullRebuild || indexedEtag == null || !indexedEtag.equals(meta.etag != null ? meta.etag : "")) {
-							getSearchService().index(meta);
+							getSearchService().index(meta, false);
 							indexed++;
+							this.indexedCount.incrementAndGet();
+							if (++uncommitted >= COMMIT_BATCH_SIZE) {
+								getSearchService().commitPending();
+								uncommitted = 0;
+							}
 						}
 					}
 
@@ -143,18 +184,33 @@ public class SearchIndexReconciler implements ApplicationContextAware {
 				/** orphans: indexed but no longer in storage */
 				for (String objectName : indexedEtags.keySet()) {
 					if (!seen.contains(objectName)) {
-						getSearchService().delete(bucketName, objectName);
+						getSearchService().delete(bucketName, objectName, false);
 						removed++;
+						this.removedCount.incrementAndGet();
+						if (++uncommitted >= COMMIT_BATCH_SIZE) {
+							getSearchService().commitPending();
+							uncommitted = 0;
+						}
 					}
 				}
+
+				this.processedBuckets.incrementAndGet();
 			}
 
 			/** buckets present in the index but no longer in storage */
 			for (String indexedBucket : getSearchService().getIndexedBuckets()) {
 				if (!liveBuckets.contains(indexedBucket)) {
-					getSearchService().deleteBucket(indexedBucket);
+					getSearchService().deleteBucket(indexedBucket, false);
 					removed++;
+					this.removedCount.incrementAndGet();
+					uncommitted++;
 				}
+			}
+
+			/** flush any remaining buffered changes before stamping rebuild completion */
+			if (uncommitted > 0) {
+				getSearchService().commitPending();
+				uncommitted = 0;
 			}
 
 			if (fullRebuild)
@@ -169,9 +225,31 @@ public class SearchIndexReconciler implements ApplicationContextAware {
 			return false;
 
 		} finally {
+			/** make sure any buffered changes are not left uncommitted, even on error */
+			try {
+				getSearchService().commitPending();
+			} catch (Exception e) {
+				logger.error(e, SharedConstant.NOT_THROWN);
+			}
 			getSearchService().setRebuilding(false);
+			this.currentBucket.set(null);
 			this.running.set(false);
 		}
+	}
+
+	/**
+	 * Fills {@code status} with a progress snapshot of the currently running (or
+	 * last) reconciliation. Only meaningful while {@link #isRunning()} is true.
+	 */
+	public void fillProgress(IndexStatus status) {
+		status.rebuildRunning = this.running.get();
+		status.rebuildTotalBuckets = this.totalBuckets.get();
+		status.rebuildProcessedBuckets = this.processedBuckets.get();
+		status.rebuildCurrentBucket = this.currentBucket.get();
+		status.rebuildProcessedObjects = this.processedObjects.get();
+		status.rebuildIndexed = this.indexedCount.get();
+		status.rebuildRemoved = this.removedCount.get();
+		status.rebuildStartedAt = this.startedAt;
 	}
 
 	public SearchService getSearchService() {

@@ -44,7 +44,6 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  * using {@link https://en.wikipedia.org/wiki/Erasure_code}. A chunk/stripe is a
  * portion of the file that is encoded into multiple shards (data and parity).
  * Each shard is stored in a different disk.
- * 
  * </p>
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)

@@ -72,6 +72,15 @@ public class EncryptionProcessStatus implements Serializable {
 	@JsonProperty("skipped")
 	public long skipped = 0;
 
+	/**
+	 * objects skipped because their size exceeds {@code encryption.maxObjectSize}
+	 * AES/GCM provider can not encrypt a single stream larger than
+	 * {@code Integer.MAX_VALUE} bytes (~2 GiB). Tagged in the object's
+	 * {@code systemTags} so it is easy to find later.
+	 */
+	@JsonProperty("tooLargeToEncrypt")
+	public long tooLargeToEncrypt = 0;
+
 	/** objects listed but not available (deleted / not ok) */
 	@JsonProperty("notAvailable")
 	public long notAvailable = 0;
@@ -107,6 +116,7 @@ public class EncryptionProcessStatus implements Serializable {
 		str.append(String.format("Scanned:        %,d%n", scanned));
 		str.append(String.format("Encrypted:      %,d%n", encrypted));
 		str.append(String.format("Skipped:        %,d%n", skipped));
+		str.append(String.format("Too large (>limit): %,d%n", tooLargeToEncrypt));
 		str.append(String.format("Not available:  %,d%n", notAvailable));
 		str.append(String.format("Errors:         %,d%n", errors));
 		str.append(String.format("Total bytes:    %,d%n", totalBytes));

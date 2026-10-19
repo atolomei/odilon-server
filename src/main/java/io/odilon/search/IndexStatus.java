@@ -63,6 +63,31 @@ public class IndexStatus implements Serializable {
 	@JsonProperty("errors")
 	public long errors = 0;
 
+	/** progress of a running (or last) reconciliation — meaningful only while rebuildRunning is true */
+	@JsonProperty("rebuildRunning")
+	public boolean rebuildRunning = false;
+
+	@JsonProperty("rebuildTotalBuckets")
+	public int rebuildTotalBuckets = 0;
+
+	@JsonProperty("rebuildProcessedBuckets")
+	public int rebuildProcessedBuckets = 0;
+
+	@JsonProperty("rebuildCurrentBucket")
+	public String rebuildCurrentBucket;
+
+	@JsonProperty("rebuildProcessedObjects")
+	public long rebuildProcessedObjects = 0;
+
+	@JsonProperty("rebuildIndexed")
+	public long rebuildIndexed = 0;
+
+	@JsonProperty("rebuildRemoved")
+	public long rebuildRemoved = 0;
+
+	@JsonProperty("rebuildStartedAt")
+	public long rebuildStartedAt = 0;
+
 	public IndexStatus() {
 	}
 
@@ -77,6 +102,11 @@ public class IndexStatus implements Serializable {
 		str.append(String.format("Last rebuild:  %s%n", lastRebuild != null ? fmt.format(lastRebuild) : "-"));
 		str.append(String.format("Pending:       %,d%n", pending));
 		str.append(String.format("Errors:        %,d", errors));
+		if (rebuildRunning) {
+			str.append(System.lineSeparator());
+			str.append(String.format("Rebuild:       bucket %d/%d (%s) | objects processed: %,d | indexed: %,d | removed: %,d", rebuildProcessedBuckets, rebuildTotalBuckets,
+					rebuildCurrentBucket != null ? rebuildCurrentBucket : "-", rebuildProcessedObjects, rebuildIndexed, rebuildRemoved));
+		}
 		return str.toString();
 	}
 }

@@ -102,7 +102,11 @@ public abstract class RAIDZeroObjectHandler extends BaseRAIDHandler implements R
 
 		long totalBytesRead = 0;
 
-		if (isEncrypt()) {
+		/** per-object decision: large objects are stored unencrypted */
+		final boolean encrypt = isEncrypt(stream);
+		ret.setEncrypted(encrypt);
+
+		if (encrypt) {
 
 			try {
 
@@ -203,7 +207,7 @@ public abstract class RAIDZeroObjectHandler extends BaseRAIDHandler implements R
 			meta.setFileName(srcFileName);
 			meta.setAppVersion(OdilonVersion.VERSION);
 			meta.setContentType(contentType);
-			meta.setEncrypt(isEncrypt());
+			setEncryptionMetadata(meta, rdata.isEncrypted());
 			meta.setVault(isUseVaultNewFiles());
 			meta.setCreationDate(now);
 			meta.setLastModified(now);

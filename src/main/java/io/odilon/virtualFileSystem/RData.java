@@ -52,7 +52,19 @@ public class RData extends BaseObject {
 	@JsonProperty("srcSha256")
 	private String srcSha256;
 
+	/** whether the data was actually stored encrypted (per-object decision) */
+	@JsonProperty("encrypted")
+	private boolean encrypted;
+
 	public RData() {
+	}
+
+	public boolean isEncrypted() {
+		return encrypted;
+	}
+
+	public void setEncrypted(boolean encrypted) {
+		this.encrypted = encrypted;
 	}
 
 	public long getFileSize() {

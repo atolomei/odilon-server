@@ -159,7 +159,11 @@ public class RAIDOneCreateObjectHandler extends RAIDOneTransactionObjectHandler 
 		BufferedOutputStream out[] = new BufferedOutputStream[total_drives];
 		boolean isMainException = false;
 
-		if (isEncrypt()) {
+		/** per-object decision: large objects are stored unencrypted */
+		final boolean encrypt = isEncrypt(stream);
+		ret.setEncrypted(encrypt);
+
+		if (encrypt) {
 
 			try {
 				// Wrap the PLAINTEXT stream before encryption so the digest matches
@@ -417,7 +421,7 @@ public class RAIDOneCreateObjectHandler extends RAIDOneTransactionObjectHandler 
 				meta.setSha256(rdata.getSrcSha256());
 				meta.setLength(file.length());
 				meta.setEtag(sha256);
-				meta.setEncrypt(getVirtualFileSystemService().isEncrypt());
+				setEncryptionMetadata(meta, rdata.isEncrypted());
 				meta.setIntegrityCheck(now);
 				meta.setStatus(ObjectStatus.ENABLED);
 				meta.setDrive(drive.getName());

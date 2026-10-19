@@ -254,6 +254,8 @@ public class SearchController extends BaseApiController {
 
 			IndexStatus status = getSearchService().getIndexStatus();
 			status.pending = getSchedulerService().getSearchQueueSize();
+			if (getSearchIndexReconciler().isRunning())
+				getSearchIndexReconciler().fillProgress(status);
 			return new ResponseEntity<IndexStatus>(status, HttpStatus.OK);
 
 		} finally {

@@ -19,6 +19,7 @@ package io.odilon.scheduler;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
@@ -64,6 +65,20 @@ public class SearchServiceRequest extends AbstractServiceRequest {
 	@JsonIgnore
 	private boolean isSuccess = false;
 
+	/**
+	 * <p>
+	 * Explicitly marked as the deserialization creator. Without this annotation,
+	 * Jackson's implicit single-constructor heuristic can pick the
+	 * {@link #SearchServiceRequest(VirtualFileSystemOperation)} constructor below
+	 * instead (its parameter name "operation" matches the JSON property name),
+	 * and then fails with "Cannot construct instance of ...
+	 * VirtualFileSystemOperation (no Creators...)" because that constructor's
+	 * parameter type is the abstract interface, not the concrete
+	 * {@link OdilonVirtualFileSystemOperation} field type. Pinning this no-arg
+	 * constructor forces Jackson to always fall back to plain field injection.
+	 * </p>
+	 */
+	@JsonCreator
 	protected SearchServiceRequest() {
 	}
 

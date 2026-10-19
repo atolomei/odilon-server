@@ -69,6 +69,7 @@ import io.odilon.scheduler.ServiceRequest;
 import io.odilon.service.ServerSettings;
 import io.odilon.service.util.ByteToString;
 import io.odilon.util.Check;
+import io.odilon.util.KnownSizeInputStream;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.DriveBucket;
 import javax.annotation.concurrent.GuardedBy;
@@ -580,7 +581,7 @@ public abstract class BaseIODriver implements IODriver, ApplicationContextAware 
 		}
 		try {
 
-			putObject(bucket, objectName, new BufferedInputStream(new FileInputStream(file)), file.getName(), contentType, Optional.empty());
+			putObject(bucket, objectName, new KnownSizeInputStream(new BufferedInputStream(new FileInputStream(file)), file.length()), file.getName(), contentType, Optional.empty());
 
 		} catch (FileNotFoundException e) {
 			throw new InternalCriticalException(e, objectInfo(bucket, objectName));

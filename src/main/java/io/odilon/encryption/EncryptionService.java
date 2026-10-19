@@ -37,7 +37,18 @@ public interface EncryptionService extends SystemService {
 	static final public int AES_KEY_SALT_SIZE_BITS = 512;
 	static final public int HMAC_SIZE = 32;
 
-	// public InputStream encryptStream(InputStream inputStream);
+	/**
+	 * <p>
+	 * Stamped on {@code ObjectMetadata.systemTags} when encryption is enabled
+	 * but the Object was stored <b>unencrypted</b> because its size exceeds
+	 * {@code encryption.maxObjectSize}. The SunJCE AES/GCM provider can not
+	 * process a single stream larger than {@code Integer.MAX_VALUE} bytes
+	 * (~2 GiB). Large objects are therefore stored unencrypted for the moment.
+	 * </p>
+	 */
+	static final public String SYSTEM_TAG_TOO_LARGE_TO_ENCRYPT = "encryption-skipped-too-large-for-gcm";
+
+	 
 	public EncryptedResult encryptStream(InputStream inputStream);
 
 	public InputStream decryptStream(InputStream inputStream);

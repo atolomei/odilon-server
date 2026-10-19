@@ -177,6 +177,25 @@ public class ServerSettings implements JSONObject {
 	@Value("${encryption.keyAlgorithm:AES}")
 	protected String keyAlgorithm;
 
+	/**
+	 * <p>
+	 * Objects larger than this value (bytes) are stored <b>unencrypted</b> even
+	 * if {@code encryption.enabled=true}, and tagged with
+	 * {@code EncryptionService.SYSTEM_TAG_TOO_LARGE_TO_ENCRYPT} in their
+	 * {@code systemTags}. The SunJCE AES/GCM provider can not process a single
+	 * stream larger than {@code Integer.MAX_VALUE} bytes (~2 GiB), and GCM
+	 * decryption buffers the whole object in memory.
+	 * </p>
+	 * <p>
+	 * Default {@code 2000000000}. Values above {@code 2147483000} are capped.
+	 * </p>
+	 */
+	@Value("${encryption.maxObjectSize:2000000000}")
+	protected long encryptionMaxObjectSize;
+
+	/** hard ceiling of the SunJCE AES/GCM provider minus room for the GCM tag */
+	static public final long ENCRYPTION_MAX_OBJECT_SIZE_CEILING = 2_147_483_000L;
+
 	@Value("${presignedSalt:pxUrktu3oMo$dfgh9rl!}")
 	protected String presignedSalt;
 
@@ -994,6 +1013,11 @@ public class ServerSettings implements JSONObject {
 		if (this.cronSchedulerThreads < 2)
 			this.cronSchedulerThreads = 2;
 
+		if (this.encryptionMaxObjectSize <= 0 || this.encryptionMaxObjectSize > ENCRYPTION_MAX_OBJECT_SIZE_CEILING) {
+			startuplogger.warn("encryption.maxObjectSize=" + this.encryptionMaxObjectSize + " is out of range (1.." + ENCRYPTION_MAX_OBJECT_SIZE_CEILING + "), using " + ENCRYPTION_MAX_OBJECT_SIZE_CEILING);
+			this.encryptionMaxObjectSize = ENCRYPTION_MAX_OBJECT_SIZE_CEILING;
+		}
+
 		if (this.standbyUrl == null)
 			this.isStandByEnabled = false;
 
@@ -1136,6 +1160,15 @@ public class ServerSettings implements JSONObject {
 
 	public String getKeyAlgorithm() {
 		return keyAlgorithm;
+	}
+
+	/**
+	 * @return max size in bytes of an Object that will be encrypted. Larger
+	 *         Objects are stored unencrypted (see
+	 *         {@code encryption.maxObjectSize})
+	 */
+	public long getEncryptionMaxObjectSize() {
+		return this.encryptionMaxObjectSize;
 	}
 
 	public void setKeyAlgorithm(String keyAlgorithm) {

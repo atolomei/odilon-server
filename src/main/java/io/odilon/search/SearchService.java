@@ -40,11 +40,34 @@ public interface SearchService {
 	/** upsert the head version of an object (idempotent) */
 	public void index(ObjectMetadata meta);
 
+	/**
+	 * upsert the head version of an object (idempotent).
+	 * 
+	 * @param commit when {@code false} the change is buffered in the writer but
+	 *               not committed / made searchable — caller is responsible for
+	 *               calling {@link #commitPending()} periodically. Used by bulk
+	 *               operations (e.g. full index rebuild) to batch commits instead
+	 *               of committing after every single document.
+	 */
+	public void index(ObjectMetadata meta, boolean commit);
+
 	/** remove an object from the index */
 	public void delete(String bucketName, String objectName);
 
+	/** remove an object from the index, see {@link #index(ObjectMetadata, boolean)} */
+	public void delete(String bucketName, String objectName, boolean commit);
+
 	/** remove all documents of a bucket (bucket deleted) */
 	public void deleteBucket(String bucketName);
+
+	/** remove all documents of a bucket, see {@link #index(ObjectMetadata, boolean)} */
+	public void deleteBucket(String bucketName, boolean commit);
+
+	/**
+	 * flushes any pending (uncommitted) writes to a durable Lucene commit and
+	 * refreshes the searcher — used after a batch of {@code commit=false} calls.
+	 */
+	public void commitPending();
 
 	/** bucket renamed -> re-key all documents of the bucket */
 	public void renameBucket(String oldBucketName, String newBucketName);

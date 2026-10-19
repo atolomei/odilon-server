@@ -135,7 +135,7 @@ public class ECCreateObjectHandler extends ECTransactionObjectHandler {
 
 		Check.requireNonNullArgument(stream, "stream is null");
 
-		if (isEncrypt()) {
+		if (isEncrypt(stream)) {
 			boolean isMainException = false;
 			InputStream sourceStream = null;
 			try {
@@ -151,6 +151,7 @@ public class ECCreateObjectHandler extends ECTransactionObjectHandler {
 				long totalBytesRead = encryptedResult.getCountingStream().getCount();
 				blocks.setSrcFileSize(totalBytesRead);
 				blocks.setSrcSha256(ByteToString.byteToHexString(md.digest()));
+				blocks.setEncrypted(true);
 				return blocks;
 
 			} catch (InternalCriticalException e) {
@@ -187,6 +188,7 @@ public class ECCreateObjectHandler extends ECTransactionObjectHandler {
 				long totalBytesRead = blocks.getFileSize();
 				blocks.setSrcFileSize(totalBytesRead);
 				blocks.setSrcSha256(ByteToString.byteToHexString(md.digest()));
+				blocks.setEncrypted(false);
 				return blocks;
 
 			} catch (InternalCriticalException e) {
@@ -271,7 +273,7 @@ public class ECCreateObjectHandler extends ECTransactionObjectHandler {
 				meta.setSha256Blocks(shaBlocks);
 				meta.setTotalBlocks(ei.getEncodedShards().size());
 				meta.setEtag(etag);
-				meta.setEncrypt(getVirtualFileSystemService().isEncrypt());
+				setEncryptionMetadata(meta, ei.isEncrypted());
 				meta.setIntegrityCheck(meta.getCreationDate());
 				meta.setStatus(ObjectStatus.ENABLED);
 				meta.setDrive(drive.getName());

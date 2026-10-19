@@ -247,6 +247,11 @@ public class LuceneSearchService extends BaseService implements SearchService {
 
 	@Override
 	public void index(ObjectMetadata meta) {
+		index(meta, true);
+	}
+
+	@Override
+	public void index(ObjectMetadata meta, boolean commit) {
 
 		Check.requireNonNullArgument(meta, "meta is null");
 
@@ -256,8 +261,10 @@ public class LuceneSearchService extends BaseService implements SearchService {
 		try {
 			Document doc = toDocument(meta);
 			this.writer.updateDocument(new Term(F_ID, id(meta.bucketName, meta.objectName)), doc);
-			commit(OffsetDateTime.now());
-			this.searcherManager.maybeRefresh();
+			if (commit) {
+				commit(OffsetDateTime.now());
+				this.searcherManager.maybeRefresh();
+			}
 		} catch (IOException e) {
 			incrementErrorCount();
 			throw new RuntimeException(e);
@@ -266,14 +273,21 @@ public class LuceneSearchService extends BaseService implements SearchService {
 
 	@Override
 	public void delete(String bucketName, String objectName) {
+		delete(bucketName, objectName, true);
+	}
+
+	@Override
+	public void delete(String bucketName, String objectName, boolean commit) {
 
 		if (!isEnabled())
 			return;
 
 		try {
 			this.writer.deleteDocuments(new Term(F_ID, id(bucketName, objectName)));
-			commit(OffsetDateTime.now());
-			this.searcherManager.maybeRefresh();
+			if (commit) {
+				commit(OffsetDateTime.now());
+				this.searcherManager.maybeRefresh();
+			}
 		} catch (IOException e) {
 			incrementErrorCount();
 			throw new RuntimeException(e);
@@ -282,12 +296,34 @@ public class LuceneSearchService extends BaseService implements SearchService {
 
 	@Override
 	public void deleteBucket(String bucketName) {
+		deleteBucket(bucketName, true);
+	}
+
+	@Override
+	public void deleteBucket(String bucketName, boolean commit) {
 
 		if (!isEnabled())
 			return;
 
 		try {
 			this.writer.deleteDocuments(new Term(F_BUCKET, bucketName));
+			if (commit) {
+				commit(OffsetDateTime.now());
+				this.searcherManager.maybeRefresh();
+			}
+		} catch (IOException e) {
+			incrementErrorCount();
+			throw new RuntimeException(e);
+		}
+	}
+
+	@Override
+	public void commitPending() {
+
+		if (!isEnabled())
+			return;
+
+		try {
 			commit(OffsetDateTime.now());
 			this.searcherManager.maybeRefresh();
 		} catch (IOException e) {
