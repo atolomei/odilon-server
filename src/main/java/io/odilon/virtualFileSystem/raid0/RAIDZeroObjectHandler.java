@@ -115,7 +115,7 @@ public abstract class RAIDZeroObjectHandler extends BaseRAIDHandler implements R
 				MessageDigest md = MessageDigest.getInstance("SHA-256");
 				DigestInputStream digestStream = new DigestInputStream(stream, md);
 
-				EncryptedResult encryptedResult = getEncryptionService().encryptStream(digestStream);
+				EncryptedResult encryptedResult = getEncryptionService().encryptStreamV2(digestStream);
 
 				try (InputStream sourceStream = encryptedResult.getInputStream()) {
 

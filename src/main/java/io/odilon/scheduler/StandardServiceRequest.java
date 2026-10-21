@@ -16,6 +16,8 @@
  */
 package io.odilon.scheduler;
 
+import java.util.Optional;
+
 /**
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
@@ -25,4 +27,8 @@ public interface StandardServiceRequest extends ServiceRequest {
 	public String getUUID();
 
 	public boolean isObjectOperation();
+
+	 
+
+	
 }

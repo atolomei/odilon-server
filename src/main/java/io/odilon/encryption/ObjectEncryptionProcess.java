@@ -94,21 +94,15 @@ public class ObjectEncryptionProcess implements ApplicationContextAware {
 
 	/**
 	 * <p>
-	 * Objects larger than {@code encryption.maxObjectSize} (see
-	 * {@link io.odilon.service.ServerSettings#getEncryptionMaxObjectSize()}) are
-	 * left unencrypted and tagged with
-	 * {@link EncryptionService#SYSTEM_TAG_TOO_LARGE_TO_ENCRYPT} in
-	 * {@code ObjectMetadata.systemTags}.
-	 * </p>
-	 * <p>
-	 * Reason: the SunJCE AES/GCM provider enforces a hard limit of
-	 * {@code Integer.MAX_VALUE} (2,147,483,647) bytes on the total input of a
-	 * single encrypt/decrypt operation, and on <b>decryption</b> it buffers the
-	 * whole ciphertext in memory until the authentication tag is verified (so
-	 * reading a large encrypted object requires heap roughly equal to its size).
+	 * New writes use the v2 record-based AES-GCM-SIV format
+	 * ({@code io.odilon.encryption.v2}), which processes data in bounded-size
+	 * records and therefore has <b>no object-size limit</b>. Objects that were
+	 * tagged {@link EncryptionService#SYSTEM_TAG_TOO_LARGE_TO_ENCRYPT} by older
+	 * server versions (legacy whole-object AES/GCM could not process streams
+	 * larger than ~2 GiB) are picked up by this process like any other
+	 * unencrypted object and re-stored encrypted with the v2 format.
 	 * </p>
 	 */
-	static final String SYSTEM_TAG_TOO_LARGE_TO_ENCRYPT = EncryptionService.SYSTEM_TAG_TOO_LARGE_TO_ENCRYPT;
 
 	@JsonIgnore
 	private volatile ApplicationContext applicationContext;
@@ -337,8 +331,6 @@ public class ObjectEncryptionProcess implements ApplicationContextAware {
 			startuplogger.info("Total objects scanned: " + String.valueOf(this.scanned.get()));
 			startuplogger.info("Total objects encrypted: " + String.valueOf(this.encrypted.get()));
 			startuplogger.info("Total objects skipped (already encrypted): " + String.valueOf(this.skipped.get()));
-			if (this.tooLarge.get() > 0)
-				startuplogger.info("Total objects too large to encrypt (> " + String.valueOf(getMaxEncryptableSize()) + " bytes): " + String.valueOf(this.tooLarge.get()));
 			double val = Double.valueOf(this.totalBytes.get()).doubleValue() / SharedConstant.d_gigabyte;
 			startuplogger.info("Total size: " + String.format("%14.4f", val).trim() + " GB");
 
@@ -377,12 +369,6 @@ public class ObjectEncryptionProcess implements ApplicationContextAware {
 			/** cheap pre-check on the listing snapshot */
 			if (listed.isEncrypt()) {
 				this.skipped.incrementAndGet();
-				return;
-			}
-
-			if (listed.getLength() > getMaxEncryptableSize()) {
-				this.tooLarge.incrementAndGet();
-				markTooLargeToEncrypt(bucket, listed.getObjectName());
 				return;
 			}
 
@@ -462,13 +448,8 @@ public class ObjectEncryptionProcess implements ApplicationContextAware {
 					}
 
 					try (InputStream in = new KnownSizeInputStream(new BufferedInputStream(new FileInputStream(tmp), ServerConstant.BUFFER_SIZE), bytes)) {
-						/** if the actual size exceeds the limit the object is stored unencrypted and tagged */
+						/** re-stored through the regular put path -> encrypted with the v2 format */
 						vfs.putObject(bucket, objectName, in, meta.getFileName(), meta.getContentType(), Optional.ofNullable(meta.getCustomTags()), Optional.of(Boolean.valueOf(meta.isPublicAccess())));
-					}
-
-					if (bytes > getMaxEncryptableSize()) {
-						this.tooLarge.incrementAndGet();
-						return -1;
 					}
 
 					logger.debug("encrypted -> b:" + bucket.getName() + " o:" + objectName + " | " + bytes + " bytes");
@@ -491,63 +472,8 @@ public class ObjectEncryptionProcess implements ApplicationContextAware {
 		}
 	}
 
-	/**
-	 * <p>
-	 * Stamps the object as excluded from encryption because it exceeds
-	 * {@code encryption.maxObjectSize}. Metadata-only update (no data
-	 * rewrite, no re-encryption attempt). Idempotent: does nothing if the tag
-	 * is already present or if the object got encrypted/removed concurrently.
-	 * </p>
-	 */
-	private void markTooLargeToEncrypt(ServerBucket bucket, String objectName) {
-
-		VirtualFileSystemService vfs = getVirtualFileSystemService();
-
-		final Lock objectLock = getLockService().getObjectLock(bucket, objectName).writeLock();
-		final Lock bucketLock = getLockService().getBucketLock(bucket).readLock();
-
-		objectLock.lock();
-		try {
-			bucketLock.lock();
-			try {
-				if (!vfs.existsObject(bucket, objectName)) {
-					this.notAvailable.incrementAndGet();
-					return;
-				}
-
-				ObjectMetadata meta = vfs.getObjectMetadata(bucket, objectName);
-				if (meta == null) {
-					this.notAvailable.incrementAndGet();
-					return;
-				}
-
-				if (meta.isEncrypt())
-					return; // encrypted concurrently (e.g. by a smaller re-upload) — nothing to do
-
-				String tags = meta.getSystemTags();
-				if (tags != null && tags.contains(SYSTEM_TAG_TOO_LARGE_TO_ENCRYPT))
-					return; // already tagged on a previous run
-
-				meta.addSystemTag(SYSTEM_TAG_TOO_LARGE_TO_ENCRYPT);
-				vfs.updateObjectMetadata(meta);
-
-				logger.warn("too large to encrypt (> " + getMaxEncryptableSize() + " bytes) -> b:" + bucket.getName() + " o:" + objectName + " | size:" + meta.getLength());
-
-			} finally {
-				bucketLock.unlock();
-			}
-		} finally {
-			objectLock.unlock();
-		}
-	}
-
 	protected LockService getLockService() {
 		return getVirtualFileSystemService().getLockService();
-	}
-
-	/** {@code encryption.maxObjectSize} */
-	protected long getMaxEncryptableSize() {
-		return getVirtualFileSystemService().getServerSettings().getEncryptionMaxObjectSize();
 	}
 
 	public VirtualFileSystemService getVirtualFileSystemService() {

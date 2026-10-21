@@ -30,6 +30,8 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import io.odilon.log.Logger;
+import io.odilon.model.ServerConstant;
+import io.odilon.model.ServiceStatus;
 import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
@@ -48,8 +50,8 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  * block object storage operations.
  * </p>
  * <p>
- * A per-object UUID guard prevents two operations on the same object from
- * being dispatched concurrently, which would make index state depend on thread
+ * A per-object UUID guard prevents two operations on the same object from being
+ * dispatched concurrently, which would make index state depend on thread
  * scheduling.
  * </p>
  * 
@@ -135,8 +137,8 @@ public class SearchSchedulerWorker extends SchedulerWorker {
 
 	/**
 	 * <p>
-	 * Non-blocking failure policy: retry up to {@link #MAX_RETRIES}, then drop
-	 * (the reconciliation job will repair the index)
+	 * Non-blocking failure policy: retry up to {@link #MAX_RETRIES}, then drop (the
+	 * reconciliation job will repair the index)
 	 * </p>
 	 */
 	@Override
@@ -223,6 +225,11 @@ public class SearchSchedulerWorker extends SchedulerWorker {
 
 		this.executing = new ConcurrentHashMap<Serializable, ServiceRequest>(16, 0.9f, 1);
 		this.failed = new ConcurrentSkipListMap<Serializable, ServiceRequest>();
+
+		startuplogger.debug(getVirtualFileSystemService().getServerSettings().getSearchDispatcherPoolSize());
+
+		startuplogger.debug("Started -> " + getClass().getSimpleName());
+		startuplogger.debug(ServerConstant.SEPARATOR);
 	}
 
 	@Override
@@ -278,13 +285,22 @@ public class SearchSchedulerWorker extends SchedulerWorker {
 
 		String uuid = ((SearchServiceRequest) request).getVFSOperation().getUUID();
 
+		// if the request is already in the map,
+		// it means that another request with the same UUID (bucket + object)
+		// is already selected in this batch
 		if (map.containsKey(uuid))
 			return false;
 
+		// if the UUID (bucket + object) is already being processed by another request
+		// we should not process this request, because it could lead to inconsistent
+		// index state
+
 		for (ServiceRequest executingRequest : getExecuting().values()) {
-			if (((SearchServiceRequest) executingRequest).getVFSOperation().getUUID().equals(uuid))
+			if (((SearchServiceRequest) executingRequest).getVFSOperation().getUUID().equals(uuid)) {
 				return false;
+			}
 		}
+
 		return true;
 	}
 }

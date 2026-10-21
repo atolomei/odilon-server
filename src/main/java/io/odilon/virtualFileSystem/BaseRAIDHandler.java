@@ -31,7 +31,6 @@ import io.odilon.model.VersionControl;
 import io.odilon.replication.ReplicationService;
 import io.odilon.scheduler.SchedulerService;
 import io.odilon.service.ServerSettings;
-import io.odilon.util.KnownSizeInputStream;
 import io.odilon.virtualFileSystem.model.Drive;
 import io.odilon.virtualFileSystem.model.IODriver;
 import io.odilon.virtualFileSystem.model.JournalService;
@@ -200,42 +199,27 @@ public abstract class BaseRAIDHandler extends BaseObject {
 	/**
 	 * <p>
 	 * Per-object encryption decision, taken <b>before</b> the first byte is
-	 * written. Returns {@code false} if encryption is disabled, or if the stream
-	 * carries a known size ({@link KnownSizeInputStream}) larger than
-	 * {@code encryption.maxObjectSize}. If the size is unknown the Object is
-	 * encrypted (if it is too large the operation fails and is rolled back).
+	 * written. Returns {@code false} only if encryption is disabled. The v2
+	 * record-based AES-GCM-SIV format ({@code io.odilon.encryption.v2}) has
+	 * bounded memory use and no object-size limit, so the legacy
+	 * {@code encryption.maxObjectSize} skip no longer applies to new writes.
 	 * </p>
 	 */
 	protected boolean isEncrypt(InputStream stream) {
-		if (!isEncrypt())
-			return false;
-		if (stream instanceof KnownSizeInputStream) {
-			long size = ((KnownSizeInputStream) stream).getKnownSize();
-			long max = getServerSettings().getEncryptionMaxObjectSize();
-			if (size > max) {
-				logger.warn("Object too large to encrypt, it will be stored unencrypted -> size: " + size + " bytes > encryption.maxObjectSize: " + max);
-				return false;
-			}
-			logger.debug("Object will be encrypted -> size: " + size + " bytes <= encryption.maxObjectSize: " + max);
-		}
-		logger.debug("Object will be encrypted -> size unknown, encryption.maxObjectSize: " + getServerSettings().getEncryptionMaxObjectSize());
-		return true;
+		return isEncrypt();
 	}
 
 	/**
 	 * <p>
-	 * Sets {@code meta.encrypt} with the actual per-object decision and, if
-	 * encryption is enabled but the Object was not encrypted, adds the system
-	 * tag {@link EncryptionService#SYSTEM_TAG_TOO_LARGE_TO_ENCRYPT}.
+	 * Sets {@code meta.encrypt} with the actual per-object decision and stamps
+	 * {@code meta.encryptionFormat} with the format version used for new writes
+	 * ({@link EncryptionService#ENCRYPTION_FORMAT_V2}). Unencrypted objects
+	 * carry no format version.
 	 * </p>
 	 */
 	protected void setEncryptionMetadata(ObjectMetadata meta, boolean encrypted) {
 		meta.setEncrypt(encrypted);
-		if (isEncrypt() && !encrypted) {
-			String tags = meta.getSystemTags();
-			if (tags == null || !tags.contains(EncryptionService.SYSTEM_TAG_TOO_LARGE_TO_ENCRYPT))
-				meta.addSystemTag(EncryptionService.SYSTEM_TAG_TOO_LARGE_TO_ENCRYPT);
-		}
+		meta.setEncryptionFormat(encrypted ? Integer.valueOf(EncryptionService.ENCRYPTION_FORMAT_V2) : null);
 	}
 
 	protected ReplicationService getReplicationService() {

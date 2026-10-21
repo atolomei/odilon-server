@@ -36,6 +36,13 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
  * Creates new Objects ({@link OperationCode.CREATE_OBJECT})
  * </p>
  * 
+ * 
+ * 
+ * So the on-disk result is one file laid out as:
+
+ * [header: magic|version|recordSize|wrapIv|wrappedDEK|baseNonce]
+ * [rec 0: len|ct+tag]  [rec 1: len|ct+tag]  ...  [rec N: len(final flag)|ct+tag]
+ * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
 @ThreadSafe

@@ -271,12 +271,15 @@ public class ECReencodeObjectHandler extends ECTransactionObjectHandler {
 		 * saveReencodedMetadata).
 		 */
 		if (meta.isEncrypt()) {
-			// decodedFile contains the encrypted bytes; decrypt → re-encrypt → encode
+			// decodedFile contains the encrypted bytes; decrypt (using the object's
+			// stored format) → re-encrypt with the current v2 format → encode.
+			// The caller must stamp ObjectMetadata.encryptionFormat = v2 (see
+			// saveReencodedMetadata).
 			try (InputStream rawIn = Files.newInputStream(decodedFile.toPath())) {
 				MessageDigest md = newSha256();
 				// digest the PLAINTEXT (same convention as create/update and checkIntegrity)
-				InputStream decryptedIn = new DigestInputStream(getEncryptionService().decryptStream(rawIn), md);
-				EncryptedResult er = getEncryptionService().encryptStream(decryptedIn);
+				InputStream decryptedIn = new DigestInputStream(getEncryptionService().decryptStream(rawIn, meta.getEncryptionFormat()), md);
+				EncryptedResult er = getEncryptionService().encryptStreamV2(decryptedIn);
 				ECShards shards = encoder.encodeHead(er.getInputStream(), bucket, objectName);
 				shards.setSrcFileSize(er.getCountingStream().getCount());
 				shards.setSrcSha256(ByteToString.byteToHexString(md.digest()));
@@ -345,6 +348,9 @@ public class ECReencodeObjectHandler extends ECTransactionObjectHandler {
 			repaired.setEtag(etag);
 			repaired.setLength(shards.getFileSize());
 			repaired.setSourceLength(shards.getSrcFileSize());
+			// Re-encryption (buildFreshShards) always uses the current v2 format
+			// for encrypted objects; unencrypted objects carry no format version.
+			repaired.setEncryptionFormat(originalMeta.isEncrypt() ? Integer.valueOf(io.odilon.encryption.EncryptionService.ENCRYPTION_FORMAT_V2) : null);
 			// Stamp the repair time so the next integrity cycle skips this object.
 			repaired.setIntegrityCheck(DateTimeUtil.now());
 			// Clear any previous IRRECOVERABLE flag — this object is now healthy.

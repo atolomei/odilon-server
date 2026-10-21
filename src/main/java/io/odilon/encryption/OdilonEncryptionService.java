@@ -33,7 +33,11 @@ import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import io.odilon.errors.InternalCriticalException;
+import io.odilon.client.util.NumberFormatter;
+import io.odilon.encryption.v2.V2DecryptingInputStream;
+import io.odilon.encryption.v2.V2EncryptingInputStream;
 import io.odilon.log.Logger;
+import io.odilon.model.ServerConstant;
 import io.odilon.model.ServiceStatus;
 import io.odilon.monitor.SystemMonitorService;
 import io.odilon.service.BaseService;
@@ -153,14 +157,10 @@ public class OdilonEncryptionService extends BaseService implements EncryptionSe
 			return new EncryptedResult(finalStream, countingInputStream);
 
 		} catch (Exception e) {
-			throw new InternalCriticalException(e, "encryptStream");
+			logger.error(e, "Error encrypting stream v1");
+			throw new InternalCriticalException(e, "encryptStream v1");
 		}
 	}
-
-	/**
-	 * JsonFactory f = JsonMapper.builder()
-	 * .disable(StreamReadFeature.AUTO_CLOSE_SOURCE) .build() .tokenStreamFactory();
-	 **/
 
 	@Override
 	public InputStream decryptStream(InputStream inputStream) {
@@ -205,9 +205,9 @@ public class OdilonEncryptionService extends BaseService implements EncryptionSe
 
 		} catch (Exception e) {
 
-			logger.error(e, "Error decrypting stream");
+			logger.error(e, "Error decrypting stream v1");
 
-			throw new InternalCriticalException(e, "decryptStream");
+			throw new InternalCriticalException(e, "decryptStream v1");
 		}
 	}
 
@@ -215,11 +215,69 @@ public class OdilonEncryptionService extends BaseService implements EncryptionSe
 		return this.monitoringService;
 	}
 
+	/**
+	 * <p>
+	 * Encrypts with the v2 record-based AES-GCM-SIV format
+	 * ({@link io.odilon.encryption.v2.V2Format}). Bounded memory: at most one
+	 * record (default 4 MiB) is buffered at a time, so there is no object-size
+	 * limit. Used for all new object writes.
+	 * </p>
+	 */
+	@Override
+	public EncryptedResult encryptStreamV2(InputStream inputStream) {
+		try {
+			CountingInputStream countingInputStream = new CountingInputStream(inputStream);
+			InputStream encryptedStream = V2EncryptingInputStream.create(countingInputStream, this.odilonKeyEncriptorWrapper, this.serverSettings.getEncryptionRecordSize());
+			getSystemMonitorService().getEncrpytFileMeter().mark();
+
+			logger.debug(encryptedStream.getClass().getName() + " created for v2 encryption");
+
+			return new EncryptedResult(encryptedStream, countingInputStream);
+		} catch (Exception e) {
+			throw new InternalCriticalException(e, "encryptStream v2");
+		}
+	}
+
+	/**
+	 * <p>
+	 * Dispatches on the object's stored encryption format: {@code null} &rarr;
+	 * legacy whole-object format, {@code 2} &rarr; v2 record-based format. Any
+	 * other value fails explicitly (never attempt to decrypt an unknown format as
+	 * another one).
+	 * </p>
+	 */
+	@Override
+	public InputStream decryptStream(InputStream inputStream, Integer encryptionFormat) {
+		if (encryptionFormat == null)
+			return decryptStream(inputStream);
+		if (encryptionFormat.intValue() == EncryptionService.ENCRYPTION_FORMAT_V2) {
+			try {
+				InputStream is = new V2DecryptingInputStream(inputStream, this.odilonKeyEncriptorWrapper);
+				getSystemMonitorService().getDecryptFileMeter().mark();
+
+				logger.debug(is.getClass().getName() + " created for v2 decryption");
+
+				return is;
+			} catch (Exception e) {
+				throw new InternalCriticalException(e, "decryptStream v2");
+			}
+		}
+		throw new InternalCriticalException("unsupported encryption format -> " + encryptionFormat.toString() + " | this server supports legacy (null) and v" + EncryptionService.ENCRYPTION_FORMAT_V2);
+	}
+
 	@PostConstruct
 	protected void onInitialize() {
 		synchronized (this) {
+
 			setStatus(ServiceStatus.STARTING);
+
+			startuplogger.debug(ServerConstant.SEPARATOR);
+			startuplogger.debug("Record size -> " + NumberFormatter.formatNumber(this.serverSettings.getEncryptionRecordSize()) + " bytes");
+			startuplogger.debug("Encrypion -> " + this.serverSettings.isEncryptionEnabled());
+			startuplogger.debug("Encrypt metadata -> " + this.serverSettings.isEncryptMetadata());
 			startuplogger.debug("Started -> " + EncryptionService.class.getSimpleName());
+			startuplogger.debug(ServerConstant.SEPARATOR);
+
 			setStatus(ServiceStatus.RUNNING);
 		}
 	}
@@ -249,10 +307,12 @@ public class OdilonEncryptionService extends BaseService implements EncryptionSe
 
 			getSystemMonitorService().getEncrpytFileMeter().mark();
 
+			logger.debug(finalStream.getClass().getName() + " created for v1 encryption");
+
 			return new EncryptedResult(finalStream, plainSize);
 
 		} catch (Exception e) {
-			throw new InternalCriticalException(e, "encryptStream");
+			throw new InternalCriticalException(e, "encryptStream v1");
 		}
 	}
 

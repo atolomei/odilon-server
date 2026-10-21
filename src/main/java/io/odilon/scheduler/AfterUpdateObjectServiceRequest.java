@@ -16,6 +16,8 @@
  */
 package io.odilon.scheduler;
 
+import java.util.Optional;
+
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
@@ -62,6 +64,9 @@ public class AfterUpdateObjectServiceRequest extends AbstractServiceRequest impl
 		this.objectName = objectName;
 	}
 
+	
+
+	
 	@Override
 	public String getUUID() {
 		return ((this.bucketName != null) ? this.bucketName : "null") + ":" + ((this.objectName != null) ? this.objectName : "null");

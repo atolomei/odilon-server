@@ -144,7 +144,7 @@ public class ECCreateObjectHandler extends ECTransactionObjectHandler {
 				MessageDigest md = MessageDigest.getInstance("SHA-256");
 				DigestInputStream digestStream = new DigestInputStream(stream, md);
 
-				EncryptedResult encryptedResult = getEncryptionService().encryptStream(digestStream);
+				EncryptedResult encryptedResult = getEncryptionService().encryptStreamV2(digestStream);
 				sourceStream = encryptedResult.getInputStream();
 				ECEncoder encoder = new ECEncoder(getDriver());
 				ECShards blocks = encoder.encodeHead(sourceStream, getBucket(), getObjectName());

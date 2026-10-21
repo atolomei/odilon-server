@@ -196,6 +196,17 @@ public class ServerSettings implements JSONObject {
 	/** hard ceiling of the SunJCE AES/GCM provider minus room for the GCM tag */
 	static public final long ENCRYPTION_MAX_OBJECT_SIZE_CEILING = 2_147_483_000L;
 
+	/**
+	 * <p>
+	 * Plaintext bytes per encryption record of the v2 record-based AES-GCM-SIV
+	 * format (see {@code io.odilon.encryption.v2.V2Format}). It bounds the
+	 * memory used per encryption/decryption stream and is independent of the EC
+	 * storage-stripe size. Default 4 MiB; valid range 4 KiB .. 64 MiB.
+	 * </p>
+	 */
+	@Value("${encryption.recordSize:4194304}")
+	protected int encryptionRecordSize;
+
 	@Value("${presignedSalt:pxUrktu3oMo$dfgh9rl!}")
 	protected String presignedSalt;
 
@@ -1018,6 +1029,12 @@ public class ServerSettings implements JSONObject {
 			this.encryptionMaxObjectSize = ENCRYPTION_MAX_OBJECT_SIZE_CEILING;
 		}
 
+		if (this.encryptionRecordSize < io.odilon.encryption.v2.V2Format.MIN_RECORD_SIZE || this.encryptionRecordSize > io.odilon.encryption.v2.V2Format.MAX_RECORD_SIZE) {
+			startuplogger.warn("encryption.recordSize=" + this.encryptionRecordSize + " is out of range (" + io.odilon.encryption.v2.V2Format.MIN_RECORD_SIZE + ".."
+					+ io.odilon.encryption.v2.V2Format.MAX_RECORD_SIZE + "), using " + io.odilon.encryption.v2.V2Format.DEFAULT_RECORD_SIZE);
+			this.encryptionRecordSize = io.odilon.encryption.v2.V2Format.DEFAULT_RECORD_SIZE;
+		}
+
 		if (this.standbyUrl == null)
 			this.isStandByEnabled = false;
 
@@ -1169,6 +1186,14 @@ public class ServerSettings implements JSONObject {
 	 */
 	public long getEncryptionMaxObjectSize() {
 		return this.encryptionMaxObjectSize;
+	}
+
+	/**
+	 * @return plaintext bytes per encryption record of the v2 record-based
+	 *         AES-GCM-SIV format (see {@code encryption.recordSize})
+	 */
+	public int getEncryptionRecordSize() {
+		return this.encryptionRecordSize;
 	}
 
 	public void setKeyAlgorithm(String keyAlgorithm) {
