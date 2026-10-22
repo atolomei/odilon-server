@@ -54,6 +54,7 @@ public abstract class SchedulerWorker implements Runnable {
 	static private Logger logger = Logger.getLogger(SchedulerWorker.class.getName());
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 
+	static public final long FIVE_SECONDS = 5000;
 	static public final long TWO_SECONDS = 2000;
 	static public final long ONE_SECOND = 1000;
 	static public final long _SIESTA_SECS = 40;
@@ -164,8 +165,23 @@ public abstract class SchedulerWorker implements Runnable {
 		this.running = new AtomicBoolean(false);
 	}
 
+	/**
+	 * Stops the main loop and wakes up the worker thread immediately if it is
+	 * currently sleeping in {@link #rest(long)}, instead of waiting up to
+	 * {@link #getSiestaMillisecs()} to notice {@code running == false}.
+	 * <p>
+	 * Must be called when the owning {@link SchedulerService} / Spring
+	 * {@code ApplicationContext} is being shut down: otherwise this worker's
+	 * background {@link Thread} keeps running forever (it is only ever stopped
+	 * by this method), holding a now-stale {@link ApplicationContext} reference
+	 * that will blow up with {@code IllegalStateException} ("context has been
+	 * closed already") the next time it tries to resolve a bean.
+	 * </p>
+	 */
 	public void stop() {
 		this.running = new AtomicBoolean(false);
+		if (this.thread != null)
+			this.thread.interrupt();
 	}
 
 	public OffsetDateTime getStarted() {

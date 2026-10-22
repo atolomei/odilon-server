@@ -33,6 +33,7 @@ import com.giffing.wicket.spring.boot.context.scan.WicketHomePage;
 
 import io.odilon.OdilonApplication;
 import io.odilon.OdilonVersion;
+import io.odilon.client.util.NumberFormatter;
 import io.odilon.log.Logger;
 import io.odilon.model.RedundancyLevel;
 import io.odilon.model.ServerConstant;
@@ -76,19 +77,7 @@ public class HomePage extends BasePage {
 	public void onInitialize() {
 		super.onInitialize();
 
-		/**
-		 * try { add(new ListView<SearchResult>("recent", getRecentModel()) { private
-		 * static final long serialVersionUID = 1L;
-		 * 
-		 * @Override protected void populateItem(ListItem<SearchResult> item) {
-		 *           SearchResult r = item.getModelObject(); ExternalLink link = new
-		 *           ExternalLink("link", presignedUrl(r.bucketName, r.objectName));
-		 *           link.add(new Label("name", r.bucketName + " / " + r.objectName));
-		 *           item.add(link); item.add(new Label("fileName", r.fileName));
-		 *           item.add(new Label("lastModified", r.lastModified != null ?
-		 *           FMT.format(r.lastModified) : "-")); } }); } catch (Exception e) {
-		 *           logger.error(e); addOrReplace(new ErrorPanel("recent", e)); }
-		 **/
+	 
 
 		/** Main configuration */
 		add(new KeyValuePanel("mainconfig", getLabel("main-configuration"), new LoadableDetachableModel<List<KeyValuePanel.Row>>() {
@@ -106,13 +95,24 @@ public class HomePage extends BasePage {
 					else
 						map.put("Data Redundancy", settings.getRedundancyLevel() != null ? settings.getRedundancyLevel().getName() : "-");
 
-					map.put("Encryption", settings.isEncryptionEnabled() ? "enabled" : "disabled");
+					map.put("Encryption.enabled ", settings.isEncryptionEnabled() ? "true" : "false");
+
+					
+					if (settings.isEncryptionEnabled() ) {
+						map.put("Encryption. Record size", String.valueOf( NumberFormatter.formatNumber(settings.getEncryptionRecordSize()) + " bytes")  );
+						map.put("Encryption. Encrypt metadata", settings.isEncryptMetadata()  ? "true" : "false");
+					}
+					
 					map.put("Version Control", settings.getVersionControl() != null ? settings.getVersionControl().getName() : "-");
 					map.put("Data immutability", settings.getDataStorage() != null ? settings.getDataStorage().getName() : "-");
 					map.put("Master standby", settings.isStandByEnabled() ? "enabled" : "disabled");
 					map.put("Server mode", settings.getServerMode());
 					map.put("HTTPS", settings.isHTTPS() ? "true" : "false");
 
+
+					map.put("port", String.valueOf( settings.getPort()) );
+
+					
 					map.put("Started", fmt.format(OdilonApplication.STARTED) );
 					map.put("Version", OdilonVersion.VERSION);
 					
@@ -121,7 +121,10 @@ public class HomePage extends BasePage {
 					return KeyValuePanel.rows(map);
 				} catch (Exception e) {
 					logger.error(e);
-					return new ArrayList<KeyValuePanel.Row>();
+					Map<String, String> map = new LinkedHashMap<String, String>();
+					map.put("Error", e.getClass().getCanonicalName() + ": " + e.getMessage());
+					return KeyValuePanel.rows(map);
+
 				}
 			}
 		}));
@@ -139,7 +142,10 @@ public class HomePage extends BasePage {
 					return KeyValuePanel.rows(getSystemMonitorService().getMetricsValues().getColloquial());
 				} catch (Exception e) {
 					logger.error(e);
-					return new ArrayList<KeyValuePanel.Row>();
+					Map<String, String> map = new LinkedHashMap<String, String>();
+					map.put("Error", e.getClass().getCanonicalName() + ": " + e.getMessage());
+					return KeyValuePanel.rows(map);
+
 				}
 			}
 		}));
@@ -153,7 +159,10 @@ public class HomePage extends BasePage {
 					return KeyValuePanel.rows(getSystemInfoService().getSystemInfo().getColloquial());
 				} catch (Exception e) {
 					logger.error(e);
-					return new ArrayList<KeyValuePanel.Row>();
+					Map<String, String> map = new LinkedHashMap<String, String>();
+					map.put("Error", e.getClass().getCanonicalName() + ": " + e.getMessage());
+					return KeyValuePanel.rows(map);
+
 				}
 			}
 		}));
@@ -176,10 +185,53 @@ public class HomePage extends BasePage {
 					return KeyValuePanel.rows(map);
 				} catch (Exception e) {
 					logger.error(e);
-					return new ArrayList<KeyValuePanel.Row>();
+					Map<String, String> map = new LinkedHashMap<String, String>();
+					map.put("Error", e.getClass().getCanonicalName() + ": " + e.getMessage());
+					return KeyValuePanel.rows(map);
+
 				}
 			}
 		}));
+		
+		
+		
+		
+		
+		
+
+		/** Search status */
+		add(new KeyValuePanel("scheduler", getLabel("scheduler"), new LoadableDetachableModel<List<KeyValuePanel.Row>>() {
+			private static final long serialVersionUID = 1L;
+
+			@Override
+			protected List<KeyValuePanel.Row> load() {
+				try {
+				
+					Map<String, String> map = new LinkedHashMap<String, String>();
+					map.put("Standard queue size", String.valueOf( getSchedulerService().getStandardQueueSize() ) );
+					map.put("Search queue size", String.valueOf( getSchedulerService().getSearchQueueSize() ) );
+
+					if (getServerSettings().isStandByEnabled() && getServerSettings().getServerMode()==ServerConstant.MASTER_MODE) {
+						map.put("Replica queue size", String.valueOf( getSchedulerService().getReplicaQueueSize() ) );
+					}
+					
+					return KeyValuePanel.rows(map);
+		
+				} catch (Exception e) {
+					logger.error(e);
+					Map<String, String> map = new LinkedHashMap<String, String>();
+					map.put("Error", e.getClass().getCanonicalName() + ": " + e.getMessage());
+					return KeyValuePanel.rows(map);
+				}
+			}
+		}));
+		
+		
+		
+		
+		
+		
+		
 	}
 
 	private IModel<List<SearchResult>> getRecentModel() {

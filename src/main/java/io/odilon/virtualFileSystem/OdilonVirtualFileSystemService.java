@@ -1259,8 +1259,12 @@ public class OdilonVirtualFileSystemService extends BaseService implements Virtu
 			logger.debug("Drives enabled");
 			this.drivesEnabled.forEach((k, v) -> logger.debug(v.getRootDirPath()));
 			logger.debug(ServerConstant.SEPARATOR);
-			logger.debug("Drives used for Reed Solomon decode");
-			this.drivesRSDecode.forEach((k, v) -> logger.debug(k.toString() + " -> " + v.getRootDirPath()));
+		
+			if (getRedundancyLevel() == RedundancyLevel.ERASURE_CODING) {
+				logger.debug("Drives used for Reed Solomon decode");
+				this.drivesRSDecode.forEach((k, v) -> logger.debug(k.toString() + " -> " + v.getRootDirPath()));
+			}
+			
 			logger.debug(ServerConstant.SEPARATOR);
 		}
 	}

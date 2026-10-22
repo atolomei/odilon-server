@@ -75,6 +75,10 @@ public class ServerSettings implements JSONObject {
 	private String encryptionKey;
 	private String encryptionIV;
 
+	
+	public static final String MASTER = "master";
+	public static final String STANDBY = "standby";
+	
 	// PING ------------------------
 
 	@Value("${ping.enabled:true}")

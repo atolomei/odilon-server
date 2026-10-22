@@ -225,16 +225,14 @@ public class SearchSchedulerWorker extends SchedulerWorker {
 
 		this.executing = new ConcurrentHashMap<Serializable, ServiceRequest>(16, 0.9f, 1);
 		this.failed = new ConcurrentSkipListMap<Serializable, ServiceRequest>();
-
-		startuplogger.debug(getVirtualFileSystemService().getServerSettings().getSearchDispatcherPoolSize());
-
+	
 		startuplogger.debug("Started -> " + getClass().getSimpleName());
 		startuplogger.debug(ServerConstant.SEPARATOR);
 	}
 
 	@Override
 	protected void restFullCapacity() {
-		rest(TWO_SECONDS);
+		rest(FIVE_SECONDS);
 	}
 
 	@Override
