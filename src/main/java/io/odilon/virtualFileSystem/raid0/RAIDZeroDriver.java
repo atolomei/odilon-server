@@ -649,7 +649,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 				InputStream stream = Files.newInputStream(path.dataFileVersionPath(version));
 
 				if (meta.isEncrypt())
-					return getEncryptionService().decryptStream(stream);
+					return getEncryptionService().decryptStream(stream, meta.getEncryptionFormat());
 				else
 					return stream;
 
@@ -702,7 +702,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 				ObjectPath path = new ObjectPath(readDrive, bucket, objectName);
 				InputStream stream = Files.newInputStream(path.dataFilePath());
 
-				return (meta.isEncrypt()) ? getEncryptionService().decryptStream(stream) : stream;
+				return (meta.isEncrypt()) ? getEncryptionService().decryptStream(stream, meta.getEncryptionFormat()) : stream;
 
 			} catch (IllegalArgumentException e) {
 				throw e;
@@ -977,7 +977,7 @@ public class RAIDZeroDriver extends BaseIODriver implements ApplicationContextAw
 
 			try (InputStream rawIn = Files.newInputStream(file.toPath());
 				 InputStream in = metadata.isEncrypt()
-						? getEncryptionService().decryptStream(rawIn)
+						? getEncryptionService().decryptStream(rawIn, metadata.getEncryptionFormat())
 						: rawIn) {
 
 				MessageDigest md = MessageDigest.getInstance("SHA-256");

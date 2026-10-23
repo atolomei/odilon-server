@@ -16,6 +16,8 @@
  */
 package io.odilon.scheduler;
 
+import java.util.Optional;
+
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
@@ -84,6 +86,9 @@ public class AfterDeleteObjectServiceRequest extends AbstractServiceRequest impl
 	@JsonIgnore
 	private boolean isSuccess = false;
 
+	
+	
+	
 	/**
 	 * <p>
 	 * created by the RAIDZeroDriver
@@ -174,5 +179,7 @@ public class AfterDeleteObjectServiceRequest extends AbstractServiceRequest impl
 		else
 			logger.error("Invalid " + OperationCode.class.getName() + " -> " + this.operationCode.getName(), SharedConstant.NOT_THROWN);
 	}
+
+	 
 
 }

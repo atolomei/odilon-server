@@ -367,7 +367,7 @@ public class RAIDOneDriver extends BaseIODriver {
 
 				InputStream is = Files.newInputStream((new ObjectPath(readDrive, bucket, objectName)).dataFileVersionPath(version));
 
-				return (meta.isEncrypt() ? getEncryptionService().decryptStream(is) : is);
+				return (meta.isEncrypt() ? getEncryptionService().decryptStream(is, meta.getEncryptionFormat()) : is);
 
 			} catch (OdilonObjectNotFoundException e) {
 				throw e;
@@ -700,7 +700,7 @@ public class RAIDOneDriver extends BaseIODriver {
 				ObjectMetadata meta = getDriverObjectMetadataInternal(bucket, objectName, true);
 				InputStream stream = getInputStreamFromSelectedDrive(readDrive, bucket.getId(), objectName);
 				if (meta.isEncrypt())
-					return getVirtualFileSystemService().getEncryptionService().decryptStream(stream);
+					return getVirtualFileSystemService().getEncryptionService().decryptStream(stream, meta.getEncryptionFormat());
 				else
 					return stream;
 			} catch (Exception e) {
@@ -783,7 +783,7 @@ public class RAIDOneDriver extends BaseIODriver {
 
 					try (InputStream rawIn = Files.newInputStream(file.toPath());
 
-							InputStream in = meta.isEncrypt() ? getEncryptionService().decryptStream(rawIn) : rawIn) {
+							InputStream in = meta.isEncrypt() ? getEncryptionService().decryptStream(rawIn, meta.getEncryptionFormat()) : rawIn) {
 
 						MessageDigest md = MessageDigest.getInstance("SHA-256");
 						byte[] buffer = new byte[8192];

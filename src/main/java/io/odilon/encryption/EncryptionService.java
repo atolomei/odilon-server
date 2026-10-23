@@ -43,12 +43,19 @@ public interface EncryptionService extends SystemService {
 	 * but the Object was stored <b>unencrypted</b> because its size exceeds
 	 * {@code encryption.maxObjectSize}. The SunJCE AES/GCM provider can not
 	 * process a single stream larger than {@code Integer.MAX_VALUE} bytes
-	 * (~2 GiB). Large objects are therefore stored unencrypted for the moment.
+	 * (~2 GiB). Only applies to objects written with the legacy format; the v2
+	 * record-based format has no object-size limit.
 	 * </p>
 	 */
 	static final public String SYSTEM_TAG_TOO_LARGE_TO_ENCRYPT = "encryption-skipped-too-large-for-gcm";
 
-	 
+	/**
+	 * Record-based AES-GCM-SIV format (see {@code io.odilon.encryption.v2}).
+	 * Value stored in {@code ObjectMetadata.encryptionFormat}. A {@code null}
+	 * metadata value means the legacy whole-object format.
+	 */
+	static final public int ENCRYPTION_FORMAT_V2 = 2;
+
 	public EncryptedResult encryptStream(InputStream inputStream);
 
 	public InputStream decryptStream(InputStream inputStream);
@@ -57,5 +64,23 @@ public interface EncryptionService extends SystemService {
 	 * Deterministic variant when you know plaintext length in advance.
 	 */
 	EncryptedResult encryptStream(InputStream inputStream, long plainSize);
+
+	/**
+	 * <p>
+	 * Encrypts with the v2 record-based AES-GCM-SIV format. Bounded memory:
+	 * supports objects of any size. Used for all new object writes.
+	 * </p>
+	 */
+	public EncryptedResult encryptStreamV2(InputStream inputStream);
+
+	/**
+	 * <p>
+	 * Decrypts dispatching on the object's stored encryption format
+	 * ({@code ObjectMetadata.encryptionFormat}): {@code null} &rarr; legacy
+	 * format, {@code 2} &rarr; v2 record-based format. Any other value fails
+	 * explicitly.
+	 * </p>
+	 */
+	public InputStream decryptStream(InputStream inputStream, Integer encryptionFormat);
 
 }

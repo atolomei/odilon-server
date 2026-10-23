@@ -282,7 +282,7 @@ public class ECDriver extends BaseIODriver implements ApplicationContextAware {
 
 				if ((meta != null) && meta.isAccesible()) {
 					ECDecoder decoder = new ECDecoder(this);
-					return (meta.isEncrypt()) ? getVirtualFileSystemService().getEncryptionService().decryptStream(Files.newInputStream(decoder.decodeHead(meta, bucket).toPath()))
+					return (meta.isEncrypt()) ? getVirtualFileSystemService().getEncryptionService().decryptStream(Files.newInputStream(decoder.decodeHead(meta, bucket).toPath()), meta.getEncryptionFormat())
 							: Files.newInputStream(decoder.decodeHead(meta, bucket).toPath());
 				}
 				throw new OdilonObjectNotFoundException(objectInfo(bucket, objectName));
@@ -334,7 +334,7 @@ public class ECDriver extends BaseIODriver implements ApplicationContextAware {
 				File file = decoder.decodeVersion(meta, bucket);
 
 				if (meta.isEncrypt())
-					return getVirtualFileSystemService().getEncryptionService().decryptStream(Files.newInputStream(file.toPath()));
+					return getVirtualFileSystemService().getEncryptionService().decryptStream(Files.newInputStream(file.toPath()), meta.getEncryptionFormat());
 				else
 					return Files.newInputStream(file.toPath());
 			} catch (OdilonObjectNotFoundException e) {
@@ -497,7 +497,7 @@ public class ECDriver extends BaseIODriver implements ApplicationContextAware {
 			// Compute SHA-256 of the payload. If the object is encrypted, decodeHead
 			// returns the encrypted cache file, so we decrypt the stream before hashing.
 			String computedSha = null;
-			try (InputStream rawIn = Files.newInputStream(decodedFile.toPath()); InputStream in = (metadata.isEncrypt() ? getVirtualFileSystemService().getEncryptionService().decryptStream(rawIn) : rawIn)) {
+			try (InputStream rawIn = Files.newInputStream(decodedFile.toPath()); InputStream in = (metadata.isEncrypt() ? getVirtualFileSystemService().getEncryptionService().decryptStream(rawIn, metadata.getEncryptionFormat()) : rawIn)) {
 				java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
 				byte[] buffer = new byte[8192];
 				int read;

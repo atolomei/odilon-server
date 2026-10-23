@@ -172,13 +172,21 @@ public class ObjectVersionsPanel extends ModelPanel<SearchResult> {
 		fields.add("contentType. " + (meta.contentType != null ? meta.contentType : "-"));
 		fields.add("creationDate. " + (meta.creationDate != null ? FMT.format(meta.creationDate) : "-"));
 		fields.add("encryption. " + (meta.encrypt ? "true" : "false"));
+		
+		if (meta.isEncrypt())
+			fields.add("encryptionFormat. " + (meta.encryptionFormat!=null? meta.encryptionFormat.toString() : "null"));
+	
+		
 		fields.add("etag. " + (meta.etag != null ? meta.etag : "-"));
 		fields.add("lastModified. " + (meta.lastModified != null ? FMT.format(meta.lastModified) : "-"));
 		fields.add("length. " + String.format("%,d bytes", meta.length));
 		fields.add("length-src. " + String.format("%,d bytes", meta.sourceLength));
 		fields.add("status. " + (meta.status != null ? meta.status.getName() : "-"));
 		fields.add("versionCreationDate. " + (meta.versioncreationDate != null ? FMT.format(meta.versioncreationDate) : "-"));
-
+		
+		fields.add("appversion. " + (meta.appVersion != null ? meta.appVersion : "-"));
+		
+		
 		return fields;
 	}
 

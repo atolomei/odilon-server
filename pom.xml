@@ -13,7 +13,7 @@
 
 	<groupId>io.odilon</groupId>
 	<artifactId>odilon-server</artifactId>
-	<version>2.2.1</version>
+	<version>2.3</version>
 	<name>odilon server</name>
 
 	<description>
@@ -248,6 +248,15 @@
 			</exclusions>
 		</dependency>
 
+
+		<!-- BouncyCastle lightweight crypto API: AES-GCM-SIV (RFC 8452) used by the
+		     v2 record-based encryption format (io.odilon.encryption.v2). The JDK
+		     providers do not implement GCM-SIV. -->
+		<dependency>
+			<groupId>org.bouncycastle</groupId>
+			<artifactId>bcprov-jdk18on</artifactId>
+			<version>1.85</version>
+		</dependency>
 
 		<dependency>
 			<groupId>tools.jackson.core</groupId>

@@ -48,11 +48,11 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  * </p>
  * <p>
  * For every bucket it pages through the stored objects and re-indexes any
- * object that is missing from the index or whose {@code etag} has drifted;
- * then removes orphan documents (indexed objects that no longer exist in
- * storage) and documents of buckets that no longer exist. This repairs the
- * drift caused by dropped queue entries, failed index requests, index loss or
- * schema changes.
+ * object that is missing from the index or whose {@code etag} has drifted; then
+ * removes orphan documents (indexed objects that no longer exist in storage)
+ * and documents of buckets that no longer exist. This repairs the drift caused
+ * by dropped queue entries, failed index requests, index loss or schema
+ * changes.
  * </p>
  * <p>
  * {@code fullRebuild} forces re-indexing of every object regardless of etag,
@@ -80,7 +80,10 @@ public class SearchIndexReconciler implements ApplicationContextAware {
 	@JsonIgnore
 	private final AtomicBoolean running = new AtomicBoolean(false);
 
-	/** progress counters — valid while {@link #isRunning()} is true, reset at the start of each run */
+	/**
+	 * progress counters — valid while {@link #isRunning()} is true, reset at the
+	 * start of each run
+	 */
 	@JsonIgnore
 	private final AtomicInteger totalBuckets = new AtomicInteger(0);
 	@JsonIgnore
@@ -106,8 +109,8 @@ public class SearchIndexReconciler implements ApplicationContextAware {
 
 	/**
 	 * @param fullRebuild re-index everything regardless of etag
-	 * @return true if the reconciliation ran, false if skipped (disabled or
-	 *         already running)
+	 * @return true if the reconciliation ran, false if skipped (disabled or already
+	 *         running)
 	 */
 	public boolean reconcile(boolean fullRebuild) {
 
@@ -153,6 +156,9 @@ public class SearchIndexReconciler implements ApplicationContextAware {
 				Long offset = Long.valueOf(0);
 				String agentId = null;
 				boolean done = false;
+
+				// only 1 thread
+				//
 
 				while (!done) {
 					DataList<Item<ObjectMetadata>> page = getVirtualFileSystemService().listObjects(bucketName, Optional.of(offset), Optional.of(Long.valueOf(PAGE_SIZE)), Optional.empty(), Optional.ofNullable(agentId));

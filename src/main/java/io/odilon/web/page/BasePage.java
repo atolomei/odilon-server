@@ -38,6 +38,7 @@ import io.odilon.log.Logger;
 import io.odilon.model.SharedConstant;
 import io.odilon.monitor.SystemInfoService;
 import io.odilon.monitor.SystemMonitorService;
+import io.odilon.scheduler.SchedulerService;
 import io.odilon.search.SearchService;
 import io.odilon.security.TokenService;
 import io.odilon.service.ObjectStorageService;
@@ -146,7 +147,13 @@ public abstract class BasePage extends WebPage {
 	public ServerSettings getServerSettings() {
 		return ServiceLocator.getInstance().getBean(ServerSettings.class);
 	}
-
+	
+	public SchedulerService getSchedulerService() {
+		return ServiceLocator.getInstance().getBean(SchedulerService.class);
+	}
+	
+	
+	
 	/**
 	 * Relative presigned URL to open the object inline in the browser (served by
 	 * {@code /presigned/object}, which sets {@code Content-Disposition: inline}).

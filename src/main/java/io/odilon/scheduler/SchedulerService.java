@@ -19,6 +19,7 @@ package io.odilon.scheduler;
 import java.io.Serializable;
 import java.time.OffsetDateTime;
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -178,6 +179,36 @@ public class SchedulerService extends BaseService implements SystemService, Appl
 	@PostConstruct
 	protected void onInitialize() {
 		setStatus(ServiceStatus.STARTING);
+	}
+
+	/**
+	 * Stops all {@link SchedulerWorker} background threads
+	 * ({@link #cronjobsWorker}, {@link #standardSchedulerWorker},
+	 * {@link #replicaWorker}, {@link #searchWorker}) when the Spring
+	 * {@code ApplicationContext} is being destroyed.
+	 * <p>
+	 * Without this hook, each worker's {@code Thread} keeps running forever
+	 * (nothing else ever calls {@link SchedulerWorker#stop()}), holding a
+	 * reference to this (now closed) {@code ApplicationContext}. If the JVM
+	 * keeps running afterwards (e.g. a new {@code ApplicationContext} is
+	 * created in the same process, as happens in integration tests), the
+	 * orphaned worker eventually tries to resolve a bean from the closed
+	 * context and fails with {@code IllegalStateException}: "... has been
+	 * closed already".
+	 * </p>
+	 */
+	@PreDestroy
+	public void shutdown() {
+		startuplogger.debug("Stopping -> " + this.getClass().getSimpleName());
+		if (this.cronjobsWorker != null)
+			this.cronjobsWorker.stop();
+		if (this.standardSchedulerWorker != null)
+			this.standardSchedulerWorker.stop();
+		if (this.replicaWorker != null)
+			this.replicaWorker.stop();
+		if (this.searchWorker != null)
+			this.searchWorker.stop();
+		setStatus(ServiceStatus.STOPPED);
 	}
 
 	public synchronized void start() {

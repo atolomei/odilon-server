@@ -71,16 +71,40 @@ public class CronJobList implements SortedSet<CronJobRequest> {
 	@JsonIgnore
 	private TreeSet<CronJobRequest> jobs = new TreeSet<CronJobRequest>(new CronJobComparator());
 
+	/**
+	 * Removes and returns the first (earliest) due job, rescheduling its next
+	 * occurrence in the set.
+	 * <p>
+	 * {@link CronJobRequest#clone()} can fail (e.g. the owning Spring
+	 * {@code ApplicationContext} was closed, or any other transient bean
+	 * creation error). If that happens, the original {@code job} -- already
+	 * removed from {@link #jobs} by {@code getJobs().pollFirst()} above -- must
+	 * not be silently dropped from the schedule forever: it is re-added with
+	 * its next trigger time instead, so the cron keeps firing once the
+	 * transient failure is gone.
+	 * </p>
+	 */
 	public synchronized CronJobRequest pollFirst() {
 
 		CronJobRequest job = getJobs().pollFirst();
 		if (job == null)
 			return null;
-		CronJobRequest nextjob = job.clone();
 
-		nextjob.setId(job.getId());
-		nextjob.setTime(job.getNextTime());
-		getJobs().add(nextjob);
+		try {
+			CronJobRequest nextjob = job.clone();
+			nextjob.setId(job.getId());
+			nextjob.setTime(job.getNextTime());
+			getJobs().add(nextjob);
+		} catch (Exception e) {
+			logger.error(e, SharedConstant.NOT_THROWN);
+			try {
+				job.setTime(job.getNextTime());
+				getJobs().add(job);
+			} catch (Exception ex) {
+				logger.error(ex, SharedConstant.NOT_THROWN);
+			}
+		}
+
 		return job;
 	}
 

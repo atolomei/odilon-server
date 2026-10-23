@@ -111,12 +111,13 @@ public class ObjectExpandedPanel extends ModelPanel<SearchResult> {
 		}
 	}
 
+	/**
 	private String getPresignedUrl(SearchResult r) {
 		if (getPage() instanceof BasePage)
 			return ((BasePage) getPage()).presignedUrl(r.bucketName, r.objectName);
 		return "#";
 	}
-
+**/
 	private Map<String, String> getMetadataMap(SearchResult r) {
 
 		Map<String, String> map = new LinkedHashMap<String, String>();
@@ -130,18 +131,31 @@ public class ObjectExpandedPanel extends ModelPanel<SearchResult> {
 			map.put("bucketName", meta.bucketName);
 			map.put("objectName", meta.objectName);
 			map.put("fileName", meta.fileName);
+			map.put("version", String.valueOf(meta.version));
+			
 			map.put("contentType", meta.contentType);
+			
 			map.put("length", String.format("%,d bytes", meta.length));
 			map.put("length-src", String.format("%,d bytes", meta.sourceLength));
 			
 			map.put("encrypt", (meta.isEncrypt()? "true" : "false")	);
-			
-			map.put("version", String.valueOf(meta.version));
+			map.put("encryptionFormat", (meta.encryptionFormat ==null ? "null" : meta.encryptionFormat.toString())	);
+
 			map.put("creationDate", meta.creationDate != null ? fmt.format(meta.creationDate) : "-");
 			map.put("lastModified", meta.lastModified != null ? fmt.format(meta.lastModified) : "-");
+			map.put("versioncreationDate", meta.versioncreationDate != null ? fmt.format(meta.versioncreationDate) : "-");
+				
+			map.put("integrityCheck", meta.integrityCheck != null ? fmt.format(meta.integrityCheck) : "-");
+			
 			map.put("etag", meta.etag);
 			map.put("status", meta.status != null ? meta.status.getName() : "-");
 			map.put("raid", meta.raid);
+			
+			
+			if (meta.isEncrypt())
+				map.put("encryptionFormat", meta.encryptionFormat!=null? meta.encryptionFormat.toString() : "null");
+			
+			
 			
 			if (meta.customTags != null && !meta.customTags.isEmpty()) {
 				StringBuilder sb = new StringBuilder();
@@ -149,11 +163,25 @@ public class ObjectExpandedPanel extends ModelPanel<SearchResult> {
 				map.put("customtags", sb.toString());
 			}
 			
-
-			 
-
+			
+			if (meta.systemTags != null && !meta.systemTags.isEmpty()) {
+				StringBuilder sb = new StringBuilder();
+				sb.append( meta.systemTags);
+				map.put("systemTags", sb.toString());
+			}
+		
+			
+			
+			
+			map.put("appVersion", meta.appVersion != null ? meta.appVersion : "null");
 			
 
+			if (meta.totalBlocks>0) {
+				map.put("totalBlocks", String.valueOf (meta.totalBlocks));
+			
+			}
+			
+			
 		} catch (Exception e) {
 			logger.error(e);
 			map.put("error", e.getClass().getSimpleName() + (e.getMessage() != null ? (" - " + e.getMessage()) : ""));
