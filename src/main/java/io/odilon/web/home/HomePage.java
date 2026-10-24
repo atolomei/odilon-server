@@ -174,6 +174,8 @@ public class HomePage extends BasePage {
 			@Override
 			protected List<KeyValuePanel.Row> load() {
 				try {
+					
+					ServerSettings settings = getServerSettings();
 					IndexStatus status = getSearchService().getIndexStatus();
 					Map<String, String> map = new LinkedHashMap<String, String>();
 					map.put("Status", status.status);
@@ -182,6 +184,8 @@ public class HomePage extends BasePage {
 					map.put("Last rebuild", status.lastRebuild != null ? fmt.format(status.lastRebuild) : "-");
 					map.put("Pending", String.format("%,d", status.pending));
 					map.put("Errors", String.format("%,d", status.errors));
+					map.put("search.index.dir",  settings.getSearchIndexDir() != null ? settings.getSearchIndexDir()  : "-");
+					
 					return KeyValuePanel.rows(map);
 				} catch (Exception e) {
 					logger.error(e);
