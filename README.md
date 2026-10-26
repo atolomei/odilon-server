@@ -261,6 +261,8 @@ Current version of Odilon Server is <b>2.2.1</b>.
 <p>
 <ul>
 <li><a href="https://odilon.io/architecture.html" target="_blank">Odilon Server Software Architecture</a></li>	
+<li><a href="https://odilon.io/encryption.html" target="_blank">How Odilon encryption works</a></li>	
+
 </ul>
 </p>
 
