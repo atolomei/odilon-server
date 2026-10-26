@@ -31,6 +31,7 @@ import org.apache.wicket.model.LoadableDetachableModel;
 
 import io.odilon.log.Logger;
 import io.odilon.model.ObjectMetadata;
+import io.odilon.model.RedundancyLevel;
 import io.odilon.model.ServerConstant;
 import io.odilon.search.SearchResult;
 import io.odilon.service.ObjectStorageService;
@@ -149,12 +150,15 @@ public class ObjectExpandedPanel extends ModelPanel<SearchResult> {
 			
 			map.put("etag", meta.etag);
 			map.put("status", meta.status != null ? meta.status.getName() : "-");
-			map.put("raid", meta.raid);
 			
+			try { 
+				map.put("redundancyLevel", RedundancyLevel.get(Integer.valueOf(meta.raid).intValue()).getName());
+			} catch (Exception e) {
+				map.put("redundancyLevel",meta.raid);
+			}
 			
 			if (meta.isEncrypt())
 				map.put("encryptionFormat", meta.encryptionFormat!=null? meta.encryptionFormat.toString() : "null");
-			
 			
 			
 			if (meta.customTags != null && !meta.customTags.isEmpty()) {
@@ -169,18 +173,12 @@ public class ObjectExpandedPanel extends ModelPanel<SearchResult> {
 				sb.append( meta.systemTags);
 				map.put("systemTags", sb.toString());
 			}
-		
-			
-			
 			
 			map.put("appVersion", meta.appVersion != null ? meta.appVersion : "null");
-			
 
 			if (meta.totalBlocks>0) {
 				map.put("totalBlocks", String.valueOf (meta.totalBlocks));
-			
 			}
-			
 			
 		} catch (Exception e) {
 			logger.error(e);

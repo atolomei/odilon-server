@@ -97,7 +97,6 @@ public class HomePage extends BasePage {
 
 					map.put("Encryption.enabled ", settings.isEncryptionEnabled() ? "true" : "false");
 
-					
 					if (settings.isEncryptionEnabled() ) {
 						map.put("Encryption. Record size", String.valueOf( NumberFormatter.formatNumber(settings.getEncryptionRecordSize()) + " bytes")  );
 						map.put("Encryption. Encrypt metadata", settings.isEncryptMetadata()  ? "true" : "false");

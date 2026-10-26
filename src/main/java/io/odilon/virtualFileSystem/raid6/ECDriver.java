@@ -1047,8 +1047,6 @@ public class ECDriver extends BaseIODriver implements ApplicationContextAware {
 
 			ObjectMetadata meta = candidate.getObjectMetadata(bucket, objectName);
 
-			logger.debug("Candidate -> " + candidate.getName() + " | v:" + volume.getVolumeId() + " | meta:" + (meta != null ? "found" : "not found") + " | b:" + bucket.getName() + " o:" + objectName);
-
 			if (meta == null)
 				continue; // object not on this volume
 
@@ -1061,9 +1059,7 @@ public class ECDriver extends BaseIODriver implements ApplicationContextAware {
 			// (at least the object is present), log an error, and let the scrubber
 			// deal with a deeper repair on its next pass.
 			if (meta.metaChecksum != null && !((OdilonDrive) candidate).isMetadataChecksumValid(bucket, objectName)) {
-
 				logger.warn("metaChecksum mismatch on candidate drive " + candidate.getName() + " | b:" + bucket.getName() + " o:" + objectName + " — attempting quorum repair from peer drives");
-
 				boolean repaired = false;
 				for (Drive peer : pool) {
 					if (peer == candidate)
