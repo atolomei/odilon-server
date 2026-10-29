@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 import java.util.concurrent.ExecutionException;
@@ -55,6 +56,7 @@ import io.odilon.scheduler.StandByReplicaServiceRequest;
 import io.odilon.service.BaseService;
 import io.odilon.service.ServerSettings;
 import io.odilon.util.Check;
+import io.odilon.util.DateTimeUtil;
 import io.odilon.virtualFileSystem.OdilonJournalService;
 import io.odilon.virtualFileSystem.model.JournalService;
 import io.odilon.virtualFileSystem.model.LockService;
@@ -373,6 +375,9 @@ public class ReplicationService extends BaseService implements ApplicationContex
 		logger.debug(opx.getOperationCode().getName() + ((opx.getBucketId() != null) ? (" b:" + opx.getBucketId()) : "") + ((opx.getBucketName() != null) ? (" bn:" + opx.getBucketName()) : "")
 				+ ((opx.getObjectName() != null) ? (" o:" + opx.getObjectName()) : ""));
 
+		/** metadata of an object successfully replicated (or already identical on the standby) */
+		ObjectMetadata toStamp = null;
+
 		try {
 			switch (opx.getOperationCode()) {
 
@@ -386,10 +391,10 @@ public class ReplicationService extends BaseService implements ApplicationContex
 				replicateDeleteBucket(opx);
 				break;
 			case CREATE_OBJECT:
-				replicateCreateObject(opx);
+				toStamp = replicateCreateObject(opx);
 				break;
 			case UPDATE_OBJECT:
-				replicateUpdateObject(opx);
+				toStamp = replicateUpdateObject(opx);
 				break;
 			case DELETE_OBJECT:
 				replicateDeleteObject(opx);
@@ -421,6 +426,12 @@ public class ReplicationService extends BaseService implements ApplicationContex
 			}
 			throw ice;
 		}
+
+		// Must run here, OUTSIDE the object/bucket read locks held by
+		// replicateCreateObject/replicateUpdateObject: stampDateSynced takes the object
+		// WRITE lock, and a read->write upgrade on a ReentrantReadWriteLock deadlocks.
+		if (toStamp != null)
+			stampDateSynced(toStamp);
 
 		// Issue 8 — lag metric: reset when the queue drains to zero
 		if (getSchedulerService().getReplicaQueueSize() == 0) {
@@ -482,6 +493,17 @@ public class ReplicationService extends BaseService implements ApplicationContex
 
 	protected SchedulerService getSchedulerService() {
 		return this.schedulerService;
+	}
+
+	/**
+	 * @param objectUUID see {@link VirtualFileSystemOperation#getUUID()}
+	 * @return true if the replica queue already has a pending or executing
+	 *         request for this object. Used by {@link StandByInitialSync} to
+	 *         avoid racing with the normal, event-driven replication path for the
+	 *         same object (see {@link #stampDateSynced(ObjectMetadata)}).
+	 */
+	public boolean isReplicationPendingForObject(String objectUUID) {
+		return getSchedulerService().isReplicaPendingForObject(objectUUID);
 	}
 
 	/**
@@ -554,10 +576,13 @@ public class ReplicationService extends BaseService implements ApplicationContex
 	}
 
 	/**
-	 * 
 	 * @param opx
+	 * @return the replicated object's metadata if the standby now holds this
+	 *         content (pushed, or already identical), so the caller can stamp
+	 *         {@code dateSynced} after releasing the locks; {@code null}
+	 *         otherwise
 	 */
-	private void replicateCreateObject(VirtualFileSystemOperation opx) {
+	private ObjectMetadata replicateCreateObject(VirtualFileSystemOperation opx) {
 
 		Check.requireNonNullArgument(opx, "opx is null");
 
@@ -571,28 +596,66 @@ public class ReplicationService extends BaseService implements ApplicationContex
 
 				/** if the Object was not created for any reason, do nothing */
 				if ((bucket == null) || (!getVirtualFileSystemService().existsObject(bucket, opx.getObjectName()))) {
-					return;
+					return null;
 				}
 
 				ObjectMetadata meta = getVirtualFileSystemService().getObjectMetadata(bucket, opx.getObjectName());
 				try {
+
+					// Redundant-push short-circuit: the StandByInitialSync bulk sweep and this
+					// event-driven path can both try to replicate the same object (initial sync
+					// has no way to know a live replication for this object is already queued or
+					// in flight). If the standby already has this exact content (same sha256) at
+					// a version >= ours, pushing again would be interpreted by the standby's PUT
+					// endpoint as an UPDATE and create a spurious duplicate version with identical
+					// content. Skip the push (but still stamp dateSynced) in that case.
+					//
+					// Why sha256 is safe to compare even when master and standby use DIFFERENT
+					// redundancy levels (e.g. master=ErasureCoding, standby=RAID0): every RAID
+					// handler (RAIDZeroObjectHandler, RAIDOneUpdateObjectHandler, ECCreateObjectHandler,
+					// ECUpdateObjectHandler) wraps the plaintext source stream in a DigestInputStream
+					// BEFORE any RAID-specific transform (encryption, Reed-Solomon sharding), so
+					// sha256 is always "hash of the original uploaded bytes" regardless of how the
+					// RAID driver stores them — unlike etag, which IS storage-format-dependent
+					// (plain/encrypted file hash for RAID0/1 vs. hash of concatenated shard hashes
+					// for EC) and therefore can never be compared across RAID levels or even across
+					// two EC servers with different encryption keys.
+					ObjectMetadata existingStandbyMeta = null;
+					try {
+						existingStandbyMeta = getClient().getObjectMetadata(bucket.getName(), opx.getObjectName());
+					} catch (Exception ignored) {
+						// standby doesn't have it yet, or a transient lookup error — proceed with the push
+					}
+					if (existingStandbyMeta != null && meta.getSha256() != null && meta.getSha256().equals(existingStandbyMeta.getSha256()) && existingStandbyMeta.getVersion() >= meta.getVersion()) {
+						logger.debug("Skipping redundant push, standby already has identical content -> " + opx.toString());
+						return meta;
+					}
 
 					logger.debug("Replicating -> " + meta.toString());
 
 					InputStream is = getVirtualFileSystemService().getObjectStream(bucket.getName(), opx.getObjectName());
 					((ODClient) getClient()).putReplicateObjectStream(bucket.getName(), opx.getObjectName(), is, Optional.ofNullable(meta.getFileName()), Optional.empty(), Optional.empty(), Optional.ofNullable(meta.getCustomTags()));
 
-					// Issue 4 — transit integrity check: compare etag on the standby to the
-					// local etag. A mismatch means bytes were corrupted in transit or the
-					// standby wrote a different version.
+					// Issue 4 — transit integrity check: compare the SHA-256 of the plaintext
+					// source (meta.sha256) on the standby to the local value. A mismatch means
+					// bytes were corrupted in transit or the standby wrote a different version.
+					// NOTE: do NOT use getEtag() here — etag is the SHA-256 of the file as stored
+					// on disk, which for encrypted objects is computed over the *encrypted*
+					// bytes. Since source and standby encrypt independently (different key/IV),
+					// their etags legitimately differ even when the replicated content is
+					// identical. sha256 is always computed over the unencrypted source stream
+					// on both ends, so it is the correct value to compare.
 					ObjectMetadata standbyMeta = getClient().getObjectMetadata(bucket.getName(), opx.getObjectName());
-					if (standbyMeta != null && meta.getEtag() != null && !meta.getEtag().equals(standbyMeta.getEtag())) {
-						logger.error("Transit integrity failure (CREATE) — etag mismatch for " + bucket.getName() + "/" + opx.getObjectName() + " | local=" + meta.getEtag() + " standby=" + standbyMeta.getEtag());
-						throw new InternalCriticalException("Transit etag mismatch on CREATE_OBJECT -> " + opx.toString());
+					if (standbyMeta != null && meta.getSha256() != null && !meta.getSha256().equals(standbyMeta.getSha256())) {
+						logger.error("Transit integrity failure (CREATE) — sha256 mismatch for " + bucket.getName() + "/" + opx.getObjectName() + " | local=" + meta.getSha256() + " standby=" + standbyMeta.getSha256());
+						throw new InternalCriticalException("Transit sha256 mismatch on CREATE_OBJECT -> " + opx.toString());
 					}
 
 					logger.debug("done");
 					getMonitoringService().getReplicationObjectCreateCounter().inc();
+
+					// caller stamps dateSynced after releasing the locks (see replicate())
+					return meta;
 
 				} catch (IOException e) {
 					logger.debug(e, opx.toString());
@@ -618,10 +681,10 @@ public class ReplicationService extends BaseService implements ApplicationContex
 	}
 
 	/**
-	 * 
 	 * @param opx
+	 * @return see {@link #replicateCreateObject(VirtualFileSystemOperation)}
 	 */
-	private void replicateUpdateObject(VirtualFileSystemOperation opx) {
+	private ObjectMetadata replicateUpdateObject(VirtualFileSystemOperation opx) {
 
 		Check.requireNonNullArgument(opx, "opx is null");
 
@@ -636,28 +699,47 @@ public class ReplicationService extends BaseService implements ApplicationContex
 				/** if the Object was not updated for any reason, do nothing */
 				ObjectMetadata m = getVirtualFileSystemService().getObjectMetadata(bucket, opx.getObjectName());
 				if ((m == null) || (m.getVersion() < opx.getVersion())) {
-					return;
+					return null;
 				}
 
 				if (getVirtualFileSystemService().existsObject(bucket, opx.getObjectName())) {
 					ObjectMetadata meta = getVirtualFileSystemService().getObjectMetadata(bucket, opx.getObjectName());
 					try {
+
+						// Redundant-push short-circuit (see comment in replicateCreateObject): skip
+						// the push if the standby already has this exact content at a version >= ours.
+						ObjectMetadata existingStandbyMeta = null;
+						try {
+							existingStandbyMeta = getClient().getObjectMetadata(bucket.getName(), opx.getObjectName());
+						} catch (Exception ignored) {
+							// standby doesn't have it, or a transient lookup error — proceed with the push
+						}
+						if (existingStandbyMeta != null && meta.getSha256() != null && meta.getSha256().equals(existingStandbyMeta.getSha256()) && existingStandbyMeta.getVersion() >= meta.getVersion()) {
+							logger.debug("Skipping redundant push, standby already has identical content -> " + opx.toString());
+							return meta;
+						}
+
 						((ODClient) getClient()).putReplicateObjectStream(bucket.getName(), opx.getObjectName(), getVirtualFileSystemService().getObjectStream(bucket.getName(), opx.getObjectName()), Optional.ofNullable(meta.getFileName()),
 								Optional.empty(), Optional.empty(), Optional.ofNullable(meta.getCustomTags()));
 
-						// Issue 4 — transit integrity check
+						// Issue 4 — transit integrity check (see comment in replicateCreateObject
+						// for why sha256, not etag, must be used here)
 						ObjectMetadata standbyMeta = getClient().getObjectMetadata(bucket.getName(), opx.getObjectName());
-						if (standbyMeta != null && meta.getEtag() != null && !meta.getEtag().equals(standbyMeta.getEtag())) {
-							logger.error("Transit integrity failure (UPDATE) — etag mismatch for " + bucket.getName() + "/" + opx.getObjectName() + " | local=" + meta.getEtag() + " standby=" + standbyMeta.getEtag());
-							throw new InternalCriticalException("Transit etag mismatch on UPDATE_OBJECT -> " + opx.toString());
+						if (standbyMeta != null && meta.getSha256() != null && !meta.getSha256().equals(standbyMeta.getSha256())) {
+							logger.error("Transit integrity failure (UPDATE) — sha256 mismatch for " + bucket.getName() + "/" + opx.getObjectName() + " | local=" + meta.getSha256() + " standby=" + standbyMeta.getSha256());
+							throw new InternalCriticalException("Transit sha256 mismatch on UPDATE_OBJECT -> " + opx.toString());
 						}
 
 						getMonitoringService().getReplicationObjectUpdateCounter().inc();
+
+						// caller stamps dateSynced after releasing the locks (see replicate())
+						return meta;
 
 					} catch (IOException e) {
 						throw new InternalCriticalException(e, opx.toString());
 					}
 				}
+				return null;
 
 			} catch (ODClientException e) {
 				logger.error(e);
@@ -668,6 +750,82 @@ public class ReplicationService extends BaseService implements ApplicationContex
 			}
 		} finally {
 			getLockService().getObjectLock(opx.getBucketId(), opx.getObjectName()).readLock().unlock();
+		}
+	}
+
+	/**
+	 * Stamps {@code dateSynced} on the master's own copy of {@code meta} and
+	 * persists it, so {@link StandByInitialSync} no longer treats this object as
+	 * "never synced" on a future sweep.
+	 * <p>
+	 * Without this, {@code dateSynced} was only ever written by
+	 * {@link StandByInitialSync} itself — an object that is only ever replicated
+	 * through this normal, event-driven path would have {@code dateSynced == null}
+	 * forever, making it eligible for an unconditional, redundant re-push by every
+	 * subsequent {@code StandByInitialSync} run (e.g. on every restart that still
+	 * has a non-empty replica queue — see {@link #initialSync()}). Since the
+	 * standby's upload endpoint always creates a new version when the target
+	 * object already exists, such a redundant push produces a spurious duplicate
+	 * version with content identical to the existing head.
+	 * </p>
+	 * <p>
+	 * Deliberately does <b>not</b> touch {@code lastModified} — that field must
+	 * keep reflecting the last real content change, not replication bookkeeping.
+	 * Persisted via the low-level {@code IODriver} (same mechanism
+	 * {@link StandByInitialSync} uses), not the higher-level
+	 * {@code VirtualFileSystemService.updateObjectMetadata()} API, to avoid
+	 * READONLY/WORM mode checks and side effects unrelated to this bookkeeping
+	 * write. Failures are logged and swallowed — the replication itself already
+	 * succeeded; only the "already synced" marker failed to persist, which just
+	 * means a future sweep may redundantly (but harmlessly, thanks to the
+	 * short-circuit above) re-check this object.
+	 * </p>
+	 * <p>
+	 * <b>Locking — MUST be called with NO object/bucket lock held by the
+	 * caller.</b> It takes the object WRITE lock, and {@code putObjectMetadata}
+	 * takes it again internally. Calling it while holding the object READ lock
+	 * (as an earlier version did, from inside replicateCreateObject /
+	 * replicateUpdateObject) is a read→write upgrade on a
+	 * {@code ReentrantReadWriteLock}, which deadlocks forever: the replica
+	 * worker threads hang, and since a queued writer also blocks new readers,
+	 * client GET/PUT on that object hang too.
+	 * </p>
+	 * <p>
+	 * Because the locks were released between the push and this call, the
+	 * object may have changed in between. The metadata is therefore re-read
+	 * under the write lock and only stamped if it is still the same version and
+	 * content (sha256) that was replicated; otherwise this call does nothing,
+	 * since the newer change has its own replica operation that will stamp it.
+	 * Writing back the stale {@code replicated} snapshot instead would
+	 * overwrite newer metadata.
+	 * </p>
+	 *
+	 * @param replicated the master's metadata for the object just replicated
+	 */
+	private void stampDateSynced(ObjectMetadata replicated) {
+
+		final Long bucketId = replicated.getBucketId();
+		final String objectName = replicated.getObjectName();
+
+		getLockService().getObjectLock(bucketId, objectName).writeLock().lock();
+		try {
+			ServerBucket bucket = getVirtualFileSystemService().getBucketCache().get(bucketId);
+			if (bucket == null)
+				return;
+
+			ObjectMetadata current = getVirtualFileSystemService().getObjectMetadata(bucket, objectName);
+			if ((current == null) || (current.getVersion() != replicated.getVersion()) || (!Objects.equals(current.getSha256(), replicated.getSha256())))
+				return;
+
+			current.setDateSynced(DateTimeUtil.now());
+			// re-acquires the object write lock internally: fine, the write lock of a
+			// ReentrantReadWriteLock is reentrant for the thread that holds it
+			getVirtualFileSystemService().createVFSIODriver().putObjectMetadata(current);
+
+		} catch (Exception e) {
+			logger.error("Could not stamp dateSynced after replication -> b:" + bucketId + " o:" + objectName, SharedConstant.NOT_THROWN);
+		} finally {
+			getLockService().getObjectLock(bucketId, objectName).writeLock().unlock();
 		}
 	}
 

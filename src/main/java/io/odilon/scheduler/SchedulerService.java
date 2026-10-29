@@ -332,6 +332,18 @@ public class SchedulerService extends BaseService implements SystemService, Appl
 		return getReplicaWorker().getServiceRequestQueue().size();
 	}
 
+	/**
+	 * @param objectUUID see {@link VirtualFileSystemOperation#getUUID()}
+	 * @return true if the replica queue already has a pending (queued) or
+	 *         currently-executing request for this object. {@code false} if the
+	 *         standby replica worker isn't running (e.g. standby disabled).
+	 */
+	public boolean isReplicaPendingForObject(String objectUUID) {
+		if (getReplicaWorker() == null)
+			return false;
+		return getReplicaWorker().isPending(objectUUID);
+	}
+
 	public int getStandardQueueSize() {
 		return getStandardSchedulerWorker().getServiceRequestQueue().size();
 	}

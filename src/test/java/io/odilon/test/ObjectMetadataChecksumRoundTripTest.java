@@ -137,4 +137,77 @@ public class ObjectMetadataChecksumRoundTripTest {
         assertTrue(ok, "metaChecksum must verify true after a plain in-memory JSON round trip");
         assertEquals(original.getMetaChecksum(), reloaded.getMetaChecksum(), "checksum field itself must round-trip unchanged");
     }
+
+    /**
+     * Regression test for the {@code volumeId} schema-evolution bug.
+     *
+     * <p>
+     * {@code volumeId} was added to {@link ObjectMetadata} <em>after</em>
+     * {@code metaChecksum} was introduced, for multi-volume ErasureCoding
+     * support. Objects written before that point have no {@code "volumeId"} key
+     * in their stored JSON. If {@code volumeId} were a primitive {@code int}
+     * (as it originally was), it would always serialize — even when "unset" —
+     * which would permanently break {@code metaChecksum} verification for every
+     * pre-existing object, exactly as seen in production:
+     * {@code OdilonDrive} logging a "metaChecksum mismatch" WARN on every drive
+     * for the same objects simultaneously, and {@code ECDriver}'s quorum repair
+     * failing because it can't find any "healthy" copy — there isn't one, the
+     * check itself is wrong.
+     * </p>
+     * <p>
+     * {@code volumeId} is now a boxed {@code Integer} defaulting to {@code null}
+     * so the class-level {@code @JsonInclude(NON_NULL)} excludes it from the
+     * hashed JSON for such legacy records, reproducing the exact bytes that were
+     * hashed when the record was first written.
+     * </p>
+     */
+    @Test
+    public void testMetaChecksumSurvivesDiskRoundTrip_LegacyObjectWithoutVolumeId() throws Exception {
+
+        // ---- 1) build a record the way objects were written BEFORE volumeId existed:
+        //         never call setVolumeId() -> backing field stays null ----
+        ObjectMetadata original = buildSampleMetadata();
+
+        // ---- 2) stamp + serialize, exactly like OdilonDrive.saveObjectMetadata() ----
+        String checksum = ObjectMetadataChecksum.compute(original, mapper);
+        original.setMetaChecksum(checksum);
+
+        String jsonWritten = mapper.writeValueAsString(original);
+        assertTrue(!jsonWritten.contains("\"volumeId\""),
+                "a null volumeId must be excluded from the serialized JSON (NON_NULL) -> " + jsonWritten);
+
+        // ---- 3) reload, exactly like OdilonDrive.getObjectMetadataById() ----
+        ObjectMetadata reloaded = mapper.readValue(jsonWritten.getBytes("UTF-8"), ObjectMetadata.class);
+
+        assertEquals(0, reloaded.getVolumeId(), "legacy object must default to volume 0");
+
+        // ---- 4) verify() must succeed: no false-positive "corrupt metadata" ----
+        boolean ok = ObjectMetadataChecksum.verify(reloaded, mapper);
+        assertTrue(ok, "metaChecksum must verify true for a legacy object written before volumeId existed");
+    }
+
+    /**
+     * Companion test: objects written by the ErasureCoding create/update handlers
+     * (which always call {@code setVolumeId(...)} explicitly) must continue to
+     * round-trip correctly — the fix must not break the common, non-legacy case.
+     */
+    @Test
+    public void testMetaChecksumSurvivesDiskRoundTrip_ECObjectWithExplicitVolumeId() throws Exception {
+
+        ObjectMetadata original = buildSampleMetadata();
+        original.setVolumeId(2);
+
+        String checksum = ObjectMetadataChecksum.compute(original, mapper);
+        original.setMetaChecksum(checksum);
+
+        String jsonWritten = mapper.writeValueAsString(original);
+        assertTrue(jsonWritten.contains("\"volumeId\":2"),
+                "an explicitly set volumeId must be serialized -> " + jsonWritten);
+
+        ObjectMetadata reloaded = mapper.readValue(jsonWritten.getBytes("UTF-8"), ObjectMetadata.class);
+        assertEquals(2, reloaded.getVolumeId());
+
+        boolean ok = ObjectMetadataChecksum.verify(reloaded, mapper);
+        assertTrue(ok, "metaChecksum must verify true for an EC object with an explicit volumeId");
+    }
 }

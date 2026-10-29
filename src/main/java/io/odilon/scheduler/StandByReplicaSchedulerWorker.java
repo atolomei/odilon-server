@@ -65,6 +65,10 @@ public class StandByReplicaSchedulerWorker extends SchedulerWorker {
 	@JsonIgnore
 	private OffsetDateTime lastFailedTry = OffsetDateTime.MIN;
 
+	/** true while the main loop waits in restFullCapacity(); guarded by this */
+	@JsonIgnore
+	private boolean waitingForCapacity = false;
+
 	/**
 	 * 
 	 * @param id
@@ -100,6 +104,7 @@ public class StandByReplicaSchedulerWorker extends SchedulerWorker {
 		} catch (Exception e) {
 			logger.error(e, SharedConstant.NOT_THROWN);
 		}
+		signalCapacityFreed();
 	}
 
 	public void cancel(ServiceRequest request) {
@@ -116,6 +121,7 @@ public class StandByReplicaSchedulerWorker extends SchedulerWorker {
 		} catch (Exception e) {
 			logger.error(e, SharedConstant.NOT_THROWN);
 		}
+		signalCapacityFreed();
 	}
 
 	public void cancel(VirtualFileSystemOperation opx) {
@@ -146,6 +152,44 @@ public class StandByReplicaSchedulerWorker extends SchedulerWorker {
 		}
 		if (found != null)
 			this.cancel(found);
+	}
+
+	/**
+	 * Returns {@code true} if there is already a queued or currently-executing
+	 * replica request for the given object UUID (see
+	 * {@link VirtualFileSystemOperation#getUUID()}; stable across CREATE_OBJECT /
+	 * UPDATE_OBJECT for the same bucket+object).
+	 * <p>
+	 * Used by {@code StandByInitialSync} to avoid pushing an object that the
+	 * normal, event-driven replica queue is already handling (or has queued) for
+	 * this exact object. Without this check, the bulk initial-sync sweep and the
+	 * persisted replica queue (reloaded on every restart via
+	 * {@link #onInitialize()}) can race and both push the same content to the
+	 * standby — since the standby's upload endpoint always creates a new version
+	 * when the target object already exists, this produces a spurious duplicate
+	 * version with content identical to the existing head.
+	 * </p>
+	 */
+	public boolean isPending(String objectUUID) {
+		Check.requireNonNullArgument(objectUUID, "objectUUID is null");
+
+		for (ServiceRequest exec : getExecuting().values()) {
+			if (exec instanceof StandByReplicaServiceRequest) {
+				if (objectUUID.equals(((StandByReplicaServiceRequest) exec).getVFSOperation().getUUID()))
+					return true;
+			}
+		}
+
+		Iterator<ServiceRequest> pendingIt = getServiceRequestQueue().iterator();
+		while (pendingIt.hasNext()) {
+			ServiceRequest req = pendingIt.next();
+			if (req instanceof StandByReplicaServiceRequest) {
+				if (objectUUID.equals(((StandByReplicaServiceRequest) req).getVFSOperation().getUUID()))
+					return true;
+			}
+		}
+
+		return false;
 	}
 
 	public void fail(ServiceRequest request) {
@@ -254,7 +298,47 @@ public class StandByReplicaSchedulerWorker extends SchedulerWorker {
 
 	@Override
 	protected void restFullCapacity() {
-		rest(TWO_SECONDS);
+		synchronized (this) {
+			// A job may have finished between doJobs() and here; checking under the
+			// monitor guarantees signalCapacityFreed() can't be lost (it must take the
+			// same monitor, which wait() releases).
+			if (!isFullCapacity())
+				return;
+			this.waitingForCapacity = true;
+			try {
+				this.wait(TWO_SECONDS);
+			} catch (InterruptedException e) {
+				// stop() interrupts the thread; the main loop checks running
+			} finally {
+				this.waitingForCapacity = false;
+			}
+		}
+	}
+
+	/**
+	 * Called when a dispatched job completes successfully or is cancelled, i.e.
+	 * a dispatcher slot is free. Wakes the main loop if it is resting in
+	 * {@link #restFullCapacity()}, so the next queued request is dispatched
+	 * immediately instead of after a fixed 2 s pause.
+	 * <p>
+	 * Without this, a backlog drained at only {@code poolSize} requests every
+	 * 2 s (e.g. 2 objects / 2 s) regardless of how fast each replication is,
+	 * so the standby lagged the master by many seconds after an upload burst.
+	 * </p>
+	 * <p>
+	 * Deliberately NOT called from {@link #fail(ServiceRequest)}: a woken loop
+	 * would retry the failed request immediately (doJobs() retries failed
+	 * requests without checking the retry delay), producing a hot retry loop
+	 * against an unavailable standby. It also only notifies while the loop is
+	 * in restFullCapacity(), so it never cuts short the failed-request retry
+	 * delay enforced via restNoWork().
+	 * </p>
+	 */
+	private void signalCapacityFreed() {
+		synchronized (this) {
+			if (this.waitingForCapacity)
+				this.notifyAll();
+		}
 	}
 
 	@Override

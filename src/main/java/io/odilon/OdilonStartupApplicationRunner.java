@@ -342,15 +342,18 @@ public class OdilonStartupApplicationRunner implements ApplicationRunner {
 				startupLogger.info("Standby connection -> " + replicationService.getStandByConnection());
 				String ping = replicationService.pingStandBy();
 				if (ping.equals("ok")) {
+					
 					startupLogger.info("Standby connection status -> " + ping);
 
+					
+					
+					
 					if (settingsService.getVersionControl() != replicationService.getVersionControl()) {
 
-						startupLogger.error("Server has Version Control enabled but Standby replica does not. You must either:");
-						startupLogger.error("- Disable Version Control in Master Server");
-						startupLogger.error("- Enable Version Control in Standby Server");
-						startupLogger.error("- Disable Standby replication");
+						startupLogger.info("Server version.contol  -> " + settingsService.getVersionControl());
+						startupLogger.info("Standby version.contol -> " + replicationService.getVersionControl());
 
+						startupLogger.error("Server and Standby must have the same version.control configuration");
 						startupLogger.error("The server can not continue.");
 
 						((ConfigurableApplicationContext) getAppContext().getBean(VirtualFileSystemService.class).getApplicationContext()).close();

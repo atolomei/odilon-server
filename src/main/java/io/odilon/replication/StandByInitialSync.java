@@ -257,17 +257,28 @@ public class StandByInitialSync implements Runnable {
 
 											if ((item.getObject().dateSynced == null) || (item.getObject().dateSynced.isBefore(info.getStandByStartDate()))) {
 
-												logger.debug(item.getObject().getBucketId().toString() + "-" + item.getObject().getObjectName());
-
 												VirtualFileSystemOperation op = new OdilonVirtualFileSystemOperation(getDriver().getVirtualFileSystemService().getJournalService().newOperationId(), OperationCode.CREATE_OBJECT,
 														Optional.of(item.getObject().getBucketId()), Optional.of(item.getObject().getBucketName()), Optional.of(item.getObject().getObjectName()),
 														Optional.of(Integer.valueOf(item.getObject().getVersion())), getDriver().getVirtualFileSystemService().getRedundancyLevel(),
 														getDriver().getVirtualFileSystemService().getJournalService());
 
-												getReplicationService().replicate(op);
-												objectSynced = true;
-												this.totalBytes.addAndGet(item.getObject().length());
-												this.copied.getAndIncrement();
+												// Race guard: the normal, event-driven replica queue (reloaded from disk on
+												// every restart) may already be queued/executing for this exact object. If
+												// we also push it here, both paths can push the same content around the
+												// same time and the standby — which always creates a new version when the
+												// target object already exists — ends up with a spurious duplicate version
+												// that is byte-identical to the existing head. Skip it this pass; the live
+												// path will complete it (and will itself stamp dateSynced on success).
+												if (getReplicationService().isReplicationPendingForObject(op.getUUID())) {
+													logger.debug("Skipping, already pending in replica queue -> " + op.getUUID());
+												} else {
+													logger.debug(item.getObject().getBucketId().toString() + "-" + item.getObject().getObjectName());
+
+													getReplicationService().replicate(op);
+													objectSynced = true;
+													this.totalBytes.addAndGet(item.getObject().length());
+													this.copied.getAndIncrement();
+												}
 											}
 
 										} catch (Exception e) {
