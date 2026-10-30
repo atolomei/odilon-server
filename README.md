@@ -230,7 +230,7 @@ More info on the Odilon website <br/>
 
 <h2>Download</h2>
 <p>
-Current version of Odilon Server is <b>2.2.1</b>.
+Current version of Odilon Server is <b>3.0</b>.
 <ul>
 <li><a href="https://odilon.io#download" target="_blank">Odilon Server</a></li>	
 <li><a href="https://odilon.io#download" target="_blank">Odilon Java SDK</a></li>
