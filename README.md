@@ -1,6 +1,6 @@
 ![spring-gaede65182_1280](https://github.com/atolomei/odilon-server/assets/29349757/f1c6f491-9d1f-4e4d-af87-f7e57713542a)
 
-<p><b>NEWS</b>: Odilon Server 3.0 to be released 30 Nov 2026. Odilon client SDK 2.0 available (18 May 2026)</p>
+<p><b>NEWS</b>: Odilon Server 3.0 available 30 Oct 2026</p>
 
 <h1>Odilon Object Storage</h2>
 
@@ -39,7 +39,7 @@
 				<li>Integration with Key Management Server <a href="https://www.vaultproject.io/" target="_blank">Hashicorp Vault</a> </li>
                 <li>Background data scrubber that periodically walks every object in storage and verifies its integrity (bit rot detection).</li>
 				<li>Optional Read repair strategy to detect and repair silent data corruption</li>
-				<li> Developed in Java, the server requires Java 17+ (uses <a href="https://spring.io/projects/spring-boot">Spring Boot</a>, <a href="https://square.github.io/okhttp/">OkHttp</a>, <a href="https://github.com/FasterXML/jackson">Jackson</a>, <a href="https://github.com/ben-manes/caffeine">Caffeine</a>, <a href="https://metrics.dropwizard.io/4.2.0/">Metrics</a>, among others) </li>
+				<li> Developed in Java, the server requires Java 17+ (uses <a href="https://spring.io/projects/spring-boot">Spring Boot</a>, <a href="https://square.github.io/okhttp/">OkHttp</a>, <a href="https://github.com/FasterXML/jackson">Jackson</a>, <a href="https://github.com/ben-manes/caffeine">Caffeine</a>, <a href="https://metrics.dropwizard.io/4.2.0/">Metrics</a>, <a href="https://www.bouncycastle.org/">BouncyCastle</a> ,  <a href="https://lucene.apache.org/" target="_blank">Lucene</a> among others) </li>
 				</ul>
 				</p>
 
@@ -61,7 +61,10 @@
 
 <p>A KMS is software for generating, distributing, and managing cryptographic keys. It includes back-end functionality for key generation, distribution, and replacement. Moving key management to KMS prevents application reverse engineering attacks, simplifies operational maintenance, and compliance with security policies and regulations.</p>
 <p>Odilon integrates with the KMS Open Source <a href="https://www.vaultproject.io/" target="_blank">Hashicorp Vault</a>.</p>
- 
+
+ <p>See more detailed description in this  <a href="https://odilon.io/encryption.html">article</p>
+	
+
 <h2>Data Replication</h2>
 Odilon can be configured to use software RAID and Erasure Codes for data replication.  <br/><br/>
   
@@ -92,7 +95,7 @@ The supported configurations are: <br/> <br/>
 
 <h2>Version Control</h2>
 
-<p>Odilon supports two version control modes: standard and protected (see manual page how to configure version control).</p>
+<p>Odilon supports two version control modes: standard and protected (see <a href="https://odilon.io/configuration-version-control.html"> how to configure version control</a>).</p>
 
 <p>The standard mode is the usual version control mode, where updating an object generates a new version, and client applications have the control to delete previous versions.</p>
 
@@ -208,8 +211,14 @@ File file2 = new File("test2.pdf");
 /* put two objects in the bucket,
 the bucket must exist before sending the object,
 and object names must be unique for that bucket */
-			
-OdilonClient client = new ODClient(endpoint, port, accessKey, secretKey);
+
+/** ODClient.builder() returns a Builder to construct an ODClient instance using a fluent API */
+OdilonClient client = ODClient.builder()
+		.endpoint(endpoint)
+		.port(port)
+		.accessKey(accessKey)
+		.secretKey(secretKey)
+		.build();
 
 client.putObject(bucketName, objectName1, file1);
 client.putObject(bucketName, objectName2, file2);
