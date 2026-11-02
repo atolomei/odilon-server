@@ -229,9 +229,6 @@ public class OdilonEncryptionService extends BaseService implements EncryptionSe
 			CountingInputStream countingInputStream = new CountingInputStream(inputStream);
 			InputStream encryptedStream = V2EncryptingInputStream.create(countingInputStream, this.odilonKeyEncriptorWrapper, this.serverSettings.getEncryptionRecordSize());
 			getSystemMonitorService().getEncrpytFileMeter().mark();
-
-			logger.debug(encryptedStream.getClass().getName() + " created for v2 encryption");
-
 			return new EncryptedResult(encryptedStream, countingInputStream);
 		} catch (Exception e) {
 			throw new InternalCriticalException(e, "encryptStream v2");
@@ -254,9 +251,6 @@ public class OdilonEncryptionService extends BaseService implements EncryptionSe
 			try {
 				InputStream is = new V2DecryptingInputStream(inputStream, this.odilonKeyEncriptorWrapper);
 				getSystemMonitorService().getDecryptFileMeter().mark();
-
-				logger.debug(is.getClass().getName() + " created for v2 decryption");
-
 				return is;
 			} catch (Exception e) {
 				throw new InternalCriticalException(e, "decryptStream v2");
@@ -306,9 +300,7 @@ public class OdilonEncryptionService extends BaseService implements EncryptionSe
 			InputStream finalStream = new SequenceInputStream(jsonStream, encryptedStream);
 
 			getSystemMonitorService().getEncrpytFileMeter().mark();
-
 			logger.debug(finalStream.getClass().getName() + " created for v1 encryption");
-
 			return new EncryptedResult(finalStream, plainSize);
 
 		} catch (Exception e) {

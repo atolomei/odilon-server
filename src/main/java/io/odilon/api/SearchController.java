@@ -109,8 +109,8 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  * # objects modified in September 2026 curl -u odilon:odilon
  * "http://localhost:9600/search?lastModifiedFrom=2026-09-01&lastModifiedTo=2026-09-30"
  * 
- * # 50 newest objects of a bucket (default sort without q is date_desc)
- * curl -u odilon:odilon "http://localhost:9600/search?bucket=docs&maxResults=50"
+ * # 50 newest objects of a bucket (default sort without q is date_desc) curl -u
+ * odilon:odilon "http://localhost:9600/search?bucket=docs&maxResults=50"
  * 
  * # explicit sort curl -u odilon:odilon
  * "http://localhost:9600/search?q=invoice&sort=date_asc"
@@ -193,9 +193,9 @@ public class SearchController extends BaseApiController {
 	 * inclusive</li>
 	 * <li>{@code meta.<key>=<value>} — exact-match metadata filters</li>
 	 * <li>{@code sort} — {@code relevance | date_desc | date_asc | bucket_object |
-	 * object_name | file_name} (case-insensitive). Default: {@code relevance}
-	 * when {@code q} is present, {@code date_desc} otherwise. Applied by Lucene
-	 * before {@code offset / maxResults}</li>
+	 * object_name | file_name} (case-insensitive). Default: {@code relevance} when
+	 * {@code q} is present, {@code date_desc} otherwise. Applied by Lucene before
+	 * {@code offset / maxResults}</li>
 	 * </ul>
 	 */
 	@RequestMapping(value = "/search", produces = "application/json", method = RequestMethod.GET)
