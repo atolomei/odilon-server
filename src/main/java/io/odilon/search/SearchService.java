@@ -108,5 +108,11 @@ public interface SearchService {
 	/** durably mark a full rebuild completion in the commit userData */
 	public void markRebuildCompleted();
 
+	/**
+	 * the on-disk index was built with an older schema version and must be fully
+	 * rebuilt (see {@link SearchIndexReconciler#reconcile(boolean)})
+	 */
+	public boolean isRebuildRequired();
+
 	public void incrementErrorCount();
 }

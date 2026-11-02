@@ -28,7 +28,10 @@ import org.apache.wicket.model.Model;
 import org.apache.wicket.model.PropertyModel;
 
 import io.odilon.log.Logger;
+import io.odilon.search.SearchQuery;
 import io.odilon.search.SearchResult;
+import io.odilon.search.SearchService;
+import io.odilon.web.ServiceLocator;
 import io.wktui.nav.menu.NavDropDownMenu;
 import io.wktui.struct.list.ListPanel;
 import io.wktui.struct.list.ListPanelMode;
@@ -56,6 +59,9 @@ public class ResultsPanel extends Panel {
 
 	private final List<SearchResult> results;
 
+	/** the query that produced the results — re-executed when the order changes */
+	private final SearchQuery query;
+
 	/** whether the search was over all buckets (title displays bucket / objectName) */
 	private final boolean allBuckets;
 
@@ -64,10 +70,13 @@ public class ResultsPanel extends Panel {
 	private WebMarkupContainer container;
 	private ListPanel<SearchResult> panel;
 
-	public ResultsPanel(String id, List<SearchResult> results, boolean allBuckets) {
+	public ResultsPanel(String id, SearchQuery query, List<SearchResult> results, boolean allBuckets) {
 		super(id);
-		this.results = (results != null) ? results : new ArrayList<SearchResult>();
+		this.query = query;
+		this.results = (results != null) ? new ArrayList<SearchResult>(results) : new ArrayList<SearchResult>();
 		this.allBuckets = allBuckets;
+		if (query != null)
+			this.orderOption = OrderOption.of(query.getEffectiveSort());
 		setOutputMarkupId(true);
 	}
 
@@ -78,8 +87,6 @@ public class ResultsPanel extends Panel {
 		this.container = new WebMarkupContainer("container");
 		this.container.setOutputMarkupId(true);
 		add(this.container);
-
-		sort();
 
 		this.panel = new ListPanel<SearchResult>("contents") {
 
@@ -122,7 +129,7 @@ public class ResultsPanel extends Panel {
 
 					@Override
 					protected void onOrderChange(AjaxRequestTarget target) {
-						ResultsPanel.this.sort();
+						ResultsPanel.this.reload();
 						target.add(ResultsPanel.this.container);
 					}
 				};
@@ -152,12 +159,28 @@ public class ResultsPanel extends Panel {
 		return list;
 	}
 
-	/** the results (max 1000) are sorted in memory */
-	private void sort() {
+	/**
+	 * re-executes the query with the selected order. Sorting is done by Lucene
+	 * before the 1000-results cut, so the list is the true top-N for that order
+	 * (sorting the current 1000 in memory would miss e.g. the newest objects)
+	 */
+	private void reload() {
 		try {
-			this.results.sort(this.orderOption.comparator());
+			if (this.query == null) {
+				this.results.sort(this.orderOption.comparator());
+				return;
+			}
+			this.query.sort = this.orderOption.toSearchSort();
+			List<SearchResult> list = getSearchService().search(this.query);
+			this.results.clear();
+			if (list != null)
+				this.results.addAll(list);
 		} catch (Exception e) {
 			logger.error(e);
 		}
+	}
+
+	protected SearchService getSearchService() {
+		return ServiceLocator.getInstance().getBean(SearchService.class);
 	}
 }

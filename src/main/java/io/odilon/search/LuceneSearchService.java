@@ -37,6 +37,8 @@ import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.LongPoint;
+import org.apache.lucene.document.NumericDocValuesField;
+import org.apache.lucene.document.SortedDocValuesField;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
@@ -53,10 +55,13 @@ import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.SearcherManager;
+import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.WildcardQuery;
 import org.apache.lucene.store.FSDirectory;
+import org.apache.lucene.util.BytesRef;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -89,7 +94,10 @@ import io.odilon.util.Check;
  * <li>{@code size} — LongPoint + stored</li>
  * <li>{@code contentType} — StringField + stored</li>
  * <li>{@code etag} — StringField + stored</li>
- * <li>{@code lastModified} — LongPoint + stored (epoch millis)</li>
+ * <li>{@code lastModified} — LongPoint + stored (epoch millis);
+ * {@code lastModified_sort} NumericDocValues (sorting)</li>
+ * <li>{@code bucket_sort}, {@code objectKey_sort}, {@code fileName_sort} —
+ * lowercased SortedDocValues (sorting)</li>
  * <li>{@code tags} — multi-valued StringField + stored; {@code tags_txt}
  * tokenized</li>
  * <li>{@code meta.<key>} — exact StringField; {@code meta_txt.<key>}
@@ -112,7 +120,7 @@ public class LuceneSearchService extends BaseService implements SearchService {
 	static private Logger logger = Logger.getLogger(LuceneSearchService.class.getName());
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 
-	public static final String SCHEMA_VERSION = "2";
+	public static final String SCHEMA_VERSION = "3";
 
 	/** field names */
 	static final String F_ID = "_id";
@@ -134,6 +142,19 @@ public class LuceneSearchService extends BaseService implements SearchService {
 	static final String F_META_PREFIX = "meta.";
 	static final String F_META_TXT_PREFIX = "meta_txt.";
 	static final String F_ALL = "_all";
+
+	/**
+	 * doc-values fields used only for server-side sorting. They use their own
+	 * names because Lucene enforces a consistent schema per field name (an
+	 * existing indexed field cannot gain doc values in newer segments).
+	 */
+	static final String F_LAST_MODIFIED_SORT = "lastModified_sort";
+	static final String F_BUCKET_SORT = "bucket_sort";
+	static final String F_OBJECT_KEY_SORT = "objectKey_sort";
+	static final String F_FILENAME_SORT = "fileName_sort";
+
+	/** SortedDocValues max term length is 32766 bytes */
+	static final int MAX_SORT_BYTES = 32000;
 
 	/** commit userData keys */
 	static final String UD_LAST_INDEXED = "lastIndexed";
@@ -164,6 +185,14 @@ public class LuceneSearchService extends BaseService implements SearchService {
 
 	@JsonIgnore
 	private volatile boolean rebuilding = false;
+
+	/**
+	 * the on-disk index was built with an older schema — a full rebuild is
+	 * required. While true, commits keep the old schema version in the userData
+	 * so the flag survives a restart; cleared by {@link #markRebuildCompleted()}
+	 */
+	@JsonIgnore
+	private volatile boolean rebuildRequired = false;
 
 	@JsonIgnore
 	private List<String> metadataKeyWhitelist = new ArrayList<String>();
@@ -196,11 +225,13 @@ public class LuceneSearchService extends BaseService implements SearchService {
 				config.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
 				this.writer = new IndexWriter(this.directory, config);
 
-				/** detect schema change -> flagged DEGRADED until rebuild */
+				/** detect schema change -> full rebuild required (triggered by SearchIndexReconciler at startup) */
 				Map<String, String> userData = getCommitUserData();
 				String schema = userData.get(UD_SCHEMA_VERSION);
-				if (schema != null && !SCHEMA_VERSION.equals(schema))
+				if (schema != null && !SCHEMA_VERSION.equals(schema)) {
+					this.rebuildRequired = true;
 					logger.error("Lucene index schema version mismatch (index: " + schema + ", server: " + SCHEMA_VERSION + "). A full rebuild is required." + SharedConstant.NOT_THROWN);
+				}
 
 				String errors = userData.get(UD_ERROR_COUNT);
 				if (errors != null) {
@@ -396,7 +427,13 @@ public class LuceneSearchService extends BaseService implements SearchService {
 				int maxResults = Math.max(1, sq.maxResults);
 				int limit = offset + maxResults;
 
-				TopDocs top = searcher.search(finalQuery, limit);
+				/**
+				 * sort inside Lucene, before the top-N cut. Without an explicit sort a
+				 * filter-only / match-all query returns the first N docs in index order
+				 * (all scores are equal), i.e. the oldest objects, not the newest
+				 */
+				Sort sort = toSort(sq.getEffectiveSort());
+				TopDocs top = (sort == null) ? searcher.search(finalQuery, limit) : searcher.search(finalQuery, limit, sort, true);
 				StoredFields storedFields = searcher.getIndexReader().storedFields();
 
 				for (int i = offset; i < top.scoreDocs.length; i++) {
@@ -470,6 +507,44 @@ public class LuceneSearchService extends BaseService implements SearchService {
 
 		BooleanQuery boolQuery = builder.build();
 		return boolQuery.clauses().isEmpty() ? new MatchAllDocsQuery() : boolQuery;
+	}
+
+	/**
+	 * Lucene {@link Sort} for a {@link SearchSort}; {@code null} means relevance
+	 * (score). Documents without the sort doc values (indexed before schema 3)
+	 * are placed last. Ties are broken by date (newest first).
+	 */
+	private static Sort toSort(SearchSort searchSort) {
+
+		if (searchSort == null || searchSort == SearchSort.RELEVANCE)
+			return null;
+
+		switch (searchSort) {
+		case DATE_ASC:
+			return new Sort(dateSortField(false));
+		case BUCKET_OBJECT:
+			return new Sort(stringSortField(F_BUCKET_SORT), stringSortField(F_OBJECT_KEY_SORT), dateSortField(true));
+		case OBJECT_NAME:
+			return new Sort(stringSortField(F_OBJECT_KEY_SORT), dateSortField(true));
+		case FILE_NAME:
+			return new Sort(stringSortField(F_FILENAME_SORT), dateSortField(true));
+		case DATE_DESC:
+		default:
+			return new Sort(dateSortField(true));
+		}
+	}
+
+	private static SortField dateSortField(boolean desc) {
+		SortField field = new SortField(F_LAST_MODIFIED_SORT, SortField.Type.LONG, desc);
+		/** missing values last in both directions */
+		field.setMissingValue(desc ? Long.MIN_VALUE : Long.MAX_VALUE);
+		return field;
+	}
+
+	private static SortField stringSortField(String name) {
+		SortField field = new SortField(name, SortField.Type.STRING, false);
+		field.setMissingValue(SortField.STRING_LAST);
+		return field;
 	}
 
 	/**
@@ -577,10 +652,16 @@ public class LuceneSearchService extends BaseService implements SearchService {
 			userData.put(UD_ERROR_COUNT, String.valueOf(this.errorCount.get()));
 			this.writer.setLiveCommitData(userData.entrySet());
 			this.writer.commit();
+			this.rebuildRequired = false;
 		} catch (IOException e) {
 			incrementErrorCount();
 			logger.error(e, SharedConstant.NOT_THROWN);
 		}
+	}
+
+	@Override
+	public boolean isRebuildRequired() {
+		return this.rebuildRequired;
 	}
 
 	@Override
@@ -657,7 +738,9 @@ public class LuceneSearchService extends BaseService implements SearchService {
 		Map<String, String> userData = new HashMap<String, String>(getCommitUserData());
 		if (lastIndexed != null)
 			userData.put(UD_LAST_INDEXED, String.valueOf(lastIndexed.toInstant().toEpochMilli()));
-		userData.put(UD_SCHEMA_VERSION, SCHEMA_VERSION);
+		/** keep the old schema version until a full rebuild completes (survives restarts) */
+		if (!this.rebuildRequired)
+			userData.put(UD_SCHEMA_VERSION, SCHEMA_VERSION);
 		userData.put(UD_ERROR_COUNT, String.valueOf(this.errorCount.get()));
 		this.writer.setLiveCommitData(userData.entrySet());
 		this.writer.commit();
@@ -689,12 +772,15 @@ public class LuceneSearchService extends BaseService implements SearchService {
 		doc.add(new StringField(F_OBJECT_KEY, nvl(meta.objectName), Field.Store.YES));
 		doc.add(new TextField(F_OBJECT_KEY_TXT, nvl(meta.objectName), Field.Store.NO));
 		doc.add(new StringField(F_OBJECT_KEY_LC, nvl(meta.objectName).toLowerCase(), Field.Store.NO));
+		doc.add(new SortedDocValuesField(F_BUCKET_SORT, sortKey(meta.bucketName)));
+		doc.add(new SortedDocValuesField(F_OBJECT_KEY_SORT, sortKey(meta.objectName)));
 		all.append(nvl(meta.objectName)).append(" ");
 
 		if (meta.fileName != null) {
 			doc.add(new StoredField(F_FILENAME, meta.fileName));
 			doc.add(new TextField(F_FILENAME_TXT, meta.fileName, Field.Store.NO));
 			doc.add(new StringField(F_FILENAME_LC, meta.fileName.toLowerCase(), Field.Store.NO));
+			doc.add(new SortedDocValuesField(F_FILENAME_SORT, sortKey(meta.fileName)));
 			all.append(meta.fileName).append(" ");
 		}
 
@@ -707,6 +793,7 @@ public class LuceneSearchService extends BaseService implements SearchService {
 		long lastModified = meta.lastModified != null ? meta.lastModified.toInstant().toEpochMilli() : (meta.creationDate != null ? meta.creationDate.toInstant().toEpochMilli() : 0L);
 		doc.add(new LongPoint(F_LAST_MODIFIED, lastModified));
 		doc.add(new StoredField(F_LAST_MODIFIED, lastModified));
+		doc.add(new NumericDocValuesField(F_LAST_MODIFIED_SORT, lastModified));
 
 		int metaFields = 0;
 
@@ -813,5 +900,13 @@ public class LuceneSearchService extends BaseService implements SearchService {
 
 	private static String nvl(String s) {
 		return s != null ? s : "";
+	}
+
+	/** lowercased, length-capped key for SortedDocValues (max 32766 bytes) */
+	private static BytesRef sortKey(String s) {
+		BytesRef ref = new BytesRef(nvl(s).toLowerCase());
+		if (ref.length > MAX_SORT_BYTES)
+			ref.length = MAX_SORT_BYTES;
+		return ref;
 	}
 }

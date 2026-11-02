@@ -19,10 +19,12 @@ package io.odilon.web.search;
 import java.util.Comparator;
 
 import io.odilon.search.SearchResult;
+import io.odilon.search.SearchSort;
 
 /**
- * Sort options of the results toolbar. The results (max 1000) are sorted
- * in memory.
+ * Sort options of the results toolbar. Sorting is done server-side by Lucene
+ * (see {@link #toSearchSort()}), so the results are the true top 1000 for the
+ * selected order. {@link #comparator()} is kept for in-memory sorting.
  * 
  * @author atolomei@novamens.com (Alejandro Tolomei)
  */
@@ -42,6 +44,41 @@ public enum OrderOption {
 
 	public static OrderOption getDefault() {
 		return DATE_DESC;
+	}
+
+	/** server-side (Lucene) sort equivalent of this option */
+	public SearchSort toSearchSort() {
+		switch (this) {
+		case DATE_ASC:
+			return SearchSort.DATE_ASC;
+		case BUCKET_OBJECT:
+			return SearchSort.BUCKET_OBJECT;
+		case OBJECT_NAME:
+			return SearchSort.OBJECT_NAME;
+		case FILE_NAME:
+			return SearchSort.FILE_NAME;
+		case DATE_DESC:
+		default:
+			return SearchSort.DATE_DESC;
+		}
+	}
+
+	/** option for a server-side sort ({@link #getDefault()} for relevance / null) */
+	public static OrderOption of(SearchSort sort) {
+		if (sort == null)
+			return getDefault();
+		switch (sort) {
+		case DATE_ASC:
+			return DATE_ASC;
+		case BUCKET_OBJECT:
+			return BUCKET_OBJECT;
+		case OBJECT_NAME:
+			return OBJECT_NAME;
+		case FILE_NAME:
+			return FILE_NAME;
+		default:
+			return DATE_DESC;
+		}
 	}
 
 	public Comparator<SearchResult> comparator() {

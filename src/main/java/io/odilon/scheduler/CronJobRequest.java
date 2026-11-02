@@ -42,118 +42,116 @@ import io.odilon.errors.InternalCriticalException;
 @Scope("prototype")
 public abstract class CronJobRequest extends AbstractServiceRequest {
 
-    
-    static private io.odilon.log.Logger logger = io.odilon.log.Logger.getLogger(CronJobRequest.class.getName());
+	static private io.odilon.log.Logger logger = io.odilon.log.Logger.getLogger(CronJobRequest.class.getName());
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    @JsonIgnore
-    private ZonedDateTime ztime = null;
+	@JsonIgnore
+	private ZonedDateTime ztime = null;
 
-    @JsonIgnore
-    private boolean executeOldTriggers;
+	@JsonIgnore
+	private boolean executeOldTriggers;
 
-    @JsonIgnore
-    private boolean is_user_request = false;
+	@JsonIgnore
+	private boolean is_user_request = false;
 
-    @JsonIgnore
-    private boolean enabled = true;
+	@JsonIgnore
+	private boolean enabled = true;
 
-    private CronExpressionJ8 cron_expression;
+	private CronExpressionJ8 cron_expression;
 
-    public CronJobRequest() {
-        super();
-        setTimeZone(TimeZone.getDefault().getID());
-    }
+	public CronJobRequest() {
+		super();
+		setTimeZone(TimeZone.getDefault().getID());
+	}
 
-    public CronJobRequest(String exp) {
-        super();
-        this.cron_expression = new CronExpressionJ8(exp, true);
-        setTimeZone(TimeZone.getDefault().getID());
-    }
+	public CronJobRequest(String exp) {
+		super();
+		this.cron_expression = new CronExpressionJ8(exp, true);
+		setTimeZone(TimeZone.getDefault().getID());
+	}
 
-    @Override
-    public boolean isCronJob() {
-        return true;
-    }
+	@Override
+	public boolean isCronJob() {
+		return true;
+	}
 
-    public boolean isEnabled() {
-        return this.enabled;
-    }
+	public boolean isEnabled() {
+		return this.enabled;
+	}
 
-    public void setEnabled(boolean b) {
-        this.enabled = b;
-    }
+	public void setEnabled(boolean b) {
+		this.enabled = b;
+	}
 
-    public ZonedDateTime getTime() {
-        if (this.ztime == null)
-            this.ztime = getCronExpression()
-                    .nextTimeAfter((getTimeZone() == null) ? ZonedDateTime.now() : ZonedDateTime.now(ZoneId.of(getTimeZone())));
-        return this.ztime;
-    }
+	public ZonedDateTime getTime() {
+		if (this.ztime == null)
+			this.ztime = getCronExpression().nextTimeAfter((getTimeZone() == null) ? ZonedDateTime.now() : ZonedDateTime.now(ZoneId.of(getTimeZone())));
+		return this.ztime;
+	}
 
-    public void setTime(ZonedDateTime time) {
-        this.ztime = time;
-    }
+	public void setTime(ZonedDateTime time) {
+		this.ztime = time;
+	}
 
-    public ZonedDateTime getNextTime() {
-        return getCronExpression().nextTimeAfter(getTime());
-    }
+	public ZonedDateTime getNextTime() {
+		return getCronExpression().nextTimeAfter(getTime());
+	}
 
-    public CronExpressionJ8 getCronExpression() {
-        return this.cron_expression;
-    }
+	public CronExpressionJ8 getCronExpression() {
+		return this.cron_expression;
+	}
 
-    public void setCronExpression(CronExpressionJ8 expression) {
-        this.cron_expression = expression;
-    }
+	public void setCronExpression(CronExpressionJ8 expression) {
+		this.cron_expression = expression;
+	}
 
-    @Override
-    public void stop() {
-    }
+	@Override
+	public void stop() {
+	}
 
-    public void setUserRequest(boolean b) {
-        this.is_user_request = b;
-    }
+	public void setUserRequest(boolean b) {
+		this.is_user_request = b;
+	}
 
-    public boolean isUserRequest() {
-        return this.is_user_request;
-    }
+	public boolean isUserRequest() {
+		return this.is_user_request;
+	}
 
-    public void onClone(CronJobRequest clone) {
-        clone.setCronExpression(getCronExpression());
-        clone.setName(getName());
-        clone.setDescription(getDescription());
-        clone.setUserRequest(isUserRequest());
-        clone.setTime(getCronExpression().nextTimeAfter(getTime()));
-        clone.setExecuteOldTriggers(getExecuteOldTriggers());
-        clone.setEnabled(isEnabled());
-        clone.setExecuteAfter(getExecuteAfter());
-        clone.setTimeZone(getTimeZone());
-        Map<String, String> pa = getParameters();
-        if (pa != null) {
-            Map<String, String> copy = new HashMap<>(pa);
-            clone.setParameters(copy);
-        }
-    }
+	public void onClone(CronJobRequest clone) {
+		clone.setCronExpression(getCronExpression());
+		clone.setName(getName());
+		clone.setDescription(getDescription());
+		clone.setUserRequest(isUserRequest());
+		clone.setTime(getCronExpression().nextTimeAfter(getTime()));
+		clone.setExecuteOldTriggers(getExecuteOldTriggers());
+		clone.setEnabled(isEnabled());
+		clone.setExecuteAfter(getExecuteAfter());
+		clone.setTimeZone(getTimeZone());
+		Map<String, String> pa = getParameters();
+		if (pa != null) {
+			Map<String, String> copy = new HashMap<>(pa);
+			clone.setParameters(copy);
+		}
+	}
 
-    public CronJobRequest clone() {
-        try {
-            CronJobRequest clone = getApplicationContext().getBean(this.getClass(), getCronExpression().getExpression());
-            onClone(clone);
-            return clone;
-        } catch (Exception e) {
-        	logger.error(e, this.toString());
-            throw new InternalCriticalException(e);
-        }
-    }
+	public CronJobRequest clone() {
+		try {
+			CronJobRequest clone = getApplicationContext().getBean(this.getClass(), getCronExpression().getExpression());
+			onClone(clone);
+			return clone;
+		} catch (Exception e) {
+			logger.error(e, this.toString());
+			throw new InternalCriticalException(e);
+		}
+	}
 
-    public boolean getExecuteOldTriggers() {
-        return executeOldTriggers;
-    }
+	public boolean getExecuteOldTriggers() {
+		return executeOldTriggers;
+	}
 
-    public void setExecuteOldTriggers(boolean executeOldTriggers) {
-        this.executeOldTriggers = executeOldTriggers;
-    }
+	public void setExecuteOldTriggers(boolean executeOldTriggers) {
+		this.executeOldTriggers = executeOldTriggers;
+	}
 
 }

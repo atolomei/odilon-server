@@ -63,7 +63,20 @@ public class SearchQuery implements Serializable {
 
 	public int maxResults = 1000;
 
+	/**
+	 * server-side sort order; {@code null} -> {@link #getEffectiveSort()}:
+	 * {@link SearchSort#RELEVANCE} when there is free text {@code q},
+	 * {@link SearchSort#DATE_DESC} otherwise
+	 */
+	public SearchSort sort;
+
 	public SearchQuery() {
+	}
+
+	public SearchSort getEffectiveSort() {
+		if (sort != null)
+			return sort;
+		return (q != null && !q.isBlank()) ? SearchSort.RELEVANCE : SearchSort.DATE_DESC;
 	}
 
 	public boolean isEmpty() {

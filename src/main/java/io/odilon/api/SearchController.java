@@ -43,6 +43,7 @@ import io.odilon.search.SearchIndexReconciler;
 import io.odilon.search.SearchQuery;
 import io.odilon.search.SearchResult;
 import io.odilon.search.SearchService;
+import io.odilon.search.SearchSort;
 import io.odilon.service.ObjectStorageService;
 import io.odilon.traffic.TrafficControlService;
 import io.odilon.traffic.TrafficPass;
@@ -107,6 +108,12 @@ import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
  * 
  * # objects modified in September 2026 curl -u odilon:odilon
  * "http://localhost:9600/search?lastModifiedFrom=2026-09-01&lastModifiedTo=2026-09-30"
+ * 
+ * # 50 newest objects of a bucket (default sort without q is date_desc)
+ * curl -u odilon:odilon "http://localhost:9600/search?bucket=docs&maxResults=50"
+ * 
+ * # explicit sort curl -u odilon:odilon
+ * "http://localhost:9600/search?q=invoice&sort=date_asc"
  * 
  * # precise timestamps curl -u odilon:odilon
  * "http://localhost:9600/search?lastModifiedFrom=2026-09-30T12:00:00Z"
@@ -185,12 +192,16 @@ public class SearchController extends BaseApiController {
 	 * {@code 2026-01-01T00:00:00Z} or {@code 2026-01-01} for date-only),
 	 * inclusive</li>
 	 * <li>{@code meta.<key>=<value>} — exact-match metadata filters</li>
+	 * <li>{@code sort} — {@code relevance | date_desc | date_asc | bucket_object |
+	 * object_name | file_name} (case-insensitive). Default: {@code relevance}
+	 * when {@code q} is present, {@code date_desc} otherwise. Applied by Lucene
+	 * before {@code offset / maxResults}</li>
 	 * </ul>
 	 */
 	@RequestMapping(value = "/search", produces = "application/json", method = RequestMethod.GET)
 	public ResponseEntity<List<SearchResult>> search(@RequestParam(required = false) String bucket, @RequestParam(required = false) String q, @RequestParam(required = false) String objectName,
 			@RequestParam(required = false) String fileName, @RequestParam(required = false) String lastModifiedFrom, @RequestParam(required = false) String lastModifiedTo, @RequestParam(required = false, defaultValue = "0") int offset,
-			@RequestParam(required = false, defaultValue = "" + DEFAULT_MAX_RESULTS) int maxResults, @RequestParam Map<String, String> allParams) {
+			@RequestParam(required = false, defaultValue = "" + DEFAULT_MAX_RESULTS) int maxResults, @RequestParam(required = false) String sort, @RequestParam Map<String, String> allParams) {
 
 		TrafficPass pass = null;
 
@@ -209,6 +220,11 @@ public class SearchController extends BaseApiController {
 			sq.lastModifiedTo = parseDate(lastModifiedTo, true);
 			sq.offset = Math.max(0, offset);
 			sq.maxResults = Math.min(Math.max(1, maxResults), 1000);
+			try {
+				sq.sort = SearchSort.parse(sort);
+			} catch (IllegalArgumentException e) {
+				throw new OdilonServerAPIException("invalid sort (expected relevance, date_desc, date_asc, bucket_object, object_name, file_name) -> " + sort);
+			}
 
 			/** meta.<key>=<value> params -> exact-match metadata filters */
 			for (Map.Entry<String, String> entry : allParams.entrySet())

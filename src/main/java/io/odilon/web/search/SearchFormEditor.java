@@ -32,6 +32,7 @@ import org.apache.wicket.model.PropertyModel;
 
 import io.odilon.log.Logger;
 import io.odilon.search.SearchQuery;
+import io.odilon.search.SearchSort;
 import io.odilon.service.ObjectStorageService;
 import io.odilon.virtualFileSystem.model.ServerBucket;
 import io.odilon.web.ServiceLocator;
@@ -160,7 +161,8 @@ public abstract class SearchFormEditor extends ModelPanel<Void> {
 			logger.error(e, "invalid date -> " + modifiedTo);
 		}
 
-		/** only the 1000 most relevant */
+		/** the 1000 newest (sorted by Lucene before the cut) */
+		query.sort = SearchSort.DATE_DESC;
 		query.maxResults = 1000;
 		query.offset = 0;
 

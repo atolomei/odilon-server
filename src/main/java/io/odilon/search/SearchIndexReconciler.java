@@ -27,8 +27,10 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.springframework.beans.BeansException;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -105,6 +107,34 @@ public class SearchIndexReconciler implements ApplicationContextAware {
 
 	public boolean isRunning() {
 		return this.running.get();
+	}
+
+	/**
+	 * if the index was built with an older schema, start a full rebuild in the
+	 * background once the application is ready (storage services available)
+	 */
+	@EventListener(ApplicationReadyEvent.class)
+	public void onApplicationReady() {
+		try {
+			if (!getSearchService().isEnabled() || !getSearchService().isRebuildRequired())
+				return;
+
+			logger.info("Search index schema changed -> starting full rebuild in background");
+
+			Thread thread = new Thread(() -> {
+				try {
+					reconcile(true);
+				} catch (Exception e) {
+					logger.error(e, SharedConstant.NOT_THROWN);
+				}
+			});
+			thread.setDaemon(true);
+			thread.setName("search-index-schema-rebuild");
+			thread.start();
+
+		} catch (Exception e) {
+			logger.error(e, SharedConstant.NOT_THROWN);
+		}
 	}
 
 	/**

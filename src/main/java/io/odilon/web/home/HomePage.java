@@ -18,7 +18,6 @@ package io.odilon.web.home;
 
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +39,7 @@ import io.odilon.model.ServerConstant;
 import io.odilon.search.IndexStatus;
 import io.odilon.search.SearchQuery;
 import io.odilon.search.SearchResult;
+import io.odilon.search.SearchSort;
 import io.odilon.service.ServerSettings;
 import io.odilon.web.page.BasePage;
 import io.odilon.web.panel.KeyValuePanel;
@@ -248,10 +248,10 @@ public class HomePage extends BasePage {
 						return new ArrayList<SearchResult>();
 
 					SearchQuery query = new SearchQuery();
-					query.maxResults = 1000;
-					List<SearchResult> results = new ArrayList<SearchResult>(getSearchService().search(query));
-					results.sort(Comparator.comparing((SearchResult r) -> r.lastModified, Comparator.nullsLast(Comparator.reverseOrder())));
-					return results.size() > RECENT ? new ArrayList<SearchResult>(results.subList(0, RECENT)) : results;
+					/** newest first, sorted by Lucene before the cut */
+					query.sort = SearchSort.DATE_DESC;
+					query.maxResults = RECENT;
+					return new ArrayList<SearchResult>(getSearchService().search(query));
 				} catch (Exception e) {
 					logger.error(e);
 					return new ArrayList<SearchResult>();

@@ -79,7 +79,7 @@ public class SearchPage extends BasePage {
 
 		try {
 			List<SearchResult> results = getSearchService().search(query);
-			this.container.addOrReplace(new ResultsPanel("results", results, allBuckets));
+			this.container.addOrReplace(new ResultsPanel("results", query, results, allBuckets));
 
 		} catch (Exception e) {
 			logger.error(e);
