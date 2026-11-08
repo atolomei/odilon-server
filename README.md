@@ -109,9 +109,14 @@ The supported configurations are: <br/> <br/>
 <p>The server contains a simple web application for viewing the server status and searching the repository. Odilon uses <a href="https://lucene.apache.org/" target="_blank">Apache Lucene</a> for indexing and searching.
 You can access the management console (by default http://localhost:9234) using a web browser and the accesskey / secretkey defined in odilon.properties.</p>
 
-<h2>Monitoriing</h2>
+<h2>Monitoriing (v3.1+)</h2>
 <p>Odilon provides comprehensive monitoring capabilities through integration with <a href="https://prometheus.io/" target="_blank">Prometheus</a> and <a href="https://grafana.com/" target="_blank">Grafana</a>, enabling administrators to observe the health, performance, and operational activity of their storage infrastructure in real time. It exposes metrics covering storage capacity, object operations, API activity, cache performance, encryption, replication, and JVM resources. These metrics can be collected by Prometheus and visualized through customizable Grafana dashboards, providing operational insights, performance trends, and early detection of potential issues.
 </p>
+
+
+<img width="1676" height="1264" alt="grafana-odilon" src="https://github.com/user-attachments/assets/359b0be0-ca05-47bc-a12a-b911cde1bf4b" />
+
+
 
 <h2>Master Standby Architecture</h2>
 <p>Odilon supports Master - Standby Architecture for <b>disaster recovery</b>, <b>high availability</b>, <b>archival</b>, and <b>anti-ransomware</b> protection. Data replication is done asynchronously using HTTP/S over the local network or the Internet. Setting up a standby server is simple, just add the URL and credentials to the master configuration file and restart. 
