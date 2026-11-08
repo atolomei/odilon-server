@@ -109,6 +109,10 @@ The supported configurations are: <br/> <br/>
 <p>The server contains a simple web application for viewing the server status and searching the repository. Odilon uses <a href="https://lucene.apache.org/" target="_blank">Apache Lucene</a> for indexing and searching.
 You can access the management console (by default http://localhost:9234) using a web browser and the accesskey / secretkey defined in odilon.properties.</p>
 
+
+<img width="1775" height="1144" alt="odilon-search" src="https://github.com/user-attachments/assets/8745e42c-4043-49cf-a543-f6f050e92ffd" />
+
+
 <h2>Monitoriing (v3.1+)</h2>
 <p>Odilon provides comprehensive monitoring capabilities through integration with <a href="https://prometheus.io/" target="_blank">Prometheus</a> and <a href="https://grafana.com/" target="_blank">Grafana</a>, enabling administrators to observe the health, performance, and operational activity of their storage infrastructure in real time. It exposes metrics covering storage capacity, object operations, API activity, cache performance, encryption, replication, and JVM resources. These metrics can be collected by Prometheus and visualized through customizable Grafana dashboards, providing operational insights, performance trends, and early detection of potential issues.
 </p>
