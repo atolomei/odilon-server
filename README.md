@@ -119,6 +119,11 @@ Odilon will propagate each operation to the standby server. It will also run a r
 <br/>
 ​</p>
 
+<h2>Monitoriing</h2>
+<p>Odilon provides comprehensive monitoring capabilities through integration with <a href="https://prometheus.io/" target="_blank">Prometheus</a> and <a href="https://grafana.com/" target="_blank">Grafana</a>, enabling administrators to observe the health, performance, and operational activity of their storage infrastructure in real time. It exposes metrics covering storage capacity, object operations, API activity, cache performance, encryption, replication, and JVM resources. These metrics can be collected by Prometheus and visualized through customizable Grafana dashboards, providing operational insights, performance trends, and early detection of potential issues.
+</p>
+
+
 
 ![odilon-master-standby](https://github.com/atolomei/odilon-server/assets/29349757/913f7b54-1acf-46a2-97c6-3bd42190b9af)
 
