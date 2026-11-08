@@ -30,14 +30,10 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
-//import com.codahale.metrics.Counter;
-//import com.codahale.metrics.Meter;
-//import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import io.dropwizard.metrics5.Counter;
-import io.dropwizard.metrics5.Meter;
-import io.dropwizard.metrics5.MetricRegistry;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.odilon.cache.FileCacheService;
 import io.odilon.cache.ObjectMetadataCacheService;
 import io.odilon.log.Logger;
@@ -52,8 +48,10 @@ import io.odilon.service.SystemService;
 
 /**
  * <p>
- * Dynamic metrics on the status of the server. It uses the
- * <a href="https://metrics.dropwizard.io">Dropwizard Metrics library</a>
+ * Dynamic metrics on the status of the server. It uses
+ * <a href="https://micrometer.io">Micrometer</a>; metrics are published to
+ * Prometheus at {@code /actuator/prometheus}. Rates (per second / minute) are
+ * computed by Prometheus/Grafana with {@code rate()}.
  * </p>
  * <p>
  * For non dynamic configurations attributes (hardware, base software, Odilon
@@ -71,30 +69,30 @@ public class SystemMonitorService extends BaseService implements SystemService {
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 
 	@JsonIgnore
-	private final MetricRegistry metrics = new MetricRegistry();
+	private final MeterRegistry metrics;
 
 	/**
 	 * ---------------------------- API CALLS ----------------------------
 	 **/
 
 	@JsonIgnore
-	private Meter allAPICallMeter;
+	private OdilonMeter allAPICallMeter;
 
 	/**
 	 * ---------------------------- OBJECT CRUD ----------------------------
 	 */
 
 	@JsonIgnore
-	private Counter createObjectCounter;
+	private OdilonCounter createObjectCounter;
 
 	@JsonIgnore
-	private Counter updateObjectCounter;
+	private OdilonCounter updateObjectCounter;
 
 	@JsonIgnore
-	private Counter deleteObjectCounter;
+	private OdilonCounter deleteObjectCounter;
 
 	@JsonIgnore
-	private Counter deleteObjectVersionCounter;
+	private OdilonCounter deleteObjectVersionCounter;
 
 	/**
 	 * ---------------------------- OBJECT VERSION CONTROL
@@ -102,45 +100,45 @@ public class SystemMonitorService extends BaseService implements SystemService {
 	 */
 
 	@JsonIgnore
-	private Counter objectRestorePreviousVersionCounter;
+	private OdilonCounter objectRestorePreviousVersionCounter;
 
 	@JsonIgnore
-	private Counter objectDeleteAllVersionsCounter;
+	private OdilonCounter objectDeleteAllVersionsCounter;
 
 	/**
 	 * ---------------------------- ENCRYPTION ----------------------------
 	 */
 
 	@JsonIgnore
-	private Meter encrpytFileMeter;
+	private OdilonMeter encrpytFileMeter;
 
 	@JsonIgnore
-	private Meter decryptFileMeter;
+	private OdilonMeter decryptFileMeter;
 
 	@JsonIgnore
-	private Meter encryptVaultMeter;
+	private OdilonMeter encryptVaultMeter;
 
 	@JsonIgnore
-	private Meter decryptVaultMeter;
+	private OdilonMeter decryptVaultMeter;
 
 	/**
 	 * ---------------------------- REPLICA ----------------------------
 	 */
 
 	@JsonIgnore
-	private Counter replicaCreateObject;
+	private OdilonCounter replicaCreateObject;
 
 	@JsonIgnore
-	private Counter replicaUpdateObject;
+	private OdilonCounter replicaUpdateObject;
 
 	@JsonIgnore
-	private Counter replicaDeleteObject;
+	private OdilonCounter replicaDeleteObject;
 
 	@JsonIgnore
-	private Counter replicaRestoreObjectPreviousVersionCounter;
+	private OdilonCounter replicaRestoreObjectPreviousVersionCounter;
 
 	@JsonIgnore
-	private Counter replicaDeleteObjectAllVersionsCounter;
+	private OdilonCounter replicaDeleteObjectAllVersionsCounter;
 
 	/**
 	 * Milliseconds between when the oldest unacknowledged replica operation was
@@ -155,28 +153,28 @@ public class SystemMonitorService extends BaseService implements SystemService {
 	//
 
 	@JsonIgnore
-	private Meter putObjectMeter;
+	private OdilonMeter putObjectMeter;
 
 	@JsonIgnore
-	private Meter getObjectMeter;
+	private OdilonMeter getObjectMeter;
 
 	// ----------------------------
 	// OBJECT CACHE
 
 	@JsonIgnore
-	private Counter cacheObjectHitCounter;
+	private OdilonCounter cacheObjectHitCounter;
 
 	@JsonIgnore
-	private Counter cacheObjectMissCounter;
+	private OdilonCounter cacheObjectMissCounter;
 
 	// ----------------------------
 	// FILE CACHE
 
 	@JsonIgnore
-	private Counter cacheFileHitCounter;
+	private OdilonCounter cacheFileHitCounter;
 
 	@JsonIgnore
-	private Counter cacheFileMissCounter;
+	private OdilonCounter cacheFileMissCounter;
 
 	// ----------------------------
 
@@ -206,7 +204,8 @@ public class SystemMonitorService extends BaseService implements SystemService {
 	@JsonIgnore
 	private final AtomicBoolean objectsUploadedRefreshing = new AtomicBoolean(false);
 
-	public SystemMonitorService(ServerSettings serverSettings, ObjectMetadataCacheService cacheService, FileCacheService fileCacheService) {
+	public SystemMonitorService(ServerSettings serverSettings, ObjectMetadataCacheService cacheService, FileCacheService fileCacheService, MeterRegistry meterRegistry) {
+		this.metrics = meterRegistry;
 		this.objectCacheService = cacheService;
 		this.serverSettings = serverSettings;
 		this.fileCacheService = fileCacheService;
@@ -215,35 +214,35 @@ public class SystemMonitorService extends BaseService implements SystemService {
 		
 	}
 
-	public Counter getObjectRestorePreviousVersionCounter() {
+	public OdilonCounter getObjectRestorePreviousVersionCounter() {
 		return objectRestorePreviousVersionCounter;
 	}
 
-	public void setObjectRestorePreviousVersionCounter(Counter objectRestorePreviousVersionCounter) {
+	public void setObjectRestorePreviousVersionCounter(OdilonCounter objectRestorePreviousVersionCounter) {
 		this.objectRestorePreviousVersionCounter = objectRestorePreviousVersionCounter;
 	}
 
-	public Counter getObjectDeleteAllVersionsCounter() {
+	public OdilonCounter getObjectDeleteAllVersionsCounter() {
 		return objectDeleteAllVersionsCounter;
 	}
 
-	public void setObjectDeleteAllVersionsCounter(Counter objectDeleteAllVersionsCounter) {
+	public void setObjectDeleteAllVersionsCounter(OdilonCounter objectDeleteAllVersionsCounter) {
 		this.objectDeleteAllVersionsCounter = objectDeleteAllVersionsCounter;
 	}
 
-	public Counter getReplicaRestoreObjectPreviousVersionCounter() {
+	public OdilonCounter getReplicaRestoreObjectPreviousVersionCounter() {
 		return replicaRestoreObjectPreviousVersionCounter;
 	}
 
-	public void setReplicaRestoreObjectPreviousVersionCounter(Counter replicaRestoreObjectPreviousVersionCounter) {
+	public void setReplicaRestoreObjectPreviousVersionCounter(OdilonCounter replicaRestoreObjectPreviousVersionCounter) {
 		this.replicaRestoreObjectPreviousVersionCounter = replicaRestoreObjectPreviousVersionCounter;
 	}
 
-	public Counter getReplicaDeleteObjectAllVersionsCounter() {
+	public OdilonCounter getReplicaDeleteObjectAllVersionsCounter() {
 		return replicaDeleteObjectAllVersionsCounter;
 	}
 
-	public void setReplicaDeleteObjectAllVersionsCounter(Counter replicaDeleteObjectAllVersionsCounter) {
+	public void setReplicaDeleteObjectAllVersionsCounter(OdilonCounter replicaDeleteObjectAllVersionsCounter) {
 		this.replicaDeleteObjectAllVersionsCounter = replicaDeleteObjectAllVersionsCounter;
 	}
 
@@ -255,15 +254,15 @@ public class SystemMonitorService extends BaseService implements SystemService {
 		return this.objectCacheService.size();
 	}
 
-	public Counter getReplicationObjectCreateCounter() {
+	public OdilonCounter getReplicationObjectCreateCounter() {
 		return this.replicaCreateObject;
 	}
 
-	public Counter getReplicationObjectUpdateCounter() {
+	public OdilonCounter getReplicationObjectUpdateCounter() {
 		return this.replicaUpdateObject;
 	}
 
-	public Counter getReplicationObjectDeleteCounter() {
+	public OdilonCounter getReplicationObjectDeleteCounter() {
 		return this.replicaDeleteObject;
 	}
 
@@ -277,67 +276,67 @@ public class SystemMonitorService extends BaseService implements SystemService {
 		this.replicationLagMs = lagMs;
 	}
 
-	public Counter getCacheObjectHitCounter() {
+	public OdilonCounter getCacheObjectHitCounter() {
 		return this.cacheObjectHitCounter;
 	}
 
-	public Meter getMeterVaultEncrypt() {
+	public OdilonMeter getMeterVaultEncrypt() {
 		return this.encryptVaultMeter;
 	}
 
-	public Meter getMeterVaultDecrypt() {
+	public OdilonMeter getMeterVaultDecrypt() {
 		return this.decryptVaultMeter;
 	}
 
-	public Meter getAllAPICallMeter() {
+	public OdilonMeter getAllAPICallMeter() {
 		return this.allAPICallMeter;
 	}
 
-	public Meter getPutObjectMeter() {
+	public OdilonMeter getPutObjectMeter() {
 		return this.putObjectMeter;
 	}
 
-	public Meter getGetObjectMeter() {
+	public OdilonMeter getGetObjectMeter() {
 		return this.getObjectMeter;
 	}
 
-	public Meter getEncrpytFileMeter() {
+	public OdilonMeter getEncrpytFileMeter() {
 		return encrpytFileMeter;
 	}
 
-	public Meter getDecryptFileMeter() {
+	public OdilonMeter getDecryptFileMeter() {
 		return decryptFileMeter;
 	}
 
-	public Counter getCreateObjectCounter() {
+	public OdilonCounter getCreateObjectCounter() {
 		return createObjectCounter;
 	}
 
-	public void setCreateObjectCounter(Counter createObjectCounter) {
+	public void setCreateObjectCounter(OdilonCounter createObjectCounter) {
 		this.createObjectCounter = createObjectCounter;
 	}
 
-	public Counter getUpdateObjectCounter() {
+	public OdilonCounter getUpdateObjectCounter() {
 		return updateObjectCounter;
 	}
 
-	public void setUpdateObjectCounter(Counter updateObjectCounter) {
+	public void setUpdateObjectCounter(OdilonCounter updateObjectCounter) {
 		this.updateObjectCounter = updateObjectCounter;
 	}
 
-	public Counter getDeleteObjectCounter() {
+	public OdilonCounter getDeleteObjectCounter() {
 		return deleteObjectCounter;
 	}
 
-	public void setDeleteObjectCounter(Counter deleteObjectCounter) {
+	public void setDeleteObjectCounter(OdilonCounter deleteObjectCounter) {
 		this.deleteObjectCounter = deleteObjectCounter;
 	}
 
-	public void setDeleteObjectVersionCounter(Counter deleteObjectVersionCounter) {
+	public void setDeleteObjectVersionCounter(OdilonCounter deleteObjectVersionCounter) {
 		this.deleteObjectVersionCounter = deleteObjectVersionCounter;
 	}
 
-	public Counter getDeleteObjectVersionCounter() {
+	public OdilonCounter getDeleteObjectVersionCounter() {
 		return this.deleteObjectVersionCounter;
 	}
 
@@ -398,6 +397,15 @@ public class SystemMonitorService extends BaseService implements SystemService {
 	@EventListener(ApplicationReadyEvent.class)
 	public void warmUpObjectsUploaded() {
 		getObjectsUploaded();
+	}
+
+	/** cached total, 0 if no snapshot yet. Does not trigger a re-count on scrape. */
+	private double uploadedAllTime() {
+		ObjectsUploaded current = this.objectsUploaded;
+		if (current == null)
+			return 0;
+		ObjectsUploaded.Counts c = current.get(ObjectsUploaded.ALL);
+		return (c == null) ? 0 : c.allTime;
 	}
 
 	/** counts the objects uploaded (all buckets + per bucket) using the SearchService */
@@ -536,15 +544,15 @@ public class SystemMonitorService extends BaseService implements SystemService {
 		return map;
 	}
 
-	public Counter getCacheObjectMissCounter() {
+	public OdilonCounter getCacheObjectMissCounter() {
 		return cacheObjectMissCounter;
 	}
 
-	public Counter getCacheFileHitCounter() {
+	public OdilonCounter getCacheFileHitCounter() {
 		return this.cacheFileHitCounter;
 	}
 
-	public Counter getCacheFileMissCounter() {
+	public OdilonCounter getCacheFileMissCounter() {
 		return this.cacheFileMissCounter;
 	}
 
@@ -559,47 +567,69 @@ public class SystemMonitorService extends BaseService implements SystemService {
 
 			setStatus(ServiceStatus.STARTING);
 
-			// Counters
-			this.createObjectCounter = metrics.counter("createObjectCounter");
-			this.updateObjectCounter = metrics.counter("updateObjectCounter");
-			this.deleteObjectCounter = metrics.counter("deleteObjectCounter");
-			this.deleteObjectVersionCounter = metrics.counter("deleteObjectVersionCounter");
-
-			// cache
-			this.cacheObjectHitCounter = metrics.counter("cacheObjectHitCounter");
-			this.cacheObjectMissCounter = metrics.counter("cacheObjectMissCounter");
-
-			this.cacheFileHitCounter = metrics.counter("cacheFileHitCounter");
-			this.cacheFileMissCounter = metrics.counter("cacheFileMissCounter");
-
+			// Object created / updated / deleted 
+			this.createObjectCounter = new OdilonCounter(metrics, "odilon.objects.created", "Objects created");
+			this.updateObjectCounter = new OdilonCounter(metrics, "odilon.objects.updated", "Objects updated");
+			this.deleteObjectCounter = new OdilonCounter(metrics, "odilon.objects.deleted", "Objects deleted");	
+			
 			// version control
-			this.objectRestorePreviousVersionCounter = metrics.counter("restoreObjectPreivousVersionCounter");
-			this.objectDeleteAllVersionsCounter = metrics.counter("deleteObjectAllVersionsCounter");
-
-			// replica CRUD objects
-			this.replicaCreateObject = metrics.counter("replicaObjectCreate");
-			this.replicaUpdateObject = metrics.counter("replicaObjectUpdate");
-			this.replicaDeleteObject = metrics.counter("replicaObjectDelete");
-
-			// replica Version Control
-			this.replicaRestoreObjectPreviousVersionCounter = metrics.counter("replicaRestoreObjectPreivousVersionCounter");
-			this.replicaDeleteObjectAllVersionsCounter = metrics.counter("replicaDeleteObjectAllVersionsCounter");
-
-			// api put object and get object
-			this.allAPICallMeter = metrics.meter("allAPICallMeter");
+			this.objectRestorePreviousVersionCounter = new OdilonCounter(metrics, "odilon.objects.versions.restored", "Objects restored to previous version");
+			this.objectDeleteAllVersionsCounter = new OdilonCounter(metrics, "odilon.objects.versions.all.deleted", "Objects with all versions deleted");
 
 			// put object and get object
-			this.putObjectMeter = metrics.meter("putObjectMeter");
-			this.getObjectMeter = metrics.meter("getObjectMeter");
+			this.putObjectMeter = new OdilonMeter(metrics, "odilon.objects.put", "Put object requests");
+			this.getObjectMeter = new OdilonMeter(metrics, "odilon.objects.get", "Get object requests");
 
-			// encrypt object and get object
-			this.encrpytFileMeter = metrics.meter("encrpytFileMeter");
-			this.decryptFileMeter = metrics.meter("decryptFileMeter");
+			// encrypt / decrypt files
+			this.encrpytFileMeter = new OdilonMeter(metrics, "odilon.encryption.file.encrypt", "Files encrypted");
+			this.decryptFileMeter = new OdilonMeter(metrics, "odilon.encryption.file.decrypt", "Files decrypted");
 
+			// api calls
+			this.allAPICallMeter = new OdilonMeter(metrics, "odilon.api.calls", "All API calls");
+
+			
+			// read the cached snapshot only (never blocks scrapes on a Lucene count)
+			Gauge.builder("odilon.objects.uploaded.total", this, s -> s.uploadedAllTime()).description("Total objects indexed (cached, refreshed every monitor.objectsUploadedRefreshSecs)").register(metrics);
+			
+			
+			this.deleteObjectVersionCounter = new OdilonCounter(metrics, "odilon.objects.versions.deleted", "Object versions deleted");
+
+			// cache
+			this.cacheObjectHitCounter = new OdilonCounter(metrics, "odilon.cache.object.hit", "Object metadata cache hits");
+			this.cacheObjectMissCounter = new OdilonCounter(metrics, "odilon.cache.object.miss", "Object metadata cache misses");
+			this.cacheFileHitCounter = new OdilonCounter(metrics, "odilon.cache.file.hit", "File cache hits");
+			this.cacheFileMissCounter = new OdilonCounter(metrics, "odilon.cache.file.miss", "File cache misses");
+
+			// replica CRUD objects
+			this.replicaCreateObject = new OdilonCounter(metrics, "odilon.replica.objects.created", "Replica: objects created");
+			this.replicaUpdateObject = new OdilonCounter(metrics, "odilon.replica.objects.updated", "Replica: objects updated");
+			this.replicaDeleteObject = new OdilonCounter(metrics, "odilon.replica.objects.deleted", "Replica: objects deleted");
+
+			// replica Version Control
+			this.replicaRestoreObjectPreviousVersionCounter = new OdilonCounter(metrics, "odilon.replica.objects.versions.restored", "Replica: objects restored to previous version");
+			this.replicaDeleteObjectAllVersionsCounter = new OdilonCounter(metrics, "odilon.replica.objects.versions.all.deleted", "Replica: objects with all versions deleted");
+
+			Gauge.builder("odilon.replication.lag.ms", this, s -> s.replicationLagMs).baseUnit("milliseconds").description("Replication lag (0 = queue empty)").register(metrics);
+			
+			
+		
+	
 			// vault
-			this.encryptVaultMeter = metrics.meter("encrpytVaultMeter");
-			this.decryptVaultMeter = metrics.meter("decryptVaultMeter");
+			this.encryptVaultMeter = new OdilonMeter(metrics, "odilon.vault.encrypt", "Vault encrypt operations");
+			this.decryptVaultMeter = new OdilonMeter(metrics, "odilon.vault.decrypt", "Vault decrypt operations");
 
+			// gauges
+			Gauge.builder("odilon.cache.object.size", this.objectCacheService, c -> c.size()).description("Object metadata cache size").register(metrics);
+			Gauge.builder("odilon.cache.file.size", this.fileCacheService, c -> c.size()).description("File cache size").register(metrics);
+			Gauge.builder("odilon.cache.file.disk.bytes", this.fileCacheService, c -> c.hardDiskUsage()).baseUnit("bytes").description("File cache disk usage").register(metrics);
+		
+			
+			
+			//  DriveMetrics
+			//
+			//
+			
+			
 			startuplogger.debug("Started -> " + SystemMonitorService.class.getSimpleName());
 			setStatus(ServiceStatus.RUNNING);
 			
@@ -608,13 +638,15 @@ public class SystemMonitorService extends BaseService implements SystemService {
 		}
 	}
 
-	private String getString(Meter meter) {
-		return String.format("%10.4f", meter.getOneMinuteRate()).trim() + ", " + String.format("%10.4f", meter.getFiveMinuteRate()).trim() + ", " + String.format("%10.4f", meter.getFifteenMinuteRate()).trim();
+	/** Micrometer has no 1/5/15 min moving averages -> Grafana computes rates with rate() */
+	private String getString(OdilonMeter meter) {
+		return String.valueOf(meter.getCount()) + " (total; rates: see Prometheus rate())";
 	}
 
-	private void set(double[] v, Meter m) {
-		v[0] = m.getOneMinuteRate();
-		v[1] = m.getFiveMinuteRate();
-		v[2] = m.getFifteenMinuteRate();
+	/** rates are not computed in-process anymore (see Prometheus rate()) */
+	private void set(double[] v, OdilonMeter m) {
+		v[0] = 0.0;
+		v[1] = 0.0;
+		v[2] = 0.0;
 	}
 }

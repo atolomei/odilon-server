@@ -117,6 +117,16 @@ public class ServerSettings implements JSONObject {
 	@Value("${secretKey:odilon}")
 	protected String secretKey;
 
+	/*
+	 * read-only monitoring user (Prometheus). Both must be set, otherwise the
+	 * monitor user is not created
+	 */
+	@Value("${monitor.accessKey:}")
+	protected String monitorAccessKey;
+
+	@Value("${monitor.secretKey:}")
+	protected String monitorSecretKey;
+
 	/* default port -> 9234 */
 	@Value("${server.port:9234}")
 	protected int port;
@@ -551,6 +561,18 @@ public class ServerSettings implements JSONObject {
 
 	public String getSecretKey() {
 		return secretKey;
+	}
+
+	public String getMonitorAccessKey() {
+		return monitorAccessKey;
+	}
+
+	public String getMonitorSecretKey() {
+		return monitorSecretKey;
+	}
+
+	public boolean isMonitorUserEnabled() {
+		return monitorAccessKey != null && !monitorAccessKey.isBlank() && monitorSecretKey != null && !monitorSecretKey.isBlank();
 	}
 
 	public List<String> getRootDirs() {

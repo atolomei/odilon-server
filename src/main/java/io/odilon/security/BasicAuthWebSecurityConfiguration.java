@@ -19,6 +19,7 @@ package io.odilon.security;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -42,6 +43,12 @@ import io.odilon.service.ServerSettings;
 @Configuration
 @EnableWebSecurity
 public class BasicAuthWebSecurityConfiguration {
+
+	public static final String ROLE_USER = "USER";
+	public static final String ROLE_MONITOR = "MONITOR";
+
+	/** read-only endpoints available to the MONITOR user (GET only) */
+	private static final String[] MONITOR_PATHS = { "/actuator/health", "/actuator/health/**", "/actuator/prometheus", "/metrics", "/status", "/systeminfo", "/ping" };
 
 	@JsonIgnore
 	@Autowired
@@ -72,7 +79,12 @@ public class BasicAuthWebSecurityConfiguration {
 				// docs can be browsed from a browser without a Basic-auth prompt.
 				// The spec itself contains no sensitive data.
 				.requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/swagger-ui/index.html", "/v3/api-docs", "/v3/api-docs/**", "/v3/api-docs.yaml", "/webjars/swagger-ui/**").permitAll())
-				.authorizeHttpRequests(authorizeRequests -> authorizeRequests.anyRequest().authenticated()).httpBasic(Customizer.withDefaults()).formLogin(Customizer.withDefaults()).csrf(AbstractHttpConfigurer::disable);
+				// Monitoring endpoints (Prometheus/Grafana): read-only (GET), allowed to the
+				// regular user and to the optional MONITOR user
+				.authorizeHttpRequests(authorizeRequests -> authorizeRequests.requestMatchers(HttpMethod.GET, MONITOR_PATHS).hasAnyRole(ROLE_USER, ROLE_MONITOR))
+				// Everything else (buckets, objects, search, admin UI, ...) -> USER only.
+				// The MONITOR user gets 403.
+				.authorizeHttpRequests(authorizeRequests -> authorizeRequests.anyRequest().hasRole(ROLE_USER)).httpBasic(Customizer.withDefaults()).formLogin(Customizer.withDefaults()).csrf(AbstractHttpConfigurer::disable);
 
 		return http.build();
 	}
@@ -80,8 +92,14 @@ public class BasicAuthWebSecurityConfiguration {
 	@Bean
 	public InMemoryUserDetailsManager userDetailsService() {
 
-		UserDetails user = User.withUsername(this.getServerSettings().getAccessKey()).password(passwordEncoder().encode(this.getServerSettings().getSecretKey())).roles("USER").build();
-		return new InMemoryUserDetailsManager(user);
+		UserDetails user = User.withUsername(this.getServerSettings().getAccessKey()).password(passwordEncoder().encode(this.getServerSettings().getSecretKey())).roles(ROLE_USER).build();
+
+		if (!this.getServerSettings().isMonitorUserEnabled())
+			return new InMemoryUserDetailsManager(user);
+
+		UserDetails monitor = User.withUsername(this.getServerSettings().getMonitorAccessKey()).password(passwordEncoder().encode(this.getServerSettings().getMonitorSecretKey())).roles(ROLE_MONITOR).build();
+
+		return new InMemoryUserDetailsManager(user, monitor);
 	}
 
 	@Bean

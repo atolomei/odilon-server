@@ -28,7 +28,8 @@ import java.io.InputStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import io.dropwizard.metrics5.Meter;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import io.odilon.monitor.OdilonMeter;
 import io.odilon.encryption.EncryptionService;
 import io.odilon.encryption.KeyEncriptorWrapper;
 import io.odilon.encryption.OdilonEncryptionService;
@@ -56,8 +57,8 @@ public class EncryptionServiceDispatchTest {
         when(settings.getEncryptionRecordSize()).thenReturn(V2Format.MIN_RECORD_SIZE);
 
         SystemMonitorService monitor = mock(SystemMonitorService.class);
-        when(monitor.getEncrpytFileMeter()).thenReturn(new Meter());
-        when(monitor.getDecryptFileMeter()).thenReturn(new Meter());
+        when(monitor.getEncrpytFileMeter()).thenReturn(new OdilonMeter(new SimpleMeterRegistry(), "test.meter", "test"));
+        when(monitor.getDecryptFileMeter()).thenReturn(new OdilonMeter(new SimpleMeterRegistry(), "test.meter", "test"));
 
         KeyEncriptorWrapper keyEncryptor = mock(KeyEncriptorWrapper.class);
         when(keyEncryptor.encryptKey(any(byte[].class), any(byte[].class))).thenAnswer(inv -> ((byte[]) inv.getArgument(0)).clone());

@@ -16,6 +16,8 @@
  */
 package io.odilon.web.page;
 
+import java.time.Duration;
+import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 
 import org.apache.wicket.AttributeModifier;
@@ -68,6 +70,22 @@ public abstract class BasePage extends WebPage {
 	private static final ResourceReference BOOTSTRAP_JS = Bootstrap.getJavaScriptResourceReference();
 	private static final ResourceReference CSS = new CssResourceReference(BasePage.class, "odilon.css");
 
+	
+	public static final DateTimeFormatter DTF = DateTimeFormatter.ofPattern("d MMM yyyy, HH:mm:ss");
+		
+	
+	public static String elapsed(Duration d) {
+		long days = d.toDays();
+		long h = d.toHours() % 24;
+		long m = d.toMinutes() % 60;
+		if (days > 0)
+			return days + " days " + h + " h";
+		if (h > 0)
+			return h + " h " + m + " min";
+		return m + " min";
+	}
+	
+	
 	protected BasePage(PageParameters parameters) {
 		super(parameters);
 	}

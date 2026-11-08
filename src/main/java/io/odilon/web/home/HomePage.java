@@ -16,6 +16,7 @@
  */
 package io.odilon.web.home;
 
+import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -42,6 +43,7 @@ import io.odilon.search.SearchResult;
 import io.odilon.search.SearchSort;
 import io.odilon.service.ServerSettings;
 import io.odilon.web.page.BasePage;
+import io.odilon.web.panel.AgoFormatter;
 import io.odilon.web.panel.KeyValuePanel;
 import io.wktui.error.ErrorPanel;
 
@@ -110,9 +112,8 @@ public class HomePage extends BasePage {
 
 
 					map.put("port", String.valueOf( settings.getPort()) );
+					map.put("Started", AgoFormatter.format(OdilonApplication.STARTED));
 
-					
-					map.put("Started", fmt.format(OdilonApplication.STARTED) );
 					map.put("Version", OdilonVersion.VERSION);
 					
 					
@@ -179,8 +180,8 @@ public class HomePage extends BasePage {
 					Map<String, String> map = new LinkedHashMap<String, String>();
 					map.put("Status", status.status);
 					map.put("Documents", String.format("%,d", status.documents));
-					map.put("Last indexed", status.lastIndexed != null ? fmt.format(status.lastIndexed) : "-");
-					map.put("Last rebuild", status.lastRebuild != null ? fmt.format(status.lastRebuild) : "-");
+					map.put("Last indexed", AgoFormatter.format(status.lastIndexed));
+					map.put("Last rebuild", AgoFormatter.format(status.lastRebuild));
 					map.put("Pending", String.format("%,d", status.pending));
 					map.put("Errors", String.format("%,d", status.errors));
 					map.put("search.index.dir",  settings.getSearchIndexDir() != null ? settings.getSearchIndexDir()  : "-");

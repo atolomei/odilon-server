@@ -50,7 +50,7 @@ public class GlobalTopPanel extends ModelPanel<String> {
 		MainMenu mainMenu = new MainMenu("mainMenu");
 		mainMenu.addLink(Model.of("Home"), "/ui");
 		mainMenu.addLink(Model.of("Search"), "/ui/search");
-		//mainMenu.addLink(Model.of("Info"), "/ui/info");
+		mainMenu.addLink(Model.of("Info"), "/ui/info");
 		add(mainMenu);
 
 		add(new UserGlobalTopPanel("userGlobalTopPanel", getModel()));
