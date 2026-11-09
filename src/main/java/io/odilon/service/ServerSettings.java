@@ -326,7 +326,7 @@ public class ServerSettings implements JSONObject {
 	@Value("${search.queue.max:100000}")
 	protected int searchQueueMax;
 
-	@Value("${scheduler.search.threads:1}")
+	@Value("${scheduler.search.threads:3}")
 	protected int schedulerSearchThreads;
 
 	/**
@@ -341,11 +341,22 @@ public class ServerSettings implements JSONObject {
 	protected String searchReconciliationCronExpression;
 
 	/** seconds the cached ObjectsUploaded stats are kept before re-counting */
-	@Value("${monitor.objectsUploadedRefreshSecs:60}")
+	@Value("${monitor.objectsUploadedRefreshSecs:120}")
 	protected int objectsUploadedRefreshSecs;
 
 	public int getObjectsUploadedRefreshSecs() {
 		return this.objectsUploadedRefreshSecs;
+	}
+
+	/**
+	 * seconds between background measurements of the logical storage used (objects
+	 * and bytes, from the search index). Minimum 10.
+	 */
+	@Value("${monitor.storageTotalsRefreshSecs:60}")
+	protected int storageTotalsRefreshSecs;
+
+	public int getStorageTotalsRefreshSecs() {
+		return Math.max(10, this.storageTotalsRefreshSecs);
 	}
 
 	public String getSearchReconciliationCronExpression() {

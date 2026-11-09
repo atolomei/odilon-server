@@ -45,11 +45,16 @@ import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.StoredFields;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Query;
@@ -61,6 +66,7 @@ import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.WildcardQuery;
 import org.apache.lucene.store.FSDirectory;
+import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.springframework.stereotype.Service;
 
@@ -152,6 +158,17 @@ public class LuceneSearchService extends BaseService implements SearchService {
 	static final String F_BUCKET_SORT = "bucket_sort";
 	static final String F_OBJECT_KEY_SORT = "objectKey_sort";
 	static final String F_FILENAME_SORT = "fileName_sort";
+
+	/**
+	 * doc-values used to measure the storage used (see
+	 * {@link #computeStorageTotals()}). New names, for the reason above. Older
+	 * segments do not have them: those objects are reported as "unmeasured" until
+	 * they are re-indexed.
+	 */
+	static final String F_SIZE_DV = "size_dv";
+	/** stored copy of the source size (used when re-keying documents on bucket rename) */
+	static final String F_SOURCE_SIZE = "sourceSize";
+	static final String F_BUCKET_DV = "bucket_dv";
 
 	/** SortedDocValues max term length is 32766 bytes */
 	static final int MAX_SORT_BYTES = 32000;
@@ -471,6 +488,130 @@ public class LuceneSearchService extends BaseService implements SearchService {
 		}
 	}
 
+	/**
+	 * One sequential pass over the doc-values of every segment: objects and bytes
+	 * per bucket. No locks (point-in-time reader), no document loading. Call it
+	 * from a background thread only.
+	
+	 *
+	 * STRATEGY TO ANALYZE:
+	 * 
+	 * 
+	 * 
+	 * A better incremental design: cache per index segment
+
+Lucene segments are immutable. A segment's totals can only change in one way: documents in it get marked deleted (replaced or removed objects).
+
+So keep a map in memory: segment name -> {deleted count, per-bucket {objects, bytes}}. On each background pass:
+
+	•  A segment with the same name and the same deleted count is skipped, using the cached values.
+	•  A new segment (new writes, or the result of a merge) is scanned.
+	•  A segment whose deleted count changed is rescanned.
+	•  Segments that no longer exist (merged away) are dropped from the map.
+	•  The totals are the sum of the cached values.
+
+Why this is better than the timestamp idea
+
+	•  Exact. Overwrites and deletes are handled, because they show up as a changed deleted count or a new segment.
+	•  No extra writes and no index-API change. It's all read-only on the index.
+	•  Cost proportional to change. A steady-state pass only touches the segments that were written, merged or hit by deletes, instead of every object.
+	•  Always self-correcting. There's no counter that can drift.
+
+Limits
+
+	•  The first pass after a restart is a full scan, unless you save the segment map to disk. Saving it would be a small file with the segment names, deleted counts and totals. It's optional because a full scan is cheap.
+	•  A delete in a large segment makes that whole segment rescan. Lucene's default merge policy caps segment size at about 5 GB, so this stays bounded.
+	•  Merges rescan the merged segment, but that cost is spread out over time.
+
+Is the full scan a problem at all?
+
+The scan is a sequential read of two compact columns with no stored-field access, so it scales linearly and cheaply. I'd measure first: odilon_storage_scan_seconds already reports the duration of each pass. If it stays well under a second at your real object count, the extra complexity of the segment cache isn't needed. If it grows toward seconds, implement the segment cache before considering transactional counters.
+
+I can implement the segment cache in computeStorageTotals() (it's about 40 more lines and changes nothing outside LuceneSearchService). Tell me if you want it.
+
+
+	 *
+	 *
+	 *
+	 *
+	 *
+	 *
+	 *
+	 */
+	@Override
+	public StorageTotals computeStorageTotals() {
+
+		if (!isEnabled())
+			return StorageTotals.EMPTY;
+
+		long t0 = System.nanoTime();
+		IndexSearcher searcher = null;
+
+		try {
+			/** non-blocking: if a refresh is already running, use the current searcher */
+			this.searcherManager.maybeRefresh();
+			searcher = this.searcherManager.acquire();
+
+			Map<String, long[]> perBucket = new HashMap<String, long[]>();
+			long unmeasured = 0;
+
+			for (LeafReaderContext ctx : searcher.getIndexReader().leaves()) {
+
+				LeafReader reader = ctx.reader();
+				SortedDocValues bucketDv = reader.getSortedDocValues(F_BUCKET_DV);
+
+				/** segment written before the doc-values existed */
+				if (bucketDv == null) {
+					unmeasured += reader.numDocs();
+					continue;
+				}
+
+				NumericDocValues sizeDv = reader.getNumericDocValues(F_SIZE_DV);
+				Bits live = reader.getLiveDocs();
+
+				long[] objs = new long[bucketDv.getValueCount()];
+				long[] bytes = new long[objs.length];
+
+				for (int doc = bucketDv.nextDoc(); doc != DocIdSetIterator.NO_MORE_DOCS; doc = bucketDv.nextDoc()) {
+
+					/** deleted / replaced document */
+					if (live != null && !live.get(doc))
+						continue;
+
+					int ord = bucketDv.ordValue();
+
+					if (sizeDv != null && sizeDv.advanceExact(doc)) {
+						objs[ord]++;
+						bytes[ord] += sizeDv.longValue();
+					} else
+						unmeasured++;
+				}
+
+				for (int ord = 0; ord < objs.length; ord++) {
+					if (objs[ord] == 0)
+						continue;
+					long[] acc = perBucket.computeIfAbsent(bucketDv.lookupOrd(ord).utf8ToString(), k -> new long[2]);
+					acc[0] += objs[ord];
+					acc[1] += bytes[ord];
+				}
+			}
+
+			return new StorageTotals(perBucket, unmeasured, OffsetDateTime.now(), (System.nanoTime() - t0) / 1_000_000_000.0);
+
+		} catch (Exception e) {
+			incrementErrorCount();
+			throw new RuntimeException(e);
+		} finally {
+			if (searcher != null) {
+				try {
+					this.searcherManager.release(searcher);
+				} catch (IOException e) {
+					logger.error(e);
+				}
+			}
+		}
+	}
+
 	/** builds the Lucene query from the structured {@link SearchQuery} */
 	private Query buildQuery(SearchQuery sq) throws Exception {
 
@@ -786,6 +927,10 @@ public class LuceneSearchService extends BaseService implements SearchService {
 
 		doc.add(new LongPoint(F_SIZE, meta.length));
 		doc.add(new StoredField(F_SIZE, meta.length));
+		/** logical size (source file bytes, before encryption); falls back to the stored length when unknown */
+		doc.add(new NumericDocValuesField(F_SIZE_DV, meta.sourceLength > 0 ? meta.sourceLength : meta.length));
+		doc.add(new StoredField(F_SOURCE_SIZE, meta.sourceLength > 0 ? meta.sourceLength : meta.length));
+		doc.add(new SortedDocValuesField(F_BUCKET_DV, new BytesRef(nvl(meta.bucketName))));
 
 		doc.add(new StringField(F_CONTENT_TYPE, nvl(meta.contentType), Field.Store.YES));
 		doc.add(new StringField(F_ETAG, nvl(meta.etag), Field.Store.YES));
@@ -844,6 +989,8 @@ public class LuceneSearchService extends BaseService implements SearchService {
 
 		String size = old.get(F_SIZE);
 		meta.length = size != null ? Long.parseLong(size) : 0;
+		String sourceSize = old.get(F_SOURCE_SIZE);
+		meta.sourceLength = sourceSize != null ? Long.parseLong(sourceSize) : meta.length;
 
 		String lastModified = old.get(F_LAST_MODIFIED);
 		if (lastModified != null)

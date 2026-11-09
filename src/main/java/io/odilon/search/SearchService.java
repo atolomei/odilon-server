@@ -89,6 +89,17 @@ public interface SearchService {
 	/** number of indexed documents matching the query (no document fetching) */
 	public long count(SearchQuery query);
 
+	/**
+	 * Logical storage used (objects and bytes, per bucket and in total), measured
+	 * with one sequential scan of doc-values. It reads a point-in-time snapshot of
+	 * the index and takes no lock: it does not block indexing or searching. It is
+	 * intended to be called from a background thread, never from a request or a
+	 * metrics scrape.
+	 * 
+	 * @return {@link StorageTotals#EMPTY} if search is disabled
+	 */
+	public StorageTotals computeStorageTotals();
+
 	public IndexStatus getIndexStatus();
 
 	public boolean isEnabled();

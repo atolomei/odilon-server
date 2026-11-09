@@ -20,9 +20,15 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -42,6 +48,7 @@ import io.odilon.model.RedundancyLevel;
 import io.odilon.model.ServiceStatus;
 import io.odilon.search.SearchQuery;
 import io.odilon.search.SearchService;
+import io.odilon.search.StorageTotals;
 import io.odilon.service.BaseService;
 import io.odilon.service.ServerSettings;
 import io.odilon.service.SystemService;
@@ -203,6 +210,20 @@ public class SystemMonitorService extends BaseService implements SystemService {
 	/** guards that only one background re-count runs at a time */
 	@JsonIgnore
 	private final AtomicBoolean objectsUploadedRefreshing = new AtomicBoolean(false);
+
+	/**
+	 * logical storage used (objects / bytes), measured in background from the
+	 * search index. Scrapes and the dashboard only read this snapshot.
+	 */
+	@JsonIgnore
+	private volatile StorageTotals storageTotals = StorageTotals.EMPTY;
+
+	@JsonIgnore
+	private ScheduledExecutorService storageScheduler;
+
+	/** buckets that already have their gauges registered */
+	@JsonIgnore
+	private final Set<String> storageBucketGauges = ConcurrentHashMap.newKeySet();
 
 	public SystemMonitorService(ServerSettings serverSettings, ObjectMetadataCacheService cacheService, FileCacheService fileCacheService, MeterRegistry meterRegistry) {
 		this.metrics = meterRegistry;
@@ -397,6 +418,70 @@ public class SystemMonitorService extends BaseService implements SystemService {
 	@EventListener(ApplicationReadyEvent.class)
 	public void warmUpObjectsUploaded() {
 		getObjectsUploaded();
+	}
+
+	/**
+	 * Starts the background measurement of the logical storage used. One daemon,
+	 * minimum-priority thread; fixed <i>delay</i> so runs never overlap; first run
+	 * 30 secs after startup. Scrapes only read the cached snapshot.
+	 */
+	@EventListener(ApplicationReadyEvent.class)
+	public void startStorageTotals() {
+
+		this.storageScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+			Thread t = new Thread(r, "storage-totals");
+			t.setDaemon(true);
+			t.setPriority(Thread.MIN_PRIORITY);
+			return t;
+		});
+
+		Gauge.builder("odilon.storage.logical.bytes", this, s -> s.storageTotals.totalBytes()).baseUnit("bytes")
+				.description("Sum of source object sizes in the search index (original file size: no parity, copies, versions or encryption overhead)").register(metrics);
+
+		Gauge.builder("odilon.storage.objects", this, s -> s.storageTotals.totalObjects()).description("Objects in the search index with a measured size").register(metrics);
+
+		Gauge.builder("odilon.storage.unmeasured.objects", this, s -> s.storageTotals.getUnmeasured())
+				.description("Indexed objects without a recorded size (not re-indexed yet); totals are understated while > 0").register(metrics);
+
+		Gauge.builder("odilon.storage.snapshot.age.seconds", this, s -> s.storageTotals.ageSeconds()).baseUnit("seconds")
+				.description("Seconds since the storage totals were measured (-1 = never)").register(metrics);
+
+		Gauge.builder("odilon.storage.scan.seconds", this, s -> s.storageTotals.getScanSeconds()).baseUnit("seconds").description("Duration of the last storage totals scan").register(metrics);
+
+		this.storageScheduler.scheduleWithFixedDelay(this::refreshStorageTotals, 30, this.serverSettings.getStorageTotalsRefreshSecs(), TimeUnit.SECONDS);
+	}
+
+	/** never throws: an exception would cancel the schedule */
+	private void refreshStorageTotals() {
+		try {
+			if (this.searchService == null || !this.searchService.isEnabled())
+				return;
+
+			StorageTotals totals = this.searchService.computeStorageTotals();
+			this.storageTotals = totals;
+
+			for (String bucket : totals.buckets()) {
+				if (this.storageBucketGauges.add(bucket)) {
+					Gauge.builder("odilon.storage.bucket.bytes", this, s -> s.storageTotals.bytes(bucket)).tag("bucket", bucket).baseUnit("bytes")
+							.description("Logical bytes stored in the bucket").register(metrics);
+					Gauge.builder("odilon.storage.bucket.objects", this, s -> s.storageTotals.objects(bucket)).tag("bucket", bucket)
+							.description("Objects stored in the bucket").register(metrics);
+				}
+			}
+		} catch (Throwable e) {
+			logger.error(e);
+		}
+	}
+
+	@PreDestroy
+	private void stopStorageTotals() {
+		if (this.storageScheduler != null)
+			this.storageScheduler.shutdownNow();
+	}
+
+	/** latest snapshot of the logical storage used (never null) */
+	public StorageTotals getStorageTotals() {
+		return this.storageTotals;
 	}
 
 	/** cached total, 0 if no snapshot yet. Does not trigger a re-count on scrape. */
