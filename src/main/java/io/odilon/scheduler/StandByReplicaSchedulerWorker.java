@@ -280,6 +280,13 @@ public class StandByReplicaSchedulerWorker extends SchedulerWorker {
 		if (!getFailed().isEmpty())
 			this.lastFailedTry = OffsetDateTime.now();
 	}
+	
+	@Override
+	protected long workerSistaDef() {
+		return getVirtualFileSystemService().getServerSettings().getSchedulerSiestaSecs() * 1000;
+	}
+
+	
 
 	@Override
 	protected synchronized void onInitialize() {

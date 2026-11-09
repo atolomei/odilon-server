@@ -109,6 +109,9 @@ public class SearchIndexService extends BaseService implements ApplicationContex
 			 */
 			if (queueSize >= queueMax) {
 				logger.warn("Search queue full (" + queueSize + "/" + queueMax + ") — dropping: " + operation.getOperationCode() + " | " + operation.toString() + " | the reconciliation cron job will repair the index");
+				
+				// TODO AT -> add a metric for this
+				
 				return;
 			}
 

@@ -296,6 +296,8 @@ public class ReplicationService extends BaseService implements ApplicationContex
 			if (queueSize >= queueMax) {
 				String msg = "Replica queue full (" + queueSize + "/" + queueMax + ") — dropping: " + opx.getOperationCode() + " | " + opx.toString();
 				logger.error(msg);
+				
+				// TODO AT -> add a metric for this
 				throw new InternalCriticalException(msg);
 			}
 			if (queueSize >= warnAt)
@@ -658,16 +660,16 @@ public class ReplicationService extends BaseService implements ApplicationContex
 					return meta;
 
 				} catch (IOException e) {
-					logger.debug(e, opx.toString());
+					logger.error(e, opx.toString());
 					throw new InternalCriticalException(e, opx.toString());
 				}
 
 			} catch (ODClientException e) {
-				logger.debug(e, opx.toString());
+				logger.error(e, opx.toString());
 				throw new InternalCriticalException(e, opx.toString());
 
 			} catch (InternalCriticalException e) {
-				logger.debug(e, opx.toString());
+				logger.error(e, opx.toString());
 				throw e;
 
 			} finally {

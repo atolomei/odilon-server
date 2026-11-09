@@ -275,6 +275,8 @@ public class OdilonJournalService extends BaseService implements JournalService 
 				if (getSearchIndexService().isEnabled())
 					getSearchIndexService().cancel(operation);
 
+				// TODO AT -> add a metric for this
+				
 				throw e;
 
 			} finally {

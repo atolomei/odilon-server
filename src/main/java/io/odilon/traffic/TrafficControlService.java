@@ -113,8 +113,11 @@ public class TrafficControlService extends BaseService {
 							}
 						}
 
-						if (throwEx)
+						if (throwEx) {
+					
+							// TODO AT -> add a metric for this
 							throw new RuntimeException("TimeoutException | could not get a pass | passes -> " + passes.toString());
+						}
 					}
 
 					synchronized (this) {

@@ -31,15 +31,14 @@ import java.util.concurrent.locks.ReentrantLock;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import io.odilon.log.Logger;
-import io.odilon.model.ServerConstant;
+
 import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemService;
 
 /**
  * <p>
- * Async jobs executed mainly on: 
- * . Object CRUD <br/>
+ * Async jobs executed mainly on: . Object CRUD <br/>
  * . Bucket CRUD <br/>
  * </p>
  * <p>
@@ -175,10 +174,14 @@ public class StandardSchedulerWorker extends SchedulerWorker {
 
 		this.executing = new ConcurrentHashMap<Serializable, ServiceRequest>(16, 0.9f, 1);
 		this.failed = new ConcurrentSkipListMap<Serializable, ServiceRequest>();
-	
+
 		startuplogger.debug("Started -> " + getClass().getSimpleName());
-		 
-		
+
+	}
+
+	@Override
+	protected long workerSistaDef() {
+		return getVirtualFileSystemService().getServerSettings().getSchedulerSiestaSecs() * 1000;
 	}
 
 	@Override
@@ -338,11 +341,10 @@ public class StandardSchedulerWorker extends SchedulerWorker {
 			logger.error("invalid class -> " + request.getClass().getName(), SharedConstant.NOT_THROWN);
 			return false;
 		}
-		
+
 		StandardServiceRequest repRequest = (StandardServiceRequest) request;
 
-		
-		// if the same b+o is being processed 
+		// if the same b+o is being processed
 		// forbid this one until it is done
 		//
 		for (ServiceRequest executingRequest : getExecuting().values()) {
@@ -350,28 +352,27 @@ public class StandardSchedulerWorker extends SchedulerWorker {
 			if (stdExecutingRequest.getUUID().equals(repRequest.getUUID()))
 				return false;
 		}
-		
-		// if the same b+o will be processed  
+
+		// if the same b+o will be processed
 		// forbid this one until it is done
 		//
 		if (map.containsKey(repRequest.getUUID()))
 			return false;
 
-		
-		// if map already contains a request that is 
+		// if map already contains a request that is
 		// not an object operation do not allow
 		// bucket and system operations are assumed to be infrequent and executed alone
-		
-		for (Entry<String, ServiceRequest> entry: map.entrySet()) {
+
+		for (Entry<String, ServiceRequest> entry : map.entrySet()) {
 			StandardServiceRequest stdExecutingRequest = (StandardServiceRequest) entry.getValue();
 			if (!stdExecutingRequest.isObjectOperation())
 				return false;
 		}
 
-		// if is executing a request that is 
+		// if is executing a request that is
 		// not an object operation do not allow
 		// bucket and system operations are assumed to be infrequent and executed alone
-		
+
 		for (ServiceRequest executingRequest : getExecuting().values()) {
 			StandardServiceRequest stdExecutingRequest = (StandardServiceRequest) executingRequest;
 			if (!stdExecutingRequest.isObjectOperation())

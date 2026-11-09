@@ -307,6 +307,16 @@ public class ServerSettings implements JSONObject {
 
 	@Value("${scheduler.cron.threads:0}")
 	protected int cronSchedulerThreads;
+	
+	
+	@Value("${scheduler.search.siestaSecs:120}")
+	protected long schedulerSearchSiestaSecs;
+	
+	public long getSchedulerSearchSiestaSecs() {
+		return schedulerSearchSiestaSecs;
+	}
+	
+	
 
 	// SEARCH (Apache Lucene) -------------------------------------------
 	//

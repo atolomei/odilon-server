@@ -121,11 +121,14 @@ public abstract class SchedulerWorker implements Runnable {
 		this.virtualFileSystemService = virtualFileSystemService;
 	}
 
+	
+	protected abstract long workerSistaDef();
+	
 	public void start() {
 
 		this.poolSize = getPoolSize();
 
-		setSiestaMillisecs(getVirtualFileSystemService().getServerSettings().getSchedulerSiestaSecs() * 1000);
+		setSiestaMillisecs( workerSistaDef() );
 
 		this.dispatcher = new Dispatcher(getId(), 1, this.poolSize);
 		this.thread = new Thread(this);

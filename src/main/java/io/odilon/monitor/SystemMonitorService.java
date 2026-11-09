@@ -102,8 +102,7 @@ public class SystemMonitorService extends BaseService implements SystemService {
 	private OdilonCounter deleteObjectVersionCounter;
 
 	/**
-	 * ---------------------------- OBJECT VERSION CONTROL
-	 * ----------------------------
+	 * ---------------------------- OBJECT VERSION CONTROL -----------------
 	 */
 
 	@JsonIgnore
@@ -575,6 +574,7 @@ public class SystemMonitorService extends BaseService implements SystemService {
 		set(me.decryptVaultMeter, this.decryptVaultMeter);
 
 		return me;
+		
 	}
 
 	/**
@@ -730,7 +730,7 @@ public class SystemMonitorService extends BaseService implements SystemService {
 
 	/** rates are not computed in-process anymore (see Prometheus rate()) */
 	private void set(double[] v, OdilonMeter m) {
-		v[0] = 0.0;
+		v[0] = Double.valueOf( m.getCount() );
 		v[1] = 0.0;
 		v[2] = 0.0;
 	}

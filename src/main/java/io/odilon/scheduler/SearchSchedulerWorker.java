@@ -31,7 +31,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import io.odilon.log.Logger;
 import io.odilon.model.ServerConstant;
-import io.odilon.model.ServiceStatus;
+
 import io.odilon.model.SharedConstant;
 import io.odilon.util.Check;
 import io.odilon.virtualFileSystem.model.VirtualFileSystemOperation;
@@ -225,7 +225,7 @@ public class SearchSchedulerWorker extends SchedulerWorker {
 
 		this.executing = new ConcurrentHashMap<Serializable, ServiceRequest>(16, 0.9f, 1);
 		this.failed = new ConcurrentSkipListMap<Serializable, ServiceRequest>();
-	
+
 		startuplogger.debug("Started -> " + getClass().getSimpleName());
 		startuplogger.debug(ServerConstant.SEPARATOR);
 	}
@@ -300,5 +300,10 @@ public class SearchSchedulerWorker extends SchedulerWorker {
 		}
 
 		return true;
+	}
+
+	@Override
+	protected long workerSistaDef() {
+		return getVirtualFileSystemService().getServerSettings().getSchedulerSearchSiestaSecs() * 1000;
 	}
 }

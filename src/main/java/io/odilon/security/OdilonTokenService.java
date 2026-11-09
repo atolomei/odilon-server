@@ -65,7 +65,7 @@ public class OdilonTokenService extends BaseService implements TokenService, App
 
 	static private Logger startuplogger = Logger.getLogger("StartupLogger");
 
-	// static private String salt = randomString(20);
+	static private Logger logger = Logger.getLogger(OdilonTokenService.class.getName());
 
 	@JsonIgnore
 	private String s_salt;
@@ -121,6 +121,8 @@ public class OdilonTokenService extends BaseService implements TokenService, App
 			return Base64.getEncoder().encodeToString(encCipher.doFinal(token.toJSON().getBytes("UTF-8")));
 
 		} catch (IllegalBlockSizeException | BadPaddingException | UnsupportedEncodingException | NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | InvalidAlgorithmParameterException e) {
+	
+			logger.error(e, "encrypt | could not encrypt token -> " + (token!=null?token.toJSON():"null"));
 			throw new InternalCriticalException(e, "encrypt");
 		}
 
@@ -147,6 +149,7 @@ public class OdilonTokenService extends BaseService implements TokenService, App
 			return getObjectMapper().readValue(str, AuthToken.class);
 
 		} catch (Exception e) {
+			logger.error(e, "decrypt | could not parse token -> " + (str!=null?str:"null"));
 			throw new InternalCriticalException(e, "decrypt");
 		}
 	}
@@ -202,11 +205,13 @@ public class OdilonTokenService extends BaseService implements TokenService, App
 
 			catch (InternalCriticalException e) {
 				setStatus(ServiceStatus.STOPPED);
+				logger.error(e, "onInitialize | could not initialize token service");
 				throw e;
 			}
 
 			catch (Exception e) {
 				setStatus(ServiceStatus.STOPPED);
+				logger.error(e, "onInitialize | could not initialize token service");
 				throw new InternalCriticalException(e, "onInitialize");
 			}
 

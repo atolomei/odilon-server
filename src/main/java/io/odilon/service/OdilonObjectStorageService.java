@@ -137,15 +137,6 @@ public class OdilonObjectStorageService extends BaseService implements ObjectSto
 			throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Data Storage is in WORM mode, invalid operation");
 	}
 
-	private void checkValidWORMOperation() {
-
-		if (getDataStorage() != DataStorage.WORM)
-			return;
-
-		throw new OdilonServerAPIException(ODHttpStatus.METHOD_NOT_ALLOWED, ErrorCode.API_NOT_ENABLED, "Data Storage is in WORM mode, invalid operation");
-
-	}
-
 	/**
 	 * Services provided by Spring
 	 * 

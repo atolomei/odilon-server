@@ -87,8 +87,10 @@ public class CronJobSchedulerWorker extends SchedulerWorker {
 			final ZonedDateTime time = job.getTime();
 
 			if (now.isAfter(time) || now.isEqual(time)) {
-				/** pollFirst is not guaranteed to return the same element as first() in a
-				 *  concurrent scenario; guard against null */
+				/**
+				 * pollFirst is not guaranteed to return the same element as first() in a
+				 * concurrent scenario; guard against null
+				 */
 				job = getCronJobList().pollFirst();
 				if (job == null) {
 					done = true;
@@ -99,8 +101,10 @@ public class CronJobSchedulerWorker extends SchedulerWorker {
 						dispatch(job);
 				} catch (Exception e) {
 					logger.error(e, SharedConstant.NOT_THROWN);
-					/** do NOT set done=true here: a single job failure should not
-					 *  stop processing of remaining due cron jobs */
+					/**
+					 * do NOT set done=true here: a single job failure should not stop processing of
+					 * remaining due cron jobs
+					 */
 				}
 			} else {
 				done = true;
@@ -108,6 +112,13 @@ public class CronJobSchedulerWorker extends SchedulerWorker {
 		}
 	}
 
+	@Override
+	protected long workerSistaDef() {
+		return getVirtualFileSystemService().getServerSettings().getSchedulerSiestaSecs() * 1000;
+	}
+
+	
+	
 	@Override
 	protected boolean isWork() {
 		return false;
