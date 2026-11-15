@@ -13,7 +13,7 @@
 
 	<groupId>io.odilon</groupId>
 	<artifactId>odilon-server</artifactId>
-	<version>3.0</version>
+	<version>3.1</version>
 	<name>odilon server</name>
 
 	<description>
@@ -34,7 +34,7 @@
 		<java.version>17</java.version>
 		<oswego-version>1.3.4</oswego-version>
 		<spring-vault-core>4.0.1</spring-vault-core>
-		<odilon-client-version>3.0</odilon-client-version>
+		<odilon-client-version>3.1</odilon-client-version>
 		<springdoc.version>2.8.9</springdoc.version>
 		<lucene.version>10.5.1</lucene.version>
 		<wicket-version>10.0.0</wicket-version>

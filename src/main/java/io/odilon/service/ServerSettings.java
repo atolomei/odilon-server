@@ -121,7 +121,7 @@ public class ServerSettings implements JSONObject {
 	 * read-only monitoring user (Prometheus). Both must be set, otherwise the
 	 * monitor user is not created
 	 */
-	@Value("${monitor.accessKey:}")
+	@Value("${monitor.accessKey:monitor}")
 	protected String monitorAccessKey;
 
 	@Value("${monitor.secretKey:}")
@@ -136,6 +136,39 @@ public class ServerSettings implements JSONObject {
 
 	@Value("${server.mode:master}") /** server.mode = master | standby */
 	protected String serverMode;
+
+	/** unique server name, used as the "instance_name" metrics label */
+	@Value("${server.name:#{null}}")
+	protected String serverName;
+
+	/** production | testing | development, used as the "environment" metrics label */
+	@Value("${server.environment:production}")
+	protected String serverEnvironment;
+
+	/** unique server name. Default: host name */
+	public String getServerName() {
+		if (serverName != null && !serverName.trim().isEmpty())
+			return serverName.trim();
+		try {
+			return java.net.InetAddress.getLocalHost().getHostName();
+		} catch (Exception e) {
+			return "odilon";
+		}
+	}
+
+	/** production | testing | development (default production) */
+	public String getServerEnvironment() {
+		String e = serverEnvironment != null ? serverEnvironment.trim().toLowerCase() : "";
+		if (e.equals("production") || e.equals("testing") || e.equals("development"))
+			return e;
+		logger.warn("invalid server.environment -> " + serverEnvironment + " | using 'production'. Valid values: production, testing, development");
+		return "production";
+	}
+
+	/** master | standby (from server.mode) */
+	public String getServerRole() {
+		return STANDBY.equalsIgnoreCase(serverMode) ? STANDBY : MASTER;
+	}
 
 	/** Version Control. by default disabled **/
 	@Deprecated

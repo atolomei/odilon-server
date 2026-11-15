@@ -543,8 +543,17 @@ public class SystemMonitorService extends BaseService implements SystemService {
 
 		MetricsValues me = new MetricsValues();
 
+		/** deprecated rate arrays: kept only for backward compatibility with older clients */
 		set(me.getObjectMeter, this.getObjectMeter);
 		set(me.putObjectMeter, this.putObjectMeter);
+
+		me.getObjectCounter = this.getObjectMeter.getCount();
+		me.putObjectCounter = this.putObjectMeter.getCount();
+		me.apiCallCounter = this.allAPICallMeter.getCount();
+		me.encryptFileCounter = this.encrpytFileMeter.getCount();
+		me.decryptFileCounter = this.decryptFileMeter.getCount();
+		me.encryptVaultCounter = this.encryptVaultMeter.getCount();
+		me.decryptVaultCounter = this.decryptVaultMeter.getCount();
 
 		me.createObjectCounter = this.createObjectCounter.getCount();
 		me.updateObjectCounter = this.updateObjectCounter.getCount();
@@ -584,7 +593,7 @@ public class SystemMonitorService extends BaseService implements SystemService {
 
 		Map<String, Object> map = new HashMap<String, Object>();
 
-		map.put("apiAllMeter", getString(this.allAPICallMeter));
+		map.put("apiCallCounter", String.valueOf(this.allAPICallMeter.getCount()));
 
 		map.put("cacheObjectHitCounter", String.valueOf(this.cacheObjectHitCounter.getCount()));
 		map.put("cacheObjectMissCounter", String.valueOf(this.cacheObjectMissCounter.getCount()));
@@ -606,14 +615,14 @@ public class SystemMonitorService extends BaseService implements SystemService {
 		map.put("objectRestorePreviousVersionCounter", String.valueOf(this.objectRestorePreviousVersionCounter.getCount()));
 		map.put("objectDeleteAllVersionsCounter", String.valueOf(this.objectDeleteAllVersionsCounter.getCount()));
 
-		map.put("objectGetMeter", getString(this.getObjectMeter));
-		map.put("objectPutMeter", getString(this.putObjectMeter));
+		map.put("objectGetCounter", String.valueOf(this.getObjectMeter.getCount()));
+		map.put("objectPutCounter", String.valueOf(this.putObjectMeter.getCount()));
 
-		map.put("encrpytFileMeter", getString(this.encrpytFileMeter));
-		map.put("decryptFileMeter", getString(this.decryptFileMeter));
+		map.put("encryptFileCounter", String.valueOf(this.encrpytFileMeter.getCount()));
+		map.put("decryptFileCounter", String.valueOf(this.decryptFileMeter.getCount()));
 
-		map.put("vaultEncryptMeter", getString(this.encryptVaultMeter));
-		map.put("vaultDecryptMeter", getString(this.decryptVaultMeter));
+		map.put("vaultEncryptCounter", String.valueOf(this.encryptVaultMeter.getCount()));
+		map.put("vaultDecryptCounter", String.valueOf(this.decryptVaultMeter.getCount()));
 
 		if (serverSettings.isStandByEnabled()) {
 			map.put("replicaObjectCreate", String.valueOf(this.replicaCreateObject.getCount()));
@@ -721,11 +730,6 @@ public class SystemMonitorService extends BaseService implements SystemService {
 			logger.debug("SystemMonitorService initialized ");
 
 		}
-	}
-
-	/** Micrometer has no 1/5/15 min moving averages -> Grafana computes rates with rate() */
-	private String getString(OdilonMeter meter) {
-		return String.valueOf(meter.getCount()) + " (total; rates: see Prometheus rate())";
 	}
 
 	/** rates are not computed in-process anymore (see Prometheus rate()) */
