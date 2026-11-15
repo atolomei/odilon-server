@@ -121,6 +121,15 @@ You can access the management console (by default http://localhost:9234) using a
 <img width="1676" height="1264" alt="grafana-odilon" src="https://github.com/user-attachments/assets/359b0be0-ca05-47bc-a12a-b911cde1bf4b" />
 
 
+<h3>How to configure Prometheus and Grafana</h3>
+<p>
+https://github.com/atolomei/odilon-server/tree/main/monitoring
+</p>
+
+<h3>How to start up Prometheus and Grafana to monitor Odilon (MacOS)</h3>
+<p>https://github.com/atolomei/odilon-server/blob/main/monitoring/odilon-prometheus-grafana-startup.md
+</p>
+
 
 <h2>Master Standby Architecture</h2>
 <p>Odilon supports Master - Standby Architecture for <b>disaster recovery</b>, <b>high availability</b>, <b>archival</b>, and <b>anti-ransomware</b> protection. Data replication is done asynchronously using HTTP/S over the local network or the Internet. Setting up a standby server is simple, just add the URL and credentials to the master configuration file and restart. 
