@@ -274,6 +274,10 @@ Current version of Odilon Server is <b>3.0</b>.
 <li><a href="https://odilon.io/configuration-version-control.html" target="_blank">Version Control</a></li>
 <li><a href="https://odilon.io/configuration-replication.html" target="_blank">Master-Standby replication</a></li>
 <li><a href="https://odilon.io/configuration-https.html" target="_blank">Configuring HTTPS</a></li>		
+<li><a href="[https://github.com/atolomei/odilon-server/tree/main/monitoring]" target="_blank">Monitoring with Grafana and Prometheus</a></li>		
+
+
+
 </ul>
 </p>
 
