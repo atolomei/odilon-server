@@ -9,7 +9,7 @@
 	(<a href="https://odilon.io" target="_blank">Odilon website</a>).
 </p>
 
-<p>Designed for small and medium-scale deployments (up to roughly 100 TB), it provides reliable storage for documents, images, audio, video, and other large files without the complexity of distributed systems.
+<p>Designed for small and medium-scale deployments (up to roughly 150 TB), it provides reliable storage for documents, images, audio, video, and other large files without the complexity of distributed systems.
 </p>
 
 <p>It includes encryption, software RAID, erasure coding, versioning, and Internet-based replication under a clear standard license with no hidden restrictions.
